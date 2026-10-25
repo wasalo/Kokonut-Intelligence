@@ -6,6 +6,7 @@ import json
 from inspect import getsourcefile
 from pathlib import Path
 
+from scripts.worker_effect_inventory import _classify
 from services.common.worker_environment import EVENT_HANDLER_WORKERS as _HANDLER_WORKER_KEYS
 from services.metrics.calculators import CALCULATORS
 from services.security.execution_allowlist import (
@@ -90,6 +91,39 @@ def test_effect_inventory_traces_current_event_runner_and_worker_secret_filter()
     assert dispatch["allowlisted_handler_targets"] == sorted(
         f"{module}.{function}" for module, function in ALLOWED_EVENT_HANDLERS
     )
+
+
+def test_effect_inventory_covers_path_resolution_and_open_descriptor_io():
+    aliases = {"Path": "pathlib.Path", "os": "os"}
+
+    assert _classify("Path.resolve", aliases, "services/ingestion/drivers/sensor_csv.py") == (
+        "filesystem",
+        "pathlib.Path.resolve",
+    )
+    assert _classify("Path.is_dir", aliases, "services/ingestion/drivers/sensor_csv.py") == (
+        "filesystem",
+        "pathlib.Path.is_dir",
+    )
+    for call in ("os.open", "os.fstat", "os.fdopen", "os.close"):
+        assert _classify(call, aliases, "services/ingestion/drivers/sensor_csv.py") == (
+            "filesystem",
+            call,
+        )
+
+    inventory = json.loads(EFFECT_PATH.read_text(encoding="utf-8"))
+    sensor_worker = next(
+        operation
+        for operation in inventory["operations"]
+        if operation["name"] == "services.ingestion.sensor_worker"
+    )
+    filesystem_calls = {
+        site["call"]
+        for site in sensor_worker["candidate_effect_sites"]
+        if site["category"] == "filesystem"
+    }
+    assert "pathlib.Path.expanduser.resolve" in filesystem_calls
+    assert "pathlib.Path.is_dir" in filesystem_calls
+    assert {"os.open", "os.fstat", "os.fdopen", "os.close"} <= filesystem_calls
 
 
 def test_sensor_anomaly_effect_contract_matches_source_operation_map():

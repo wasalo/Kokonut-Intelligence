@@ -1284,7 +1284,7 @@
     }
   ],
   "known_open_items": [
-    "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
+    "Finish reviewing transitive worker call/effect paths that are not statically resolved. The graph now includes the native sensor worker's literal code-allowlisted CSV driver class and method dispatch, and the effect inventory records its descriptor-safe file operations. Remaining uncertainty includes the legacy data-selected driver loader, arbitrary callbacks, provider internals, database-side behavior, and SQL sites outside current worker-root paths.",
     "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
     "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, market-data, sensor-ingestion, remote-sensing, EAS and RPC-indexer integrations remain default-off until credentials are provisioned and owner-approved candidate rollout plus schedule reconciliation are complete.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."

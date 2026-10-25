@@ -32,6 +32,85 @@ def _dotted(node: ast.AST) -> str | None:
     return None
 
 
+def _dotted_call_expression(node: ast.AST) -> str | None:
+    """Resolve chained calls like ``Path(...).expanduser().resolve()``."""
+    if isinstance(node, ast.Call):
+        return _dotted_call_expression(node.func)
+    if isinstance(node, ast.Attribute):
+        base = _dotted_call_expression(node.value)
+        return f"{base}.{node.attr}" if base else None
+    if isinstance(node, ast.Name):
+        return node.id
+    return None
+
+
+def _path_variable_names(function: ast.AST, aliases: dict[str, str]) -> set[str]:
+    """Track simple locals whose values are statically pathlib Path objects."""
+    assignments: list[tuple[set[str], ast.AST]] = []
+    pending = list(ast.iter_child_nodes(function))
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            continue
+        if isinstance(node, ast.Assign):
+            names = set().union(*(_target_names(target) for target in node.targets))
+            assignments.append((names, node.value))
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            assignments.append((_target_names(node.target), node.value))
+        pending.extend(ast.iter_child_nodes(node))
+
+    path_names: set[str] = set()
+    path_returning_methods = {"absolute", "expanduser", "relative_to", "resolve", "with_name", "with_suffix"}
+
+    def is_path_value(value: ast.AST) -> bool:
+        if isinstance(value, ast.Name):
+            return value.id in path_names
+        if isinstance(value, ast.BinOp) and isinstance(value.op, ast.Div):
+            return is_path_value(value.left) or is_path_value(value.right)
+        if isinstance(value, ast.IfExp):
+            return is_path_value(value.body) and is_path_value(value.orelse)
+        if isinstance(value, ast.Call):
+            expression = _dotted_call_expression(value.func)
+            if not expression:
+                return False
+            parts = expression.split(".")
+            normalized = ".".join([aliases.get(parts[0], parts[0]), *parts[1:]])
+            return normalized == "pathlib.Path" or (
+                normalized.startswith("pathlib.Path.")
+                and normalized.rsplit(".", 1)[-1] in path_returning_methods
+            ) or (parts[0] in path_names and parts[-1] in path_returning_methods)
+        return False
+
+    for _ in range(len(assignments) + 1):
+        changed = False
+        for names, value in assignments:
+            if names and is_path_value(value):
+                previous_count = len(path_names)
+                path_names.update(names)
+                changed |= len(path_names) != previous_count
+        if not changed:
+            break
+    return path_names
+
+
+def _target_names(target: ast.AST) -> set[str]:
+    if isinstance(target, ast.Name):
+        return {target.id}
+    if isinstance(target, (ast.Tuple, ast.List)):
+        return set().union(*(_target_names(item) for item in target.elts)) if target.elts else set()
+    return set()
+
+
+def _normalized_call_name(call: ast.Call, path_names: set[str]) -> str | None:
+    expression = _dotted_call_expression(call.func)
+    if not expression:
+        return None
+    parts = expression.split(".")
+    if parts[0] in path_names:
+        return ".".join(["Path", *parts[1:]])
+    return expression
+
+
 def _imports(tree: ast.Module) -> dict[str, str]:
     aliases: dict[str, str] = {}
     for node in ast.walk(tree):
@@ -175,6 +254,10 @@ def _classify(call_name: str, aliases: dict[str, str], source: str) -> tuple[str
         return "dynamic_import", normalized
     if normalized == "open" or lower in {
         "builtins.open",
+        "pathlib.path.resolve",
+        "pathlib.path.is_dir",
+        "pathlib.path.exists",
+        "pathlib.path.is_file",
         "pathlib.path.open",
         "pathlib.path.read_text",
         "pathlib.path.write_text",
@@ -183,6 +266,11 @@ def _classify(call_name: str, aliases: dict[str, str], source: str) -> tuple[str
         "pathlib.path.replace",
         "pathlib.path.rename",
         "os.open",
+        "os.fstat",
+        "os.fdopen",
+        "os.close",
+        "os.stat",
+        "os.lstat",
         "os.remove",
         "os.unlink",
         "os.replace",
@@ -196,7 +284,10 @@ def _classify(call_name: str, aliases: dict[str, str], source: str) -> tuple[str
         "tempfile.mkstemp",
         "tempfile.mkdtemp",
         "tempfile.namedtemporaryfile",
-    }:
+    } or (
+        lower.startswith("pathlib.path.")
+        and lower.rsplit(".", 1)[-1] in {"resolve", "is_dir", "exists", "is_file"}
+    ):
         return "filesystem", normalized
     if lower.startswith(("requests.", "httpx.", "urllib.request.", "aiohttp.", "services.common.http.")):
         return "http", normalized
@@ -261,8 +352,9 @@ def build_effect_inventory() -> dict:
             node = function_nodes[source].get(function["qualname"])
             if node is None:
                 continue
+            path_names = _path_variable_names(node, import_aliases[source])
             for call in _function_calls(node):
-                name = _dotted(call.func)
+                name = _normalized_call_name(call, path_names)
                 if not name:
                     continue
                 match = _classify(name, import_aliases[source], source)
@@ -300,7 +392,7 @@ def build_effect_inventory() -> dict:
     return {
         "version": 1,
         "generated_by": "scripts/worker_effect_inventory.py",
-        "reviewed": "2026-10-16",
+        "reviewed": "2026-10-25",
         "scope": (
             "High-confidence direct call patterns found inside the current static worker function-reachability graph. "
             "The operation graph conservatively includes some CLI branches that runtime command contracts reject. "

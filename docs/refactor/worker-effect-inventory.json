@@ -1,18 +1,18 @@
 {
   "version": 1,
   "generated_by": "scripts/worker_effect_inventory.py",
-  "reviewed": "2026-10-16",
+  "reviewed": "2026-10-25",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
     "operation_roots": 33,
-    "candidate_effect_sites": 38,
-    "operation_site_memberships": 52,
+    "candidate_effect_sites": 67,
+    "operation_site_memberships": 81,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 3,
       "evm_client_setup": 5,
       "evm_rpc": 8,
-      "filesystem": 8,
+      "filesystem": 37,
       "http": 12,
       "process": 1
     },
@@ -21,7 +21,7 @@
       "email_delivery": 6,
       "evm_client_setup": 5,
       "evm_rpc": 9,
-      "filesystem": 8,
+      "filesystem": 37,
       "http": 21,
       "process": 1
     }
@@ -193,6 +193,34 @@
         },
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 65,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 67,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
+          "category": "filesystem",
+          "call": "os.fstat"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 70,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 78,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
           "line": 115,
           "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
           "category": "filesystem",
@@ -200,15 +228,113 @@
         },
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 116,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
+          "category": "filesystem",
+          "call": "os.fstat"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 119,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 123,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
           "line": 141,
           "function": "services.ingestion.ml_anomaly_detector:_save_model_artifact",
           "category": "filesystem",
           "call": "os.open"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 143,
+          "function": "services.ingestion.ml_anomaly_detector:_save_model_artifact",
+          "category": "filesystem",
+          "call": "os.fstat"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 149,
+          "function": "services.ingestion.ml_anomaly_detector:_save_model_artifact",
+          "category": "filesystem",
+          "call": "os.fdopen"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 155,
+          "function": "services.ingestion.ml_anomaly_detector:_save_model_artifact",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 593,
+          "function": "services.ingestion.ml_anomaly_detector:save_models",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 630,
+          "function": "services.ingestion.ml_anomaly_detector:load_models",
+          "category": "filesystem",
+          "call": "os.fstat"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 640,
+          "function": "services.ingestion.ml_anomaly_detector:load_models",
+          "category": "filesystem",
+          "call": "os.fdopen"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 648,
+          "function": "services.ingestion.ml_anomaly_detector:load_models",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 661,
+          "function": "services.ingestion.ml_anomaly_detector:load_models",
+          "category": "filesystem",
+          "call": "os.fstat"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 670,
+          "function": "services.ingestion.ml_anomaly_detector:load_models",
+          "category": "filesystem",
+          "call": "os.fdopen"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 678,
+          "function": "services.ingestion.ml_anomaly_detector:load_models",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 682,
+          "function": "services.ingestion.ml_anomaly_detector:load_models",
+          "category": "filesystem",
+          "call": "os.close"
         }
       ],
       "category_counts": {
         "email_delivery": 3,
-        "filesystem": 6,
+        "filesystem": 24,
         "http": 1
       }
     },
@@ -560,10 +686,88 @@
           "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
           "category": "dynamic_import",
           "call": "importlib.import_module"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 47,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "pathlib.Path.expanduser.resolve"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 50,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "pathlib.Path.is_dir"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 74,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "os.open"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 81,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "os.open"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 87,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 90,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "os.open"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 95,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "os.fstat"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 100,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "os.fdopen"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 107,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 109,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "os.close"
+        },
+        {
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 110,
+          "function": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "category": "filesystem",
+          "call": "os.close"
         }
       ],
       "category_counts": {
-        "dynamic_import": 1
+        "dynamic_import": 1,
+        "filesystem": 11
       }
     },
     {

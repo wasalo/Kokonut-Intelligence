@@ -98,7 +98,7 @@ def build_preflight() -> dict:
                 {source for operation in source_closure["operations"] for source in operation["source_files"]}
             ),
             "unresolved_local_module_count": unresolved_module_count,
-            "known_allowlisted_dynamic_import_site_count": len(dynamic_import_sites),
+            "dynamic_import_site_count": len(dynamic_import_sites),
             "passed": source_coverage_passes,
         },
         "worker_identity": {
@@ -123,7 +123,7 @@ def build_preflight() -> dict:
         },
         "limitations": [
             "A SQL site outside the current worker-root graph is not proven dead or unreachable.",
-            "The known EventBus allowlisted handler dispatch is represented as separate operation roots; other dynamic callbacks may remain.",
+            "The EventBus handler dispatch and code-allowlisted scheduled sensor-driver dispatch are represented in source inventories; the legacy data-selected driver loader and other dynamic callbacks remain open.",
             "This static report is not a database ACL, tenant policy, or authorization decision.",
             "No database, migration, or secret was accessed.",
         ],

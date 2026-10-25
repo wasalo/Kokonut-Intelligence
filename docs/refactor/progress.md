@@ -18727,3 +18727,28 @@ parity, universal ACL/RLS, SMTP, and MAN-CAP-027 owner acceptance remain open.
 CAP-027 remains prepared. Checklist: 1,189 complete / 25 open (1,214 total);
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 capabilities.
+
+## Implementation update — scheduled sensor-driver source/effect tracing (25 October 2026)
+
+The worker function graph now resolves the native scheduled sensor worker's
+literal `SCHEDULED_SENSOR_DRIVER_TARGETS` dispatch to the `sensor_csv` class,
+its inherited constructor, `discover`, `fetch_scheduled`, and `transform`
+methods, plus the driver's `fetch_stream` helper. The effect inventory records
+the constrained path resolution, directory check, descriptor opens, file
+metadata, stream wrapping, and descriptor cleanup. The graph now covers 33
+operation roots, 99 source files, 701 function memberships, 952 direct-call
+edges, and 24 literal registry-dispatch edges. The effect inventory covers 67
+candidate sites across 81 operation/site memberships, including 37 filesystem
+sites. A 47-test worker graph/effect/preflight/SQL selection passes; Ruff,
+compilation, generated inventory checks, and capability-matrix validation
+pass. The static preflight remains `review_required`: it lists 342 SQL sites,
+75 without a static worker-function path, and does not assess database grants
+or enabled schedules. The legacy data-selected driver loader and arbitrary
+callback/provider/database-side behavior remain open. No database, provider,
+candidate, or legacy service was used ([worker map](worker-operation-map.md);
+[graph](worker-function-reachability.json);
+[effects](worker-effect-inventory.json);
+[preflight](worker-boundary-preflight.json);
+[evidence](builds/2026-10-25-recovery/scheduled-sensor-driver-static-callgraph.json)).
+Checklist: 1,190 complete / 25 open (1,215 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 capabilities.

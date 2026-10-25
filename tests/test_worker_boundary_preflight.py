@@ -34,12 +34,13 @@ def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(repo
     assert coverage["missing_function_graph_operations"] == []
     assert coverage["unresolved_function_roots"] == 0
     assert coverage["passed"] is True
-    assert report["source_closure"]["known_allowlisted_dynamic_import_site_count"] == 3
+    assert report["source_closure"]["dynamic_import_site_count"] == 3
     assert report["source_closure"]["passed"] is True
     assert report["worker_identity"]["signed_tenant_context_established_by_dispatch"] is False
     assert report["worker_identity"]["unbound_operation_root_count"] == coverage["expected_operation_count"]
     assert report["worker_identity"]["status"] == "not_tenant_bound"
     assert report["status"] == "review_required"
+    assert any("code-allowlisted scheduled sensor-driver dispatch" in item for item in report["limitations"])
 
 
 def test_preflight_lists_unmatched_sql_without_query_text_or_database_claims(report):

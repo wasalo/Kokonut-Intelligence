@@ -4,12 +4,12 @@
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 33,
-    "source_files": 97,
+    "source_files": 99,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 694,
-    "direct_call_edges": 949,
+    "function_memberships": 701,
+    "direct_call_edges": 952,
     "callback_edges": 0,
-    "dynamic_dispatch_edges": 20
+    "dynamic_dispatch_edges": 24
   },
   "operations": [
     {
@@ -8311,9 +8311,11 @@
         "services/core/adapters/clickhouse.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/drivers/base.py",
         "services/drivers/registry.py",
         "services/ingestion/base.py",
         "services/ingestion/config.py",
+        "services/ingestion/drivers/sensor_csv.py",
         "services/ingestion/field_validation.py",
         "services/ingestion/sensor_worker.py"
       ],
@@ -8345,6 +8347,22 @@
           "class_scope": null,
           "source": "services/common/cli.py",
           "line": 78
+        },
+        {
+          "key": "services.common.logging:get_logger",
+          "module": "services.common.logging",
+          "qualname": "get_logger",
+          "class_scope": null,
+          "source": "services/common/logging.py",
+          "line": 52
+        },
+        {
+          "key": "services.common.logging:setup_logging",
+          "module": "services.common.logging",
+          "qualname": "setup_logging",
+          "class_scope": null,
+          "source": "services/common/logging.py",
+          "line": 21
         },
         {
           "key": "services.common.tenant_context:_normalize_uuid",
@@ -8411,6 +8429,14 @@
           "line": 199
         },
         {
+          "key": "services.drivers.base:BaseDriver.__init__",
+          "module": "services.drivers.base",
+          "qualname": "BaseDriver.__init__",
+          "class_scope": "BaseDriver",
+          "source": "services/drivers/base.py",
+          "line": 33
+        },
+        {
           "key": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
           "module": "services.drivers.registry",
           "qualname": "DriverRegistry.load_schedulable_sensor_driver",
@@ -8425,6 +8451,38 @@
           "class_scope": null,
           "source": "services/ingestion/base.py",
           "line": 121
+        },
+        {
+          "key": "services.ingestion.drivers.sensor_csv:Driver.discover",
+          "module": "services.ingestion.drivers.sensor_csv",
+          "qualname": "Driver.discover",
+          "class_scope": "Driver",
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 25
+        },
+        {
+          "key": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "module": "services.ingestion.drivers.sensor_csv",
+          "qualname": "Driver.fetch_scheduled",
+          "class_scope": "Driver",
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 33
+        },
+        {
+          "key": "services.ingestion.drivers.sensor_csv:Driver.fetch_stream",
+          "module": "services.ingestion.drivers.sensor_csv",
+          "qualname": "Driver.fetch_stream",
+          "class_scope": "Driver",
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 113
+        },
+        {
+          "key": "services.ingestion.drivers.sensor_csv:Driver.transform",
+          "module": "services.ingestion.drivers.sensor_csv",
+          "qualname": "Driver.transform",
+          "class_scope": "Driver",
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 126
         },
         {
           "key": "services.ingestion.field_validation:build_dedupe_key",
@@ -8517,6 +8575,12 @@
       ],
       "direct_call_edges": [
         {
+          "caller": "services.common.logging:get_logger",
+          "callee": "services.common.logging:setup_logging",
+          "source": "services/common/logging.py",
+          "line": 59
+        },
+        {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
@@ -8545,6 +8609,18 @@
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
           "line": 110
+        },
+        {
+          "caller": "services.drivers.base:BaseDriver.__init__",
+          "callee": "services.common.logging:get_logger",
+          "source": "services/drivers/base.py",
+          "line": 35
+        },
+        {
+          "caller": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "callee": "services.ingestion.drivers.sensor_csv:Driver.fetch_stream",
+          "source": "services/ingestion/drivers/sensor_csv.py",
+          "line": 102
         },
         {
           "caller": "services.ingestion.field_validation:validate_sensor_reading",
@@ -8680,7 +8756,44 @@
         }
       ],
       "callback_edges": [],
-      "dynamic_dispatch_edges": []
+      "dynamic_dispatch_edges": [
+        {
+          "caller": "services.ingestion.sensor_worker:_prepare_records",
+          "callee": "services.drivers.base:BaseDriver.__init__",
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 109,
+          "dispatch": "literal_code_allowlisted_sensor_driver_registry",
+          "registry": "services.drivers.registry.SCHEDULED_SENSOR_DRIVER_TARGETS",
+          "registry_key": "sensor_csv"
+        },
+        {
+          "caller": "services.ingestion.sensor_worker:_prepare_records",
+          "callee": "services.ingestion.drivers.sensor_csv:Driver.discover",
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 128,
+          "dispatch": "literal_code_allowlisted_sensor_driver_registry",
+          "registry": "services.drivers.registry.SCHEDULED_SENSOR_DRIVER_TARGETS",
+          "registry_key": "sensor_csv"
+        },
+        {
+          "caller": "services.ingestion.sensor_worker:_prepare_records",
+          "callee": "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 141,
+          "dispatch": "literal_code_allowlisted_sensor_driver_registry",
+          "registry": "services.drivers.registry.SCHEDULED_SENSOR_DRIVER_TARGETS",
+          "registry_key": "sensor_csv"
+        },
+        {
+          "caller": "services.ingestion.sensor_worker:_prepare_records",
+          "callee": "services.ingestion.drivers.sensor_csv:Driver.transform",
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 142,
+          "dispatch": "literal_code_allowlisted_sensor_driver_registry",
+          "registry": "services.drivers.registry.SCHEDULED_SENSOR_DRIVER_TARGETS",
+          "registry_key": "sensor_csv"
+        }
+      ]
     },
     {
       "kind": "scheduled_module",

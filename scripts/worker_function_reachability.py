@@ -688,8 +688,160 @@ def _registered_metric_calculators(
     ]
 
 
+def _scheduled_sensor_driver_targets() -> list[dict[str, str]]:
+    """Read the literal code-owned registry for scheduled sensor driver loads."""
+    source = ROOT / "services/drivers/registry.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+    registry = None
+    for statement in tree.body:
+        if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+        if not any(isinstance(target, ast.Name) and target.id == "SCHEDULED_SENSOR_DRIVER_TARGETS" for target in targets):
+            continue
+        value = statement.value
+        if isinstance(value, ast.Call):
+            if _dotted_name(value.func) != "MappingProxyType" or len(value.args) != 1 or value.keywords:
+                raise ValueError("scheduled sensor driver registry must use a literal immutable mapping")
+            value = value.args[0]
+        if isinstance(value, ast.Dict):
+            registry = value
+        break
+
+    if registry is None:
+        raise ValueError("scheduled sensor driver registry must remain a literal dictionary")
+
+    targets = []
+    for name_node, target_node in zip(registry.keys, registry.values):
+        if (
+            not isinstance(name_node, ast.Constant)
+            or not isinstance(name_node.value, str)
+            or not isinstance(target_node, (ast.Tuple, ast.List))
+            or len(target_node.elts) != 3
+            or not all(isinstance(value, ast.Constant) and isinstance(value.value, str) for value in target_node.elts)
+        ):
+            raise ValueError("scheduled sensor driver target must contain literal name/module/class/type values")
+        module_path, class_name, driver_type = (value.value for value in target_node.elts)
+        targets.append(
+            {
+                "driver_name": name_node.value,
+                "module": module_path,
+                "class_name": class_name,
+                "driver_type": driver_type,
+            }
+        )
+    return targets
+
+
+def _class_method_target(
+    class_key: str,
+    method_name: str,
+    classes: dict[str, dict],
+    definitions: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+    seen: set[str] | None = None,
+) -> str | None:
+    """Resolve a method on a literal allowlisted class, including static bases."""
+    seen = set() if seen is None else seen
+    if class_key in seen or class_key not in classes:
+        return None
+    seen.add(class_key)
+    method_key = f"{class_key}.{method_name}"
+    if method_key in definitions:
+        return method_key
+    class_info = classes[class_key]
+    synthetic_function = {"module": class_info["module"]}
+    for base in class_info["node"].bases:
+        for base_key in sorted(_annotation_class_targets(base, synthetic_function, classes, contexts)):
+            resolved = _class_method_target(base_key, method_name, classes, definitions, contexts, seen)
+            if resolved:
+                return resolved
+    return None
+
+
+def _scheduled_sensor_driver_dispatches(
+    operation: dict,
+    definitions: dict[str, dict],
+    classes: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+) -> list[dict]:
+    """Link sensor worker dynamic class/method calls to its literal driver registry."""
+    if operation["name"] != "services.ingestion.sensor_worker":
+        return []
+
+    targets = _scheduled_sensor_driver_targets()
+    caller_key = "services.ingestion.sensor_worker:_prepare_records"
+    caller = definitions.get(caller_key)
+    if caller is None:
+        return []
+
+    function_node = caller["node"]
+    calls = []
+    pending = list(function_node.body)
+    while pending:
+        node = pending.pop()
+        if _nested_function_node(node, function_node):
+            continue
+        if isinstance(node, ast.Call):
+            calls.append(node)
+        pending.extend(ast.iter_child_nodes(node))
+
+    edges = []
+    method_calls = {
+        "discover": "discover",
+        "fetch_scheduled": "fetch_scheduled",
+        "transform": "transform",
+    }
+    for target in targets:
+        class_key = _class_key(target["module"], target["class_name"])
+        if class_key not in classes:
+            raise ValueError(f"scheduled sensor driver class is not in the source import closure: {class_key}")
+        for call in calls:
+            expression = _dotted_name(call.func)
+            method_name = None
+            if expression == "driver_class":
+                method_name = "__init__"
+            elif expression and expression.startswith("driver."):
+                method_name = method_calls.get(expression.partition(".")[2])
+            if method_name is None:
+                continue
+            callee = _class_method_target(class_key, method_name, classes, definitions, contexts)
+            if callee is None:
+                raise ValueError(
+                    "scheduled sensor driver target does not implement a statically resolvable "
+                    f"{method_name} method: {class_key}"
+                )
+            edges.append(
+                {
+                    "caller": caller_key,
+                    "callee": callee,
+                    "source": caller["source"],
+                    "line": call.lineno,
+                    "dispatch": "literal_code_allowlisted_sensor_driver_registry",
+                    "registry": "services.drivers.registry.SCHEDULED_SENSOR_DRIVER_TARGETS",
+                    "registry_key": target["driver_name"],
+                }
+            )
+    return edges
+
+
+def _dynamic_registry_source_files(operation: dict) -> list[str]:
+    """Include the literal scheduled-driver targets in the worker's source graph."""
+    if operation["name"] != "services.ingestion.sensor_worker":
+        return []
+    files = set()
+    for target in _scheduled_sensor_driver_targets():
+        closure = worker_source_closure._operation(
+            "dynamic_registry_target",
+            target["driver_name"],
+            [target["module"]],
+        )
+        files.update(closure["source_files"])
+    return sorted(files)
+
+
 def _operation_graph(operation: dict) -> dict:
-    source_files = operation["source_files"]
+    source_files = sorted(set(operation["source_files"]) | set(_dynamic_registry_source_files(operation)))
     trees, modules_by_source = _collect_modules(source_files)
     known_modules = set(trees)
     definitions = {}
@@ -708,6 +860,9 @@ def _operation_graph(operation: dict) -> dict:
 
     roots = _operation_roots(operation, modules_by_source, trees, contexts, definitions)
     registered_edges = _registered_metric_calculators(modules_by_source, trees, contexts, definitions)
+    registered_edges.extend(
+        _scheduled_sensor_driver_dispatches(operation, definitions, classes, contexts)
+    )
     registered_by_caller: dict[str, list[dict]] = defaultdict(list)
     for edge in registered_edges:
         registered_by_caller[edge["caller"]].append(edge)
@@ -792,7 +947,7 @@ def _operation_graph(operation: dict) -> dict:
 def build_inventory() -> dict:
     closure = worker_source_closure.build_inventory()
     operations = [_operation_graph(operation) for operation in closure["operations"]]
-    source_files = {source for operation in closure["operations"] for source in operation["source_files"]}
+    source_files = {source for operation in operations for source in operation["source_files"]}
     return {
         "version": 1,
         "generated_by": "scripts/worker_function_reachability.py",

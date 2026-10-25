@@ -17,7 +17,7 @@
   "source_closure": {
     "source_file_count": 97,
     "unresolved_local_module_count": 0,
-    "known_allowlisted_dynamic_import_site_count": 3,
+    "dynamic_import_site_count": 3,
     "passed": true
   },
   "worker_identity": {
@@ -418,7 +418,7 @@
   },
   "limitations": [
     "A SQL site outside the current worker-root graph is not proven dead or unreachable.",
-    "The known EventBus allowlisted handler dispatch is represented as separate operation roots; other dynamic callbacks may remain.",
+    "The EventBus handler dispatch and code-allowlisted scheduled sensor-driver dispatch are represented in source inventories; the legacy data-selected driver loader and other dynamic callbacks remain open.",
     "This static report is not a database ACL, tenant policy, or authorization decision.",
     "No database, migration, or secret was accessed."
   ]

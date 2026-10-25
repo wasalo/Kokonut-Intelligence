@@ -59,7 +59,10 @@ def test_worker_function_graph_covers_allowlisted_entrypoints_and_edges():
             assert edge["callee"] in functions
             assert edge["source"] in sources
             assert edge["line"] > 0
-            assert edge["dispatch"] == "literal_function_registry"
+            assert edge["dispatch"] in {
+                "literal_function_registry",
+                "literal_code_allowlisted_sensor_driver_registry",
+            }
 
     event_roots = {
         root["function"]
@@ -107,6 +110,39 @@ def test_graph_tracks_instance_methods_and_literal_metric_registry_dispatch():
         "first_time_through_yield_pct",
         "rework_rate_pct",
     }
+
+
+def test_graph_traces_code_allowlisted_scheduled_sensor_driver_methods():
+    inventory = build_inventory()
+    operation = next(
+        item
+        for item in inventory["operations"]
+        if item["name"] == "services.ingestion.sensor_worker"
+    )
+    functions = {function["key"] for function in operation["reachable_functions"]}
+    expected = {
+        "services.drivers.base:BaseDriver.__init__",
+        "services.ingestion.drivers.sensor_csv:Driver.discover",
+        "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+        "services.ingestion.drivers.sensor_csv:Driver.fetch_stream",
+        "services.ingestion.drivers.sensor_csv:Driver.transform",
+    }
+    assert expected <= functions
+    assert "services/ingestion/drivers/sensor_csv.py" in operation["source_files"]
+
+    dispatches = [
+        edge
+        for edge in operation["dynamic_dispatch_edges"]
+        if edge["dispatch"] == "literal_code_allowlisted_sensor_driver_registry"
+    ]
+    assert {edge["callee"] for edge in dispatches} == {
+        "services.drivers.base:BaseDriver.__init__",
+        "services.ingestion.drivers.sensor_csv:Driver.discover",
+        "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+        "services.ingestion.drivers.sensor_csv:Driver.transform",
+    }
+    assert {edge["registry_key"] for edge in dispatches} == {"sensor_csv"}
+    assert all(edge["caller"] == "services.ingestion.sensor_worker:_prepare_records" for edge in dispatches)
 
 
 def test_graph_follows_shared_cli_run_callback_to_the_actual_command_body():

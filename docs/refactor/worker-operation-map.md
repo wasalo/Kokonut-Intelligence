@@ -1,6 +1,6 @@
 # Kernel worker operation map
 
-**Reviewed:** 17 October 2026
+**Reviewed:** 25 October 2026
 
 **Status:** entrypoint inventory, scheduler argument contracts, static
 local-import closure, signed worker identity primitive, and transaction-bound
@@ -19,7 +19,7 @@ local candidate, while all isolated worker features remain default-off. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 24 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
+the exact 26 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -64,12 +64,15 @@ application-wide RLS or proof for other workers.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  24 scheduled modules and seven allowlisted handler pairs. It covers 93
-  distinct local source files across 31 operation roots, with no unresolved
-  local modules and known dynamic import sites (EventBus handler dispatch
-  and driver registry lookup). EventBus dispatch is constrained by
-  `validate_event_handler` and the exact allowlist. Package `__main__.py`
-  entrypoints are included.
+  26 scheduled modules and seven allowlisted handler pairs. It covers 97
+  distinct local source files across 33 operation roots, with no unresolved
+  local modules and three distinct dynamic import sites. These include the
+  EventBus handler runner, the legacy data-selected driver loader, and the
+  code-allowlisted scheduled sensor-driver loader. EventBus dispatch is
+  constrained by `validate_event_handler` and the exact allowlist; the native
+  sensor worker's driver class and methods are linked from the immutable
+  source registry in the function graph. Package `__main__.py` entrypoints are
+  included.
 - Regenerate or verify the source closure with
   `python3 scripts/worker_source_closure.py --output docs/refactor/worker-source-closure.json`
   or `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`.
@@ -82,20 +85,23 @@ application-wide RLS or proof for other workers.
   function calls, module aliases, `self`/`cls` methods, and instance methods
   whose candidate types can be inferred locally. The `services.metrics`
   operation also records each of the 20 functions from its literal
-  `CALCULATORS` registry as an explicit registry-dispatch edge. The graph
+  `CALCULATORS` registry as an explicit registry-dispatch edge. The scheduled
+  sensor worker follows `SCHEDULED_SENSOR_DRIVER_TARGETS` to its literal CSV
+  driver class, inherited constructor, and `discover`, `fetch_scheduled`, and
+  `transform` methods. The graph
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 31
-  operation roots and 93 source files, entry functions reach 639 function
-  memberships through 875 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  command/request protocol rather than a local function call. Across 33
+  operation roots and 99 source files, entry functions reach 701 function
+  memberships through 952 direct-call and 24 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 322
-  Python `.execute` sites in those 93 files. It fingerprints 279 literal
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 342
+  Python `.execute` sites in those 97 statically imported files. It fingerprints 299 literal
   statements and flags 43 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
@@ -103,9 +109,9 @@ application-wide RLS or proof for other workers.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 322 sites to the operation graph without including SQL text or
-  values. It links 249 unique sites across 321 operation/site memberships;
-  73 sites have no current static function match, and each belongs to a
+  joins those 342 sites to the operation graph without including SQL text or
+  values. It links 267 unique sites across 344 operation/site memberships;
+  75 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -113,7 +119,7 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 31 operation roots and local imports, reports that the scheduler
+  confirms all 33 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
   RLS blocked. The anomaly, optional cache, NOI snapshot, current-weather,
   weather-forecast, climate, sensor-ingestion, and remote-sensing integrations establish
@@ -125,9 +131,13 @@ application-wide RLS or proof for other workers.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, and EVM call patterns. The current pass
-  finds 36 unique candidate sites across 46 operation/site memberships: HTTP
-  (13 unique / 22 memberships), email delivery (6), process (1), EVM RPC (3),
-  EVM client setup (4), filesystem (8), and dynamic import (1), across 31 operation roots. These are review candidates,
+  finds 67 unique candidate sites across 81 operation/site memberships: HTTP
+  (12 unique / 21 memberships), email delivery (3 / 6), process (1), EVM RPC
+  (8 / 9), EVM client setup (5 / 5), filesystem (37 / 37), and dynamic import
+  (1 / 2), across 33 operation roots. Filesystem matching includes path
+  resolution/directory checks, descriptor opens, metadata checks, and cleanup;
+  the scheduled CSV driver's constrained openat walk is visible in the
+  sensor-worker trace. These are review candidates,
   not confirmed runtime effects. Other worker roots may still conservatively
   include mutually exclusive CLI branches. The credit-adjustment schedule now
   uses a dedicated read-only entrypoint; the interactive issuance/retirement
@@ -147,7 +157,7 @@ application-wide RLS or proof for other workers.
   provider internals, arbitrary callbacks, database-side effects, or establish
   replay safety, tenant context, or database grants.
 - Source-pattern review covers all 43 composed/variable statements found by the
-  generated SQL inventory across 31 operation roots. The original 30-site
+  generated SQL inventory across 33 operation roots. The original 30-site
   review found that 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds
