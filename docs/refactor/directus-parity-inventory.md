@@ -24,13 +24,17 @@ Scoped Directus create and update filters validate known references against tena
 The schema has no explicit authenticated-operator-to-`staff` mapping. The
 existing `operator_governance_party_binding` links an operator to a canonical
 network party; it does not identify a `staff` row. Therefore Directus user UUIDs
-are no longer copied into the `staff` foreign keys `metric_proposal.reviewed_by`
-or `stakeholder_feedback_review.reviewer_id`. Feedback review actions keep the
-authenticated Directus user UUID in private review metadata and workflow
-history; `reviewer_id` stays null unless a real staff ID is supplied. Explicit
+are no longer copied into the `staff` foreign keys `metric_proposal.reviewed_by`,
+`impact_claim.reviewer_id`, or `stakeholder_feedback_review.reviewer_id`. Feedback
+review actions keep the authenticated Directus user UUID in private review
+metadata and workflow history; automated review records leave `reviewer_id`
+null unless a real staff ID is supplied. Impact-claim review dates are stamped
+without inventing a staff reviewer. Explicit
 staff references remain location-validated. This avoids false staff attribution
 but does not establish that an authenticated operator is the staff member named
-in an explicit reference. A reviewed operator-to-staff binding contract remains
+in an explicit reference. The 89-test extension suite, including regressions for metric-proposal,
+impact-claim, and feedback-review attribution, passes with the extension build
+and TypeScript check. A reviewed operator-to-staff binding contract remains
 open.
 
 The two legacy Directus schedules are now independent explicit opt-ins in the

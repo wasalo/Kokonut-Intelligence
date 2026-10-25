@@ -33,12 +33,10 @@ export function validateImpactClaim(payload: Record<string, any>): void {
 }
 
 export async function stampImpactClaimReview(
-  payload: Record<string, any>,
-  accountability?: Record<string, any>
+  payload: Record<string, any>
 ): Promise<Record<string, any>> {
   if (['verified', 'published', 'rejected'].includes(payload.status)) {
     payload.review_date = payload.review_date || new Date().toISOString().slice(0, 10);
-    if (accountability?.user) payload.reviewer_id = payload.reviewer_id || accountability.user;
   }
   return payload;
 }

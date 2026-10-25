@@ -11,18 +11,20 @@ an optional `reviewer_id` must map to same-location staff. The schema has no
 operator-to-staff crosswalk: `operator_governance_party_binding` identifies a
 network party, not a staff row. Feedback actions now retain the Directus actor
 in private review metadata instead of writing that UUID into the `staff.id`
-foreign key; metric proposal review updates no longer infer `reviewed_by` from
-the Directus user. Explicit staff references remain location-validated. The
-full Directus extension suite passes 87 tests, including request-transaction
+foreign key; metric proposal updates no longer infer `reviewed_by`, and
+impact-claim transitions no longer infer `reviewer_id`, from the Directus user.
+Explicit staff references remain location-validated. The full Directus extension
+suite passes 89 tests, including request-transaction
 parent-scope, foreign-parent denial, and actor/staff attribution regressions;
 the extension build and TypeScript check pass. The capability-matrix validator
 passes ([evidence](builds/2026-10-25-recovery/directus-reviewer-attribution-boundary.json);
+[impact-claim evidence](builds/2026-10-25-recovery/directus-impact-claim-review-attribution.json);
 [parent-scope evidence](builds/2026-10-25-recovery/directus-feedback-review-parent-scope.json)).
 No database, provider, Directus service, candidate, or legacy stack was
 accessed; no migration was needed. An explicit operator-to-staff binding,
 feedback-review read/update/delete parity, polymorphic MRV source references,
 and broader Directus field, relation, hook, and runtime parity remain open.
-Checklist: 1,150 complete / 25 open (1,175 total);
+Checklist: 1,151 complete / 25 open (1,176 total);
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows, with 0/67 named acceptance checks accepted.
 

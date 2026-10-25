@@ -12,7 +12,7 @@ import { enforceStakeholderGovernanceSafety } from './agent-safety.js';
 import { roleNameToSlug } from './roles.js';
 import { normalizeFeedbackPayload, validateStakeholderFeedback } from './feedback.js';
 import { handleMetricProposalUpdate, isValidMetricProposalTransition } from './metric-proposal.js';
-import { validateImpactClaim } from './impact-claim.js';
+import { stampImpactClaimReview, validateImpactClaim } from './impact-claim.js';
 import { enforceAgentTaskSafety, enforceAiSummarySafety, prepareAgentActionLog } from './agent-safety.js';
 
 describe('roleNameToSlug', () => {
@@ -173,6 +173,23 @@ describe('metric proposal workflow', () => {
 });
 
 describe('impact claim workflow', () => {
+  it('does not copy the Directus user UUID into the staff reviewer field', async () => {
+    const payload: Record<string, any> = { status: 'verified' };
+
+    await stampImpactClaimReview(payload);
+
+    expect(payload.review_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(payload).not.toHaveProperty('reviewer_id');
+  });
+
+  it('preserves an explicitly selected staff reviewer', async () => {
+    const payload: Record<string, any> = { status: 'verified', reviewer_id: 'staff-1' };
+
+    await stampImpactClaimReview(payload);
+
+    expect(payload.reviewer_id).toBe('staff-1');
+  });
+
   it('blocks public carbon claims below level 6', () => {
     expect(() => validateImpactClaim({
       public_claim: true,

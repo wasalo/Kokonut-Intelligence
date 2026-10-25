@@ -533,8 +533,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     const current = recordId ? await database('impact_claim').where('id', recordId).first() : {};
     validateImpactClaim({ ...(current || {}), ...payload });
     const validated = parseOrThrow(validateImpactClaimUpdate, payload);
-    const accountability = meta?.accountability;
-    await stampImpactClaimReview(validated, accountability);
+    await stampImpactClaimReview(validated);
     return await applyWorkflow('impact_claim', validated, meta);
   });
 
