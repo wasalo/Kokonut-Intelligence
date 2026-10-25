@@ -629,6 +629,17 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
             "graph_count": len(document.get("@graph", [])),
             "alignment_tier": document.get("kokonut:alignmentTier"),
             "cids_version": document.get("kokonut:cidsVersion"),
+            "source_scope": {
+                "location_id": location_id,
+                "views": [
+                    "kokonut_agent_source.cids_location",
+                    "kokonut_agent_source.cids_stakeholder_outcome",
+                    "kokonut_agent_source.cids_farm_impact_mapping",
+                    "kokonut_agent_source.cids_metric_value",
+                    "kokonut_agent_source.cids_stakeholder_feedback",
+                    "kokonut_agent_source.cids_impact_claim",
+                ],
+            },
         }
         output_errors = validate_output("cids_export", output)
         if output_errors:

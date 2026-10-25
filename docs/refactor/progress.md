@@ -18067,3 +18067,17 @@ acceptance remain open. Checklist: 1,160 complete / 25 open (1,185 total);
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows.
 [Evidence](builds/2026-10-25-recovery/cap-038-delphi-output-source-scope.json).
+
+### Progress addendum — CAP-038 CIDS export output source scope, 25 October 2026
+
+The CIDS worker now includes the six canonical signed source views and
+normalized location in required task output metadata. Four focused mocked
+checks pass, including mixed-case UUID normalization; Ruff, Python compilation,
+capability-matrix validation, and diff checks pass. No database, provider,
+candidate, or legacy service was touched. The view map identifies exporter
+inputs but adds no row-to-view linkage beyond the JSON-LD graph. Live OIDC,
+provisioned worker credentials/grants, populated parity, and MAN-CAP-038 owner
+acceptance remain open. Checklist: 1,161 complete / 25 open (1,186 total);
+matrix classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows.
+[Evidence](builds/2026-10-25-recovery/cap-038-cids-output-source-scope.json).

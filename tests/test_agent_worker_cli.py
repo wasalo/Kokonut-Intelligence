@@ -1903,6 +1903,8 @@ def test_source_only_cli_rejects_deterministic_summary_before_dispatch(monkeypat
 
 def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(monkeypatch):
     connection, cursor = _source_connection()
+    location_input = "00000000-0000-0000-0000-000000000aBc"
+    location_id = location_input.lower()
     events = []
     context_setter = MagicMock(
         side_effect=lambda *_args, **_kwargs: events.append("signed-context")
@@ -1924,7 +1926,7 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
     )
     monkeypatch.setattr("services.registry.cids_export.export_location", exporter)
 
-    result = worker_cli.run_worker_cids_export(LOCATION_ID)
+    result = worker_cli.run_worker_cids_export(location_input)
 
     statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
     assert statements == [
@@ -1937,17 +1939,17 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
     context_setter.assert_called_once_with(
         connection,
         credential="c" * 40,
-        location_id=LOCATION_ID,
+        location_id=location_id,
         resource="cids_export",
         action="read",
     )
     source_factory.assert_called_once_with("agent_cids_source")
     credential_reader.assert_called_once_with("agent_cids_source")
     exporter.assert_called_once_with(
-        connection, LOCATION_ID, source_schema="kokonut_agent_source"
+        connection, location_id, source_schema="kokonut_agent_source"
     )
     action_policy.assert_called_once_with(
-        "read", "cids_export", {"location_id": LOCATION_ID}
+        "read", "cids_export", {"location_id": location_id}
     )
     assert events == ["signed-context", "export"]
     assert result == {
@@ -1955,6 +1957,17 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
         "graph_count": 1,
         "alignment_tier": "essential",
         "cids_version": "3.2.0",
+        "source_scope": {
+            "location_id": location_id,
+            "views": [
+                "kokonut_agent_source.cids_location",
+                "kokonut_agent_source.cids_stakeholder_outcome",
+                "kokonut_agent_source.cids_farm_impact_mapping",
+                "kokonut_agent_source.cids_metric_value",
+                "kokonut_agent_source.cids_stakeholder_feedback",
+                "kokonut_agent_source.cids_impact_claim",
+            ],
+        },
     }
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()

@@ -37,6 +37,7 @@ def test_task_catalogue_contains_green_paper_agents() -> None:
 def test_output_validation_checks_required_fields() -> None:
     errors = validate_output("cids_export", {"graph_count": 1})
     assert "Missing required output field: document" in errors
+    assert "Missing required output field: source_scope" in errors
 
     ebf_errors = validate_output(
         "ebf_evidence_gap",
@@ -51,6 +52,10 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
         "graph_count": 1,
         "alignment_tier": "essential",
         "cids_version": "3.2.0",
+        "source_scope": {
+            "location_id": "a0000000-0000-4000-8000-000000000001",
+            "views": [],
+        },
     }
     assert validate_output("cids_export", valid) == []
     assert validate_output(
@@ -65,6 +70,10 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
             "graph_count": True,
             "alignment_tier": 3,
             "cids_version": "3.2.0",
+            "source_scope": {
+                "location_id": "a0000000-0000-4000-8000-000000000001",
+                "views": [],
+            },
         },
     )
     assert "Invalid output type for field: document (expected object)" in errors
@@ -196,6 +205,17 @@ def test_cids_agent_output_with_monkeypatch(monkeypatch) -> None:
         "graph_count": 1,
         "alignment_tier": "essential",
         "cids_version": "3.2.0",
+        "source_scope": {
+            "location_id": "a0000000-0000-4000-8000-000000000001",
+            "views": [
+                "kokonut_agent_source.cids_location",
+                "kokonut_agent_source.cids_stakeholder_outcome",
+                "kokonut_agent_source.cids_farm_impact_mapping",
+                "kokonut_agent_source.cids_metric_value",
+                "kokonut_agent_source.cids_stakeholder_feedback",
+                "kokonut_agent_source.cids_impact_claim",
+            ],
+        },
     }
     monkeypatch.setattr(worker_cli, "run_worker_cids_export", lambda _location_id: expected)
 

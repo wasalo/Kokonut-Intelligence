@@ -23,6 +23,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
             "graph_count": {"type": "integer", "required": True},
             "alignment_tier": {"type": "string", "required": True},
             "cids_version": {"type": "string", "required": True},
+            "source_scope": {"type": "object", "required": True},
         },
         "writes": [],
         "high_risk": False,
