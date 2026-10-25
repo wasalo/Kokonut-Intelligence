@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
 from copy import deepcopy
 from datetime import date
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -20,6 +22,31 @@ CIDS_SOURCE_VIEWS = (
     "kokonut_agent_source.cids_impact_claim",
 )
 _CIDS_SOURCE_RECORD_ID = re.compile(r"^[A-Za-z0-9:_-]{1,128}$")
+_CIDS_ARTIFACT_DIGEST = re.compile(r"^[a-f0-9]{64}$")
+
+
+def cids_artifact_sha256(
+    document: dict[str, Any], property_source_records: list[dict[str, Any]]
+) -> str:
+    """Hash the canonical exported JSON-LD document and its row-lineage sidecar."""
+
+    def json_default(value: Any) -> Any:
+        if isinstance(value, Decimal):
+            return float(value)
+        raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+    canonical = json.dumps(
+        {
+            "document": document,
+            "property_source_records": property_source_records,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+        default=json_default,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 TASK_CATALOGUE: dict[str, dict[str, Any]] = {
     "cids_export": {
@@ -498,6 +525,7 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
                 "location_id",
                 "views",
                 "property_source_records",
+                "artifact_sha256",
             }:
                 errors.append("Invalid CIDS source scope fields")
             location_id = source_scope.get("location_id")
@@ -564,7 +592,11 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
                 if isinstance(source_scope, dict)
                 else None
             )
-            if not isinstance(property_records, list) or len(property_records) != len(graph):
+            if (
+                not isinstance(graph, list)
+                or not isinstance(property_records, list)
+                or len(property_records) != len(graph)
+            ):
                 errors.append("Invalid CIDS property-to-row lineage coverage")
             else:
                 for node_index, (node, lineage) in enumerate(zip(graph, property_records)):
@@ -630,6 +662,19 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
                         if record_keys != sorted(set(record_keys)):
                             errors.append("Invalid CIDS property-to-row lineage ordering")
                             break
+            artifact_digest = source_scope.get("artifact_sha256")
+            if (
+                not isinstance(artifact_digest, str)
+                or _CIDS_ARTIFACT_DIGEST.fullmatch(artifact_digest) is None
+            ):
+                errors.append("Invalid CIDS artifact digest")
+            elif isinstance(document, dict) and isinstance(property_records, list):
+                try:
+                    expected_digest = cids_artifact_sha256(document, property_records)
+                except (TypeError, ValueError):
+                    expected_digest = None
+                if artifact_digest != expected_digest:
+                    errors.append("Invalid CIDS artifact digest")
     return errors
 
 

@@ -18467,3 +18467,20 @@ Checklist: 1,180 complete / 25 open (1,205 total); matrix classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 Evidence:
 [property-row lineage](builds/2026-10-25-recovery/cap-038-cids-property-row-lineage.json).
+
+### Progress addendum — CAP-038 CIDS artifact digest, 25 October 2026
+
+The signed CIDS result now includes a canonical SHA-256 digest over the
+JSON-LD document and its private property-row lineage sidecar. The registered
+task validator recomputes the digest and rejects a result whose document or
+lineage changed after hashing. Canonical JSON sorts object keys, preserves array
+order, rejects non-finite numbers, and serializes Decimal values consistently
+with the CIDS exporter. The focused CIDS export, task-validator, and worker
+selection passes 108 tests; Ruff, Python compilation, and diff checks pass. No
+migration, database, provider, candidate, or legacy service was used. The
+digest identifies this returned artifact; it is not a signature or retained
+source-content snapshot. Source snapshots, populated parity, runtime
+credentials/grants, and MAN-CAP-038 remain open. Checklist: 1,181 complete /
+25 open (1,206 total); matrix classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. Evidence:
+[CIDS artifact digest](builds/2026-10-25-recovery/cap-038-cids-artifact-digest.json).

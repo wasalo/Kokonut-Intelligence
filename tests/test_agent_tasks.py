@@ -8,6 +8,7 @@ from services.agents.safety import assess_agent_action
 from services.agents.tasks import (
     CIDS_SOURCE_VIEWS,
     TASK_CATALOGUE,
+    cids_artifact_sha256,
     get_task,
     list_tasks,
     validate_output,
@@ -40,6 +41,15 @@ def _lineage_for_node(node):
             ],
         }
     ]
+
+
+def _cids_source_scope(document, property_source_records):
+    return {
+        "location_id": "a0000000-0000-4000-8000-000000000001",
+        "views": list(CIDS_SOURCE_VIEWS),
+        "property_source_records": property_source_records,
+        "artifact_sha256": cids_artifact_sha256(document, property_source_records),
+    }
 
 
 def test_task_catalogue_contains_green_paper_agents() -> None:
@@ -81,18 +91,14 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
             "@id": ["kokonut_agent_source.cids_location"]
         },
     }
+    document = {"@graph": [node]}
+    lineage = _lineage_for_node(node)
     valid = {
-        "document": {
-            "@graph": [node]
-        },
+        "document": document,
         "graph_count": 1,
         "alignment_tier": "essential",
         "cids_version": "3.2.0",
-        "source_scope": {
-            "location_id": "a0000000-0000-4000-8000-000000000001",
-            "views": list(CIDS_SOURCE_VIEWS),
-            "property_source_records": _lineage_for_node(node),
-        },
+        "source_scope": _cids_source_scope(document, lineage),
     }
     assert validate_output("cids_export", valid) == []
     assert validate_output(
@@ -133,18 +139,14 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
             "@id": ["kokonut_agent_source.cids_location"]
         },
     }
+    document = {"@graph": [node]}
+    lineage = _lineage_for_node(node)
     valid_output = {
-        "document": {
-            "@graph": [node]
-        },
+        "document": document,
         "graph_count": 1,
         "alignment_tier": "essential",
         "cids_version": "3.2.0",
-        "source_scope": {
-            "location_id": "a0000000-0000-4000-8000-000000000001",
-            "views": list(CIDS_SOURCE_VIEWS),
-            "property_source_records": _lineage_for_node(node),
-        },
+        "source_scope": _cids_source_scope(document, lineage),
     }
     assert validate_output("cids_export", valid_output) == []
 
@@ -235,18 +237,14 @@ def test_cids_output_rejects_unmatched_or_unapproved_source_scope() -> None:
             "@id": ["kokonut_agent_source.cids_location"]
         },
     }
+    document = {"@graph": [node]}
+    lineage = _lineage_for_node(node)
     output = {
-        "document": {
-            "@graph": [node]
-        },
+        "document": document,
         "graph_count": 1,
         "alignment_tier": "essential",
         "cids_version": "3.2.0",
-        "source_scope": {
-            "location_id": "a0000000-0000-4000-8000-000000000001",
-            "views": list(CIDS_SOURCE_VIEWS),
-            "property_source_records": _lineage_for_node(node),
-        },
+        "source_scope": _cids_source_scope(document, lineage),
     }
     for location_id, views in (
         ("location-id", list(CIDS_SOURCE_VIEWS)),
@@ -269,16 +267,14 @@ def test_cids_output_rejects_malformed_property_to_row_lineage() -> None:
             "@id": ["kokonut_agent_source.cids_location"]
         },
     }
+    document = {"@graph": [node]}
+    lineage = _lineage_for_node(node)
     valid = {
-        "document": {"@graph": [node]},
+        "document": document,
         "graph_count": 1,
         "alignment_tier": "essential",
         "cids_version": "3.2.0",
-        "source_scope": {
-            "location_id": "a0000000-0000-4000-8000-000000000001",
-            "views": list(CIDS_SOURCE_VIEWS),
-            "property_source_records": _lineage_for_node(node),
-        },
+        "source_scope": _cids_source_scope(document, lineage),
     }
     assert validate_output("cids_export", valid) == []
     invalid_lineages = []
@@ -323,6 +319,50 @@ def test_cids_output_rejects_malformed_property_to_row_lineage() -> None:
     for source_scope in invalid_lineages:
         errors = validate_output("cids_export", {**valid, "source_scope": source_scope})
         assert any("CIDS property-to-row lineage" in error for error in errors)
+
+
+def test_cids_output_rejects_artifact_digest_mismatch() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
+    document = {"@graph": [node]}
+    lineage = _lineage_for_node(node)
+    valid = {
+        "document": document,
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": _cids_source_scope(document, lineage),
+    }
+    assert validate_output("cids_export", valid) == []
+    reordered_document = {"@graph": [dict(reversed(list(node.items())))]}
+    assert cids_artifact_sha256(reordered_document, lineage) == cids_artifact_sha256(
+        document, lineage
+    )
+    mutated = {**node, "hasName": "changed after digest"}
+    errors = validate_output(
+        "cids_export", {**valid, "document": {"@graph": [mutated]}}
+    )
+    assert "Invalid CIDS artifact digest" in errors
+    changed_lineage = _lineage_for_node(node)
+    changed_lineage[0]["properties"][0]["records"][0]["record_id"] = (
+        "a0000000-0000-4000-8000-000000000002"
+    )
+    errors = validate_output(
+        "cids_export",
+        {
+            **valid,
+            "source_scope": {
+                **valid["source_scope"],
+                "property_source_records": changed_lineage,
+            },
+        },
+    )
+    assert errors == ["Invalid CIDS artifact digest"]
 
 
 def test_task_input_validation_checks_required_types_and_formats() -> None:

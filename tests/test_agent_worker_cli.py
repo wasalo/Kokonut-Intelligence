@@ -10,6 +10,7 @@ import pytest
 
 from services.agents import worker_cli
 from services.agents.bio_factory_agent import BioFactorySynthesisAgent
+from services.agents.tasks import cids_artifact_sha256
 from services.common.worker_database import WorkerDatabaseConfigurationError
 
 LOCATION_ID = "00000000-0000-0000-0000-000000000123"
@@ -2003,6 +2004,9 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
                 "kokonut_agent_source.cids_impact_claim",
             ],
             "property_source_records": property_source_records,
+            "artifact_sha256": cids_artifact_sha256(
+                document, property_source_records
+            ),
         },
     }
     connection.rollback.assert_not_called()

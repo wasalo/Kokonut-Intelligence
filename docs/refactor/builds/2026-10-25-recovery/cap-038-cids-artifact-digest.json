@@ -1,0 +1,24 @@
+{
+  "slice": "CAP-038 CIDS canonical artifact digest",
+  "date": "2026-10-25",
+  "result": "passed",
+  "contract": "The signed worker returns a lowercase SHA-256 digest over canonical JSON containing the CIDS JSON-LD document and its property-to-row lineage sidecar. The registered task validator recomputes the digest before accepting the output.",
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_cids_export.py tests/test_agent_tasks.py tests/test_agent_worker_cli.py -q",
+      "result": "108 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "migration_required": false,
+  "database_touched": false,
+  "provider_touched": false,
+  "candidate_or_legacy_touched": false,
+  "limitations": [
+    "The digest is not a cryptographic signature and does not prove who produced or approved the artifact.",
+    "It binds the returned JSON-LD and row-lineage sidecar, not every source row's full content or a retained source-content snapshot.",
+    "Source snapshots, populated output parity, production credentials/grants, and MAN-CAP-038 owner acceptance remain open."
+  ]
+}

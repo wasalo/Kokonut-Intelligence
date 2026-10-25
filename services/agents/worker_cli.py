@@ -659,6 +659,7 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
     from services.agents.safety import assert_agent_action_allowed
     from services.agents.tasks import (
         CIDS_SOURCE_VIEWS,
+        cids_artifact_sha256,
         validate_output,
         validate_task_capabilities,
         validate_task_inputs,
@@ -705,6 +706,9 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
                 "location_id": location_id,
                 "views": list(CIDS_SOURCE_VIEWS),
                 "property_source_records": property_source_records,
+                "artifact_sha256": cids_artifact_sha256(
+                    document, property_source_records
+                ),
             },
         }
         output_errors = validate_output("cids_export", output)
