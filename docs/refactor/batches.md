@@ -19,10 +19,39 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,121 checklist items complete and 25
-open (1,146 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,122 checklist items complete and 25
+open (1,147 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 location-scoped recycling capture and legacy writer retirement — 24 October 2026
+
+- [x] Add `POST /operator/api/waste/{location_id}/recycling` under the exact
+  `waste_management:create` grant. Migration 615 installs an isolated
+  security-definer writer and private append-only SHA-256 receipt, preserves
+  supported category mapping and bounded freeform material labels, destination,
+  optional unclassified revenue, and notes, and writes only `recorded` rows.
+  The Gateway validates the exact payload before connecting; exact retries
+  replay and changed-input request-ID reuse conflicts. Runtime/Directus lose
+  direct recycling writes while retaining their existing SELECT scope. The
+  console independently gates a recycling form by the create grant, and the
+  unscoped helper/CLI now fail before cursor or database access. The focused
+  Gateway/read/write/console/route-policy/migration selection passes 134 tests
+  plus five subtests; Ruff, compilation, dependency-group alignment, matrix
+  validation, and diff checks pass. Disposable PostgreSQL 16 applies/replays
+  migrations 153/613/614/615 and verifies capture, retries, tenant denial,
+  receipt privacy, and isolated owners on native AMD64 and linux/arm64
+  Docker/QEMU ([native](builds/2026-10-24-recovery/cap-006-waste-compost-recycling-capture-disposable.json);
+  [ARM64/QEMU](builds/2026-10-24-recovery/cap-006-waste-compost-recycling-capture-arm64-disposable.json)).
+  QEMU is software portability evidence only; physical Raspberry Pi acceptance
+  remains open. The migration-153 legacy checker now uses synthetic verified
+  recycling fixtures and confirms all three unscoped waste/compost/recycling
+  writers fail closed. Candidate and legacy databases are untouched; migration
+  615 is not rolled out. Rollback disables the route, exact policy, and form;
+  retain additive schema and receipts if applied. CAP-006 remains prepared
+  pending populated parity, live OIDC/browser acceptance, full ACL/RLS and
+  Directus parity, incident write parity, and MAN-CAP-006 review. Checklist:
+  1,122 complete / 25 open (1,147 total).
 
 ### CAP-006 location-scoped composting capture — 24 October 2026
 

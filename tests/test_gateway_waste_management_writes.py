@@ -90,6 +90,20 @@ def _compost_payload(**changes):
     return payload
 
 
+def _recycling_payload(**changes):
+    payload = {
+        "request_id": str(uuid4()),
+        "record_date": date.today().isoformat(),
+        "material_type": "plastic",
+        "quantity_kg": "8.00",
+        "destination": "Recycling center",
+        "revenue": "12.50",
+        "notes": "Synthetic recycling entry",
+    }
+    payload.update(changes)
+    return payload
+
+
 def test_capture_sets_exact_signed_create_context_before_call_and_closes_connection(monkeypatch):
     connection = Connection()
     contexts = []
@@ -324,6 +338,76 @@ def test_invalid_composting_capture_fails_before_database_access(changes):
         )
 
 
+def test_recycling_capture_sets_exact_context_and_preserves_freeform_material(monkeypatch):
+    connection = Connection()
+    contexts = []
+    monkeypatch.setattr(
+        writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+    payload = _recycling_payload(material_type="Steel scrap")
+
+    result = writes.create_location_recycling_record(
+        _OPERATOR, _LOCATION, payload, connection_factory=lambda: connection
+    )
+
+    assert contexts == [(
+        connection,
+        {
+            "operator_id": _OPERATOR,
+            "location_id": _LOCATION,
+            "resource": "waste_management",
+            "action": "create",
+        },
+    )]
+    assert "create_location_recycling_record" in connection.operations[0][0]
+    assert connection.operations[0][1] == (
+        _LOCATION,
+        payload["request_id"],
+        date.today(),
+        "other",
+        "Steel scrap",
+        Decimal("8.00"),
+        "Recycling center",
+        Decimal("12.50"),
+        "Synthetic recycling entry",
+    )
+    assert result["status"] == "recorded"
+    assert connection.rollbacks == 1
+    assert connection.closed
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"record_date": (date.today() + timedelta(days=1)).isoformat()},
+        {"material_type": ""},
+        {"material_type": "x" * 101},
+        {"material_type": "steel\nscrap"},
+        {"material_type": 3},
+        {"quantity_kg": True},
+        {"quantity_kg": "0"},
+        {"quantity_kg": "1.001"},
+        {"destination": ""},
+        {"destination": "x" * 201},
+        {"revenue": "100000000"},
+        {"revenue": "1.001"},
+        {"notes": "bad\nnotes"},
+        {"extra": "field"},
+    ],
+)
+def test_invalid_recycling_capture_fails_before_database_access(changes):
+    def unexpected_connection():
+        raise AssertionError("invalid recycling input opened a database connection")
+
+    with pytest.raises(writes.WasteManagementWriteInvalid):
+        writes.create_location_recycling_record(
+            _OPERATOR, _LOCATION, _recycling_payload(**changes),
+            connection_factory=unexpected_connection,
+        )
+
+
 def test_http_capture_is_location_scoped_created_and_no_store(monkeypatch):
     from services.gateway import waste_management_routes
 
@@ -400,6 +484,48 @@ def test_http_composting_capture_is_location_scoped_created_and_no_store(monkeyp
     response = TestClient(app).post(
         f"/operator/api/waste/{_LOCATION}/composting",
         json=_compost_payload(),
+    )
+    assert response.status_code == 201
+    assert response.json()["location_id"] == _LOCATION
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_http_recycling_capture_is_location_scoped_created_and_no_store(monkeypatch):
+    from services.gateway import waste_management_routes
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    monkeypatch.setattr(
+        writes,
+        "create_location_recycling_record",
+        lambda operator, location, payload: {
+            "record_id": "55555555-5555-4555-8555-555555555555",
+            "location_id": location,
+            "record_date": date.today().isoformat(),
+            "status": "recorded",
+            "replayed": False,
+        },
+        raising=False,
+    )
+    app = FastAPI()
+    router = APIRouter()
+    waste_management_routes.register_waste_management_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=_OPERATOR)
+        )
+        return await call_next(request)
+
+    response = TestClient(app).post(
+        f"/operator/api/waste/{_LOCATION}/recycling",
+        json=_recycling_payload(),
     )
     assert response.status_code == 201
     assert response.json()["location_id"] == _LOCATION

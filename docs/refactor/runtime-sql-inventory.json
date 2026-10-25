@@ -11,23 +11,23 @@
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
-      "INSERT": 644,
+      "INSERT": 643,
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2810,
+      "SELECT": 2811,
       "SET": 607,
       "UNKNOWN": 205,
       "UPDATE": 430,
       "WITH": 29
     },
     "statement_groups": {
-      "read_candidate": 2810,
+      "read_candidate": 2811,
       "schema_change": 1,
       "transaction_or_session": 650,
       "unknown_requires_manual_review": 205,
       "with_requires_manual_review": 29,
-      "write_candidate": 1120
+      "write_candidate": 1119
     },
     "expression_kinds": {
       "composed": 19,
@@ -36,7 +36,7 @@
       "literal": 4230
     },
     "relation_candidates": 1206,
-    "sites_without_relation_candidates": 1130,
+    "sites_without_relation_candidates": 1131,
     "service_packages": 68
   },
   "service_packages": {
@@ -78,15 +78,15 @@
     },
     "analytics": {
       "source_files": 172,
-      "execution_sites": 1430,
+      "execution_sites": 1429,
       "statement_groups": {
         "read_candidate": 951,
         "transaction_or_session": 13,
         "unknown_requires_manual_review": 3,
         "with_requires_manual_review": 4,
-        "write_candidate": 459
+        "write_candidate": 458
       },
-      "candidate_relation_names": 528,
+      "candidate_relation_names": 527,
       "sites_without_relation_candidates": 105,
       "non_literal_sites": 186,
       "sites_with_worker_operation_refs": 38
@@ -366,16 +366,16 @@
     },
     "gateway": {
       "source_files": 126,
-      "execution_sites": 957,
+      "execution_sites": 958,
       "statement_groups": {
-        "read_candidate": 357,
+        "read_candidate": 358,
         "transaction_or_session": 540,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 4,
         "write_candidate": 38
       },
       "candidate_relation_names": 245,
-      "sites_without_relation_candidates": 627,
+      "sites_without_relation_candidates": 628,
       "non_literal_sites": 14,
       "sites_with_worker_operation_refs": 0
     },
@@ -1678,7 +1678,7 @@
     "readiness_dimension": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/regional_readiness.py"]},
     "readiness_location_weight": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/regional_readiness.py"]},
     "realized_impact_record": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/abundance/periodic.py"]},
-    "recycling_log": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/waste_management.py","services/gateway/waste_management_reads.py"]},
+    "recycling_log": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/waste_management_reads.py"]},
     "reference_class": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/predictions/service.py"]},
     "regenerative_credit_ledger": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/capital/credit.py"]},
     "regenerative_outcome_summary": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/multi_farm.py"]},
@@ -3660,18 +3660,17 @@
     {"id": "services/analytics/vision_mission.py:115:12","source": "services/analytics/vision_mission.py","line": 115,"column": 12,"scope": "approve_statement","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["vision_mission"],"static_sql_sha256": "0ae78cf12a13d8b82516c903956d0c0a9169d61440971be8d6994ce82ec4420a","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/analytics/vision_mission.py:131:12","source": "services/analytics/vision_mission.py","line": 131,"column": 12,"scope": "archive_statement","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["vision_mission"],"static_sql_sha256": "7675fa439413f5f4a0f8a82f9d0d91e09a80518d587374f973ec83d5367f96db","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/analytics/vision_mission.py:157:12","source": "services/analytics/vision_mission.py","line": 157,"column": 12,"scope": "get_current_statements","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["vision_mission"],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/waste_management.py:122:8","source": "services/analytics/waste_management.py","line": 122,"column": 8,"scope": "record_recycling","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["recycling_log"],"static_sql_sha256": "f0607ecb1070c786f08fb973c8b6abf879d1bb2eff78050ca216594eeb36a112","operation_refs": [],"statement_group": "write_candidate"},
-    {"id": "services/analytics/waste_management.py:187:8","source": "services/analytics/waste_management.py","line": 187,"column": 8,"scope": "report_incident","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["pollution_incident"],"static_sql_sha256": "3bc14bbf4596aa2315c046c96f4ee727d7805f10326ca9e0665afd1ce5905e1c","operation_refs": [],"statement_group": "write_candidate"},
-    {"id": "services/analytics/waste_management.py:229:8","source": "services/analytics/waste_management.py","line": 229,"column": 8,"scope": "resolve_incident","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["pollution_incident"],"static_sql_sha256": "08a648c07cc1f894297bb266c9be4856b31871c88e2f8e68da1aa02eddfbcd20","operation_refs": [],"statement_group": "write_candidate"},
-    {"id": "services/analytics/waste_management.py:272:8","source": "services/analytics/waste_management.py","line": 272,"column": 8,"scope": "get_waste_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["waste_stream"],"static_sql_sha256": "e8e85dfb298993f6a8511e1f03a876c48096aa6402f4a748ab86263af6bb1fc7","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/waste_management.py:289:8","source": "services/analytics/waste_management.py","line": 289,"column": 8,"scope": "get_waste_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["waste_stream"],"static_sql_sha256": "231fb4031a0d8119ea0001d003dd6421ce847f30bfcc5552f535bac59d08e40e","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/waste_management.py:306:8","source": "services/analytics/waste_management.py","line": 306,"column": 8,"scope": "get_waste_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["waste_stream"],"static_sql_sha256": "ccd31e1eae9e03ab04f5f61046fa251a4c1fc412ca0ed5261a18448c53db2234","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/waste_management.py:338:8","source": "services/analytics/waste_management.py","line": 338,"column": 8,"scope": "get_composting_efficiency","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["composting_record"],"static_sql_sha256": "860ccd8a5594aa1284a2e30caf1762a45a74a662ce2c834b49746004dc3aff1e","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/waste_management.py:362:8","source": "services/analytics/waste_management.py","line": 362,"column": 8,"scope": "get_composting_efficiency","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["composting_record"],"static_sql_sha256": "75234677abeb26df9d035ced1f49421b563c41757e01a058bb1584254f11f53f","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/waste_management.py:389:8","source": "services/analytics/waste_management.py","line": 389,"column": 8,"scope": "get_composting_efficiency","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["composting_record"],"static_sql_sha256": "3411561c1a08fd63280477392ff9b15e7bb5506ba9d7befe906146b2d4ba45bb","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/waste_management.py:426:8","source": "services/analytics/waste_management.py","line": 426,"column": 8,"scope": "get_open_incidents","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pollution_incident"],"static_sql_sha256": "79045f60c78c22c2dbbc84c38250b147fe28cc77939926ba35d30e9a85d18d40","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/waste_management.py:448:8","source": "services/analytics/waste_management.py","line": 448,"column": 8,"scope": "get_open_incidents","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pollution_incident"],"static_sql_sha256": "32984687da88d9805ca42174ecb532bca64407ae2b1fcfdf000359e472c81b19","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/waste_management.py:460:8","source": "services/analytics/waste_management.py","line": 460,"column": 8,"scope": "get_open_incidents","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pollution_incident"],"static_sql_sha256": "a373bb3e41aafc3e9b6480db3cf8b8e7eb8d5d843cfb206d02638f768d1a4741","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/waste_management.py:150:8","source": "services/analytics/waste_management.py","line": 150,"column": 8,"scope": "report_incident","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["pollution_incident"],"static_sql_sha256": "3bc14bbf4596aa2315c046c96f4ee727d7805f10326ca9e0665afd1ce5905e1c","operation_refs": [],"statement_group": "write_candidate"},
+    {"id": "services/analytics/waste_management.py:192:8","source": "services/analytics/waste_management.py","line": 192,"column": 8,"scope": "resolve_incident","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["pollution_incident"],"static_sql_sha256": "08a648c07cc1f894297bb266c9be4856b31871c88e2f8e68da1aa02eddfbcd20","operation_refs": [],"statement_group": "write_candidate"},
+    {"id": "services/analytics/waste_management.py:235:8","source": "services/analytics/waste_management.py","line": 235,"column": 8,"scope": "get_waste_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["waste_stream"],"static_sql_sha256": "e8e85dfb298993f6a8511e1f03a876c48096aa6402f4a748ab86263af6bb1fc7","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/waste_management.py:252:8","source": "services/analytics/waste_management.py","line": 252,"column": 8,"scope": "get_waste_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["waste_stream"],"static_sql_sha256": "231fb4031a0d8119ea0001d003dd6421ce847f30bfcc5552f535bac59d08e40e","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/waste_management.py:269:8","source": "services/analytics/waste_management.py","line": 269,"column": 8,"scope": "get_waste_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["waste_stream"],"static_sql_sha256": "ccd31e1eae9e03ab04f5f61046fa251a4c1fc412ca0ed5261a18448c53db2234","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/waste_management.py:301:8","source": "services/analytics/waste_management.py","line": 301,"column": 8,"scope": "get_composting_efficiency","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["composting_record"],"static_sql_sha256": "860ccd8a5594aa1284a2e30caf1762a45a74a662ce2c834b49746004dc3aff1e","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/waste_management.py:325:8","source": "services/analytics/waste_management.py","line": 325,"column": 8,"scope": "get_composting_efficiency","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["composting_record"],"static_sql_sha256": "75234677abeb26df9d035ced1f49421b563c41757e01a058bb1584254f11f53f","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/waste_management.py:352:8","source": "services/analytics/waste_management.py","line": 352,"column": 8,"scope": "get_composting_efficiency","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["composting_record"],"static_sql_sha256": "3411561c1a08fd63280477392ff9b15e7bb5506ba9d7befe906146b2d4ba45bb","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/waste_management.py:389:8","source": "services/analytics/waste_management.py","line": 389,"column": 8,"scope": "get_open_incidents","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pollution_incident"],"static_sql_sha256": "79045f60c78c22c2dbbc84c38250b147fe28cc77939926ba35d30e9a85d18d40","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/waste_management.py:411:8","source": "services/analytics/waste_management.py","line": 411,"column": 8,"scope": "get_open_incidents","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pollution_incident"],"static_sql_sha256": "32984687da88d9805ca42174ecb532bca64407ae2b1fcfdf000359e472c81b19","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/waste_management.py:423:8","source": "services/analytics/waste_management.py","line": 423,"column": 8,"scope": "get_open_incidents","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pollution_incident"],"static_sql_sha256": "a373bb3e41aafc3e9b6480db3cf8b8e7eb8d5d843cfb206d02638f768d1a4741","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/yield_monitoring.py:54:4","source": "services/analytics/yield_monitoring.py","line": 54,"column": 4,"scope": "record_yield_observation","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["harvest_yield_observation"],"static_sql_sha256": "744fa440820509652de4005a63047fcacc87478f3ae054fbc3225d06c837589f","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/analytics/yield_monitoring.py:94:4","source": "services/analytics/yield_monitoring.py","line": 94,"column": 4,"scope": "get_yield_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["harvest_yield_observation"],"static_sql_sha256": "489e35059d0a55f434c271ab80b0e5c1ce13bfb8145267ccc2aeb332fac20dce","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/yield_monitoring.py:114:4","source": "services/analytics/yield_monitoring.py","line": 114,"column": 4,"scope": "get_yield_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["harvest_yield_observation"],"static_sql_sha256": "d377040f0069532ef78e301dace1ab88c713fb297ed4fed6dd1caee4bdf4c2aa","operation_refs": [],"statement_group": "read_candidate"},
@@ -5443,8 +5442,9 @@
     {"id": "services/gateway/waste_management_reads.py:102:12","source": "services/gateway/waste_management_reads.py","line": 102,"column": 12,"scope": "get_location_waste_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["composting_record"],"static_sql_sha256": "6011fc1f5676f61c127b58394594bbd38832f1f62d272111e8bd02aeba05985a","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/waste_management_reads.py:150:12","source": "services/gateway/waste_management_reads.py","line": 150,"column": 12,"scope": "get_location_waste_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["recycling_log"],"static_sql_sha256": "ac544969be37981c95f5009264d78d22e4b709ef6fd9293f51ae3a9ba5e340f8","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/waste_management_reads.py:166:12","source": "services/gateway/waste_management_reads.py","line": 166,"column": 12,"scope": "get_location_waste_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pollution_incident"],"static_sql_sha256": "1d40c6e388246793a99f3d7a7a9e063573a85dca1bad896bd6895acca22178be","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/gateway/waste_management_writes.py:263:12","source": "services/gateway/waste_management_writes.py","line": 263,"column": 12,"scope": "create_location_waste_stream_record","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "93ac452b1d6fe9a8d072a4cebf96b3770e70c8452e85b2ec93c38ffee9b48d80","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/gateway/waste_management_writes.py:316:12","source": "services/gateway/waste_management_writes.py","line": 316,"column": 12,"scope": "create_location_composting_record","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "8e0cd60abe40277d8f7e92d1f1b6787dde9081807b9e2b7dd5cef6cf1d3bdfa6","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/waste_management_writes.py:313:12","source": "services/gateway/waste_management_writes.py","line": 313,"column": 12,"scope": "create_location_waste_stream_record","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "93ac452b1d6fe9a8d072a4cebf96b3770e70c8452e85b2ec93c38ffee9b48d80","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/waste_management_writes.py:366:12","source": "services/gateway/waste_management_writes.py","line": 366,"column": 12,"scope": "create_location_composting_record","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "8e0cd60abe40277d8f7e92d1f1b6787dde9081807b9e2b7dd5cef6cf1d3bdfa6","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/waste_management_writes.py:421:12","source": "services/gateway/waste_management_writes.py","line": 421,"column": 12,"scope": "create_location_recycling_record","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "116ca7b46950779c2ae5db7deb918f7a5898ead91e0ea6297448c00df75877dc","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/yield_monitoring.py:51:12","source": "services/gateway/yield_monitoring.py","line": 51,"column": 12,"scope": "get_location_yield_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/yield_monitoring.py:52:12","source": "services/gateway/yield_monitoring.py","line": 52,"column": 12,"scope": "get_location_yield_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/yield_monitoring.py:53:12","source": "services/gateway/yield_monitoring.py","line": 53,"column": 12,"scope": "get_location_yield_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},

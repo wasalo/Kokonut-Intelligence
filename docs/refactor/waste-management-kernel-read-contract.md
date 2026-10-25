@@ -57,19 +57,27 @@ now fail closed for the same reason. The composting helper rejects before
 cursor acquisition, and its CLI is database-free. Waste-stream and composting
 capture both remain available through exact-grant Gateway operations guarded
 by signed location context, bounded payload validation, private retry receipts,
-and recorded-only lifecycle. Human verification remains separate. Local
-recycling and incident writers still lack tenant authorization and remain
-separate parity work.
+and recorded-only lifecycle. Human verification remains separate. Recycling
+capture now follows the same tenant-scoped Gateway pattern. Incident writers
+still lack tenant authorization and remain separate parity work.
 
-The legacy `record_recycling` writer now inserts into migration-153
-`recycling_log`, including its required `record_date` and `recorded` lifecycle
-state. It preserves the existing CLI/function arguments and response fields,
-including destination, optional revenue, notes, and metadata. A successful
-insert is still only recorded; the verified-only summary does not include it
-until separate human verification. This remains a trusted local CLI write path
-without tenant authorization. Material labels outside the schema enum map to
-`other` and are preserved under `legacy_material_type` in metadata, avoiding a
-database constraint error while retaining the caller's value.
+The legacy `record_recycling` Python helper and `record-recycling` CLI now fail
+closed before opening a cursor or database connection because their
+caller-selected location is not authenticated tenant context. Recycling
+capture remains available through
+`POST /operator/api/waste/{location_id}/recycling`, gated by the exact
+`waste_management:create` grant. The service validates the exact payload,
+location UUID, non-future date, bounded freeform material label, positive
+quantity and decimal precision, destination, optional revenue, and notes
+before connecting. Schema-supported material labels map to canonical enum
+values; unsupported labels map to `other` and are preserved in bounded
+`legacy_material_type` metadata. Revenue is stored as supplied without assigning
+a currency or combining it with classified financial totals. The database
+function independently checks signed operator/location context and the live
+grant, stores only `recorded` rows, and writes a private SHA-256 idempotency
+receipt. Exact retries replay the original ID; changed payload reuse conflicts.
+The console exposes the form only for the exact create grant and keeps capture
+separate from verification.
 
 The legacy incident CLI now writes `incident_date` and schema-supported
 incident types to `pollution_incident`; `air_pollution` maps to `air_emission`,
@@ -84,15 +92,24 @@ trusted CLI paths and do not establish tenant authorization.
 
 The legacy CLI contract was exercised against the actual migration-153 schema
 in disposable PostgreSQL 16. Migration apply/replay and synthetic inserts
-verified the retired waste and composting helpers fail closed, the remaining
-local recycling and incident writers, initial recorded/open states, canonical
-enum constraints, JSONB preservation, verified-only waste summary, compost
-yield/pH, reporter attribution, and incident resolution. Waste and compost rows
-in this run are synthetic read fixtures, not helper writes. The separate
-migration-613/614 acceptance exercises the authenticated capture functions.
-These checks do not exercise populated legacy outputs
+verify the retired waste, composting, and recycling helpers fail closed, the
+remaining local incident writer, initial recorded/open states, canonical enum
+constraints, JSONB preservation, verified-only waste summary, compost yield/pH,
+reporter attribution, and incident resolution. Waste, compost, and recycling
+rows in this run are synthetic read fixtures, not helper writes. Separate
+migration-613/614/615 disposable acceptance exercises authenticated capture
+functions on native AMD64 and linux/arm64 Docker/QEMU; QEMU is software
+portability evidence only, not physical Raspberry Pi acceptance. These checks
+do not exercise populated legacy outputs
 ([runner](../scripts/check-waste-management-disposable.py);
 [evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
+
+Migration 615 additionally removes runtime and Directus table/column write
+privileges on `recycling_log` while preserving SELECT, then grants a dedicated
+isolated writer only the required insert/receipt/function permissions. The
+receipt remains private from runtime and Directus. This is a source and
+disposable-role boundary; production ACL/RLS and Directus field/row parity
+remain open until the reviewed rollout and tenant-wide access contract.
 
 The legacy `get_composting_efficiency` read also uses schema-153 columns:
 `finished_volume_kg` supplies output values, per-batch yield is calculated
@@ -111,10 +128,10 @@ exact-location `waste_management:create` context, writes a recorded-only row,
 stores optional pH in JSONB, and uses a private SHA-256 receipt for exact
 retry. The old local helper and CLI fail closed before any database access.
 
-The console gates its summary on `waste_management:read` and the capture form on
-`waste_management:create` independently. The create panel exposes separate
-waste-stream and composting forms; compost entries remain recorded and do not
-imply quality verification. It uses same-origin/no-store requests,
+The console gates its summary on `waste_management:read` and the capture forms
+on `waste_management:create` independently. The create panel exposes separate
+waste-stream, composting, and recycling forms; captures remain recorded and do
+not imply human verification. It uses same-origin/no-store requests,
 validates the response location and bounded schema categories, discards stale
 responses, and renders fixed fields with `textContent`.
 

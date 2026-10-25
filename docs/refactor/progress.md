@@ -1,3 +1,33 @@
+### Progress addendum — CAP-006 location-scoped recycling capture, 24 October 2026
+
+Migration 615 and the Gateway add recorded-only recycling capture at
+`POST /operator/api/waste/{location_id}/recycling`, protected by exact
+`waste_management:create` authorization and signed tenant context. The Gateway
+validates bounded labels and optional revenue before connecting, maps schema
+categories while preserving unsupported source labels, and supports private
+exact-request retries. Runtime and Directus can no longer write directly to
+`recycling_log`; their existing SELECT access remains. The console gates its
+recycling form by the create grant. The unscoped recycling helper and CLI now
+fail before cursor or database access.
+
+The focused Gateway/read/write/console/route-policy/migration selection passes
+134 tests plus five subtests. Ruff, Python compilation, dependency-group
+alignment, capability validation, runtime SQL inventory, and diff checks pass.
+Disposable PostgreSQL 16 applies/replays migrations 153/613/614/615 and checks
+exact retries, changed-input conflicts, foreign-scope denial, receipt privacy,
+and isolated writer privileges on native AMD64 and linux/arm64 Docker/QEMU
+([native evidence](builds/2026-10-24-recovery/cap-006-waste-compost-recycling-capture-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-24-recovery/cap-006-waste-compost-recycling-capture-arm64-disposable.json)).
+QEMU verifies software portability only, not physical Raspberry Pi behavior.
+The migration-153 disposable checker now uses synthetic verified recycling
+fixtures and verifies all three unscoped waste/compost/recycling helpers reject
+writes. Candidate and legacy databases are untouched; migration 615 is not
+rolled out. Rollback disables the Gateway route, exact route policy, and form;
+retain the additive schema/receipts if deployed later. Checklist: 1,122
+complete / 25 open (1,147 total). CAP-006 remains prepared pending populated
+parity, live OIDC/browser checks, full ACL/RLS and Directus parity, incident
+write parity, and MAN-CAP-006 acceptance.
+
 ### Progress addendum — CAP-006 location-scoped composting capture, 24 October 2026
 
 Migration 614 adds an isolated, recorded-only compost writer behind

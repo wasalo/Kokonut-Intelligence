@@ -20,11 +20,12 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE_MIGRATION = ROOT / "schemas/postgres/153_waste_management.sql"
 MIGRATION = ROOT / "schemas/postgres/613_location_waste_stream_capture.sql"
 COMPOSTING_MIGRATION = ROOT / "schemas/postgres/614_location_composting_capture.sql"
+RECYCLING_MIGRATION = ROOT / "schemas/postgres/615_location_recycling_capture.sql"
 PLATFORM = os.environ.get("WASTE_CAPTURE_TEST_PLATFORM")
 OUTPUT_SUFFIX = "-arm64" if PLATFORM == "linux/arm64" else ""
 OUTPUT = ROOT / (
     "docs/refactor/builds/2026-10-24-recovery/"
-    f"cap-006-waste-and-compost-capture{OUTPUT_SUFFIX}-disposable.json"
+    f"cap-006-waste-compost-recycling-capture{OUTPUT_SUFFIX}-disposable.json"
 )
 IMAGE = os.environ.get("WASTE_CAPTURE_TEST_IMAGE", "postgres:16")
 
@@ -145,6 +146,11 @@ def main() -> int:
                 "temperature_c, moisture_pct, duration_days, finished_volume_kg, metadata, created_by) "
                 "ON public.composting_record TO kokonut_runtime"
             )
+            cursor.execute(
+                "GRANT SELECT (id, location_id, record_date, material_type, quantity_kg, "
+                "destination, revenue, status, metadata, created_by) "
+                "ON public.recycling_log TO kokonut_runtime"
+            )
             cursor.execute("INSERT INTO location VALUES (%s, 'Synthetic'), (%s, 'Other')", (location_id, other_location_id))
             cursor.execute(
                 "INSERT INTO operator_identity VALUES (%s), (%s)",
@@ -158,7 +164,9 @@ def main() -> int:
             cursor.execute(MIGRATION.read_text())
             cursor.execute(COMPOSTING_MIGRATION.read_text())
             cursor.execute(COMPOSTING_MIGRATION.read_text())
-        checks.append("migrations 613 and 614 apply and replay after the canonical migration-153 tables")
+            cursor.execute(RECYCLING_MIGRATION.read_text())
+            cursor.execute(RECYCLING_MIGRATION.read_text())
+        checks.append("migrations 613, 614, and 615 apply and replay after the canonical migration-153 tables")
 
         connection.autocommit = False
         with connection.cursor() as cursor:
@@ -278,6 +286,84 @@ def main() -> int:
         with connection.cursor() as cursor:
             cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (location_id,))
 
+        recycling_request_id = str(uuid.uuid4())
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.create_location_recycling_record("
+                "%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    location_id, recycling_request_id, date.today(), "other", "Steel scrap",
+                    "8.00", "Scrap yard", "12.50", "synthetic recycling capture",
+                ),
+            )
+            recycling_created = cursor.fetchone()[0]
+            if (
+                recycling_created["location_id"] != location_id
+                or recycling_created["status"] != "recorded"
+                or recycling_created["replayed"] is not False
+            ):
+                raise AssertionError("recycling response did not preserve recorded location scope")
+            cursor.execute(
+                "SELECT status, material_type, quantity_kg, destination, revenue, "
+                "metadata->>'legacy_material_type', created_by "
+                "FROM public.recycling_log WHERE id = %s",
+                (recycling_created["record_id"],),
+            )
+            recycling_row = cursor.fetchone()
+            if recycling_row != (
+                "recorded", "other", 8.0, "Scrap yard", 12.5, "Steel scrap", operator_id,
+            ):
+                raise AssertionError(f"unexpected recycling capture row: {recycling_row}")
+            cursor.execute(
+                "SELECT kokonut_security.create_location_recycling_record("
+                "%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    location_id, recycling_request_id, date.today(), "other", "Steel scrap",
+                    "8.00", "Scrap yard", "12.50", "synthetic recycling capture",
+                ),
+            )
+            recycling_replay = cursor.fetchone()[0]
+            if (
+                recycling_replay["record_id"] != recycling_created["record_id"]
+                or recycling_replay["replayed"] is not True
+            ):
+                raise AssertionError("recycling exact retry did not return the original record")
+        connection.commit()
+        checks.append("recycling capture maps and preserves freeform labels, stores revenue, and replays exact requests")
+
+        expect_denied(
+            connection,
+            "SELECT kokonut_security.create_location_recycling_record(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                location_id, recycling_request_id, date.today(), "other", "Steel scrap",
+                "8.00", "Changed destination", "12.50", "synthetic recycling capture",
+            ),
+            "23505",
+        )
+        connection.rollback()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (other_location_id,))
+        expect_denied(
+            connection,
+            "SELECT kokonut_security.create_location_recycling_record(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                other_location_id, str(uuid.uuid4()), date.today(), "plastic", None,
+                "1.00", "Recycling center", None, None,
+            ),
+            "42501",
+        )
+        connection.rollback()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (location_id,))
+        expect_denied(
+            connection,
+            "INSERT INTO public.recycling_log (id, location_id, record_date, material_type, quantity_kg, status) "
+            "VALUES (%s, %s, CURRENT_DATE, 'plastic', 1, 'recorded')",
+            (str(uuid.uuid4()), location_id),
+            "42501",
+        )
+        checks.append("recycling changed-input reuse and foreign-location access fail; direct runtime inserts are denied")
+
         with connection.cursor() as cursor:
             cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (other_location_id,))
         expect_denied(
@@ -335,6 +421,12 @@ def main() -> int:
                 "has_table_privilege('kokonut_directus_runtime', 'public.waste_stream_capture_receipt', 'SELECT'), "
                 "has_table_privilege('kokonut_runtime', 'public.composting_capture_receipt', 'SELECT'), "
                 "has_table_privilege('kokonut_directus_runtime', 'public.composting_capture_receipt', 'SELECT'), "
+                "has_table_privilege('kokonut_runtime', 'public.recycling_capture_receipt', 'SELECT'), "
+                "has_table_privilege('kokonut_directus_runtime', 'public.recycling_capture_receipt', 'SELECT'), "
+                "has_table_privilege('kokonut_runtime', 'public.recycling_log', 'INSERT'), "
+                "has_column_privilege('kokonut_runtime', 'public.recycling_log', 'id', 'INSERT'), "
+                "has_table_privilege('kokonut_directus_runtime', 'public.recycling_log', 'INSERT'), "
+                "has_column_privilege('kokonut_directus_runtime', 'public.recycling_log', 'id', 'INSERT'), "
                 "has_function_privilege('kokonut_runtime', "
                 "'kokonut_security.create_location_waste_stream_record(uuid,uuid,text,text,numeric,date,text,text)', 'EXECUTE'), "
                 "has_function_privilege('kokonut_directus_runtime', "
@@ -343,18 +435,30 @@ def main() -> int:
                 "'kokonut_security.create_location_composting_record(uuid,uuid,date,text,text,numeric,text,text,numeric,numeric,integer,numeric,numeric,text)', 'EXECUTE'), "
                 "has_function_privilege('kokonut_directus_runtime', "
                 "'kokonut_security.create_location_composting_record(uuid,uuid,date,text,text,numeric,text,text,numeric,numeric,integer,numeric,numeric,text)', 'EXECUTE'), "
+                "has_function_privilege('kokonut_runtime', "
+                "'kokonut_security.create_location_recycling_record(uuid,uuid,date,text,text,numeric,text,numeric,text)', 'EXECUTE'), "
+                "has_function_privilege('kokonut_directus_runtime', "
+                "'kokonut_security.create_location_recycling_record(uuid,uuid,date,text,text,numeric,text,numeric,text)', 'EXECUTE'), "
                 "pg_get_userbyid((SELECT proowner FROM pg_proc WHERE oid = "
                 "'kokonut_security.create_location_waste_stream_record(uuid,uuid,text,text,numeric,date,text,text)'::regprocedure))"
             )
             (
                 runtime_select, directus_select, compost_runtime_select,
-                compost_directus_select, runtime_execute, directus_execute,
-                compost_runtime_execute, compost_directus_execute, owner,
+                compost_directus_select, recycling_runtime_select,
+                recycling_directus_select, runtime_recycling_insert,
+                runtime_recycling_column_insert, directus_recycling_insert,
+                directus_recycling_column_insert, runtime_execute, directus_execute,
+                compost_runtime_execute, compost_directus_execute,
+                recycling_runtime_execute, recycling_directus_execute, owner,
             ) = cursor.fetchone()
             if (
                 runtime_select or directus_select or compost_runtime_select
-                or compost_directus_select or not runtime_execute or directus_execute
+                or compost_directus_select or recycling_runtime_select
+                or recycling_directus_select or runtime_recycling_insert
+                or runtime_recycling_column_insert or directus_recycling_insert
+                or directus_recycling_column_insert or not runtime_execute or directus_execute
                 or not compost_runtime_execute or compost_directus_execute
+                or not recycling_runtime_execute or recycling_directus_execute
                 or owner != "kokonut_waste_stream_writer"
             ):
                 raise AssertionError("capture receipt or function owner privilege boundary is incorrect")
@@ -364,13 +468,22 @@ def main() -> int:
             )
             if cursor.fetchone()[0] != "kokonut_composting_capture_writer":
                 raise AssertionError("composting writer function owner is not isolated")
-        checks.append("runtime cannot read private receipts; Directus cannot read or execute and both function owners are isolated")
+            cursor.execute(
+                "SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = "
+                "'kokonut_security.create_location_recycling_record(uuid,uuid,date,text,text,numeric,text,numeric,text)'::regprocedure"
+            )
+            if cursor.fetchone()[0] != "kokonut_recycling_capture_writer":
+                raise AssertionError("recycling writer function owner is not isolated")
+        checks.append("runtime cannot write recycling rows or read private receipts; Directus cannot write/read receipts/execute; all function owners are isolated")
 
         evidence = {
             "status": "passed",
             "postgres_image": IMAGE,
             "platform": PLATFORM or "native",
-            "migrations": [BASE_MIGRATION.name, MIGRATION.name, COMPOSTING_MIGRATION.name],
+            "migrations": [
+                BASE_MIGRATION.name, MIGRATION.name, COMPOSTING_MIGRATION.name,
+                RECYCLING_MIGRATION.name,
+            ],
             "checks": checks,
             "candidate_or_legacy_database_used": False,
             "provider_calls": False,

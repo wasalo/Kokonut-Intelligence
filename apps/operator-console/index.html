@@ -2170,6 +2170,26 @@
               <p id="composting-capture-status" class="muted" role="status" aria-live="polite"></p>
             </form>
           </section>
+          <section id="recycling-capture" hidden aria-labelledby="recycling-capture-heading">
+            <h3 id="recycling-capture-heading">Record recycling activity</h3>
+            <p class="muted">New entries remain recorded until separate human verification. Material labels outside the standard categories are retained and grouped as Other. Revenue has no currency field and is not currency-classified.</p>
+            <form id="recycling-capture-form" class="form-grid">
+              <label for="recycling-capture-date">Record date</label>
+              <input id="recycling-capture-date" type="date" required>
+              <label for="recycling-capture-material">Material type or material</label>
+              <input id="recycling-capture-material" type="text" maxlength="100" placeholder="e.g. plastic or steel scrap" required>
+              <label for="recycling-capture-quantity">Quantity (kg)</label>
+              <input id="recycling-capture-quantity" type="number" min="0.01" max="99999999.99" step="0.01" required>
+              <label for="recycling-capture-destination">Destination</label>
+              <input id="recycling-capture-destination" type="text" maxlength="200" required autocomplete="off">
+              <label for="recycling-capture-revenue">Revenue amount (optional)</label>
+              <input id="recycling-capture-revenue" type="number" min="-99999999.99" max="99999999.99" step="0.01">
+              <label for="recycling-capture-notes">Entry notes (optional)</label>
+              <textarea id="recycling-capture-notes" maxlength="1000" rows="3"></textarea>
+              <button id="recycling-capture-submit" type="submit">Save recorded recycling entry</button>
+              <p id="recycling-capture-status" class="muted" role="status" aria-live="polite"></p>
+            </form>
+          </section>
           <div id="waste-management-summary" hidden>
             <p id="waste-management-status" class="muted" role="status" aria-live="polite"></p>
             <div aria-labelledby="waste-management-streams-heading">
@@ -3423,6 +3443,9 @@
       const compostingCapture = document.querySelector("#composting-capture");
       const compostingCaptureForm = document.querySelector("#composting-capture-form");
       const compostingCaptureStatus = document.querySelector("#composting-capture-status");
+      const recyclingCapture = document.querySelector("#recycling-capture");
+      const recyclingCaptureForm = document.querySelector("#recycling-capture-form");
+      const recyclingCaptureStatus = document.querySelector("#recycling-capture-status");
       let wasteManagementLocations = new Set();
       let wasteManagementCreateLocations = new Set();
       let wasteManagementRequestVersion = 0;
@@ -17081,6 +17104,7 @@
         wasteManagementSummary.hidden = !canRead;
         wasteManagementCapture.hidden = !canCreate;
         compostingCapture.hidden = !canCreate;
+        recyclingCapture.hidden = !canCreate;
         if (!canRead) {
           wasteManagementStatus.textContent = "";
           for (const container of [wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
@@ -17256,6 +17280,19 @@
           moisture_pct: compostingCaptureForm.querySelector("#composting-capture-moisture").value || null,
           ph: compostingCaptureForm.querySelector("#composting-capture-ph").value || null,
           notes: compostingCaptureForm.querySelector("#composting-capture-notes").value || null
+        })
+      });
+      registerWasteCaptureForm(recyclingCaptureForm, recyclingCaptureStatus, {
+        route: "recycling",
+        successLabel: "recycling entry",
+        buildPayload: (requestId) => ({
+          request_id: requestId,
+          record_date: recyclingCaptureForm.querySelector("#recycling-capture-date").value,
+          material_type: recyclingCaptureForm.querySelector("#recycling-capture-material").value,
+          quantity_kg: recyclingCaptureForm.querySelector("#recycling-capture-quantity").value,
+          destination: recyclingCaptureForm.querySelector("#recycling-capture-destination").value,
+          revenue: recyclingCaptureForm.querySelector("#recycling-capture-revenue").value || null,
+          notes: recyclingCaptureForm.querySelector("#recycling-capture-notes").value || null
         })
       });
 

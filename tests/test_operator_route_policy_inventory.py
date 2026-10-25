@@ -289,6 +289,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/waste/11111111-1111-4111-8111-111111111111/composting",
     ): _expected("waste_management", "create", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/waste/11111111-1111-4111-8111-111111111111/recycling",
+    ): _expected("waste_management", "create", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/landscape/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("landscape_conservation", "read", scoped=True, location_id=_LOCATION_ID),

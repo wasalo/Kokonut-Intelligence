@@ -1,3 +1,21 @@
+### Current CAP-006 implementation slice — location-scoped recycling capture, 24 October 2026
+
+Migration 615 and the Gateway add an exact-location `waste_management:create`
+recycling operation with bounded freeform-label preservation, optional
+unclassified revenue, destination, and notes. A private receipt supports exact
+retry and rejects changed-input reuse. The console gates capture separately
+from summary reads, and the old unscoped helper/CLI fail before database
+access. Runtime and Directus lose direct write access to recycling rows while
+SELECT remains. The focused selection passes 134 tests plus five subtests;
+Ruff, compilation, runtime SQL inventory, matrix validation, and diff checks
+pass. Disposable PostgreSQL 16 apply/replay and authorization/ACL checks pass
+on native AMD64 and linux/arm64 Docker/QEMU. Candidate/legacy databases remain
+untouched and migration 615 is not rolled out. CAP-006 still needs populated
+parity, live OIDC/browser acceptance, complete ACL/RLS and Directus parity,
+incident write parity, and MAN-CAP-006 review ([contract](waste-management-kernel-read-contract.md);
+[native evidence](builds/2026-10-24-recovery/cap-006-waste-compost-recycling-capture-disposable.json);
+[ARM64 evidence](builds/2026-10-24-recovery/cap-006-waste-compost-recycling-capture-arm64-disposable.json)).
+
 ### Current CAP-006 implementation slice — location-scoped composting capture, 24 October 2026
 
 Migration 614 and the Gateway add recorded-only compost capture at

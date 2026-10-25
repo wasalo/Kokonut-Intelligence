@@ -59,11 +59,18 @@ def test_waste_console_refresh_and_location_change_are_wired_and_ids_unique():
     assert 'scope.resource === "waste_management" && scope.action === "create"' in SOURCE
     assert 'const compostingCaptureForm = document.querySelector("#composting-capture-form")' in SOURCE
     assert 'compostingCapture.hidden = !canCreate' in SOURCE
+    assert 'const recyclingCaptureForm = document.querySelector("#recycling-capture-form")' in SOURCE
+    assert 'recyclingCapture.hidden = !canCreate' in SOURCE
     assert 'route: "composting"' in SOURCE
+    assert 'route: "recycling"' in SOURCE
     assert 'compost_method: compostingCaptureForm.querySelector("#composting-capture-method").value' in SOURCE
     assert 'id="composting-capture-feedstock" type="text" maxlength="200"' in SOURCE
     assert 'id="composting-capture-method" type="text" maxlength="100"' in SOURCE
     assert 'output_kg: compostingCaptureForm.querySelector("#composting-capture-output").value || null' in SOURCE
+    assert 'material_type: recyclingCaptureForm.querySelector("#recycling-capture-material").value' in SOURCE
+    assert 'revenue: recyclingCaptureForm.querySelector("#recycling-capture-revenue").value || null' in SOURCE
+    assert 'id="recycling-capture-material" type="text" maxlength="100"' in SOURCE
+    assert 'currency-classified' in SOURCE
     assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in SOURCE
     assert '"X-CSRF-Token": csrfToken()' in SOURCE
     assert "Retrying reuses the same request ID and entry." in SOURCE

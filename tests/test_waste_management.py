@@ -100,30 +100,28 @@ class TestRecordRecycling(unittest.TestCase):
         self.mock_cursor = MagicMock()
         self.conn.cursor.return_value = self.mock_cursor
 
-    def test_record_recycling_returns_recycle_id(self):
-        result = record_recycling(
-            self.conn, "loc-001", "plastic", 15.0, "Recycling center",
-        )
-        self.assertIn("recycle_id", result)
-        self.assertEqual(result["material_type"], "plastic")
-        self.assertEqual(result["quantity_kg"], 15.0)
-        self.assertEqual(result["destination"], "Recycling center")
-        self.conn.commit.assert_called_once()
+    def test_legacy_recycling_helper_fails_before_opening_cursor(self):
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            record_recycling(
+                self.conn, "loc-001", "plastic", 15.0, "Recycling center",
+                revenue=5.0, notes="synthetic",
+            )
+        self.conn.cursor.assert_not_called()
+        self.conn.commit.assert_not_called()
 
-    def test_record_recycling_with_revenue(self):
-        result = record_recycling(
-            self.conn, "loc-001", "steel_scrap", 8.0, "Scrap yard", revenue=12.50,
-        )
-        self.assertEqual(result["revenue"], 12.50)
-        query, params = self.mock_cursor.execute.call_args.args
-        self.assertIn("INSERT INTO recycling_log", query)
-        self.assertIn("record_date", query)
-        self.assertIn("'recorded'", query)
-        self.assertNotIn("recycling_record", query)
-        self.assertNotIn("'draft'", query)
-        self.assertEqual(params[3], "other")
-        self.assertEqual(params[6], 12.50)
-        self.assertEqual(json.loads(params[8]), {"legacy_material_type": "steel_scrap"})
+    def test_legacy_recycling_cli_fails_before_opening_database(self):
+        connection_factory = MagicMock(side_effect=AssertionError("database opened"))
+        stderr = io.StringIO()
+        with patch.object(waste_management.cli, "_connection_factory", connection_factory):
+            with redirect_stderr(stderr), self.assertRaises(SystemExit) as error:
+                waste_management.cli.run([
+                    "record-recycling", "--location-id", "loc-001",
+                    "--material", "plastic", "--quantity", "15",
+                    "--destination", "Recycling center",
+                ])
+        self.assertEqual(error.exception.code, 1)
+        connection_factory.assert_not_called()
+        self.assertIn("authenticated operator Gateway recycling-capture workflow", stderr.getvalue())
 
 
 class TestReportIncident(unittest.TestCase):

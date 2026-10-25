@@ -35,6 +35,7 @@ _COMPOST_FEEDSTOCK_TYPES = {
     "crop_residue", "manure", "food_waste", "green_waste", "mixed", "other",
 }
 _COMPOST_METHODS = {"heap", "pit", "vermiculture", "bokashi", "other"}
+_RECYCLING_MATERIAL_TYPES = {"plastic", "metal", "glass", "paper", "organic", "other"}
 _CONTROL_CHARACTER = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -233,6 +234,55 @@ def _normalize_composting_payload(payload: dict) -> tuple:
     )
 
 
+def _normalize_recycling_payload(payload: dict) -> tuple:
+    if not isinstance(payload, dict):
+        raise WasteManagementWriteInvalid("Recycling body must be an object")
+    allowed = {
+        "request_id", "record_date", "material_type", "quantity_kg",
+        "destination", "revenue", "notes",
+    }
+    if set(payload) != allowed:
+        raise WasteManagementWriteInvalid("Recycling fields do not match the supported contract")
+
+    request_id = _identifier(payload["request_id"], "request")
+    record_date_value = payload["record_date"]
+    if not isinstance(record_date_value, str):
+        raise WasteManagementWriteInvalid("Recycling date must use YYYY-MM-DD")
+    try:
+        record_date = date.fromisoformat(record_date_value)
+    except ValueError as exc:
+        raise WasteManagementWriteInvalid("Recycling date must use YYYY-MM-DD") from exc
+    if record_date.isoformat() != record_date_value or record_date > date.today():
+        raise WasteManagementWriteInvalid("Recycling date must be today or earlier")
+
+    source_material_type = _bounded_text(
+        payload["material_type"], "recycling material type", 100, required=True
+    )
+    material_key = re.sub(r"[\s-]+", "_", source_material_type.lower())
+    material_type = (
+        material_key if material_key in _RECYCLING_MATERIAL_TYPES else "other"
+    )
+    material_label = source_material_type if material_key != material_type else None
+    quantity_kg = _bounded_decimal(
+        payload["quantity_kg"], "recycling quantity",
+        minimum=Decimal("0.01"), maximum=Decimal("99999999.99"), places=2,
+    )
+    destination = _bounded_text(payload["destination"], "recycling destination", 200, required=True)
+    revenue = _bounded_decimal(
+        payload["revenue"], "recycling revenue",
+        minimum=Decimal("-99999999.99"), maximum=Decimal("99999999.99"), places=2,
+    )
+    notes = _bounded_text(payload["notes"], "notes", 1000)
+    return (
+        request_id,
+        record_date,
+        material_type,
+        material_label,
+        quantity_kg,
+        destination,
+        revenue,
+        notes,
+    )
 def create_location_waste_stream_record(
     operator_id: str,
     location_id: str,
@@ -335,6 +385,60 @@ def create_location_composting_record(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Composting capture returned an invalid result")
+            return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def create_location_recycling_record(
+    operator_id: str,
+    location_id: str,
+    payload: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create one recorded-only recycling row under an exact create grant."""
+    operator_id = _identifier(operator_id, "operator")
+    location_id = _identifier(location_id, "location")
+    normalized = _normalize_recycling_payload(payload)
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="waste_management",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.create_location_recycling_record("
+                "%s::uuid, %s::uuid, %s::date, %s::text, %s::text, "
+                "%s::numeric, %s::text, %s::numeric, %s::text)",
+                (location_id, *normalized),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Recycling capture returned no record")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+            if (
+                not isinstance(result, dict)
+                or result.get("location_id") != location_id
+                or not isinstance(result.get("record_date"), str)
+                or result.get("status") != "recorded"
+                or not isinstance(result.get("record_id"), str)
+                or not isinstance(result.get("replayed"), bool)
+            ):
+                raise RuntimeError("Recycling capture returned an invalid result")
             return result
     except Exception:
         connection.rollback()

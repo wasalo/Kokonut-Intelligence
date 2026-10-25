@@ -8,7 +8,7 @@ and pollution incidents. Provides summaries, efficiency metrics, and dashboards.
 Usage:
     python -m services.analytics.waste_management record-waste --location-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management record-composting --location-id UUID (retired; use the authenticated Gateway console)
-    python -m services.analytics.waste_management record-recycling --location-id UUID --material plastic --quantity 15.0 --destination "Recycling center" --revenue 5.00
+    python -m services.analytics.waste_management record-recycling --location-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management report-incident --location-id UUID --incident-type chemical_spill --severity high --description "Pesticide container leak" --affected-area "Near stream"
     python -m services.analytics.waste_management resolve-incident --incident-id UUID --remedial-action "Cleaned and neutralized soil" --resolution-date 2026-07-10
     python -m services.analytics.waste_management waste-summary --location-id UUID
@@ -104,49 +104,12 @@ def record_recycling(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a recycling activity."""
-    cur = conn.cursor()
-    recycle_id = str(uuid.uuid4())
-    source_material_type = material_type.strip().lower().replace(" ", "_")
-    allowed_material_types = {"plastic", "metal", "glass", "paper", "organic", "other"}
-    canonical_material_type = (
-        source_material_type
-        if source_material_type in allowed_material_types
-        else "other"
+    """Reject recycling writes that lack authenticated tenant context."""
+    del conn, location_id, material_type, quantity_kg, destination, revenue, notes, metadata
+    raise TenantContextDenied(
+        "Unscoped recycling writes are disabled; use the authenticated operator "
+        "Gateway recycling-capture workflow"
     )
-    record_metadata = dict(metadata or {})
-    if source_material_type != canonical_material_type:
-        record_metadata["legacy_material_type"] = material_type
-
-    try:
-        cur.execute(
-            """
-            INSERT INTO recycling_log
-                (id, location_id, record_date, material_type, quantity_kg,
-                 destination, revenue, notes, metadata, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
-            RETURNING id
-            """,
-            (
-                recycle_id, location_id, date.today(), canonical_material_type,
-                quantity_kg, destination, revenue, notes, json.dumps(record_metadata),
-            ),
-        )
-        conn.commit()
-    finally:
-        cur.close()
-
-    logger.info("Recorded recycling %s: %s %s kg to %s", recycle_id, material_type, quantity_kg, destination)
-
-    return {
-        "recycle_id": recycle_id,
-        "location_id": location_id,
-        "material_type": material_type,
-        "quantity_kg": quantity_kg,
-        "destination": destination,
-        "revenue": revenue,
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 # ============================================================
@@ -603,7 +566,7 @@ cli.subcommand("record-composting", "Retired unscoped writer; use the authentica
     .run(_cmd_record_composting, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_composting_record))
 
-cli.subcommand("record-recycling", "Record recycling activity") \
+cli.subcommand("record-recycling", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--material", required=True, help="plastic, glass, metal, paper, organic") \
     .add("--quantity", type=float, required=True, help="Quantity in kg") \
@@ -611,7 +574,7 @@ cli.subcommand("record-recycling", "Record recycling activity") \
     .add("--revenue", type=float) \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_recycling) \
+    .run(_cmd_record_recycling, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_recycling_record))
 
 cli.subcommand("report-incident", "Report pollution incident") \

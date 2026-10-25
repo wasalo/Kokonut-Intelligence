@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "5e19d870107de5bf3aece4ff59cea351f529d8ec",
+  "baseline_commit": "f6e3334f962c169c2d39831984ffbeec25789d28",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1641,157 +1641,157 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 3541,
+      "line": 3567,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3556,
+      "line": 3582,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3565,
+      "line": 3591,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3623,
+      "line": 3649,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3651,
+      "line": 3677,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3691,
+      "line": 3717,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3742,
+      "line": 3768,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3782,
+      "line": 3808,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3835,
+      "line": 3861,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3895,
+      "line": 3921,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3950,
+      "line": 3976,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3994,
+      "line": 4020,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4055,
+      "line": 4081,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4138,
+      "line": 4164,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4231,
+      "line": 4257,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4279,
+      "line": 4305,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4331,
+      "line": 4357,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4389,
+      "line": 4415,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4443,
+      "line": 4469,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4532,
+      "line": 4558,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4552,
+      "line": 4578,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4572,
+      "line": 4598,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4608,
+      "line": 4634,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4636,
+      "line": 4662,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4664,
+      "line": 4690,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4707,
+      "line": 4733,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -2541,15 +2541,27 @@
       "source": "services/gateway/true_cost_routes.py"
     },
     {
-      "line": 61,
+      "line": 63,
       "method": "GET",
       "path": "/operator/api/waste/{location_id}/summary",
       "source": "services/gateway/waste_management_routes.py"
     },
     {
-      "line": 96,
+      "line": 98,
       "method": "POST",
       "path": "/operator/api/waste/{location_id}/records",
+      "source": "services/gateway/waste_management_routes.py"
+    },
+    {
+      "line": 160,
+      "method": "POST",
+      "path": "/operator/api/waste/{location_id}/composting",
+      "source": "services/gateway/waste_management_routes.py"
+    },
+    {
+      "line": 222,
+      "method": "POST",
+      "path": "/operator/api/waste/{location_id}/recycling",
       "source": "services/gateway/waste_management_routes.py"
     },
     {
@@ -3320,7 +3332,9 @@
       "schemas/postgres/610_location_operating_pilot_learning_plan_review_decision.sql",
       "schemas/postgres/611_location_scoped_operating_coaching_sessions.sql",
       "schemas/postgres/612_location_operating_pilot_coaching_participants.sql",
-      "schemas/postgres/613_location_waste_stream_capture.sql"
+      "schemas/postgres/613_location_waste_stream_capture.sql",
+      "schemas/postgres/614_location_composting_capture.sql",
+      "schemas/postgres/615_location_recycling_capture.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -4088,6 +4102,7 @@
         "tests/test_operator_report_review.py",
         "tests/test_smtp_transport.py",
         "tests/test_tenant_context.py",
+        "tests/test_waste_management.py",
         "tests/test_worker_database.py",
         "tests/test_worker_environment.py",
         "tests/test_worker_operation_map.py"

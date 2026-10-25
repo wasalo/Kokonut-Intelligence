@@ -111,8 +111,17 @@ def main() -> int:
             pass
         else:
             raise AssertionError("unscoped legacy composting writer was not retired")
+        try:
+            waste_management.record_recycling(
+                conn, location_a, "steel_scrap", 8, "Scrap yard", revenue=12.5,
+            )
+        except waste_management.TenantContextDenied:
+            pass
+        else:
+            raise AssertionError("unscoped legacy recycling writer was not retired")
         waste_a_id, waste_b_id = str(uuid.uuid4()), str(uuid.uuid4())
         compost_id = str(uuid.uuid4())
+        recycling_id = str(uuid.uuid4())
         with conn.cursor() as cursor:
             cursor.execute(
                 """
@@ -144,18 +153,26 @@ def main() -> int:
                 """,
                 (compost_id, location_a, json.dumps({"ph": 6.5})),
             )
+            cursor.execute(
+                """
+                INSERT INTO recycling_log
+                    (id, location_id, record_date, material_type, quantity_kg,
+                     destination, revenue, notes, metadata, status)
+                VALUES (%s, %s, CURRENT_DATE, 'other', 8, 'Scrap yard', 12.5,
+                        'synthetic recycling fixture', %s::jsonb, 'verified')
+                """,
+                (recycling_id, location_a, json.dumps({"legacy_material_type": "steel_scrap"})),
+            )
         waste_a = {"waste_id": waste_a_id}
         waste_b = {"waste_id": waste_b_id}
         compost = {"compost_id": compost_id}
-        recycling = waste_management.record_recycling(
-            conn, location_a, "steel_scrap", 8, "Scrap yard", revenue=12.5,
-        )
+        recycling = {"recycle_id": recycling_id}
         incident = waste_management.report_incident(
             conn, location_a, "air_pollution", "high", "Synthetic event",
             "North plot", reported_by="synthetic operator",
         )
         checks.append(
-            "unscoped legacy waste and composting writers fail closed; synthetic read fixtures are isolated"
+            "unscoped legacy waste, composting, and recycling writers fail closed; synthetic read fixtures are isolated"
         )
 
         with conn.cursor() as cursor:
@@ -166,18 +183,14 @@ def main() -> int:
             if cursor.fetchone()[0] != "verified":
                 raise AssertionError("synthetic compost fixture is not eligible for verified summary")
             cursor.execute("SELECT status FROM recycling_log WHERE id = %s", (recycling["recycle_id"],))
-            if cursor.fetchone()[0] != "recorded":
-                raise AssertionError("recycling writer did not use the canonical recorded state")
+            if cursor.fetchone()[0] != "verified":
+                raise AssertionError("synthetic recycling fixture is not eligible for verified summary")
             cursor.execute(
                 "SELECT status, resolved FROM pollution_incident WHERE id = %s",
                 (incident["incident_id"],),
             )
             if cursor.fetchone() != ("open", False):
                 raise AssertionError("incident writer did not use the canonical open state")
-            cursor.execute(
-                "UPDATE recycling_log SET status = 'verified' WHERE id = %s",
-                (recycling["recycle_id"],),
-            )
             cursor.execute(
                 "SELECT waste_type, disposal_method, metadata FROM waste_stream WHERE id = %s",
                 (waste_a["waste_id"],),
