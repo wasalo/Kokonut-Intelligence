@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,185 checklist items complete and 25
-open (1,210 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,186 checklist items complete and 25
+open (1,211 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -4286,3 +4286,34 @@ The AST scope inventory now follows a location-filtered parent row into child re
 ### CAP-027 legacy Delphi service database boundary — 25 October 2026
 
 - [x] Disable unscoped database access through the legacy Delphi services. Every database-backed method on `Facilitator`, `PanelManager`, and `MinorityReportManager`, including helper reads and mutations, now fails before using an injected/shared connection or cursor. The Gateway remains supported for implemented location-scoped study and participant workflows. Direct panel administration, diversity assessment, minority-report workflow, and calibration remain unavailable pending separate reviewed Gateway contracts. The former calibration algorithm equated distance from current group consensus with expertise and changed future weights without forecast-accuracy evidence. The focused Delphi suite passes 79 tests; Ruff and Python compilation pass. No database, provider, candidate, legacy service, migration, or panel weight was touched. Rollback is a source revert; the Gateway and database remain unchanged ([contract](delphi-consultation-kernel-contract.md); [inventory](agent-task-attribution-inventory.md); [evidence](builds/2026-10-25-recovery/cap-027-legacy-delphi-service-boundary.json)). CAP-027 remains prepared. Checklist: 1,185 complete / 25 open (1,210 total); matrix classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+
+### CAP-027 location-scoped minority-report review — 25 October 2026
+
+- [x] Add migration 640 and authenticated, exact-location Gateway review for
+  existing Delphi minority reports. The queue returns only submitted reports
+  with an active-consent linked participant and omits member identity. Signed
+  `delphi:review` context is set before the bounded SQL call. Decisions are
+  reason-coded `verified` or `rejected`, recheck consent and location under
+  row locks, preserve exact retries in a private append-only audit, and never
+  publish. Withdrawal/unlinked rows stay hidden pending human disposition;
+  participant report submission remains blocked. The console uses no-store,
+  CSRF, confirmation, bounded paging, text-only rendering, and retry-stable
+  request IDs. The focused Gateway, route-policy, and console selection passes
+  50 tests. Network-disabled disposable PostgreSQL 16 applies/replays migration
+  640 and passes five grouped scope, consent, decision, retry, append-only, and
+  runtime/Directus checks ([migration](../../schemas/postgres/640_location_scoped_delphi_minority_report_review.sql);
+  [service](../../services/gateway/delphi_minority_review.py);
+  [routes](../../services/gateway/delphi_minority_review_routes.py);
+  [tests](../../tests/test_gateway_delphi_minority_review.py);
+  [console tests](../../tests/test_operator_console_delphi_recommendation_review.py);
+  [disposable runner](../../scripts/check-delphi-minority-review-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-minority-review-disposable.json)).
+  Ruff, compilation, JavaScript syntax, migration integrity, capability matrix,
+  runtime SQL inventory, and diff checks pass. Candidate and legacy databases
+  remain untouched; migration 640 is not rolled out. Rollback by disabling the
+  route/policy/console surface while retaining additive schema and audit history
+  if applied. CAP-027 remains prepared pending participant report submission,
+  live OIDC/browser, populated parity, universal ACL/RLS, SMTP, and MAN-CAP-027
+  owner acceptance. Checklist: 1,186 complete / 25 open (1,211 total); matrix
+  remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

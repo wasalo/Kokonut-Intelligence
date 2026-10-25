@@ -18615,3 +18615,28 @@ contracts. CAP-027 remains prepared. Checklist remains 1,185 complete / 25 open
 (1,210 total), with 24 baseline-retained, 7 deployed, and 36 prepared rows
 across 67 capabilities. Evidence:
 [Delphi service boundary](builds/2026-10-25-recovery/cap-027-legacy-delphi-service-boundary.json).
+
+
+### Progress addendum — CAP-027 location-scoped minority-report review, 25 October 2026
+
+Migration 640 and two OIDC Gateway routes now review existing submitted Delphi
+minority reports for one exact granted location. The queue exposes only rows
+whose linked panel member has active consent and never returns participant
+identity. The decision function rechecks consent, report state, and location
+under locks, records reason-coded verified/rejected dispositions in a private
+append-only ledger, and does not publish report content. Withdrawal or an
+unlinked member hides the report pending human disposition. The console uses
+no-store reads, CSRF-protected confirmed decisions, bounded pagination,
+text-only rendering, and retry-stable request IDs. Fifty focused service,
+route-policy, existing Delphi review, and console checks pass. Network-disabled
+disposable PostgreSQL 16 applies and replays migration 640 and passes five
+grouped scope, active-consent, exact-retry, withdrawal-denial, and
+Runtime/Directus privilege checks ([contract](delphi-consultation-kernel-contract.md);
+[migration](../schemas/postgres/640_location_scoped_delphi_minority_report_review.sql);
+[evidence](builds/2026-10-25-recovery/cap-027-delphi-minority-review-disposable.json)).
+Candidate and legacy databases remain untouched; migration 640 is not rolled
+out. Participant minority-report submission, live OIDC/browser, populated
+parity, universal ACL/RLS, SMTP, and MAN-CAP-027 owner acceptance remain open.
+CAP-027 remains prepared, not accepted. Checklist: 1,186 complete / 25 open
+(1,211 total); matrix remains 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.

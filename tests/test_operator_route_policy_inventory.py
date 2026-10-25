@@ -158,6 +158,14 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("delphi", "review", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/minority-reports",
+    ): _expected("delphi", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/minority-reports/33333333-3333-4333-8333-333333333333/decision",
+    ): _expected("delphi", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/ai-summaries/11111111-1111-4111-8111-111111111111/reviews",
     ): _expected("ai_summary", "review", scoped=True, location_id=_LOCATION_ID),
     (

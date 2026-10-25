@@ -98,6 +98,51 @@ def test_review_controls_have_unique_ids_and_are_wired():
     assert 'delphiRecommendationReviewMore.addEventListener("click", () => loadDelphiRecommendationReviewQueue(true))' in source
 
 
+def test_minority_report_review_is_scoped_private_and_consent_aware():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function loadDelphiMinorityReviewQueue(append = false)",
+        "async function submitDelphiMinorityDecision(",
+    )
+    submitter = _function(
+        source,
+        "async function submitDelphiMinorityDecision(",
+        "async function submitDelphiStudyDraft()",
+    )
+    assert "delphiMinorityReviewLocations.has(locationId)" in reader
+    assert '`/operator/api/delphi/${encodeURIComponent(locationId)}/minority-reports?${params}`' in reader
+    assert 'credentials: "same-origin"' in reader and 'cache: "no-store"' in reader
+    assert "position.textContent" in reader and "rationale.textContent" in reader
+    assert "delphiMinorityReviewLocations.has(locationId)" in submitter
+    assert "window.confirm" in submitter
+    assert '"X-CSRF-Token": csrf' in submitter
+    assert 'cache: "no-store"' in submitter and 'method: "POST"' in submitter
+    assert "delphiMinorityReviewRequestIds.get(requestKey)" in submitter
+    assert "delphiMinorityReviewRequestIds.set(requestKey, requestId)" in submitter
+    assert "delphiMinorityReviewRequestIds.delete(requestKey)" in submitter
+    assert "await loadDelphiRecommendationReviewQueue()" in submitter
+    assert "innerHTML" not in reader + submitter
+    for reason_code in ("evidence_considered", "out_of_scope", "privacy_concern", "insufficient_evidence", "other"):
+        assert f'"{reason_code}"' in source
+
+
+def test_minority_review_controls_and_privacy_copy_are_present():
+    source = CONSOLE.read_text(encoding="utf-8")
+    for element_id in (
+        "delphi-minority-review",
+        "delphi-minority-review-location",
+        "delphi-minority-review-refresh",
+        "delphi-minority-review-status",
+        "delphi-minority-review-rows",
+        "delphi-minority-review-more",
+    ):
+        assert f'id="{element_id}"' in source
+    assert "Withdrawn or unlinked reports remain private pending human disposition" in source
+    assert 'delphiMinorityReviewLocation.addEventListener("change", () => loadDelphiMinorityReviewQueue())' in source
+    assert 'delphiMinorityReviewMore.addEventListener("click", () => loadDelphiMinorityReviewQueue(true))' in source
+
+
 def test_inline_javascript_parses_when_node_is_available():
     node = shutil.which("node")
     if node is None:

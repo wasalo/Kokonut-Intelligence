@@ -552,3 +552,39 @@ migration 638 is not rolled out. Live OIDC/browser and SMTP acceptance,
 populated parity, universal ACL/RLS, and MAN-CAP-027 owner acceptance remain
 open. Do not distribute invites yet. Evidence:
 [invite-console acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-invite-console-disposable.json).
+
+
+### Location-scoped review of existing minority reports
+
+Migration 640 adds a private review queue for existing submitted
+`delphi_minority_report` rows. `GET
+/operator/api/delphi/{location_id}/minority-reports` requires an authenticated
+operator with the exact location-scoped `delphi:review` grant and signed
+transaction context. It returns only submitted reports whose pseudonymous
+panel member still has `consent_status = 'granted'`; it omits member IDs and
+identity/contact fields. Withdrawal or a missing panel-member link hides the
+report from this queue while keeping the source record private pending human
+retention or erasure disposition.
+
+`POST
+/operator/api/delphi/{location_id}/minority-reports/{report_id}/decision`
+records only `verified` or `rejected` with an allowlisted reason code. The
+database rechecks current grant, study location, report state, and participant
+consent under row locks. Request IDs are idempotent for an exact decision and
+reject changed-content collisions. A private append-only ledger records the
+reviewer, scope, reason, and result; Gateway runtime and Directus cannot read
+it directly. Verification and rejection are review dispositions, not
+publication. This slice does not implement participant report submission or
+restore the retired CLI/library write path.
+
+The operator console gates the queue on the same exact review grant, uses
+no-store reads and CSRF-protected confirmed decisions, and preserves a request
+ID across retries. Migration 640 applies and replays on disposable PostgreSQL
+16; five grouped checks cover scope, active-consent filtering, exact retry,
+withdrawal denial, append-only history, and runtime/Directus boundaries. Fifty
+focused Gateway, route-policy, and console regressions pass. Candidate and
+legacy databases remain untouched; migration 640 is not rolled out. Rollback
+by disabling the route, policy, and console panel; retain the additive
+migration and review history if applied. Live OIDC/browser, populated parity,
+participant report submission, universal ACL/RLS, and MAN-CAP-027 owner
+acceptance remain open.

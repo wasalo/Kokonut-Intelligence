@@ -581,6 +581,30 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
                 "operator_auth": True,
             }
 
+    delphi_minority_review_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/minority-reports(?:/([0-9a-fA-F-]{36})/decision)?",
+        path,
+    )
+    if delphi_minority_review_match and enabled:
+        if method.upper() == "GET" and delphi_minority_review_match.group(2) is None:
+            return {
+                "resource": "delphi",
+                "action": "review",
+                "public": False,
+                "location_id": delphi_minority_review_match.group(1),
+                "scope_required": True,
+                "operator_auth": True,
+            }
+        if method.upper() == "POST" and delphi_minority_review_match.group(2) is not None:
+            return {
+                "resource": "delphi",
+                "action": "review",
+                "public": False,
+                "location_id": delphi_minority_review_match.group(1),
+                "scope_required": True,
+                "operator_auth": True,
+            }
+
     ai_summary_review_match = re.fullmatch(
         r"/operator/api/ai-summaries/([0-9a-fA-F-]{36})/reviews(?:/([0-9a-fA-F-]{36})/decision)?",
         path,
@@ -5128,6 +5152,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         register_delphi_consent_notice_routes,
     )
     from services.gateway.delphi_consultation_routes import register_delphi_consultation_routes
+    from services.gateway.delphi_minority_review_routes import (
+        register_delphi_minority_review_routes,
+    )
     from services.gateway.delphi_participant_invite_routes import (
         register_delphi_participant_invite_routes,
     )
@@ -5211,6 +5238,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_delphi_study_item_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_recommendation_review_routes(router, provider, run_in_threadpool, psycopg2)
+    register_delphi_minority_review_routes(router, provider, run_in_threadpool, psycopg2)
     register_ai_summary_draft_routes(router, provider, run_in_threadpool, psycopg2)
     register_ai_summary_review_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_recommendation_draft_routes(router, provider, run_in_threadpool, psycopg2)
