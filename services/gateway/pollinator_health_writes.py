@@ -69,6 +69,20 @@ def _temperature(value):
     return temperature
 
 
+def _optional_decimal(value, field: str, *, maximum: Decimal) -> Decimal | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool) or not isinstance(value, (str, int, float, Decimal)):
+        raise PollinatorObservationInvalid(f"Invalid {field}")
+    try:
+        number = Decimal(str(value))
+    except (InvalidOperation, ValueError) as exc:
+        raise PollinatorObservationInvalid(f"Invalid {field}") from exc
+    if not number.is_finite() or not Decimal("0") <= number <= maximum:
+        raise PollinatorObservationInvalid(f"Invalid {field}")
+    return number
+
+
 def _weather(value) -> dict:
     if value is None:
         return {}
@@ -188,6 +202,119 @@ def create_location_pollinator_observation(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Pollinator capture returned an invalid result")
+            connection.commit()
+            return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def _normalize_pesticide_payload(payload: dict) -> tuple:
+    if not isinstance(payload, dict):
+        raise PollinatorObservationInvalid("Pesticide report body must be an object")
+    allowed = {
+        "request_id", "application_date", "product_name", "active_ingredient",
+        "toxicity_class", "application_rate", "rate_unit", "area_treated_m2",
+        "bloom_stage_at_application", "pollinator_distance_m",
+        "pollinator_safe_period_days", "pollinator_mortality_observed",
+        "mortality_pct", "notes",
+    }
+    if set(payload) != allowed:
+        raise PollinatorObservationInvalid("Pesticide report fields do not match the supported contract")
+    request_id = _identifier(payload["request_id"], "request")
+    application_date = payload["application_date"]
+    if not isinstance(application_date, str):
+        raise PollinatorObservationInvalid("Application date must use YYYY-MM-DD")
+    try:
+        applied_on = date.fromisoformat(application_date)
+    except ValueError as exc:
+        raise PollinatorObservationInvalid("Application date must use YYYY-MM-DD") from exc
+    if applied_on.isoformat() != application_date or applied_on > date.today():
+        raise PollinatorObservationInvalid("Application date must be a completed date in YYYY-MM-DD format")
+    toxicity = payload["toxicity_class"]
+    if not isinstance(toxicity, str) or toxicity not in {"low", "moderate", "high", "very_high"}:
+        raise PollinatorObservationInvalid("Unsupported toxicity class")
+    mortality_observed = payload["pollinator_mortality_observed"]
+    if not isinstance(mortality_observed, bool):
+        raise PollinatorObservationInvalid("Mortality observed must be a boolean")
+    safe_period = payload["pollinator_safe_period_days"]
+    if safe_period is not None and (
+        isinstance(safe_period, bool) or not isinstance(safe_period, int) or not 0 <= safe_period <= 36500
+    ):
+        raise PollinatorObservationInvalid("Safe-period days must be between 0 and 36500")
+    mortality_pct = _optional_decimal(
+        payload["mortality_pct"], "mortality percentage", maximum=Decimal("100")
+    )
+    rate_unit = _text(payload["rate_unit"], "rate unit", 32, optional=True)
+    application_rate = _optional_decimal(
+        payload["application_rate"], "application rate", maximum=Decimal("99999999")
+    )
+    if application_rate is None and rate_unit is not None:
+        raise PollinatorObservationInvalid("A rate unit requires an application rate")
+    return (
+        request_id,
+        applied_on,
+        _text(payload["product_name"], "product name", 200, optional=True),
+        _text(payload["active_ingredient"], "active ingredient", 200, optional=True),
+        toxicity,
+        application_rate,
+        rate_unit,
+        _optional_decimal(payload["area_treated_m2"], "treated area", maximum=Decimal("9999999999")),
+        _text(payload["bloom_stage_at_application"], "bloom stage", 100, optional=True),
+        _optional_decimal(payload["pollinator_distance_m"], "pollinator distance", maximum=Decimal("99999999")),
+        safe_period,
+        mortality_observed,
+        mortality_pct,
+        _text(payload["notes"], "notes", 2000, optional=True),
+    )
+
+
+def create_location_pesticide_impact(
+    operator_id: str,
+    location_id: str,
+    payload: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record a location-scoped pesticide report without making a safety decision."""
+    operator_id = _identifier(operator_id, "operator")
+    location_id = _identifier(location_id, "location")
+    normalized = _normalize_pesticide_payload(payload)
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.create_location_pesticide_impact("
+                "%s::uuid, %s::uuid, %s::date, %s::text, %s::text, %s::text, "
+                "%s::numeric, %s::text, %s::numeric, %s::text, %s::numeric, "
+                "%s::integer, %s::boolean, %s::numeric, %s::text)",
+                (location_id, *normalized),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Pesticide report capture returned no record")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+            if (
+                not isinstance(result, dict)
+                or result.get("location_id") != location_id
+                or result.get("status") != "recorded"
+                or result.get("toxicity_class") != normalized[4]
+                or not isinstance(result.get("record_id"), str)
+                or not isinstance(result.get("replayed"), bool)
+            ):
+                raise RuntimeError("Pesticide report capture returned an invalid result")
             connection.commit()
             return result
     except Exception:

@@ -1,3 +1,28 @@
+### Progress addendum — CAP-006 location-scoped pesticide-impact reports, 25 October 2026
+
+Migration 620 adds a tenant-authorized, recorded-only pesticide-impact report
+path. The Gateway checks signed operator/location context and the exact
+`pollinator_health:create` grant; the isolated database function applies field
+bounds, records operator attribution, and uses a digest-only private receipt
+for safe retries. Runtime and Directus cannot directly write pesticide rows or
+read receipts. The report is not pesticide-use authorization or a safety
+assessment, and it remains recorded until independent review. The console form
+uses CSRF/no-store and the same grant boundary. The legacy pesticide-report CLI
+fails before database access while the authenticated replacement is available.
+
+The focused capture selection passes 80 tests, and the combined CAP-006
+Gateway/ecology/waste/console regression selection passes 218 tests.
+Ruff and Python compilation also pass. Disposable PostgreSQL 16 migration
+apply/replay passes nine grouped checks on native x86_64 and ARM64/QEMU
+([native](builds/2026-10-25-recovery/cap-006-pesticide-impact-capture-disposable.json);
+[ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pesticide-impact-capture-arm64-disposable.json)).
+Candidate and legacy databases remain untouched; migration 620 is not rolled
+out. QEMU does not establish physical Raspberry Pi acceptance. Checklist:
+1,128 complete / 25 open (1,153 total). Habitat, hive registration, and hive
+inspection writes remain code-first follow-up work; CAP-006 is still prepared
+pending populated parity, live OIDC/browser behavior, independent review,
+broader ACL/RLS, Directus parity, and MAN-CAP-006.
+
 ### Progress addendum — CAP-006 tenant-scoped pollinator observation capture, 24 October 2026
 
 Migration 619 and the Gateway add recorded-only pollinator observation capture

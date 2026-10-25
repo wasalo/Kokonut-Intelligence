@@ -12,6 +12,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
     from services.gateway.pollinator_health_reads import get_location_pollinator_summary
     from services.gateway.pollinator_health_writes import (
         PollinatorObservationInvalid,
+        create_location_pesticide_impact,
         create_location_pollinator_observation,
     )
 
@@ -24,7 +25,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
                 if int(content_length) > max_bytes:
                     return None, JSONResponse(
                         status_code=413,
-                        content={"error": "Pollinator observation body exceeds 12 KB"},
+                        content={"error": "Pollinator request body exceeds 12 KB"},
                         headers=headers,
                     )
             except ValueError:
@@ -39,7 +40,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             if len(body) > max_bytes:
                 return None, JSONResponse(
                     status_code=413,
-                    content={"error": "Pollinator observation body exceeds 12 KB"},
+                    content={"error": "Pollinator request body exceeds 12 KB"},
                     headers=headers,
                 )
         try:
@@ -47,13 +48,13 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
         except (ValueError, RecursionError):
             return None, JSONResponse(
                 status_code=400,
-                content={"error": "Pollinator observation body must be valid JSON"},
+                content={"error": "Pollinator request body must be valid JSON"},
                 headers=headers,
             )
         if not isinstance(payload, dict):
             return None, JSONResponse(
                 status_code=400,
-                content={"error": "Pollinator observation body must be an object"},
+                content={"error": "Pollinator request body must be an object"},
                 headers=headers,
             )
         return payload, None
@@ -139,6 +140,64 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             return JSONResponse(
                 status_code=503,
                 content={"error": "Pollinator capture unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result["replayed"] else 201,
+            headers=headers,
+        )
+
+    @router.post("/operator/api/pollinators/{location_id}/pesticide-impacts")
+    async def create_pesticide_impact(request: Request, location_id: str):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        payload, body_error = await bounded_payload(request)
+        if body_error:
+            return body_error
+        try:
+            result = await run_in_threadpool(
+                create_location_pesticide_impact,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified pesticide-report capture access is required"},
+                headers=headers,
+            )
+        except PollinatorObservationInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location pollinator-create grant is required"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Pesticide report input is invalid or outside its bounds"},
+                    headers=headers,
+                )
+            if pgcode == "23505":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The request ID was already used with different input"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.pollinators").warning(
+                "Pesticide report capture unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Pesticide report capture unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(

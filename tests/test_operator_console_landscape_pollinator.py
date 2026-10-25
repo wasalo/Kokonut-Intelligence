@@ -108,6 +108,25 @@ def test_pollinator_capture_is_separately_grant_gated_and_uses_stable_csrf_retry
     assert "It has not been verified or published." in submit.group()
 
 
+def test_pesticide_report_capture_is_recorded_only_and_uses_same_create_boundary():
+    assert 'id="pesticide-impact-capture" hidden' in SOURCE
+    assert 'pesticideImpactCapture.hidden = !canCreate' in SOURCE
+    assert "It does not approve or recommend pesticide use" in SOURCE
+    assert "independent review" in SOURCE
+    submit = re.search(r"async function submitPesticideImpactReport\(event\).*?\n      }", SOURCE, re.DOTALL)
+    assert submit
+    assert "pollinatorHealthCreateLocations.has(locationId)" in submit.group()
+    assert '"X-CSRF-Token": csrf' in submit.group()
+    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in submit.group()
+    assert "pesticideImpactPending.fingerprint !== fingerprint" in submit.group()
+    assert "crypto.randomUUID()" in submit.group()
+    assert 'result.status !== "recorded"' in submit.group()
+    assert "Retrying unchanged input reuses the same request ID." in submit.group()
+    assert "It has not been independently reviewed or published." in submit.group()
+    assert "mortality_observed: pesticideImpactCaptureForm.querySelector" in submit.group()
+    assert "toxicity_class:" in submit.group()
+
+
 def test_inline_console_javascript_passes_node_syntax_check():
     node = shutil.which("node")
     assert node, "Node.js is required for the operator-console JavaScript syntax check"

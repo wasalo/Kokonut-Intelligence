@@ -1,6 +1,6 @@
 # CAP-006 landscape and pollinator Kernel read contract
 
-Updated: 23 October 2026
+Updated: 25 October 2026
 
 ## Routes and authorization
 
@@ -160,3 +160,26 @@ reference reconciliation, candidate rollout, or MAN-CAP-006 acceptance.
 Migrations 602 and 603 have not been applied to the candidate. The existing
 shared-identity CLI must not be treated as a tenant-safe writer until the
 worker/runtime identity gates close.
+
+
+## Tenant-scoped capture boundaries
+
+`POST /operator/api/pollinators/{location_id}/observations` (migration 619)
+and `POST /operator/api/pollinators/{location_id}/pesticide-impacts`
+(migration 620) require an exact location `pollinator_health:create` grant.
+Both operations install signed operator/location context on one PostgreSQL
+connection, which the bounded security-definer function independently checks.
+Payloads are capped and validated before database access; private receipts store
+only request identity, location, record reference, and SHA-256 input digest.
+Shared runtime and Directus roles cannot write these tables directly or read
+receipts. Same-input retries return the original record; changed-input reuse is
+rejected.
+
+Observation records and pesticide-impact reports are always captured as
+`recorded`. Capture has no verification, publication, treatment-approval, or
+pesticide-safety action. Pesticide reports describe completed applications and
+are excluded from reviewed summaries until separately reviewed. The legacy
+observation and pesticide CLI write commands now fail before opening the
+database; other habitat, hive-registration, and inspection write paths remain
+unported and are tracked as open work. Candidate and legacy database migration
+rollout is separate and has not occurred.

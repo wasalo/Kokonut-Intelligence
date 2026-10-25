@@ -6,8 +6,6 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_pollinator_health --help
 """
 
-from datetime import date
-
 from ..common.commands import CommandLine
 from .pollinator_health import (
     add_hive,
@@ -18,7 +16,6 @@ from .pollinator_health import (
     get_pollinator_dashboard,
     get_pollinator_summary,
     record_hive_inspection,
-    record_pesticide_impact,
 )
 
 # ============================================================
@@ -47,20 +44,10 @@ def _cmd_create_habitat(db, a):
     )
 
 
-def _cmd_record_pesticide(db, a):
-    app_date = date.fromisoformat(a.application_date)
-    return record_pesticide_impact(
-        db, a.location_id, app_date, a.product_name,
-        a.active_ingredient, a.toxicity_class,
-        application_rate=a.application_rate,
-        rate_unit=a.rate_unit,
-        area_treated_m2=a.area_treated_m2,
-        bloom_stage_at_application=a.bloom_stage_at_application,
-        pollinator_distance_m=a.pollinator_distance_m,
-        pollinator_safe_period_days=a.pollinator_safe_period_days,
-        pollinator_mortality_observed=a.pollinator_mortality_observed,
-        mortality_pct=a.mortality_pct,
-        notes=a.notes,
+def _cmd_retired_record_pesticide(_db, _a):
+    raise RuntimeError(
+        "Unscoped pesticide-impact writes are retired; use the authenticated "
+        "Kokonut Gateway pesticide-report form with a location create grant."
     )
 
 
@@ -125,7 +112,7 @@ cli.subcommand("create-habitat", "Create pollinator habitat") \
     .add("--json", action="store_true") \
     .run(_cmd_create_habitat)
 
-cli.subcommand("record-pesticide", "Record pesticide impact") \
+cli.subcommand("record-pesticide", "Retired; use authenticated Gateway pesticide report") \
     .add("--location-id", required=True) \
     .add("--date", required=True, dest="application_date") \
     .add("--product", required=True, dest="product_name") \
@@ -141,7 +128,7 @@ cli.subcommand("record-pesticide", "Record pesticide impact") \
     .add("--mortality-pct", type=float) \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_pesticide)
+    .run(_cmd_retired_record_pesticide, needs_db=False)
 
 cli.subcommand("add-hive", "Add managed hive") \
     .add("--location-id", required=True) \

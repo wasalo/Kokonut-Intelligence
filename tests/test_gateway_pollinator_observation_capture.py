@@ -85,6 +85,27 @@ def _payload(**changes):
     return payload
 
 
+def _pesticide_payload(**changes):
+    payload = {
+        "request_id": str(uuid4()),
+        "application_date": date.today().isoformat(),
+        "product_name": "Synthetic product",
+        "active_ingredient": "Synthetic ingredient",
+        "toxicity_class": "moderate",
+        "application_rate": "1.25",
+        "rate_unit": "L/ha",
+        "area_treated_m2": "250.00",
+        "bloom_stage_at_application": "flowering",
+        "pollinator_distance_m": "20",
+        "pollinator_safe_period_days": 3,
+        "pollinator_mortality_observed": False,
+        "mortality_pct": None,
+        "notes": "Synthetic report",
+    }
+    payload.update(changes)
+    return payload
+
+
 def test_observation_sets_signed_create_context_before_function_and_cleans_connection(monkeypatch):
     connection = Connection()
     contexts = []
@@ -126,6 +147,81 @@ def test_observation_sets_signed_create_context_before_function_and_cleans_conne
     assert connection.closed
 
 
+def test_pesticide_report_sets_create_context_and_commits_recorded_result(monkeypatch):
+    connection = Connection()
+    connection.result = {
+        "record_id": "33333333-3333-4333-8333-333333333333",
+        "location_id": _LOCATION,
+        "toxicity_class": "moderate",
+        "application_date": date.today().isoformat(),
+        "status": "recorded",
+        "replayed": False,
+    }
+    contexts = []
+    monkeypatch.setattr(
+        writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    payload = _pesticide_payload()
+    result = writes.create_location_pesticide_impact(
+        _OPERATOR, _LOCATION, payload, connection_factory=lambda: connection
+    )
+
+    assert contexts == [(
+        connection,
+        {
+            "operator_id": _OPERATOR,
+            "location_id": _LOCATION,
+            "resource": "pollinator_health",
+            "action": "create",
+        },
+    )]
+    query, params = connection.operations[0]
+    assert "create_location_pesticide_impact" in query
+    assert params[:6] == (
+        _LOCATION, payload["request_id"], date.today(),
+        "Synthetic product", "Synthetic ingredient", "moderate",
+    )
+    assert str(params[6]) == "1.25"
+    assert params[7:12] == ("L/ha", 250, "flowering", 20, 3)
+    assert params[12:] == (False, None, "Synthetic report")
+    assert result["status"] == "recorded"
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+    assert connection.closed
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"application_date": (date.today().replace(day=1)).isoformat() + "T00:00:00"},
+        {"application_date": "2999-01-01"},
+        {"toxicity_class": "unknown"},
+        {"toxicity_class": []},
+        {"application_rate": "NaN"},
+        {"application_rate": "-0.1"},
+        {"rate_unit": "L/ha" , "application_rate": None},
+        {"pollinator_safe_period_days": True},
+        {"pollinator_mortality_observed": "false"},
+        {"mortality_pct": "100.01"},
+        {"notes": "bad\nnote"},
+        {"unexpected": "field"},
+    ],
+)
+def test_invalid_pesticide_report_is_rejected_before_database_access(changes):
+    opened = []
+    with pytest.raises(writes.PollinatorObservationInvalid):
+        writes.create_location_pesticide_impact(
+            _OPERATOR,
+            _LOCATION,
+            _pesticide_payload(**changes),
+            connection_factory=lambda: opened.append(True),
+        )
+    assert opened == []
+
+
 @pytest.mark.parametrize(
     "changes",
     [
@@ -160,6 +256,7 @@ def test_invalid_capture_is_rejected_before_database_access(changes):
     [
         ("/operator/api/pollinators/{}/summary", "GET", "read"),
         ("/operator/api/pollinators/{}/observations", "POST", "create"),
+        ("/operator/api/pollinators/{}/pesticide-impacts", "POST", "create"),
     ],
 )
 def test_pollinator_routes_have_exact_location_grants(path, method, action):
@@ -231,6 +328,51 @@ def test_http_capture_is_bounded_csrf_ready_and_no_store(monkeypatch):
         assert len(posted) == 1
 
 
+def test_pesticide_report_http_capture_is_create_gated_recorded_and_no_store(monkeypatch):
+    routes = importlib.import_module("services.gateway.pollinator_health_routes")
+    posted = []
+
+    def create(operator_id, location_id, payload):
+        posted.append((operator_id, location_id, payload))
+        return {
+            "record_id": "33333333-3333-4333-8333-333333333333",
+            "location_id": location_id,
+            "toxicity_class": payload["toxicity_class"],
+            "application_date": payload["application_date"],
+            "status": "recorded",
+            "replayed": False,
+        }
+
+    monkeypatch.setattr(writes, "create_location_pesticide_impact", create)
+    router = APIRouter()
+
+    async def run_inline(function, *args):
+        return function(*args)
+
+    import psycopg2
+
+    routes.register_pollinator_health_routes(router, object(), run_inline, psycopg2)
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=_OPERATOR)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/pollinators/{_LOCATION}/pesticide-impacts",
+            json=_pesticide_payload(),
+        )
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert posted[0][0:2] == (_OPERATOR, _LOCATION)
+
+
 def test_legacy_pollinator_observation_cli_fails_before_database_access(monkeypatch):
     cli = importlib.import_module("services.analytics.cli_pollinator_health").cli
     command = next(item for item in cli._commands if item.name == "record-observation")
@@ -243,4 +385,20 @@ def test_legacy_pollinator_observation_cli_fails_before_database_access(monkeypa
     with pytest.raises(RuntimeError, match="Unscoped pollinator observation writes are retired"):
         cli.main([
             "record-observation", "--location-id", _LOCATION, "--type", "wild_bee", "--count", "1",
+        ])
+
+
+def test_legacy_pesticide_cli_fails_before_database_access(monkeypatch):
+    cli = importlib.import_module("services.analytics.cli_pollinator_health").cli
+    command = next(item for item in cli._commands if item.name == "record-pesticide")
+    assert command.needs_db is False
+    monkeypatch.setattr(
+        cli,
+        "_connection_factory",
+        lambda: pytest.fail("retired pesticide writer must not open the database"),
+    )
+    with pytest.raises(RuntimeError, match="Unscoped pesticide-impact writes are retired"):
+        cli.main([
+            "record-pesticide", "--location-id", _LOCATION, "--date", date.today().isoformat(),
+            "--product", "synthetic", "--ingredient", "synthetic", "--toxicity", "moderate",
         ])

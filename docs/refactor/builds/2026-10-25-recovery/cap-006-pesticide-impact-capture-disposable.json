@@ -1,0 +1,27 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T04:02:51.190221+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "architecture": "x86_64",
+  "migrations": [
+    "155_pollinator_health.sql",
+    "602_pollinator_health_kernel_alignment.sql",
+    "619_location_pollinator_observation_capture.sql",
+    "620_location_pesticide_impact_capture.sql"
+  ],
+  "migration_620_replayed": true,
+  "checks": [
+    "migration 620 applies and replays after pollinator migrations 155/602/619",
+    "exact signed location create grant creates a recorded-only pesticide report",
+    "same-input retries are idempotent and changed-input reuse is rejected",
+    "ungranted actors, wrong requested locations, and mismatched signed context are denied",
+    "out-of-bounds rate and reported mortality values are rejected",
+    "operator attribution persists; capture cannot promote the independent review state",
+    "runtime and Directus cannot insert, update, delete, or read private receipts",
+    "dedicated writer is no-login/no-inherit/no-bypass and Directus cannot execute the capture function",
+    "exactly one private receipt and one recorded report remain after retries and denials"
+  ],
+  "assertions_passed": 9,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false
+}
