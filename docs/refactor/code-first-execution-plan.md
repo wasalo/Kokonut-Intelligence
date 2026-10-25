@@ -1,3 +1,22 @@
+### Current CAP-006 implementation slice — location-scoped composting capture, 24 October 2026
+
+Migration 614 and the Gateway add recorded-only compost capture at
+`POST /operator/api/waste/{location_id}/composting`, protected by the exact
+`waste_management:create` grant and signed tenant context. Bounded form inputs and freeform compost labels mapped to canonical categories
+with original labels preserved in metadata, private SHA-256 receipts, exact retries, and changed-input conflicts are
+covered. The console separates compost creation from verification. The
+legacy compost helper and CLI now fail before database access. The focused
+waste/Gateway/console/route-policy selection passes 118 tests plus five
+subtests; Ruff and Python compilation pass. Disposable PostgreSQL 16 applies
+and replays migrations 153/613/614 and verifies tenant denial, receipt privacy,
+and function-role boundaries. Candidate/legacy databases remain untouched and
+migration 614 is not rolled out. Native and linux/arm64 Docker/QEMU SQL
+acceptance passes; QEMU is software portability evidence only. CAP-006 still
+needs populated parity, live OIDC/browser acceptance, ACL/RLS, and MAN-CAP-006
+review ([contract](waste-management-kernel-read-contract.md);
+[checklist](batches.md); [native evidence](builds/2026-10-24-recovery/cap-006-waste-and-compost-capture-disposable.json);
+[ARM64 evidence](builds/2026-10-24-recovery/cap-006-waste-and-compost-capture-arm64-disposable.json)).
+
 ### Current CAP-006 implementation slice — retire unscoped waste writer, 24 October 2026
 
 The legacy `record_waste` service helper and CLI now fail closed before cursor

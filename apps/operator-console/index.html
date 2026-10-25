@@ -2142,6 +2142,34 @@
               <p id="waste-management-capture-status" class="muted" role="status" aria-live="polite"></p>
             </form>
           </div>
+          <section id="composting-capture" hidden aria-labelledby="composting-capture-heading">
+            <h3 id="composting-capture-heading">Record a compost batch</h3>
+            <p class="muted">New batches remain recorded, not verified. Process measurements are descriptive and advisory; this form does not certify compost quality.</p>
+            <form id="composting-capture-form" class="form-grid">
+              <label for="composting-capture-date">Composting date</label>
+              <input id="composting-capture-date" type="date" required>
+              <label for="composting-capture-feedstock">Feedstock type or material</label>
+              <input id="composting-capture-feedstock" type="text" maxlength="200" placeholder="e.g. crop residue or banana stems" required>
+              <label for="composting-capture-quantity">Feedstock (kg)</label>
+              <input id="composting-capture-quantity" type="number" min="0.01" max="99999999.99" step="0.01" required>
+              <label for="composting-capture-method">Method</label>
+              <input id="composting-capture-method" type="text" maxlength="100" placeholder="e.g. heap, bokashi, vermicomposting" required>
+              <label for="composting-capture-duration">Duration (days, optional)</label>
+              <input id="composting-capture-duration" type="number" min="0" max="36500" step="1">
+              <label for="composting-capture-output">Finished compost (kg, optional)</label>
+              <input id="composting-capture-output" type="number" min="0" max="99999999.99" step="0.01">
+              <label for="composting-capture-temperature">Temperature (°C, optional)</label>
+              <input id="composting-capture-temperature" type="number" min="-100" max="200" step="0.1">
+              <label for="composting-capture-moisture">Moisture (%, optional)</label>
+              <input id="composting-capture-moisture" type="number" min="0" max="100" step="0.1">
+              <label for="composting-capture-ph">pH (optional)</label>
+              <input id="composting-capture-ph" type="number" min="0" max="14" step="0.01">
+              <label for="composting-capture-notes">Entry notes (optional)</label>
+              <textarea id="composting-capture-notes" maxlength="1000" rows="3"></textarea>
+              <button id="composting-capture-submit" type="submit">Save recorded batch</button>
+              <p id="composting-capture-status" class="muted" role="status" aria-live="polite"></p>
+            </form>
+          </section>
           <div id="waste-management-summary" hidden>
             <p id="waste-management-status" class="muted" role="status" aria-live="polite"></p>
             <div aria-labelledby="waste-management-streams-heading">
@@ -3392,6 +3420,9 @@
       const wasteManagementCapture = document.querySelector("#waste-management-capture");
       const wasteManagementCaptureForm = document.querySelector("#waste-management-capture-form");
       const wasteManagementCaptureStatus = document.querySelector("#waste-management-capture-status");
+      const compostingCapture = document.querySelector("#composting-capture");
+      const compostingCaptureForm = document.querySelector("#composting-capture-form");
+      const compostingCaptureStatus = document.querySelector("#composting-capture-status");
       let wasteManagementLocations = new Set();
       let wasteManagementCreateLocations = new Set();
       let wasteManagementRequestVersion = 0;
@@ -17049,6 +17080,7 @@
         const canCreate = wasteManagementCreateLocations.has(locationId);
         wasteManagementSummary.hidden = !canRead;
         wasteManagementCapture.hidden = !canCreate;
+        compostingCapture.hidden = !canCreate;
         if (!canRead) {
           wasteManagementStatus.textContent = "";
           for (const container of [wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
@@ -17102,8 +17134,8 @@
         }
       }
 
-      function setWasteCaptureFieldsDisabled(disabled) {
-        for (const field of wasteManagementCaptureForm.querySelectorAll("select, input, textarea")) {
+      function setWasteCaptureFieldsDisabled(form, disabled) {
+        for (const field of form.querySelectorAll("select, input, textarea")) {
           field.disabled = disabled;
         }
       }
@@ -17113,97 +17145,118 @@
         return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
       }
 
-      wasteManagementCaptureForm.querySelector("#waste-management-capture-date").value = wasteCaptureToday();
-      wasteManagementCaptureForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const locationId = wasteManagementLocation.value;
-        if (!wasteManagementCreateLocations.has(locationId)) {
-          wasteManagementCaptureStatus.textContent = "A current waste-create grant for this location is required.";
-          return;
-        }
-        if (wasteManagementCaptureForm.pendingCapture
-            && wasteManagementCaptureForm.pendingCapture.locationId !== locationId) {
-          wasteManagementCaptureStatus.textContent = "Retry the pending entry at its original location before changing locations.";
-          return;
-        }
-        if (!wasteManagementCaptureForm.pendingCapture
-            && !wasteManagementCaptureForm.reportValidity()) return;
-
-        if (!wasteManagementCaptureForm.pendingCapture) {
-          const requestId = globalThis.crypto?.randomUUID?.();
-          if (!requestId) {
-            wasteManagementCaptureStatus.textContent = "A secure browser context is required to record a waste entry.";
+      function registerWasteCaptureForm(form, status, {route, buildPayload, successLabel}) {
+        form.querySelector('input[type="date"]').value = wasteCaptureToday();
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const locationId = wasteManagementLocation.value;
+          if (!wasteManagementCreateLocations.has(locationId)) {
+            status.textContent = "A current waste-create grant for this location is required.";
             return;
           }
-          wasteManagementCaptureForm.pendingCapture = {
-            locationId,
-            payload: {
-              request_id: requestId,
-              waste_type: wasteManagementCaptureForm.querySelector("#waste-management-capture-type").value,
-              waste_name: wasteManagementCaptureForm.querySelector("#waste-management-capture-name").value,
-              quantity_kg: wasteManagementCaptureForm.querySelector("#waste-management-capture-quantity").value,
-              record_date: wasteManagementCaptureForm.querySelector("#waste-management-capture-date").value,
-              disposal_method: wasteManagementCaptureForm.querySelector("#waste-management-capture-disposal").value || null,
-              notes: wasteManagementCaptureForm.querySelector("#waste-management-capture-notes").value || null
+          if (form.pendingCapture && form.pendingCapture.locationId !== locationId) {
+            status.textContent = "Retry the pending entry at its original location before changing locations.";
+            return;
+          }
+          if (!form.pendingCapture && !form.reportValidity()) return;
+
+          if (!form.pendingCapture) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to record this entry.";
+              return;
             }
-          };
-          setWasteCaptureFieldsDisabled(true);
-        }
-        const pending = wasteManagementCaptureForm.pendingCapture;
-        const submit = wasteManagementCaptureForm.querySelector("#waste-management-capture-submit");
-        submit.disabled = true;
-        wasteManagementCaptureStatus.textContent = pending.attempted
-          ? "Retrying the same recorded entry…"
-          : "Recording waste entry…";
-        pending.attempted = true;
-        try {
-          const response = await fetch(
-            `/operator/api/waste/${encodeURIComponent(pending.locationId)}/records`,
-            {
-              method: "POST", credentials: "same-origin", cache: "no-store",
-              headers: {
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "X-CSRF-Token": csrfToken()
-              },
-              body: JSON.stringify(pending.payload)
+            form.pendingCapture = {locationId, payload: buildPayload(requestId)};
+            setWasteCaptureFieldsDisabled(form, true);
+          }
+          const pending = form.pendingCapture;
+          const submit = form.querySelector('button[type="submit"]');
+          submit.disabled = true;
+          status.textContent = pending.attempted
+            ? "Retrying the same recorded entry…"
+            : `Recording ${successLabel}…`;
+          pending.attempted = true;
+          try {
+            const response = await fetch(
+              `/operator/api/waste/${encodeURIComponent(pending.locationId)}/${route}`,
+              {
+                method: "POST", credentials: "same-origin", cache: "no-store",
+                headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json",
+                  "X-CSRF-Token": csrfToken()
+                },
+                body: JSON.stringify(pending.payload)
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or waste-create grant is no longer valid. Reload the console to refresh access.");
             }
-          );
-          const result = await response.json().catch(() => ({}));
-          if (response.status === 401 || response.status === 403) {
-            throw new Error("Your session or waste-create grant is no longer valid. Reload the console to refresh access.");
-          }
-          if (!response.ok) {
-            if (response.status === 400) {
-              wasteManagementCaptureForm.pendingCapture = null;
-              setWasteCaptureFieldsDisabled(false);
+            if (!response.ok) {
+              if (response.status === 400) {
+                form.pendingCapture = null;
+                setWasteCaptureFieldsDisabled(form, false);
+              }
+              throw new Error(result.error || `The ${successLabel} could not be recorded.`);
             }
-            throw new Error(result.error || "The waste entry could not be recorded.");
+            if (result.location_id !== pending.locationId
+                || result.status !== "recorded"
+                || typeof result.record_id !== "string"
+                || typeof result.replayed !== "boolean") {
+              throw new Error("The response did not match the capture contract. Retry to confirm the same request.");
+            }
+            form.pendingCapture = null;
+            setWasteCaptureFieldsDisabled(form, false);
+            form.reset();
+            form.querySelector('input[type="date"]').value = wasteCaptureToday();
+            status.textContent = result.replayed
+              ? `The original ${successLabel} was confirmed after retry. It remains recorded until separate human verification.`
+              : `${successLabel} recorded. It remains outside verified aggregates until separate human verification.`;
+            if (wasteManagementLocations.has(pending.locationId)
+                && wasteManagementLocation.value === pending.locationId) {
+              await loadWasteManagementSummary();
+            }
+          } catch (error) {
+            status.textContent = form.pendingCapture
+              ? `${error.message} Retrying reuses the same request ID and entry.`
+              : `${error.message} Correct the entry and submit again.`;
+          } finally {
+            submit.disabled = false;
           }
-          if (result.location_id !== pending.locationId
-              || result.status !== "recorded"
-              || typeof result.record_id !== "string"
-              || typeof result.replayed !== "boolean") {
-            throw new Error("The response did not match the waste-capture contract. Retry to confirm the same request.");
-          }
-          wasteManagementCaptureForm.pendingCapture = null;
-          setWasteCaptureFieldsDisabled(false);
-          wasteManagementCaptureForm.reset();
-          wasteManagementCaptureForm.querySelector("#waste-management-capture-date").value = wasteCaptureToday();
-          wasteManagementCaptureStatus.textContent = result.replayed
-            ? "The original entry was confirmed after retry. It remains recorded until separate human verification."
-            : "Entry recorded. It remains outside verified aggregates until separate human verification.";
-          if (wasteManagementLocations.has(pending.locationId)
-              && wasteManagementLocation.value === pending.locationId) {
-            await loadWasteManagementSummary();
-          }
-        } catch (error) {
-          wasteManagementCaptureStatus.textContent = wasteManagementCaptureForm.pendingCapture
-            ? `${error.message} Retrying reuses the same request ID and entry.`
-            : `${error.message} Correct the entry and submit again.`;
-        } finally {
-          submit.disabled = false;
-        }
+        });
+      }
+
+      registerWasteCaptureForm(wasteManagementCaptureForm, wasteManagementCaptureStatus, {
+        route: "records",
+        successLabel: "waste entry",
+        buildPayload: (requestId) => ({
+          request_id: requestId,
+          waste_type: wasteManagementCaptureForm.querySelector("#waste-management-capture-type").value,
+          waste_name: wasteManagementCaptureForm.querySelector("#waste-management-capture-name").value,
+          quantity_kg: wasteManagementCaptureForm.querySelector("#waste-management-capture-quantity").value,
+          record_date: wasteManagementCaptureForm.querySelector("#waste-management-capture-date").value,
+          disposal_method: wasteManagementCaptureForm.querySelector("#waste-management-capture-disposal").value || null,
+          notes: wasteManagementCaptureForm.querySelector("#waste-management-capture-notes").value || null
+        })
+      });
+      registerWasteCaptureForm(compostingCaptureForm, compostingCaptureStatus, {
+        route: "composting",
+        successLabel: "compost batch",
+        buildPayload: (requestId) => ({
+          request_id: requestId,
+          compost_date: compostingCaptureForm.querySelector("#composting-capture-date").value,
+          feedstock_type: compostingCaptureForm.querySelector("#composting-capture-feedstock").value,
+          feedstock_kg: compostingCaptureForm.querySelector("#composting-capture-quantity").value,
+          compost_method: compostingCaptureForm.querySelector("#composting-capture-method").value,
+          duration_days: compostingCaptureForm.querySelector("#composting-capture-duration").value === ""
+            ? null : Number(compostingCaptureForm.querySelector("#composting-capture-duration").value),
+          output_kg: compostingCaptureForm.querySelector("#composting-capture-output").value || null,
+          temperature_c: compostingCaptureForm.querySelector("#composting-capture-temperature").value || null,
+          moisture_pct: compostingCaptureForm.querySelector("#composting-capture-moisture").value || null,
+          ph: compostingCaptureForm.querySelector("#composting-capture-ph").value || null,
+          notes: compostingCaptureForm.querySelector("#composting-capture-notes").value || null
+        })
       });
 
       function renderEcologySections(container, sections) {

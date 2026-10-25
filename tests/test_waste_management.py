@@ -68,31 +68,29 @@ class TestRecordComposting(unittest.TestCase):
         self.mock_cursor = MagicMock()
         self.conn.cursor.return_value = self.mock_cursor
 
-    def test_record_composting_returns_compost_id(self):
-        result = record_composting(
-            self.conn, "loc-001", "Banana stems", 100.0, "vermicomposting",
-        )
-        self.assertIn("compost_id", result)
-        self.assertEqual(result["feedstock_type"], "Banana stems")
-        self.assertEqual(result["feedstock_kg"], 100.0)
-        self.assertEqual(result["compost_method"], "vermicomposting")
-        self.conn.commit.assert_called_once()
+    def test_legacy_helper_fails_before_opening_cursor(self):
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            record_composting(
+                self.conn, "loc-001", "Banana stems", 100.0, "vermicomposting",
+                duration_days=30, output_kg=45, temperature_c=55, ph=6.5,
+                moisture_pct=60,
+            )
+        self.conn.cursor.assert_not_called()
+        self.conn.commit.assert_not_called()
 
-    def test_record_composting_with_output(self):
-        result = record_composting(
-            self.conn, "loc-001", "Maize stover", 200.0, "aerobic",
-            output_kg=80.0,
-        )
-        self.assertEqual(result["output_kg"], 80.0)
-        self.assertEqual(result["output_yield_pct"], 40.0)
-
-    def test_record_composting_with_quality_params(self):
-        result = record_composting(
-            self.conn, "loc-001", "Coffee pulp", 50.0, "bokashi",
-            duration_days=30, temperature_c=55.0, ph=6.5, moisture_pct=60.0,
-        )
-        self.assertIn("compost_id", result)
-        self.assertEqual(result["location_id"], "loc-001")
+    def test_legacy_cli_writer_fails_before_opening_database(self):
+        connection_factory = MagicMock(side_effect=AssertionError("database opened"))
+        stderr = io.StringIO()
+        with patch.object(waste_management.cli, "_connection_factory", connection_factory):
+            with redirect_stderr(stderr), self.assertRaises(SystemExit) as error:
+                waste_management.cli.run([
+                    "record-composting", "--location-id", "loc-001",
+                    "--feedstock", "Banana stems", "--feedstock-kg", "100",
+                    "--method", "vermicomposting",
+                ])
+        self.assertEqual(error.exception.code, 1)
+        connection_factory.assert_not_called()
+        self.assertIn("authenticated operator Gateway composting-capture workflow", stderr.getvalue())
 
 
 class TestRecordRecycling(unittest.TestCase):
@@ -329,30 +327,14 @@ class TestCompostingEfficiency(unittest.TestCase):
             get_composting_efficiency(self.conn, "loc-001")
         self.mock_cursor.close.assert_called_once()
 
-    def test_record_composting_uses_canonical_schema_and_preserves_legacy_inputs(self):
-        record_composting(
-            self.conn, "loc-001", "Banana stems", 100.0, "vermicomposting",
-            output_kg=45.0, ph=6.5, metadata={"source": "field"},
-        )
-
-        query, params = self.mock_cursor.execute.call_args.args
-        self.assertIn("compost_date", query)
-        self.assertIn("finished_volume_kg", query)
-        self.assertIn("status", query)
-        for removed_column in ("output_kg", "output_yield_pct", " ph,"):
-            self.assertNotIn(removed_column, query)
-        self.assertEqual(params[3], "other")
-        self.assertEqual(params[5], "vermiculture")
-        self.assertEqual(params[9], 45.0)
-        saved_metadata = json.loads(params[11])
-        self.assertEqual(saved_metadata["ph"], 6.5)
-        self.assertEqual(saved_metadata["source"], "field")
-        self.assertEqual(saved_metadata["legacy_composting_inputs"], {
-            "feedstock_type": "Banana stems",
-            "compost_method": "vermicomposting",
-        })
-        self.conn.commit.assert_called_once()
-        self.mock_cursor.close.assert_called_once()
+    def test_legacy_composting_helper_fails_before_opening_cursor(self):
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            record_composting(
+                self.conn, "loc-001", "Banana stems", 100.0, "vermicomposting",
+                output_kg=45.0, ph=6.5, metadata={"source": "field"},
+            )
+        self.conn.cursor.assert_not_called()
+        self.conn.commit.assert_not_called()
 
 
 class TestOpenIncidents(unittest.TestCase):

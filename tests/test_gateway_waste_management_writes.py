@@ -20,7 +20,7 @@ _LOCATION = "22222222-2222-4222-8222-222222222222"
 class Cursor:
     def __init__(self, connection):
         self.connection = connection
-        self.row = ({
+        self.row = connection.row or ({
             "record_id": "33333333-3333-4333-8333-333333333333",
             "location_id": _LOCATION,
             "status": "recorded",
@@ -46,6 +46,7 @@ class Connection:
         self.operations = []
         self.rollbacks = 0
         self.closed = False
+        self.row = None
 
     def cursor(self):
         return Cursor(self)
@@ -66,6 +67,24 @@ def _payload(**changes):
         "record_date": date.today().isoformat(),
         "disposal_method": "composting",
         "notes": "Field log",
+    }
+    payload.update(changes)
+    return payload
+
+
+def _compost_payload(**changes):
+    payload = {
+        "request_id": str(uuid4()),
+        "compost_date": date.today().isoformat(),
+        "feedstock_type": "crop_residue",
+        "feedstock_kg": "100.00",
+        "compost_method": "vermiculture",
+        "temperature_c": "55.0",
+        "moisture_pct": "60.0",
+        "duration_days": 30,
+        "output_kg": "45.00",
+        "ph": "6.50",
+        "notes": "Synthetic batch",
     }
     payload.update(changes)
     return payload
@@ -192,6 +211,119 @@ def test_capture_rejects_non_object_payload_before_opening_database():
         )
 
 
+def test_composting_capture_sets_signed_context_and_calls_bounded_function(monkeypatch):
+    connection = Connection()
+    connection.row = ({
+        "record_id": "44444444-4444-4444-8444-444444444444",
+        "location_id": _LOCATION,
+        "compost_date": date.today().isoformat(),
+        "status": "recorded",
+        "replayed": False,
+    },)
+    contexts = []
+    monkeypatch.setattr(
+        writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+    payload = _compost_payload()
+
+    result = writes.create_location_composting_record(
+        _OPERATOR, _LOCATION, payload, connection_factory=lambda: connection
+    )
+
+    assert contexts == [(
+        connection,
+        {
+            "operator_id": _OPERATOR,
+            "location_id": _LOCATION,
+            "resource": "waste_management",
+            "action": "create",
+        },
+    )]
+    assert "create_location_composting_record" in connection.operations[0][0]
+    assert connection.operations[0][1] == (
+        _LOCATION,
+        payload["request_id"],
+        date.today(),
+        "crop_residue",
+        None,
+        Decimal("100.00"),
+        "vermiculture",
+        None,
+        Decimal("55.0"),
+        Decimal("60.0"),
+        30,
+        Decimal("45.00"),
+        Decimal("6.50"),
+        "Synthetic batch",
+    )
+    assert result["status"] == "recorded"
+    assert connection.rollbacks == 1
+    assert connection.closed
+
+
+def test_compost_capture_maps_and_preserves_legacy_freeform_labels(monkeypatch):
+    connection = Connection()
+    connection.row = ({
+        "record_id": "44444444-4444-4444-8444-444444444444",
+        "location_id": _LOCATION,
+        "compost_date": date.today().isoformat(),
+        "status": "recorded",
+        "replayed": False,
+    },)
+    monkeypatch.setattr(writes, "set_operator_tenant_context", lambda *args, **kwargs: None)
+    payload = _compost_payload(
+        feedstock_type="Banana stems",
+        compost_method="Vermicomposting",
+    )
+
+    writes.create_location_composting_record(
+        _OPERATOR, _LOCATION, payload, connection_factory=lambda: connection
+    )
+
+    params = connection.operations[0][1]
+    assert params[3:8] == (
+        "other", "Banana stems", Decimal("100.00"),
+        "vermiculture", "Vermicomposting",
+    )
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"feedstock_type": ""},
+        {"feedstock_type": "x" * 201},
+        {"feedstock_type": "invalid\nlabel"},
+        {"feedstock_type": 42},
+        {"compost_method": "x" * 101},
+        {"compost_method": "invalid\nmethod"},
+        {"compost_method": 42},
+        {"feedstock_kg": True},
+        {"feedstock_kg": "0"},
+        {"feedstock_kg": "1.001"},
+        {"compost_date": (date.today() + timedelta(days=1)).isoformat()},
+        {"temperature_c": "200.1"},
+        {"moisture_pct": "100.1"},
+        {"duration_days": True},
+        {"duration_days": -1},
+        {"output_kg": "-0.01"},
+        {"ph": "14.01"},
+        {"notes": "bad\nnotes"},
+        {"extra": "field"},
+    ],
+)
+def test_invalid_composting_capture_fails_before_database_access(changes):
+    def unexpected_connection():
+        raise AssertionError("invalid composting input opened a database connection")
+
+    with pytest.raises(writes.WasteManagementWriteInvalid):
+        writes.create_location_composting_record(
+            _OPERATOR, _LOCATION, _compost_payload(**changes),
+            connection_factory=unexpected_connection,
+        )
+
+
 def test_http_capture_is_location_scoped_created_and_no_store(monkeypatch):
     from services.gateway import waste_management_routes
 
@@ -226,6 +358,48 @@ def test_http_capture_is_location_scoped_created_and_no_store(monkeypatch):
     response = TestClient(app).post(
         f"/operator/api/waste/{_LOCATION}/records",
         json=_payload(),
+    )
+    assert response.status_code == 201
+    assert response.json()["location_id"] == _LOCATION
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_http_composting_capture_is_location_scoped_created_and_no_store(monkeypatch):
+    from services.gateway import waste_management_routes
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    monkeypatch.setattr(
+        writes,
+        "create_location_composting_record",
+        lambda operator, location, payload: {
+            "record_id": "44444444-4444-4444-8444-444444444444",
+            "location_id": location,
+            "compost_date": date.today().isoformat(),
+            "status": "recorded",
+            "replayed": False,
+        },
+        raising=False,
+    )
+    app = FastAPI()
+    router = APIRouter()
+    waste_management_routes.register_waste_management_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=_OPERATOR)
+        )
+        return await call_next(request)
+
+    response = TestClient(app).post(
+        f"/operator/api/waste/{_LOCATION}/composting",
+        json=_compost_payload(),
     )
     assert response.status_code == 201
     assert response.json()["location_id"] == _LOCATION

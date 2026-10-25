@@ -31,6 +31,10 @@ _DISPOSAL_METHODS = {
     "mulching",
     "other",
 }
+_COMPOST_FEEDSTOCK_TYPES = {
+    "crop_residue", "manure", "food_waste", "green_waste", "mixed", "other",
+}
+_COMPOST_METHODS = {"heap", "pit", "vermiculture", "bokashi", "other"}
 _CONTROL_CHARACTER = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -121,6 +125,114 @@ def _normalize_payload(payload: dict) -> tuple:
     )
 
 
+def _bounded_decimal(value, field: str, *, minimum: Decimal, maximum: Decimal, places: int):
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (str, int, float, Decimal)):
+        raise WasteManagementWriteInvalid(f"Invalid {field}")
+    try:
+        number = Decimal(str(value))
+    except (InvalidOperation, ValueError) as exc:
+        raise WasteManagementWriteInvalid(f"Invalid {field}") from exc
+    quantum = Decimal(1).scaleb(-places)
+    if (
+        not number.is_finite()
+        or number < minimum
+        or number > maximum
+        or number.as_tuple().exponent < -places
+        or number != number.quantize(quantum)
+    ):
+        raise WasteManagementWriteInvalid(f"Invalid {field}")
+    return number.quantize(quantum)
+
+
+def _normalize_composting_payload(payload: dict) -> tuple:
+    if not isinstance(payload, dict):
+        raise WasteManagementWriteInvalid("Composting body must be an object")
+    allowed = {
+        "request_id", "compost_date", "feedstock_type", "feedstock_kg",
+        "compost_method", "temperature_c", "moisture_pct", "duration_days",
+        "output_kg", "ph", "notes",
+    }
+    if set(payload) != allowed:
+        raise WasteManagementWriteInvalid("Composting fields do not match the supported contract")
+
+    request_id = _identifier(payload["request_id"], "request")
+    compost_date_value = payload["compost_date"]
+    if not isinstance(compost_date_value, str):
+        raise WasteManagementWriteInvalid("Composting date must use YYYY-MM-DD")
+    try:
+        compost_date = date.fromisoformat(compost_date_value)
+    except ValueError as exc:
+        raise WasteManagementWriteInvalid("Composting date must use YYYY-MM-DD") from exc
+    if compost_date.isoformat() != compost_date_value or compost_date > date.today():
+        raise WasteManagementWriteInvalid("Composting date must be today or earlier")
+
+    source_feedstock_type = _bounded_text(
+        payload["feedstock_type"], "compost feedstock type", 200, required=True
+    )
+    feedstock_key = re.sub(r"[\s-]+", "_", source_feedstock_type.lower())
+    feedstock_type = (
+        feedstock_key if feedstock_key in _COMPOST_FEEDSTOCK_TYPES else "other"
+    )
+    feedstock_label = source_feedstock_type if feedstock_key != feedstock_type else None
+
+    source_compost_method = _bounded_text(
+        payload["compost_method"], "compost method", 100, required=True
+    )
+    method_key = re.sub(r"[\s-]+", "_", source_compost_method.lower())
+    method_aliases = {"vermicomposting": "vermiculture"}
+    compost_method = method_aliases.get(method_key, method_key)
+    if compost_method not in _COMPOST_METHODS:
+        compost_method = "other"
+    compost_method_label = (
+        source_compost_method if method_key != compost_method else None
+    )
+    feedstock_kg = _bounded_decimal(
+        payload["feedstock_kg"], "feedstock quantity",
+        minimum=Decimal("0.01"), maximum=Decimal("99999999.99"), places=2,
+    )
+    temperature_c = _bounded_decimal(
+        payload["temperature_c"], "temperature",
+        minimum=Decimal("-100"), maximum=Decimal("200"), places=1,
+    )
+    moisture_pct = _bounded_decimal(
+        payload["moisture_pct"], "moisture",
+        minimum=Decimal("0"), maximum=Decimal("100"), places=1,
+    )
+    output_kg = _bounded_decimal(
+        payload["output_kg"], "finished compost quantity",
+        minimum=Decimal("0"), maximum=Decimal("99999999.99"), places=2,
+    )
+    ph = _bounded_decimal(
+        payload["ph"], "pH", minimum=Decimal("0"), maximum=Decimal("14"), places=2,
+    )
+    duration_days = payload["duration_days"]
+    if duration_days is not None and (
+        isinstance(duration_days, bool)
+        or not isinstance(duration_days, int)
+        or duration_days < 0
+        or duration_days > 36500
+    ):
+        raise WasteManagementWriteInvalid("Invalid compost duration")
+    notes = _bounded_text(payload["notes"], "notes", 1000)
+    return (
+        request_id,
+        compost_date,
+        feedstock_type,
+        feedstock_label,
+        feedstock_kg,
+        compost_method,
+        compost_method_label,
+        temperature_c,
+        moisture_pct,
+        duration_days,
+        output_kg,
+        ph,
+        notes,
+    )
+
+
 def create_location_waste_stream_record(
     operator_id: str,
     location_id: str,
@@ -168,6 +280,61 @@ def create_location_waste_stream_record(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Waste capture returned an invalid result")
+            return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def create_location_composting_record(
+    operator_id: str,
+    location_id: str,
+    payload: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create one recorded-only compost batch under an exact create grant."""
+    operator_id = _identifier(operator_id, "operator")
+    location_id = _identifier(location_id, "location")
+    normalized = _normalize_composting_payload(payload)
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="waste_management",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.create_location_composting_record("
+                "%s::uuid, %s::uuid, %s::date, %s::text, %s::text, %s::numeric, "
+                "%s::text, %s::text, %s::numeric, %s::numeric, %s::integer, "
+                "%s::numeric, %s::numeric, %s::text)",
+                (location_id, *normalized),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Composting capture returned no record")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+            if (
+                not isinstance(result, dict)
+                or result.get("location_id") != location_id
+                or not isinstance(result.get("compost_date"), str)
+                or result.get("status") != "recorded"
+                or not isinstance(result.get("record_id"), str)
+                or not isinstance(result.get("replayed"), bool)
+            ):
+                raise RuntimeError("Composting capture returned an invalid result")
             return result
     except Exception:
         connection.rollback()

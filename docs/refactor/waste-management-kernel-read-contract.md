@@ -52,11 +52,14 @@ The legacy `record_waste` Python helper and `record-waste` CLI now fail closed
 because the old location argument was caller-selected and did not establish an
 authenticated tenant identity. The helper rejects before opening a cursor; the
 CLI is marked database-free and directs operators to the authenticated Gateway
-capture form. This removal applies only to that unscoped waste-stream writer;
-other local composting, recycling, and incident CLI writes still lack tenant
-authorization and remain separate parity work. The Gateway replacement checks
-`waste_management:create`, writes canonical kilogram rows as `recorded`, and
-uses an idempotency receipt. Human verification remains separate.
+capture form. The legacy `record_composting` helper and `record-composting` CLI
+now fail closed for the same reason. The composting helper rejects before
+cursor acquisition, and its CLI is database-free. Waste-stream and composting
+capture both remain available through exact-grant Gateway operations guarded
+by signed location context, bounded payload validation, private retry receipts,
+and recorded-only lifecycle. Human verification remains separate. Local
+recycling and incident writers still lack tenant authorization and remain
+separate parity work.
 
 The legacy `record_recycling` writer now inserts into migration-153
 `recycling_log`, including its required `record_date` and `recorded` lifecycle
@@ -81,11 +84,13 @@ trusted CLI paths and do not establish tenant authorization.
 
 The legacy CLI contract was exercised against the actual migration-153 schema
 in disposable PostgreSQL 16. Migration apply/replay and synthetic inserts
-verified the retired waste helper fails closed, three remaining local writers,
-initial recorded/open states, canonical enum constraints, JSONB preservation,
-verified-only waste summary, compost yield/pH, reporter attribution, and incident
-resolution. Waste rows in this run are synthetic read fixtures, not helper writes. This does not
-exercise tenant roles or populated legacy outputs
+verified the retired waste and composting helpers fail closed, the remaining
+local recycling and incident writers, initial recorded/open states, canonical
+enum constraints, JSONB preservation, verified-only waste summary, compost
+yield/pH, reporter attribution, and incident resolution. Waste and compost rows
+in this run are synthetic read fixtures, not helper writes. The separate
+migration-613/614 acceptance exercises the authenticated capture functions.
+These checks do not exercise populated legacy outputs
 ([runner](../scripts/check-waste-management-disposable.py);
 [evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
 
@@ -96,15 +101,20 @@ recent-row date. Method and recent-measurement reads require `verified` status;
 the overall totals include all verified batches so incomplete output continues
 to count toward feedstock totals as in the legacy formula. Its response keeps
 the existing recent-quality fields and reads numeric pH from the canonical
-JSONB metadata extension when present. The legacy `record_composting` writer
-uses migration-153 columns and the `recorded` state, maps accepted method and
-feedstock categories to the schema constraints, and preserves unsupported
-freeform labels plus pH in metadata. Its external function/CLI parameters and
-response remain compatible. These remain trusted local CLI operations, not
-authenticated tenant-scoped APIs.
+JSONB metadata extension when present. Compost capture no longer uses the
+legacy database writer. The authenticated Gateway accepts bounded freeform
+feedstock and method labels, maps recognized values and the
+`vermicomposting` alias to schema-supported categories, and retains other
+original labels in the bounded `legacy_composting_inputs` metadata field while
+classifying the row as `other`. Migration 614 independently checks signed
+exact-location `waste_management:create` context, writes a recorded-only row,
+stores optional pH in JSONB, and uses a private SHA-256 receipt for exact
+retry. The old local helper and CLI fail closed before any database access.
 
 The console gates its summary on `waste_management:read` and the capture form on
-`waste_management:create` independently. It uses same-origin/no-store requests,
+`waste_management:create` independently. The create panel exposes separate
+waste-stream and composting forms; compost entries remain recorded and do not
+imply quality verification. It uses same-origin/no-store requests,
 validates the response location and bounded schema categories, discards stale
 responses, and renders fixed fields with `textContent`.
 

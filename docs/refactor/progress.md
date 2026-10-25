@@ -1,3 +1,31 @@
+### Progress addendum — CAP-006 location-scoped composting capture, 24 October 2026
+
+Migration 614 adds an isolated, recorded-only compost writer behind
+`POST /operator/api/waste/{location_id}/composting`. Both Gateway and database
+enforce the exact location `waste_management:create` grant and signed tenant
+context. Payload validation bounds freeform labels, maps supported categories and aliases, preserves original labels in metadata, and validates dates, quantities,
+temperature, moisture, duration, pH, and notes before connecting. A private
+SHA-256 receipt supports exact retries and rejects changed-input reuse. The
+operator console keeps compost capture separate from verification and the
+verified summary. The legacy compost helper and CLI now fail before cursor or
+database access.
+
+The focused Gateway, read/write, console, route-policy, and waste module
+selection passes 118 tests plus five subtests. Ruff and Python compilation pass.
+Disposable PostgreSQL 16 applies/replays migrations 153, 613, and 614 and
+verifies retry, conflict, tenant denial, receipt privacy, and isolated function
+ownership. The existing migration-153 disposable acceptance now uses synthetic
+compost read fixtures and checks that the legacy writer rejects writes. No
+candidate/legacy database, provider, or live browser was used; migration 614 is
+not rolled out. Native and linux/arm64 Docker/QEMU SQL acceptance passes; QEMU
+is software portability evidence only, and physical Raspberry Pi acceptance
+remains open
+([native evidence](builds/2026-10-24-recovery/cap-006-waste-and-compost-capture-disposable.json);
+[ARM64 evidence](builds/2026-10-24-recovery/cap-006-waste-and-compost-capture-arm64-disposable.json))
+Checklist: 1,121 complete / 25 open (1,146 total). Rollback disables the
+Gateway compost route, exact policy, and form while retaining additive schema
+and receipts if applied.
+
 ### Progress addendum — CAP-006 retire unscoped waste-stream writer, 24 October 2026
 
 The legacy `record_waste` Python helper now fails before opening a cursor, and

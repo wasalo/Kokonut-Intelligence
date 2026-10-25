@@ -7,7 +7,7 @@ and pollution incidents. Provides summaries, efficiency metrics, and dashboards.
 
 Usage:
     python -m services.analytics.waste_management record-waste --location-id UUID (retired; use the authenticated Gateway console)
-    python -m services.analytics.waste_management record-composting --location-id UUID --feedstock "Banana stems" --feedstock-kg 100 --method vermicomposting
+    python -m services.analytics.waste_management record-composting --location-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management record-recycling --location-id UUID --material plastic --quantity 15.0 --destination "Recycling center" --revenue 5.00
     python -m services.analytics.waste_management report-incident --location-id UUID --incident-type chemical_spill --severity high --description "Pesticide container leak" --affected-area "Near stream"
     python -m services.analytics.waste_management resolve-incident --incident-id UUID --remedial-action "Cleaned and neutralized soil" --resolution-date 2026-07-10
@@ -77,77 +77,17 @@ def record_composting(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a composting operation."""
-    cur = conn.cursor()
-    compost_id = str(uuid.uuid4())
+    """Reject legacy direct writes that lack authenticated tenant context.
 
-    canonical_feedstock_types = {
-        "crop_residue", "manure", "food_waste", "green_waste", "mixed", "other",
-    }
-    source_feedstock_type = feedstock_type.strip().lower().replace(" ", "_")
-    canonical_feedstock_type = (
-        source_feedstock_type
-        if source_feedstock_type in canonical_feedstock_types
-        else "other"
+    Use the authenticated Gateway composting capture path, which verifies the
+    exact current location grant and records a new batch without quality review.
+    """
+    del conn, location_id, feedstock_type, feedstock_kg, compost_method
+    del duration_days, output_kg, temperature_c, ph, moisture_pct, notes, metadata
+    raise TenantContextDenied(
+        "Unscoped composting writes are disabled; use the authenticated operator "
+        "Gateway composting-capture workflow"
     )
-
-    source_compost_method = compost_method.strip().lower()
-    method_aliases = {"vermicomposting": "vermiculture"}
-    canonical_compost_method = method_aliases.get(
-        source_compost_method, source_compost_method,
-    )
-    if canonical_compost_method not in {"heap", "pit", "vermiculture", "bokashi", "other"}:
-        canonical_compost_method = "other"
-
-    record_metadata = dict(metadata or {})
-    legacy_inputs = {}
-    if source_feedstock_type != canonical_feedstock_type:
-        legacy_inputs["feedstock_type"] = feedstock_type
-    if source_compost_method != canonical_compost_method:
-        legacy_inputs["compost_method"] = compost_method
-    if legacy_inputs:
-        record_metadata["legacy_composting_inputs"] = legacy_inputs
-    if ph is not None:
-        # The canonical table has no typed pH column. Preserve this legacy
-        # measurement in JSONB so it remains available to the summary read.
-        record_metadata["ph"] = ph
-
-    output_yield_pct = None
-    if output_kg is not None and feedstock_kg > 0:
-        output_yield_pct = round(output_kg / feedstock_kg * 100, 1)
-
-    try:
-        cur.execute(
-            """
-            INSERT INTO composting_record
-                (id, location_id, compost_date, feedstock_type, feedstock_kg,
-                 compost_method, temperature_c, moisture_pct, duration_days,
-                 finished_volume_kg, notes, metadata, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
-            RETURNING id
-            """,
-            (
-                compost_id, location_id, date.today(), canonical_feedstock_type,
-                feedstock_kg, canonical_compost_method, temperature_c, moisture_pct,
-                duration_days, output_kg, notes, json.dumps(record_metadata),
-            ),
-        )
-        conn.commit()
-    finally:
-        cur.close()
-
-    logger.info("Recorded composting %s: %s %s kg via %s", compost_id, feedstock_type, feedstock_kg, compost_method)
-
-    return {
-        "compost_id": compost_id,
-        "location_id": location_id,
-        "feedstock_type": feedstock_type,
-        "feedstock_kg": feedstock_kg,
-        "compost_method": compost_method,
-        "output_kg": output_kg,
-        "output_yield_pct": output_yield_pct,
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 # ============================================================
@@ -648,7 +588,7 @@ cli.subcommand("record-waste", "Retired unscoped writer; use the authenticated G
     .run(_cmd_record_waste, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_waste_record))
 
-cli.subcommand("record-composting", "Record composting operation") \
+cli.subcommand("record-composting", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--feedstock", required=True, help="Feedstock type description") \
     .add("--feedstock-kg", type=float, required=True) \
@@ -660,7 +600,7 @@ cli.subcommand("record-composting", "Record composting operation") \
     .add("--moisture", type=float, help="Moisture percentage") \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_composting) \
+    .run(_cmd_record_composting, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_composting_record))
 
 cli.subcommand("record-recycling", "Record recycling activity") \

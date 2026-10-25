@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply/replay migration 613 and exercise waste capture on disposable PG16."""
+"""Apply/replay migrations 613/614 and exercise waste captures on disposable PG16."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import subprocess
 import time
 import uuid
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import psycopg2
@@ -18,11 +19,12 @@ import psycopg2
 ROOT = Path(__file__).resolve().parents[1]
 BASE_MIGRATION = ROOT / "schemas/postgres/153_waste_management.sql"
 MIGRATION = ROOT / "schemas/postgres/613_location_waste_stream_capture.sql"
+COMPOSTING_MIGRATION = ROOT / "schemas/postgres/614_location_composting_capture.sql"
 PLATFORM = os.environ.get("WASTE_CAPTURE_TEST_PLATFORM")
 OUTPUT_SUFFIX = "-arm64" if PLATFORM == "linux/arm64" else ""
 OUTPUT = ROOT / (
     "docs/refactor/builds/2026-10-24-recovery/"
-    f"cap-006-waste-stream-capture{OUTPUT_SUFFIX}-disposable.json"
+    f"cap-006-waste-and-compost-capture{OUTPUT_SUFFIX}-disposable.json"
 )
 IMAGE = os.environ.get("WASTE_CAPTURE_TEST_IMAGE", "postgres:16")
 
@@ -138,6 +140,11 @@ def main() -> int:
                 "GRANT SELECT (id, status, quantity_kg, quantity_unit, created_by) "
                 "ON public.waste_stream TO kokonut_runtime"
             )
+            cursor.execute(
+                "GRANT SELECT (id, status, feedstock_type, feedstock_kg, compost_method, "
+                "temperature_c, moisture_pct, duration_days, finished_volume_kg, metadata, created_by) "
+                "ON public.composting_record TO kokonut_runtime"
+            )
             cursor.execute("INSERT INTO location VALUES (%s, 'Synthetic'), (%s, 'Other')", (location_id, other_location_id))
             cursor.execute(
                 "INSERT INTO operator_identity VALUES (%s), (%s)",
@@ -149,7 +156,9 @@ def main() -> int:
             )
             cursor.execute(MIGRATION.read_text())
             cursor.execute(MIGRATION.read_text())
-        checks.append("migration 613 applies and replays after the canonical migration-153 table")
+            cursor.execute(COMPOSTING_MIGRATION.read_text())
+            cursor.execute(COMPOSTING_MIGRATION.read_text())
+        checks.append("migrations 613 and 614 apply and replay after the canonical migration-153 tables")
 
         connection.autocommit = False
         with connection.cursor() as cursor:
@@ -188,6 +197,86 @@ def main() -> int:
                 raise AssertionError("identical retry did not replay the original entry")
         connection.commit()
         checks.append("exact create grant captures a recorded kg row and an identical retry returns the same ID")
+
+        compost_request_id = str(uuid.uuid4())
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.create_location_composting_record("
+                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    location_id, compost_request_id, date.today(), "other", "Banana stems",
+                    "100.00", "vermiculture", "Vermicomposting", "55.0", "60.0", 30,
+                    "45.00", "6.50",
+                    "synthetic compost capture",
+                ),
+            )
+            compost_created = cursor.fetchone()[0]
+            if (
+                compost_created["location_id"] != location_id
+                or compost_created["status"] != "recorded"
+                or compost_created["replayed"] is not False
+            ):
+                raise AssertionError("compost capture response did not preserve recorded location scope")
+            cursor.execute(
+                "SELECT status, feedstock_type, feedstock_kg, compost_method, "
+                "finished_volume_kg, (metadata->>'ph')::numeric, created_by, "
+                "metadata->'legacy_composting_inputs' "
+                "FROM public.composting_record WHERE id = %s",
+                (compost_created["record_id"],),
+            )
+            compost_row = cursor.fetchone()
+            if compost_row != (
+                "recorded", "other", 100.0, "vermiculture", 45.0,
+                Decimal("6.50"), operator_id,
+                {"feedstock_type": "Banana stems", "compost_method": "Vermicomposting"},
+            ):
+                raise AssertionError(f"unexpected compost capture row: {compost_row}")
+            cursor.execute(
+                "SELECT kokonut_security.create_location_composting_record("
+                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    location_id, compost_request_id, date.today(), "other", "Banana stems",
+                    "100.00", "vermiculture", "Vermicomposting", "55.0", "60.0", 30,
+                    "45.00", "6.50",
+                    "synthetic compost capture",
+                ),
+            )
+            compost_replay = cursor.fetchone()[0]
+            if (
+                compost_replay["record_id"] != compost_created["record_id"]
+                or compost_replay["replayed"] is not True
+            ):
+                raise AssertionError("compost exact retry did not return the original record")
+        connection.commit()
+        checks.append("composting capture writes recorded process data, preserves bounded freeform labels, and replays the exact request")
+
+        expect_denied(
+            connection,
+            "SELECT kokonut_security.create_location_composting_record(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                location_id, compost_request_id, date.today(), "other", "Banana stems",
+                "100.00", "vermiculture", "Vermicomposting", "55.0", "60.0", 30,
+                "45.00", "6.50",
+                "changed compost payload",
+            ),
+            "23505",
+        )
+        connection.rollback()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (other_location_id,))
+        expect_denied(
+            connection,
+            "SELECT kokonut_security.create_location_composting_record(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                other_location_id, str(uuid.uuid4()), date.today(), "crop_residue", None,
+                "100.00", "vermiculture", None, None, None, None, None, None, None,
+            ),
+            "42501",
+        )
+        connection.rollback()
+        checks.append("compost changed-input replay conflicts and mismatched signed location is denied")
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (location_id,))
 
         with connection.cursor() as cursor:
             cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (other_location_id,))
@@ -244,23 +333,44 @@ def main() -> int:
             cursor.execute(
                 "SELECT has_table_privilege('kokonut_runtime', 'public.waste_stream_capture_receipt', 'SELECT'), "
                 "has_table_privilege('kokonut_directus_runtime', 'public.waste_stream_capture_receipt', 'SELECT'), "
+                "has_table_privilege('kokonut_runtime', 'public.composting_capture_receipt', 'SELECT'), "
+                "has_table_privilege('kokonut_directus_runtime', 'public.composting_capture_receipt', 'SELECT'), "
                 "has_function_privilege('kokonut_runtime', "
                 "'kokonut_security.create_location_waste_stream_record(uuid,uuid,text,text,numeric,date,text,text)', 'EXECUTE'), "
                 "has_function_privilege('kokonut_directus_runtime', "
                 "'kokonut_security.create_location_waste_stream_record(uuid,uuid,text,text,numeric,date,text,text)', 'EXECUTE'), "
+                "has_function_privilege('kokonut_runtime', "
+                "'kokonut_security.create_location_composting_record(uuid,uuid,date,text,text,numeric,text,text,numeric,numeric,integer,numeric,numeric,text)', 'EXECUTE'), "
+                "has_function_privilege('kokonut_directus_runtime', "
+                "'kokonut_security.create_location_composting_record(uuid,uuid,date,text,text,numeric,text,text,numeric,numeric,integer,numeric,numeric,text)', 'EXECUTE'), "
                 "pg_get_userbyid((SELECT proowner FROM pg_proc WHERE oid = "
                 "'kokonut_security.create_location_waste_stream_record(uuid,uuid,text,text,numeric,date,text,text)'::regprocedure))"
             )
-            runtime_select, directus_select, runtime_execute, directus_execute, owner = cursor.fetchone()
-            if runtime_select or directus_select or not runtime_execute or directus_execute or owner != "kokonut_waste_stream_writer":
+            (
+                runtime_select, directus_select, compost_runtime_select,
+                compost_directus_select, runtime_execute, directus_execute,
+                compost_runtime_execute, compost_directus_execute, owner,
+            ) = cursor.fetchone()
+            if (
+                runtime_select or directus_select or compost_runtime_select
+                or compost_directus_select or not runtime_execute or directus_execute
+                or not compost_runtime_execute or compost_directus_execute
+                or owner != "kokonut_waste_stream_writer"
+            ):
                 raise AssertionError("capture receipt or function owner privilege boundary is incorrect")
-        checks.append("runtime/Directus cannot read private receipts; Directus cannot execute and function owner is isolated")
+            cursor.execute(
+                "SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = "
+                "'kokonut_security.create_location_composting_record(uuid,uuid,date,text,text,numeric,text,text,numeric,numeric,integer,numeric,numeric,text)'::regprocedure"
+            )
+            if cursor.fetchone()[0] != "kokonut_composting_capture_writer":
+                raise AssertionError("composting writer function owner is not isolated")
+        checks.append("runtime cannot read private receipts; Directus cannot read or execute and both function owners are isolated")
 
         evidence = {
             "status": "passed",
             "postgres_image": IMAGE,
             "platform": PLATFORM or "native",
-            "migrations": [BASE_MIGRATION.name, MIGRATION.name],
+            "migrations": [BASE_MIGRATION.name, MIGRATION.name, COMPOSTING_MIGRATION.name],
             "checks": checks,
             "candidate_or_legacy_database_used": False,
             "provider_calls": False,

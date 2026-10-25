@@ -57,6 +57,13 @@ def test_waste_console_refresh_and_location_change_are_wired_and_ids_unique():
     assert 'document.querySelector("#waste-management-refresh").addEventListener("click", loadWasteManagementSummary)' in SOURCE
     assert 'wasteManagementLocation.addEventListener("change", () =>' in SOURCE
     assert 'scope.resource === "waste_management" && scope.action === "create"' in SOURCE
+    assert 'const compostingCaptureForm = document.querySelector("#composting-capture-form")' in SOURCE
+    assert 'compostingCapture.hidden = !canCreate' in SOURCE
+    assert 'route: "composting"' in SOURCE
+    assert 'compost_method: compostingCaptureForm.querySelector("#composting-capture-method").value' in SOURCE
+    assert 'id="composting-capture-feedstock" type="text" maxlength="200"' in SOURCE
+    assert 'id="composting-capture-method" type="text" maxlength="100"' in SOURCE
+    assert 'output_kg: compostingCaptureForm.querySelector("#composting-capture-output").value || null' in SOURCE
     assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in SOURCE
     assert '"X-CSRF-Token": csrfToken()' in SOURCE
     assert "Retrying reuses the same request ID and entry." in SOURCE
