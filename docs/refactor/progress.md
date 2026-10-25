@@ -18484,3 +18484,19 @@ credentials/grants, and MAN-CAP-038 remain open. Checklist: 1,181 complete /
 25 open (1,206 total); matrix classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows. Evidence:
 [CIDS artifact digest](builds/2026-10-25-recovery/cap-038-cids-artifact-digest.json).
+
+### Progress addendum — CAP-038 public-schema CIDS lineage compatibility, 25 October 2026
+
+The optional CIDS row-lineage builder now has regression coverage for its
+public-schema mapping as well as the signed projection mapping. Tests pin the
+location, farm, registry, outcome, framework, metric, feedback, and impact-claim
+relations, including stable keys for SDGs, metric definitions, and evidence
+maturity. The regular public export CLI remains unchanged and does not emit the
+private sidecar. The focused CIDS export/task/worker selection passes 109 tests;
+Ruff, Python compilation, capability-matrix validation, migration integrity
+(752 files), runtime SQL inventory, and diff checks pass. No database, provider,
+candidate, or legacy service was used. This is source-contract coverage, not
+populated output parity or runtime ACL evidence. Checklist: 1,182 complete /
+25 open (1,207 total); matrix classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. Evidence:
+[public-schema lineage](builds/2026-10-25-recovery/cap-038-cids-public-source-lineage.json).

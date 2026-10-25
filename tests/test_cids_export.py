@@ -309,6 +309,74 @@ def test_cids_private_lineage_maps_properties_to_exact_signed_projection_rows() 
     )
 
 
+def test_cids_public_schema_lineage_maps_global_and_location_reference_rows() -> None:
+    source = _source()
+    source["location"]["registry_id"] = "a0000000-0000-0000-0000-000000000011"
+    graph = build_cids_graph(source, source_schema="public")
+    lineage = build_cids_property_row_lineage(source, graph, source_schema="public")
+    lineage_by_node = {item["node_id"]: item for item in lineage}
+
+    organization = next(item for item in graph if item["@type"] == "cids:Organization")
+    organization_name = next(
+        item
+        for item in lineage_by_node[organization["@id"]]["properties"]
+        if item["property"] == "hasName"
+    )
+    assert organization_name["records"] == [
+        {"view": "public.farm", "record_id": source["location"]["farm_id"]},
+        {
+            "view": "public.farm_registry_record",
+            "record_id": source["location"]["registry_id"],
+        },
+        {"view": "public.location", "record_id": source["location"]["id"]},
+    ]
+
+    theme = next(item for item in graph if item["@type"] == "cids:Theme")
+    theme_name = next(
+        item
+        for item in lineage_by_node[theme["@id"]]["properties"]
+        if item["property"] == "hasName"
+    )
+    assert theme_name["records"] == [
+        {
+            "view": "public.farm_impact_mapping",
+            "record_id": source["framework_mappings"][0]["id"],
+        },
+        {"view": "public.sdg", "record_id": "sdg:8"},
+    ]
+
+    indicator = next(item for item in graph if item["@type"] == "cids:Indicator")
+    indicator_name = next(
+        item
+        for item in lineage_by_node[indicator["@id"]]["properties"]
+        if item["property"] == "hasName"
+    )
+    assert {
+        (record["view"], record["record_id"])
+        for record in indicator_name["records"]
+    } == {
+        ("public.metric_definition", "value_flowed"),
+        ("public.metric_value", source["metric_values"][0]["metric_value_id"]),
+    }
+
+    impact_report = next(item for item in graph if item["@type"] == "cids:ImpactReport")
+    maturity_label = next(
+        item
+        for item in lineage_by_node[impact_report["@id"]]["properties"]
+        if item["property"] == "kokonut:evidenceMaturityLabel"
+    )
+    assert maturity_label["records"] == [
+        {
+            "view": "public.evidence_maturity_level",
+            "record_id": "level:6",
+        },
+        {
+            "view": "public.impact_claim",
+            "record_id": source["impact_claims"][0]["id"],
+        },
+    ]
+
+
 def test_cids_private_property_lineage_caps_row_ids_and_reports_truncation() -> None:
     source = _source()
     source["stakeholder_outcomes"] = [
