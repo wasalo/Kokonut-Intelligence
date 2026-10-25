@@ -147,7 +147,7 @@ def test_kokonut_commons_synthesis_uses_task_specific_source_identity_and_reader
             "synthesis": "Synthetic Kokonut Commons draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="f" * 40)
     context_setter = MagicMock()
@@ -206,7 +206,7 @@ def test_synthesis_worker_uses_its_task_identity_for_default_draft_writer(monkey
             "synthesis": "Task-attributed draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     monkeypatch.setattr(
         worker_cli,
         "get_worker_db",
@@ -381,8 +381,19 @@ def _synthetic_synthesis_agent() -> BioFactorySynthesisAgent:
         "location_id": location_id,
         "synthesis": "Synthetic agent draft",
     }
-    agent.collect_source_references = lambda *_args: {}
+    agent.collect_source_references = lambda *_args: _empty_synthesis_references(agent)
     return agent
+
+
+def _empty_synthesis_references(agent):
+    references = {}
+    for table in type(agent).source_reference_views:
+        reference = {"record_ids": [], "row_count": 0, "truncated": False}
+        scope = type(agent).source_reference_scopes.get(table, "location")
+        if scope != "location":
+            reference["scope"] = scope
+        references[table] = reference
+    return references
 
 
 def _source_connection():
@@ -534,7 +545,7 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
             "content": "Synthetic agent draft",
             "source_tables": BioFactorySynthesisAgent.source_tables,
             "model_version": BioFactorySynthesisAgent.model_version,
-            "source_references": {},
+            "source_references": _empty_synthesis_references(agent),
             "worker_result": {
                 "location_id": LOCATION_ID,
                 "synthesis": "Synthetic agent draft",
@@ -585,7 +596,7 @@ def test_organic_readiness_synthesis_uses_task_specific_source_identity_and_read
             "synthesis": "Synthetic organic readiness draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="o" * 40)
     context_setter = MagicMock()
@@ -646,7 +657,7 @@ def test_ecological_modeling_synthesis_uses_task_specific_source_identity_and_re
             "synthesis": "Synthetic ecological modeling draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="e" * 40)
     context_setter = MagicMock()
@@ -707,7 +718,7 @@ def test_holistic_wellbeing_synthesis_uses_task_specific_source_identity_and_rea
             "synthesis": "Synthetic holistic wellbeing draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="w" * 40)
     context_setter = MagicMock()
@@ -766,7 +777,7 @@ def test_feedback_synthesis_uses_task_specific_source_identity_and_reader(monkey
             "synthesis": "Synthetic feedback draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="f" * 40)
     context_setter = MagicMock()
@@ -827,7 +838,7 @@ def test_commons_liberation_synthesis_uses_task_specific_source_identity_and_rea
             "synthesis": "Synthetic commons liberation draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="c" * 40)
     context_setter = MagicMock()
@@ -888,7 +899,7 @@ def test_gnh_alignment_synthesis_uses_task_specific_source_identity_and_reader(
             "synthesis": "Synthetic GNH alignment draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="g" * 40)
     context_setter = MagicMock()
@@ -949,7 +960,7 @@ def test_regenerator_synthesis_uses_task_specific_source_identity_and_reader(
             "synthesis": "Synthetic regenerator draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="r" * 40)
     context_setter = MagicMock()
@@ -1010,7 +1021,7 @@ def test_capital_efficiency_synthesis_uses_task_specific_source_identity_and_rea
             "synthesis": "Synthetic capital efficiency draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="c" * 40)
     context_setter = MagicMock()
@@ -1071,7 +1082,7 @@ def test_financial_resilience_synthesis_uses_task_specific_source_identity_and_r
             "synthesis": "Synthetic financial resilience draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="f" * 40)
     context_setter = MagicMock()
@@ -1132,7 +1143,7 @@ def test_bio_factory_synthesis_uses_task_specific_source_identity_and_reader(
             "synthesis": "Synthetic bio factory draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="f" * 40)
     context_setter = MagicMock()
@@ -1193,7 +1204,7 @@ def test_open_source_capitalist_synthesis_uses_task_specific_source_identity_and
             "synthesis": "Synthetic open source capitalist draft",
         },
     )
-    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: _empty_synthesis_references(agent))
     database_factory = MagicMock(return_value=connection)
     credential_reader = MagicMock(return_value="f" * 40)
     context_setter = MagicMock()
@@ -1248,7 +1259,7 @@ def test_registered_synthesis_read_only_run_uses_signed_source_scope_without_rec
         events.append("synthesize")
         or {"location_id": location_id, "synthesis": "Read-only result"}
     )
-    agent.collect_source_references = lambda *_args: events.append("references") or {}
+    agent.collect_source_references = lambda *_args: events.append("references") or _empty_synthesis_references(agent)
     context_setter = MagicMock(
         side_effect=lambda *_args, **_kwargs: events.append("signed-context")
     )
@@ -1602,12 +1613,11 @@ def test_worker_summary_rejects_unsafe_task_registry_before_receipt_lookup(monke
 
 def test_generic_synthesis_worker_attaches_collected_refs_from_read_snapshot():
     agent = _synthetic_synthesis_agent()
-    references = {
-        "harvest_event": {
+    references = _empty_synthesis_references(agent)
+    references["bio_factory_batch"] = {
             "record_ids": ["e0000000-0000-4000-8000-000000000001"],
             "row_count": 1,
             "truncated": False,
-        }
     }
     agent.collect_source_references = MagicMock(return_value=references)
     connection, _cursor = _source_connection()
@@ -1627,6 +1637,30 @@ def test_generic_synthesis_worker_attaches_collected_refs_from_read_snapshot():
 
     agent.collect_source_references.assert_called_once_with(connection, LOCATION_ID)
     assert writer.call_args.args[3]["source_references"] == references
+    connection.close.assert_called_once_with()
+
+
+def test_generic_synthesis_worker_rejects_missing_view_reference_before_draft_write():
+    agent = _synthetic_synthesis_agent()
+    agent.collect_source_references = MagicMock(return_value={})
+    connection, _cursor = _source_connection()
+    writer = MagicMock(side_effect=AssertionError("incomplete provenance must not persist"))
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+        )
+        with pytest.raises(ValueError, match="cover every registered provenance view"):
+            worker_cli.run_worker_synthesis(
+                agent,
+                LOCATION_ID,
+                REQUEST_ID,
+                connection_factory=lambda: connection,
+                existing_reader=lambda *_args: None,
+                draft_writer=writer,
+            )
+
+    writer.assert_not_called()
+    connection.rollback.assert_called_once_with()
     connection.close.assert_called_once_with()
 
 

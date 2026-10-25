@@ -166,6 +166,16 @@ class SynthesisAgent:
             if scope != "location":
                 reference["scope"] = scope
             references[source_table] = reference
+        for source_table in source_reference_views:
+            scope = source_reference_scopes.get(source_table, "location")
+            empty_reference = {
+                "record_ids": [],
+                "row_count": 0,
+                "truncated": False,
+            }
+            if scope != "location":
+                empty_reference["scope"] = scope
+            references.setdefault(source_table, empty_reference)
         return references
 
     def _build_source_reference_query(self) -> str:

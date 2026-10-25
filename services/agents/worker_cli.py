@@ -254,6 +254,13 @@ def run_worker_synthesis(
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         summary = agent.synthesize(connection, location_id)
         source_references = agent.collect_source_references(connection, location_id)
+        if (
+            not isinstance(source_references, dict)
+            or set(source_references) != set(type(agent).source_reference_views)
+        ):
+            raise ValueError(
+                "Agent source references must cover every registered provenance view"
+            )
         output_errors = validate_output(agent.task_key, {"summary": summary})
         if output_errors:
             raise ValueError("; ".join(output_errors))

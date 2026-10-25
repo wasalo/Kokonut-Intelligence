@@ -444,6 +444,26 @@ def test_location_source_reference_collector_uses_bounded_scoped_views(agent_cla
     )
 
 
+@pytest.mark.parametrize("agent_class", AGENTS)
+def test_empty_registered_views_emit_explicit_zero_count_references(
+    agent_class: Any,
+) -> None:
+    agent = agent_class()
+    references = agent.collect_source_references(_Connection([]), LOCATION_ID)
+
+    assert set(references) == set(agent.source_reference_views)
+    for table, reference in references.items():
+        scope = agent.source_reference_scopes.get(table, "location")
+        expected = {
+            "record_ids": [],
+            "row_count": 0,
+            "truncated": False,
+        }
+        if scope != "location":
+            expected["scope"] = scope
+        assert reference == expected
+
+
 def test_source_reference_validator_accepts_twenty_registered_sources() -> None:
     source_tables = list(dict.fromkeys(
         source

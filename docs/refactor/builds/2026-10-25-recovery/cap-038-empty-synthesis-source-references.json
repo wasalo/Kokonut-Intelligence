@@ -1,0 +1,25 @@
+{
+  "slice": "CAP-038 empty registered synthesis source references",
+  "date": "2026-10-25",
+  "result": "passed",
+  "contract": "Every registered public provenance view appears in the source manifest, including views with zero rows; non-location scope labels are retained.",
+  "failure_behavior": "The signed worker rejects a collector result that omits any registered provenance view before returning or invoking the draft writer; the read transaction is rolled back and closed.",
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_synthesis_source_references.py tests/test_agent_worker_cli.py -q",
+      "result": "169 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "migration_required": false,
+  "candidate_or_legacy_touched": false,
+  "database_touched": false,
+  "provider_touched": false,
+  "limitations": [
+    "This preserves source identity and count when a view is empty; it is not content-level snapshot or populated-output parity evidence.",
+    "Live OIDC, production grants, runtime recovery, and MAN-CAP-038 owner acceptance remain open."
+  ]
+}

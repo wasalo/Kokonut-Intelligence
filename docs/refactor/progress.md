@@ -18025,3 +18025,17 @@ row identities, not content snapshots or populated-output parity evidence.
 Checklist: 1,157 complete / 25 open (1,182 total); matrix classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 [Evidence](builds/2026-10-25-recovery/cap-038-deterministic-source-coverage.json).
+
+### Progress addendum — CAP-038 empty synthesis source references, 25 October 2026
+
+Registered synthesis manifests now include every public provenance view, even
+when a view returns no rows; those entries carry an empty ID list, zero count,
+and the correct network/location scope. The signed worker rejects an incomplete
+view map before a draft write and rolls back/closes its source transaction. The
+focused source-reference/worker selection passes 169 tests. Ruff, compilation,
+capability-matrix validation, and diff checks pass. All checks use mocks; no
+database or provider was touched. Existing receipt validation already permits
+zero-count entries, so no migration was needed. Checklist: 1,158 complete /
+25 open (1,183 total); matrix classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows.
+[Evidence](builds/2026-10-25-recovery/cap-038-empty-synthesis-source-references.json).
