@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,170 checklist items complete and 25
-open (1,190 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,171 checklist items complete and 25
+open (1,196 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -4027,3 +4027,30 @@ The AST scope inventory now follows a location-filtered parent row into child re
   [console](../../apps/operator-console/index.html);
   [tests](../../tests/test_operator_console_delphi_study_lifecycle.py);
   [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-console.json)).
+
+### CAP-027 authenticated Delphi questionnaire item drafts — 25 October 2026
+
+- [x] Add a location-scoped Gateway API for adding bounded questionnaire items
+  only to a `draft` Delphi study. The exact `delphi:draft` grant and signed
+  tenant context are checked before a dedicated non-login database function
+  validates study/location ownership and inserts an allowlisted item with
+  numeric bounds. An immutable private receipt supports exact retries and
+  rejects changed-content request reuse. Runtime and Directus cannot read the
+  receipt or execute the function; the function owner has only the required
+  read/insert privileges. The 32-test Gateway and route-policy selection passes;
+  disposable PostgreSQL 16 applies/replays migrations 449–451 and 630–632 and
+  passes six grouped assertions for replay, authorization, draft-only state,
+  payload bounds, and role boundaries. Ruff and Python compilation pass. No
+  candidate or legacy database was touched; migration 632 is not rolled out.
+  The console question editor, panel enrollment/contribution paths, stopping
+  evaluation, location-safe target-entity links, live OIDC/browser acceptance,
+  populated parity, universal ACL/RLS, and MAN-CAP-027 remain open. Rollback by
+  disabling the exact route/policy while retaining the additive migration and
+  receipts if applied
+  ([contract](delphi-consultation-kernel-contract.md);
+  [migration](../../schemas/postgres/632_location_scoped_delphi_study_items.sql);
+  [Gateway tests](../../tests/test_gateway_delphi_study_items.py);
+  [disposable check](../../scripts/check-delphi-study-items-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-items-disposable.json)).
+  Checklist: 1,171 complete / 25 open (1,196 total); the matrix remains
+  24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

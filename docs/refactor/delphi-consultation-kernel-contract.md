@@ -107,6 +107,37 @@ no-store requests; an unchanged retry within the active page reuses its request
 ID. It confirms the returned location and `draft` lifecycle state and does not
 offer any open, review, or publish action.
 
+## Questionnaire item draft creation
+
+`POST /operator/api/delphi/{location_id}/studies/{study_id}/items` adds one
+question to a private study draft. The authenticated operator must hold the
+exact location-scoped `delphi:draft` grant. The Gateway establishes signed
+tenant context on the same transaction before calling the bounded database
+function, which rechecks the live grant, exact study/location pair, and `draft`
+status under a row lock.
+
+The request accepts only `request_id`, `item_type`, `label`, `description`,
+`scale`, `min_value`, and `max_value`; `request_id` and `label` are required.
+Types and scales use explicit allowlists, text and numeric bounds are checked in
+the Gateway and again in PostgreSQL, and values must fit the legacy
+`NUMERIC(8,4)` columns. Item creation never opens a study, enrolls a panel, or
+submits a response. The private append-only receipt stores the operator,
+request key, location, study and item references, and a content digest. Exact
+retries replay; reusing a key with changed content fails. The dedicated
+non-login function owner has only eligibility reads and question insert
+columns, plus the row-lock privilege on the study. Runtime can execute the
+function but cannot read the receipt; Directus can neither execute it nor read
+the receipt.
+
+The current contract intentionally omits `target_entity_type` and
+`target_entity_id`: the repository does not yet define one generic
+location-safe resolver for all supported target entity types. Preserve those
+links in the legacy implementation until a typed, per-entity resolver and
+cross-location denial contract are implemented. The operator console question
+editor, panel enrollment, contribution submission, and stopping evaluation
+remain separate work. Migration 632 and six grouped disposable PostgreSQL 16
+acceptance checks are recorded in the [implementation evidence](builds/2026-10-25-recovery/cap-027-delphi-study-items-disposable.json).
+
 ## Facilitator draft creation
 
 `GET /operator/api/delphi/{location_id}/draft-studies?limit=50&offset=0`

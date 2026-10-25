@@ -18241,3 +18241,27 @@ populated parity, broader ACL/RLS, and MAN-CAP-027 remain open. CAP-027 stays
 prepared. Checklist: 1,170 complete / 25 open (1,195 total); matrix remains
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows
 ([contract](delphi-consultation-kernel-contract.md); [console](../../apps/operator-console/index.html); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-console.json)).
+
+### Progress addendum — CAP-027 Delphi questionnaire item drafts, 25 October 2026
+
+Migration 632 and a new exact-location Gateway route can add bounded questions
+only to a `draft` study under `delphi:draft`. Signed tenant context and current
+scope are rechecked in a dedicated database function, which validates the
+location-owned study, locks it against concurrent lifecycle transitions, and
+inserts only allowlisted item columns. Immutable private receipts make exact
+retries replay and changed-content key reuse fail closed. The focused Gateway
+and route-policy selection passes 32 tests. Disposable PostgreSQL 16 applies
+and replays migrations 449–451 and 630–632 with six grouped assertions for
+authorization, replay, study state, field bounds, and runtime/Directus
+privileges. Ruff, compilation, migration integrity, and inventory checks are
+recorded with the batch. Candidate and legacy databases remain untouched;
+migration 632 is not rolled out. This is the API only: a console question
+editor, panel enrollment/contributions, stopping evaluation, location-safe
+target-entity links, live OIDC/browser, populated parity, broader ACL/RLS, and
+MAN-CAP-027 remain open. CAP-027 is still prepared. Checklist: 1,171 complete /
+25 open (1,196 total); matrix remains 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows
+([contract](delphi-consultation-kernel-contract.md);
+[migration](../schemas/postgres/632_location_scoped_delphi_study_items.sql);
+[Gateway](../services/gateway/delphi_study_items.py);
+[evidence](builds/2026-10-25-recovery/cap-027-delphi-study-items-disposable.json)).

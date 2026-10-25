@@ -108,6 +108,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("delphi", "open", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/items",
+    ): _expected("delphi", "draft", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/close",
     ): _expected("delphi", "close", scoped=True, location_id=_LOCATION_ID),
     (

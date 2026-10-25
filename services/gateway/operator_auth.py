@@ -382,6 +382,20 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    delphi_study_item_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/items",
+        path,
+    )
+    if delphi_study_item_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "draft",
+            "public": False,
+            "location_id": delphi_study_item_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     delphi_lifecycle_match = re.fullmatch(
         r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/(open|close)",
         path,
@@ -5022,6 +5036,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.delphi_study_draft_routes import (
         register_delphi_study_draft_routes,
     )
+    from services.gateway.delphi_study_item_routes import (
+        register_delphi_study_item_routes,
+    )
     from services.gateway.delphi_study_lifecycle_routes import (
         register_delphi_study_lifecycle_routes,
     )
@@ -5085,6 +5102,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_nutrient_balance_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_study_draft_routes(router, provider, run_in_threadpool, psycopg2)
+    register_delphi_study_item_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_recommendation_review_routes(router, provider, run_in_threadpool, psycopg2)
     register_ai_summary_draft_routes(router, provider, run_in_threadpool, psycopg2)
