@@ -70,7 +70,7 @@ def get_location_delphi_participant_workspace(
     page_size = _bounded_integer(limit, "limit", 1, 50)
     page_offset = _bounded_integer(offset, "offset", 0, 10000)
     (workspace,) = _call(
-        "get_location_delphi_participant_workspace",
+        "get_location_delphi_participant_scoped_workspace",
         (session_token, page_size, page_offset),
         connection_factory,
     )

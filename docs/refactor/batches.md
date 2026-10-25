@@ -4351,3 +4351,26 @@ The AST scope inventory now follows a location-filtered parent row into child re
   owner acceptance remain open; CAP-027 remains prepared. Checklist: 1,188
   complete / 25 open (1,213 total); classifications remain 24 baseline-
   retained, 7 deployed, and 36 prepared across 67 capabilities.
+
+- [x] Add migration 642 and the first-party participant path for submitting
+  Delphi minority reports only when the invite and accepted consent event bind
+  to a versioned notice with explicit `minority_reports` scope. Submissions
+  require an active CSRF-bound session and an open study, accept only a
+  same-study optional question, bound all text, and reject arbitrary evidence
+  references. The dedicated non-login writer creates a `submitted` row and a
+  digest-only append-only retry receipt; exact retries replay and changed
+  content fails closed. Withdrawal serializes with submission, blocks further
+  use, and leaves prior content private for disposition. Runtime and Directus
+  cannot directly read or write reports or access private receipts. The
+  focused Gateway, route-policy, image-bundle, and migration selection passes
+  103 tests. Network-disabled PostgreSQL 16 applies/replays migrations 637–642
+  and passes eight grouped consent, item-scope, retry, withdrawal, and role
+  checks ([migration](../../schemas/postgres/642_location_scoped_delphi_minority_report_submission.sql);
+  [runner](../../scripts/check-delphi-minority-report-submission-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-minority-report-submission-disposable.json)).
+  Ruff, Python compilation, JavaScript syntax, runtime SQL inventory, and
+  capability-matrix checks pass. Candidate and legacy remain untouched;
+  migration 642 is not rolled out. CAP-027 stays prepared pending live
+  OIDC/browser, populated parity, universal ACL/RLS, SMTP, and owner acceptance.
+  Checklist: 1,189 complete / 25 open (1,214 total); classifications remain
+  24 baseline-retained, 7 deployed, and 36 prepared across 67 capabilities.

@@ -7,6 +7,7 @@ const workspacePanel = $("#workspace");
 const inviteStorageKey = "kokonut.delphi.pendingInvite";
 const acceptanceStorageKey = "kokonut.delphi.pendingAcceptance";
 const pendingContributions = new Map();
+let pendingMinorityReport = null;
 let workspaceOffset = 0;
 let workspaceLimit = 50;
 
@@ -165,7 +166,17 @@ function addText(parent, tag, className, text) {
   return node;
 }
 
+function addMinorityReportItemOption(item) {
+  const select = $("#minority-report-item");
+  if (!select || Array.from(select.options).some((option) => option.value === item.item_id)) return;
+  const option = document.createElement("option");
+  option.value = item.item_id;
+  option.textContent = item.label;
+  select.append(option);
+}
+
 function renderItem(item) {
+  addMinorityReportItemOption(item);
   const card = document.createElement("article");
   card.className = "question";
   addText(card, "p", "question-meta", `${item.item_type} · ${item.scale}`);
@@ -247,6 +258,13 @@ async function loadWorkspace(reset = false) {
     consentPanel.hidden = true;
     statusNode.hidden = true;
     const message = $("#study-message");
+    const knownScopes = new Set(["questionnaire_responses", "minority_reports"]);
+    const scopesValid = Array.isArray(result.collection_scopes)
+      && result.collection_scopes.every((scope) => knownScopes.has(scope));
+    const canSubmitMinorityReport = scopesValid
+      && result.collection_scopes.includes("minority_reports")
+      && study.status === "open";
+    $("#minority-report-panel").hidden = !canSubmitMinorityReport;
     message.hidden = false;
     message.dataset.tone = study.status === "open" ? "success" : "";
     message.textContent = study.status === "draft"
@@ -278,6 +296,50 @@ $("#more").addEventListener("click", async () => {
     setStatus(error.message, "error");
   } finally {
     $("#more").disabled = false;
+  }
+});
+
+$("#minority-report-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+  const body = {
+    item_id: $("#minority-report-item").value || null,
+    title: $("#minority-report-title").value,
+    position_summary: $("#minority-report-position").value,
+    rationale: $("#minority-report-rationale").value,
+    implications: $("#minority-report-implications").value || null,
+  };
+  const pending = pendingMinorityReport
+    && JSON.stringify(pendingMinorityReport.body) === JSON.stringify(body)
+    ? pendingMinorityReport
+    : { body, request_id: crypto.randomUUID() };
+  pendingMinorityReport = pending;
+  const submit = $("#minority-report-submit");
+  const state = $("#minority-report-state");
+  const fields = Array.from(form.elements).filter((control) => control !== submit);
+  fields.forEach((control) => { control.disabled = true; });
+  submit.disabled = true;
+  state.textContent = "Submitting your private report…";
+  try {
+    const csrf = readCookie("kokonut_delphi_participant_csrf");
+    const result = await request("/api/participation/delphi/minority-reports", {
+      method: "POST",
+      headers: { "X-Kokonut-CSRF": csrf },
+      body: JSON.stringify({ ...pending.body, request_id: pending.request_id }),
+    });
+    pendingMinorityReport = null;
+    form.reset();
+    fields.forEach((control) => { control.disabled = false; });
+    state.textContent = result.replayed
+      ? "Your private report submission was confirmed."
+      : "Your report was submitted for private independent review.";
+    setStatus("Your report was submitted privately. It is not published automatically.", "success");
+  } catch (_error) {
+    state.textContent = "The submission could not be confirmed. Retry the unchanged report to safely check its status.";
+    setStatus("Your report could not be confirmed. Retry the unchanged report to safely check its status.", "error");
+  } finally {
+    submit.disabled = false;
   }
 });
 

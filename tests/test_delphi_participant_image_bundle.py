@@ -45,3 +45,26 @@ def test_participant_consent_preview_displays_structured_scope_as_text():
             capture_output=True,
             text=True,
         )
+
+
+def test_participant_minority_report_form_requires_explicit_consent_scope():
+    page = (PARTICIPANT_APP / "index.html").read_text(encoding="utf-8")
+    script = (PARTICIPANT_APP / "app.js").read_text(encoding="utf-8")
+    assert 'id="minority-report-form"' in page
+    assert 'id="minority-report-implications"' in page
+    assert "not published automatically" in page
+    assert 'includes("minority_reports")' in script
+    assert 'study.status === "open"' in script
+    assert '"/api/participation/delphi/minority-reports"' in script
+    assert "request_id: crypto.randomUUID()" in script
+    assert "JSON.stringify(pendingMinorityReport.body) === JSON.stringify(body)" in script
+    assert "fields.forEach((control) => { control.disabled = true; });" in script
+    assert "localStorage" not in script
+    node = shutil.which("node")
+    if node is not None:
+        subprocess.run(
+            [node, "--check", str(PARTICIPANT_APP / "app.js")],
+            check=True,
+            capture_output=True,
+            text=True,
+        )

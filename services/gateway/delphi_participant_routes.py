@@ -16,6 +16,10 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
         preview_location_delphi_participant_invite,
         withdraw_location_delphi_participant,
     )
+    from services.gateway.delphi_participant_minority_reports import (
+        DelphiParticipantMinorityReportInvalid,
+        submit_location_delphi_participant_minority_report,
+    )
     from services.gateway.delphi_participant_workspace import (
         DelphiParticipantWorkspaceInvalid,
         get_location_delphi_participant_workspace,
@@ -334,6 +338,75 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
                 payload["request_id"],
             )
         except DelphiParticipantWorkspaceInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            return database_error(exc)
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result["replayed"] else 201,
+            headers=headers,
+        )
+
+    @router.post("/participation/delphi/minority-reports")
+    async def submit_minority_report(request: Request):
+        payload, error = await read_json_object(request)
+        if error is not None:
+            return error
+        expected = {
+            "item_id",
+            "title",
+            "position_summary",
+            "rationale",
+            "implications",
+            "request_id",
+        }
+        if (
+            set(payload) != expected
+            or (payload.get("item_id") is not None and not isinstance(payload.get("item_id"), str))
+            or not all(
+                isinstance(payload.get(key), str)
+                for key in ("title", "position_summary", "rationale", "request_id")
+            )
+            or (payload.get("implications") is not None
+                and not isinstance(payload.get("implications"), str))
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Delphi minority-report fields are invalid"},
+                headers=headers,
+            )
+        session_token = request.cookies.get(session_cookie, "")
+        if not session_token:
+            return JSONResponse(
+                status_code=401,
+                content={"error": "A valid Delphi participant session is required"},
+                headers=headers,
+            )
+        csrf_cookie_value = request.cookies.get(csrf_cookie, "")
+        csrf_header_value = request.headers.get("x-kokonut-csrf", "")
+        if (
+            not csrf_cookie_value
+            or not csrf_header_value
+            or not hmac.compare_digest(csrf_cookie_value, csrf_header_value)
+        ):
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Delphi minority-report CSRF validation failed"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                submit_location_delphi_participant_minority_report,
+                session_token,
+                csrf_header_value,
+                item_id=payload["item_id"],
+                title=payload["title"],
+                position_summary=payload["position_summary"],
+                rationale=payload["rationale"],
+                implications=payload["implications"],
+                request_id=payload["request_id"],
+            )
+        except DelphiParticipantMinorityReportInvalid as exc:
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)

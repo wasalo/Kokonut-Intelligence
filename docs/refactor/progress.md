@@ -18697,3 +18697,33 @@ prepared pending that workflow, live OIDC/browser acceptance, populated parity,
 universal ACL/RLS, SMTP, and MAN-CAP-027 owner acceptance. Checklist: 1,188
 complete / 25 open (1,213 total); classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 capabilities.
+
+### Progress addendum — CAP-027 participant-submitted minority reports, 25 October 2026
+
+Migration 642 adds the first-party participant submission path for Delphi
+minority reports. Submission requires an active session with double-submit
+CSRF, the exact invite-bound and accepted notice with explicit
+`minority_reports` scope, and an open study. Optional question IDs must resolve
+inside that study. The request accepts bounded title, position, rationale, and
+implications only; it does not accept evidence references or arbitrary
+metadata. A dedicated non-login role inserts a `submitted` report and a
+digest-only append-only idempotency receipt. Exact retries return the original
+reference, changed-content reuse fails, and the response omits participant and
+session identity. Withdrawal locks against report writes, prevents later
+submission, and leaves prior content private pending disposition. Runtime and
+Directus have no direct report read/write access or receipt access.
+
+The focused Gateway, route-policy, participant image-bundle, and migration
+selection passes 103 tests. Network-disabled PostgreSQL 16 applies/replays
+migrations 637–642 and passes eight grouped consent-scope, invalid-session,
+item-scope, content-bound, retry, withdrawal, and privilege assertions
+([migration](../schemas/postgres/642_location_scoped_delphi_minority_report_submission.sql);
+[runner](../scripts/check-delphi-minority-report-submission-disposable.py);
+[evidence](builds/2026-10-25-recovery/cap-027-delphi-minority-report-submission-disposable.json)).
+Ruff, Python compilation, JavaScript syntax, refreshed runtime SQL inventory,
+and capability-matrix validation pass. Candidate and legacy databases remain
+untouched; migration 642 is not rolled out. Live OIDC/browser, populated
+parity, universal ACL/RLS, SMTP, and MAN-CAP-027 owner acceptance remain open.
+CAP-027 remains prepared. Checklist: 1,189 complete / 25 open (1,214 total);
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 capabilities.

@@ -62,13 +62,14 @@ def test_workspace_calls_only_bounded_function_and_closes_connection():
         "has_more": False,
         "limit": 20,
         "offset": 40,
+        "collection_scopes": ["questionnaire_responses", "minority_reports"],
     }
     connection = _Connection((expected,))
     result = workspace.get_location_delphi_participant_workspace(
         SESSION, limit="20", offset="40", connection_factory=lambda: connection
     )
     query, params = connection.calls[-1]
-    assert "get_location_delphi_participant_workspace" in query
+    assert "get_location_delphi_participant_scoped_workspace" in query
     assert params == (SESSION, 20, 40)
     assert result == expected
     assert connection.committed and connection.rolled_back and connection.closed

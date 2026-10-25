@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "642_location_scoped_delphi_minority_report_submission.sql",
+  "database_target": "new disposable PostgreSQL 16 container with networking disabled",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 642 applies and replays after the consent-scoped participant chain",
+    "workspace returns only the exact collection scopes bound to accepted consent",
+    "minority-report submission requires a live session, CSRF token, and accepted minority_reports scope",
+    "report item references are study-scoped and report text is bounded",
+    "submitted report content and participant attribution are persisted once without arbitrary evidence references",
+    "exact retries replay and changed-content request-ID reuse is rejected",
+    "withdrawal serializes with report writes and leaves submitted content for private disposition",
+    "runtime and Directus cannot directly write reports or read private retry receipts"
+  ],
+  "assertions_passed": 8
+}

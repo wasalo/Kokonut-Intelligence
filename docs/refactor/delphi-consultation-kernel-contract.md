@@ -588,3 +588,34 @@ by disabling the route, policy, and console panel; retain the additive
 migration and review history if applied. Live OIDC/browser, populated parity,
 participant report submission, universal ACL/RLS, and MAN-CAP-027 owner
 acceptance remain open.
+
+
+### Participant-submitted minority reports
+
+Migration 642 adds `POST /api/participation/delphi/minority-reports` to the
+first-party participant Gateway. The request is accepted only from an active,
+CSRF-bound participant session when the exact versioned notice recorded in
+the invite and accepted-consent event includes the `minority_reports` scope.
+Notice text is never used to infer permission. The study must still be open,
+and an optional item must belong to that study. The title, position, rationale,
+and implications are bounded; arbitrary evidence references are not accepted.
+
+The database creates a `submitted` row and a private append-only retry receipt
+with only a SHA-256 payload digest. Exact request retries return the original
+report reference; changed-content reuse fails. The response does not expose
+participant or session identifiers. The participant path cannot edit,
+verify, publish, or delete reports. Independent review remains the separate
+`delphi:review` workflow. Withdrawal serializes with report submission,
+blocks future use, and hides withdrawn submissions from the review queue;
+existing content remains private pending retention or erasure disposition.
+Runtime and Directus cannot directly read or write report rows or inspect the
+private retry receipts; a dedicated non-login role owns the bounded writer.
+
+The focused Gateway, route-policy, participant asset, and migration selection
+passes 103 tests. The network-disabled disposable PostgreSQL 16 runner applies
+and replays migrations 637–642 and exercises consent-scope enforcement,
+study/item scope, exact retry, withdrawal, and role boundaries. Candidate and
+legacy databases remain untouched; migration 642 is not rolled out. Rollback
+by disabling the participant form and route; retain the additive migration
+and private receipts if applied. Live OIDC/browser, populated parity,
+universal ACL/RLS, SMTP, and MAN-CAP-027 owner acceptance remain open.

@@ -78,7 +78,7 @@ button:disabled { cursor: not-allowed; opacity: 0.52; }
 .question p { color: var(--muted); }
 .question-meta { margin: 0; color: var(--green); font-size: 0.75rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
 .field { display: grid; gap: 7px; margin: 14px 0; font-weight: 650; }
-.field input, .field textarea { width: 100%; padding: 11px 12px; border: 1px solid #becbbf; border-radius: 9px; background: white; color: var(--ink); font: inherit; }
+.field input, .field textarea, .field select { width: 100%; padding: 11px 12px; border: 1px solid #becbbf; border-radius: 9px; background: white; color: var(--ink); font: inherit; }
 .field textarea { min-height: 112px; resize: vertical; }
 .field-help { color: var(--muted); font-size: 0.85rem; font-weight: 400; }
 .answer-state { min-height: 1.5em; margin: 8px 0 0; color: var(--green-dark); font-size: 0.9rem; }
