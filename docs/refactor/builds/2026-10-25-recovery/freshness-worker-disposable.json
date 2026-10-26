@@ -3,6 +3,9 @@
   "migration": "645_isolated_data_freshness_worker.sql",
   "migration_sha256": "c0efd666eadf2179eceb31667b1baa830c0ff51ac960ca647243aa550c356f03",
   "database": "PostgreSQL 16 disposable container; Docker network disabled",
+  "database_image": "postgres:16",
+  "requested_platform": null,
+  "container_architecture": "x86_64",
   "checks": [
     "migration 645 applies and replays with forced RLS already enabled",
     "location-scoped and global source timestamps return bounded values",

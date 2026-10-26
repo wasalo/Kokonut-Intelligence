@@ -3,18 +3,19 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import secrets
 import shutil
 import subprocess
-import sys
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "schemas/postgres/645_isolated_data_freshness_worker.sql"
 DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-25-recovery/freshness-worker-disposable.json"
+ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-25-recovery/freshness-worker-arm64-disposable.json"
 LOCATION_ONE = "11111111-1111-4111-8111-111111111111"
 LOCATION_TWO = "22222222-2222-4222-8222-222222222222"
 WEATHER_CONFIG = "33333333-3333-4333-8333-333333333333"
@@ -308,20 +309,43 @@ def wait_ready(docker: str, container: str) -> None:
     raise RuntimeError("disposable PostgreSQL did not become ready")
 
 
+def build_argument_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("output", nargs="?", type=Path)
+    parser.add_argument("--image", default="postgres:16")
+    parser.add_argument("--platform", choices=("linux/amd64", "linux/arm64"))
+    return parser
+
+
 def main() -> int:
+    args = build_argument_parser().parse_args()
     docker = shutil.which("docker")
     if docker is None:
         raise RuntimeError("Docker CLI is unavailable")
     container = f"kokonut-freshness-worker-{secrets.token_hex(4)}"
-    output = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_OUTPUT
+    output = args.output or (
+        ARM64_OUTPUT if args.platform == "linux/arm64" else DEFAULT_OUTPUT
+    )
     created = False
     migration = MIGRATION.read_text(encoding="utf-8")
     checks: list[str] = []
     try:
-        run([docker, "run", "-d", "--rm", "--network", "none", "--name", container,
-             "-e", f"POSTGRES_PASSWORD={secrets.token_urlsafe(24)}", "postgres:16"])
+        command = [docker, "run", "-d", "--rm", "--network", "none", "--name", container]
+        if args.platform is not None:
+            command.extend(("--platform", args.platform))
+        command.extend((
+            "-e", f"POSTGRES_PASSWORD={secrets.token_urlsafe(24)}", args.image,
+        ))
+        run(command)
         created = True
         wait_ready(docker, container)
+        architecture = run([docker, "exec", container, "uname", "-m"]).strip()
+        expected_architecture = {
+            "linux/amd64": "x86_64",
+            "linux/arm64": "aarch64",
+        }.get(args.platform)
+        if expected_architecture is not None and architecture != expected_architecture:
+            raise RuntimeError("disposable PostgreSQL container architecture mismatch")
         docker_sql(docker, container, FIXTURE)
         docker_sql(docker, container, migration)
         docker_sql(docker, container, migration)
@@ -341,6 +365,9 @@ def main() -> int:
             "migration": MIGRATION.name,
             "migration_sha256": hashlib.sha256(migration.encode()).hexdigest(),
             "database": "PostgreSQL 16 disposable container; Docker network disabled",
+            "database_image": args.image,
+            "requested_platform": args.platform,
+            "container_architecture": architecture,
             "checks": checks,
             "result": "passed",
             "isolation": "Synthetic schema and records only; no candidate, legacy, provider, or network access.",

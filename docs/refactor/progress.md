@@ -1,3 +1,20 @@
+### Progress addendum — ARM64 freshness-worker software acceptance, 25 October 2026
+
+The network-disabled PostgreSQL 16 disposable acceptance now passes on Docker
+`linux/arm64`; the container reports `aarch64`. Migration 645 applies and
+replays under forced RLS, with bounded global/location source reads, atomic
+check/state/history/event writes, enqueue-failure rollback, exact bounded
+function grants, and direct table/sequence denial. The runner removes the
+temporary database container. This is emulated/container software portability
+evidence only; no Raspberry Pi hardware, physical power-loss, or sustained-load
+test is claimed. Candidate and legacy databases were not touched. Evidence:
+[ARM64 disposable check](builds/2026-10-25-recovery/freshness-worker-arm64-disposable.json);
+the native `x86_64` rerun also passes
+([evidence](builds/2026-10-25-recovery/freshness-worker-disposable.json)).
+Checklist: 1,197 complete / 25 open (1,222 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows. CAP-047
+remains prepared.
+
 ### Progress addendum — isolated global data-freshness worker, 25 October 2026
 
 Migration 645 and a default-off `services.ingestion.freshness_worker` now

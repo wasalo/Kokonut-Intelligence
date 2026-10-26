@@ -19,10 +19,27 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,196 checklist items complete and 25
-open (1,221 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,197 checklist items complete and 25
+open (1,222 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### Global freshness worker ARM64 software acceptance — 25 October 2026
+
+- [x] Replay and exercise migration 645 using PostgreSQL 16 on `linux/arm64`.
+  The disposable container reports `aarch64`; network access is disabled. The
+  same forced-RLS, bounded location/global reads, atomic check/state/history/
+  event, enqueue rollback, exact function grants, direct table/sequence denial,
+  and migration-replay assertions pass as on native architecture
+  ([native evidence](builds/2026-10-25-recovery/freshness-worker-disposable.json);
+  [runner](../scripts/check-freshness-worker-disposable.py);
+  [ARM64 evidence](builds/2026-10-25-recovery/freshness-worker-arm64-disposable.json)).
+  The runner always removes its temporary container. This is QEMU/container
+  software portability evidence, not physical Raspberry Pi, power-loss, or
+  sustained performance acceptance. Candidate and legacy databases were not
+  touched. Rollback requires no action because this is disposable verification
+  only. Checklist: 1,197 complete / 25 open (1,222 total); capability
+  classifications remain unchanged.
 
 ### Isolated global data-freshness worker — 25 October 2026
 
