@@ -15,7 +15,7 @@ The focused CLI, worker, model, runtime-role, and profile selection passed 114
 tests. Ruff, compilation, dependency-group alignment, six regenerated
 worker/runtime inventories, and AMD64/ARM64 Compose profile checks pass. The
 native optional image builds, and a network-disabled/read-only smoke imports the
-worker and five required model packages without yfinance/gstools ([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)). The ARM64 ML image build resolved AArch64 wheels but stalled during emulated pip installation and was stopped; ARM64 runtime acceptance remains open.
+worker and five required model packages without yfinance/gstools ([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)). The optional Dockerfile stage resolves target-specific binary wheels on `BUILDPLATFORM`; both AMD64 and ARM64 images build, `pip check` passes, and no-network/read-only imports pass under native execution and ARM64/QEMU ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-builds.json); [ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-image-arm64-smoke.json)). The opt-in images are 1.20 GB and 1.23 GB cumulative Docker size, making image slimming a follow-up for constrained devices. This is software portability evidence only; physical Pi behavior remains open.
 Disposable PostgreSQL 16 applied and replayed migrations
 405/419/650 under forced RLS and verified exact-location and quality filtering,
 transaction-context reset and denial, direct-table denial, and the reader-role

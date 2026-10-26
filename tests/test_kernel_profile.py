@@ -188,6 +188,15 @@ def test_sensor_anomaly_ml_is_an_explicit_single_location_worker_profile() -> No
     assert "PG_PASSWORD" not in worker["environment"]
     assert "POSTGRES_PASSWORD" not in worker["environment"]
 
+    dockerfile = (ROOT / "Dockerfile.kernel").read_text()
+    assert "AS ml-anomaly-dependencies" in dockerfile
+    assert "--platform=$BUILDPLATFORM" in dockerfile
+    assert "ARG TARGETARCH" in dockerfile
+    assert "--only-binary=:all:" in dockerfile
+    assert "--platform=manylinux_2_28_aarch64" in dockerfile
+    assert "--platform=manylinux_2_28_x86_64" in dockerfile
+    assert "COPY --from=ml-anomaly-dependencies" in dockerfile
+
     ml_requirements = {
         line.strip()
         for line in (ROOT / "requirements/ml-anomaly.txt").read_text().splitlines()

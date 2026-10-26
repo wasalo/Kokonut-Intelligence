@@ -1,0 +1,30 @@
+{
+  "check": "sensor_anomaly_ml_arm64_image_import_smoke",
+  "captured_on": "2026-10-26",
+  "image": "kokonut-kernel-candidate-arm64-sensor-anomaly-ml-worker:latest",
+  "image_id": "sha256:74c294176a3ba3e12256dd9e9b543ccee9188a4d47b75adb357d620636be2132",
+  "image_size_bytes": 1231777316,
+  "platform": "linux/arm64",
+  "reported_machine": "aarch64",
+  "python": "3.11.15",
+  "network": "none",
+  "root_filesystem_read_only": true,
+  "temporary_filesystem": "/tmp tmpfs",
+  "credentials_provided": false,
+  "database_or_provider_calls": false,
+  "imported_ml_packages": {
+    "numpy": "1.26.4",
+    "pandas": "3.0.6",
+    "prophet": "1.5.0",
+    "scikit_learn": "1.9.1",
+    "scipy": "1.17.1"
+  },
+  "sensor_anomaly_ml_worker_imported": true,
+  "non_fatal_stderr_notices": [
+    "Matplotlib built its font cache in the temporary filesystem",
+    "Prophet reports optional Plotly visualization support is unavailable"
+  ],
+  "candidate_or_legacy_touched": false,
+  "compose_services_started": false,
+  "physical_raspberry_pi_tested": false
+}

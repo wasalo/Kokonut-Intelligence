@@ -98,13 +98,30 @@ USER appuser
 RUN python3 -m services.core.image_manifest --target oidc
 CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers", "--require-schema"]
 
+# Resolve and unpack architecture-specific ML wheels on the native build
+# platform. This avoids pip network resolution and wheel extraction under QEMU.
+FROM --platform=$BUILDPLATFORM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS ml-anomaly-dependencies
+ARG TARGETARCH
+WORKDIR /build
+COPY requirements/ml-anomaly.txt ./requirements/ml-anomaly.txt
+RUN set -eu; \
+    case "$TARGETARCH" in \
+      amd64) set -- --platform=manylinux_2_28_x86_64 --platform=manylinux2014_x86_64 ;; \
+      arm64) set -- --platform=manylinux_2_28_aarch64 --platform=manylinux2014_aarch64 ;; \
+      *) echo "Unsupported ML worker architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    python3 -m pip install --disable-pip-version-check --no-cache-dir \
+      --only-binary=:all: --ignore-installed --target=/opt/ml-anomaly-site \
+      "$@" --python-version=3.11 --implementation=cp --abi=cp311 \
+      -r requirements/ml-anomaly.txt
+
 # Optional one-shot ML anomaly worker. The default Kernel target stays small;
-# only this explicit profile installs the ML model dependency subset.
+# only this explicit profile receives the selected architecture's ML packages.
 FROM kernel-base AS ml-anomaly
 USER root
+COPY --from=ml-anomaly-dependencies /opt/ml-anomaly-site/ /usr/local/lib/python3.11/site-packages/
 COPY requirements/ml-anomaly.txt ./requirements/ml-anomaly.txt
-RUN pip install --no-cache-dir -r requirements/ml-anomaly.txt \
-    && pip list --disable-pip-version-check --format=json > /app/python-packages.json \
+RUN pip list --disable-pip-version-check --format=json > /app/python-packages.json \
     && mkdir -p /var/lib/kokonut/ml-models \
     && chown -R appuser:appuser /var/lib/kokonut/ml-models \
     && chown appuser:appuser /app/python-packages.json

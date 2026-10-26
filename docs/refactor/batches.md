@@ -37,9 +37,14 @@ acceptance remains separate; none is marked accepted.
   Ruff, compilation, six generated worker/runtime inventories, dependency-group
   alignment, and AMD64/ARM64 Compose config checks pass. The native optional
   image builds and a no-network/read-only import smoke passes ([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)).
-  The ARM64 ML image build stalled during emulated pip installation and was
-  stopped; AArch64 wheels resolved, but ARM64 image/runtime acceptance remains
-  open. Disposable PostgreSQL 16 applies and replays migrations 405/419/650 and
+  The Dockerfile resolves target-specific binary wheels on `BUILDPLATFORM`.
+  Both AMD64 and ARM64 images build; no-network/read-only imports pass under
+  native execution and ARM64/QEMU, reporting `aarch64`; `pip check` passes in
+  both images. Their cumulative image sizes are 1.20 GB and 1.23 GB, so slimming
+  the opt-in worker remains useful for constrained devices ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-builds.json);
+  [ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-image-arm64-smoke.json)).
+  This is software portability evidence; Raspberry Pi hardware acceptance
+  remains open. Disposable PostgreSQL 16 applies and replays migrations 405/419/650 and
   verifies signed exact-location/quality filtering, scope reset/denial, forced
   RLS, direct table denial, and reader-role switching ([source checks](builds/2026-10-26-recovery/sensor-anomaly-ml-source-checks.json); [contract](sensor-anomaly-ml-worker-contract.md);
   [migration](../../schemas/postgres/650_signed_sensor_anomaly_ml_source.sql);

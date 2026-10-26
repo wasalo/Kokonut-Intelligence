@@ -47,10 +47,18 @@ packages from the full analytics group. The dependency-group checker verifies
 that this smaller manifest remains an exact subset of `analytics.txt`. The
 `sensor-anomaly-ml` Compose profile is a one-shot worker, uses a separate DSN
 and credential, and stores model artifacts in a dedicated named volume. The
-ARM64 overlay selects `linux/arm64`; config checks pass, but the image build
-stalled during emulated pip installation after resolving AArch64 wheels and
-was stopped. No ARM64 image/runtime or physical Raspberry Pi performance and
-reliability acceptance is claimed.
+Dockerfile resolves and extracts architecture-specific binary wheels in a
+`BUILDPLATFORM` stage, then copies them into the requested target image. Both
+AMD64 and ARM64 optional images build. Network-disabled, read-only import smokes
+pass for the worker and all five direct model packages on native AMD64 and
+ARM64 under software emulation ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-builds.json);
+[ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-image-arm64-smoke.json)).
+`pip check` passes in both images. Their measured cumulative Docker image sizes
+are about 1.20 GB for AMD64 and 1.23 GB for ARM64. This worker is an opt-in
+profile and these sizes do not describe the default/minimal Kernel image; image
+slimming remains useful before constrained-device deployment. These checks do
+not verify performance, reliability, thermal behavior, or power-loss handling
+on a physical Raspberry Pi.
 
 ## Activation sequence
 
@@ -113,13 +121,15 @@ before reporting success. See
 [`check-sensor-anomaly-ml-source-disposable.py`](../../scripts/check-sensor-anomaly-ml-source-disposable.py)
 and [the recorded result](builds/2026-10-26-recovery/sensor-anomaly-ml-source-disposable.json).
 
-The native optional image build and a network-disabled, read-only image smoke
-also pass. The smoke imports the worker and all five direct model packages,
-confirms yfinance/gstools are absent, and provides no database credentials
-([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)).
-The ARM64 profile config passes, but its ML image build did not complete under
-emulation; treat ARM64 runtime support as unverified until a build and import
-smoke pass.
+The AMD64 optional image builds and a network-disabled, read-only image smoke
+imports the worker and all five direct model packages, confirms yfinance/gstools
+are absent, and provides no database credentials ([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)).
+The ARM64 image also builds after cross-installing AArch64 wheels on the native
+build platform; its network-disabled, read-only QEMU smoke reports `aarch64`
+and imports the same worker and package set ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-builds.json);
+[ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-image-arm64-smoke.json)).
+This closes software image/import portability only. Physical Raspberry Pi
+performance and reliability acceptance remain open.
 
 Rollback is to leave the feature and Compose profile off, or disable the
 profile and restore the previous CLI route. Preserve migration 650 and its
@@ -128,7 +138,8 @@ that could invalidate an active or previously provisioned worker. Remove a
 worker grant and revoke/rotate its credential through the approved operator
 process if any were provisioned.
 
-This closes only the source-owned and disposable-database portion of the
-manual ML isolation slice. Populated-data output parity, candidate migration
-rollout, a real worker identity/grant, sustained worker recovery, physical
-ARM64 acceptance, and overall MAN-CAP-040/047 acceptance remain open.
+This closes source-owned, disposable-database, and software image/import
+portability checks for the manual ML isolation slice. Populated-data output
+parity, candidate migration rollout, a real worker identity/grant, sustained
+worker recovery, physical Raspberry Pi acceptance, and overall MAN-CAP-040/047
+acceptance remain open.

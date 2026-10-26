@@ -1,7 +1,8 @@
 {
   "check": "sensor_anomaly_ml_native_image_import_smoke",
   "image": "kokonut-kernel-candidate-sensor-anomaly-ml-worker:latest",
-  "image_id": "sha256:b52eeacd223ab9c6f47a004cbbdb8f3a51ced8b4229cebf1dc7fa5d9d47dd3ed",
+  "image_id": "sha256:8d20bd833d7921c756c368225b4be9bbf87a41991038963bdaedee1b8a359b41",
+  "image_size_bytes": 1196104910,
   "architecture": "x86_64",
   "network": "none",
   "root_filesystem_read_only": true,
@@ -18,6 +19,5 @@
   "unrelated_yfinance_installed": false,
   "unrelated_gstools_installed": false,
   "candidate_or_legacy_touched": false,
-  "arm64_image_build": "not completed; pip install stalled under emulation and was interrupted",
   "non_fatal_stderr_notice": "Prophet reports its optional Plotly visualization support is unavailable"
 }
