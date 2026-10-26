@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 34,
-    "source_files": 101,
+    "operation_roots": 36,
+    "source_files": 105,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 738,
-    "direct_call_edges": 1005,
+    "function_memberships": 774,
+    "direct_call_edges": 1050,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 24
   },
@@ -246,7 +246,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -254,7 +254,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -262,7 +262,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -270,7 +270,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         }
       ],
       "direct_call_edges": [
@@ -332,13 +332,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         }
       ],
       "callback_edges": [],
@@ -433,7 +433,7 @@
           "qualname": "event_handler_worker_policy",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 94
+          "line": 95
         },
         {
           "key": "services.common.worker_environment:worker_subprocess_environment",
@@ -441,7 +441,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 127
+          "line": 128
         },
         {
           "key": "services.core.features:is_enabled",
@@ -449,7 +449,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -1808,7 +1808,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.core.features:require_feature",
@@ -1816,7 +1816,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 230
+          "line": 238
         },
         {
           "key": "services.export.dataset_refresh:_dataset_failure_summary",
@@ -1870,7 +1870,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 232
+          "line": 240
         },
         {
           "caller": "services.export.dataset_refresh:get_pg",
@@ -2889,6 +2889,633 @@
     },
     {
       "kind": "scheduled_module",
+      "name": "services.ingestion.baal_indexer",
+      "source_files": [
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/providers.py",
+        "services/governance/baal.py",
+        "services/governance/base.py",
+        "services/ingestion/baal_indexer.py",
+        "services/ingestion/base.py",
+        "services/ingestion/config.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.ingestion.baal_indexer:main",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 364
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.database:get_db",
+          "module": "services.common.database",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/common/database.py",
+          "line": 35
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_checksum",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_checksum",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 189
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_decode_event",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_decode_event",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 115
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_get_protocol_id",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_get_protocol_id",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 60
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_update_status",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_update_status",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 196
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_validate_block_range",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_validate_block_range",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 331
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_wallet_id",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_wallet_id",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 71
+        },
+        {
+          "key": "services.ingestion.baal_indexer:build_parser",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "build_parser",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 341
+        },
+        {
+          "key": "services.ingestion.baal_indexer:insert_governance_event",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "insert_governance_event",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 83
+        },
+        {
+          "key": "services.ingestion.baal_indexer:main",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 352
+        },
+        {
+          "key": "services.ingestion.baal_indexer:run",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 217
+        },
+        {
+          "key": "services.ingestion.base:batch_ranges",
+          "module": "services.ingestion.base",
+          "qualname": "batch_ranges",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 294
+        },
+        {
+          "key": "services.ingestion.base:get_db",
+          "module": "services.ingestion.base",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 50
+        },
+        {
+          "key": "services.ingestion.base:get_last_synced_block",
+          "module": "services.ingestion.base",
+          "qualname": "get_last_synced_block",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 233
+        },
+        {
+          "key": "services.ingestion.base:update_indexer_status",
+          "module": "services.ingestion.base",
+          "qualname": "update_indexer_status",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 187
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.ingestion.baal_indexer:_decode_event",
+          "callee": "services.ingestion.baal_indexer:_checksum",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 125
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:_decode_event",
+          "callee": "services.ingestion.baal_indexer:_checksum",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 127
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:_decode_event",
+          "callee": "services.ingestion.baal_indexer:_checksum",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 183
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:_update_status",
+          "callee": "services.ingestion.base:update_indexer_status",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 207
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:main",
+          "callee": "services.ingestion.baal_indexer:_validate_block_range",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 356
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:main",
+          "callee": "services.ingestion.baal_indexer:build_parser",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 353
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:main",
+          "callee": "services.ingestion.baal_indexer:run",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 359
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_decode_event",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 274
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_get_protocol_id",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 262
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_update_status",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 284
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_update_status",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 293
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_update_status",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 305
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_validate_block_range",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 225
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_wallet_id",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 279
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:insert_governance_event",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 282
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.base:batch_ranges",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 263
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.base:get_last_synced_block",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 243
+        },
+        {
+          "caller": "services.ingestion.base:get_db",
+          "callee": "services.common.database:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 59
+        },
+        {
+          "caller": "services.ingestion.base:get_last_synced_block",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 237
+        },
+        {
+          "caller": "services.ingestion.base:update_indexer_status",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 205
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.baal_worker",
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/governance/baal.py",
+        "services/governance/base.py",
+        "services/ingestion/__init__.py",
+        "services/ingestion/baal_indexer.py",
+        "services/ingestion/baal_worker.py",
+        "services/ingestion/base.py",
+        "services/ingestion/config.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.ingestion.baal_worker:main",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 115
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.cli:run",
+          "module": "services.common.cli",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 78
+        },
+        {
+          "key": "services.common.database:get_db",
+          "module": "services.common.database",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/common/database.py",
+          "line": 35
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 55
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 91
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 215
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_checksum",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_checksum",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 189
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_decode_event",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_decode_event",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 115
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_get_protocol_id",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_get_protocol_id",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 60
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_update_status",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_update_status",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 196
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_validate_block_range",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_validate_block_range",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 331
+        },
+        {
+          "key": "services.ingestion.baal_indexer:_wallet_id",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "_wallet_id",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 71
+        },
+        {
+          "key": "services.ingestion.baal_indexer:insert_governance_event",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "insert_governance_event",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 83
+        },
+        {
+          "key": "services.ingestion.baal_indexer:run",
+          "module": "services.ingestion.baal_indexer",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 217
+        },
+        {
+          "key": "services.ingestion.baal_worker:_rpc_endpoint",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "_rpc_endpoint",
+          "class_scope": null,
+          "source": "services/ingestion/baal_worker.py",
+          "line": 20
+        },
+        {
+          "key": "services.ingestion.baal_worker:build_parser",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "build_parser",
+          "class_scope": null,
+          "source": "services/ingestion/baal_worker.py",
+          "line": 102
+        },
+        {
+          "key": "services.ingestion.baal_worker:execute",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "execute",
+          "class_scope": null,
+          "source": "services/ingestion/baal_worker.py",
+          "line": 88
+        },
+        {
+          "key": "services.ingestion.baal_worker:main",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/ingestion/baal_worker.py",
+          "line": 109
+        },
+        {
+          "key": "services.ingestion.base:batch_ranges",
+          "module": "services.ingestion.base",
+          "qualname": "batch_ranges",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 294
+        },
+        {
+          "key": "services.ingestion.base:get_db",
+          "module": "services.ingestion.base",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 50
+        },
+        {
+          "key": "services.ingestion.base:get_last_synced_block",
+          "module": "services.ingestion.base",
+          "qualname": "get_last_synced_block",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 233
+        },
+        {
+          "key": "services.ingestion.base:update_indexer_status",
+          "module": "services.ingestion.base",
+          "qualname": "update_indexer_status",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 187
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 112
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:_decode_event",
+          "callee": "services.ingestion.baal_indexer:_checksum",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 125
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:_decode_event",
+          "callee": "services.ingestion.baal_indexer:_checksum",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 127
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:_decode_event",
+          "callee": "services.ingestion.baal_indexer:_checksum",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 183
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:_update_status",
+          "callee": "services.ingestion.base:update_indexer_status",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 207
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_decode_event",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 274
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_get_protocol_id",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 262
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_update_status",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 284
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_update_status",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 293
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_update_status",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 305
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_validate_block_range",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 225
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_wallet_id",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 279
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:insert_governance_event",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 282
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.base:batch_ranges",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 263
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.base:get_last_synced_block",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 243
+        },
+        {
+          "caller": "services.ingestion.baal_worker:execute",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 96
+        },
+        {
+          "caller": "services.ingestion.baal_worker:execute",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 90
+        },
+        {
+          "caller": "services.ingestion.baal_worker:execute",
+          "callee": "services.ingestion.baal_indexer:run",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 93
+        },
+        {
+          "caller": "services.ingestion.baal_worker:execute",
+          "callee": "services.ingestion.baal_worker:_rpc_endpoint",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 92
+        },
+        {
+          "caller": "services.ingestion.baal_worker:main",
+          "callee": "services.common.cli:run",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 111
+        },
+        {
+          "caller": "services.ingestion.baal_worker:main",
+          "callee": "services.ingestion.baal_worker:build_parser",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 110
+        },
+        {
+          "caller": "services.ingestion.baal_worker:main",
+          "callee": "services.ingestion.baal_worker:execute",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 111
+        },
+        {
+          "caller": "services.ingestion.base:get_db",
+          "callee": "services.common.database:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 59
+        },
+        {
+          "caller": "services.ingestion.base:get_last_synced_block",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 237
+        },
+        {
+          "caller": "services.ingestion.base:update_indexer_status",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 205
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.ingestion.clickhouse_outbox",
       "source_files": [
         "services/common/cli.py",
@@ -3615,7 +4242,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -3623,7 +4250,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -3631,7 +4258,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -3639,7 +4266,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.ingestion.climate_data:_estimate_bioclim",
@@ -3721,13 +4348,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.ingestion.climate_worker:_load_location",
@@ -4452,7 +5079,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -4460,7 +5087,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -4468,7 +5095,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.ingestion.eas_provider:execute_eas_query",
@@ -4524,7 +5151,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.ingestion.eas_worker:_fetch_wallet_pages",
@@ -5196,7 +5823,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -5204,7 +5831,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -5212,7 +5839,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -5468,7 +6095,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.ingestion.base:get_db",
@@ -6131,7 +6758,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -6139,7 +6766,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -6147,7 +6774,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -6211,7 +6838,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.ingestion.market_data_worker:ingest",
@@ -7014,7 +7641,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -7022,7 +7649,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -7030,7 +7657,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -7038,7 +7665,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.ingestion.copernicus_remote_sensing:_get_token",
@@ -7216,13 +7843,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
@@ -7811,7 +8438,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -7819,7 +8446,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.common.worker_environment:isolated_worker_key",
@@ -7827,7 +8454,7 @@
           "qualname": "isolated_worker_key",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 116
+          "line": 117
         },
         {
           "key": "services.core.features:is_enabled",
@@ -7835,7 +8462,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.ingestion.rpc_provider:_validate_endpoint",
@@ -7931,7 +8558,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.ingestion.rpc_provider:configured_rpc_endpoints",
@@ -9052,7 +9679,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -9060,7 +9687,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -9068,7 +9695,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -9076,7 +9703,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.drivers.base:BaseDriver.__init__",
@@ -9252,13 +9879,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.drivers.base:BaseDriver.__init__",
@@ -10126,7 +10753,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -10134,7 +10761,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -10142,7 +10769,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -10150,7 +10777,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -10248,13 +10875,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
@@ -10445,7 +11072,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -10453,7 +11080,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -10461,7 +11088,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -10469,7 +11096,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -10575,13 +11202,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.ingestion.weather:build_weather_clickhouse_projection",
@@ -11451,7 +12078,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -11459,7 +12086,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -11467,7 +12094,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11475,7 +12102,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.metrics.noi_snapshot_worker:main",
@@ -11517,13 +12144,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.metrics.noi_snapshot_worker:main",
@@ -11702,7 +12329,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -11710,7 +12337,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -11718,7 +12345,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11726,7 +12353,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         }
       ],
       "direct_call_edges": [
@@ -11824,13 +12451,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         }
       ],
       "callback_edges": [],
@@ -11973,7 +12600,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -11981,7 +12608,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -11989,7 +12616,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11997,7 +12624,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         }
       ],
       "direct_call_edges": [
@@ -12095,13 +12722,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         }
       ],
       "callback_edges": [],
@@ -12244,7 +12871,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -12252,7 +12879,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -12260,7 +12887,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -12268,7 +12895,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         }
       ],
       "direct_call_edges": [
@@ -12366,13 +12993,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         }
       ],
       "callback_edges": [],
@@ -12515,7 +13142,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -12523,7 +13150,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -12531,7 +13158,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -12539,7 +13166,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         }
       ],
       "direct_call_edges": [
@@ -12637,13 +13264,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         }
       ],
       "callback_edges": [],
@@ -12688,7 +13315,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -12696,7 +13323,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -12704,7 +13331,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -12760,7 +13387,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.events.handlers:handle_alert_notification",
@@ -12865,7 +13492,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -12873,7 +13500,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.features:is_enabled",
@@ -12881,7 +13508,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 207
+          "line": 215
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -12945,7 +13572,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.events.handlers:handle_alert_notification",
@@ -13092,7 +13719,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 54
+          "line": 55
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -13100,7 +13727,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 60
+          "line": 61
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -13108,7 +13735,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 90
+          "line": 91
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -13230,13 +13857,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 71
+          "line": 72
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 111
+          "line": 112
         },
         {
           "caller": "services.events.notification_outbox:_notification_payloads",

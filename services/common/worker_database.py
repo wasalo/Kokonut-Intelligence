@@ -39,6 +39,7 @@ _WORKER_LOGINS = {
     "eas_indexer": "kokonut_eas_indexer_login",
     "rpc_indexer": "kokonut_rpc_indexer_login",
     "gnosis_indexer": "kokonut_gnosis_indexer_login",
+    "baal_indexer": "kokonut_baal_indexer_login",
     "sensor_ingestion": "kokonut_sensor_ingestion_login",
     "remote_sensing": "kokonut_remote_sensing_login",
 }

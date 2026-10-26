@@ -115,6 +115,13 @@ JOBS = MappingProxyType(
             "services.ingestion.gnosis_indexer", (), 600, 2, 300,
             "Gnosis indexing (legacy compatibility)",
         ),
+        "baal": JobSpec(
+            "services.ingestion.baal_worker", (), 600, 2, 300, "Baal indexing"
+        ),
+        "baal_legacy": JobSpec(
+            "services.ingestion.baal_indexer", (), 600, 2, 300,
+            "Baal indexing (legacy compatibility)",
+        ),
         "anomaly": JobSpec(
             "services.ingestion.anomaly_detector",
             (),
@@ -294,6 +301,9 @@ def run_job(
         # Keep persisted Prefect tasks and the manual CLI on their historical
         # direct runner until the dedicated login is provisioned and enabled.
         job_id = "gnosis_legacy"
+        spec = JOBS[job_id]
+    if job_id == "baal" and not is_enabled("isolated_baal_indexer_worker"):
+        job_id = "baal_legacy"
         spec = JOBS[job_id]
     return _run_job_spec(
         job_id,

@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_job_contract_inventory.py",
   "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. Modeled required inputs use synthetic schema fixtures only. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
   "summary": {
-    "catalog_jobs": 18,
-    "allowlisted_modules": 26,
+    "catalog_jobs": 21,
+    "allowlisted_modules": 29,
     "outcomes": {
-      "default_arguments_accepted": 5,
+      "default_arguments_accepted": 8,
       "required_runtime_inputs_validated": 13
     }
   },
@@ -21,6 +21,24 @@
       ],
       "status": "required_runtime_inputs_validated",
       "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "baal",
+      "module": "services.ingestion.baal_worker",
+      "worker_key": "baal_indexer",
+      "argument_count": 0,
+      "required_inputs": [],
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "baal_legacy",
+      "module": "services.ingestion.baal_indexer",
+      "worker_key": null,
+      "argument_count": 0,
+      "required_inputs": [],
+      "status": "default_arguments_accepted",
+      "reason": null
     },
     {
       "job": "climate",
@@ -86,6 +104,15 @@
     },
     {
       "job": "gnosis",
+      "module": "services.ingestion.gnosis_worker",
+      "worker_key": "gnosis_indexer",
+      "argument_count": 0,
+      "required_inputs": [],
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "gnosis_legacy",
       "module": "services.ingestion.gnosis_indexer",
       "worker_key": null,
       "argument_count": 0,

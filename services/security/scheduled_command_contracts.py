@@ -79,6 +79,14 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--from-block": "block",
         "--to-block": "block",
     },
+    "services.ingestion.baal_indexer": {
+        "--from-block": "block",
+        "--to-block": "block",
+    },
+    "services.ingestion.baal_worker": {
+        "--from-block": "block",
+        "--to-block": "block",
+    },
     "services.ingestion.anomaly_detector": {
         "--sensor": "uuid",
         "--since": "datetime",
@@ -278,6 +286,17 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("Gnosis block range requires both --from-block and --to-block")
         if has_start and int(str(values["--from-block"])) > int(str(values["--to-block"])):
             raise _reject("Gnosis block range start must not exceed its end")
+
+    elif module_path in {
+        "services.ingestion.baal_indexer",
+        "services.ingestion.baal_worker",
+    }:
+        has_start = "--from-block" in options
+        has_end = "--to-block" in options
+        if has_start != has_end:
+            raise _reject("Baal block range requires both --from-block and --to-block")
+        if has_start and int(str(values["--from-block"])) > int(str(values["--to-block"])):
+            raise _reject("Baal block range start must not exceed its end")
 
     elif module_path == "services.ingestion.anomaly_detector":
         if "--location-id" not in options:

@@ -292,6 +292,91 @@ def test_gnosis_indexer_has_its_own_execute_only_role_contract():
     assert "migration 643 Gnosis-indexer functions" in runtime_source
 
 
+def test_baal_indexer_has_its_own_execute_only_role_contract():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/644_isolated_baal_indexer.sql").read_text()
+    runtime_source = (root / "services/migration/runtime_role.py").read_text()
+
+    assert len(runtime_role._BAAL_INDEXER_FUNCTIONS) == 7
+    assert set(runtime_role._BAAL_INDEXER_FUNCTIONS) <= set(
+        runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    )
+    assert all(
+        (function, "kokonut_baal_indexer_owner")
+        in runtime_role._SECURITY_DEFINER_OWNERS
+        for function in runtime_role._BAAL_INDEXER_FUNCTIONS
+    )
+    assert "session_user <> 'kokonut_baal_indexer_login'" in migration
+    assert "FROM PUBLIC" in migration
+    assert "TO kokonut_baal_indexer_login" in migration
+    assert "migration 644 Baal-indexer functions" in runtime_source
+    assert "Baal-indexer login must connect only to its configured database" in runtime_source
+
+
+def test_baal_indexer_provisioning_requires_paired_credentials_and_distinct_owner():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(ValueError, match="Baal-indexer user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            baal_indexer_user="kokonut_baal_indexer_login",
+        )
+    with pytest.raises(ValueError, match="differ from the Baal-indexer function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            baal_indexer_user="kokonut_baal_indexer_owner",
+            baal_indexer_password="b" * 32,
+        )
+
+
+def test_global_indexer_logins_receive_only_configured_database_connect_grants():
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "services/migration/runtime_role.py"
+    ).read_text()
+    protected_login_block = source.split("protected_login_idents = [runtime_ident, auth_ident]", 1)[1]
+    protected_login_block = protected_login_block.split("for name in database_names:", 1)[0]
+
+    for role_identifier in (
+        "rpc_indexer_ident",
+        "gnosis_indexer_ident",
+        "baal_indexer_ident",
+    ):
+        assert f"if {role_identifier} is not None:" in protected_login_block
+        assert f"protected_login_idents.append({role_identifier})" in protected_login_block
+
+    assert '"GRANT CONNECT ON DATABASE {} TO {}"' in source
+
+
+def test_baal_indexer_dedicated_secret_stays_outside_worker_compose_profiles():
+    root = Path(__file__).resolve().parents[1]
+    bootstrap = (root / "docker-compose.kernel-runtime-role.yml").read_text()
+    app_profiles = "\n".join(
+        (root / name).read_text()
+        for name in (
+            "docker-compose.kernel-candidate.yml",
+            "docker-compose.kernel-portability.yml",
+            "docker-compose.kernel-standard.yml",
+            "docker-compose.worker.yml",
+        )
+    )
+
+    assert "KOKONUT_BAAL_INDEXER_PASSWORD" in bootstrap
+    assert "KOKONUT_BAAL_INDEXER_DATABASE_URL" in app_profiles
+    assert "KOKONUT_BAAL_INDEXER_RPC_ENDPOINT" in app_profiles
+    assert "KOKONUT_FEATURE_ISOLATED_BAAL_INDEXER_WORKER" in app_profiles
+    assert "KOKONUT_BAAL_INDEXER_PASSWORD" not in app_profiles
+
+
 def test_market_data_dedicated_secret_reaches_only_the_runtime_role_bootstrap():
     root = Path(__file__).resolve().parents[1]
     bootstrap = (root / "docker-compose.kernel-runtime-role.yml").read_text()

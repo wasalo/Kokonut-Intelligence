@@ -79,6 +79,15 @@ _GNOSIS_INDEXER_FUNCTIONS = (
     "kokonut_security.enqueue_gnosis_clickhouse(text,text,text,text,jsonb,jsonb,text)",
     "kokonut_security.update_gnosis_indexer_status(bigint,text,text,jsonb)",
 )
+_BAAL_INDEXER_FUNCTIONS = (
+    "kokonut_security.acquire_baal_indexer_lock()",
+    "kokonut_security.release_baal_indexer_lock()",
+    "kokonut_security.read_baal_indexer_cursor()",
+    "kokonut_security.resolve_baal_protocol()",
+    "kokonut_security.resolve_baal_wallet(text)",
+    "kokonut_security.store_baal_governance_event(jsonb)",
+    "kokonut_security.update_baal_indexer_status(bigint,text,text)",
+)
 _SENSOR_INGESTION_FUNCTIONS = (
     "kokonut_security.resolve_sensor_driver_instance(uuid,uuid)",
     "kokonut_security.read_sensor_driver_catalog(uuid)",
@@ -131,6 +140,7 @@ _SECURITY_DEFINER_OWNERS = (
     *((function, "kokonut_eas_indexer_owner") for function in _EAS_INDEXER_FUNCTIONS),
     *((function, "kokonut_rpc_indexer_owner") for function in _RPC_INDEXER_FUNCTIONS),
     *((function, "kokonut_gnosis_indexer_owner") for function in _GNOSIS_INDEXER_FUNCTIONS),
+    *((function, "kokonut_baal_indexer_owner") for function in _BAAL_INDEXER_FUNCTIONS),
     *(
         (function, "kokonut_sensor_ingestion_owner")
         for function in _SENSOR_INGESTION_FUNCTIONS
@@ -156,6 +166,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     *_EAS_INDEXER_FUNCTIONS,
     *_RPC_INDEXER_FUNCTIONS,
     *_GNOSIS_INDEXER_FUNCTIONS,
+    *_BAAL_INDEXER_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
     *_REMOTE_SENSING_FUNCTIONS,
 )
@@ -1005,6 +1016,8 @@ def provision_runtime_role(
     rpc_indexer_password: str | None = None,
     gnosis_indexer_user: str | None = None,
     gnosis_indexer_password: str | None = None,
+    baal_indexer_user: str | None = None,
+    baal_indexer_password: str | None = None,
     sensor_ingestion_user: str | None = None,
     sensor_ingestion_password: str | None = None,
     remote_sensing_user: str | None = None,
@@ -1030,7 +1043,8 @@ def provision_runtime_role(
     When configured, the global RPC-indexer login can execute only the bounded
     snapshot and status functions from migration 436. The Gnosis Moloch login
     can execute only migration 643's fixed cursor, receipt, event, outbox, and
-    status functions.
+    status functions. The Baal login can execute only migration 644's fixed
+    cursor, protocol/wallet lookup, event, and status functions.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -1045,6 +1059,8 @@ def provision_runtime_role(
         raise ValueError("RPC-indexer user and password must be provided together")
     if (gnosis_indexer_user is None) != (gnosis_indexer_password is None):
         raise ValueError("Gnosis-indexer user and password must be provided together")
+    if (baal_indexer_user is None) != (baal_indexer_password is None):
+        raise ValueError("Baal-indexer user and password must be provided together")
     if (sensor_ingestion_user is None) != (sensor_ingestion_password is None):
         raise ValueError("sensor-ingestion user and password must be provided together")
     if (remote_sensing_user is None) != (remote_sensing_password is None):
@@ -1074,6 +1090,11 @@ def provision_runtime_role(
         if gnosis_indexer_user is not None
         else None
     )
+    baal_indexer_ident = (
+        _role_identifier(baal_indexer_user, "baal_indexer_user")
+        if baal_indexer_user is not None
+        else None
+    )
     sensor_ingestion_ident = (
         _role_identifier(sensor_ingestion_user, "sensor_ingestion_user")
         if sensor_ingestion_user is not None
@@ -1095,6 +1116,8 @@ def provision_runtime_role(
         role_names.append(rpc_indexer_user)
     if gnosis_indexer_user is not None:
         role_names.append(gnosis_indexer_user)
+    if baal_indexer_user is not None:
+        role_names.append(baal_indexer_user)
     if sensor_ingestion_user is not None:
         role_names.append(sensor_ingestion_user)
     if remote_sensing_user is not None:
@@ -1109,13 +1132,15 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the RPC-indexer function owner")
     if "kokonut_gnosis_indexer_owner" in role_names:
         raise ValueError("application logins must differ from the Gnosis-indexer function owner")
+    if "kokonut_baal_indexer_owner" in role_names:
+        raise ValueError("application logins must differ from the Baal-indexer function owner")
     if "kokonut_sensor_ingestion_owner" in role_names:
         raise ValueError("application logins must differ from the sensor-ingestion function owner")
     if "kokonut_remote_sensing_owner" in role_names:
         raise ValueError("application logins must differ from the remote-sensing function owner")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, sensor-ingestion, and remote-sensing roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, sensor-ingestion, and remote-sensing roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1133,6 +1158,8 @@ def provision_runtime_role(
         credential_pairs.append(("rpc_indexer_password", rpc_indexer_password))
     if gnosis_indexer_password is not None:
         credential_pairs.append(("gnosis_indexer_password", gnosis_indexer_password))
+    if baal_indexer_password is not None:
+        credential_pairs.append(("baal_indexer_password", baal_indexer_password))
     if sensor_ingestion_password is not None:
         credential_pairs.append(("sensor_ingestion_password", sensor_ingestion_password))
     if remote_sensing_password is not None:
@@ -1151,6 +1178,8 @@ def provision_runtime_role(
         passwords.append(rpc_indexer_password)
     if gnosis_indexer_password is not None:
         passwords.append(gnosis_indexer_password)
+    if baal_indexer_password is not None:
+        passwords.append(baal_indexer_password)
     if sensor_ingestion_password is not None:
         passwords.append(sensor_ingestion_password)
     if remote_sensing_password is not None:
@@ -1164,6 +1193,7 @@ def provision_runtime_role(
     eas_indexer_database_access: dict[str, bool] = {}
     rpc_indexer_database_access: dict[str, bool] = {}
     gnosis_indexer_database_access: dict[str, bool] = {}
+    baal_indexer_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
     remote_sensing_database_access: dict[str, bool] = {}
     conn.autocommit = True
@@ -1256,6 +1286,16 @@ def provision_runtime_role(
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
                     "migration 643 Gnosis-indexer functions must be applied before "
+                    "provisioning its dedicated login"
+                )
+        if baal_indexer_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _BAAL_INDEXER_FUNCTIONS),
+                _BAAL_INDEXER_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 644 Baal-indexer functions must be applied before "
                     "provisioning its dedicated login"
                 )
         if sensor_ingestion_user is not None:
@@ -1527,6 +1567,52 @@ def provision_runtime_role(
                         sql.SQL(function), gnosis_indexer_ident
                     )
                 )
+        if baal_indexer_user is not None:
+            assert baal_indexer_ident is not None and baal_indexer_password is not None
+            _ensure_login_role(
+                cur,
+                name=baal_indexer_user,
+                identifier=baal_indexer_ident,
+                password=baal_indexer_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=baal_indexer_user,
+                identifier=baal_indexer_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), baal_indexer_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), baal_indexer_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(
+                    baal_indexer_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    baal_indexer_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    baal_indexer_ident
+                )
+            )
+            for function in _BAAL_INDEXER_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), baal_indexer_ident
+                    )
+                )
         if sensor_ingestion_user is not None:
             assert sensor_ingestion_ident is not None and sensor_ingestion_password is not None
             _ensure_login_role(
@@ -1645,6 +1731,12 @@ def provision_runtime_role(
             protected_login_idents.append(market_data_ident)
         if eas_indexer_ident is not None:
             protected_login_idents.append(eas_indexer_ident)
+        if rpc_indexer_ident is not None:
+            protected_login_idents.append(rpc_indexer_ident)
+        if gnosis_indexer_ident is not None:
+            protected_login_idents.append(gnosis_indexer_ident)
+        if baal_indexer_ident is not None:
+            protected_login_idents.append(baal_indexer_ident)
         if sensor_ingestion_ident is not None:
             protected_login_idents.append(sensor_ingestion_ident)
         if remote_sensing_ident is not None:
@@ -2538,6 +2630,14 @@ def provision_runtime_role(
                 "Gnosis-indexer",
                 runtime_user,
             )
+        if baal_indexer_user is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                baal_indexer_user,
+                _BAAL_INDEXER_FUNCTIONS,
+                "Baal-indexer",
+                runtime_user,
+            )
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
@@ -2673,6 +2773,24 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "Gnosis-indexer login must connect only to its configured database"
                 )
+        if baal_indexer_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (baal_indexer_user,),
+            )
+            baal_indexer_database_access = {
+                name: allowed for name, allowed in cur.fetchall()
+            }
+            if any(
+                allowed != (name == database)
+                for name, allowed in baal_indexer_database_access.items()
+            ):
+                raise RuntimeError(
+                    "Baal-indexer login must connect only to its configured database"
+                )
         if sensor_ingestion_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -2706,6 +2824,7 @@ def provision_runtime_role(
         "eas_indexer_user": eas_indexer_user,
         "rpc_indexer_user": rpc_indexer_user,
         "gnosis_indexer_user": gnosis_indexer_user,
+        "baal_indexer_user": baal_indexer_user,
         "sensor_ingestion_user": sensor_ingestion_user,
         "remote_sensing_user": remote_sensing_user,
         "public_connect_revoked_from": sorted(database_names),
@@ -2715,6 +2834,7 @@ def provision_runtime_role(
         "eas_indexer_connect_grants": eas_indexer_database_access,
         "rpc_indexer_connect_grants": rpc_indexer_database_access,
         "gnosis_indexer_connect_grants": gnosis_indexer_database_access,
+        "baal_indexer_connect_grants": baal_indexer_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "remote_sensing_connect_grants": remote_sensing_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
@@ -2784,6 +2904,10 @@ def main() -> int:
         "KOKONUT_GNOSIS_INDEXER_USER", "kokonut_gnosis_indexer_login"
     )
     gnosis_indexer_password = os.environ.get("KOKONUT_GNOSIS_INDEXER_PASSWORD", "")
+    baal_indexer_user = os.environ.get(
+        "KOKONUT_BAAL_INDEXER_USER", "kokonut_baal_indexer_login"
+    )
+    baal_indexer_password = os.environ.get("KOKONUT_BAAL_INDEXER_PASSWORD", "")
     sensor_ingestion_user = os.environ.get(
         "KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login"
     )
@@ -2832,6 +2956,12 @@ def main() -> int:
             ),
             gnosis_indexer_password=(
                 gnosis_indexer_password if gnosis_indexer_password else None
+            ),
+            baal_indexer_user=(
+                baal_indexer_user if baal_indexer_password else None
+            ),
+            baal_indexer_password=(
+                baal_indexer_password if baal_indexer_password else None
             ),
             sensor_ingestion_user=(
                 sensor_ingestion_user if sensor_ingestion_password else None

@@ -57,7 +57,9 @@ class BaalIndexingError(RuntimeError):
     """A Baal indexer failure with a safe operator-facing summary."""
 
 
-def _get_protocol_id(db) -> str | None:
+def _get_protocol_id(db, *, persistence=None) -> str | None:
+    if persistence is not None:
+        return persistence.resolve_protocol(db)
     with db.cursor() as cur:
         cur.execute(
             "SELECT id FROM protocol WHERE slug = %s", ("kokonut-treasury",)
@@ -66,7 +68,9 @@ def _get_protocol_id(db) -> str | None:
     return str(row[0]) if row else None
 
 
-def _wallet_id(db, address: str) -> str | None:
+def _wallet_id(db, address: str, *, persistence=None) -> str | None:
+    if persistence is not None:
+        return persistence.resolve_wallet(db, address)
     with db.cursor() as cur:
         cur.execute(
             "SELECT id FROM wallet_profile WHERE LOWER(address) = LOWER(%s) AND chain = %s",
@@ -76,7 +80,10 @@ def _wallet_id(db, address: str) -> str | None:
     return str(row[0]) if row else None
 
 
-def insert_governance_event(db, record: dict) -> None:
+def insert_governance_event(db, record: dict, *, persistence=None) -> None:
+    if persistence is not None:
+        persistence.store_governance_event(db, record)
+        return
     with db.cursor() as cur:
         cur.execute(
             """
@@ -186,27 +193,73 @@ def _checksum(addr: str) -> str:
         return addr
 
 
-def run(from_block: int | None = None, to_block: int | None = None) -> int:
+def _update_status(
+    db,
+    last_synced_block: int,
+    status: str,
+    error_message: str | None = None,
+    *,
+    persistence=None,
+) -> None:
+    if persistence is not None:
+        persistence.update_status(db, last_synced_block, status, error_message)
+        return
+    update_indexer_status(
+        KOKONUT_DAO_CHAIN,
+        INDEXER_TYPE,
+        last_synced_block,
+        status,
+        error_message,
+        db=db,
+    )
+
+
+def run(
+    from_block: int | None = None,
+    to_block: int | None = None,
+    *,
+    database_factory=None,
+    rpc_url: str | None = None,
+    persistence=None,
+) -> int:
     _validate_block_range(from_block, to_block)
     try:
-        w3 = Web3(Web3.HTTPProvider(GNOSIS_RPC_URL))
+        w3 = Web3(Web3.HTTPProvider(rpc_url or GNOSIS_RPC_URL))
         client = BaalReadClient(w3=w3)
         baal = client._baal
-        last_committed_block = get_last_synced_block(KOKONUT_DAO_CHAIN, INDEXER_TYPE) or 0
-        start = from_block if from_block is not None else last_committed_block
         end = to_block if to_block is not None else w3.eth.block_number
     except Exception as exc:
         raise BaalIndexingError(
             f"Baal provider initialization failed ({type(exc).__name__})"
         ) from None
-    if start > end:
-        logger.info("Baal indexer: start %s >= end %s, nothing to do", start, end)
-        return 0
 
-    db = get_db()
+    db = None
+    lock_acquired = False
     processed = 0
+    last_committed_block = 0
     try:
-        protocol_id = _get_protocol_id(db)
+        if persistence is None:
+            last_committed_block = (
+                get_last_synced_block(KOKONUT_DAO_CHAIN, INDEXER_TYPE) or 0
+            )
+            start = from_block if from_block is not None else last_committed_block
+            if start > end:
+                logger.info("Baal indexer: start %s >= end %s, nothing to do", start, end)
+                return 0
+            db = (database_factory or get_db)()
+        else:
+            db = (database_factory or get_db)()
+            persistence.acquire_lock(db)
+            lock_acquired = True
+            db.commit()
+            cursor_row = persistence.read_cursor(db)
+            last_committed_block = int(cursor_row[0] or 0) if cursor_row else 0
+            start = from_block if from_block is not None else last_committed_block
+        if start > end:
+            logger.info("Baal indexer: start %s >= end %s, nothing to do", start, end)
+            return 0
+
+        protocol_id = _get_protocol_id(db, persistence=persistence)
         for cur_block, batch_end in batch_ranges(start, end, BLOCK_BATCH):
             for event_name in EVENT_DECODERS:
                 try:
@@ -223,34 +276,55 @@ def run(from_block: int | None = None, to_block: int | None = None) -> int:
                         continue
                     wallet = record.pop("wallet_id", None)
                     if wallet:
-                        record["wallet_id"] = _wallet_id(db, wallet)
-                    insert_governance_event(db, record)
+                        record["wallet_id"] = _wallet_id(
+                            db, wallet, persistence=persistence
+                        )
+                    insert_governance_event(db, record, persistence=persistence)
                     processed += 1
-            db.commit()
-            update_indexer_status(
-                KOKONUT_DAO_CHAIN, INDEXER_TYPE, batch_end, "syncing"
+            _update_status(
+                db,
+                batch_end,
+                "syncing",
+                persistence=persistence,
             )
+            db.commit()
             last_committed_block = batch_end
             logger.info("Baal indexed through block %s (%s events)", batch_end, processed)
-        update_indexer_status(KOKONUT_DAO_CHAIN, INDEXER_TYPE, end, "healthy")
+        _update_status(db, max(last_committed_block, end), "healthy", persistence=persistence)
+        db.commit()
     except Exception as exc:
-        db.rollback()
+        if db is not None:
+            db.rollback()
         error_message = (
             str(exc)
             if isinstance(exc, BaalIndexingError)
             else f"Baal indexer failed ({type(exc).__name__})"
         )
-        update_indexer_status(
-            KOKONUT_DAO_CHAIN,
-            INDEXER_TYPE,
-            last_committed_block,
-            "failed",
-            error_message,
-        )
+        if db is not None:
+            try:
+                _update_status(
+                    db,
+                    last_committed_block,
+                    "failed",
+                    error_message,
+                    persistence=persistence,
+                )
+                db.commit()
+            except Exception as status_exc:
+                db.rollback()
+                logger.error("Could not persist Baal indexer status (%s)", type(status_exc).__name__)
         logger.error("Baal indexer failed (%s)", type(exc).__name__)
         raise BaalIndexingError(error_message) from None
     finally:
-        db.close()
+        if persistence is not None and db is not None and lock_acquired:
+            try:
+                persistence.release_lock(db)
+                db.commit()
+            except Exception as lock_error:
+                db.rollback()
+                logger.warning("Could not release Baal indexer lock (%s)", type(lock_error).__name__)
+        if db is not None:
+            db.close()
     return processed
 
 

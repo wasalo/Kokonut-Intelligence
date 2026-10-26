@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "reviewed": "2026-10-22",
+  "reviewed": "2026-10-25",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity. Migration 436 adds a default-off global RPC balance-snapshot worker with its own exact database URL and provider-endpoint JSON mapping; shared runtime PostgreSQL settings and global per-chain RPC variables are not forwarded to that child.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Migration 430 gives the global market-data worker a distinct login and a bounded, source-validating batch/audit function without a tenant grant. Migration 431 adds a dedicated sensor-ingestion login, signed sensor_driver/ingest location scope, bounded catalog/instance/batch/status functions, and no direct sensor-table access. Migration 432 adds a dedicated remote-sensing login, signed remote_sensing/run location scope, and bounded claim plus atomic observation/attempt/audit/outbox completion functions without direct application-table access. Migration 433 adds the global EAS indexer login with chain-scoped bounded functions and no direct table access; it has no tenant context because tracked wallet and attestation protocol data are global. Migration 436 adds the same global-data boundary for RPC wallet balance snapshots, with a dedicated login and bounded chain/wallet/status functions; it does not claim location tenancy. Migration 599 adds a default-off signed, location-bound, read-only carbon-credit adjustment snapshot function with no direct worker access to source tables. Other scheduled jobs and handlers remain outside these integrations.",
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity. Migration 436 adds a default-off global RPC balance-snapshot worker with its own exact database URL and provider-endpoint JSON mapping; shared runtime PostgreSQL settings and global per-chain RPC variables are not forwarded to that child. Migrations 643 and 644 add default-off global Gnosis Moloch and Baal indexing workers with dedicated logins, bounded database functions, and exact worker-specific RPC endpoints; the Baal worker has its own HTTPS endpoint and preserves the legacy manual CLI.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Migration 430 gives the global market-data worker a distinct login and a bounded, source-validating batch/audit function without a tenant grant. Migration 431 adds a dedicated sensor-ingestion login, signed sensor_driver/ingest location scope, bounded catalog/instance/batch/status functions, and no direct sensor-table access. Migration 432 adds a dedicated remote-sensing login, signed remote_sensing/run location scope, and bounded claim plus atomic observation/attempt/audit/outbox completion functions without direct application-table access. Migration 433 adds the global EAS indexer login with chain-scoped bounded functions and no direct table access; it has no tenant context because tracked wallet and attestation protocol data are global. Migration 436 adds the same global-data boundary for RPC wallet balance snapshots, with a dedicated login and bounded chain/wallet/status functions; it does not claim location tenancy. Migration 599 adds a default-off signed, location-bound, read-only carbon-credit adjustment snapshot function with no direct worker access to source tables. Other scheduled jobs and handlers remain outside these integrations. Migrations 643 and 644 add separate Gnosis Moloch and Baal global indexer logins with bounded database functions; these read global chain/protocol data and do not claim location-tenant context.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -139,6 +139,55 @@
         "services/core/jobs.py",
         "services/flows/anomaly_detection.py",
         "services/security/scheduled_command_contracts.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.baal_indexer",
+      "scope": "Configured Kokonut Baal (Moloch v3) events on Gnosis Chain; the legacy compatibility entrypoint uses the shared runtime identity.",
+      "reads": [
+        "public.protocol",
+        "public.wallet_profile",
+        "public.chain_indexer_status"
+      ],
+      "writes": [
+        "public.governance_event",
+        "public.chain_indexer_status"
+      ],
+      "external_effects": [
+        "Configured Gnosis JSON-RPC provider"
+      ],
+      "idempotency": "The existing unique source index suppresses a replay by (chain, event_type, tx_hash). The cursor update shares each range transaction with the corresponding governance event writes; no on-chain transactions or ClickHouse projection are submitted.",
+      "retry_boundary": "The legacy command preserves the manual CLI and resumes from its stored Baal cursor. Failed event reads or writes roll back the current range, persist only a bounded status summary, and stop. New Kernel scheduling redirects to the optional migration 644 worker only when explicitly enabled.",
+      "sources": [
+        "services/ingestion/baal_indexer.py",
+        "services/ingestion/base.py",
+        "schemas/postgres/325_baal_indexer_idempotency.sql"
+      ]
+    },
+    {
+      "module": "services.ingestion.baal_worker",
+      "worker_key": "baal_indexer",
+      "scope": "Default-off global Baal governance event indexing, fixed to Gnosis Chain, the kokonut-treasury protocol, and the Baal cursor.",
+      "reads": [
+        "public.protocol",
+        "public.wallet_profile",
+        "public.chain_indexer_status"
+      ],
+      "writes": [
+        "public.governance_event",
+        "public.chain_indexer_status"
+      ],
+      "external_effects": [
+        "Worker-specific HTTPS Gnosis JSON-RPC endpoint"
+      ],
+      "idempotency": "Migration 644 grants the dedicated login only seven bounded SECURITY DEFINER functions. Governance events are validated against the fixed Gnosis chain and event allowlist; the existing unique key suppresses identical event replay. Each event batch and its cursor checkpoint commit on one worker connection.",
+      "retry_boundary": "The worker holds a session advisory lock while it reads the cursor and processes block batches, commits each event batch with its checkpoint, records a bounded failure state at the last committed cursor, and releases the lock in connection cleanup. The feature remains disabled by default; the legacy manual CLI remains available.",
+      "sources": [
+        "services/ingestion/baal_worker.py",
+        "services/ingestion/baal_indexer.py",
+        "services/common/worker_database.py",
+        "schemas/postgres/644_isolated_baal_indexer.sql",
+        "schemas/postgres/325_baal_indexer_idempotency.sql"
       ]
     },
     {
@@ -1317,7 +1366,7 @@
   "known_open_items": [
     "Finish reviewing transitive worker call/effect paths that are not statically resolved. The graph now includes the native sensor worker's literal code-allowlisted CSV driver class and method dispatch, and the effect inventory records its descriptor-safe file operations. The general driver loader now resolves built-ins through source-owned targets and third-party code through exact installed kokonut.drivers entry points; installed package code remains trusted and unsandboxed. Remaining uncertainty includes arbitrary callbacks, provider internals, database-side behavior, and SQL sites outside current worker-root paths.",
     "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
-    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, market-data, sensor-ingestion, remote-sensing, EAS and RPC-indexer integrations remain default-off until credentials are provisioned and owner-approved candidate rollout plus schedule reconciliation are complete.",
+    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, market-data, sensor-ingestion, remote-sensing, EAS, RPC-indexer, Gnosis-indexer, and Baal-indexer integrations remain default-off until credentials are provisioned and owner-approved candidate rollout plus schedule reconciliation are complete.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
   ]
 }

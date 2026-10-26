@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 33,
-    "source_files": 97,
-    "execution_sites": 342,
-    "static_literal_sites": 299,
-    "composed_or_variable_sites": 43
+    "operation_roots": 36,
+    "source_files": 103,
+    "execution_sites": 351,
+    "static_literal_sites": 306,
+    "composed_or_variable_sites": 45
   },
   "execution_sites": [
     {
@@ -849,6 +849,8 @@
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
@@ -856,6 +858,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.eas_worker",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
@@ -896,6 +899,8 @@
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
@@ -903,6 +908,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.eas_worker",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
@@ -943,6 +949,8 @@
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
@@ -950,6 +958,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.eas_worker",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
@@ -1191,9 +1200,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:134:12",
+      "id": "services/common/worker_database.py:136:12",
       "source": "services/common/worker_database.py",
-      "line": 134,
+      "line": 136,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -1211,8 +1220,10 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.eas_worker",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_worker",
@@ -1624,9 +1635,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:450:16",
+      "id": "services/drivers/registry.py:474:16",
       "source": "services/drivers/registry.py",
-      "line": 450,
+      "line": 474,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -1635,16 +1646,16 @@
       "candidate_relations": [
         "driver_registry"
       ],
-      "static_sql_sha256": "b773f2bb81e592e12a1871dd365d28bca045857af917397c6796226e667bd49e",
+      "static_sql_sha256": "78484e33e155ac96bec59e11e721130751f6c2f6e2f7c4d89e62e37a8290d67b",
       "operation_refs": [
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker"
       ]
     },
     {
-      "id": "services/drivers/registry.py:459:16",
+      "id": "services/drivers/registry.py:487:16",
       "source": "services/drivers/registry.py",
-      "line": 459,
+      "line": 487,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -1660,9 +1671,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:495:16",
+      "id": "services/drivers/registry.py:523:16",
       "source": "services/drivers/registry.py",
-      "line": 495,
+      "line": 523,
       "column": 16,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -1678,9 +1689,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:507:20",
+      "id": "services/drivers/registry.py:535:20",
       "source": "services/drivers/registry.py",
-      "line": 507,
+      "line": 535,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -1696,9 +1707,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:518:20",
+      "id": "services/drivers/registry.py:546:20",
       "source": "services/drivers/registry.py",
-      "line": 518,
+      "line": 546,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -2830,6 +2841,24 @@
       ]
     },
     {
+      "id": "services/governance/baal.py:207:16",
+      "source": "services/governance/baal.py",
+      "line": 207,
+      "column": 16,
+      "scope": "BaalReadClient.proposals_from_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "governance_event"
+      ],
+      "static_sql_sha256": "e888b9bf2a041b70cd55e72d5ea55f2cac798c47bb6b07840b4231a3f1822a1f",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker"
+      ]
+    },
+    {
       "id": "services/ingestion/anomaly_detector.py:196:8",
       "source": "services/ingestion/anomaly_detector.py",
       "line": 196,
@@ -3308,6 +3337,92 @@
       ]
     },
     {
+      "id": "services/ingestion/baal_indexer.py:64:8",
+      "source": "services/ingestion/baal_indexer.py",
+      "line": 64,
+      "column": 8,
+      "scope": "_get_protocol_id",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "protocol"
+      ],
+      "static_sql_sha256": "9768ad1cfc1cf6a1aada2d78386ae417eff7aa79d6a850f58c854a080df876b8",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/baal_indexer.py:75:8",
+      "source": "services/ingestion/baal_indexer.py",
+      "line": 75,
+      "column": 8,
+      "scope": "_wallet_id",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "wallet_profile"
+      ],
+      "static_sql_sha256": "a1f1dae71b4799e8750d5c708fe4177d175665d002f5159a25613fcee59fa501",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/baal_indexer.py:88:8",
+      "source": "services/ingestion/baal_indexer.py",
+      "line": 88,
+      "column": 8,
+      "scope": "insert_governance_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "governance_event"
+      ],
+      "static_sql_sha256": "33e23a409b1833104776bfba7d2959b31ead51ce77773d591a73992b5bf4b703",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/baal_worker.py:37:12",
+      "source": "services/ingestion/baal_worker.py",
+      "line": 37,
+      "column": 12,
+      "scope": "BaalWorkerPersistence._scalar",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "scheduled_module:services.ingestion.baal_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/baal_worker.py:49:12",
+      "source": "services/ingestion/baal_worker.py",
+      "line": 49,
+      "column": 12,
+      "scope": "BaalWorkerPersistence.read_cursor",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.read_baal_indexer_cursor"
+      ],
+      "static_sql_sha256": "6de92fc698d03179b470376d14553e0cc9f9b681856766703e014ad7cf62a151",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.baal_worker"
+      ]
+    },
+    {
       "id": "services/ingestion/base.py:157:12",
       "source": "services/ingestion/base.py",
       "line": 157,
@@ -3323,12 +3438,15 @@
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
@@ -3360,12 +3478,15 @@
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
@@ -3396,12 +3517,15 @@
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.baal_indexer",
+        "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
@@ -3434,6 +3558,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3461,6 +3586,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3490,6 +3616,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3517,6 +3644,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3544,6 +3672,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3574,6 +3703,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3601,6 +3731,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -4425,9 +4556,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:113:8",
+      "id": "services/ingestion/gnosis_indexer.py:121:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 113,
+      "line": 121,
       "column": 8,
       "scope": "claim_gnosis_event_log",
       "method": "execute",
@@ -4438,13 +4569,14 @@
       ],
       "static_sql_sha256": "45711bae4d730feb190c1fb6db1c69deff73c1402ce1f375fdb97a80f4ff564e",
       "operation_refs": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker"
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:127:8",
+      "id": "services/ingestion/gnosis_indexer.py:135:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 127,
+      "line": 135,
       "column": 8,
       "scope": "claim_gnosis_event_log",
       "method": "execute",
@@ -4455,13 +4587,14 @@
       ],
       "static_sql_sha256": "698036cf24b886011ea6874a196d4f5ebb2927fe61742374fcf9e8429b3e5449",
       "operation_refs": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker"
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:190:8",
+      "id": "services/ingestion/gnosis_indexer.py:200:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 190,
+      "line": 200,
       "column": 8,
       "scope": "get_wallet_id",
       "method": "execute",
@@ -4472,13 +4605,14 @@
       ],
       "static_sql_sha256": "a1f1dae71b4799e8750d5c708fe4177d175665d002f5159a25613fcee59fa501",
       "operation_refs": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker"
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:201:8",
+      "id": "services/ingestion/gnosis_indexer.py:213:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 201,
+      "line": 213,
       "column": 8,
       "scope": "insert_governance_event",
       "method": "execute",
@@ -4489,13 +4623,14 @@
       ],
       "static_sql_sha256": "5eab14efaa7937ca2c69e78f1a267b1ebba3740f0646257f3a5900db63185bc0",
       "operation_refs": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker"
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:233:8",
+      "id": "services/ingestion/gnosis_indexer.py:247:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 233,
+      "line": 247,
       "column": 8,
       "scope": "insert_treasury_event",
       "method": "execute",
@@ -4506,13 +4641,14 @@
       ],
       "static_sql_sha256": "7218ad267a4d30bdd65ce7e7a656fd382b1bff8a8441304ce70704e9c2088222",
       "operation_refs": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker"
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:409:8",
+      "id": "services/ingestion/gnosis_indexer.py:425:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 409,
+      "line": 425,
       "column": 8,
       "scope": "get_location_from_wallet",
       "method": "execute",
@@ -4523,13 +4659,14 @@
       ],
       "static_sql_sha256": "fe2475ac26c26a25149aa5922eabd518b7518166cbfb1810492901c508990032",
       "operation_refs": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker"
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:420:8",
+      "id": "services/ingestion/gnosis_indexer.py:438:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 420,
+      "line": 438,
       "column": 8,
       "scope": "insert_dlego_usage",
       "method": "execute",
@@ -4540,14 +4677,15 @@
       ],
       "static_sql_sha256": "dc999a7356a32f277740e01b1fdbefccf7f5a6149ebeb866232c4bd5b47a9a63",
       "operation_refs": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker"
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:568:12",
+      "id": "services/ingestion/gnosis_indexer.py:656:16",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 568,
-      "column": 12,
+      "line": 656,
+      "column": 16,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -4557,14 +4695,15 @@
       ],
       "static_sql_sha256": "45a8d754360c1898a5073bfeb8b9a2f644343b2254c08b9ad37bb2cf6b5e915f",
       "operation_refs": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker"
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:718:24",
+      "id": "services/ingestion/gnosis_indexer.py:814:28",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 718,
-      "column": 24,
+      "line": 814,
+      "column": 28,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -4574,7 +4713,55 @@
       ],
       "static_sql_sha256": "ec1c204480844c6f019496881dcd57f982f9dbcafb20e2a30c475acc729c5c0c",
       "operation_refs": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/gnosis_worker.py:45:12",
+      "source": "services/ingestion/gnosis_worker.py",
+      "line": 45,
+      "column": 12,
+      "scope": "GnosisWorkerPersistence._scalar",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "scheduled_module:services.ingestion.gnosis_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/gnosis_worker.py:57:12",
+      "source": "services/ingestion/gnosis_worker.py",
+      "line": 57,
+      "column": 12,
+      "scope": "GnosisWorkerPersistence.read_cursor",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.read_gnosis_indexer_cursor"
+      ],
+      "static_sql_sha256": "909dd4f227a9b6352a30d926d635319691b3c292c3ec2f8e143b6670f47ac1fa",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.gnosis_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/gnosis_worker.py:139:12",
+      "source": "services/ingestion/gnosis_worker.py",
+      "line": 139,
+      "column": 12,
+      "scope": "GnosisWorkerPersistence.update_status",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "f84cfdde8629690cc021eebc4ccf804e46f5b4280684b2e8384193ff9f6ef0fc",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.gnosis_worker"
       ]
     },
     {

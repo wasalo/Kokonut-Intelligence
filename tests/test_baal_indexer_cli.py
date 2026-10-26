@@ -113,6 +113,12 @@ def test_run_preserves_explicit_zero_endpoint(monkeypatch: pytest.MonkeyPatch) -
     class _Database:
         closed = False
 
+        def commit(self) -> None:
+            pass
+
+        def rollback(self) -> None:
+            pass
+
         def close(self) -> None:
             self.closed = True
 
@@ -125,13 +131,17 @@ def test_run_preserves_explicit_zero_endpoint(monkeypatch: pytest.MonkeyPatch) -
     )
     monkeypatch.setattr(baal_indexer, "get_last_synced_block", lambda *_args: 5)
     monkeypatch.setattr(baal_indexer, "get_db", lambda: database)
-    monkeypatch.setattr(baal_indexer, "_get_protocol_id", lambda _db: None)
+    monkeypatch.setattr(
+        baal_indexer, "_get_protocol_id", lambda _db, **_kwargs: None
+    )
     monkeypatch.setattr(
         baal_indexer,
         "batch_ranges",
         lambda start, end, size: ranges.append((start, end, size)) or [],
     )
-    monkeypatch.setattr(baal_indexer, "update_indexer_status", lambda *_args: None)
+    monkeypatch.setattr(
+        baal_indexer, "update_indexer_status", lambda *_args, **_kwargs: None
+    )
 
     assert baal_indexer.run(from_block=0, to_block=0) == 0
     assert ranges == [(0, 0, baal_indexer.BLOCK_BATCH)]

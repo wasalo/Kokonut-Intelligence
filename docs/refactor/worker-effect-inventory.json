@@ -4,14 +4,14 @@
   "reviewed": "2026-10-25",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
-    "operation_roots": 33,
-    "candidate_effect_sites": 67,
-    "operation_site_memberships": 81,
+    "operation_roots": 36,
+    "candidate_effect_sites": 69,
+    "operation_site_memberships": 92,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 3,
-      "evm_client_setup": 5,
-      "evm_rpc": 8,
+      "evm_client_setup": 6,
+      "evm_rpc": 9,
       "filesystem": 37,
       "http": 12,
       "process": 1
@@ -19,10 +19,10 @@
     "operation_memberships_by_category": {
       "dynamic_import": 2,
       "email_delivery": 6,
-      "evm_client_setup": 5,
-      "evm_rpc": 9,
-      "filesystem": 37,
-      "http": 21,
+      "evm_client_setup": 10,
+      "evm_rpc": 13,
+      "filesystem": 38,
+      "http": 22,
       "process": 1
     }
   },
@@ -340,6 +340,54 @@
     },
     {
       "kind": "scheduled_module",
+      "name": "services.ingestion.baal_indexer",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 121,
+          "function": "services.ingestion.baal_indexer:_decode_event",
+          "category": "evm_rpc",
+          "call": "w3.eth.get_block"
+        },
+        {
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 227,
+          "function": "services.ingestion.baal_indexer:run",
+          "category": "evm_client_setup",
+          "call": "web3.Web3.HTTPProvider"
+        }
+      ],
+      "category_counts": {
+        "evm_client_setup": 1,
+        "evm_rpc": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.baal_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 121,
+          "function": "services.ingestion.baal_indexer:_decode_event",
+          "category": "evm_rpc",
+          "call": "w3.eth.get_block"
+        },
+        {
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 227,
+          "function": "services.ingestion.baal_indexer:run",
+          "category": "evm_client_setup",
+          "call": "web3.Web3.HTTPProvider"
+        }
+      ],
+      "category_counts": {
+        "evm_client_setup": 1,
+        "evm_rpc": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.ingestion.clickhouse_outbox",
       "candidate_effect_sites": [],
       "category_counts": {}
@@ -414,42 +462,103 @@
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 158,
+          "line": 166,
           "function": "services.ingestion.gnosis_indexer:load_abi",
           "category": "filesystem",
           "call": "open"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 164,
+          "line": 172,
           "function": "services.ingestion.gnosis_indexer:get_web3",
           "category": "evm_client_setup",
           "call": "web3.Web3.HTTPProvider"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 171,
+          "line": 179,
           "function": "services.ingestion.gnosis_indexer:get_moloch_contract",
           "category": "evm_client_setup",
           "call": "w3.eth.contract"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 178,
+          "line": 186,
           "function": "services.ingestion.gnosis_indexer:get_treasury_contract",
           "category": "evm_client_setup",
           "call": "w3.eth.contract"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 183,
+          "line": 191,
           "function": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
           "category": "evm_rpc",
           "call": "w3.eth.get_block"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 638,
+          "line": 729,
+          "function": "services.ingestion.gnosis_indexer:run",
+          "category": "evm_rpc",
+          "call": "w3.eth.get_logs"
+        }
+      ],
+      "category_counts": {
+        "evm_client_setup": 3,
+        "evm_rpc": 2,
+        "filesystem": 1,
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.gnosis_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/base.py",
+          "line": 106,
+          "function": "services.ingestion.base:post_clickhouse_rows",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 166,
+          "function": "services.ingestion.gnosis_indexer:load_abi",
+          "category": "filesystem",
+          "call": "open"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 172,
+          "function": "services.ingestion.gnosis_indexer:get_web3",
+          "category": "evm_client_setup",
+          "call": "web3.Web3.HTTPProvider"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 179,
+          "function": "services.ingestion.gnosis_indexer:get_moloch_contract",
+          "category": "evm_client_setup",
+          "call": "w3.eth.contract"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 186,
+          "function": "services.ingestion.gnosis_indexer:get_treasury_contract",
+          "category": "evm_client_setup",
+          "call": "w3.eth.contract"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 191,
+          "function": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
+          "category": "evm_rpc",
+          "call": "w3.eth.get_block"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 729,
           "function": "services.ingestion.gnosis_indexer:run",
           "category": "evm_rpc",
           "call": "w3.eth.get_logs"

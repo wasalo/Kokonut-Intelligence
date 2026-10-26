@@ -14,12 +14,15 @@ CSV sensor ingestion, remote sensing, and EAS indexing through migrations
 425–433. The global market-data worker
 has its own isolated login/function boundary in migration 430. Forced-RLS
 disposable PostgreSQL 16 acceptance includes the sensor and remote-sensing
-workers. Production credentials remain open; migration 433 is applied on the
-local candidate, while all isolated worker features remain default-off. See the
+workers. The Baal governance indexer now has migration 644's execute-only
+database contract, with a separate login and worker-specific HTTPS endpoint;
+it is default-off and keeps the manual CLI available. Production credentials
+remain open; migration 433 is applied on the local candidate, while all
+isolated worker features remain default-off. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 26 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
+the exact 29 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -64,8 +67,8 @@ application-wide RLS or proof for other workers.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  26 scheduled modules and seven allowlisted handler pairs. It covers 97
-  distinct local source files across 33 operation roots, with no unresolved
+  29 scheduled modules and seven allowlisted handler pairs. It covers 105
+  distinct local source files across 36 operation roots, with no unresolved
   local modules and three distinct dynamic import sites. These include the
   EventBus handler runner, the general driver registry, and the code-allowlisted
   scheduled sensor-driver loader. EventBus dispatch is constrained by
@@ -95,26 +98,26 @@ application-wide RLS or proof for other workers.
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 33
-  operation roots and 99 source files, entry functions reach 701 function
-  memberships through 952 direct-call and 24 dynamic-dispatch edges, with no unresolved
+  command/request protocol rather than a local function call. Across 36
+  operation roots and 105 source files, entry functions reach 774 function
+  memberships through 1,050 direct-call and 24 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 342
-  Python `.execute` sites in those 97 statically imported files. It fingerprints 299 literal
-  statements and flags 43 composed/variable statements. Candidate relation tokens are
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 351
+  Python `.execute` sites in those 103 statically imported files. It fingerprints 306 literal
+  statements and flags 45 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
   `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 342 sites to the operation graph without including SQL text or
-  values. It links 267 unique sites across 344 operation/site memberships;
-  75 sites have no current static function match, and each belongs to a
+  joins those 351 sites to the operation graph without including SQL text or
+  values. It links 271 unique sites across 367 operation/site memberships;
+  80 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -122,7 +125,7 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 33 operation roots and local imports, reports that the scheduler
+  confirms all 36 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
   RLS blocked. The anomaly, optional cache, NOI snapshot, current-weather,
   weather-forecast, climate, sensor-ingestion, and remote-sensing integrations establish
@@ -134,10 +137,10 @@ application-wide RLS or proof for other workers.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, and EVM call patterns. The current pass
-  finds 67 unique candidate sites across 81 operation/site memberships: HTTP
-  (12 unique / 21 memberships), email delivery (3 / 6), process (1), EVM RPC
-  (8 / 9), EVM client setup (5 / 5), filesystem (37 / 37), and dynamic import
-  (1 / 2), across 33 operation roots. Filesystem matching includes path
+  finds 69 unique candidate sites across 92 operation/site memberships: HTTP
+  (12 unique / 22 memberships), email delivery (3 / 6), process (1), EVM RPC
+  (9 / 13), EVM client setup (6 / 10), filesystem (37 / 38), and dynamic import
+  (1 / 2), across 36 operation roots. Filesystem matching includes path
   resolution/directory checks, descriptor opens, metadata checks, and cleanup;
   the scheduled CSV driver's constrained openat walk is visible in the
   sensor-worker trace. These are review candidates,
@@ -169,8 +172,8 @@ This does not sandbox installed packages, inspect their dependencies, or prove
 that a driver is safe to install. `DriverRegistry.load` is not statically
 reachable from the allowlisted scheduled sensor operation; that worker
 continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
-- Source-pattern review covers all 43 composed/variable statements found by the
-  generated SQL inventory across 33 operation roots. The original 30-site
+- Source-pattern review covers all 45 composed/variable statements found by the
+  generated SQL inventory across 36 operation roots. The original 30-site
   review found that 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds
@@ -303,7 +306,7 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
 
 This map, import closure, SQL inventories, effect candidates, job-template
 comparison, and argument schemas are not an ACL, tenant policy, or complete
-dynamic call graph. Source-pattern review now covers all 43 composed/variable
+dynamic call graph. Source-pattern review now covers all 45 composed/variable
 SQL sites: the prior 36-site review, the remote-sensing update builder, signed
 context cleanup, the anomaly worker's query helpers, shared database helper
 calls, the NOI reconciliation's fixed location-filter fragment with a bound

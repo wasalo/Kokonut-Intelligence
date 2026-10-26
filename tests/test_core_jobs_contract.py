@@ -138,6 +138,21 @@ def test_credit_adjustment_dispatch_preserves_legacy_prefect_path_until_worker_e
     env.assert_called_once_with(allowed_worker_keys=(), isolated_database_credentials=False)
 
 
+def test_baal_dispatch_preserves_legacy_cli_until_isolated_worker_enabled():
+    completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr="")
+    with patch("services.core.jobs.worker_subprocess_environment", return_value={"PATH": "/bin"}) as env, \
+            patch("services.core.jobs.subprocess.run", return_value=completed) as run, \
+            patch("services.core.jobs.is_enabled", return_value=False):
+        assert run_job("baal")["status"] == "success"
+
+    assert run.call_args.args[0] == [
+        sys.executable,
+        "-m",
+        "services.ingestion.baal_indexer",
+    ]
+    env.assert_called_once_with(allowed_worker_keys=(), isolated_database_credentials=False)
+
+
 def test_metrics_dispatch_requires_one_location_before_subprocess():
     with patch("services.core.jobs.subprocess.run") as run:
         with pytest.raises(ValueError, match="requires a location"):

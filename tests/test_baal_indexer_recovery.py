@@ -74,11 +74,12 @@ def test_event_query_failure_redacts_detail_and_does_not_advance_cursor():
         7,
         "failed",
         "Baal event SubmitProposal fetch failed (RuntimeError)",
+        db=connection,
     )
     assert not any(call.args[2] == 10 for call in status.call_args_list)
     assert secret not in str(logger.error.call_args)
     connection.rollback.assert_called_once_with()
-    connection.commit.assert_not_called()
+    connection.commit.assert_called_once_with()
     connection.close.assert_called_once_with()
 
 
@@ -113,7 +114,7 @@ def test_event_persistence_failure_redacts_detail_and_keeps_cursor_unadvanced():
     assert secret not in str(status.call_args)
     assert secret not in str(logger.error.call_args)
     connection.rollback.assert_called_once_with()
-    connection.commit.assert_not_called()
+    connection.commit.assert_called_once_with()
     connection.close.assert_called_once_with()
 
 
@@ -148,7 +149,7 @@ def test_protocol_lookup_failure_is_sanitized_and_closes_connection():
     assert secret not in str(status.call_args)
     assert secret not in str(logger.error.call_args)
     connection.rollback.assert_called_once_with()
-    connection.commit.assert_not_called()
+    connection.commit.assert_called_once_with()
     connection.close.assert_called_once_with()
 
 

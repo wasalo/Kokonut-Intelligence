@@ -44,6 +44,8 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.ingestion.rpc_indexer", ["--chain", "celo-alfajores"]),
         ("services.ingestion.gnosis_indexer", ["--from-block", "1", "--to-block", "2"]),
         ("services.ingestion.gnosis_worker", ["--from-block", "1", "--to-block", "2"]),
+        ("services.ingestion.baal_indexer", ["--from-block", "1", "--to-block", "2"]),
+        ("services.ingestion.baal_worker", ["--from-block", "1", "--to-block", "2"]),
         (
             "services.ingestion.sensor_ingester",
             ["--location-id", str(uuid4()), "--driver-instance-id", str(uuid4())],
@@ -139,6 +141,8 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.rpc_indexer", ["--wallet", "not-an-address"]),
         ("services.ingestion.gnosis_indexer", ["--from-block", "10", "--to-block", "9"]),
         ("services.ingestion.gnosis_worker", ["--from-block", "10", "--to-block", "9"]),
+        ("services.ingestion.baal_indexer", ["--from-block", "10", "--to-block", "9"]),
+        ("services.ingestion.baal_worker", ["--from-block", "10", "--to-block", "9"]),
         ("services.metrics", ["--verify-value", str(uuid4()), "--verified-by", str(uuid4())]),
         ("services.metrics", ["--compute", "--all-locations"]),
         ("services.metrics", ["--compute", "--all"]),
