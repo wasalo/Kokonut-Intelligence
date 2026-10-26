@@ -134,6 +134,19 @@ def test_ml_training_forwards_one_canonical_location():
     connection.close.assert_called_once_with()
 
 
+def test_ml_check_rejects_invalid_sensor_uuid_before_database_access():
+    with (
+        patch("services.ingestion.base.get_db") as get_db,
+        pytest.raises(SystemExit) as exc,
+    ):
+        anomaly_detector.main(
+            ["--ml-check", "--all-locations", "--sensor", "not-a-uuid"]
+        )
+
+    assert exc.value.code == 2
+    get_db.assert_not_called()
+
+
 def test_rule_listing_remains_an_explicit_global_read():
     with patch.object(anomaly_detector, "list_rules") as list_rules:
         anomaly_detector.main(["--list-rules"])

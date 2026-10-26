@@ -6,8 +6,8 @@
     "operation_roots": 41,
     "source_files": 110,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 875,
-    "direct_call_edges": 1187,
+    "function_memberships": 876,
+    "direct_call_edges": 1189,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 24
   },
@@ -2210,7 +2210,7 @@
         {
           "function": "services.ingestion.anomaly_detector:main",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1233
+          "line": 1238
         }
       ],
       "reachable_functions": [
@@ -2476,7 +2476,7 @@
           "qualname": "_build_prophet_features",
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 273
+          "line": 275
         },
         {
           "key": "services.ingestion.ml_anomaly_detector:_ensure_deps",
@@ -2493,6 +2493,14 @@
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
           "line": 83
+        },
+        {
+          "key": "services.ingestion.ml_anomaly_detector:_load_models_for_location",
+          "module": "services.ingestion.ml_anomaly_detector",
+          "qualname": "_load_models_for_location",
+          "class_scope": null,
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 464
         },
         {
           "key": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
@@ -2516,7 +2524,7 @@
           "qualname": "_query_all_sensors_timeseries",
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 239
+          "line": 241
         },
         {
           "key": "services.ingestion.ml_anomaly_detector:_query_sensor_timeseries",
@@ -2548,7 +2556,7 @@
           "qualname": "fit_isolation_forest",
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 367
+          "line": 369
         },
         {
           "key": "services.ingestion.ml_anomaly_detector:fit_prophet",
@@ -2556,7 +2564,7 @@
           "qualname": "fit_prophet",
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 282
+          "line": 284
         },
         {
           "key": "services.ingestion.ml_anomaly_detector:load_models",
@@ -2564,7 +2572,7 @@
           "qualname": "load_models",
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 596
+          "line": 641
         },
         {
           "key": "services.ingestion.ml_anomaly_detector:predict_anomalies_prophet",
@@ -2572,7 +2580,7 @@
           "qualname": "predict_anomalies_prophet",
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 318
+          "line": 320
         },
         {
           "key": "services.ingestion.ml_anomaly_detector:run_ml_check",
@@ -2580,7 +2588,7 @@
           "qualname": "run_ml_check",
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 462
+          "line": 474
         },
         {
           "key": "services.ingestion.ml_anomaly_detector:save_models",
@@ -2588,7 +2596,7 @@
           "qualname": "save_models",
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 547
+          "line": 592
         },
         {
           "key": "services.ingestion.ml_anomaly_detector:score_anomalies_iforest",
@@ -2596,7 +2604,7 @@
           "qualname": "score_anomalies_iforest",
           "class_scope": null,
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 417
+          "line": 419
         },
         {
           "key": "services.ingestion.mqtt_actuator:send_actuation_command",
@@ -2708,13 +2716,13 @@
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1215
+          "line": 1220
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1220
+          "line": 1225
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
@@ -2732,25 +2740,25 @@
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.ingestion.anomaly_detector:run_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1229
+          "line": 1234
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1211
+          "line": 1216
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1214
+          "line": 1219
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.ingestion.ml_anomaly_detector:save_models",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1219
+          "line": 1224
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
@@ -2909,6 +2917,12 @@
           "line": 155
         },
         {
+          "caller": "services.ingestion.ml_anomaly_detector:_load_models_for_location",
+          "callee": "services.ingestion.ml_anomaly_detector:load_models",
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 470
+        },
+        {
           "caller": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
           "callee": "services.ingestion.ml_anomaly_detector:_is_trusted_model_file",
           "source": "services/ingestion/ml_anomaly_detector.py",
@@ -2936,169 +2950,175 @@
           "caller": "services.ingestion.ml_anomaly_detector:fit_isolation_forest",
           "callee": "services.ingestion.ml_anomaly_detector:_ensure_deps",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 377
+          "line": 379
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:fit_isolation_forest",
           "callee": "services.ingestion.ml_anomaly_detector:_query_all_sensors_timeseries",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 382
+          "line": 384
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:fit_prophet",
           "callee": "services.common.errors:safe_exception_class",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 314
+          "line": 316
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:fit_prophet",
           "callee": "services.ingestion.ml_anomaly_detector:_build_prophet_features",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 300
+          "line": 302
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:fit_prophet",
           "callee": "services.ingestion.ml_anomaly_detector:_ensure_deps",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 292
+          "line": 294
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:fit_prophet",
           "callee": "services.ingestion.ml_anomaly_detector:_query_sensor_timeseries",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 295
+          "line": 297
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:load_models",
           "callee": "services.common.errors:safe_exception_class",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 645
+          "line": 690
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:load_models",
           "callee": "services.common.errors:safe_exception_class",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 675
+          "line": 720
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:load_models",
           "callee": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 609
+          "line": 654
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:load_models",
           "callee": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 625
+          "line": 670
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:load_models",
           "callee": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 653
+          "line": 698
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:predict_anomalies_prophet",
           "callee": "services.ingestion.ml_anomaly_detector:_build_prophet_features",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 330
+          "line": 332
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "callee": "services.ingestion.ml_anomaly_detector:_ensure_deps",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 471
+          "line": 483
+        },
+        {
+          "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
+          "callee": "services.ingestion.ml_anomaly_detector:_load_models_for_location",
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 531
+        },
+        {
+          "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
+          "callee": "services.ingestion.ml_anomaly_detector:_load_models_for_location",
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 555
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "callee": "services.ingestion.ml_anomaly_detector:_query_all_sensors_timeseries",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 518
+          "line": 550
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "callee": "services.ingestion.ml_anomaly_detector:_query_sensor_timeseries",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 504
+          "line": 521
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "callee": "services.ingestion.ml_anomaly_detector:fit_isolation_forest",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 522
+          "line": 559
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "callee": "services.ingestion.ml_anomaly_detector:fit_prophet",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 509
-        },
-        {
-          "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
-          "callee": "services.ingestion.ml_anomaly_detector:load_models",
-          "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 497
+          "line": 535
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "callee": "services.ingestion.ml_anomaly_detector:predict_anomalies_prophet",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 511
+          "line": 537
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "callee": "services.ingestion.ml_anomaly_detector:score_anomalies_iforest",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 524
+          "line": 563
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:save_models",
           "callee": "services.common.errors:safe_exception_class",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 579
+          "line": 624
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:save_models",
           "callee": "services.common.errors:safe_exception_class",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 589
+          "line": 634
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:save_models",
           "callee": "services.ingestion.ml_anomaly_detector:_ensure_deps",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 549
+          "line": 594
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:save_models",
           "callee": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 552
+          "line": 597
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:save_models",
           "callee": "services.ingestion.ml_anomaly_detector:_save_model_artifact",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 576
+          "line": 621
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:save_models",
           "callee": "services.ingestion.ml_anomaly_detector:_save_model_artifact",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 586
+          "line": 631
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:save_models",
           "callee": "services.ingestion.ml_anomaly_detector:fit_isolation_forest",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 582
+          "line": 627
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:save_models",
           "callee": "services.ingestion.ml_anomaly_detector:fit_prophet",
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 572
+          "line": 617
         }
       ],
       "callback_edges": [],

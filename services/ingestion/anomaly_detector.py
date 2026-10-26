@@ -1204,6 +1204,11 @@ def main(argv: list[str] | None = None) -> None:
             parser.error("--ml-train requires --location-id and cannot use --all-locations")
         if args.ml_check and args.location_id is None and not args.all_locations:
             parser.error("--ml-check requires --location-id or --all-locations")
+        if args.ml_check and args.sensor is not None:
+            try:
+                args.sensor = str(uuid.UUID(str(args.sensor)))
+            except (TypeError, ValueError, AttributeError):
+                parser.error("--sensor must be a valid UUID for ML checks")
 
         from .base import get_db
         from .ml_anomaly_detector import run_ml_check, save_models

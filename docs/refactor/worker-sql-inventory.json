@@ -5094,9 +5094,9 @@
       ]
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:214:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:215:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 214,
+      "line": 215,
       "column": 4,
       "scope": "_query_sensor_timeseries",
       "method": "execute",
@@ -5105,16 +5105,16 @@
       "candidate_relations": [
         "sensor_reading"
       ],
-      "static_sql_sha256": "adfde855d61693bfd18e23949a180224939e3d82a22d1a6dfd393a0657168ea6",
+      "static_sql_sha256": "434ce46ca1afdbf0ee7260dafe26a4fc7901df8552a98b5b63a3629811253d02",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:249:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:251:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 249,
+      "line": 251,
       "column": 4,
       "scope": "_query_all_sensors_timeseries",
       "method": "execute",
@@ -5130,9 +5130,9 @@
       ]
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:490:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:502:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 490,
+      "line": 502,
       "column": 4,
       "scope": "run_ml_check",
       "method": "execute",
@@ -5146,9 +5146,9 @@
       ]
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:564:8",
+      "id": "services/ingestion/ml_anomaly_detector.py:609:8",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 564,
+      "line": 609,
       "column": 8,
       "scope": "save_models",
       "method": "execute",

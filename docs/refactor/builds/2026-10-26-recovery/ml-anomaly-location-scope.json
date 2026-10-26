@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "scope": "Legacy ML anomaly all-location and explicit sensor query behavior",
+  "result": "passed",
+  "source_files": [
+    "services/ingestion/anomaly_detector.py",
+    "services/ingestion/ml_anomaly_detector.py"
+  ],
+  "focused_command": "python3 -m pytest tests/test_ml_anomaly_scope.py tests/test_ml_anomaly.py tests/test_anomaly_detector_cli_scope.py tests/test_runtime_import_regressions.py -q",
+  "focused_tests": {
+    "passed": 47,
+    "failed": 0
+  },
+  "inventory_regression_command": "python3 -m pytest tests/test_runtime_sql_inventory.py tests/test_worker_sql_inventory.py -q",
+  "inventory_regression_tests": {
+    "passed": 20,
+    "failed": 0
+  },
+  "checks": [
+    "sensor discovery preserves source location and enforces sensor/device location agreement",
+    "all-location Prophet and Isolation Forest work is independently grouped by location",
+    "same-time anomaly results from separate locations remain distinct",
+    "explicit sensor selection binds the reading query and skips multivariate scoring",
+    "malformed ML sensor UUID is rejected before database access",
+    "runtime SQL and worker SQL saved inventory regressions pass",
+    "worker source closure, function reachability, SQL reachability, boundary, effect, job-contract, and runtime SQL inventories regenerate and pass current-source checks",
+    "Kernel requirement groups and optional provider import boundaries pass",
+    "Ruff and Python compilation pass",
+    "git diff --check passes",
+    "capability matrix validates 67 rows"
+  ],
+  "database_calls": "mocked only",
+  "providers_contacted": false,
+  "candidate_or_legacy_database_access": false,
+  "worker_identity_or_rls_proven": false,
+  "populated_output_parity_proven": false,
+  "limitations": [
+    "Baseline and ML CLI paths still use the legacy shared database identity; signed worker isolation remains open.",
+    "The checks do not provide populated-data model accuracy or farm-output parity."
+  ]
+}

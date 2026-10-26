@@ -153,10 +153,10 @@
         "services/ingestion/anomaly_detector.py:910:24",
         "services/ingestion/anomaly_detector.py:936:28",
         "services/ingestion/base.py:157:12",
-        "services/ingestion/ml_anomaly_detector.py:214:4",
-        "services/ingestion/ml_anomaly_detector.py:249:4",
-        "services/ingestion/ml_anomaly_detector.py:490:4",
-        "services/ingestion/ml_anomaly_detector.py:564:8",
+        "services/ingestion/ml_anomaly_detector.py:215:4",
+        "services/ingestion/ml_anomaly_detector.py:251:4",
+        "services/ingestion/ml_anomaly_detector.py:502:4",
+        "services/ingestion/ml_anomaly_detector.py:609:8",
         "services/ingestion/mqtt_actuator.py:104:4"
       ]
     },
@@ -6775,9 +6775,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:214:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:215:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 214,
+      "line": 215,
       "scope": "_query_sensor_timeseries",
       "method": "execute",
       "expression_kind": "literal",
@@ -6797,9 +6797,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:249:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:251:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 249,
+      "line": 251,
       "scope": "_query_all_sensors_timeseries",
       "method": "execute",
       "expression_kind": "literal",
@@ -6819,9 +6819,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:490:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:502:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 490,
+      "line": 502,
       "scope": "run_ml_check",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -6839,9 +6839,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:564:8",
+      "id": "services/ingestion/ml_anomaly_detector.py:609:8",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 564,
+      "line": 609,
       "scope": "save_models",
       "method": "execute",
       "expression_kind": "literal",
