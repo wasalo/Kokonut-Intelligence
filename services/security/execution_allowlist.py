@@ -52,6 +52,7 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         "services.ingestion.remote_sensing_fetcher",
         "services.ingestion.remote_sensing_worker",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.events",
     }
 )

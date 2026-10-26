@@ -19,10 +19,34 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,198 checklist items complete and 25
-open (1,223 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,199 checklist items complete and 25
+open (1,224 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### Isolated ClickHouse outbox delivery — 25 October 2026
+
+- [x] Route new Kernel scheduled projection delivery through a default-off
+  dedicated worker login and migration 646's bounded claim and lease-fenced
+  completion functions. Preserve the existing operator CLI for reconciliation
+  and dead-letter actions, and leave ClickHouse optional. The focused worker,
+  role, scheduler, operation-map, and environment selection passes 430 tests;
+  Ruff and generated worker/runtime inventories pass. Network-disabled
+  PostgreSQL 16 applies and replays the migration under forced RLS on native
+  x86_64 and emulated aarch64, verifying worker/token fencing, bounded claim
+  and recovery batches, retry/dead-letter transitions, and direct-table denial.
+  ARM64 is software emulation evidence, not physical-device acceptance ([worker](../services/ingestion/clickhouse_outbox_worker.py);
+  [migration](../schemas/postgres/646_isolated_clickhouse_outbox_worker.sql);
+  [runner](../scripts/check-clickhouse-outbox-worker-disposable.py);
+  [database evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-disposable.json);
+  [ARM64 evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-arm64-disposable.json);
+  [source evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-source-checks.json)).
+  Candidate migration rollout, role credential provisioning, ClickHouse
+  delivery, persisted schedule reconciliation, and CAP-040/047 acceptance
+  remain open. Rollback keeps the feature off and uses the retained legacy
+  route; migration 646 is immutable after application. Checklist: 1,199
+  complete / 25 open (1,224 total); capability classifications remain
+  unchanged.
 
 ### ClickHouse outbox projection boundary — 25 October 2026
 

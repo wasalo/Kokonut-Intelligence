@@ -48,6 +48,27 @@ def test_standard_api_and_worker_require_schema_readiness() -> None:
         assert "--require-schema" in command
 
 
+def test_clickhouse_outbox_isolation_is_wired_but_opt_in_across_kernel_profiles():
+    profile_files = (
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.kernel-portability.yml",
+        "docker-compose.worker.yml",
+    )
+    for filename in profile_files:
+        source = (ROOT / filename).read_text()
+        assert "KOKONUT_CLICKHOUSE_OUTBOX_DATABASE_URL" in source
+        assert "KOKONUT_FEATURE_ISOLATED_CLICKHOUSE_OUTBOX_WORKER" in source
+        assert "${KOKONUT_FEATURE_ISOLATED_CLICKHOUSE_OUTBOX_WORKER:-false}" in source
+
+    runtime_role = yaml.safe_load(
+        (ROOT / "docker-compose.kernel-runtime-role.yml").read_text()
+    )
+    environment = runtime_role["services"]["runtime-role-bootstrap"]["environment"]
+    assert "KOKONUT_CLICKHOUSE_OUTBOX_USER" in environment
+    assert "KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD" in environment
+
+
 def test_oidc_profile_requires_https_proxy_overlay() -> None:
     result = _run_planner("minimal", "--oidc")
 

@@ -1,3 +1,33 @@
+### Progress addendum — isolated ClickHouse outbox delivery, 25 October 2026
+
+Migration 646 adds an opt-in, dedicated `clickhouse_outbox` login with only
+bounded batch-claim and lease-fenced completion functions. The dedicated worker
+dispatches validated projections to the existing optional ClickHouse adapter;
+operator reconciliation and dead-letter controls remain in the legacy CLI.
+Claims are limited to 100, use `SKIP LOCKED`, preserve the eight-attempt retry
+limit, recover expired leases, and deny direct table access. The scheduler
+selects the isolated entrypoint for new Kernel plans, while Prefect's existing
+`run_job` adapter keeps the legacy route until the feature is enabled. The
+feature is default-off; no candidate rollout, worker credential, live provider,
+or persisted schedule was touched. A focused 430-test worker, role, scheduler,
+inventory, and environment selection passes with Ruff. Network-disabled
+PostgreSQL 16 disposable checks apply and replay migration 646 under forced
+RLS on native `x86_64` and emulated `aarch64`, verifying lease owner/token
+fencing, success/retry/dead-letter paths, bounded expired-lease recovery,
+bounded grants, and direct table denial. ARM64 is container/QEMU software
+evidence, not physical Raspberry Pi acceptance
+([migration](../schemas/postgres/646_isolated_clickhouse_outbox_worker.sql);
+[worker](../services/ingestion/clickhouse_outbox_worker.py);
+[disposable runner](../scripts/check-clickhouse-outbox-worker-disposable.py);
+[database evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-disposable.json);
+[ARM64 evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-arm64-disposable.json);
+[source evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-source-checks.json)).
+The outbox sink remains optional, and production sink parity, live delivery,
+credential provisioning, candidate rollout, persisted schedule
+reconciliation, and MAN-CAP-040/047 acceptance remain open. Checklist: 1,199
+complete / 25 open (1,224 total); capability classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — ClickHouse outbox projection boundary, 25 October 2026
 
 The durable ClickHouse sink now validates each claimed payload against six

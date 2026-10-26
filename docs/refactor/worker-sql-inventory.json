@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 37,
-    "source_files": 104,
-    "execution_sites": 353,
-    "static_literal_sites": 306,
+    "operation_roots": 38,
+    "source_files": 105,
+    "execution_sites": 355,
+    "static_literal_sites": 308,
     "composed_or_variable_sites": 47
   },
   "execution_sites": [
@@ -852,6 +852,7 @@
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
@@ -903,6 +904,7 @@
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
@@ -954,6 +956,7 @@
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1203,9 +1206,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:137:12",
+      "id": "services/common/worker_database.py:138:12",
       "source": "services/common/worker_database.py",
-      "line": 137,
+      "line": 138,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -1224,6 +1227,7 @@
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.baal_worker",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.eas_worker",
         "scheduled_module:services.ingestion.freshness_worker",
@@ -3463,6 +3467,7 @@
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3504,6 +3509,7 @@
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3544,6 +3550,7 @@
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3566,9 +3573,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:53:12",
+      "id": "services/ingestion/clickhouse_outbox.py:125:12",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 53,
+      "line": 125,
       "column": 12,
       "scope": "enqueue",
       "method": "execute",
@@ -3581,6 +3588,7 @@
       "static_sql_sha256": "3177423aa157fcfb92b5d570c0d24f0dc36a66127c0069ee371a5cc306248744",
       "operation_refs": [
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
@@ -3595,9 +3603,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:89:8",
+      "id": "services/ingestion/clickhouse_outbox.py:161:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 89,
+      "line": 161,
       "column": 8,
       "scope": "_recover_expired",
       "method": "execute",
@@ -3609,6 +3617,7 @@
       "static_sql_sha256": "863a3e35fe1af473f4de2565c69e4d36bf297f52d49bfd9467e810653543f68d",
       "operation_refs": [
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
@@ -3623,9 +3632,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:107:8",
+      "id": "services/ingestion/clickhouse_outbox.py:179:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 107,
+      "line": 179,
       "column": 8,
       "scope": "claim_batch",
       "method": "execute",
@@ -3639,6 +3648,7 @@
       "static_sql_sha256": "cd04922371cb25521ef167ec8d9898db76466a7699f7b66ef95a883eaf1aed75",
       "operation_refs": [
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
@@ -3653,9 +3663,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:140:8",
+      "id": "services/ingestion/clickhouse_outbox.py:213:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 140,
+      "line": 213,
       "column": 8,
       "scope": "_finish",
       "method": "execute",
@@ -3664,9 +3674,10 @@
       "candidate_relations": [
         "clickhouse_outbox"
       ],
-      "static_sql_sha256": "b6cc4f45ea378286819c58bf2fee5788f5d2a9e4d624c82822602655f033feb8",
+      "static_sql_sha256": "a717dbf6b73f8520c07814fff6a021de60348cc176bda0757fc07c494fcb1317",
       "operation_refs": [
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
@@ -3681,9 +3692,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:234:8",
+      "id": "services/ingestion/clickhouse_outbox.py:352:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 234,
+      "line": 352,
       "column": 8,
       "scope": "reconcile_pending",
       "method": "execute",
@@ -3695,6 +3706,7 @@
       "static_sql_sha256": "4d83c0935af23f9ff9d3c2f2277576f9a9d365d0548755d98512b3570409c3a9",
       "operation_refs": [
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
@@ -3709,9 +3721,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:255:12",
+      "id": "services/ingestion/clickhouse_outbox.py:373:12",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 255,
+      "line": 373,
       "column": 12,
       "scope": "_operator_transition",
       "method": "execute",
@@ -3726,6 +3738,7 @@
       "static_sql_sha256": "b75a4dd07b6fae3efdaee44bc699616c96e2b734fbd1137ae77d75e2a9cbb80c",
       "operation_refs": [
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
@@ -3740,9 +3753,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:302:8",
+      "id": "services/ingestion/clickhouse_outbox.py:420:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 302,
+      "line": 420,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -3754,6 +3767,7 @@
       "static_sql_sha256": "a89fc52ad6fa8a45c4fd03f04ec741d8abc2f17ec8f35d038a9cdf8391e1e6ab",
       "operation_refs": [
         "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
@@ -3765,6 +3779,38 @@
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/clickhouse_outbox_worker.py:21:12",
+      "source": "services/ingestion/clickhouse_outbox_worker.py",
+      "line": 21,
+      "column": 12,
+      "scope": "_claim",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.claim_clickhouse_outbox_batch"
+      ],
+      "static_sql_sha256": "7e5d2c45fe47d6b411085740ff034484bdd05e74ba2bdcb660acc37b1dacf455",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/clickhouse_outbox_worker.py:36:12",
+      "source": "services/ingestion/clickhouse_outbox_worker.py",
+      "line": 36,
+      "column": 12,
+      "scope": "_finish",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "898fb2211cdc01eaf4a49170fed647128dda81ecbb705f91d496fe3e64d8319c",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker"
       ]
     },
     {

@@ -184,6 +184,7 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     credit_adjustments = scheduled["services.analytics.carbon_credit_adjustment_check"]
     signed_credit_adjustments = scheduled["services.analytics.carbon_credit_adjustment_worker"]
     projections = scheduled["services.ingestion.clickhouse_outbox"]
+    isolated_projections = scheduled["services.ingestion.clickhouse_outbox_worker"]
     legacy_weather_forecasts = scheduled["services.ingestion.weather_forecast"]
     weather_forecasts = scheduled["services.ingestion.weather_forecast_worker"]
     legacy_market_data = scheduled["services.ingestion.market_data"]
@@ -247,6 +248,12 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert "ClickHouse" in " ".join(projections["external_effects"])
     assert "--run-once" in projections["scope"]
     assert "--limit 100" in projections["scope"]
+    assert isolated_projections["worker_key"] == "clickhouse_outbox"
+    assert "default-off" in isolated_projections["scope"]
+    assert "migration 646 functions" in isolated_projections["scope"]
+    assert isolated_projections["reads"] == ["public.clickhouse_outbox"]
+    assert isolated_projections["writes"] == ["public.clickhouse_outbox"]
+    assert " ClickHouse " in " " + " ".join(isolated_projections["external_effects"]) + " "
     assert legacy_weather_forecasts["reads"] == ["public.location"]
     assert "persisted tasks" in legacy_weather_forecasts["retry_boundary"]
     assert weather_forecasts["worker_key"] == "weather_forecast"

@@ -234,15 +234,12 @@ def _finish(
     return changed
 
 
-def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
-    """Deliver one claimed batch; each row has independent failure handling."""
-    from services.core.providers import ProviderSettings
-
-    if not ProviderSettings.from_environment().clickhouse:
-        # Keep pending projections and retry budgets intact while paused.
-        return {"claimed": 0, "delivered": 0, "failed": 0}
-
-    rows = claim_batch(conn, worker_id, limit)
+def deliver_claimed_batch(
+    rows: list[dict[str, Any]],
+    worker_id: str,
+    finish,
+) -> dict[str, int]:
+    """Deliver claimed rows through a caller-owned, lease-fenced finish callback."""
     if not rows:
         return {"claimed": 0, "delivered": 0, "failed": 0}
     valid_rows = []
@@ -252,11 +249,8 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
             _validate_outbox_projection(row)
         except (TypeError, ValueError):
             logger.warning("ClickHouse outbox projection rejected (contract validation)")
-            _finish(
-                conn,
-                str(row["id"]),
-                worker_id,
-                str(row["lease_token"]),
+            finish(
+                row,
                 success=False,
                 error="projection contract rejected",
                 permanent_failure=True,
@@ -277,9 +271,12 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
         except Exception as exc:
             logger.warning("ClickHouse client setup failed (%s)", type(exc).__name__)
             for row in valid_rows:
-                _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]),
-                        success=False, error=f"client setup failed: {type(exc).__name__}",
-                        retry_delay_seconds=_retry_delay_seconds(row.get("attempt_count", 1)))
+                finish(
+                    row,
+                    success=False,
+                    error=f"client setup failed: {type(exc).__name__}",
+                    retry_delay_seconds=_retry_delay_seconds(row.get("attempt_count", 1)),
+                )
             return {"claimed": len(rows), "delivered": 0, "failed": invalid_count + len(valid_rows)}
         for row in valid_rows:
             error = None
@@ -311,9 +308,12 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
                 error = f"ClickHouse delivery failed ({type(exc).__name__})"
             # Database failure is not a transport failure. Let it propagate;
             # durable leases recover unfinished rows after expiry.
-            ok = _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]),
-                         success=inserted, error=error,
-                         retry_delay_seconds=_retry_delay_seconds(row.get("attempt_count", 1)))
+            ok = finish(
+                row,
+                success=inserted,
+                error=error,
+                retry_delay_seconds=_retry_delay_seconds(row.get("attempt_count", 1)),
+            )
             if inserted and ok:
                 delivered += 1
             else:
@@ -322,6 +322,28 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
         if client is not None and hasattr(client, "close"):
             client.close()
     return {"claimed": len(rows), "delivered": delivered, "failed": invalid_count + failed}
+
+
+def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
+    """Deliver one claimed batch using the compatibility application identity."""
+    from services.core.providers import ProviderSettings
+
+    if not ProviderSettings.from_environment().clickhouse:
+        # Keep pending projections and retry budgets intact while paused.
+        return {"claimed": 0, "delivered": 0, "failed": 0}
+
+    rows = claim_batch(conn, worker_id, limit)
+
+    def finish(row: dict[str, Any], **kwargs: Any) -> bool:
+        return _finish(
+            conn,
+            str(row["id"]),
+            worker_id,
+            str(row["lease_token"]),
+            **kwargs,
+        )
+
+    return deliver_claimed_batch(rows, worker_id, finish)
 
 
 def reconcile_pending(conn, limit: int = 1000) -> dict[str, int]:

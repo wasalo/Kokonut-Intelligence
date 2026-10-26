@@ -186,14 +186,23 @@ JOBS = MappingProxyType(
             required_inputs=("location_id",),
         ),
         "projections": JobSpec(
-            "services.ingestion.clickhouse_outbox",
-            ("--run-once", "--limit", "100"),
+            "services.ingestion.clickhouse_outbox_worker",
+            ("--run-once", "--worker-id", "kernel-projections", "--limit", "100"),
             300,
             0,
             60,
             "Sensor and ingestion projection delivery",
         ),
     }
+)
+
+_LEGACY_PROJECTIONS = JobSpec(
+    "services.ingestion.clickhouse_outbox",
+    ("--run-once", "--limit", "100"),
+    300,
+    0,
+    60,
+    "Sensor and ingestion projection delivery (legacy compatibility)",
 )
 
 _LEGACY_CREDIT_ADJUSTMENT = JobSpec(
@@ -315,6 +324,10 @@ def run_job(
     if job_id == "freshness" and not is_enabled("isolated_freshness_worker"):
         job_id = "freshness_legacy"
         spec = JOBS[job_id]
+    if job_id == "projections" and not is_enabled("isolated_clickhouse_outbox_worker"):
+        # Preserve deployed schedules while the dedicated login is not provisioned.
+        job_id = "projections_legacy"
+        spec = _LEGACY_PROJECTIONS
     return _run_job_spec(
         job_id,
         spec,

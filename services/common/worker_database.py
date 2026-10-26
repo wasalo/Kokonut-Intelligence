@@ -41,6 +41,7 @@ _WORKER_LOGINS = {
     "gnosis_indexer": "kokonut_gnosis_indexer_login",
     "baal_indexer": "kokonut_baal_indexer_login",
     "freshness": "kokonut_freshness_login",
+    "clickhouse_outbox": "kokonut_clickhouse_outbox_login",
     "sensor_ingestion": "kokonut_sensor_ingestion_login",
     "remote_sensing": "kokonut_remote_sensing_login",
 }

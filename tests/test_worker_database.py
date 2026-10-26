@@ -657,6 +657,32 @@ def test_freshness_worker_requires_its_dedicated_database_login(monkeypatch):
     connection.rollback.assert_called_once_with()
 
 
+def test_clickhouse_outbox_worker_uses_its_dedicated_database_login(monkeypatch):
+    connection, cursor = _connection("kokonut_clickhouse_outbox_login")
+    connect = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+    dsn = "postgresql://kokonut_clickhouse_outbox_login:secret@database/kokonut_intelligence"
+
+    result = worker_database.get_worker_db(
+        "clickhouse_outbox",
+        environ={
+            "KOKONUT_CLICKHOUSE_OUTBOX_DATABASE_URL": dsn,
+            "DATABASE_URL": "postgresql://shared/app",
+            "PG_USER": "kokonut_runtime",
+            "PG_PASSWORD": "shared-secret",
+        },
+    )
+
+    assert result is connection
+    connect.assert_called_once_with(
+        dsn,
+        connect_timeout=8,
+        application_name="kokonut-worker-clickhouse_outbox",
+    )
+    cursor.execute.assert_called_once_with("SELECT current_user")
+    connection.rollback.assert_called_once_with()
+
+
 def test_autocommit_worker_connection_is_closed_and_rejected(monkeypatch):
     connection, _ = _connection("kokonut_worker_login", autocommit=True)
     monkeypatch.setattr(worker_database.psycopg2, "connect", MagicMock(return_value=connection))

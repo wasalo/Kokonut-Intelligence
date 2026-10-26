@@ -384,6 +384,51 @@ def test_freshness_worker_provisioning_requires_paired_credentials_and_distinct_
         )
 
 
+def test_clickhouse_outbox_worker_has_only_bounded_claim_and_completion_functions():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/646_isolated_clickhouse_outbox_worker.sql").read_text()
+    runtime_source = (root / "services/migration/runtime_role.py").read_text()
+
+    assert len(runtime_role._CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS) == 2
+    assert set(runtime_role._CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS) <= set(
+        runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    )
+    assert all(
+        (function, "kokonut_clickhouse_outbox_owner")
+        in runtime_role._SECURITY_DEFINER_OWNERS
+        for function in runtime_role._CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS
+    )
+    assert "session_user <> 'kokonut_clickhouse_outbox_login'" in migration
+    assert "FOR UPDATE SKIP LOCKED" in migration
+    assert "lease_token = gen_random_uuid()" in migration
+    assert "lease_expires_at > NOW()" in migration
+    assert "TO kokonut_clickhouse_outbox_login" in migration
+    assert "migration 646 ClickHouse outbox functions" in runtime_source
+
+
+def test_clickhouse_outbox_worker_provisioning_requires_paired_credentials_and_distinct_owner():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(ValueError, match="ClickHouse outbox user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            clickhouse_outbox_user="kokonut_clickhouse_outbox_login",
+        )
+    with pytest.raises(ValueError, match="differ from the ClickHouse outbox function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            clickhouse_outbox_user="kokonut_clickhouse_outbox_owner",
+            clickhouse_outbox_password="c" * 32,
+        )
 def test_global_indexer_logins_receive_only_configured_database_connect_grants():
     source = (
         Path(__file__).resolve().parents[1]

@@ -79,6 +79,29 @@ def test_scheduled_noi_worker_receives_only_its_exact_secret_pair():
     assert scheduled_module_worker_key("services.metrics.noi_snapshot_worker.extra") is None
 
 
+def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
+    source = {
+        "KOKONUT_CLICKHOUSE_OUTBOX_DATABASE_URL": "postgresql://clickhouse-worker",
+        "KOKONUT_FRESHNESS_DATABASE_URL": "postgresql://other-worker",
+        "PG_HOST": "database",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-secret",
+        "DATABASE_URL": "postgresql://shared/app",
+    }
+    module = "services.ingestion.clickhouse_outbox_worker"
+    worker_key = scheduled_module_worker_key(module)
+
+    assert worker_key == "clickhouse_outbox"
+    assert worker_subprocess_environment(
+        allowed_worker_keys=(worker_key,),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_CLICKHOUSE_OUTBOX_DATABASE_URL": "postgresql://clickhouse-worker",
+        ISOLATED_WORKER_KEY_ENV: "clickhouse_outbox",
+    }
+
+
 def test_scheduled_credit_adjustment_worker_receives_only_its_exact_secret_pair():
     source = {
         "KOKONUT_CREDIT_ADJUSTMENT_DATABASE_URL": "postgresql://credit-worker",
@@ -343,6 +366,7 @@ def test_worker_environment_rejects_invalid_allowlists(keys):
         "services.ingestion.eas_worker",
         "services.ingestion.sensor_worker",
         "services.ingestion.remote_sensing_worker",
+        "services.ingestion.clickhouse_outbox_worker",
     ],
 )
 def test_scheduled_worker_help_imports_without_shared_database_credentials(module):

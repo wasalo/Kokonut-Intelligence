@@ -214,6 +214,30 @@
       ]
     },
     {
+      "module": "services.ingestion.clickhouse_outbox_worker",
+      "worker_key": "clickhouse_outbox",
+      "scope": "Global projection queue; default-off isolated worker. Accepts only --run-once, a bounded worker ID, and a batch limit no greater than 100. Claims and completes through migration 646 functions; operator reconciliation/replay/disposal remain on the legacy CLI.",
+      "reads": [
+        "public.clickhouse_outbox"
+      ],
+      "writes": [
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "When ClickHouse is enabled, writes validated projection rows to the optional ClickHouse provider; if disabled, no database connection or claim occurs."
+      ],
+      "idempotency": "Stable event keys and ClickHouse deduplication tokens suppress duplicate projection writes; PostgreSQL lease tokens fence completion. External delivery remains at-least-once across a crash after ClickHouse accepts a write and before PostgreSQL completion.",
+      "retry_boundary": "Migration 646 claims at most 100 rows using SKIP LOCKED, recovers expired leases, and fences each completion. Retries cap at eight attempts before dead-lettering. The feature remains off until the dedicated login and DSN are provisioned.",
+      "sources": [
+        "services/ingestion/clickhouse_outbox_worker.py",
+        "services/ingestion/clickhouse_outbox.py",
+        "services/common/worker_database.py",
+        "services/core/jobs.py",
+        "services/security/scheduled_command_contracts.py",
+        "schemas/postgres/646_isolated_clickhouse_outbox_worker.sql"
+      ]
+    },
+    {
       "module": "services.ingestion.climate_data",
       "scope": "Exactly one required --location-id per process; --all means all climate providers for that location, not all locations.",
       "reads": [
@@ -410,7 +434,7 @@
         "Durable data_stale notification event; independent EventBus and outbox workers perform provider delivery"
       ],
       "idempotency": "Each invocation writes a new check snapshot. Alert-state transitions serialize per source/location with an advisory transaction lock; the alert-history UUID is also the stable event ID, and exact event retries are accepted while conflicting payloads fail closed.",
-    "retry_boundary": "Each source/location evaluation uses a savepoint. A bounded source-read failure becomes an error check; failure in check/state/history/event persistence rolls back the whole run. Notification delivery remains asynchronous. The default-off feature stays disabled until migration 645, dedicated login/DSN provisioning, and operator schedule reconciliation.",
+      "retry_boundary": "Each source/location evaluation uses a savepoint. A bounded source-read failure becomes an error check; failure in check/state/history/event persistence rolls back the whole run. Notification delivery remains asynchronous. The default-off feature stays disabled until migration 645, dedicated login/DSN provisioning, and operator schedule reconciliation.",
       "sources": [
         "services/ingestion/freshness_worker.py",
         "services/ingestion/data_freshness.py",

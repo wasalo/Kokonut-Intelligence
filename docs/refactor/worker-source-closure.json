@@ -1738,8 +1738,215 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/config.py",
+          "line": 9,
+          "target": "services.common.db",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.clickhouse_outbox_worker",
+      "root_modules": [
+        "services.ingestion.clickhouse_outbox_worker"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.http",
+        "services.common.logging",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.adapters.clickhouse",
+        "services.core.features",
+        "services.core.providers",
+        "services.ingestion.base",
+        "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
+        "services.ingestion.config"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
+        "services/ingestion/config.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/adapters/clickhouse.py",
+          "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 20,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 22,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 23,
+          "target": "services.ingestion.config",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 57,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 64,
+          "target": "services.core.adapters.clickhouse",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 15,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 16,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 17,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 329,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -2566,7 +2773,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -3153,7 +3360,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -3358,7 +3565,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -3929,7 +4136,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -4192,7 +4399,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -4481,7 +4688,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -4883,7 +5090,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -5362,7 +5569,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -5559,7 +5766,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -5770,7 +5977,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -6023,7 +6230,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 165,
+          "line": 329,
           "target": "services.core.providers",
           "kind": "from"
         },

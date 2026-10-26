@@ -99,6 +99,10 @@ _FRESHNESS_WORKER_FUNCTIONS = (
     "kokonut_security.update_freshness_check_alert(uuid,boolean,text)",
     "kokonut_security.enqueue_freshness_event(uuid,jsonb,text)",
 )
+_CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS = (
+    "kokonut_security.claim_clickhouse_outbox_batch(text,integer)",
+    "kokonut_security.finish_clickhouse_outbox_delivery(uuid,text,uuid,boolean,text,integer,boolean)",
+)
 _SENSOR_INGESTION_FUNCTIONS = (
     "kokonut_security.resolve_sensor_driver_instance(uuid,uuid)",
     "kokonut_security.read_sensor_driver_catalog(uuid)",
@@ -153,6 +157,7 @@ _SECURITY_DEFINER_OWNERS = (
     *((function, "kokonut_gnosis_indexer_owner") for function in _GNOSIS_INDEXER_FUNCTIONS),
     *((function, "kokonut_baal_indexer_owner") for function in _BAAL_INDEXER_FUNCTIONS),
     *((function, "kokonut_freshness_owner") for function in _FRESHNESS_WORKER_FUNCTIONS),
+    *((function, "kokonut_clickhouse_outbox_owner") for function in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS),
     *(
         (function, "kokonut_sensor_ingestion_owner")
         for function in _SENSOR_INGESTION_FUNCTIONS
@@ -180,6 +185,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     *_GNOSIS_INDEXER_FUNCTIONS,
     *_BAAL_INDEXER_FUNCTIONS,
     *_FRESHNESS_WORKER_FUNCTIONS,
+    *_CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
     *_REMOTE_SENSING_FUNCTIONS,
 )
@@ -1033,6 +1039,8 @@ def provision_runtime_role(
     baal_indexer_password: str | None = None,
     freshness_user: str | None = None,
     freshness_password: str | None = None,
+    clickhouse_outbox_user: str | None = None,
+    clickhouse_outbox_password: str | None = None,
     sensor_ingestion_user: str | None = None,
     sensor_ingestion_password: str | None = None,
     remote_sensing_user: str | None = None,
@@ -1078,6 +1086,8 @@ def provision_runtime_role(
         raise ValueError("Baal-indexer user and password must be provided together")
     if (freshness_user is None) != (freshness_password is None):
         raise ValueError("freshness worker user and password must be provided together")
+    if (clickhouse_outbox_user is None) != (clickhouse_outbox_password is None):
+        raise ValueError("ClickHouse outbox user and password must be provided together")
     if (sensor_ingestion_user is None) != (sensor_ingestion_password is None):
         raise ValueError("sensor-ingestion user and password must be provided together")
     if (remote_sensing_user is None) != (remote_sensing_password is None):
@@ -1117,6 +1127,11 @@ def provision_runtime_role(
         if freshness_user is not None
         else None
     )
+    clickhouse_outbox_ident = (
+        _role_identifier(clickhouse_outbox_user, "clickhouse_outbox_user")
+        if clickhouse_outbox_user is not None
+        else None
+    )
     sensor_ingestion_ident = (
         _role_identifier(sensor_ingestion_user, "sensor_ingestion_user")
         if sensor_ingestion_user is not None
@@ -1142,6 +1157,8 @@ def provision_runtime_role(
         role_names.append(baal_indexer_user)
     if freshness_user is not None:
         role_names.append(freshness_user)
+    if clickhouse_outbox_user is not None:
+        role_names.append(clickhouse_outbox_user)
     if sensor_ingestion_user is not None:
         role_names.append(sensor_ingestion_user)
     if remote_sensing_user is not None:
@@ -1160,13 +1177,15 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the Baal-indexer function owner")
     if "kokonut_freshness_owner" in role_names:
         raise ValueError("application logins must differ from the freshness function owner")
+    if "kokonut_clickhouse_outbox_owner" in role_names:
+        raise ValueError("application logins must differ from the ClickHouse outbox function owner")
     if "kokonut_sensor_ingestion_owner" in role_names:
         raise ValueError("application logins must differ from the sensor-ingestion function owner")
     if "kokonut_remote_sensing_owner" in role_names:
         raise ValueError("application logins must differ from the remote-sensing function owner")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, sensor-ingestion, and remote-sensing roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, sensor-ingestion, and remote-sensing roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1188,6 +1207,8 @@ def provision_runtime_role(
         credential_pairs.append(("baal_indexer_password", baal_indexer_password))
     if freshness_password is not None:
         credential_pairs.append(("freshness_password", freshness_password))
+    if clickhouse_outbox_password is not None:
+        credential_pairs.append(("clickhouse_outbox_password", clickhouse_outbox_password))
     if sensor_ingestion_password is not None:
         credential_pairs.append(("sensor_ingestion_password", sensor_ingestion_password))
     if remote_sensing_password is not None:
@@ -1210,6 +1231,8 @@ def provision_runtime_role(
         passwords.append(baal_indexer_password)
     if freshness_password is not None:
         passwords.append(freshness_password)
+    if clickhouse_outbox_password is not None:
+        passwords.append(clickhouse_outbox_password)
     if sensor_ingestion_password is not None:
         passwords.append(sensor_ingestion_password)
     if remote_sensing_password is not None:
@@ -1225,6 +1248,7 @@ def provision_runtime_role(
     gnosis_indexer_database_access: dict[str, bool] = {}
     baal_indexer_database_access: dict[str, bool] = {}
     freshness_database_access: dict[str, bool] = {}
+    clickhouse_outbox_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
     remote_sensing_database_access: dict[str, bool] = {}
     conn.autocommit = True
@@ -1339,6 +1363,18 @@ def provision_runtime_role(
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
                     "migration 645 freshness-worker functions must be applied before "
+                    "provisioning its dedicated login"
+                )
+        if clickhouse_outbox_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "to_regprocedure(%s)" for _ in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS
+                ),
+                _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 646 ClickHouse outbox functions must be applied before "
                     "provisioning its dedicated login"
                 )
         if sensor_ingestion_user is not None:
@@ -1700,6 +1736,48 @@ def provision_runtime_role(
                         sql.SQL(function), freshness_ident
                     )
                 )
+        if clickhouse_outbox_user is not None:
+            assert clickhouse_outbox_ident is not None and clickhouse_outbox_password is not None
+            _ensure_login_role(
+                cur,
+                name=clickhouse_outbox_user,
+                identifier=clickhouse_outbox_ident,
+                password=clickhouse_outbox_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=clickhouse_outbox_user,
+                identifier=clickhouse_outbox_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), clickhouse_outbox_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), clickhouse_outbox_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE CREATE ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), clickhouse_outbox_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    clickhouse_outbox_ident
+                )
+            )
+            for function in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), clickhouse_outbox_ident
+                    )
+                )
         if sensor_ingestion_user is not None:
             assert sensor_ingestion_ident is not None and sensor_ingestion_password is not None
             _ensure_login_role(
@@ -1826,6 +1904,8 @@ def provision_runtime_role(
             protected_login_idents.append(baal_indexer_ident)
         if freshness_ident is not None:
             protected_login_idents.append(freshness_ident)
+        if clickhouse_outbox_ident is not None:
+            protected_login_idents.append(clickhouse_outbox_ident)
         if sensor_ingestion_ident is not None:
             protected_login_idents.append(sensor_ingestion_ident)
         if remote_sensing_ident is not None:
@@ -2264,6 +2344,8 @@ def provision_runtime_role(
             checked_login_names.append(notification_enqueue_user)
         if freshness_user is not None:
             checked_login_names.append(freshness_user)
+        if clickhouse_outbox_user is not None:
+            checked_login_names.append(clickhouse_outbox_user)
         for role_name in checked_login_names:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -2737,6 +2819,14 @@ def provision_runtime_role(
                 "freshness worker",
                 runtime_user,
             )
+        if clickhouse_outbox_user is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                clickhouse_outbox_user,
+                _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
+                "ClickHouse outbox worker",
+                runtime_user,
+            )
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
@@ -2780,6 +2870,7 @@ def provision_runtime_role(
             *_EAS_INDEXER_FUNCTIONS,
             *_SENSOR_INGESTION_FUNCTIONS,
             *_REMOTE_SENSING_FUNCTIONS,
+            *_CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
         ):
             _verify_no_public_function_execute(cur, function)
         _verify_security_definer_owners(cur)
@@ -2908,6 +2999,24 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "freshness-worker login must connect only to its configured database"
                 )
+        if clickhouse_outbox_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (clickhouse_outbox_user,),
+            )
+            clickhouse_outbox_database_access = {
+                name: allowed for name, allowed in cur.fetchall()
+            }
+            if any(
+                allowed != (name == database)
+                for name, allowed in clickhouse_outbox_database_access.items()
+            ):
+                raise RuntimeError(
+                    "ClickHouse outbox login must connect only to its configured database"
+                )
         if sensor_ingestion_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -2943,6 +3052,7 @@ def provision_runtime_role(
         "gnosis_indexer_user": gnosis_indexer_user,
         "baal_indexer_user": baal_indexer_user,
         "freshness_user": freshness_user,
+        "clickhouse_outbox_user": clickhouse_outbox_user,
         "sensor_ingestion_user": sensor_ingestion_user,
         "remote_sensing_user": remote_sensing_user,
         "public_connect_revoked_from": sorted(database_names),
@@ -2954,6 +3064,7 @@ def provision_runtime_role(
         "gnosis_indexer_connect_grants": gnosis_indexer_database_access,
         "baal_indexer_connect_grants": baal_indexer_database_access,
         "freshness_worker_connect_grants": freshness_database_access,
+        "clickhouse_outbox_worker_connect_grants": clickhouse_outbox_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "remote_sensing_connect_grants": remote_sensing_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
@@ -3031,6 +3142,12 @@ def main() -> int:
         "KOKONUT_FRESHNESS_USER", "kokonut_freshness_login"
     )
     freshness_password = os.environ.get("KOKONUT_FRESHNESS_PASSWORD", "")
+    clickhouse_outbox_user = os.environ.get(
+        "KOKONUT_CLICKHOUSE_OUTBOX_USER", "kokonut_clickhouse_outbox_login"
+    )
+    clickhouse_outbox_password = os.environ.get(
+        "KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD", ""
+    )
     sensor_ingestion_user = os.environ.get(
         "KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login"
     )
@@ -3088,6 +3205,12 @@ def main() -> int:
             ),
             freshness_user=freshness_user if freshness_password else None,
             freshness_password=freshness_password if freshness_password else None,
+            clickhouse_outbox_user=(
+                clickhouse_outbox_user if clickhouse_outbox_password else None
+            ),
+            clickhouse_outbox_password=(
+                clickhouse_outbox_password if clickhouse_outbox_password else None
+            ),
             sensor_ingestion_user=(
                 sensor_ingestion_user if sensor_ingestion_password else None
             ),

@@ -1,5 +1,6 @@
 """Scheduler command contracts fail closed before activation or dispatch."""
 
+import subprocess
 import sys
 from argparse import Namespace
 from unittest.mock import MagicMock, patch
@@ -277,9 +278,42 @@ def test_interactive_carbon_credit_cli_is_not_scheduler_allowlisted():
 def test_projection_job_is_scheduler_allowed_but_restricted_to_one_delivery_batch():
     job = JOBS["projections"]
 
-    assert job.module == "services.ingestion.clickhouse_outbox"
+    assert job.module == "services.ingestion.clickhouse_outbox_worker"
     assert job.scheduler_allowed
-    assert validate_scheduled_command(job.module, list(job.arguments)) == ("--run-once", "--limit", "100")
+    assert validate_scheduled_command(job.module, list(job.arguments)) == (
+        "--run-once", "--worker-id", "kernel-projections", "--limit", "100"
+    )
+
+
+def test_legacy_projection_schedules_remain_allowlisted_and_isolated_path_is_default_off():
+    from services.core.jobs import _LEGACY_PROJECTIONS
+
+    assert _LEGACY_PROJECTIONS.module == "services.ingestion.clickhouse_outbox"
+    assert _LEGACY_PROJECTIONS.scheduler_allowed
+    assert validate_scheduled_command(
+        _LEGACY_PROJECTIONS.module, list(_LEGACY_PROJECTIONS.arguments)
+    ) == ("--run-once", "--limit", "100")
+
+    with patch("services.core.jobs.is_enabled", return_value=False), patch(
+        "services.core.jobs.subprocess.run",
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr=""),
+    ) as run:
+        run_job("projections")
+
+    assert run.call_args.args[0][2] == "services.ingestion.clickhouse_outbox"
+
+
+@pytest.mark.parametrize(
+    ("arguments", "message"),
+    [
+        (("--run-once", "--limit", "101"), "outside its supported range"),
+        (("--run-once", "--worker-id", "../worker"), "worker identifier"),
+        (("--run-once", "--worker-id", "x" * 101), "worker identifier"),
+    ],
+)
+def test_isolated_projection_contract_caps_batch_and_worker_identity(arguments, message):
+    with pytest.raises(ScheduledCommandRejected, match=message):
+        validate_scheduled_command("services.ingestion.clickhouse_outbox_worker", list(arguments))
 
 
 def test_weather_job_requires_one_explicit_location_before_dispatch():

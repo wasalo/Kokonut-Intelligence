@@ -149,6 +149,11 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--run-once": None,
         "--limit": "batch_size",
     },
+    "services.ingestion.clickhouse_outbox_worker": {
+        "--run-once": None,
+        "--worker-id": "worker_id",
+        "--limit": "outbox_batch_size",
+    },
 }
 
 if frozenset(_OPTIONS) != ALLOWED_SCHEDULED_MODULES:
@@ -190,7 +195,10 @@ def _validate_value(kind: str, value: str) -> None:
     elif kind == "identifier":
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", value):
             raise _reject("source identifier has an invalid format")
-    elif kind in {"month", "year", "block", "batch_size", "small_batch_size"}:
+    elif kind == "worker_id":
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}", value):
+            raise _reject("worker identifier has an invalid format")
+    elif kind in {"month", "year", "block", "batch_size", "outbox_batch_size", "small_batch_size"}:
         if not value.isdecimal():
             raise _reject("numeric argument must be a non-negative integer")
         number = int(value)
@@ -199,6 +207,7 @@ def _validate_value(kind: str, value: str) -> None:
             "year": (1960, 2030),
             "block": (0, 2**63 - 1),
             "batch_size": (1, 1000),
+            "outbox_batch_size": (1, 100),
             "small_batch_size": (1, 10),
         }
         lower, upper = limits[kind]
