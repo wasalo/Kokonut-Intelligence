@@ -1,3 +1,32 @@
+### Progress addendum — Directus location-scoped lifecycle collection expansion, 26 October 2026
+
+The fail-closed Directus adapter now checks exact organization/location grants
+for twenty collections with a direct location column, up from eleven. Nine new
+collections cover forecast scenarios, report snapshots, dashboard datasets,
+farm registry records, inventory events, maintenance events, stakeholder
+outcomes, credit batches, and credit-class enrollments. Scenario-parent and
+maintenance-asset references are checked against the same location. Impact
+claims, MRV events, retirement certificates, and Data Stream posts remain
+excluded until their polymorphic/child references have explicit contracts.
+The extension suite passes 101 tests; the bundle and TypeScript check pass.
+No database or Directus runtime was used. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-location-lifecycle-scope.json`.
+Checklist: 1,226 complete / 25 open (1,251 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — Current worker-boundary inventory consistency, 26 October 2026
+
+All five generated source-closure, function-reachability, SQL-inventory,
+SQL-reachability, and worker-boundary preflight checks pass. The current graph
+covers 49 operation roots and 138 source files, with 1,172 function
+memberships, 1,658 direct-call edges, two callback edges, and 56 dynamic
+dispatch edges. The SQL report contains 471 execution sites: 404 linked and 67
+without a static worker-function match. The preflight remains
+`review_required`/`not_tenant_bound`; 42 roots do not establish signed context.
+Live identity, privileges, migration state, persisted schedules, ownership,
+and RLS are not assessed by these static checks. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/worker-inventory-consistency.json`.
+
 ### Progress addendum — Directus feedback-review transaction boundary, 26 October 2026
 
 Stakeholder-feedback publish/reject review evidence now runs inside the

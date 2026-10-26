@@ -19,10 +19,22 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (26 October 2026):** 1,221 checklist items complete and 25
-open (1,246 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (26 October 2026):** 1,226 checklist items complete and 25
+open (1,251 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+**Current worker-boundary inventory (26 October 2026):** the checked source map
+covers 49 roots and 138 source files; the function graph has 1,172 function
+memberships, 1,658 direct-call edges, two exact callback edges, and 56 dynamic
+dispatch edges. The SQL report has 471 execution sites: 404 linked to worker
+operations and 67 without a static match. All five generated source-closure,
+function-graph, SQL-inventory/reachability, and boundary-preflight checks pass.
+The preflight remains `review_required` and `not_tenant_bound`; 42 operation
+roots do not establish signed context. Static inventories do not assess live
+role grants, migration state, persisted schedules, ownership mappings, or RLS.
+See [the inventory report](worker-operation-map.md) and
+[refresh evidence](builds/2026-10-26-recovery/worker-inventory-consistency.json).
 
 ### Retire superseded private SQL readers — 26 October 2026
 
