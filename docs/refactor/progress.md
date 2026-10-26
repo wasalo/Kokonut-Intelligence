@@ -18058,6 +18058,7 @@ provider, candidate, or legacy service was touched. The references are bounded
 row identities, not content snapshots or populated-output parity evidence.
 Checklist: 1,157 complete / 25 open (1,182 total); matrix classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 [Evidence](builds/2026-10-25-recovery/cap-038-deterministic-source-coverage.json).
 
 ### Progress addendum — CAP-038 empty synthesis source references, 25 October 2026
@@ -18775,3 +18776,14 @@ provider, candidate, or legacy service was used ([implementation](../../services
 [evidence](builds/2026-10-25-recovery/driver-entry-point-loading.json)).
 Checklist: 1,191 complete / 25 open (1,216 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## ARM64 driver import smoke — pushed source head 2b877bae (25 October 2026)
+
+The default Kernel image built for `linux/arm64` from pushed head
+`2b877baedd8878820a3759ebe4f38defd740c41c` and ran under QEMU as `aarch64`.
+In a no-network, read-only container it imported all nine source-owned built-in
+driver targets and checked each against the adapter contract. The temporary
+image was removed. No database, provider, candidate, legacy service, or
+persistent Compose resource was accessed. This is software portability
+evidence only; physical Raspberry Pi, power-loss, thermal, resource, and
+storage-endurance acceptance remain open ([evidence](builds/2026-10-25-recovery/arm64-kernel-driver-import-smoke-2b877bae.json)).

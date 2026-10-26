@@ -1,0 +1,26 @@
+{
+  "slice": "Current-source ARM64 Kernel built-in driver import smoke",
+  "date": "2026-10-25",
+  "source_commit": "2b877baedd8878820a3759ebe4f38defd740c41c",
+  "result": "passed",
+  "build": {
+    "platform": "linux/arm64",
+    "command": "docker buildx build --progress plain --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=false --load --tag kokonut-kernel-current-arm64-driver-boundary:local --file Dockerfile.kernel .",
+    "image_id": "sha256:f142241f787a4e1c091d08e4a7087250791c1212e564ff3bebc1ce9899323492",
+    "image_size_bytes": 546385119,
+    "temporary_image_removed_after_smoke": true
+  },
+  "runtime_smoke": {
+    "command": "docker run --rm --platform linux/arm64 --network none --read-only --tmpfs /tmp:rw,size=64m -e PYTHONDONTWRITEBYTECODE=1 --entrypoint python3 kokonut-kernel-current-arm64-driver-boundary:local -u -c '<assert aarch64 and resolve all source-owned built-in targets through the adapter contract>'",
+    "container_architecture": "aarch64",
+    "builtin_targets": 9,
+    "adapter_imports": "passed"
+  },
+  "database_or_provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "persistent_compose_resources_modified": false,
+  "limitations": [
+    "QEMU software-emulation evidence only; no physical Raspberry Pi, power-loss, thermal, measured-resource, or storage-endurance acceptance.",
+    "The no-network, read-only smoke validates built-in import and adapter contracts only; it does not exercise authenticated requests or live providers."
+  ]
+}
