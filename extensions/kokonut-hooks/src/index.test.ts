@@ -201,6 +201,7 @@ describe('Directus hook event registration', () => {
     const feedbackId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const directusUserId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
     const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const workflowAudits: Array<Record<string, unknown>> = [];
     const operations: string[] = [];
     const statuses = ['verified', 'verified', 'submitted', 'submitted', 'verified', 'verified'];
     const requestDatabase = vi.fn((table: string) => {
@@ -218,8 +219,13 @@ describe('Directus hook event registration', () => {
           return undefined;
         }),
         insert: vi.fn(async (row: Record<string, unknown>) => {
-          operations.push('review-insert');
-          inserts.push({ table, row });
+          if (table === 'workflow_history') {
+            operations.push('workflow-audit');
+            workflowAudits.push(row);
+          } else {
+            operations.push('review-insert');
+            inserts.push({ table, row });
+          }
         }),
       };
       return builder;
@@ -264,12 +270,29 @@ describe('Directus hook event registration', () => {
             is_public: false,
             submitted_at: '2020-01-01T00:00:00Z',
           })),
-          insert: vi.fn(async () => { throw new Error('review storage unavailable'); }),
+          insert: vi.fn(async () => {
+            if (table === 'stakeholder_feedback_review') {
+              throw new Error('review storage unavailable');
+            }
+          }),
         };
         return builder;
       }),
     })).rejects.toThrow('review storage unavailable');
     expect(consumePendingTransition('stakeholder_feedback', feedbackId)).toBeUndefined();
+    expect(workflowAudits).toEqual([
+      expect.objectContaining({
+        collection: 'stakeholder_feedback',
+        from_status: 'verified',
+        to_status: 'published',
+      }),
+      expect.objectContaining({
+        collection: 'stakeholder_feedback',
+        from_status: 'submitted',
+        to_status: 'rejected',
+        rejection_reason: 'Please review.',
+      }),
+    ]);
 
     expect(inserts).toEqual([{
       table: 'stakeholder_feedback_review',
@@ -291,8 +314,8 @@ describe('Directus hook event registration', () => {
       },
     }]);
     expect(operations).toEqual([
-      'feedback-read', 'feedback-read', 'review-insert',
-      'feedback-read', 'feedback-read', 'review-insert',
+      'feedback-read', 'feedback-read', 'workflow-audit', 'review-insert',
+      'feedback-read', 'feedback-read', 'workflow-audit', 'review-insert',
     ]);
     expect(globalDatabase).not.toHaveBeenCalled();
   });
@@ -320,6 +343,7 @@ describe('Directus hook event registration', () => {
           }
           return undefined;
         }),
+        insert: vi.fn(async () => undefined),
       };
       return builder;
     });
@@ -372,6 +396,57 @@ describe('Directus hook event registration', () => {
       'farm_activity',
       'sales_event',
     ]));
+    expect(globalDatabase).not.toHaveBeenCalled();
+  });
+
+  it('records tenant lifecycle audit through the request transaction and omits the global post-write action', async () => {
+    const globalDatabase = vi.fn();
+    const writes: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const requestDatabase = vi.fn((table: string) => ({
+      where: () => ({ first: async () => ({ status: 'submitted' }) }),
+      insert: async (row: Record<string, unknown>) => {
+        writes.push({ table, row });
+      },
+    }));
+    const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();
+    const actions = new Set<string>();
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: (event: string, callback: (...args: any[]) => Promise<any>) => {
+          const callbacks = filters.get(event) ?? [];
+          callbacks.push(callback);
+          filters.set(event, callbacks);
+        },
+        action: (event: string) => actions.add(event),
+        schedule: () => undefined,
+      },
+      { database: globalDatabase, env: {} },
+    );
+
+    const payload = { status: 'verified' };
+    await expect(filters.get('farm_activity.items.update')?.at(-1)?.(
+      payload,
+      { keys: ['activity-1'], accountability: { admin: true, user: 'operator-1' } },
+      { database: requestDatabase },
+    )).resolves.toBe(payload);
+
+    expect(writes).toEqual([{
+      table: 'workflow_history',
+      row: {
+        collection: 'farm_activity',
+        record_id: 'activity-1',
+        from_status: 'submitted',
+        to_status: 'verified',
+        changed_by: 'operator-1',
+        notes: null,
+        rejection_reason: null,
+      },
+    }]);
+    expect(requestDatabase).toHaveBeenCalledWith('farm_activity');
+    expect(requestDatabase).toHaveBeenCalledWith('workflow_history');
+    expect(actions.has('farm_activity.items.update')).toBe(false);
+    expect(actions.has('metric_proposal.items.update')).toBe(true);
     expect(globalDatabase).not.toHaveBeenCalled();
   });
 

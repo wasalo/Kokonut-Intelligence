@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-26",
+  "change": "Tenant-scoped Directus lifecycle audit writes use the request database before the item update",
+  "scope": [
+    "workflow_history writes for the 10 tenant-scoped collections handled by handleWorkflowTransition",
+    "skip extension-global post-write lifecycle audit actions for those same collections",
+    "retain the specialized metric_proposal lifecycle path unchanged"
+  ],
+  "verification": {
+    "command": "cd extensions/kokonut-hooks && npm test",
+    "result": "passed",
+    "test_files": 7,
+    "tests": 96,
+    "build_command": "cd extensions/kokonut-hooks && npm run build",
+    "build_result": "passed",
+    "typescript": "passed"
+  },
+  "database_or_runtime_accessed": false,
+  "candidate_or_legacy_modified": false,
+  "external_provider_contacted": false,
+  "limitations": [
+    "Source and unit evidence only; pinned Directus request-transaction semantics still require runtime acceptance.",
+    "This does not establish Directus collection, field, relation, role, hook, schedule, or populated-data parity.",
+    "metric_proposal retains its specialized post-write history path and needs a separate transaction-boundary review."
+  ],
+  "rollback": "Revert the hook change to restore post-write audit behavior; no schema change or migration is required."
+}

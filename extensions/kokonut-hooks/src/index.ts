@@ -268,7 +268,14 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     const userRoles = await resolveUserRoles(requestDatabase, meta);
     const accountability = meta?.accountability;
     return await handleWorkflowTransition(
-      collection, payload, meta.keys || {}, userRoles, requestDatabase, accountability
+      collection,
+      payload,
+      meta.keys || {},
+      userRoles,
+      requestDatabase,
+      accountability,
+      (TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection) &&
+        collection !== 'metric_proposal',
     );
   }
 
@@ -704,6 +711,12 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
   // ============================================================
 
   for (const collection of LIFECYCLE_COLLECTIONS) {
+    // Tenant-scoped lifecycle filters write workflow_history in the same
+    // Directus request transaction as the item update. Do not write a second,
+    // best-effort copy through the extension-global connection afterward.
+    if ((TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) {
+      continue;
+    }
     action(`${collection}.items.update`, async (meta: Record<string, any>) => {
       const newStatus = meta?.payload?.status;
       const recordId = meta.keys?.[0] ?? meta.keys?.id;

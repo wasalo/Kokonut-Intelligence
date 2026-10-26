@@ -19383,3 +19383,20 @@ deployed, and 36 prepared across 67 rows. Checklist: 1,221 complete / 25 open
 (1,246 total). The inventory change does not classify the other unmatched
 sites as dead code or prove their external callers absent. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/retired-private-sql-readers.json`.
+
+### Progress addendum — Directus tenant lifecycle audit transaction, 26 October 2026
+
+Tenant-scoped lifecycle updates handled by the shared workflow filter now write
+their `workflow_history` row through the same Directus request database before
+the item update proceeds. Audit insertion failure fails the filter with a
+bounded error, preventing the state update from proceeding without its audit
+row. The corresponding extension-global post-write logger is no longer
+registered for those ten collections. `metric_proposal` retains its separate
+specialized history path.
+
+The full extension suite passes 96 tests; the extension bundle and TypeScript
+check pass. No Directus runtime or database was used. This source evidence does
+not establish pinned-runtime transaction semantics or full Directus parity.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows. Checklist: 1,222 complete / 25 open (1,247 total).
+Evidence: `docs/refactor/builds/2026-10-26-recovery/directus-tenant-lifecycle-audit-transaction.json`.

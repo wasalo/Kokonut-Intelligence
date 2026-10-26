@@ -3369,3 +3369,20 @@ and its bundler and TypeScript check pass. No database or Directus runtime was
 used. Evidence: `builds/2026-10-26-recovery/directus-feedback-review-atomicity.json`.
 This does not establish pinned-runtime transaction semantics or populated
 review parity.
+
+### 26 October 2026 — Directus tenant lifecycle audit transaction
+
+The ten tenant-scoped collections whose update hooks use
+`handleWorkflowTransition` now write generic workflow history through the
+request-bound database after transition/role validation and before Directus
+persists the item. The extension-global post-write action logger is omitted for
+those collections, avoiding an independent, best-effort audit write. If the
+history insert fails, the update filter fails with a bounded error. The
+specialized `metric_proposal` history path is unchanged.
+
+The full extension suite passes 96 tests, and `npm run build` passes the
+Directus extension bundler and TypeScript check. No Directus runtime or
+database was used. The source tests do not verify the pinned Directus version's
+transaction lifecycle; that runtime acceptance and full Directus role/field/
+relation/hook parity remain open. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-tenant-lifecycle-audit-transaction.json`.

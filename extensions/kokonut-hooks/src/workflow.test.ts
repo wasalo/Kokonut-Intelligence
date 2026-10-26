@@ -95,6 +95,52 @@ describe('pending transition stash', () => {
   });
 });
 
+describe('tenant lifecycle audit transaction', () => {
+  it('writes the transition through the request database before returning the update payload', async () => {
+    const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const db = (table: string) => ({
+      where: () => ({ first: async () => ({ status: 'submitted' }) }),
+      insert: async (row: Record<string, unknown>) => {
+        inserts.push({ table, row });
+      },
+    });
+    const payload: Record<string, unknown> = { status: 'verified' };
+
+    await expect(handleWorkflowTransition(
+      'field_note', payload, { id: 'note-1' }, ['admin'], db,
+      { user: 'operator-1' }, true,
+    )).resolves.toBe(payload);
+
+    expect(inserts).toEqual([{
+      table: 'workflow_history',
+      row: {
+        collection: 'field_note',
+        record_id: 'note-1',
+        from_status: 'submitted',
+        to_status: 'verified',
+        changed_by: 'operator-1',
+        notes: null,
+        rejection_reason: null,
+      },
+    }]);
+    expect(consumePendingTransition('field_note', 'note-1')).toBeUndefined();
+  });
+
+  it('fails the update when the request-transaction audit insert fails', async () => {
+    const db = (table: string) => ({
+      where: () => ({ first: async () => ({ status: 'submitted' }) }),
+      insert: async () => {
+        if (table === 'workflow_history') throw new Error('private database detail');
+      },
+    });
+
+    await expect(handleWorkflowTransition(
+      'field_note', { status: 'verified' }, { id: 'note-2' }, ['admin'], db,
+      { user: 'operator-1' }, true,
+    )).rejects.toThrow('Unable to record workflow transition for field_note');
+  });
+});
+
 describe('stakeholder feedback workflow', () => {
   it('defaults feedback to private draft', () => {
     const payload: Record<string, any> = {};
