@@ -22,11 +22,13 @@ export const TENANT_SCOPED_COLLECTIONS = [
   'retirement_certificate',
   'metric_proposal',
   'mrv_claim',
+  'metric_value',
 ] as const;
 
-/** Certificates are location-readable, but Directus must not issue or revoke them. */
+/** These rows are location-readable, but Directus must not mutate them. */
 export const READ_ONLY_TENANT_SCOPED_COLLECTIONS = [
   'retirement_certificate',
+  'metric_value',
 ] as const;
 
 export type TenantScopedCollection = (typeof TENANT_SCOPED_COLLECTIONS)[number];

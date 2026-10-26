@@ -3546,3 +3546,7 @@ open. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/dashboard-query-sql-read-redaction.json`.
 Checklist: 1,232 complete / 25 open (1,257 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### 26 October 2026 — Directus metric-value tenant scope
+
+The optional Directus read adapter now scopes `metric_value` by exact organization/location grant and denies null-location results. The collection is read-only through Directus. The Auditor seed uses an explicit result-field allowlist that excludes source-record IDs, arbitrary metadata, reviewer identity, and verification notes; replay repairs a legacy wildcard. Source hooks and the pinned Directus 12.1.1 stored-permission profile pass, but populated API row behavior and full Directus parity remain open. See the [parity inventory](directus-parity-inventory.md) and [acceptance evidence](builds/2026-10-26-recovery/directus-metric-value-location-scope.json).

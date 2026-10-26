@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import registerHook, { resolveHookDatabase } from './index.js';
 import { consumePendingTransition } from './workflow.js';
-import { TENANT_SCOPED_COLLECTIONS } from './directus-authorization.js';
+import {
+  READ_ONLY_TENANT_SCOPED_COLLECTIONS,
+  TENANT_SCOPED_COLLECTIONS,
+} from './directus-authorization.js';
 
 describe('Directus hook event registration', () => {
   it('uses collection-qualified Directus item event names', () => {
@@ -235,7 +238,10 @@ describe('Directus hook event registration', () => {
 
     for (const collection of tenantCollections) {
       const hooks = filters.get(`${collection}.items.update`);
-      expect(hooks?.length, `${collection} update hooks`).toBeGreaterThanOrEqual(2);
+      const expectedHooks = (
+        READ_ONLY_TENANT_SCOPED_COLLECTIONS as readonly string[]
+      ).includes(collection) ? 1 : 2;
+      expect(hooks?.length, `${collection} update hooks`).toBeGreaterThanOrEqual(expectedHooks);
       for (const hook of hooks!.slice(1)) {
         await expect(hook({}, { keys: [] }, { accountability: { user: userId } }))
           .rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });

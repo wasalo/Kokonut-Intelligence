@@ -437,7 +437,7 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
         ('field_note', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('noi_snapshot', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('metric_definition', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
-        ('metric_value', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('metric_value', 'read', '{}', '{}', 'id,metric_id,location_id,period_start,period_end,value,unit,computation_method,computed_at,verified,verified_at', 'b1000000-0000-0000-0000-000000000009'),
         ('workflow_history', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('approval', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('expense_category', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
@@ -467,6 +467,16 @@ UPDATE directus_permissions
    SET fields = 'id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,last_refreshed_at,status,metadata,created_at,updated_at,updated_by'
  WHERE policy = 'b1000000-0000-0000-0000-000000000009'
    AND collection = 'dashboard_dataset'
+   AND action = 'read'
+   AND fields = '*';
+
+-- Metric values may contain location-specific evidence references and
+-- verification notes. Keep the Auditor's API projection limited to result
+-- fields, and repair only the repository's prior wildcard permission.
+UPDATE directus_permissions
+   SET fields = 'id,metric_id,location_id,period_start,period_end,value,unit,computation_method,computed_at,verified,verified_at'
+ WHERE policy = 'b1000000-0000-0000-0000-000000000009'
+   AND collection = 'metric_value'
    AND action = 'read'
    AND fields = '*';
 

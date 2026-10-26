@@ -44,12 +44,12 @@ def test_inventory_counts_literal_wildcard_rules_and_keeps_limits_explicit() -> 
     inventory = build_inventory(root / "config/directus/permissions.sql", root)
 
     assert inventory["summary"]["literal_permission_rows"] == 175
-    assert inventory["summary"]["wildcard_field_rows"] == 124
-    assert inventory["summary"]["explicit_field_rows"] == 51
+    assert inventory["summary"]["wildcard_field_rows"] == 123
+    assert inventory["summary"]["explicit_field_rows"] == 52
     assert inventory["summary"]["declared_farm_activity_rules"] == 0
-    assert inventory["summary"]["update_statements"] == 5
+    assert inventory["summary"]["update_statements"] == 6
     assert inventory["summary"]["delete_statements"] == 1
-    assert inventory["summary"]["wildcard_rows_by_policy"]["Auditor Policy"] == 27
+    assert inventory["summary"]["wildcard_rows_by_policy"]["Auditor Policy"] == 26
     assert "not effective deployed permission state" in inventory["limitations"][0]
     delete = next(item for item in inventory["source_mutations"] if item["operation"] == "delete")
     assert "collection = 'farm_activity'" in delete["statement"]
@@ -77,6 +77,30 @@ def test_inventory_counts_literal_wildcard_rules_and_keeps_limits_explicit() -> 
     )
     assert "fields = '*'" in field_repair["statement"]
     assert "query_sql" not in field_repair["statement"]
+
+    metric_value = next(
+        rule
+        for rule in inventory["rules"]
+        if rule["policy"] == "Auditor Policy"
+        and rule["collection"] == "metric_value"
+        and rule["action"] == "read"
+    )
+    assert metric_value["field_access"] == "explicit"
+    assert metric_value["fields"] == [
+        "id", "metric_id", "location_id", "period_start", "period_end",
+        "value", "unit", "computation_method", "computed_at", "verified",
+        "verified_at",
+    ]
+    assert not {"source_record_ids", "metadata", "verified_by", "verification_notes"} & set(
+        metric_value["fields"]
+    )
+    metric_repair = next(
+        item
+        for item in inventory["source_mutations"]
+        if item["operation"] == "update"
+        and "collection = 'metric_value'" in item["statement"]
+    )
+    assert "fields = '*'" in metric_repair["statement"]
 
     feedback = next(
         rule

@@ -19629,3 +19629,9 @@ permissions and pinned-version behavior remain open. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/dashboard-query-sql-read-redaction.json`.
 Checklist: 1,232 complete / 25 open (1,257 total); classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — Directus metric-value location boundary, 26 October 2026
+
+The Directus tenant adapter now covers 22 location-scoped collections. `metric_value` reads require an exact location grant; the response recheck rejects null-location legacy rows, and all mutations are denied before identity or row lookup. The Auditor permission exposes only metric result fields, excluding source-record IDs, arbitrary metadata, reviewer identity, and verification notes.
+
+All 118 Directus hook tests and two permission-source inventory tests pass, along with the extension build/typecheck, Ruff, Python compilation, permission-inventory freshness, capability-matrix validation, and diff checks. A fresh pinned Directus 12.1.1 profile under `kokonut_directus_runtime` applies and replays the seed, confirms the explicit metric field list, repairs a simulated legacy wildcard, preserves the effective permission snapshot, and cleans its project/volume. No populated metric rows, live API row read, candidate, or legacy database was used. The profile checks stored policy, not populated API behavior. Evidence: `docs/refactor/builds/2026-10-26-recovery/directus-metric-value-location-scope.json`. Checklist: 1,233 complete / 25 open (1,258 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

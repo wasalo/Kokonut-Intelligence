@@ -29,11 +29,16 @@ PROJECT = f"kokonut-directus-profile-check-{uuid.uuid4().hex[:10]}"
 EVIDENCE = ROOT / "docs/refactor/builds/2026-10-23-recovery/directus-effective-permissions.json"
 SNAPSHOT_EVIDENCE = ROOT / "docs/refactor/builds/2026-10-23-recovery/directus-effective-permission-rows.json"
 DASHBOARD_EVIDENCE = ROOT / "docs/refactor/builds/2026-10-26-recovery/directus-dashboard-field-allowlist-disposable.json"
+METRIC_VALUE_EVIDENCE = ROOT / "docs/refactor/builds/2026-10-26-recovery/directus-metric-value-location-scope.json"
 PERMISSION_SEED = ROOT / "config/directus/permissions.sql"
 EXPECTED_PERMISSION_ROWS = 175
 EXPECTED_DASHBOARD_AUDITOR_FIELDS = (
     "id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,"
     "last_refreshed_at,status,metadata,created_at,updated_at,updated_by"
+)
+EXPECTED_METRIC_VALUE_AUDITOR_FIELDS = (
+    "id,metric_id,location_id,period_start,period_end,value,unit,"
+    "computation_method,computed_at,verified,verified_at"
 )
 
 
@@ -392,6 +397,23 @@ def main() -> int:
             raise RuntimeError(
                 "Directus dashboard read permission must explicitly exclude archived query_sql"
             )
+        metric_value_permissions = [
+            row for row in first_permission_rows
+            if row.get("collection") == "metric_value"
+            and row.get("action") == "read"
+        ]
+        if (
+            len(metric_value_permissions) != 1
+            or metric_value_permissions[0].get("policy") != "Auditor Policy"
+            or metric_value_permissions[0].get("fields") != EXPECTED_METRIC_VALUE_AUDITOR_FIELDS
+            or any(
+                field in str(metric_value_permissions[0].get("fields"))
+                for field in ("source_record_ids", "metadata", "verified_by", "verification_notes")
+            )
+        ):
+            raise RuntimeError(
+                "Directus metric-value read permission must use the reviewed result-field allowlist"
+            )
         if any(row.get("collection") == "farm_activity" for row in first_permission_rows):
             raise RuntimeError("managed farm_activity permissions remain after the fresh seed")
         legacy_wildcard = run(
@@ -420,6 +442,32 @@ def main() -> int:
         require_success(legacy_wildcard, "legacy dashboard permission fixture", env)
         if legacy_wildcard.stdout.strip() != "*":
             raise RuntimeError("failed to establish the legacy dashboard wildcard fixture")
+        metric_wildcard = run(
+            [
+                *compose,
+                "exec",
+                "-T",
+                "database",
+                "psql",
+                "-X",
+                "-q",
+                "-t",
+                "-A",
+                "-U",
+                "kokonut",
+                "-d",
+                "kokonut_intelligence",
+                "-c",
+                "UPDATE public.directus_permissions SET fields = '*' "
+                "WHERE policy = 'b1000000-0000-0000-0000-000000000009' "
+                "AND collection = 'metric_value' AND action = 'read' "
+                "RETURNING fields",
+            ],
+            env=env,
+        )
+        require_success(metric_wildcard, "legacy metric-value permission fixture", env)
+        if metric_wildcard.stdout.strip() != "*":
+            raise RuntimeError("failed to establish the legacy metric-value wildcard fixture")
         seed_replay = run(permission_seed_command, env=env, input_text=permission_seed)
         require_success(seed_replay, "Directus permission seed replay", env)
         replay_counts = permission_counts()
@@ -689,6 +737,7 @@ def main() -> int:
                     "other_curated_permissions": first_counts[1],
                     **summarize_permission_snapshot(first_permission_rows),
                     "legacy_dashboard_wildcard_repaired": True,
+                    "legacy_metric_value_wildcard_repaired": True,
                     "replay_snapshot_unchanged": True,
                 },
                 "loopback_only": True,
@@ -752,6 +801,32 @@ def main() -> int:
             }
             DASHBOARD_EVIDENCE.write_text(
                 json.dumps(dashboard_evidence, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            metric_value_evidence = {
+                "date": datetime.now(timezone.utc).date().isoformat(),
+                "result": "passed",
+                "runtime": "Directus 12.1.1",
+                "database": "fresh isolated Kernel PostgreSQL volume",
+                "database_identity": "kokonut_directus_runtime",
+                "candidate_or_legacy_database_used": False,
+                "permission_seed_applied_and_replayed": True,
+                "legacy_wildcard_repaired": True,
+                "replay_snapshot_unchanged": True,
+                "permission": next(
+                    row for row in first_permission_rows
+                    if row.get("policy") == "Auditor Policy"
+                    and row.get("collection") == "metric_value"
+                    and row.get("action") == "read"
+                ),
+                "limitations": [
+                    "Fresh repository-managed policy fixture only; custom/operator-edited policies are excluded.",
+                    "No metric rows, populated tenant grants, or live API read were used.",
+                    "The source hook enforces exact location grants and denies null-location results; this profile verifies stored permission state only.",
+                ],
+            }
+            METRIC_VALUE_EVIDENCE.write_text(
+                json.dumps(metric_value_evidence, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
 
