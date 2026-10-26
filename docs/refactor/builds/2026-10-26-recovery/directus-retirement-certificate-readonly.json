@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-26",
+  "slice": "Directus retirement certificate read-only location scope",
+  "source": "extensions/kokonut-hooks/src/directus-authorization.ts",
+  "collection_count_before": 20,
+  "collection_count_after": 21,
+  "added_collection": "retirement_certificate",
+  "authorization_contract": {
+    "identity": "active Directus OIDC subject mapped to enabled Kokonut operator by exact issuer",
+    "read": "exact collection read grant; filter by granted location and recheck returned row locations",
+    "create_update_delete": "denied before operator resolution or row lookup",
+    "lifecycle": "certificate issuance and revocation are not performed by the generic Directus lifecycle hook",
+    "relations": "deep and nested/wildcard relation expansion remain denied"
+  },
+  "schema_contract": {
+    "location_column": "location_id",
+    "domain_states": ["issued", "revoked"]
+  },
+  "verification": {
+    "extension_tests": 102,
+    "extension_test_files": 7,
+    "directus_bundle": "passed",
+    "typescript_check": "passed",
+    "database_or_runtime_used": false
+  },
+  "limitations": [
+    "does not establish pinned Directus runtime behavior or effective API role/field permissions",
+    "does not establish certificate verification parity",
+    "does not establish PostgreSQL RLS",
+    "does not provision live operator identities or location grants"
+  ],
+  "candidate_or_legacy_modified": false,
+  "capability_classifications": {
+    "baseline_retained": 24,
+    "deployed": 7,
+    "prepared": 36,
+    "rows": 67
+  },
+  "checklist": {
+    "complete": 1227,
+    "open": 25,
+    "total": 1252
+  }
+}

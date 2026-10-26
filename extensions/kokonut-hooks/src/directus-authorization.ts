@@ -19,8 +19,14 @@ export const TENANT_SCOPED_COLLECTIONS = [
   'stakeholder_feedback',
   'credit_batch',
   'project_credit_class_enrollment',
+  'retirement_certificate',
   'metric_proposal',
   'mrv_claim',
+] as const;
+
+/** Certificates are location-readable, but Directus must not issue or revoke them. */
+export const READ_ONLY_TENANT_SCOPED_COLLECTIONS = [
+  'retirement_certificate',
 ] as const;
 
 export type TenantScopedCollection = (typeof TENANT_SCOPED_COLLECTIONS)[number];
@@ -230,6 +236,7 @@ export async function authorizeDirectusRows(
   payload?: Record<string, any>,
 ): Promise<TenantRow[]> {
   if (!isTenantCollection(collection)) return [];
+  if ((READ_ONLY_TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) throw deny();
   const operatorId = await resolveOperator(store, accountability, issuer);
   const ids = Array.isArray(requestedIds)
     ? requestedIds
@@ -261,6 +268,7 @@ export async function authorizeDirectusCreate(
   payload: Record<string, any>,
 ): Promise<void> {
   if (!isTenantCollection(collection)) return;
+  if ((READ_ONLY_TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) throw deny();
   const operatorId = await resolveOperator(store, accountability, issuer);
   if (!isUuid(payload?.location_id)) throw deny();
   if (!await store.canAccessLocation(operatorId, collection, 'create', payload.location_id)) throw deny();

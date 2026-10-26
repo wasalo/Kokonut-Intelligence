@@ -1,3 +1,17 @@
+### Progress addendum — Directus retirement-certificate read scope, 26 October 2026
+
+The location-scoped Directus adapter now includes `retirement_certificate` as
+its twenty-first collection. Reads require the exact location `read` grant;
+create, update, and delete fail before operator resolution or row loading,
+because the shared lifecycle transition map is not an issuer/revoker for the
+certificate's `issued`/`revoked` domain state. The extension suite passes 102
+tests; the Directus bundle and TypeScript check pass. No database or Directus
+runtime was used. This does not establish effective API role/field permissions,
+pinned-runtime behavior, certificate verification parity, or RLS. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-retirement-certificate-readonly.json`.
+Checklist: 1,227 complete / 25 open (1,252 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — Directus location-scoped lifecycle collection expansion, 26 October 2026
 
 The fail-closed Directus adapter now checks exact organization/location grants
@@ -6,8 +20,9 @@ collections cover forecast scenarios, report snapshots, dashboard datasets,
 farm registry records, inventory events, maintenance events, stakeholder
 outcomes, credit batches, and credit-class enrollments. Scenario-parent and
 maintenance-asset references are checked against the same location. Impact
-claims, MRV events, retirement certificates, and Data Stream posts remain
-excluded until their polymorphic/child references have explicit contracts.
+claims, MRV events, and Data Stream posts remain excluded until their
+polymorphic/child references have explicit contracts; retirement certificates
+were subsequently added as read-only scope.
 The extension suite passes 101 tests; the bundle and TypeScript check pass.
 No database or Directus runtime was used. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/directus-location-lifecycle-scope.json`.

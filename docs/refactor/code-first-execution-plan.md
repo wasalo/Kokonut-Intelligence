@@ -3448,3 +3448,18 @@ runtime behavior, live identity/grants, or RLS. Checklist: 1,226 complete / 25
 open (1,251 total); capability classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/directus-location-lifecycle-scope.json`.
+
+### 26 October 2026 — Directus retirement-certificate read scope
+
+`retirement_certificate` is now the twenty-first collection in the exact
+organization/location read adapter. The `read` action is grant-filtered by the
+stored location, while create/update/delete are denied before operator lookup
+or row retrieval; certificate issuance and revocation remain on the governed
+credit path. This avoids applying generic lifecycle transitions to the
+certificate's `issued`/`revoked` state. The full Directus extension suite passes
+102 tests; the extension bundle and TypeScript check pass. No runtime database
+or Directus instance was used. Effective role/field permissions, pinned-runtime
+behavior, certificate verification parity, and RLS remain open. Checklist:
+1,227 complete / 25 open (1,252 total); capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-retirement-certificate-readonly.json`.

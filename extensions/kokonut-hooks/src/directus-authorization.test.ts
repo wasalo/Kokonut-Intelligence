@@ -6,6 +6,7 @@ import {
   authorizeDirectusReadResult,
   authorizeDirectusRows,
   createDirectusTenantStore,
+  READ_ONLY_TENANT_SCOPED_COLLECTIONS,
   TENANT_SCOPED_COLLECTIONS,
   type DirectusTenantStore,
 } from './directus-authorization.js';
@@ -57,9 +58,11 @@ describe('Directus tenant authorization', () => {
       'stakeholder_feedback',
       'credit_batch',
       'project_credit_class_enrollment',
+      'retirement_certificate',
       'metric_proposal',
       'mrv_claim',
     ]);
+    expect(READ_ONLY_TENANT_SCOPED_COLLECTIONS).toEqual(['retirement_certificate']);
 
     const store = makeStore();
     for (const collection of TENANT_SCOPED_COLLECTIONS) {
@@ -68,6 +71,18 @@ describe('Directus tenant authorization', () => {
       )).resolves.toMatchObject({
         filter: { location_id: { _in: [locationA] } },
       });
+      if ((READ_ONLY_TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) {
+        await expect(authorizeDirectusCreate(
+          store, accountability, issuer, collection, { location_id: locationA },
+        )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+        await expect(authorizeDirectusRows(
+          store, accountability, issuer, collection, 'update', [rowA], {},
+        )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+        await expect(authorizeDirectusRows(
+          store, accountability, issuer, collection, 'delete', [rowA],
+        )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+        continue;
+      }
       await authorizeDirectusCreate(
         store, accountability, issuer, collection, { location_id: locationA },
       );
@@ -88,9 +103,27 @@ describe('Directus tenant authorization', () => {
         operatorId, collection, 'delete', locationA,
       );
     }
+    const writableCollectionCount = TENANT_SCOPED_COLLECTIONS.length - READ_ONLY_TENANT_SCOPED_COLLECTIONS.length;
     expect(store.authorizedLocations).toHaveBeenCalledTimes(TENANT_SCOPED_COLLECTIONS.length);
-    expect(store.canAccessLocation).toHaveBeenCalledTimes(TENANT_SCOPED_COLLECTIONS.length * 3);
-    expect(store.loadRows).toHaveBeenCalledTimes(TENANT_SCOPED_COLLECTIONS.length * 2);
+    expect(store.canAccessLocation).toHaveBeenCalledTimes(writableCollectionCount * 3);
+    expect(store.loadRows).toHaveBeenCalledTimes(writableCollectionCount * 2);
+  });
+
+  it('denies certificate writes before resolving identity or loading rows', async () => {
+    const store = makeStore();
+    await expect(authorizeDirectusCreate(
+      store, accountability, issuer, 'retirement_certificate', { location_id: locationA },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'retirement_certificate', 'update', [rowA], {},
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'retirement_certificate', 'delete', [rowA],
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+
+    expect(store.resolveOperator).not.toHaveBeenCalled();
+    expect(store.canAccessLocation).not.toHaveBeenCalled();
+    expect(store.loadRows).not.toHaveBeenCalled();
   });
 
   it('maps active Directus OIDC subjects by exact issuer and excludes legacy null-tenant grants', async () => {
