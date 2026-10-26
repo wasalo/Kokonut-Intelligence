@@ -1,5 +1,15 @@
 # Capability preservation matrix
 
+**Current-source ARM64 application smoke (26 October 2026):** local commit
+`b0740b9d` builds the default Kernel image for `linux/arm64`. A no-network,
+read-only QEMU container reports `aarch64`, constructs the Gateway, imports
+both Python SDK clients and four isolated worker modules, and loads all 22
+JobSpecs. The smoke makes no database/provider calls, and its temporary image
+and container are removed ([evidence](builds/2026-10-26-recovery/arm64-kernel-current-source-smoke-b0740b9d.json)).
+This refreshes software portability evidence only; physical Pi and power/resource
+acceptance remain open. Capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows.
+
 
 **Isolated global EventBus dispatcher (26 October 2026):** Migration 648 adds a dedicated global queue identity and seven bounded functions for claims, handler receipts, leases, completion, retry, and dead-letter. The default-off worker preserves caller-owned event publication, exact child-handler credential filtering, and operator-only statistics/replay/disposition; the legacy dispatcher remains available for rollback. Completion requires successful receipts for all enabled handlers; retry requires a recorded handler failure. The focused selection passes 262 tests and 4 subtests; regenerated source/function/SQL/effect/preflight inventories pass. Network-disabled disposable PostgreSQL 16 applies/replays migration 648 and verifies forced-RLS behavior, exact function ACLs, no direct table access, success/error receipts, state-guard denial, retry/dead-letter, rollback, and expired-lease fencing on native x86_64 and ARM64/QEMU (`aarch64`) ([worker](../services/events/dispatch_worker.py); [migration](../schemas/postgres/648_isolated_event_dispatch_worker.sql); [source checks](builds/2026-10-26-recovery/event-dispatch-worker-source-checks.json); [native evidence](builds/2026-10-26-recovery/event-dispatch-worker-disposable.json); [ARM64 evidence](builds/2026-10-26-recovery/event-dispatch-worker-arm64-disposable.json)). QEMU demonstrates software portability only; no physical Raspberry Pi is available or claimed. The opt-in profile remains inactive pending a dedicated DSN/credential and a reviewed dispatcher handoff. Candidate and legacy were not rolled out; no live handler or provider ran. Checklist: 1,201 complete / 25 open (1,226 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no MAN-CAP acceptance is claimed.
 

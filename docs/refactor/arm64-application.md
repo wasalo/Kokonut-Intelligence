@@ -1,5 +1,18 @@
 # ARM64 Kernel application build evidence
 
+## Current-source software refresh — 26 October 2026 (`b0740b9d`)
+
+The Kernel image at source commit `b0740b9d` built for `linux/arm64` with the
+locked default target. The temporary image reports size 547,230,679 bytes and
+was removed after the smoke. A network-disabled QEMU container with a
+read-only root, 64 MiB temporary `/tmp`, and only a read-only Python SDK mount
+reported `aarch64`; it created the Gateway, imported both Python SDK clients
+and four isolated worker modules, and loaded all 22 JobSpecs. The direct
+FastAPI route object count was 12; no database/provider calls or credentials
+were used. This is software-emulation evidence only; physical Raspberry Pi,
+power-loss, thermal, measured-resource, and storage-endurance acceptance remain
+open ([evidence](builds/2026-10-26-recovery/arm64-kernel-current-source-smoke-b0740b9d.json)).
+
 ## Current-source software refresh — 25 October 2026 (worktree based on 9385eeb9)
 
 The working tree based on source revision

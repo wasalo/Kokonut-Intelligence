@@ -1,3 +1,17 @@
+### Progress addendum — current-source ARM64 app smoke, 26 October 2026
+
+The Kernel image at local commit `b0740b9d` builds for `linux/arm64`. A
+network-disabled, read-only QEMU container reports `aarch64`, creates the
+Gateway, imports both Python SDK clients and the EventBus, freshness,
+ClickHouse-outbox, and notification-delivery workers, and loads 22 JobSpecs.
+It observes 12 direct FastAPI route objects; it makes no database/provider
+calls and receives no credentials. The temporary image and container were
+removed. This refreshes software-emulation evidence only; no physical Pi,
+power, thermal, resource-endurance, or storage-endurance result is claimed
+([evidence](builds/2026-10-26-recovery/arm64-kernel-current-source-smoke-b0740b9d.json)).
+Checklist: 1,203 complete / 25 open (1,228 total); capability classifications
+remain unchanged.
+
 ### Progress addendum — ARM64 schema replay batching, 26 October 2026
 
 The full-schema ARM64 replay runner now submits migrations after the
