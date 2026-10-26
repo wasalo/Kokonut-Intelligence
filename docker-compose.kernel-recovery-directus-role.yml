@@ -1,0 +1,47 @@
+# Internal-only disposable PostgreSQL acceptance for the optional Directus role.
+name: kokonut-kernel-directus-role-recovery
+services:
+  database:
+    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+    platform: linux/amd64
+    restart: "no"
+    environment:
+      POSTGRES_USER: kokonut
+      POSTGRES_DB: kokonut_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
+    networks: [directus-role-recovery]
+    healthcheck:
+      test: ["CMD-SHELL", "for attempt in 1 2 3 4; do pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence || exit 1; sleep 0.5; done"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  runner:
+    image: sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10
+    platform: linux/amd64
+    init: true
+    restart: "no"
+    command: ["python3", "/workspace/scripts/fixtures/directus-role-disposable-check.py"]
+    working_dir: /workspace
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      KOKONUT_DB_ADMIN_USER: kokonut
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
+      KOKONUT_DIRECTUS_RUNTIME_USER: kokonut_directus_runtime
+      KOKONUT_DIRECTUS_RUNTIME_PASSWORD: ${KOKONUT_DIRECTUS_RUNTIME_PASSWORD:?Supply a distinct synthetic Directus runtime password}
+      PYTHONPATH: /workspace
+    volumes:
+      - ./VERSION:/workspace/VERSION:ro
+      - ./services:/workspace/services:ro
+      - ./scripts/fixtures/directus-role-disposable-check.py:/workspace/scripts/fixtures/directus-role-disposable-check.py:ro
+    networks: [directus-role-recovery]
+
+networks:
+  directus-role-recovery:
+    internal: true

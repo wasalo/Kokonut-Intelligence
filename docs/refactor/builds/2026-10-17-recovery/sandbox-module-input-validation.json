@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Sandbox module-name input validation and bounded rejection behavior; synthetic strings and malformed Python values only",
+  "files": [
+    "services/sandbox/environment.py",
+    "tests/test_sandbox_module_input.py"
+  ],
+  "result": "passed",
+  "checks": {
+    "new_input_cases": 5,
+    "sandbox_tests_total": "14 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed",
+    "modules_executed": 0,
+    "database_provider_calls": 0
+  },
+  "guarantees": [
+    "Non-string and malformed module names fail closed before whitelist access",
+    "Unregistered module input is not returned to callers or included in logs",
+    "Registered modules remain unavailable while the restricted worker is not configured"
+  ],
+  "limitations": [
+    "This does not implement or approve a sandbox execution backend",
+    "It does not establish authorization or tenant isolation for sandbox runs"
+  ]
+}

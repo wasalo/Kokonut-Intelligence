@@ -1,0 +1,41 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T04:48:54.352578+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "architecture": "aarch64",
+  "migrations": [
+    "155_pollinator_health.sql",
+    "602_pollinator_health_kernel_alignment.sql",
+    "619_location_pollinator_observation_capture.sql",
+    "620_location_pesticide_impact_capture.sql",
+    "621_location_pollinator_habitat_capture.sql",
+    "622_location_pollinator_hive_capture.sql",
+    "623_location_pollinator_hive_inspection_capture.sql",
+    "624_location_pollinator_habitat_lifecycle.sql",
+    "625_location_pollinator_hive_lifecycle.sql"
+  ],
+  "migration_624_applied": true,
+  "migration_625_replayed": true,
+  "checks": [
+    "migrations 155/602/619/620/621/622/623/624/625 apply; migration 625 replays",
+    "exact signed location edit grant applies reported status/condition/maintenance fields",
+    "exact retries replay one original event",
+    "changed request reuse, stale timestamps, and missing location rows fail closed",
+    "invalid status, future maintenance date, and empty audit reason are rejected",
+    "ungranted operator, wrong location, mismatched context, and non-operator actor are denied",
+    "operational state and attributed before/after audit are committed atomically",
+    "runtime and Directus cannot mutate or read the private lifecycle ledger or update habitat rows",
+    "no-login/no-inherit/no-bypass writer is executable only through Gateway runtime",
+    "exact signed location edit grant applies operational status and maintenance date",
+    "exact managed-hive retries replay the original audit event",
+    "changed request reuse, stale timestamps, and missing location rows fail closed",
+    "unsupported status, future maintenance date, and empty audit reason are rejected",
+    "ungranted operator, wrong location, mismatched context, and non-operator actor are denied",
+    "managed-hive state and attributed before/after audit are committed atomically",
+    "runtime and Directus cannot directly alter hive state or inspect the private audit ledger",
+    "no-login/no-inherit/no-bypass hive writer is executable only through Gateway runtime"
+  ],
+  "assertions_passed": 17,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false
+}

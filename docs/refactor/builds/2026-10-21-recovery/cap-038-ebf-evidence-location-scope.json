@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-038 Agent ecosystem",
+  "scope": "Require explicit location scope for the read-only EBF evidence-gap agent",
+  "result": "PASS",
+  "behavior": {
+    "required_inputs": ["scorecard_id", "location_id"],
+    "query": "v_ebf_evidence_gap_summary filters by both scorecard_id and location_id",
+    "parameter_order": ["scorecard_id", "location_id"],
+    "missing_or_malformed_location": "rejected by shared task validation before opening PostgreSQL"
+  },
+  "verification": {
+    "pytest": "44 passed across tests/test_ebf_agents.py, tests/test_agents_base.py, and tests/test_agent_tasks.py",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "refreshed and current",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "diff_check": "passed"
+  },
+  "database_or_provider_access": false,
+  "limitations": [
+    "An explicit location predicate is query scoping, not authenticated tenant authorization or row-level security.",
+    "The caller still needs a trusted operator/worker identity and a least-privilege database role before this read is treated as tenant-safe.",
+    "No populated scorecard parity or owner acceptance was performed."
+  ]
+}

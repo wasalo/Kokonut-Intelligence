@@ -1,0 +1,25 @@
+# Kernel HTTPS ingress plus the optional self-hosted ZITADEL identity host.
+http://{$KOKONUT_KERNEL_DOMAIN:localhost} {
+	redir https://{$KOKONUT_KERNEL_DOMAIN:localhost}:{$KOKONUT_KERNEL_HTTPS_PORT:8448}{uri} 308
+}
+
+https://{$KOKONUT_KERNEL_DOMAIN:localhost} {
+	encode gzip
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	reverse_proxy app:8099
+}
+
+http://{$KOKONUT_ZITADEL_DOMAIN:zitadel.localhost} {
+	redir https://{$KOKONUT_ZITADEL_DOMAIN:zitadel.localhost}:{$KOKONUT_KERNEL_HTTPS_PORT:8448}{uri} 308
+}
+
+https://{$KOKONUT_ZITADEL_DOMAIN:zitadel.localhost} {
+	reverse_proxy /ui/v2/login/* http://zitadel-login:3000
+	reverse_proxy h2c://zitadel-api:8080 {
+		header_up -TE
+	}
+}

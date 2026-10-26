@@ -1,0 +1,49 @@
+{
+  "title": "CAP-024 governance role registry and tactical queue reads",
+  "date": "2026-10-18",
+  "status": "implemented; local candidate app rebuilt; capability remains prepared, not accepted",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_local_commit": "72d2b101",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/roles",
+      "grant": "governance_roles:read",
+      "projection": "bounded role/circle lifecycle fields and aggregate accountability, assignment, and applicable authority-domain counts; excludes party identity and policy text"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/tactical-items",
+      "grant": "governance_tactical:read",
+      "projection": "bounded open/in-progress tactical item and session summary; excludes party identity, session notes, agenda text, and disposition details"
+    }
+  ],
+  "security_and_limits": {
+    "signed_tenant_context": "established before location-filtered SQL",
+    "database_mode": "read-only transaction with statement and lock timeouts",
+    "pagination": "keyset; page size 1..100",
+    "console": "same-origin no-store requests; textContent rendering; no mutation or approval actions",
+    "authorization": "two distinct exact OIDC resource/action grants",
+    "limitations": [
+      "underlying governance tables do not yet have domain-table RLS",
+      "runtime candidate SQL smoke used a random unassigned location and did not validate a real operator grant",
+      "CAP-024 decision/approval records, role/tactical write parity, populated fixtures, and MAN-CAP-024 remain open"
+    ]
+  },
+  "verification": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_gateway_governance_operations.py tests/test_gateway_governance_tension_review.py tests/test_gateway_governance_tension_actions.py tests/test_gateway_governance_roles.py tests/test_operator_route_policy_inventory.py tests/test_operator_console_governance_tensions.py -q",
+      "result": "40 passed"
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "66 rows valid; 45 baseline-retained, 7 deployed, 14 prepared",
+    "runtime_sql_inventory": "current; 844 service source files and 4,084 SQL execution sites",
+    "runtime_sql_smoke": "role and tactical queries executed as candidate runtime DB role in a read-only transaction against the live candidate schema for a random unassigned location; both returned zero rows; tenant context setter was monkeypatched for this SQL-only smoke",
+    "candidate_http": "app-only rebuild healthy; /health returned 200; anonymous role and tactical routes returned 401 with Cache-Control: no-store",
+    "candidate_services": "candidate PostgreSQL, Metabase, and proxy remained running; legacy stack untouched",
+    "migration_or_seed_write": "none"
+  },
+  "rollback": "Revert the Gateway routes/service and console panel as one app-code change. No schema or candidate data rollback is required. Keep the existing ordered migrations 436 and 437 applied.",
+  "evidence_scope": "Repository tests, static checks, candidate-schema read-only SQL smoke, and anonymous route checks; this does not establish authenticated browser acceptance or universal tenant isolation."
+}

@@ -1,0 +1,34 @@
+{
+  "capability": "CAP-039",
+  "slice": "price-attestation input contract",
+  "date": "2026-10-21",
+  "implementation": "services/ingestion/price_attestation.py",
+  "tests": [
+    "tests/test_price_attestation_cli.py",
+    "tests/test_price_attestation.py",
+    "tests/test_price_provider_error_redaction.py"
+  ],
+  "commands": [
+    "python3 -m pytest tests/test_price_attestation_cli.py tests/test_price_attestation.py tests/test_price_provider_error_redaction.py -q",
+    "ruff check services/ingestion/price_attestation.py tests/test_price_attestation_cli.py tests/test_price_attestation.py",
+    "python3 -m py_compile services/ingestion/price_attestation.py tests/test_price_attestation_cli.py tests/test_price_attestation.py"
+  ],
+  "results": {
+    "pytest": "35 passed",
+    "ruff": "passed",
+    "py_compile": "passed"
+  },
+  "verified": [
+    "Standalone and unified CLI reject zero, negative, NaN, and infinite prices before database setup.",
+    "Standalone and unified CLI reject blank commodity/source and conflicting daily/manual options before database setup.",
+    "The shared attest_price function rejects invalid price, source-count, confidence, and commodity values before opening a cursor.",
+    "Daily processing preserves an explicit zero confidence.",
+    "Existing valid standalone/unified dispatch, help parity, connection closure, and provider error-redaction checks remain passing."
+  ],
+  "external_effects": "No database, chain, or provider was contacted; persistence and provider behavior were stubbed or guarded.",
+  "limitations": [
+    "No live price-row lineage or database authorization was verified.",
+    "No live chain or EAS attestation was attempted.",
+    "MAN-CAP-039 owner acceptance remains open."
+  ]
+}

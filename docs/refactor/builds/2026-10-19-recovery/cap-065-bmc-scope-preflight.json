@@ -1,0 +1,22 @@
+{
+  "capability": "CAP-065",
+  "title": "Business Model Canvas one-click scope preflight",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "Focused source guard passes; Kernel capability remains unprepared",
+  "changes": [
+    "One-click canvas creation now requires exactly one organization or location scope before running suggestion queries, rolling back, or creating a canvas.",
+    "Removed stale datetime imports and normalized the module import block while checking the touched source with Ruff."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_bmc_oneclick.py tests/test_comprehensive_status.py -q",
+    "result": "7 passed",
+    "ruff": "python3 -m ruff check services/analytics/business_model_canvas.py tests/test_bmc_oneclick.py tests/test_comprehensive_status.py: passed",
+    "compilation": "python3 -m compileall -q services/analytics/business_model_canvas.py tests/test_bmc_oneclick.py tests/test_comprehensive_status.py: passed",
+    "database_or_provider": "None used; all BMC creation behavior is mocked and the scope regression asserts no suggestion or create calls."
+  },
+  "scope_limits": [
+    "This does not add a Gateway BMC creation route, tenant authorization for the legacy service, organization-wide suggestion aggregation, or canvas/reference-output parity.",
+    "CAP-065 remains baseline-retained and unaccepted pending Kernel implementation and MAN-CAP-065 owner review."
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "algorithm": "Seeded tie ordering and greedy sample-count balancing; all records from one field remain in one held-out fold.",
+  "assertions": {
+    "each_field_is_excluded_in_exactly_one_fold": "passed",
+    "equal_size_fixture_has_balanced_sample_counts": "passed",
+    "reversed_input_order_keeps_identical_fold_assignment": "passed",
+    "same_input_repeats_identical_fold_assignment": "passed"
+  },
+  "broader_focused_suite": {
+    "modules": [
+      "tests/test_dsm_soc_prediction.py",
+      "tests/test_geostatistics.py",
+      "tests/test_spectral_indices.py"
+    ],
+    "result": "passed",
+    "test_count": 95
+  },
+  "candidate_or_legacy_modified": false,
+  "check": "CAP-041 deterministic geographic field-fold contract",
+  "database_contacted": false,
+  "date": "2026-10-19",
+  "focused_test_count": 22,
+  "focused_test_file": "tests/test_dsm_soc_prediction.py",
+  "limitations": [
+    "The helper returns fold partition metadata only; it does not fit a model or compute geographic cross-validation metrics."
+  ],
+  "result": "passed"
+}

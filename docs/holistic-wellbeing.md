@@ -249,11 +249,13 @@ The agent reads:
 - `v_public_cultural_context_summary`;
 - `v_public_wellbeing_metric_summary`;
 - `v_public_participatory_governance_summary`;
-- aggregate language counts from non-rejected `stakeholder_feedback` rows.
+- language counts derived from the published, public-safe cultural and
+  wellbeing rows above.
 
-The language query returns counts by language and separates total feedback from
-rows with `consent_given = TRUE AND is_public = TRUE`. It does not select raw
-feedback text.
+The worker does not query `stakeholder_feedback` directly. Language coverage
+counts public-safe evidence rows only; it does not claim to count all feedback
+or reveal private/no-consent totals. Other report-specific aggregation is
+outside this worker source-reader contract.
 
 The output summary contains:
 

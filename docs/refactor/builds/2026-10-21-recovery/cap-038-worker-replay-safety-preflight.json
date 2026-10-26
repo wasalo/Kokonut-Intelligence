@@ -1,0 +1,20 @@
+{
+  "capability": "CAP-038",
+  "check": "deterministic signed agent worker replay policy preflight",
+  "date": "2026-10-21",
+  "scope": "Offline mocked agent task, safety, and worker checks; no database or provider access",
+  "results": {
+    "pytest": "53 passed",
+    "ruff": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior": [
+    "The deterministic worker validates task capabilities and required inputs before replay lookup.",
+    "Read and draft-create safety policies are checked before an idempotent retry returns.",
+    "A mutated task registry that permits publication fails closed before receipt lookup or database access."
+  ],
+  "limitations": [
+    "Does not authenticate the worker process or establish database least privilege.",
+    "Does not establish populated agent output parity or deployment acceptance."
+  ]
+}

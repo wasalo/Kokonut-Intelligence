@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "567f0b21",
+  "scope": "Remote-sensing fetcher read cursor cleanup on SQL and fetch failures",
+  "verification": {
+    "focused_tests": "10 cursor-failure cases pass; 82 tests in the fetcher, scheduler, and automation selection",
+    "coverage": [
+      "active-job query closes after execute and fetchall failures",
+      "location-scoped job lookup closes after execute and fetchone failures",
+      "location-scoped job listing closes after execute and fetchall failures",
+      "stored-job-bbox and derived-plot-bbox lookups close after execute and fetchone failures",
+      "successful query behavior and scheduler/provider contracts remain covered by the existing focused selection"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; all cursor and connection behavior was synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: every read cursor in the remote-sensing fetcher now closes if its query or result-fetch stage raises.",
+  "limitations": [
+    "This is mocked resource-lifecycle coverage; it does not verify live PostgreSQL behavior or authorization.",
+    "Provider execution, durable job recovery, and runtime outage acceptance remain open."
+  ]
+}

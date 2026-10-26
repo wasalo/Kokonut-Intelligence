@@ -1,0 +1,35 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T05:34:19.388598+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "architecture": "aarch64",
+  "migrations": [
+    "155_pollinator_health.sql",
+    "602_pollinator_health_kernel_alignment.sql",
+    "619_location_pollinator_observation_capture.sql",
+    "620_location_pesticide_impact_capture.sql",
+    "621_location_pollinator_habitat_capture.sql",
+    "622_location_pollinator_hive_capture.sql",
+    "623_location_pollinator_hive_inspection_capture.sql",
+    "624_location_pollinator_habitat_lifecycle.sql",
+    "625_location_pollinator_hive_lifecycle.sql",
+    "626_location_pollinator_independent_review.sql"
+  ],
+  "migration_626_replayed": true,
+  "checks": [
+    "migrations 155/602/619\u2013626 apply",
+    "migration 626 replays cleanly",
+    "signed review grant returns bounded location-only pages and excludes caller's own submission",
+    "operator without exact location review grant is denied",
+    "independent observation review updates only recorded status and exact retries replay",
+    "pesticide report can be reviewed or dismissed without an approval/safety state",
+    "request ID input collisions and stale/non-recorded decisions fail closed",
+    "self-review and foreign-location decisions are denied",
+    "review decision, source status, and immutable audit event commit atomically",
+    "migration replay preserves immutable pollinator review history",
+    "runtime reaches bounded review functions; Directus and direct table/ledger access are denied"
+  ],
+  "assertions_passed": 11,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false
+}

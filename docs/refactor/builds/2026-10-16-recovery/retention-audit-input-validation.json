@@ -1,0 +1,29 @@
+{
+  "checked_at_utc": "2026-10-16T03:19:06Z",
+  "scope": "pre-database validation for retention policy and legal-hold audit inputs",
+  "operations": [
+    "policy creation",
+    "policy approval",
+    "policy retirement",
+    "legal-hold placement",
+    "legal-hold release"
+  ],
+  "contract": {
+    "actor": "trimmed nonblank string, at most 200 characters",
+    "reason": "trimmed nonblank string",
+    "invalid_input": "raises ValueError before opening a database cursor",
+    "identity_authentication": "not performed by these service functions"
+  },
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_data_governance.py -q",
+      "passed": 52,
+      "subtests": 49
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "environment": "unit mocks only; no candidate or legacy database, provider, or Docker resource was accessed",
+  "retention_periods": "none configured or selected; no policy or hold rows were changed"
+}

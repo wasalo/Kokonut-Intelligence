@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Forecast scenario and dashboard projection failures",
+  "behavior": {
+    "scenario_failure": "Batch results and logs expose only scenario ID and exception class, not scenario labels or raw exception text.",
+    "dashboard_write_failure": "Best-effort projection logs only the exception class and always closes an acquired database connection."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_forecast_error_redaction.py tests/test_forecast.py -q",
+    "result": "10 passed",
+    "coverage": [
+      "scenario batch failure details and labels are absent from output",
+      "dashboard projection failures do not expose database exception details",
+      "dashboard connection closes on failure",
+      "existing forecast assumptions and draft/submission contracts remain covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked database and forecast function"
+  },
+  "limitations": [
+    "No forecast calculation, PostgreSQL instance, or BI consumer was run.",
+    "This does not establish output parity with the legacy forecast reports."
+  ]
+}

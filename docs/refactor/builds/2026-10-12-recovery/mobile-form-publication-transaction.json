@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-12",
+  "result": "passed",
+  "target": "separate disposable PostGIS 16-3.4 container with no persistent volume and a loopback-only random host port",
+  "migration_scope": "Minimal prerequisite location, party, and mobile_form tables plus schemas/postgres/381_mobile_consent_form_revisions.sql lines 1-277 through the snapshot trigger; not the full migration or candidate database.",
+  "exercised_code": "services.mobile.forms_cli.publish_manifest",
+  "checks": [
+    "Insert through mobile_form created an active immutable snapshot with the transaction-local publisher recorded as created_by.",
+    "Version update created the new active snapshot and retired the prior active snapshot.",
+    "Duplicate historical version, stale expected version, and location reassignment were rejected without writes.",
+    "A forced recipient-party foreign-key failure rolled back the mobile_form update and created no snapshot.",
+    "A direct edit of historical revision content was rejected by the immutable revision trigger."
+  ],
+  "cleanup": "Temporary SQL and harness files were removed; the disposable container was stopped and auto-removed.",
+  "candidate_database_touched": false,
+  "limitations": [
+    "The full migration 381 and downstream consent/collection schema were not applied in this minimal trigger-focused fixture.",
+    "No candidate database, candidate app, or candidate Metabase writes were performed."
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 HTTP sensor-receiver CLI entrypoint",
+  "result": "passed",
+  "changes": [
+    "Added a reusable HTTP sensor receiver parser and callable main(argv=None).",
+    "Standalone and unified host/port argument forwarding and help output match.",
+    "Non-integer port values are rejected before server startup."
+  ],
+  "checks": {
+    "http_sensor_receiver_pytest": {
+      "command": "python3 -m pytest tests/test_http_sensor_receiver_cli.py tests/test_iot_sensor_push.py tests/test_http_sensor_error_redaction.py tests/test_ingestion_outbox_producers.py -q",
+      "result": "passed",
+      "passed": 79
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "standalone_unified_help_parity": "passed"
+  },
+  "external_access": {
+    "listener_started": false,
+    "database": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  },
+  "limitations": [
+    "The server runner was stubbed in CLI dispatch tests.",
+    "Does not establish authenticated transport or live listener recovery."
+  ]
+}

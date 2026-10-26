@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-15",
+  "scope": "Scheduler worker connection lifecycle and retry after transient database failure",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_scheduler_worker.py tests/test_scheduler_durability.py -q",
+      "result": "passed",
+      "passed": 10
+    },
+    "ruff": {
+      "command": "ruff check services/scheduler/worker.py tests/test_scheduler_worker.py",
+      "result": "passed"
+    }
+  },
+  "verified": [
+    "Each scheduler tick obtains a fresh PostgreSQL connection with a five-second connect timeout.",
+    "The worker identity remains stable across tick connections.",
+    "Tick failures discard the connection without attempting rollback on the potentially broken session.",
+    "A later tick can connect and complete after an earlier connection or tick failure."
+  ],
+  "implementation": [
+    "services/scheduler/worker.py",
+    "tests/test_scheduler_worker.py"
+  ],
+  "limitations": [
+    "A separate disposable runtime check confirmed PostgreSQL stop/start reconnection with a stubbed scheduler engine; actual scheduler SQL and lease recovery were not exercised.",
+    "Provider delivery and long-duration outage acceptance remain open.",
+    "Candidate and legacy databases were not accessed."
+  ]
+}

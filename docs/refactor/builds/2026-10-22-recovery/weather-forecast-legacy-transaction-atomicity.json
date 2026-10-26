@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-22",
+  "scope": "CAP-040 legacy five-day forecast per-location transaction integrity",
+  "behavior_before": "Forecast rows used an inner savepoint, but the success audit and post-write completion steps were outside that savepoint. A success-audit failure could abort the aggregate run instead of isolating the affected location.",
+  "behavior_after": "An outer per-location savepoint now covers forecast persistence, the success audit, and completion steps. Failure rolls back that location before a sanitized failure audit, and later locations continue. Forecast natural-key upserts and whole-transaction ClickHouse outbox commit behavior are unchanged.",
+  "focused_test_command": "python3 -m pytest tests/test_weather_forecast_atomicity.py tests/test_forecast_error_redaction.py tests/test_weather_forecast_worker.py tests/test_weather_forecast_cli_scope.py tests/test_weather_cli_parity.py tests/test_worker_operation_map.py tests/test_worker_job_contract_inventory.py -q",
+  "focused_test_result": "50 passed",
+  "new_regression": "success-audit failure rolls back that location, records a same-connection failure audit, and allows the next location to persist and project",
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "git_diff_check": "passed",
+  "database_or_provider_access": false,
+  "candidate_or_legacy_access": false,
+  "migration_required": false,
+  "remaining_limitations": "Provider parity, live delivery, legacy schedule reconciliation, runtime authorization, and MAN-CAP-040 acceptance remain open."
+}

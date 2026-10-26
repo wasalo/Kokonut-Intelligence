@@ -14,6 +14,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 import psycopg2
 import psycopg2.extras
 
+from services.common.errors import safe_exception_class
+
 
 class PolicyEngine:
     """Evaluates decision policies and produces action recommendations."""
@@ -214,7 +216,11 @@ class PolicyEngine:
         except Exception as exc:
             conn.rollback()
             cur.close()
-            return {"success": False, "status": "failed", "error": str(exc)}
+            return {
+                "success": False,
+                "status": "failed",
+                "error": f"Decision execution failed ({safe_exception_class(exc)})",
+            }
 
         # Update decision status
         status = "executed" if result.get("success") else "failed"

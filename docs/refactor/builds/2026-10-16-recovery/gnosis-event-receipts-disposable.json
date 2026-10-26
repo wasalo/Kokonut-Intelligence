@@ -1,0 +1,16 @@
+{
+  "migration": "423_gnosis_event_log_receipts.sql",
+  "migration_sha256": "559c9d1ebc9d7ff87911dd4b47b0b6e58f25cee8aa6a644a9f74fdb26d31b0e2",
+  "postgres_image": "postgres:16",
+  "checks": [
+    "migration 423 applies and replays idempotently",
+    "new event identity creates a durable receipt",
+    "replay of an identical event identity is suppressed",
+    "same transaction/log index with a new block hash is rejected without replacing receipt",
+    "receipt creation rolls back with its caller transaction",
+    "receipt identity is protected by the database primary key"
+  ],
+  "candidate_or_legacy_accessed": false,
+  "provider_accessed": false,
+  "schedule_activated": false
+}

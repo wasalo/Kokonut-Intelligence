@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Malformed schema_migration query-output diagnostic redaction",
+  "files": [
+    "services/migration/cli.py",
+    "tests/test_migration.py"
+  ],
+  "result": "passed",
+  "checks": {
+    "migration_tests": "33 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed",
+    "database_calls": 0
+  },
+  "guarantees": [
+    "Malformed tracking rows produce a fixed error summary",
+    "Database-returned row content is not copied into the exception logged by the CLI"
+  ],
+  "limitations": [
+    "This does not change migration transaction behavior or certify live migration execution"
+  ]
+}

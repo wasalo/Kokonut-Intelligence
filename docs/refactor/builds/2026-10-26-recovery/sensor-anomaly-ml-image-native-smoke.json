@@ -1,0 +1,23 @@
+{
+  "check": "sensor_anomaly_ml_native_image_import_smoke",
+  "image": "kokonut-kernel-candidate-sensor-anomaly-ml-worker:latest",
+  "image_id": "sha256:8d20bd833d7921c756c368225b4be9bbf87a41991038963bdaedee1b8a359b41",
+  "image_size_bytes": 1196104910,
+  "architecture": "x86_64",
+  "network": "none",
+  "root_filesystem_read_only": true,
+  "credentials_provided": false,
+  "database_or_provider_calls": false,
+  "imported_ml_packages": {
+    "numpy": "1.26.4",
+    "pandas": "3.0.6",
+    "prophet": "1.5.0",
+    "scikit_learn": "1.9.1",
+    "scipy": "1.17.1"
+  },
+  "sensor_anomaly_worker_imported": true,
+  "unrelated_yfinance_installed": false,
+  "unrelated_gstools_installed": false,
+  "candidate_or_legacy_touched": false,
+  "non_fatal_stderr_notice": "Prophet reports its optional Plotly visualization support is unavailable"
+}

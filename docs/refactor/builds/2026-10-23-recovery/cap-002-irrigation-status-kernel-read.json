@@ -1,0 +1,37 @@
+{
+  "capability": "CAP-002",
+  "slice": "tenant-scoped irrigation status Kernel read",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_revision": "45701433",
+  "tested_source": "CAP-002 irrigation working-tree changes on top of base_revision",
+  "status": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_irrigation_status.py tests/test_precision_irrigation.py tests/test_operator_auth.py -q",
+    "passed": 101,
+    "failed": 0
+  },
+  "ruff": "passed",
+  "python_compile": "passed",
+  "runtime_sql_inventory": "regenerated and current",
+  "capability_matrix": "valid: 67 rows; 28 baseline-retained, 7 deployed, 32 prepared",
+  "migration": "not required",
+  "candidate_database": "untouched",
+  "legacy_database": "untouched",
+  "provider_or_chain": "not contacted",
+  "verified_contract": [
+    "Exact location-scoped precision_irrigation:read policy; other methods and suffixes do not match",
+    "Invalid location UUID and invalid page parameters fail before opening PostgreSQL",
+    "Repeatable-read, read-only transaction installs signed tenant context before both scoped queries",
+    "Zone totals and detail pages filter active rows by the exact location",
+    "Latest moisture lookup explicitly matches sensor-reading location to zone location",
+    "Pages are bounded to 50 and moisture status follows retained domain thresholds",
+    "Response omits sensor and actuator IDs, geometry, notes, reasons, actors, and arbitrary metadata",
+    "Authenticated route returns no-store response and missing location grant denies before handler"
+  ],
+  "remaining": [
+    "Crop simulation and nutrient Kernel output paths",
+    "Frozen-fixture and populated legacy output parity for yield, irrigation, simulation, and nutrients",
+    "Live ZITADEL/browser acceptance and direct-database least-privilege/RLS",
+    "MAN-CAP-002 owner acceptance"
+  ]
+}

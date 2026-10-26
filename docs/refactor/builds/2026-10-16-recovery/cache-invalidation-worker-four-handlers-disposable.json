@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "Signed EventBus cache invalidation",
+  "database": "isolated disposable PostgreSQL 16 container with --network none",
+  "migration_415_sha256": "1d98e8898fc226ab2735528ccd21800e449114382c7e6f0ced373e2c52d2865a",
+  "migration_416_sha256": "de8644d8b5cfc7c13cfcb16f4ec3815b622208da19cfdb3db23c06063c52031a",
+  "migrations": [
+    "schemas/postgres/116_event_bus.sql",
+    "schemas/postgres/118_computation_cache.sql",
+    "schemas/postgres/405_signed_worker_tenant_context.sql",
+    "schemas/postgres/415_signed_cache_invalidation_worker.sql",
+    "schemas/postgres/416_sensor_harvest_cache_invalidation.sql"
+  ],
+  "result": "passed",
+  "checks": [
+    {
+      "result": "passed",
+      "description": "migrations 415 and 416 apply and replay after the signed worker-context migration"
+    },
+    {
+      "result": "passed",
+      "description": "all four event types invalidate only their mapped cache type at the signed location"
+    },
+    {
+      "result": "passed",
+      "description": "same-event retry returns zero additional invalidations and preserves idempotent cache state"
+    },
+    {
+      "result": "passed",
+      "description": "wrong event type and mismatched event location are rejected under signed context"
+    },
+    {
+      "result": "passed",
+      "description": "forced-RLS policies scope the function owner while execution role has no direct table reads"
+    },
+    {
+      "result": "passed",
+      "description": "migration 416 registers the existing sensor and harvest cache handlers"
+    },
+    {
+      "result": "passed",
+      "description": "worker execution is denied direct reads of cache and event tables"
+    },
+    {
+      "result": "passed",
+      "description": "both synthetic tables remain FORCE ROW LEVEL SECURITY during bounded execution"
+    }
+  ],
+  "candidate_or_legacy_database_access": false,
+  "network": "disabled for the disposable database container",
+  "raw_worker_credential_printed": false
+}

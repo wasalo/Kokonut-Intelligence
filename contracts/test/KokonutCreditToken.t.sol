@@ -18,6 +18,7 @@ contract KokonutCreditTokenTest is Test {
 
     bytes32 constant BATCH_ID = keccak256("batch-2026-adelphi");
     bytes32 constant EVIDENCE_HASH = keccak256("evidence-001");
+    uint256 constant NEXT_SERIAL_NUMBER_MAPPING_SLOT = 5;
 
     function setUp() public {
         KokonutCreditToken implementation = new KokonutCreditToken();
@@ -57,6 +58,96 @@ contract KokonutCreditTokenTest is Test {
         assertEq(info.jurisdiction, "KE");
         assertEq(info.methodology, "IPCC 2006 Tier 2");
         assertEq(info.evidenceHash, EVIDENCE_HASH);
+    }
+
+    function testRepeatedIssuanceGetsDistinctSerialsForSameRecipient() public {
+        vm.startPrank(issuer);
+        token.issue(BATCH_ID, user, 100, 2026, "KE", "IPCC 2006 Tier 2", EVIDENCE_HASH);
+        token.issue(BATCH_ID, user, 25, 2026, "KE", "IPCC 2006 Tier 2", keccak256("evidence-002"));
+        vm.stopPrank();
+
+        uint256 firstTokenId = uint256(keccak256(abi.encode(BATCH_ID, 2026, user, 0)));
+        uint256 secondTokenId = uint256(keccak256(abi.encode(BATCH_ID, 2026, user, 1)));
+
+        assertEq(token.balanceOf(user, firstTokenId), 100);
+        assertEq(token.balanceOf(user, secondTokenId), 25);
+        assertEq(token.totalIssued(firstTokenId) + token.totalIssued(secondTokenId), 125);
+        assertEq(token.getCreditInfo(firstTokenId).serialNumber, 0);
+        assertEq(token.getCreditInfo(secondTokenId).serialNumber, 1);
+    }
+
+    function testRepeatedBatchIssueGetsDistinctSerialsForSameRecipient() public {
+        KokonutCreditToken.IssueParams[] memory params = new KokonutCreditToken.IssueParams[](2);
+        params[0] = KokonutCreditToken.IssueParams({
+            batchId: BATCH_ID,
+            recipient: user,
+            amount: 11,
+            vintageYear: 2026,
+            jurisdiction: "KE",
+            methodology: "IPCC",
+            evidenceHash: keccak256("batch-evidence-001")
+        });
+        params[1] = KokonutCreditToken.IssueParams({
+            batchId: BATCH_ID,
+            recipient: user,
+            amount: 13,
+            vintageYear: 2026,
+            jurisdiction: "KE",
+            methodology: "IPCC",
+            evidenceHash: keccak256("batch-evidence-002")
+        });
+
+        vm.prank(issuer);
+        token.batchIssue(params);
+
+        uint256 firstTokenId = uint256(keccak256(abi.encode(BATCH_ID, 2026, user, 0)));
+        uint256 secondTokenId = uint256(keccak256(abi.encode(BATCH_ID, 2026, user, 1)));
+        assertEq(token.balanceOf(user, firstTokenId), 11);
+        assertEq(token.balanceOf(user, secondTokenId), 13);
+    }
+
+    function testIssuanceSkipsExistingSerialZeroWhenCounterIsUninitialized() public {
+        vm.prank(issuer);
+        token.issue(BATCH_ID, user, 10, 2026, "KE", "IPCC", EVIDENCE_HASH);
+
+        bytes32 batchVintageKey = keccak256(abi.encode(BATCH_ID, uint256(2026)));
+        bytes32 counterSlot = keccak256(abi.encode(batchVintageKey, NEXT_SERIAL_NUMBER_MAPPING_SLOT));
+        // Simulate the appended mapping's default state after upgrading a proxy
+        // that already contains an original serial-zero record.
+        vm.store(address(token), counterSlot, bytes32(0));
+
+        vm.prank(issuer);
+        token.issue(BATCH_ID, user, 7, 2026, "KE", "IPCC", keccak256("post-upgrade"));
+
+        uint256 firstTokenId = uint256(keccak256(abi.encode(BATCH_ID, 2026, user, 0)));
+        uint256 secondTokenId = uint256(keccak256(abi.encode(BATCH_ID, 2026, user, 1)));
+        assertEq(token.balanceOf(user, firstTokenId), 10);
+        assertEq(token.balanceOf(user, secondTokenId), 7);
+    }
+
+    function testFuzz_SequentialIssuancePreservesEachCreditAmount(uint96 firstAmount, uint96 secondAmount) public {
+        firstAmount = uint96(bound(firstAmount, 1, type(uint96).max));
+        secondAmount = uint96(bound(secondAmount, 1, type(uint96).max));
+
+        vm.startPrank(issuer);
+        token.issue(BATCH_ID, user, firstAmount, 2026, "KE", "IPCC", EVIDENCE_HASH);
+        token.issue(BATCH_ID, user, secondAmount, 2026, "KE", "IPCC", keccak256("fuzz-evidence"));
+        vm.stopPrank();
+
+        uint256 firstTokenId = uint256(keccak256(abi.encode(BATCH_ID, 2026, user, 0)));
+        uint256 secondTokenId = uint256(keccak256(abi.encode(BATCH_ID, 2026, user, 1)));
+        assertEq(token.balanceOf(user, firstTokenId), firstAmount);
+        assertEq(token.balanceOf(user, secondTokenId), secondAmount);
+        assertEq(
+            token.totalIssued(firstTokenId) + token.totalIssued(secondTokenId),
+            uint256(firstAmount) + uint256(secondAmount)
+        );
+    }
+
+    function testIssueRejectsZeroBatchIdentity() public {
+        vm.prank(issuer);
+        vm.expectRevert(KokonutCreditToken.InvalidCreditData.selector);
+        token.issue(bytes32(0), user, 1, 2026, "KE", "IPCC", EVIDENCE_HASH);
     }
 
     function testIssueRevertsOnZeroAddress() public {

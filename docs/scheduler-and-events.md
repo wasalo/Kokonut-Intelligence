@@ -64,7 +64,8 @@ pending -> processing lease -> each enabled handler delivery
 python3 -m services.events --process
 python3 -m services.events --worker --batch-size 100 --poll-interval 2 --lease-seconds 300
 python3 -m services.events --stats
-python3 -m services.events --cleanup --days 30
+# Keep event cleanup disabled until an approved dynamic policy is configured and deployment is accepted.
+KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true python3 -m services.events --cleanup --actor OPERATOR
 python3 -m services.events --list-handlers
 python3 -m services.events --list-dead-letter
 python3 -m services.events --replay-dead-letter --event-id UUID --actor OPERATOR
@@ -93,7 +94,7 @@ python3 -m services.events --dispose-dead-letter --event-id UUID \
 - Delivery state is per `(event, handler)`. Successful handlers are skipped on event retry; failed and timed-out handlers are attempted again. A failed handler does not prevent later enabled handlers in the same delivery pass from being attempted.
 - The event is completed only if all enabled handler deliveries succeed and the processing worker still owns the event lease. A lease-lost worker cannot report success.
 - After the retry limit is reached, the event becomes `dead_letter` and one pending `event_dead_letter` record is retained. A partial unique index prevents multiple pending dead letters for the same event.
-- `--cleanup --days N` deletes old completed and dead-letter platform events. The default retention window is 30 days; deleting an event cascades its delivery and attempt history.
+- `--cleanup` reads the period from exactly one approved, active, auto-enforced global `event_bus` / `platform_event` policy. The CLI has no retention-window default or `--days` override. Missing or ambiguous policy stops without pruning. Active record-level legal holds, pending dead letters, and non-success handler deliveries protect events; each run writes an actor-attributed retention log. The default-off feature flag remains a separate deployment gate. Notification outbox, attempt-history, and operator-audit pruning are not implemented.
 
 ### Dead-Letter Operations
 

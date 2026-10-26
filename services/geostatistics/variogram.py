@@ -7,19 +7,23 @@ parametric models (spherical, exponential, Gaussian, Matérn) using gstools.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import psycopg2
 import psycopg2.extras
+from scipy.spatial.distance import pdist
+
+from services.common.errors import safe_exception_class
 
 from .config import (
+    DEFAULT_BANDWIDTH,
     DEFAULT_LAG_DISTANCE,
     DEFAULT_LAG_TOLERANCE,
     DEFAULT_MIN_SAMPLES,
     PROPERTY_DEFAULTS,
 )
+from .data_sources import location_point_query, supports_database_property
 
 
 class VariogramAnalyzer:
@@ -40,67 +44,96 @@ class VariogramAnalyzer:
         coordinates: List[Tuple[float, float]],
         lag_distance: float = DEFAULT_LAG_DISTANCE,
         lag_tolerance: float = DEFAULT_LAG_TOLERANCE,
-        bandwidth: float = 1000.0,
+        bandwidth: float = DEFAULT_BANDWIDTH,
     ) -> Dict[str, Any]:
         """Compute empirical semi-variogram from point data.
 
         Args:
             values: Measured values at each location.
             coordinates: List of (x, y) pairs in meters (projected CRS).
-            lag_distance: Width of each lag bin in meters.
-            lag_tolerance: Half-width of lag tolerance in meters.
-            bandwidth: Maximum search bandwidth for pairing.
+            lag_distance: Width of each fixed lag bin in meters.
+            lag_tolerance: Half-width around each bin center, at most half
+                the bin width so bins cannot overlap.
+            bandwidth: Maximum pair separation searched, in meters. The
+                omnidirectional search is also capped at half the largest
+                observed pair distance.
 
         Returns:
             Dict with lags, semivariances, pair counts, and parameters.
         """
-        from gstools import vario_estimate
+        try:
+            values_arr = np.asarray(values, dtype=float)
+            coords_arr = np.asarray(coordinates, dtype=float)
+            lag_distance = float(lag_distance)
+            lag_tolerance = float(lag_tolerance)
+            bandwidth = float(bandwidth)
+        except (TypeError, ValueError):
+            return {"error": "Invalid variogram input"}
 
-        if len(values) < DEFAULT_MIN_SAMPLES:
+        if values_arr.ndim != 1 or coords_arr.shape != (len(values_arr), 2):
+            return {"error": "Coordinates and values must have matching 2D points"}
+        if not np.isfinite(values_arr).all() or not np.isfinite(coords_arr).all():
+            return {"error": "Coordinates and values must be finite"}
+        if len(values_arr) < DEFAULT_MIN_SAMPLES:
             return {
-                "error": f"Need >= {DEFAULT_MIN_SAMPLES} samples, got {len(values)}",
-                "n_samples": len(values),
+                "error": f"Need >= {DEFAULT_MIN_SAMPLES} samples, got {len(values_arr)}",
+                "n_samples": len(values_arr),
             }
+        if (
+            not np.isfinite(lag_distance)
+            or lag_distance <= 0
+            or not np.isfinite(lag_tolerance)
+            or lag_tolerance < 0
+            or lag_tolerance > lag_distance / 2
+            or not np.isfinite(bandwidth)
+            or bandwidth <= 0
+        ):
+            return {"error": "Invalid lag distance, tolerance, or bandwidth"}
 
-        coords_arr = np.array(coordinates, dtype=float)
-        pos_x = coords_arr[:, 0]
-        pos_y = coords_arr[:, 1]
-        field = np.array(values, dtype=float)
+        pair_distances = pdist(coords_arr)
+        pair_value_differences = pdist(values_arr[:, np.newaxis])
+        pair_semivariances = 0.5 * np.square(pair_value_differences)
+        positive_distance = pair_distances > 0
+        pair_distances = pair_distances[positive_distance]
+        pair_semivariances = pair_semivariances[positive_distance]
+        if len(pair_distances) == 0:
+            return {"error": "No non-zero-distance point pairs available"}
 
-        # Build bin edges from lag_distance
-        max_dist = float(np.max(np.sqrt(
-            (pos_x[:, np.newaxis] - pos_x[np.newaxis, :]) ** 2
-            + (pos_y[:, np.newaxis] - pos_y[np.newaxis, :]) ** 2
-        ))) / 2
-        n_bins = max(3, int(max_dist / lag_distance))
-        bin_edges = np.linspace(0, max_dist, n_bins + 1)
+        search_distance = min(float(np.max(pair_distances)) / 2, bandwidth)
+        if search_distance <= 0:
+            return {"error": "No point pairs within the configured bandwidth"}
 
-        bin_centres, gamma = vario_estimate(
-            (pos_x, pos_y),
-            field,
-            bin_edges=bin_edges,
-        )
+        n_bins = int(np.ceil(search_distance / lag_distance))
+        bin_centres: List[float] = []
+        gamma: List[float] = []
+        n_pairs: List[int] = []
+        for bin_index in range(n_bins):
+            lower = bin_index * lag_distance
+            upper = min((bin_index + 1) * lag_distance, search_distance)
+            centre = (lower + upper) / 2
+            in_interval = (pair_distances >= lower) & (pair_distances < upper)
+            if bin_index == n_bins - 1:
+                in_interval |= pair_distances == upper
+            in_tolerance = np.abs(pair_distances - centre) <= lag_tolerance
+            selected = in_interval & in_tolerance & (pair_distances <= bandwidth)
+            count = int(np.count_nonzero(selected))
+            if count == 0:
+                continue
+            bin_centres.append(float(np.mean(pair_distances[selected])))
+            gamma.append(float(np.mean(pair_semivariances[selected])))
+            n_pairs.append(count)
 
-        # Count pairs per lag bin
-        n_pairs = []
-        dists = np.sqrt(
-            (pos_x[:, np.newaxis] - pos_x[np.newaxis, :]) ** 2
-            + (pos_y[:, np.newaxis] - pos_y[np.newaxis, :]) ** 2
-        )
-        for i in range(len(bin_edges) - 1):
-            lo, hi = bin_edges[i], bin_edges[i + 1]
-            n_pairs.append(int(np.sum(
-                (dists >= lo) & (dists < hi) & (dists > 0)
-            ) // 2))
+        if not n_pairs:
+            return {"error": "No point pairs matched the configured lag bins"}
 
         return {
-            "lags": bin_centres.tolist(),
-            "semivariances": gamma.tolist(),
+            "lags": bin_centres,
+            "semivariances": gamma,
             "n_pairs": n_pairs,
             "lag_distance": lag_distance,
             "lag_tolerance": lag_tolerance,
             "bandwidth": bandwidth,
-            "n_samples": len(values),
+            "n_samples": len(values_arr),
         }
 
     def fit_variogram_model(
@@ -117,7 +150,7 @@ class VariogramAnalyzer:
         Returns:
             Dict with sill, range, nugget, partial_sill, r_squared, model_type.
         """
-        from gstools import Spherical, Exponential, Gaussian, Matern
+        from gstools import Exponential, Gaussian, Matern, Spherical
 
         if "error" in empirical:
             return empirical
@@ -133,9 +166,17 @@ class VariogramAnalyzer:
         if ModelClass is None:
             return {"error": f"Unknown model_type: {model_type}"}
 
-        lags = np.array(empirical["lags"])
-        gamma = np.array(empirical["semivariances"])
+        try:
+            lags = np.asarray(empirical["lags"], dtype=float)
+            gamma = np.asarray(empirical["semivariances"], dtype=float)
+        except (KeyError, TypeError, ValueError):
+            return {"error": "Invalid empirical variogram data"}
 
+        if lags.ndim != 1 or gamma.ndim != 1 or lags.shape != gamma.shape:
+            return {"error": "Invalid empirical variogram data"}
+        valid = np.isfinite(lags) & np.isfinite(gamma) & (lags >= 0) & (gamma >= 0)
+        lags = lags[valid]
+        gamma = gamma[valid]
         if len(lags) < 3:
             return {"error": "Need >= 3 lag bins to fit a variogram model"}
 
@@ -153,11 +194,21 @@ class VariogramAnalyzer:
                 nugget=nugget_est,
             )
 
-            # Goodness-of-fit: r-squared between model and empirical
-            model_values = model.variogram(lags)
-            ss_res = float(np.sum((gamma - model_values) ** 2))
-            ss_tot = float(np.sum((gamma - np.mean(gamma)) ** 2))
-            r_squared = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+            # Fit the model parameters instead of reporting the initial guess.
+            # The database schema does not store Matérn smoothness, so retain
+            # GSTools' default value instead of fitting an unpersisted field.
+            fit_options = {"nu": False} if model_type == "matern" else {}
+            _, _, r_squared = model.fit_variogram(
+                lags,
+                gamma,
+                method="trf",
+                loss="soft_l1",
+                return_r2=True,
+                **fit_options,
+            )
+            parameters = (model.var, model.len_scale, model.nugget, r_squared)
+            if not all(np.isfinite(value) for value in parameters):
+                return {"error": "Model fitting produced non-finite parameters"}
 
             return {
                 "model_type": model_type,
@@ -165,11 +216,13 @@ class VariogramAnalyzer:
                 "range": float(model.len_scale),
                 "nugget": float(model.nugget),
                 "partial_sill": float(model.var),
-                "r_squared": round(r_squared, 4),
+                "r_squared": round(float(r_squared), 4),
                 "n_lags": len(lags),
             }
-        except Exception as e:
-            return {"error": f"Model fitting failed: {e}"}
+        except Exception as exc:
+            return {
+                "error": f"Model fitting failed ({safe_exception_class(exc)})"
+            }
 
     def fit_variogram(
         self,
@@ -178,7 +231,7 @@ class VariogramAnalyzer:
         model_type: str = "exponential",
         lag_distance: float = DEFAULT_LAG_DISTANCE,
         lag_tolerance: float = DEFAULT_LAG_TOLERANCE,
-        bandwidth: float = 1000.0,
+        bandwidth: float = DEFAULT_BANDWIDTH,
     ) -> Dict[str, Any]:
         """Compute empirical variogram and fit a parametric model in one step.
 
@@ -203,14 +256,17 @@ class VariogramAnalyzer:
         property_key: str,
         lag_distance: Optional[float] = None,
         lag_tolerance: Optional[float] = None,
-        bandwidth: float = 1000.0,
+        bandwidth: float = DEFAULT_BANDWIDTH,
         model_type: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Fit a variogram from stored point data in the database.
 
-        Fetches coordinates and values from soil_sample, sensor_reading,
-        or remote_sensing_observation depending on property_key.
+        Fetches soil properties from soil_sample and NDVI from
+        remote_sensing_observation, always filtered by location_id.
         """
+        if not supports_database_property(property_key):
+            return {"error": f"Unsupported property_key: {property_key}"}
+
         defaults = PROPERTY_DEFAULTS.get(property_key, {})
         if lag_distance is None:
             lag_distance = defaults.get("lag_distance", DEFAULT_LAG_DISTANCE)
@@ -222,35 +278,8 @@ class VariogramAnalyzer:
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # Build query based on property_key
-        if property_key.startswith("soil_"):
-            col_map = {
-                "soil_carbon": "organic_carbon_pct",
-                "soil_moisture": "moisture_pct",
-                "soil_ph": "ph",
-            }
-            val_col = col_map.get(property_key, "organic_carbon_pct")
-            cur.execute(f"""
-                SELECT ss.gps_latitude AS lat, ss.gps_longitude AS lon,
-                       ss.{val_col} AS value
-                FROM soil_sample ss
-                WHERE ss.location_id = %s
-                  AND ss.gps_latitude IS NOT NULL
-                  AND ss.gps_longitude IS NOT NULL
-                  AND ss.{val_col} IS NOT NULL
-            """, (location_id,))
-        elif property_key == "ndvi":
-            cur.execute("""
-                SELECT ST_Y(rso.centroid) AS lat, ST_X(rso.centroid) AS lon,
-                       rso.ndvi AS value
-                FROM remote_sensing_observation rso
-                WHERE rso.location_id = %s
-                  AND rso.centroid IS NOT NULL
-                  AND rso.ndvi IS NOT NULL
-            """, (location_id,))
-        else:
-            cur.close()
-            return {"error": f"Unsupported property_key for DB query: {property_key}"}
+        point_query, point_params = location_point_query(location_id, property_key)
+        cur.execute(point_query, point_params)
 
         rows = cur.fetchall()
         cur.close()

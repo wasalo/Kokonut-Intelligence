@@ -7,11 +7,144 @@ table, enabling runtime plugin loading without modifying core code.
 from __future__ import annotations
 
 import importlib
-from typing import Any, Optional
+from importlib import metadata
+from types import MappingProxyType
+from typing import Any
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("drivers.registry")
+
+# Persisted driver_registry.module_path values are data, not executable policy.
+# Built-in driver names resolve only to these source-controlled targets.
+BUILTIN_DRIVER_TARGETS = MappingProxyType(
+    {
+        "blockchain_eas": (
+            "services.ingestion.drivers.blockchain_eas",
+            "Driver",
+            "blockchain",
+        ),
+        "blockchain_gnosis": (
+            "services.ingestion.drivers.blockchain_gnosis",
+            "Driver",
+            "blockchain",
+        ),
+        "blockchain_rpc": (
+            "services.ingestion.drivers.blockchain_rpc",
+            "Driver",
+            "blockchain",
+        ),
+        "market_worldbank": (
+            "services.ingestion.drivers.market_worldbank",
+            "Driver",
+            "market",
+        ),
+        "remote_sensing_copernicus": (
+            "services.ingestion.drivers.remote_sensing_copernicus",
+            "Driver",
+            "remote_sensing",
+        ),
+        "remote_sensing_gee": (
+            "services.ingestion.drivers.remote_sensing_gee",
+            "Driver",
+            "remote_sensing",
+        ),
+        "sensor_csv": (
+            "services.ingestion.drivers.sensor_csv",
+            "Driver",
+            "sensor",
+        ),
+        "sensor_mqtt": (
+            "services.ingestion.drivers.sensor_mqtt",
+            "Driver",
+            "sensor",
+        ),
+        "weather_openweathermap": (
+            "services.ingestion.drivers.weather_openweathermap",
+            "Driver",
+            "weather",
+        ),
+    }
+)
+
+# Third-party adapters stay extensible through installed Python packages. The
+# entry point resolves installed code; database rows only confirm its identity.
+DRIVER_PLUGIN_ENTRY_POINT_GROUP = "kokonut.drivers"
+
+# Scheduled sensor pulls have a narrower code-controlled map. Adding another
+# scheduled implementation requires a reviewed source change and tests.
+SCHEDULED_SENSOR_DRIVER_TARGETS = MappingProxyType(
+    {
+        "sensor_csv": (
+            "services.ingestion.drivers.sensor_csv",
+            "Driver",
+            "sensor",
+        ),
+    }
+)
+
+
+def _validate_driver_registration_target(
+    driver_name: str,
+    module_path: str,
+    class_name: str,
+    driver_type: str,
+) -> None:
+    """Reject registry metadata that has no matching code-owned target."""
+    builtin_target = BUILTIN_DRIVER_TARGETS.get(driver_name)
+    if builtin_target is not None:
+        if builtin_target != (module_path, class_name, driver_type):
+            raise ValueError("registered built-in driver identity does not match its source target")
+        return
+
+    candidates = metadata.entry_points(
+        group=DRIVER_PLUGIN_ENTRY_POINT_GROUP,
+        name=driver_name,
+    )
+    if len(candidates) != 1:
+        raise ValueError("driver is not a unique installed kokonut.drivers entry point")
+    entry_point = candidates[0]
+    if (entry_point.module, entry_point.attr) != (module_path, class_name):
+        raise ValueError("registered driver identity does not match its installed entry point")
+
+
+def _load_driver_class(
+    driver_name: str,
+    module_path: str,
+    class_name: str,
+    driver_type: str,
+) -> Any:
+    """Resolve built-in or installed entry-point code without data imports."""
+    builtin_target = BUILTIN_DRIVER_TARGETS.get(driver_name)
+    if builtin_target is not None:
+        if builtin_target != (module_path, class_name, driver_type):
+            raise ValueError("registered built-in driver identity does not match its source target")
+        module = importlib.import_module(builtin_target[0])
+        driver_class = getattr(module, builtin_target[1], None)
+    else:
+        candidates = metadata.entry_points(
+            group=DRIVER_PLUGIN_ENTRY_POINT_GROUP,
+            name=driver_name,
+        )
+        if len(candidates) != 1:
+            raise ValueError("driver is not a unique installed kokonut.drivers entry point")
+        entry_point = candidates[0]
+        if (entry_point.module, entry_point.attr) != (module_path, class_name):
+            raise ValueError("registered driver identity does not match its installed entry point")
+        driver_class = entry_point.load()
+
+    required_methods = (
+        "validate_config", "discover", "fetch", "transform", "health_check",
+    )
+    if (
+        not isinstance(driver_class, type)
+        or getattr(driver_class, "name", None) != driver_name
+        or getattr(driver_class, "driver_type", None) != driver_type
+        or any(not callable(getattr(driver_class, name, None)) for name in required_methods)
+    ):
+        raise ValueError("driver implementation does not satisfy the registered adapter contract")
+    return driver_class
 
 
 class DriverRegistry:
@@ -41,6 +174,9 @@ class DriverRegistry:
         """Register a new driver in the database. Returns the driver ID."""
         import json
 
+        _validate_driver_registration_target(
+            driver_name, module_path, class_name, driver_type,
+        )
         conn = self._get_conn()
         try:
             with conn.cursor() as cur:
@@ -74,11 +210,16 @@ class DriverRegistry:
                 row = cur.fetchone()
                 driver_id = str(row[0]) if row else None
             conn.commit()
+            self._cache.pop(driver_name, None)
             logger.info("Registered driver: %s (id=%s)", driver_name, driver_id)
             return driver_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to register driver: %s", driver_name)
+            logger.error(
+                "Failed to register driver %s (%s)",
+                driver_name,
+                safe_exception_class(exc),
+            )
             raise
 
     def load(self, driver_name: str) -> Any:
@@ -102,19 +243,26 @@ class DriverRegistry:
                     raise ValueError(f"Driver not found or disabled: {driver_name}")
 
                 module_path, class_name, version, driver_type = row
+            # Finish the metadata read before loading third-party Python code.
+            conn.commit()
         except Exception:
             conn.rollback()
             raise
 
-        # Dynamic import
+        # Database rows select an installed driver name, never an import path.
         try:
-            module = importlib.import_module(module_path)
-            driver_class = getattr(module, class_name)
+            driver_class = _load_driver_class(
+                driver_name, module_path, class_name, driver_type,
+            )
             self._cache[driver_name] = driver_class
-            logger.info("Loaded driver: %s v%s (%s)", driver_name, version, module_path)
+            logger.info("Loaded driver: %s v%s", driver_name, version)
             return driver_class
-        except (ImportError, AttributeError) as exc:
-            logger.error("Failed to load driver %s: %s", driver_name, exc)
+        except (ImportError, AttributeError, ValueError) as exc:
+            logger.error(
+                "Failed to load driver %s (%s)",
+                driver_name,
+                safe_exception_class(exc),
+            )
             raise
 
     def list_drivers(self, driver_type: str | None = None) -> list[dict]:
@@ -156,8 +304,8 @@ class DriverRegistry:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list drivers")
+        except Exception as exc:
+            logger.error("Failed to list drivers (%s)", safe_exception_class(exc))
             return []
 
     def list_instances(self, driver_name: str | None = None, location_id: str | None = None) -> list[dict]:
@@ -203,9 +351,88 @@ class DriverRegistry:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list driver instances")
+        except Exception as exc:
+            logger.error(
+                "Failed to list driver instances (%s)", safe_exception_class(exc)
+            )
             return []
+
+    def get_schedulable_instance(
+        self, instance_id: str, location_id: str,
+    ) -> dict | None:
+        """Load one enabled, code-allowlisted sensor pull for the exact location."""
+        import json
+
+        conn = self._get_conn()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT di.id, di.instance_name, dr.driver_name, dr.module_path,
+                       dr.class_name, dr.driver_type, di.config, di.location_id
+                FROM driver_instance di
+                JOIN driver_registry dr ON dr.id = di.driver_id
+                WHERE di.id = %s
+                  AND di.location_id = %s
+                  AND di.is_enabled = TRUE
+                  AND dr.is_enabled = TRUE
+                  AND dr.driver_type = 'sensor'
+                """,
+                (instance_id, location_id),
+            )
+            row = cur.fetchone()
+        if row is None:
+            return None
+        driver_name = str(row[2])
+        registered_target = (str(row[3]), str(row[4]), str(row[5]))
+        allowed_target = SCHEDULED_SENSOR_DRIVER_TARGETS.get(driver_name)
+        if allowed_target is None:
+            raise ValueError("sensor driver is not allowlisted for scheduled execution")
+        if registered_target != allowed_target:
+            raise ValueError(
+                "scheduled sensor driver registry identity does not match the code allowlist"
+            )
+        config = row[6]
+        if isinstance(config, str):
+            config = json.loads(config)
+        if not isinstance(config, dict):
+            raise ValueError("sensor driver instance config must be a JSON object")
+        return {
+            "instance_id": str(row[0]),
+            "instance_name": row[1],
+            "driver_name": driver_name,
+            # Use the static target after checking the registry copy. Never
+            # import a module path sourced from PostgreSQL.
+            "module_path": allowed_target[0],
+            "class_name": allowed_target[1],
+            "driver_type": allowed_target[2],
+            "config": config,
+            "location_id": str(row[7]),
+        }
+
+    @staticmethod
+    def load_schedulable_sensor_driver(instance: dict) -> Any:
+        """Load only a source-allowlisted scheduled sensor driver class."""
+        driver_name = instance.get("driver_name")
+        target = SCHEDULED_SENSOR_DRIVER_TARGETS.get(driver_name)
+        if target is None or (
+            instance.get("module_path"),
+            instance.get("class_name"),
+            instance.get("driver_type"),
+        ) != target:
+            raise ValueError("scheduled sensor driver identity is not code-allowlisted")
+
+        module_path, class_name, driver_type = target
+        module = importlib.import_module(module_path)
+        driver_class = getattr(module, class_name, None)
+        if (
+            driver_class is None
+            or getattr(driver_class, "name", None) != driver_name
+            or getattr(driver_class, "driver_type", None) != driver_type
+            or getattr(driver_class, "supports_scheduled_pull", False) is not True
+            or not callable(getattr(driver_class, "fetch_scheduled", None))
+        ):
+            raise ValueError("code-allowlisted sensor driver does not satisfy its contract")
+        return driver_class
 
     def create_instance(
         self,
@@ -217,16 +444,44 @@ class DriverRegistry:
         """Create a new driver instance. Returns the instance ID."""
         import json
 
+        if not isinstance(config, dict):
+            raise ValueError("driver config must be a JSON object")
+        try:
+            config_json = json.dumps(config, allow_nan=False)
+            if json.loads(config_json) != config:
+                raise ValueError("driver config is not a JSON-native object")
+        except (TypeError, ValueError):
+            raise ValueError("driver config must contain only JSON values") from None
+
+        # Validate before opening the persistence transaction. Loading resolves
+        # only a source-owned built-in or the exact installed entry point.
+        driver_class = self.load(driver_name)
+        try:
+            driver = driver_class(config=config)
+            if driver.validate_config(config) is not True:
+                raise ValueError("driver config validation returned false")
+        except Exception as exc:
+            logger.warning(
+                "Rejected driver config for %s (%s)",
+                driver_name,
+                safe_exception_class(exc),
+            )
+            raise ValueError("driver config is invalid") from None
+
         conn = self._get_conn()
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT id FROM driver_registry WHERE driver_name = %s",
+                    """
+                    SELECT id FROM driver_registry
+                    WHERE driver_name = %s AND is_enabled = TRUE
+                    FOR SHARE
+                    """,
                     (driver_name,),
                 )
                 row = cur.fetchone()
                 if not row:
-                    raise ValueError(f"Driver not found: {driver_name}")
+                    raise ValueError(f"Driver not found or disabled: {driver_name}")
                 driver_id = row[0]
 
                 cur.execute(
@@ -235,16 +490,20 @@ class DriverRegistry:
                     VALUES (%s, %s, %s, %s)
                     RETURNING id
                     """,
-                    (driver_id, instance_name, json.dumps(config), location_id),
+                    (driver_id, instance_name, config_json, location_id),
                 )
                 inst_row = cur.fetchone()
                 instance_id = str(inst_row[0]) if inst_row else None
             conn.commit()
             logger.info("Created instance: %s (driver=%s)", instance_name, driver_name)
             return instance_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to create instance: %s", instance_name)
+            logger.error(
+                "Failed to create driver instance %s (%s)",
+                instance_name,
+                safe_exception_class(exc),
+            )
             raise
 
     def update_instance_status(
@@ -297,9 +556,13 @@ class DriverRegistry:
                         (status, error_message, instance_id),
                     )
             conn.commit()
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to update instance status: %s", instance_id)
+            logger.error(
+                "Failed to update driver instance status %s (%s)",
+                instance_id,
+                safe_exception_class(exc),
+            )
 
     def test_driver(self, driver_name: str, config: dict | None = None) -> dict:
         """Test a driver by loading it and running a health check."""
@@ -316,5 +579,8 @@ class DriverRegistry:
             return {
                 "driver_name": driver_name,
                 "healthy": False,
-                "message": f"Failed to load or test driver: {exc}",
+                "message": (
+                    "Failed to load or test driver "
+                    f"({safe_exception_class(exc)})"
+                ),
             }

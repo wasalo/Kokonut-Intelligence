@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-15",
+  "source_revision": "working tree based on 26b71fe",
+  "check": "report_generator_readonly_disposable",
+  "database": {
+    "target": "fresh local disposable PostgreSQL container",
+    "image": "kokonut-kernel-candidate-postgis:arm64",
+    "published_address": "127.0.0.1:18491",
+    "persistent_volume": false,
+    "candidate_or_legacy_modified": false
+  },
+  "pre_fix_reproduction": {
+    "scenario": "set default_transaction_read_only off, commit, enable autocommit, then insert during calculation",
+    "result": "one synthetic row was written before the code guard was added",
+    "cleanup": "the disposable container was removed"
+  },
+  "after_fix": {
+    "read_only_select": true,
+    "direct_insert_rejected": true,
+    "direct_insert_sqlstate": "25006",
+    "default_read_only_change_plus_autocommit_rejected": true,
+    "cursor_connection_autocommit_escape_rejected": true,
+    "rows_after_rejected_calculations": 0,
+    "draft_write_after_calculation": true,
+    "synthetic_table_removed": true,
+    "container_removed": true
+  },
+  "verification": {
+    "focused_pytest": "9 passed",
+    "ruff": "passed",
+    "python_compile": "passed"
+  },
+  "result": "passed",
+  "limits": [
+    "This proves the report calculation helper's read-only transaction guard against a disposable PostgreSQL instance; it does not replace a dedicated least-privilege database role.",
+    "It does not establish populated report output parity, tenant isolation, or report-owner selection."
+  ]
+}

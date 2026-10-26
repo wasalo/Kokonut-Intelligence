@@ -1,0 +1,60 @@
+{
+  "run_id": "reporting-archive-inventory-20261013",
+  "date": "2026-10-13",
+  "scope": "read-only aggregate inventory of dashboard/report metadata on an existing isolated legacy PostgreSQL archive replay",
+  "source_archive": {
+    "path": "backups/legacy-logical-batch2-20261010/kokonut_intelligence.dump.age",
+    "sha256": "ec38e3652c58d2aefa2ab2c54675a50d7b3583714bf8af355b335aa5e7803fc4",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "replay_migrations_applied": "353 through 385, preserving numbering gaps"
+  },
+  "execution_boundary": {
+    "container_network": "none",
+    "published_ports": [],
+    "database": "kokonut_restore",
+    "database_role": "kokonut",
+    "transaction_read_only": true,
+    "statement_timeout": "5 seconds",
+    "stored_query_sql_returned": false,
+    "stored_query_sql_executed": false,
+    "report_generation_or_mutation": false,
+    "evidence_contains_raw_identifiers_or_owner_labels": false,
+    "temporary_container_removed": true,
+    "preexisting_recovery_volume_retained": true
+  },
+  "dashboard_dataset": {
+    "row_count": 43,
+    "rows_with_query_sql": 43,
+    "rows_with_location": 5,
+    "rows_without_location": 38,
+    "rows_with_owner_metadata": 43,
+    "distinct_owner_labels": 12,
+    "rows_with_last_refreshed_at": 0,
+    "rows_with_last_refresh_metadata": 0,
+    "status_counts": {
+      "published": 41,
+      "verified": 2
+    },
+    "query_shape_counts": {
+      "select_keyword_prefix": 11,
+      "dashboards_keyword_prefix": 32,
+      "rows_with_hard_coded_uuid_literal": 5,
+      "rows_with_bind_placeholder": 0
+    },
+    "query_shape_note": "Leading-keyword classification only; it does not parse or validate stored SQL.",
+    "refresh_all_eligible_rows": 0
+  },
+  "report_snapshot": {
+    "row_count": 3,
+    "rows_with_location": 0,
+    "frozen_rows": 0,
+    "status_counts": {
+      "draft": 3
+    },
+    "report_type_counts": {
+      "dao_proposal_history": 2,
+      "state_of_kokonut": 1
+    }
+  },
+  "conclusion": "The archive contains metadata definitions, not evidence of a successfully refreshed dashboard result store. The current --all selector targets status active, so none of these 43 rows is selected. Accountable owner labels were counted but not retained; no capability ownership decision was inferred."
+}

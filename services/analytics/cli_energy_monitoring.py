@@ -47,6 +47,7 @@ def _cmd_record_reading(db, a):
         db, a.source_id, rd, a.reading_type, a.kwh,
         cost_per_kwh=a.cost_per_kwh, activity_type=a.activity_type,
         equipment_id=a.equipment_id, notes=a.notes,
+        cost_currency_code=a.cost_currency_code,
     )
 
 
@@ -76,6 +77,7 @@ cli.subcommand("record", "Record energy reading") \
          choices=["consumption", "production"]) \
     .add("--kwh", type=float, required=True) \
     .add("--cost", type=float, dest="cost_per_kwh", help="Cost per kWh") \
+    .add("--cost-currency", dest="cost_currency_code", help="Three-letter currency code required with --cost") \
     .add("--activity", dest="activity_type",
          choices=["irrigation", "processing", "storage", "lighting", "pump", "other"]) \
     .add("--equipment-id") \
@@ -149,16 +151,43 @@ def _format_source(r: dict) -> str:
 
 
 def _format_reading(r: dict) -> str:
-    cost = f" @ ${r['cost_per_kwh']}/kWh = ${r['total_cost']}" if r['total_cost'] else ""
+    cost = (
+        f" @ {r['cost_currency_code']} {r['cost_per_kwh']}/kWh"
+        f" = {r['cost_currency_code']} {r['total_cost']}"
+        if r.get("cost_currency_code") is not None and r.get("total_cost") is not None
+        else ""
+    )
     return f"Recorded {r['reading_type']}: {r['kwh']} kWh{cost} ({r['reading_date']})"
 
 
 def _format_consumption(r: dict) -> str:
     lines = [f"Consumption — {r['location_id'][:8]}... ({r['period_days']}d)"]
-    lines.append(f"  Total: {r['total_kwh']:.1f} kWh  Cost: ${r['total_cost']:.2f}  Avg: ${r['avg_cost_per_kwh'] or 0:.4f}/kWh")
+    if r.get("cost_currency_code") and r.get("total_cost") is not None:
+        cost_summary = (
+            f"Cost: {r['cost_currency_code']} {r['total_cost']:.2f}  "
+            f"Avg: {r['cost_currency_code']} {r['avg_cost_per_kwh'] or 0:.4f}/kWh"
+        )
+    else:
+        cost_summary = "Cost: see currency-classified totals below"
+    lines.append(f"  Total: {r['total_kwh']:.1f} kWh  {cost_summary}")
+    for cost in r.get("costs_by_currency", []):
+        lines.append(
+            f"  Classified cost: {cost['cost_currency_code']} {cost['total_cost']:.2f} "
+            f"({cost['cost_readings']} readings)"
+        )
+    if r.get("unclassified_cost_readings"):
+        lines.append(
+            f"  Unclassified cost readings: {r['unclassified_cost_readings']} "
+            "(amounts withheld)"
+        )
     for a in r["by_activity"]:
         act = a["activity_type"] or "unclassified"
-        lines.append(f"  {act:15s}  {a['total_kwh']:8.1f} kWh  ${a['total_cost'] or 0:.2f}  ({a['readings']} readings)")
+        amount = (
+            f"{a['cost_currency_code']} {a['total_cost']:.2f}"
+            if a.get("cost_currency_code") and a.get("total_cost") is not None
+            else "cost varies/unknown"
+        )
+        lines.append(f"  {act:15s}  {a['total_kwh']:8.1f} kWh  {amount}  ({a['readings']} readings)")
     return "\n".join(lines) if len(lines) > 1 else "No consumption data."
 
 
@@ -195,15 +224,18 @@ def _format_renewable_summary(r: dict) -> str:
 
 def _format_dashboard(r: dict) -> str:
     cons = r["consumption"]
-    eff = r["efficiency"]
     ren = r["renewable"]
     lines = [
         f"Energy Dashboard — {r['location_id'][:8]}...",
         f"  Sources: {cons['sources_used']}  Readings: {cons['readings']}",
-        f"  Total Consumption: {cons['total_kwh']:.1f} kWh  Cost: ${cons['total_cost']:.2f}",
+        f"  Total Consumption: {cons['total_kwh']:.1f} kWh",
         f"  Renewable Share: {ren['renewable_share_pct']:.1f}%",
         f"  Carbon Offset: {ren['total_carbon_offset_kg']:.0f} kg CO2e/year",
     ]
+    if cons.get("cost_currency_code") and cons.get("total_cost") is not None:
+        lines.append(f"  Energy cost: {cons['cost_currency_code']} {cons['total_cost']:.2f}")
+    elif cons.get("costs_by_currency"):
+        lines.append("  Energy cost: see currency-classified totals in consumption report")
     for sb in r["source_breakdown"]:
         lines.append(f"    {sb['source_type']:20s}  {int(sb['count'])} sources  {sb['total_capacity']:.1f} kW")
     return "\n".join(lines)
@@ -226,15 +258,41 @@ def _format_carbon(r: dict) -> str:
 def _format_cost(r: dict) -> str:
     lines = [
         f"Cost Analysis — {r['location_id'][:8]}... ({r['period_days']}d)",
-        f"  Total: ${r['total_cost']:.2f}  ({r['total_kwh']:.1f} kWh @ ${r['avg_cost_per_kwh'] or 0:.4f}/kWh)",
-        f"  Projected monthly: ${r['monthly_projected_cost']:.2f}",
+        f"  Consumption: {r['total_kwh']:.1f} kWh",
     ]
+    if r.get("cost_currency_code") and r.get("total_cost") is not None:
+        lines.append(
+            f"  Comparable total: {r['cost_currency_code']} {r['total_cost']:.2f} "
+            f"(@ {r['cost_currency_code']} {r['avg_cost_per_kwh'] or 0:.4f}/kWh)"
+        )
+        lines.append(
+            f"  Projected monthly: {r['cost_currency_code']} {r['monthly_projected_cost']:.2f}"
+        )
+    if r.get("costs_by_currency"):
+        lines.append("  Classified totals by currency:")
+        for cost in r["costs_by_currency"]:
+            lines.append(
+                f"    {cost['cost_currency_code']} {cost['total_cost']:.2f} "
+                f"(projected {cost['cost_currency_code']} {cost['monthly_projected_cost']:.2f}; "
+                f"{cost['costed_kwh']:.1f} kWh)"
+            )
+    if r.get("unclassified_cost_readings"):
+        lines.append(
+            f"  Unclassified cost readings: {r['unclassified_cost_readings']} "
+            "(amounts withheld)"
+        )
     for a in r["by_activity"]:
         act = a["activity_type"] or "unclassified"
-        lines.append(f"    {act:15s}  ${a['total_cost'] or 0:>8.2f}  {a['total_kwh']:8.1f} kWh")
+        lines.append(
+            f"    {act:15s}  {a['cost_currency_code']} {a['total_cost']:>8.2f}  "
+            f"{a['costed_kwh']:8.1f} kWh"
+        )
     lines.append("  By source:")
     for s in r["by_source_type"]:
-        lines.append(f"    {s['source_type']:20s}  ${s['total_cost'] or 0:>8.2f}  {s['total_kwh']:8.1f} kWh")
+        lines.append(
+            f"    {s['source_type']:20s}  {s['cost_currency_code']} {s['total_cost']:>8.2f}  "
+            f"{s['costed_kwh']:8.1f} kWh"
+        )
     return "\n".join(lines)
 
 

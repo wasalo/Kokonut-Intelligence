@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-25",
+  "scope": "Impact-claim reviewer attribution type boundary",
+  "result": "passed",
+  "checks": [
+    {
+      "command": "cd extensions/kokonut-hooks && npm test",
+      "result": "passed",
+      "summary": "7 test files; 89 tests passed"
+    },
+    {
+      "command": "cd extensions/kokonut-hooks && npm run build",
+      "result": "passed",
+      "summary": "Directus extension build and TypeScript no-emit check"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "summary": "67 valid rows: 24 baseline-retained, 7 deployed, 36 prepared"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "findings": {
+    "impact_claim_reviewer_field": "impact_claim.reviewer_id references staff.id; it is not a Directus user identifier.",
+    "identity_mapping": "No explicit authenticated-operator-to-staff mapping exists. operator_governance_party_binding identifies a canonical party, not a staff record.",
+    "behavior": "Impact-claim review transitions still stamp review_date but no longer copy accountability.user into reviewer_id. An explicitly supplied staff ID is preserved and remains subject to tenant-reference validation."
+  },
+  "limitations": [
+    "This is unit/source verification, not live Directus or database acceptance.",
+    "Authenticated operator-to-staff identity binding remains an owner decision and implementation prerequisite for verified staff attribution.",
+    "No migration, candidate database, legacy database, provider, or live service was used."
+  ],
+  "rollback": "Keep reviewer_id unset when no verified staff mapping is available. Reintroduce automatic attribution only after an explicit, reviewed mapping and matching scoped tests exist."
+}

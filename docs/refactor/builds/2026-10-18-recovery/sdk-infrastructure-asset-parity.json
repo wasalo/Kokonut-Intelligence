@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline Python/TypeScript InfrastructureAsset schema parity",
+  "table": "public.infrastructure_asset",
+  "schema_sources": [
+    "schemas/postgres/001_locations.sql",
+    "schemas/postgres/015_constraints.sql",
+    "schemas/postgres/017_fr_gaps.sql"
+  ],
+  "contract": "Stored location/plot equipment inventory with inspection and cost fields, JSON metadata, schema version, and EntityStatusExtended lifecycle status.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 73 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — 68 models, 1,417 canonical columns, 1,325 scalar types, 10 PostGIS shapes, 79 JSONB shapes, 23 enum fields, 43 CHECK-literal fields — passed",
+    "ruff": "ruff check scripts/check-sdk-schema-parity.py sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q scripts/check-sdk-schema-parity.py sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "condition_status is a string because its SQL values are comments, not enforced constraints.",
+    "This is a stored inventory type; it does not assess asset condition or certify infrastructure.",
+    "No database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

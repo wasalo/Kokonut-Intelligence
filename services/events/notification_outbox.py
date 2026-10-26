@@ -11,12 +11,12 @@ from __future__ import annotations
 
 import json
 import os
-import smtplib
 import uuid
 from email.message import EmailMessage
 from typing import Any
 
 from services.common.logging import get_logger
+from services.common.smtp import send_message, validate_settings
 
 logger = get_logger("events.notification_outbox")
 
@@ -75,6 +75,17 @@ def _notification_payloads(
                 "triggered_at": payload.get("triggered_at"),
                 "claim_id": payload.get("claim_id"),
             }
+        elif event_type == "data_stale":
+            webhook_payload = {
+                "text": message,
+                "alert_id": payload.get("alert_id"),
+                "source": payload.get("source_system"),
+                "status": payload.get("status"),
+                "severity": severity,
+                "location_id": payload.get("location_id"),
+                "gap_minutes": payload.get("gap_minutes"),
+                "last_data_at": payload.get("last_data_at"),
+            }
         else:
             webhook_payload = {
                 "text": f"[{severity.upper()}] {message}",
@@ -113,26 +124,32 @@ def _notification_payloads(
                 {"message": message, "severity": severity},
             ))
 
-    if (event_type == "sensor_alert"
+    if (event_type in {"sensor_alert", "data_stale"}
             and environment.get("ALERT_SMTP_HOST", "").strip()
             and environment.get("ALERT_EMAIL_TO", "").strip()):
-        sensor_name = str(payload.get("sensor_name") or "Unknown")
-        sensor_type = str(payload.get("sensor_type") or "unknown")
-        location = str(payload.get("location_name") or "Unknown")
-        subject = f"[{severity.upper()}] Sensor Alert: {sensor_name}"
-        claim_line = f"Claim ID: {payload['claim_id']}\n" if payload.get("claim_id") else ""
-        body = (
-            "Sensor Alert Triggered\n\n"
-            f"Severity: {severity.upper()}\n"
-            f"Sensor: {sensor_name} ({sensor_type})\n"
-            f"Location: {location}\n"
-            f"Message: {message}\n\n"
-            f"Reading Value: {payload.get('reading_value')}\n"
-            f"Threshold: {payload.get('threshold_value')}\n"
-            f"Time: {payload.get('triggered_at')}\n\n"
-            f"Alert ID: {payload.get('alert_id')}\n"
-            f"{claim_line}\nKokonut Intelligence Alert System\n"
-        )
+        if event_type == "sensor_alert":
+            sensor_name = str(payload.get("sensor_name") or "Unknown")
+            sensor_type = str(payload.get("sensor_type") or "unknown")
+            location = str(payload.get("location_name") or "Unknown")
+            subject = f"[{severity.upper()}] Sensor Alert: {sensor_name}"
+            claim_line = f"Claim ID: {payload['claim_id']}\n" if payload.get("claim_id") else ""
+            body = (
+                "Sensor Alert Triggered\n\n"
+                f"Severity: {severity.upper()}\n"
+                f"Sensor: {sensor_name} ({sensor_type})\n"
+                f"Location: {location}\n"
+                f"Message: {message}\n\n"
+                f"Reading Value: {payload.get('reading_value')}\n"
+                f"Threshold: {payload.get('threshold_value')}\n"
+                f"Time: {payload.get('triggered_at')}\n\n"
+                f"Alert ID: {payload.get('alert_id')}\n"
+                f"{claim_line}\nKokonut Intelligence Alert System\n"
+            )
+        else:
+            source_system = str(payload.get("source_system") or "unknown")
+            status = str(payload.get("status") or "unknown")
+            subject = f"[Kokonut] Data freshness {status}: {source_system}"
+            body = f"{message}\nAlert ID: {payload.get('alert_id')}\n"
         destinations.append(("email", DESTINATION_KEY, {"subject": subject, "body": body}))
 
     return destinations
@@ -151,7 +168,21 @@ def _configured_channels(environment: dict[str, str] | None = None) -> list[str]
         channels.append("directus")
     if (environment.get("ALERT_SMTP_HOST", "").strip()
             and environment.get("ALERT_EMAIL_TO", "").strip()):
-        channels.append("email")
+        try:
+            smtp_port = int(environment.get("ALERT_SMTP_PORT", "587"))
+            validate_settings(
+                host=environment.get("ALERT_SMTP_HOST", ""),
+                port=smtp_port,
+                username=environment.get("ALERT_SMTP_USER", "").strip(),
+                password=environment.get("ALERT_SMTP_PASSWORD", ""),
+                tls_mode=environment.get("ALERT_SMTP_TLS_MODE", "starttls"),
+            )
+        except (TypeError, ValueError) as exc:
+            logger.warning(
+                "Email notification channel is not configured (%s)", type(exc).__name__
+            )
+        else:
+            channels.append("email")
     return channels
 
 
@@ -161,34 +192,30 @@ def enqueue_event_notification(
     event_id: str,
     event_type: str,
     payload: dict[str, Any],
+    location_id: str | None = None,
     environment: dict[str, str] | None = None,
 ) -> int:
     """Persist configured notification intents idempotently in the caller's transaction."""
-    try:
-        stable_event_id = str(uuid.UUID(str(event_id)))
-    except (ValueError, TypeError, AttributeError) as exc:
-        raise ValueError("a valid source event UUID is required for notification delivery") from exc
-    if not event_type or not isinstance(event_type, str):
-        raise ValueError("event_type is required for notification delivery")
-    if not isinstance(payload, dict):
-        raise ValueError("notification payload must be a JSON object")
-
-    destinations = _notification_payloads(event_type, payload, environment=environment)
+    stable_event_id, event_type, location_id, messages = _prepare_event_notification(
+        event_id=event_id,
+        event_type=event_type,
+        payload=payload,
+        location_id=location_id,
+        environment=environment,
+    )
     inserted = 0
     with conn.cursor() as cur:
-        for channel, destination_key, message in destinations:
+        for channel, destination_key, message in messages:
             encoded = json.dumps(message, sort_keys=True, separators=(",", ":"), default=str)
-            if len(encoded.encode("utf-8")) > 16_384:
-                raise ValueError("notification payload exceeds the 16 KiB limit")
             cur.execute(
                 """
                 INSERT INTO notification_outbox
-                    (source_event_id, event_type, channel, destination_key, payload)
-                VALUES (%s, %s, %s, %s, %s::jsonb)
+                    (source_event_id, event_type, channel, destination_key, payload, location_id)
+                VALUES (%s, %s, %s, %s, %s::jsonb, %s::uuid)
                 ON CONFLICT (source_event_id, channel, destination_key) DO NOTHING
                 RETURNING id
                 """,
-                (stable_event_id, event_type, channel, destination_key, encoded),
+                (stable_event_id, event_type, channel, destination_key, encoded, location_id),
             )
             row = cur.fetchone()
             if row is not None:
@@ -197,9 +224,10 @@ def enqueue_event_notification(
 
             cur.execute(
                 """
-                SELECT event_type, payload
+                SELECT event_type, payload, location_id
                 FROM notification_outbox
                 WHERE source_event_id = %s AND channel = %s AND destination_key = %s
+                FOR UPDATE
                 """,
                 (stable_event_id, channel, destination_key),
             )
@@ -213,7 +241,104 @@ def enqueue_event_notification(
                 raise NotificationIdempotencyConflict(
                     "source event notification identity conflicts with existing content"
                 )
+            if existing[2] is None and location_id is not None:
+                cur.execute(
+                    """
+                    UPDATE notification_outbox SET location_id = %s::uuid
+                    WHERE source_event_id = %s AND channel = %s
+                      AND destination_key = %s AND location_id IS NULL
+                    """,
+                    (location_id, stable_event_id, channel, destination_key),
+                )
+            elif (
+                location_id is not None
+                and existing[2] is not None
+                and str(existing[2]) != location_id
+            ):
+                raise NotificationIdempotencyConflict(
+                    "source event notification location conflicts with existing content"
+                )
     return inserted
+
+
+def enqueue_event_notification_isolated(
+    conn,
+    *,
+    event_id: str,
+    event_type: str,
+    payload: dict[str, Any],
+    location_id: str | None = None,
+    environment: dict[str, str] | None = None,
+) -> int:
+    """Enqueue through the isolated notification identity's bounded SQL function."""
+    stable_event_id, stable_event_type, stable_location_id, messages = (
+        _prepare_event_notification(
+            event_id=event_id,
+            event_type=event_type,
+            payload=payload,
+            location_id=location_id,
+            environment=environment,
+        )
+    )
+    if not messages:
+        return 0
+    request = [
+        {"channel": channel, "destination_key": destination_key, "payload": message}
+        for channel, destination_key, message in messages
+    ]
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT kokonut_security.enqueue_notification_intents(
+                %s::uuid, %s, %s::uuid, %s::jsonb
+            )
+            """,
+            (
+                stable_event_id,
+                stable_event_type,
+                stable_location_id,
+                json.dumps(request, sort_keys=True, separators=(",", ":"), default=str),
+            ),
+        )
+        row = cur.fetchone()
+    if row is None or isinstance(row[0], bool) or not isinstance(row[0], int):
+        raise NotificationOutboxError("notification enqueue function returned an invalid result")
+    return row[0]
+
+
+def _prepare_event_notification(
+    *,
+    event_id: str,
+    event_type: str,
+    payload: dict[str, Any],
+    location_id: str | None,
+    environment: dict[str, str] | None,
+) -> tuple[str, str, str | None, list[tuple[str, str, dict[str, Any]]]]:
+    """Validate shared handler inputs and build bounded, secret-free intents."""
+    try:
+        stable_event_id = str(uuid.UUID(str(event_id)))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError("a valid source event UUID is required for notification delivery") from exc
+    if not event_type or not isinstance(event_type, str):
+        raise ValueError("event_type is required for notification delivery")
+    if not isinstance(payload, dict):
+        raise ValueError("notification payload must be a JSON object")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ValueError("location_id must be a valid UUID") from exc
+
+    messages = _notification_payloads(event_type, payload, environment=environment)
+    for channel, destination_key, message in messages:
+        if channel not in {"webhook", "directus", "email"}:
+            raise ValueError("notification channel is not allowlisted")
+        if destination_key != DESTINATION_KEY or not isinstance(message, dict):
+            raise ValueError("notification destination is invalid")
+        encoded = json.dumps(message, sort_keys=True, separators=(",", ":"), default=str)
+        if len(encoded.encode("utf-8")) > 16_384:
+            raise ValueError("notification payload exceeds the 16 KiB limit")
+    return stable_event_id, event_type, location_id, messages
 
 
 def _recover_expired_leases(conn) -> None:
@@ -349,15 +474,15 @@ def _deliver(row: dict[str, Any]) -> None:
         msg["X-Kokonut-Idempotency-Key"] = str(row["id"])
         msg.set_content(str(row["payload"].get("body") or "Kokonut sensor alert"))
 
-        with smtplib.SMTP(host, port, timeout=10) as server:
-            server.ehlo()
-            if port != 25:
-                server.starttls()
-                server.ehlo()
-            username = os.environ.get("ALERT_SMTP_USER", "").strip()
-            if username:
-                server.login(username, os.environ.get("ALERT_SMTP_PASSWORD", ""))
-            server.send_message(msg)
+        send_message(
+            msg,
+            host=host,
+            port=port,
+            username=os.environ.get("ALERT_SMTP_USER", "").strip(),
+            password=os.environ.get("ALERT_SMTP_PASSWORD", ""),
+            tls_mode=os.environ.get("ALERT_SMTP_TLS_MODE", "starttls").strip().lower(),
+            timeout=10,
+        )
         return
     else:
         raise NotificationConfigurationError("unsupported notification channel")
@@ -416,9 +541,8 @@ def _finish_attempt(
     return attempt_status
 
 
-def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
-    """Deliver one batch with bounded retries; external sends remain at-least-once."""
-    rows = claim_batch(conn, worker_id, limit)
+def deliver_claimed_batch(rows, finish_callback) -> dict[str, int]:
+    """Deliver claimed rows through a caller-owned completion boundary."""
     stats = {"claimed": len(rows), "delivered": 0, "failed": 0, "lease_lost": 0}
     for row in rows:
         error_class = None
@@ -432,7 +556,7 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
                 "Notification delivery failed (outbox_id=%s channel=%s class=%s)",
                 row["id"], row["channel"], error_class,
             )
-        status = _finish_attempt(conn, row, success=success, error_class=error_class)
+        status = finish_callback(row, success=success, error_class=error_class)
         if status == "succeeded":
             stats["delivered"] += 1
         elif status == "lease_lost":
@@ -440,6 +564,15 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
         else:
             stats["failed"] += 1
     return stats
+
+
+def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
+    """Deliver one batch with bounded retries; external sends remain at-least-once."""
+    rows = claim_batch(conn, worker_id, limit)
+    return deliver_claimed_batch(
+        rows,
+        lambda row, **kwargs: _finish_attempt(conn, row, **kwargs),
+    )
 
 
 def _storage_thresholds() -> tuple[int, int]:

@@ -1,0 +1,10 @@
+# Select the verified ARM64 Directus and bootstrap images.
+services:
+  directus-role-bootstrap:
+    platform: linux/arm64
+
+  directus-bootstrap:
+    platform: linux/arm64
+
+  directus:
+    platform: linux/arm64

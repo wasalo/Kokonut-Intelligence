@@ -1,0 +1,53 @@
+{
+  "capability": "CAP-039",
+  "batch": "dataset inventory error redaction",
+  "date": "2026-10-24",
+  "status": "passed",
+  "behavior": {
+    "paths": [
+      "--list",
+      "--all initial inventory"
+    ],
+    "failure_output": "Only a fixed operation label and sanitized exception class are printed or raised.",
+    "cleanup": "The application connection closes after inventory failure.",
+    "feature_default": "legacy_dataset_sql remains disabled by default"
+  },
+  "verification": {
+    "dataset_refresh_tests": {
+      "command": "python3 -m pytest tests/test_dataset_refresh_readonly.py -q",
+      "result": "20 passed"
+    },
+    "scheduler_and_feature_contract_tests": {
+      "command": "python3 -m pytest tests/test_scheduled_command_contracts.py tests/test_core_features.py -k 'dataset_refresh or dataset' -q",
+      "result": "5 passed, 143 deselected"
+    },
+    "ruff": {
+      "command": "ruff check services/export/dataset_refresh.py tests/test_dataset_refresh_readonly.py",
+      "result": "passed"
+    },
+    "python_compilation": {
+      "command": "python3 -m compileall -q services/export/dataset_refresh.py tests/test_dataset_refresh_readonly.py",
+      "result": "passed"
+    },
+    "static_inventories": {
+      "result": "runtime SQL, worker source closure, function reachability, SQL inventory, SQL reachability, and worker boundary preflight regenerated and checked"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; MAN-CAP checks remain separately gated"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "database_or_provider_used": false,
+  "candidate_or_legacy_touched": false,
+  "schema_migration_required": false,
+  "rollback": "Revert the source, tests, evidence, regenerated inventory, and refactor progress changes.",
+  "remaining": [
+    "legacy_dataset_sql stays disabled by default",
+    "query-ID policy, location parameterization, and tenant scope",
+    "retained-dashboard selection and populated report parity"
+  ]
+}

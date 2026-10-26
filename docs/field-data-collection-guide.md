@@ -89,12 +89,13 @@ and idempotent sync. Collections remain in `offline_collection`; this path does
 **not** transform them into `soil_sample`, `tree_record`, `pest_observation`, or
 other canonical field rows.
 
-The older `python3 -m services.analytics.mobile_offline` command is a
-transport/admin utility. It does not validate form revisions, participant
-links, or consent, and its sync status alone never permits reporting or
-publication. After migration 381, rows created through that CLI are unassessed
-and fail `v_mobile_collection_use_eligibility`. Any downstream use of mobile
-collections must read that eligibility view and still follow the governed
+The older `python3 -m services.analytics.mobile_offline` command and its direct
+service helpers are retired and fail closed before database access because
+they have no authenticated tenant identity and bypass form/consent validation.
+Use the operator enrollment flow, `POST /api/mobile/register`, and the
+authenticated `/api/mobile/sync` route instead. Rows created by the historic
+queue remain unassessed and fail `v_mobile_collection_use_eligibility`. Any
+downstream use must read that eligibility view and still follow the governed
 review/publication lifecycle.
 
 The local candidate received migrations 380 and 381 and the curated form seed

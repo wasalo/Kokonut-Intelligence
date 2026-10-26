@@ -1,13 +1,124 @@
 """Tests for the Channel Orchestration + Customer Health service."""
 
-import json
 import uuid
+from unittest.mock import MagicMock
 
-import pytest
 import psycopg2
+import pytest
 
-from services.ingestion.base import get_db
 from services.analytics import channel_orchestration
+from services.ingestion.base import get_db
+
+
+def test_list_channel_configs_redacts_nested_credentials():
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchall.return_value = [{
+        "channel_name": "SMS",
+        "channel_type": "sms",
+        "is_active": True,
+        "config": {
+            "provider": "example",
+            "api_key": "secret-api-key",
+            "monkey": "coconut",
+            "nested": {"access_token": "secret-token", "sender_id": "farm-1"},
+        },
+    }]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    configs = channel_orchestration.list_channel_configs(conn, "location-1")
+
+    assert configs[0]["config"] == {
+        "provider": "example",
+        "api_key": "[REDACTED]",
+        "monkey": "coconut",
+        "nested": {"access_token": "[REDACTED]", "sender_id": "farm-1"},
+    }
+    assert "secret-api-key" not in repr(configs)
+    assert "secret-token" not in repr(configs)
+
+
+def test_delivery_plan_redacts_credentials():
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchall.side_effect = [
+        [{"channel_type": "sms", "priority": 1, "is_primary": True}],
+        [],
+        [{
+            "channel_name": "SMS",
+            "channel_type": "sms",
+            "config": {"password": "secret-password", "region": "test"},
+        }],
+    ]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    plan = channel_orchestration.get_delivery_plan(conn, "location-1", "farmer")
+
+    assert plan[0]["config"] == {"password": "[REDACTED]", "region": "test"}
+    assert "secret-password" not in repr(plan)
+
+
+def test_default_delivery_plan_redacts_credentials():
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchall.side_effect = [
+        [],
+        [],
+        [{
+            "channel_name": "SMS",
+            "channel_type": "sms",
+            "config": {"api_key": "default-secret", "region": "test"},
+        }],
+    ]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    plan = channel_orchestration.get_delivery_plan(conn, "location-1", "farmer")
+
+    assert plan[0]["config"] == {"api_key": "[REDACTED]", "region": "test"}
+    assert "default-secret" not in repr(plan)
+
+
+def test_delivery_plan_scopes_segment_and_omits_inactive_channels():
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchall.side_effect = [
+        [
+            {"channel_type": "sms", "priority": 10, "is_primary": True},
+            {"channel_type": "email", "priority": 5, "is_primary": False},
+        ],
+        [],
+        [{"channel_name": "Email", "channel_type": "email", "config": {}}],
+    ]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    plan = channel_orchestration.get_delivery_plan(
+        conn, "location-1", "farmer", segment_id="farmer-1"
+    )
+
+    preference_query, preference_params = cursor.execute.call_args_list[0].args
+    assert "cp.segment_id IS NULL OR cp.segment_id = %s" in preference_query
+    assert preference_params == ("location-1", "farmer", "farmer-1")
+    assert [entry["channel"] for entry in plan] == ["email"]
+
+
+def test_delivery_plan_does_not_fallback_when_configured_preferences_are_inactive():
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchall.side_effect = [
+        [{"channel_type": "sms", "priority": 10, "is_primary": True}],
+        [],
+        [{"channel_name": "Email", "channel_type": "email", "config": {}}],
+    ]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    plan = channel_orchestration.get_delivery_plan(conn, "location-1", "farmer")
+
+    assert plan == []
 
 
 def _db():

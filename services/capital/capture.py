@@ -58,12 +58,17 @@ def capture_risk(conn, location_id: str) -> Dict[str, Any]:
             top_amt = float(top[1] if isinstance(top, (list, tuple)) else list(top.values())[1])
             top_share = round(top_amt / total_rev, 4)
 
-        # Anti-capture policy scopes in effect for this farm.
+        # Count only published policies assigned to this location. The table
+        # also contains other farms' and network-level policies, which must not
+        # leak into a location-scoped capital report.
         cur.execute(
             """
             SELECT COUNT(*) FROM anti_capture_governance_policy
-            WHERE policy_scope IN ('farm', 'network', 'other')
+            WHERE location_id = %s
+              AND policy_scope IN ('farm', 'network', 'other')
+              AND status = 'published'
             """,
+            (location_id,),
         )
         policy_rows = cur.fetchone()
         policy_count = int((policy_rows[0] if policy_rows else 0) or 0)

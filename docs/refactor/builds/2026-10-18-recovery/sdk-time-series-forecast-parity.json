@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript time-series forecast and accuracy schema parity",
+  "models": [
+    "TimeSeriesForecast",
+    "ForecastAccuracy"
+  ],
+  "source_tables": [
+    "schemas/postgres/131_trend_analysis.sql:time_series_forecast",
+    "schemas/postgres/131_trend_analysis.sql:forecast_accuracy"
+  ],
+  "schema_guard": {
+    "models": 37,
+    "canonical_columns": 725,
+    "scalar_types": 675,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 41,
+    "enum_fields": 20,
+    "check_literal_fields": 10
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 48 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check scripts/check-sdk-schema-parity.py sdk/python/kokonut/types.py sdk/python/kokonut/__init__.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "TimeSeriesForecast exposes stored forecast values and inputs without running a forecasting model.",
+    "ForecastAccuracy exposes stored comparison/error fields without calculating accuracy metrics.",
+    "Checks used local source and synthetic fixtures; no database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

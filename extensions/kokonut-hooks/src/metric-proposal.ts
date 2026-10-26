@@ -17,7 +17,7 @@ export async function handleMetricProposalUpdate(
   payload: Record<string, any>,
   meta: Record<string, any>,
   db: any,
-  accountability?: Record<string, any>
+  auditInRequestTransaction = false,
 ): Promise<Record<string, any>> {
   if (!payload.status) return payload;
 
@@ -49,11 +49,24 @@ export async function handleMetricProposalUpdate(
 
   if (REVIEW_STATUSES.has(payload.status)) {
     payload.review_date = payload.review_date || new Date().toISOString().slice(0, 10);
-    if (accountability?.user) payload.reviewed_by = payload.reviewed_by || accountability.user;
   }
 
   if (payload.status === 'implemented' && !payload.metric_definition_id) {
     throw new Error('Implemented metric proposals require metric_definition_id');
+  }
+
+  if (auditInRequestTransaction) {
+    try {
+      await logMetricProposalTransition(
+        db,
+        recordId,
+        payload.status,
+        meta?.accountability?.user,
+        payload.discussion_notes ? JSON.stringify(payload.discussion_notes) : undefined,
+      );
+    } catch {
+      throw new Error('Unable to record workflow transition for metric_proposal');
+    }
   }
 
   return payload;

@@ -3,29 +3,37 @@
 Tests for Data Governance & Interoperability
 """
 
-import sys
+import json
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
+from datetime import date, datetime, timezone
 from unittest.mock import MagicMock, patch
-from datetime import date, datetime, timezone, timedelta
 
 from services.analytics.data_governance import (
-    record_consent,
-    withdraw_consent,
-    get_consent_status,
+    approve_retention_policy,
     check_consent,
-    log_access,
-    get_access_audit,
-    request_portability,
-    fulfill_portability,
-    get_portability_requests,
     create_sharing_agreement,
-    get_sharing_agreements,
-    set_retention_policy,
     enforce_retention_policies,
+    fulfill_portability,
+    get_access_audit,
+    get_consent_status,
     get_governance_summary,
+    get_portability_requests,
+    get_sharing_agreements,
+    list_retention_legal_holds,
+    list_retention_policies,
+    log_access,
+    place_retention_legal_hold,
+    record_consent,
+    release_retention_legal_hold,
+    request_portability,
+    retire_retention_policy,
+    set_retention_policy,
+    withdraw_consent,
 )
 
 
@@ -393,27 +401,415 @@ class TestSetRetentionPolicy(unittest.TestCase):
 
     def test_set_retention_policy_creates_policy(self):
         result = set_retention_policy(
-            self.conn, "soil", 2555, action="soft_delete",
+            self.conn, "soil", 42, action="soft_delete",
+            actor="operator-1", reason="draft for review",
         )
         self.assertIn("policy_id", result)
         self.assertEqual(result["data_category"], "soil")
-        self.assertEqual(result["retention_days"], 2555)
+        self.assertEqual(result["retention_days"], 42)
         self.assertEqual(result["deletion_method"], "soft_delete")
-        self.assertEqual(result["status"], "active")
+        self.assertFalse(result["auto_enforce"])
+        self.assertEqual(result["status"], "draft")
 
     def test_set_retention_policy_completes(self):
-        set_retention_policy(self.conn, "soil", 2555)
+        set_retention_policy(
+            self.conn, "soil", 42,
+            actor="operator-1", reason="draft for review",
+        )
         self.conn.commit.assert_called_once()
         self.mock_cursor.close.assert_called_once()
 
+    def test_set_retention_policy_trims_audit_actor_and_reason(self):
+        set_retention_policy(
+            self.conn, "soil", 42,
+            actor=" operator-1 ", reason=" draft for review ",
+        )
+
+        event_params = self.mock_cursor.execute.call_args_list[1].args[1]
+        self.assertEqual(event_params[1:3], ("operator-1", "draft for review"))
+
+    def test_set_retention_policy_rejects_invalid_windows_before_database_access(self):
+        for retention_days in (0, -1, True, 1.5):
+            with self.subTest(retention_days=retention_days):
+                with self.assertRaisesRegex(ValueError, "positive integer"):
+                    set_retention_policy(
+                        self.conn, "soil", retention_days,
+                        actor="operator-1", reason="draft for review",
+                    )
+
+        self.conn.cursor.assert_not_called()
+
+    def test_set_retention_policy_rejects_unknown_action_before_database_access(self):
+        with self.assertRaisesRegex(ValueError, "unsupported retention action"):
+            set_retention_policy(
+                self.conn, "soil", 30, action="purge_anything",
+                actor="operator-1", reason="draft for review",
+            )
+
+        self.conn.cursor.assert_not_called()
+
+    def test_set_retention_policy_records_normalized_scope_codes(self):
+        result = set_retention_policy(
+            self.conn, "soil", 42, actor="operator-1", reason="draft for review",
+            jurisdiction_code=" US-CA ", purpose_code="Research",
+        )
+
+        self.assertEqual(result["jurisdiction_code"], "us-ca")
+        self.assertEqual(result["purpose_code"], "research")
+        insert_params = self.mock_cursor.execute.call_args_list[0].args[1]
+        self.assertEqual(insert_params[4:6], ("us-ca", "research"))
+        snapshot = json.loads(self.mock_cursor.execute.call_args_list[1].args[1][3])
+        self.assertEqual(snapshot["jurisdiction_code"], "us-ca")
+        self.assertEqual(snapshot["purpose_code"], "research")
+
+    def test_set_retention_policy_rejects_invalid_scope_code_before_database_access(self):
+        with self.assertRaisesRegex(ValueError, "jurisdiction_code"):
+            set_retention_policy(
+                self.conn, "soil", 42,
+                actor="operator-1", reason="draft for review",
+                jurisdiction_code="US/CA",
+            )
+
+        self.conn.cursor.assert_not_called()
+
+
+class TestRetentionInventory(unittest.TestCase):
+    POLICY_ID = "a0000000-0000-0000-0000-000000000402"
+    LOCATION_ID = "a0000000-0000-0000-0000-000000000403"
+
+    def test_policy_inventory_returns_bounded_scope_without_free_text(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [(
+            self.POLICY_ID, "soil", "soil_sample", self.LOCATION_ID,
+            "us", "research", None, "soft_delete", False, "draft", "paused",
+            "Kokonut Network", None, None, datetime(2026, 10, 17, tzinfo=timezone.utc),
+            datetime(2026, 10, 17, tzinfo=timezone.utc), None,
+        )]
+
+        result = list_retention_policies(
+            conn, status="draft", jurisdiction_code=" US ",
+            purpose_code="Research", location_id=self.LOCATION_ID, limit=20,
+        )
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["limit"], 20)
+        self.assertEqual(result["policies"][0]["retention_days"], None)
+        self.assertEqual(result["policies"][0]["jurisdiction_code"], "us")
+        self.assertEqual(result["policies"][0]["created_at"], "2026-10-17T00:00:00+00:00")
+        sql, params = cursor.execute.call_args.args
+        self.assertIn("FROM data_retention_policy", sql)
+        self.assertNotIn("metadata", sql)
+        self.assertNotIn("reason", sql)
+        self.assertEqual(params, ("draft", "us", "research", self.LOCATION_ID, 20))
+        cursor.close.assert_called_once()
+
+    def test_policy_inventory_validates_filters_before_database_access(self):
+        for kwargs in (
+            {"status": "deleted"},
+            {"jurisdiction_code": "USA/DR"},
+            {"purpose_code": " "},
+            {"location_id": "not-a-uuid"},
+            {"limit": 0},
+            {"limit": True},
+            {"limit": 501},
+        ):
+            with self.subTest(kwargs=kwargs):
+                conn = MagicMock()
+                with self.assertRaises(ValueError):
+                    list_retention_policies(conn, **kwargs)
+                conn.cursor.assert_not_called()
+
+    def test_active_hold_inventory_omits_sensitive_reason(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [(
+            self.POLICY_ID, "platform_event", self.LOCATION_ID, "operator-1",
+            datetime(2026, 10, 17, tzinfo=timezone.utc), None, None,
+        )]
+
+        result = list_retention_legal_holds(conn, entity_type="platform_event")
+
+        self.assertEqual(result["total"], 1)
+        self.assertNotIn("reason", result["holds"][0])
+        self.assertNotIn("release_reason", result["holds"][0])
+        sql, params = cursor.execute.call_args.args
+        self.assertIn("released_at IS NULL", sql)
+        self.assertNotIn("reason", sql)
+        self.assertEqual(params, ("platform_event", 100))
+
+    def test_hold_inventory_can_include_released_records_for_one_entity(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = []
+
+        result = list_retention_legal_holds(
+            conn, active_only=False, entity_type="platform_event",
+            entity_id=self.LOCATION_ID, limit=10,
+        )
+
+        self.assertEqual(result["holds"], [])
+        sql, params = cursor.execute.call_args.args
+        self.assertNotIn("released_at IS NULL", sql)
+        self.assertEqual(params, ("platform_event", self.LOCATION_ID, 10))
+
+    def test_hold_inventory_validates_scope_and_limit_before_database_access(self):
+        for kwargs in (
+            {"entity_id": self.LOCATION_ID},
+            {"entity_type": "public.location"},
+            {"entity_type": "location", "entity_id": "bad"},
+            {"active_only": 1},
+            {"limit": 0},
+            {"limit": True},
+            {"limit": 501},
+        ):
+            with self.subTest(kwargs=kwargs):
+                conn = MagicMock()
+                with self.assertRaises(ValueError):
+                    list_retention_legal_holds(conn, **kwargs)
+                conn.cursor.assert_not_called()
+
+
+class TestApproveRetentionPolicy(unittest.TestCase):
+    def test_approval_trims_audit_actor_and_reason(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchone.return_value = (
+            "a0000000-0000-0000-0000-000000000402", "soil", "soil_sample",
+            None, None, None, 42, "soft_delete", False,
+            "reviewer", date(2026, 10, 15), "owner",
+        )
+
+        approve_retention_policy(
+            conn,
+            "a0000000-0000-0000-0000-000000000402",
+            " reviewer ",
+            reason=" approved proposal ",
+        )
+
+        self.assertEqual(cursor.execute.call_args_list[2].args[1][0], "reviewer")
+        event_params = cursor.execute.call_args_list[3].args[1]
+        self.assertEqual(event_params[1:3], ("reviewer", "approved proposal"))
+
+    def test_approval_preserves_scope_and_marks_resolver_requirement(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchone.return_value = (
+            "a0000000-0000-0000-0000-000000000402", "soil", "soil_sample",
+            None, "us-ca", "research", 42, "soft_delete", False,
+            "reviewer", date(2026, 10, 15), "owner",
+        )
+
+        result = approve_retention_policy(
+            conn,
+            "a0000000-0000-0000-0000-000000000402",
+            "reviewer",
+            reason="approved proposal",
+        )
+
+        self.assertTrue(result["approved"])
+        self.assertFalse(result["jurisdiction_purpose_scope_resolved"])
+        self.assertEqual(result["jurisdiction_code"], "us-ca")
+        self.assertEqual(result["purpose_code"], "research")
+        snapshot = json.loads(cursor.execute.call_args_list[3].args[1][3])
+        self.assertEqual(snapshot["jurisdiction_code"], "us-ca")
+        self.assertEqual(snapshot["purpose_code"], "research")
+
+    def test_scoped_policy_cannot_enable_auto_enforcement(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchone.return_value = None
+
+        result = approve_retention_policy(
+            conn,
+            "a0000000-0000-0000-0000-000000000402",
+            "reviewer",
+            auto_enforce=True,
+            reason="approved proposal",
+        )
+
+        self.assertFalse(result["approved"])
+        self.assertIn("scoped auto-enforcement has no resolver", result["reason"])
+        self.assertEqual(cursor.execute.call_args_list[2].args[1], (
+            "reviewer", True, True,
+            "a0000000-0000-0000-0000-000000000402",
+        ))
+
+
+class TestRetentionAuditInputValidation(unittest.TestCase):
+    POLICY_ID = "a0000000-0000-0000-0000-000000000402"
+    ENTITY_ID = "a0000000-0000-0000-0000-000000000403"
+
+    def _mutations(self, conn, *, actor, reason):
+        return (
+            lambda: set_retention_policy(
+                conn, "soil", actor=actor, reason=reason,
+            ),
+            lambda: approve_retention_policy(
+                conn, self.POLICY_ID, actor, reason=reason,
+            ),
+            lambda: retire_retention_policy(
+                conn, self.POLICY_ID, actor, reason,
+            ),
+            lambda: place_retention_legal_hold(
+                conn, "location", self.ENTITY_ID, actor, reason,
+            ),
+            lambda: release_retention_legal_hold(
+                conn, self.POLICY_ID, actor, reason,
+            ),
+        )
+
+    def test_actor_fields_reject_invalid_values_before_database_access(self):
+        for actor in (None, 123, "   ", "x" * 201):
+            for mutation_index in range(5):
+                with self.subTest(actor=actor, mutation=mutation_index):
+                    conn = MagicMock()
+                    mutation = self._mutations(
+                        conn, actor=actor, reason="review",
+                    )[mutation_index]
+                    with self.assertRaises(ValueError):
+                        mutation()
+                    conn.cursor.assert_not_called()
+
+    def test_reason_fields_reject_invalid_values_before_database_access(self):
+        for reason in (None, 123, "   "):
+            for mutation_index in range(5):
+                with self.subTest(reason=reason, mutation=mutation_index):
+                    conn = MagicMock()
+                    mutation = self._mutations(
+                        conn, actor="operator-1", reason=reason,
+                    )[mutation_index]
+                    with self.assertRaises(ValueError):
+                        mutation()
+                    conn.cursor.assert_not_called()
+
 
 class TestRetentionSweep(unittest.TestCase):
+    def test_sweep_rejects_invalid_audit_identity_and_mode_before_opening_cursor(self):
+        invalid_inputs = (
+            (None, True, "actor is required"),
+            ("   ", True, "actor is required"),
+            ("x" * 201, True, "actor must be at most 200 characters"),
+            ("operator-1", "false", "dry_run must be a boolean"),
+        )
+        for actor, dry_run, message in invalid_inputs:
+            with self.subTest(actor=actor, dry_run=dry_run):
+                conn = MagicMock()
+                with self.assertRaisesRegex(ValueError, message):
+                    enforce_retention_policies(conn, actor, dry_run=dry_run)
+                conn.cursor.assert_not_called()
+
+    def test_sweep_fails_closed_by_default_before_opening_cursor(self):
+        conn = MagicMock()
+
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT=true",
+            ):
+                enforce_retention_policies(conn, "operator-1")
+
+        conn.cursor.assert_not_called()
+
+    def test_dry_run_remains_available_without_destructive_gate(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = []
+
+        with patch.dict(os.environ, {}, clear=True):
+            result = enforce_retention_policies(conn, "operator-1", dry_run=True)
+
+        self.assertEqual(result["total"], 0)
+        conn.commit.assert_called_once()
+
+    def test_notification_retention_dry_run_skips_until_archive_workflow_exists(self):
+        targets = (
+            "notification_outbox",
+            "notification_outbox_attempt",
+            "notification_outbox_operator_audit",
+        )
+        for entity_type in targets:
+            for dry_run in (True, False):
+                with self.subTest(entity_type=entity_type, dry_run=dry_run):
+                    conn = MagicMock()
+                    cursor = MagicMock()
+                    conn.cursor.return_value = cursor
+                    cursor.fetchall.return_value = [
+                        (
+                            "pol-notification", "notification_delivery", entity_type,
+                            None, None, None, 90, "hard_delete", False, True, "active",
+                            "reviewer-1", date(2026, 10, 15), "owner-1",
+                        ),
+                    ]
+
+                    environment = (
+                        {"KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT": "true"}
+                        if not dry_run else {}
+                    )
+                    with patch.dict(os.environ, environment, clear=True):
+                        result = enforce_retention_policies(
+                            conn, "operator-1", dry_run=dry_run
+                        )
+
+                    policy = result["policies"][0]
+                    self.assertEqual(policy["status"], "skipped")
+                    self.assertEqual(policy["candidates"], 0)
+                    self.assertEqual(policy["affected"], 0)
+                    self.assertTrue(any(
+                        "data_retention_enforcement_log" in call.args[0]
+                        for call in cursor.execute.call_args_list
+                    ))
+                    self.assertFalse(any(
+                        "information_schema.columns" in call.args[0]
+                        for call in cursor.execute.call_args_list
+                    ))
+                    self.assertFalse(any(
+                        "last_enforced_at" in call.args[0]
+                        for call in cursor.execute.call_args_list
+                    ))
+                    self.assertFalse(any(
+                        "DELETE FROM" in call.args[0]
+                        or "UPDATE \"notification_" in call.args[0]
+                        for call in cursor.execute.call_args_list
+                    ))
+
+    def test_generic_dry_run_does_not_mark_policy_as_enforced(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [
+            (
+                "pol-generic", "fixture", "retention_fixture", None, None, None,
+                90, "soft_delete", False, True, "active", "reviewer-1",
+                date(2026, 10, 15), "owner-1",
+            ),
+        ]
+        cursor.fetchone.side_effect = [(0,), (True,), (1, 1, 0, 0, 0), (3,)]
+
+        result = enforce_retention_policies(conn, "operator-1", dry_run=True)
+
+        self.assertEqual(result["policies"][0]["status"], "dry_run")
+        self.assertEqual(result["policies"][0]["candidates"], 3)
+        self.assertFalse(any("last_enforced_at" in call.args[0] for call in cursor.execute.call_args_list))
+
+    @patch.dict(os.environ, {"KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT": "true"})
     def test_sweep_records_legal_hold_as_skipped(self):
         conn = MagicMock()
         cursor = MagicMock()
         conn.cursor.return_value = cursor
         cursor.fetchall.return_value = [
-            ("pol-001", "soil", "soil_sample", None, 2555, "soft_delete", True, True, "active"),
+            (
+                "pol-001", "soil", "soil_sample", None, None, None,
+                42, "soft_delete",
+                True, True, "active", "reviewer-1", date(2026, 10, 15), "owner-1",
+            ),
         ]
 
         result = enforce_retention_policies(conn, "operator-1")
@@ -422,7 +818,75 @@ class TestRetentionSweep(unittest.TestCase):
         self.assertEqual(result["policies"][0]["status"], "skipped")
         self.assertEqual(result["policies"][0]["affected"], 0)
         conn.commit.assert_called_once()
+        self.assertFalse(any(
+            "last_enforced_at" in call.args[0]
+            for call in cursor.execute.call_args_list
+        ))
+        self.assertFalse(
+            any(
+                "FROM data_retention_policy overlap" in call.args[0]
+                for call in cursor.execute.call_args_list
+            )
+        )
         self.assertTrue(any("data_retention_enforcement_log" in call.args[0] for call in cursor.execute.call_args_list))
+
+    @patch.dict(os.environ, {"KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT": "true"})
+    def test_scoped_dry_run_filters_direct_location_jurisdiction_and_purpose_columns(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        location_id = "a0000000-0000-0000-0000-000000000412"
+        cursor.fetchall.return_value = [
+            (
+                "pol-002", "soil", "soil_sample", location_id, "us", "research",
+                42, "soft_delete", False, True, "active", "reviewer-1",
+                date(2026, 10, 15), "owner-1",
+            ),
+        ]
+        cursor.fetchone.side_effect = [(0,), (True,), (1, 1, 1, 1, 1), (4,)]
+
+        result = enforce_retention_policies(conn, "operator-1", dry_run=True)
+
+        self.assertEqual(result["policies"][0]["status"], "dry_run")
+        self.assertEqual(result["policies"][0]["candidates"], 4)
+        target_queries = [
+            call for call in cursor.execute.call_args_list
+            if 'SELECT COUNT(*) FROM "soil_sample"' in call.args[0]
+        ]
+        self.assertEqual(len(target_queries), 1)
+        self.assertEqual(
+            target_queries[0].args[1],
+            [42, "soil_sample", location_id, "us", "research"],
+        )
+        self.assertIn('"location_id" = %s', target_queries[0].args[0])
+        self.assertIn('"jurisdiction_code" = %s', target_queries[0].args[0])
+        self.assertIn('"purpose_code" = %s', target_queries[0].args[0])
+
+    def test_scoped_retention_skips_before_candidate_query_when_scope_column_missing(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [
+            (
+                "pol-003", "soil", "soil_sample", None, "us", "research",
+                42, "soft_delete", False, True, "active", "reviewer-1",
+                date(2026, 10, 15), "owner-1",
+            ),
+        ]
+        cursor.fetchone.side_effect = [(0,), (True,), (1, 1, 0, 0, 1)]
+
+        result = enforce_retention_policies(conn, "operator-1", dry_run=True)
+
+        policy = result["policies"][0]
+        self.assertEqual(policy["status"], "skipped")
+        self.assertEqual(policy["candidates"], 0)
+        self.assertIn("target table's jurisdiction_code column", policy["error"])
+        self.assertFalse(
+            any(
+                'SELECT COUNT(*) FROM "soil_sample"' in call.args[0]
+                for call in cursor.execute.call_args_list
+            )
+        )
 
 
 class TestGetGovernanceSummary(unittest.TestCase):

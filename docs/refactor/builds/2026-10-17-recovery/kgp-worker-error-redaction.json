@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "KGP indexer durable scan failures and worker error logs",
+  "behavior": {
+    "cursor_failure": "The durable cursor stores a fixed scan-failure label and exception class instead of raw RPC/database text.",
+    "worker_logs": "Scan, rollback, lease-release, failure-persistence, and connection-close logs omit raw exception details and tracebacks.",
+    "recovery": "Reconnect, rollback, failure recording, lease, and cleanup behavior remain unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_kgp_worker_durability.py -q",
+    "result": "4 passed",
+    "coverage": [
+      "cursor failure record is class-only after a synthetic database error",
+      "worker failure log contains only the exception class",
+      "reconnect and next-cycle scan behavior remain intact",
+      "connections close across failed and recovered cycles"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked KGP connections and worker methods"
+  },
+  "limitations": [
+    "No EVM RPC endpoint or database was accessed.",
+    "This does not establish live KGP indexing, chain reorganization recovery, or MAN-CAP-042 acceptance."
+  ]
+}

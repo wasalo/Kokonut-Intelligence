@@ -1,0 +1,45 @@
+{
+  "slice": "Current-source ARM64 Kernel application software smoke",
+  "date": "2026-10-26",
+  "source_commit": "b0740b9d3ff0c8f38e0ae081f0434f8aa7838f49",
+  "source_tree": "clean committed source",
+  "result": "passed",
+  "build": {
+    "command": "docker buildx build --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=false --load --quiet --tag kokonut-kernel-current-arm64-b0740b9d:local --file Dockerfile.kernel .",
+    "image_id": "sha256:b37bac18f4e9c3164242d83987ccf6c3f0c345924946856c998471892360b137",
+    "image_size_bytes": 547230679,
+    "platform": "linux/arm64"
+  },
+  "runtime_smoke": {
+    "container_architecture": "aarch64",
+    "network": "none",
+    "root_filesystem": "read-only with 64 MiB temporary /tmp",
+    "sdk_mount": "sdk/python read-only",
+    "direct_route_objects": 12,
+    "scheduled_job_specs": 22,
+    "sdk_imports": [
+      "KokonutClient",
+      "KokonutPublicApiClient"
+    ],
+    "worker_imports": [
+      "services.events.dispatch_worker",
+      "services.ingestion.freshness_worker",
+      "services.ingestion.clickhouse_outbox_worker",
+      "services.events.notification_delivery_worker"
+    ],
+    "database_calls": false,
+    "provider_calls": false,
+    "credentials_or_secrets": false,
+    "published_ports": false
+  },
+  "cleanup": {
+    "runtime_container_removed": true,
+    "temporary_image_removed": true,
+    "candidate_or_legacy_modified": false,
+    "persistent_compose_resources_modified": false
+  },
+  "limitations": [
+    "QEMU software-emulation evidence only; no physical Raspberry Pi, power-loss, thermal, measured performance, or storage-endurance acceptance.",
+    "Gateway creation/import smoke does not exercise authenticated requests, database behavior, or live providers."
+  ]
+}

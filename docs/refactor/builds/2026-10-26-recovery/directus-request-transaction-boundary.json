@@ -1,0 +1,25 @@
+{
+  "candidate_or_legacy_modified": false,
+  "checks": {
+    "directus_extension_build": "passed",
+    "extension_global_database_unused_on_missing_context": "passed",
+    "focused_authorization_and_registration_tests": "19 passed",
+    "full_directus_hook_suite": "91 passed",
+    "missing_request_context_returns_generic_forbidden": "passed",
+    "python_directus_tenant_fixture_checks": "7 passed",
+    "typescript_no_emit_check": "passed"
+  },
+  "database_or_directus_runtime_accessed": false,
+  "limitations": [
+    "Source/unit boundary only; pinned Directus runtime semantics and broader permission/hook parity remain open."
+  ],
+  "result": "passed",
+  "run_date_utc": "2026-10-26",
+  "scope": "Directus tenant hooks require a request transaction database handle",
+  "source_sha256": {
+    "extensions/kokonut-hooks/src/directus-authorization.test.ts": "5fca3612506f632a48c461c5b44233864b483428f5342e0d4cd4da8699d6d009",
+    "extensions/kokonut-hooks/src/directus-authorization.ts": "2dc156532541ce3db3ccaae1a277dcb00f470dbc30576047da52cc0601b85931",
+    "extensions/kokonut-hooks/src/index.test.ts": "59990fd14a6a893ddac2a5d80a53dc332a657a39401c7c19fe91d42bcf405bee",
+    "extensions/kokonut-hooks/src/index.ts": "378831098fb55aaeb98a2e8ecc55500ebf97608ed8ab0cb542970f129574ce98"
+  }
+}

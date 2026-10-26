@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import random
 from typing import Any
 
 from services.common.logging import get_logger
@@ -109,11 +110,13 @@ def geographic_cross_validation(
     training_data: list[dict[str, Any]],
     field_id_key: str = "plot_id",
     n_folds: int = 5,
+    random_state: int = 42,
 ) -> list[dict[str, Any]]:
     """Perform geographic cross-validation (leave-one-field-out or grouped).
 
     Splits data by field (plot) to ensure no spatial autocorrelation
-    between training and validation sets.
+    between training and validation sets. The seeded, sample-balanced grouping
+    makes the partition repeatable without splitting a field across folds.
     """
     # Group by field
     fields: dict[str, list[dict]] = {}
@@ -121,19 +124,22 @@ def geographic_cross_validation(
         field_id = str(record.get(field_id_key, "unknown"))
         fields.setdefault(field_id, []).append(record)
 
-    field_ids = list(fields.keys())
+    field_ids = sorted(fields)
     if len(field_ids) < n_folds:
         n_folds = len(field_ids)
 
     if n_folds <= 0:
         return []
 
-    # Assign fields to folds (roughly equal sizes)
-    import random
-    random.shuffle(field_ids)
+    # Randomize equal-size ties locally, then greedily balance fold sample counts.
+    random.Random(random_state).shuffle(field_ids)
+    field_ids.sort(key=lambda field_id: len(fields[field_id]), reverse=True)
     folds = [[] for _ in range(n_folds)]
-    for i, field_id in enumerate(field_ids):
-        folds[i % n_folds].append(field_id)
+    fold_sample_counts = [0] * n_folds
+    for field_id in field_ids:
+        fold_idx = min(range(n_folds), key=lambda index: fold_sample_counts[index])
+        folds[fold_idx].append(field_id)
+        fold_sample_counts[fold_idx] += len(fields[field_id])
 
     cv_results = []
     for fold_idx in range(n_folds):

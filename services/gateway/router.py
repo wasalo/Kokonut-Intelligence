@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 try:
@@ -12,12 +13,12 @@ try:
 
     from services.gateway.public_models import (
         PublicCrispAssessment,
+        PublicCrispAssessmentEnvelope,
         PublicError,
         PublicLocationListResponse,
         PublicLocationResponse,
         PublicLocationSummary,
         PublicLocationSummaryEnvelope,
-        PublicCrispAssessmentEnvelope,
         PublicMetricSummary,
         PublicMetricSummaryEnvelope,
     )
@@ -47,8 +48,11 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/mobile/?$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/mobile/field-collector-vault\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/field-collector-vault\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/mobile/field-collector-service-worker\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/field-collector-service-worker\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/app$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/field-collector-vault\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/api/mobile/field-collector-service-worker\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/forms$"), "mobile_form", "read", True),
     ("POST", re.compile(r"^/api/mobile/media/uploads$"), "mobile_media", "upload", True),
     ("POST", re.compile(r"^/api/mobile/register$"), "mobile_device", "register", True),
@@ -60,10 +64,25 @@ _ROUTE_POLICIES = (
     # These endpoints perform their own opaque device-token authentication.
     ("POST", re.compile(r"^/api/mobile/sync$"), "offline_collection", "write", True),
     ("GET", re.compile(r"^/api/mobile/sync/status$"), "offline_collection", "read", True),
+    # Capability-token routes authenticate inside the handler and deliberately
+    # do not create canonical party identities for Delphi participants.
+    ("POST", re.compile(r"^/api/participation/delphi/preview$"), "delphi_participant", "preview", True),
+    ("POST", re.compile(r"^/api/participation/delphi/accept$"), "delphi_participant", "accept", True),
+    ("POST", re.compile(r"^/api/participation/delphi/withdraw$"), "delphi_participant", "withdraw", True),
+    ("GET", re.compile(r"^/api/participation/delphi$"), "delphi_participant_app", "read", True),
+    ("GET", re.compile(r"^/api/participation/delphi/app\.js$"), "delphi_participant_app", "read", True),
+    ("GET", re.compile(r"^/api/participation/delphi/styles\.css$"), "delphi_participant_app", "read", True),
+    ("GET", re.compile(r"^/api/participation/delphi/workspace$"), "delphi_participant", "read", True),
+    ("POST", re.compile(r"^/api/participation/delphi/contributions$"), "delphi_participant", "write", True),
+    ("POST", re.compile(r"^/api/participation/delphi/minority-reports$"), "delphi_participant", "write", True),
     ("GET", re.compile(r"^/api/v1/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/v1/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/v1/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
     ("GET", re.compile(r"^/api/v1/analytics/([^/]+)/summary$"), "analytics", "read", True),
+    ("GET", re.compile(r"^/api/v1/governance/baal/config$"), "governance", "read", False),
+    ("GET", re.compile(r"^/api/v1/governance/baal/proposals$"), "governance", "read", False),
+    ("GET", re.compile(r"^/api/v1/governance/baal/proposals/[^/]+$"), "governance", "read", False),
+    ("GET", re.compile(r"^/api/v1/governance/baal/members/[^/]+$"), "governance", "read", False),
     ("GET", re.compile(r"^/api/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
@@ -72,6 +91,9 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/federation/nodes$"), "federation_node", "read", True),
     ("GET", re.compile(r"^/api/drivers$"), "driver", "read", True),
     ("GET", re.compile(r"^/api/health/services$"), "service_health", "read", True),
+    ("GET", re.compile(r"^/api/data-stream/posts$"), "data_stream_post", "read", False),
+    ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/files$"), "data_stream_file", "read", False),
+    ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/attestation$"), "data_stream_proof", "read", False),
     ("POST", re.compile(r"^/api/data-stream/post$"), "data_stream_post", "create", False),
 )
 
@@ -87,17 +109,26 @@ def get_route_policy(method: str, path: str) -> dict:
                 "public": public,
                 "location_id": match.group(1) if match.groups() else None,
             }
-    logger.warning(
-        "Catch-all route hit: %s %s — no explicit policy defined",
-        method,
-        path,
-    )
+    logger.warning("Catch-all route hit — no explicit policy defined")
     return {"resource": "gateway", "action": method.lower(), "public": False, "location_id": None}
 
 
 def _internal_error(exc: Exception, message: str = "Gateway request failed"):
-    logger.exception(message, exc_info=exc)
-    return JSONResponse(status_code=500, content={"error": message})
+    logger.error("%s (%s)", message, safe_exception_class(exc))
+    return JSONResponse(
+        status_code=500,
+        content={"error": message},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+def _private_response(content: dict, status_code: int = 200):
+    """Build a non-cacheable response for authenticated private resources."""
+    return JSONResponse(
+        status_code=status_code,
+        content=content,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 def _public_response(model, payload: dict):
@@ -121,74 +152,43 @@ def _versioned_envelope(response):
 
 @router.get("/locations")
 async def list_locations():
-    """Read public locations through the selected application/provider path."""
+    """Read public locations through the governed native projection."""
+    import json
+
     from starlette.concurrency import run_in_threadpool
 
-    from services.core.features import is_enabled
+    from services.gateway.locations import public_locations
 
-    if not is_enabled("directus"):
-        import json
-
-        from services.gateway.locations import public_locations
-
-        try:
-            rows = await run_in_threadpool(public_locations)
-            return JSONResponse(content={"data": json.dumps({"data": rows})})
-        except Exception as exc:
-            return _internal_error(exc)
-
-    import os
-
-    from services.common.http import http
-
-    directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        resp = await run_in_threadpool(http.get, f"{directus_url}/items/location?limit=100")
-        resp.raise_for_status()
-        return JSONResponse(content={"data": resp.text})
+        rows = await run_in_threadpool(public_locations)
+        return JSONResponse(content={"data": json.dumps({"data": rows})})
     except Exception as exc:
-        logger.exception("Directus locations request failed", exc_info=exc)
-        return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})
+        return _internal_error(exc)
 
 
 @router.get("/locations/{location_id}")
 async def get_location(location_id: str):
-    """Read a public location through the selected application/provider path."""
-    import os
+    """Read one public location through the governed native projection."""
     from uuid import UUID
 
     from starlette.concurrency import run_in_threadpool
-
-    from services.common.http import http
 
     try:
         UUID(location_id)
     except ValueError:
         return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
 
-    from services.core.features import is_enabled
+    import json
 
-    if not is_enabled("directus"):
-        import json
+    from services.gateway.locations import public_locations
 
-        from services.gateway.locations import public_locations
-
-        try:
-            rows = await run_in_threadpool(public_locations, location_id)
-            if not rows:
-                return JSONResponse(status_code=404, content={"error": "Location not found"})
-            return JSONResponse(content={"data": json.dumps({"data": rows[0]})})
-        except Exception as exc:
-            return _internal_error(exc)
-
-    directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        resp = await run_in_threadpool(http.get, f"{directus_url}/items/location/{location_id}")
-        resp.raise_for_status()
-        return JSONResponse(content={"data": resp.text})
+        rows = await run_in_threadpool(public_locations, location_id)
+        if not rows:
+            return JSONResponse(status_code=404, content={"error": "Location not found"})
+        return JSONResponse(content={"data": json.dumps({"data": rows[0]})})
     except Exception as exc:
-        logger.exception("Directus location request failed", exc_info=exc)
-        return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})
+        return _internal_error(exc)
 
 
 @router.get(
@@ -352,33 +352,138 @@ async def get_public_analytics_summary_v1(location_id: str):
     return _versioned_envelope(await get_analytics_summary(location_id))
 
 
+@router.get("/data-stream/posts")
+async def list_data_stream_posts(request: Request):
+    """List or search tenant-scoped Data Stream posts without caching content."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        location_id = request.query_params.get("location_id")
+        query_text = request.query_params.get("q")
+        try:
+            limit = int(request.query_params.get("limit", "20"))
+            offset = int(request.query_params.get("offset", "0"))
+        except ValueError as exc:
+            raise ValueError("limit and offset must be integers") from exc
+
+        from services.gateway.data_stream import list_gateway_data_stream_posts
+
+        rows = await run_in_threadpool(
+            list_gateway_data_stream_posts,
+            location_id,
+            request.state.gateway_authorization,
+            query_text=query_text,
+            limit=limit,
+            offset=offset,
+        )
+        return _private_response({"data": rows})
+    except ValueError as exc:
+        return _private_response({"error": str(exc)}, status_code=400)
+    except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return _private_response({"error": "Tenant access denied"}, status_code=403)
+        return _internal_error(exc)
+
+
+@router.get("/data-stream/posts/{post_id}/files")
+async def list_data_stream_post_files(post_id: str, request: Request):
+    """List safe, tenant-scoped attachment metadata without caching it."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        from services.gateway.data_stream import list_gateway_data_stream_files
+
+        rows = await run_in_threadpool(
+            list_gateway_data_stream_files,
+            post_id,
+            request.query_params.get("location_id"),
+            request.state.gateway_authorization,
+        )
+        return _private_response({"data": rows})
+    except ValueError as exc:
+        return _private_response({"error": str(exc)}, status_code=400)
+    except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return _private_response({"error": "Tenant access denied"}, status_code=403)
+        return _internal_error(exc)
+
+
+@router.get("/data-stream/posts/{post_id}/attestation")
+async def get_data_stream_post_attestation(post_id: str, request: Request):
+    """Read stored attestation metadata without caching or querying the chain."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        from services.gateway.data_stream import get_gateway_data_stream_attestation
+
+        row = await run_in_threadpool(
+            get_gateway_data_stream_attestation,
+            post_id,
+            request.query_params.get("location_id"),
+            request.state.gateway_authorization,
+        )
+        if row is None:
+            return _private_response({"error": "Data Stream post not found"}, status_code=404)
+        return _private_response({"data": row})
+    except ValueError as exc:
+        return _private_response({"error": str(exc)}, status_code=400)
+    except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return _private_response({"error": "Tenant access denied"}, status_code=403)
+        return _internal_error(exc)
+
+
 @router.post("/data-stream/post")
 async def create_data_stream_post(request: Request):
-    """Create a data stream post."""
+    """Create a tenant-scoped draft Data Stream post."""
+    from starlette.concurrency import run_in_threadpool
+
     try:
         body = await request.json()
-        from services.data_stream.post import create_post
-        post_id = create_post(
-            location_id=body["location_id"],
-            post_type=body.get("post_type", "monitoring_report"),
-            title=body.get("title", ""),
-            content=body.get("content", ""),
-            created_by=request.state.caller,
+        from services.gateway.data_stream import create_gateway_data_stream_post
+
+        result = await run_in_threadpool(
+            create_gateway_data_stream_post,
+            body,
+            request.state.gateway_authorization,
         )
-        return JSONResponse(content={"post_id": post_id}, status_code=201)
+        return _private_response({"post_id": result["id"]}, status_code=201)
+    except ValueError as exc:
+        return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return _private_response({"error": "Tenant access denied"}, status_code=403)
         return _internal_error(exc)
 
 
 @router.get("/iri/resolve")
 async def resolve_iri(iri: str):
-    """Resolve an IRI to its governed record."""
+    """Resolve a public location IRI to its non-sensitive JSON-LD projection."""
+    from starlette.concurrency import run_in_threadpool
+
     try:
-        from services.iri.resolver import resolve
-        result = resolve(iri)
+        from services.gateway.public_iri import resolve_public_location_iri
+
+        result = await run_in_threadpool(resolve_public_location_iri, iri)
         if result:
-            return JSONResponse(content=result)
-        return JSONResponse(status_code=404, content={"error": "IRI not found"})
+            return JSONResponse(
+                content=result,
+                media_type="application/ld+json",
+                headers={"Cache-Control": "no-store"},
+            )
+        return JSONResponse(
+            status_code=404,
+            content={"error": "IRI not found"},
+            headers={"Cache-Control": "no-store"},
+        )
     except Exception as exc:
         return _internal_error(exc)
 
@@ -416,3 +521,79 @@ async def service_health():
         return JSONResponse(content=result)
     except Exception as exc:
         return _internal_error(exc)
+
+
+@router.get("/v1/governance/baal/config")
+async def get_baal_governance_config():
+    """Read global Baal configuration under the governance:read credential scope."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.governance import read_baal_config
+
+    try:
+        result = await run_in_threadpool(read_baal_config)
+        return _private_response({"data": result})
+    except Exception as exc:
+        return _governance_read_error(exc)
+
+
+@router.get("/v1/governance/baal/proposals")
+async def get_baal_governance_proposals(limit: str = "50"):
+    """Read a bounded newest-first list of global Baal proposals."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.governance import read_baal_proposals
+
+    try:
+        parsed_limit = int(limit)
+    except (TypeError, ValueError):
+        return _private_response({"error": "limit must be an integer"}, status_code=400)
+    try:
+        result = await run_in_threadpool(read_baal_proposals, parsed_limit)
+        return _private_response({"data": result})
+    except Exception as exc:
+        return _governance_read_error(exc)
+
+
+@router.get("/v1/governance/baal/proposals/{proposal_id}")
+async def get_baal_governance_proposal(proposal_id: str):
+    """Read one global Baal proposal by decimal proposal identifier."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.governance import read_baal_proposal
+
+    try:
+        result = await run_in_threadpool(read_baal_proposal, proposal_id)
+        return _private_response({"data": result})
+    except Exception as exc:
+        return _governance_read_error(exc)
+
+
+@router.get("/v1/governance/baal/members/{wallet}")
+async def get_baal_governance_member(wallet: str):
+    """Read one requested public Baal member position by wallet address."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.governance import read_baal_member
+
+    try:
+        result = await run_in_threadpool(read_baal_member, wallet)
+        return _private_response({"data": result})
+    except Exception as exc:
+        return _governance_read_error(exc)
+
+
+def _governance_read_error(exc: Exception):
+    from services.gateway.governance import (
+        GovernanceProposalNotFound,
+        GovernanceReadUnavailable,
+    )
+
+    if isinstance(exc, ValueError):
+        return _private_response({"error": str(exc)}, status_code=400)
+    if isinstance(exc, GovernanceProposalNotFound):
+        return _private_response({"error": "Governance proposal not found"}, status_code=404)
+    if isinstance(exc, GovernanceReadUnavailable):
+        logger.warning("Baal governance read unavailable (%s)", type(exc).__name__)
+        return _private_response({"error": "Governance read unavailable"}, status_code=503)
+    return _internal_error(exc)

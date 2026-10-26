@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-15",
+  "kind": "focused-source-unit-checks",
+  "command": "python3 -m pytest tests/test_data_governance.py tests/test_event_retention_cleanup_gate.py tests/test_data_retention_gate.py tests/test_event_bus_durability.py tests/test_migration.py -q",
+  "result": {
+    "passed": 94,
+    "subtests_passed": 4,
+    "failed": 0
+  },
+  "regression_found_and_fixed": "Policy-level legal holds now skip before generic-retention overlap/candidate queries.",
+  "retention_cleanup_enabled_in_repository": false,
+  "disposable_database_acceptance": "passed; see retention-policy-disposable.json",
+  "candidate_or_legacy_database_touched_during_source_checks": false,
+  "migration_401_applied_to_candidate_at_source_check_time": false,
+  "subsequent_candidate_rollout": {
+    "migration_ids": [
+      "schema:401_dynamic_retention_and_legal_holds.sql",
+      "schema:402_retention_policy_scope_codes.sql"
+    ],
+    "result": "applied after a fresh checkpoint and isolated restore rehearsal",
+    "evidence": "candidate-retention-401-402-rollout.json"
+  }
+}

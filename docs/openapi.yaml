@@ -13321,6 +13321,10 @@ components:
       - report_name
     DashboardDataset:
       type: object
+      description: >-
+        Governed dashboard dataset. Kernel refresh accepts only a registered
+        query_id and exact location scope. Legacy query_sql remains archived
+        in PostgreSQL, is omitted from Directus responses, and is never executed.
       properties:
         id:
           type: string
@@ -13340,8 +13344,10 @@ components:
         location_id:
           type: string
           format: uuid
-        query_sql:
+        query_id:
           type: string
+          nullable: true
+          description: Stable identifier for a source-controlled reporting query contract.
         refresh_interval_minutes:
           type: integer
         last_refreshed_at:
@@ -13363,6 +13369,7 @@ components:
           format: date-time
     DashboardDatasetCreate:
       type: object
+      description: Create a governed dashboard dataset with an optional registered reporting query ID.
       properties:
         name:
           type: string
@@ -13373,8 +13380,9 @@ components:
         location_id:
           type: string
           format: uuid
-        query_sql:
+        query_id:
           type: string
+          description: Stable identifier for a source-controlled reporting query contract.
         refresh_interval_minutes:
           type: integer
         status:
@@ -13386,6 +13394,7 @@ components:
       - name
     DashboardDatasetUpdate:
       type: object
+      description: Update dataset metadata and registered query selection; legacy SQL cannot be written.
       properties:
         name:
           type: string
@@ -13396,8 +13405,10 @@ components:
         location_id:
           type: string
           format: uuid
-        query_sql:
+        query_id:
           type: string
+          nullable: true
+          description: Stable identifier for a source-controlled reporting query contract.
         refresh_interval_minutes:
           type: integer
         last_refreshed_at:

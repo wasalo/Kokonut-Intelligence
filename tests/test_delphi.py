@@ -16,6 +16,14 @@ def _make_mock_conn(mock_cursor):
     return mock_conn
 
 
+def _forbid_cli_database(monkeypatch):
+    from services.common import database
+
+    get_db = MagicMock(side_effect=AssertionError("Delphi CLI database access is forbidden"))
+    monkeypatch.setattr(database, "get_db", get_db)
+    return get_db
+
+
 # ---------------------------------------------------------------------------
 # Model tests
 # ---------------------------------------------------------------------------
@@ -185,139 +193,65 @@ class TestConsensusMath:
 # ---------------------------------------------------------------------------
 
 class TestFacilitatorFlow:
-    def _make(self):
+    @pytest.mark.parametrize(
+        ("method_name", "args"),
+        [
+            ("create_study", ("Test study",)),
+            ("open_study", ("study-1",)),
+            ("close_study", ("study-1",)),
+            ("get_study", ("study-1",)),
+            ("add_item", ("study-1", "Question")),
+            ("submit_contribution", ("study-1", "item-1", "member-1", 0.5)),
+            ("get_live_summary", ("study-1",)),
+            ("check_stopping", ("study-1",)),
+            ("draft_recommendation", ("study-1", "Suggestion")),
+            ("approve_recommendation", ("recommendation-1", "operator-1")),
+            ("reject_recommendation", ("recommendation-1", "operator-1", "reason")),
+            ("list_recommendations", ("study-1",)),
+            ("calibrate_panel", ("study-1",)),
+        ],
+    )
+    def test_legacy_facilitator_database_operations_fail_before_connection(
+        self, method_name, args
+    ):
         from services.delphi.facilitator import Facilitator
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        return Facilitator(conn=mock_conn), mock_conn, mock_cursor
 
-    def _seed_study(self, cur):
-        cur.fetchone.side_effect = [
-            {"id": "study-1", "location_id": "loc-1", "title": "Drought",
-             "description": None, "variation": "real_time", "status": "open",
-             "facilitator_type": "agent",
-             "stopping_criteria": json.dumps({
-                 "max_duration_hours": 720, "stability_pct": 5.0,
-                 "min_participants": 3, "iqr_threshold": 1.0}),
-             "created_by": None, "opened_at": None, "closed_at": None,
-             "metadata": {}, "created_at": "2026-01-01", "updated_at": "2026-01-01"},
-        ]
+        connection = MagicMock()
+        facilitator = Facilitator(connection)
+        get_connection = MagicMock(
+            side_effect=AssertionError("legacy Delphi access must stay closed")
+        )
+        facilitator._get_conn = get_connection
 
-    def test_create_study(self):
-        f, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "study-1", "status": "draft"}
-        study = f.create_study(title="Test")
-        assert study["status"] == "draft"
-        mock_conn.commit.assert_called_once()
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            getattr(facilitator, method_name)(*args)
 
-    def test_open_study(self):
-        f, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "study-1", "status": "open"}
-        study = f.open_study("study-1")
-        assert study["status"] == "open"
+        get_connection.assert_not_called()
+        connection.cursor.assert_not_called()
+        connection.commit.assert_not_called()
 
-    def test_submit_contribution_recomputes(self):
-        f, mock_conn, mock_cursor = self._make()
-        # item exists check, member exists check, contrib insert,
-        # get_study inside recompute, snapshot upsert
-        mock_cursor.fetchone.side_effect = [
-            {"id": "item-1", "min_value": -1.0, "max_value": 1.0, "status": "open"},
-            {"id": "member-1"},  # member belongs to study
-            {"id": "contrib-1"},  # inserted contribution
-            {"id": "study-1", "stopping_criteria": {
-                "max_duration_hours": 720, "stability_pct": 5.0,
-                "min_participants": 3, "iqr_threshold": 1.0}},
-            {"id": "cons-1", "median": 0.5, "iqr": 0.0, "consensus_reached": False},
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [{"score": 0.5, "expert_weight": 1.0}],  # scores+weights
-        ]
-        result = f.submit_contribution("study-1", "item-1", "member-1", 0.5, "reason")
-        assert "consensus" in result
-        assert result["consensus"]["median"] == 0.5
+    @pytest.mark.parametrize(
+        ("method_name", "args"),
+        [
+            ("_recompute_consensus", ("study-1", "item-1")),
+            ("_panel_size", ("study-1",)),
+            ("_get_conn", ()),
+        ],
+    )
+    def test_legacy_facilitator_helpers_fail_before_cursor_use(self, method_name, args):
+        from services.delphi.facilitator import Facilitator
 
-    def test_submit_rejects_unknown_item(self):
-        f, _, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = None  # item not found
-        with pytest.raises(ValueError, match="does not belong to study"):
-            f.submit_contribution("study-1", "item-x", "member-1", 0.5)
-
-    def test_submit_rejects_closed_study(self):
-        f, _, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {
-            "id": "item-1", "min_value": -1.0, "max_value": 1.0, "status": "closed"
-        }
-        with pytest.raises(ValueError, match="not open"):
-            f.submit_contribution("study-1", "item-1", "member-1", 0.5)
-
-    def test_submit_rejects_score_outside_range(self):
-        f, _, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {
-            "id": "item-1", "min_value": 0.0, "max_value": 1.0, "status": "open"
-        }
-        with pytest.raises(ValueError, match="outside"):
-            f.submit_contribution("study-1", "item-1", "member-1", 2.0)
-
-    def test_live_summary(self):
-        f, _, mock_cursor = self._make()
-        # get_study returns study; items query; panel size; conflicting query
-        study_dict = {"id": "study-1", "title": "Drought", "status": "open"}
-        item_dict = {"item_id": "item-1", "label": "Q1", "scale": "desirability", "item_type": "option",
-                     "median": 0.5, "iqr": 0.2, "stddev": 0.1, "cv": 0.2,
-                     "participant_count": 3, "weighted_median": 0.5, "consensus_reached": True}
-        conflicting_rows = [
-            {"display_token": "P-AAA", "score": 0.2, "reasoning": "low"},
-            {"display_token": "P-BBB", "score": 0.8, "reasoning": "high"},
-        ]
-        mock_cursor.fetchone.side_effect = [
-            study_dict,       # get_study
-            {"n": 2},         # panel_size
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [item_dict],      # items list
-            conflicting_rows,  # conflicting contributions
-        ]
-        summary = f.get_live_summary("study-1")
-        assert summary["title"] == "Drought"
-        assert len(summary["items"]) == 1
-        assert "conflicting_viewpoints" in summary
-
-    def test_check_stopping(self):
-        f, _, mock_cursor = self._make()
-        study_dict = {"id": "study-1", "title": "D", "status": "open",
-                      "stopping_criteria": json.dumps({
-                          "max_duration_hours": 720, "stability_pct": 5.0,
-                          "min_participants": 3, "iqr_threshold": 1.0}),
-                      "opened_at": None}
-        snap = {"item_id": "item-1", "median": 0.7, "iqr": 0.3, "participant_count": 5}
-        mock_cursor.fetchone.side_effect = [
-            study_dict,  # get_study
-            None,        # previous history per item
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [snap],  # snapshots
-        ]
-        result = f.check_stopping("study-1")
-        assert "should_stop" in result
-        assert result["items"]
-
-    def test_draft_recommendation(self):
-        f, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "rec-1", "status": "draft"}
-        rec = f.draft_recommendation("study-1", "Adopt median positions")
-        assert rec["status"] == "draft"
-        mock_conn.commit.assert_called_once()
-
-    def test_approve_recommendation(self):
-        f, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "rec-1", "status": "approved"}
-        rec = f.approve_recommendation("rec-1", "human-1")
-        assert rec["status"] == "approved"
-
-    def test_approve_requires_human(self):
-        f, _, _ = self._make()
-        with pytest.raises(ValueError, match="approved_by is required"):
-            f.approve_recommendation("rec-1", "")
+        connection = MagicMock()
+        facilitator = Facilitator(connection)
+        cursor = MagicMock()
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            if method_name in {"_recompute_consensus", "_panel_size"}:
+                getattr(facilitator, method_name)(cursor, *args)
+            else:
+                getattr(facilitator, method_name)(*args)
+        cursor.execute.assert_not_called()
+        connection.cursor.assert_not_called()
+        connection.commit.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -325,38 +259,61 @@ class TestFacilitatorFlow:
 # ---------------------------------------------------------------------------
 
 class TestPanelManager:
-    def _make(self):
+    @pytest.mark.parametrize(
+        ("method_name", "args"),
+        [
+            ("add_member", ("study-1",)),
+            ("list_members", ("study-1",)),
+            ("get_member", ("member-1",)),
+            ("remove_member", ("member-1",)),
+            ("_derive_weight", (None, "farmer_identity", "party-1", "expert")),
+            ("member_weights", ("study-1",)),
+            ("assess_diversity", ("study-1",)),
+        ],
+    )
+    def test_legacy_panel_operations_fail_before_connection(self, method_name, args):
         from services.delphi.panel import PanelManager
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        return PanelManager(conn=mock_conn), mock_conn, mock_cursor
 
-    def test_add_member_generates_token(self):
-        pm, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "m-1", "display_token": "P-XXXX"}
-        member = pm.add_member("study-1", role="expert")
-        assert member["display_token"].startswith("P-")
-        mock_conn.commit.assert_called_once()
+        connection = MagicMock()
+        manager = PanelManager(connection)
+        get_connection = MagicMock(
+            side_effect=AssertionError("legacy Delphi panel access must stay closed")
+        )
+        manager._get_conn = get_connection
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            getattr(manager, method_name)(*args)
+        get_connection.assert_not_called()
+        connection.cursor.assert_not_called()
+        connection.commit.assert_not_called()
 
-    def test_add_member_explicit_weight(self):
-        pm, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "m-1", "display_token": "P-XXXX", "expert_weight": 2.0}
-        member = pm.add_member("study-1", role="expert", expert_weight=2.0)
-        assert member["expert_weight"] == 2.0
+    def test_legacy_panel_connection_helper_fails_closed(self):
+        from services.delphi.panel import PanelManager
 
-    def test_list_members(self):
-        pm, _, mock_cursor = self._make()
-        mock_cursor.fetchall.return_value = [
-            {"id": "m-1", "display_token": "P-A", "is_anonymous": True,
-             "expert_weight": 1.5, "role": "expert", "joined_at": "2026-01-01"},
-        ]
-        members = pm.list_members("study-1")
-        assert len(members) == 1
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            PanelManager()._get_conn()
 
-    def test_remove_member(self):
-        pm, mock_conn, mock_cursor = self._make()
-        mock_cursor.rowcount = 1
-        assert pm.remove_member("m-1") is True
+
+class TestMinorityReportManager:
+    @pytest.mark.parametrize(
+        ("method_name", "args"),
+        [
+            ("create", ("study-1", "Title", "Position", "Rationale")),
+            ("submit", ("report-1",)),
+            ("review", ("report-1", "verified", "operator-1", "Reviewed")),
+            ("_transition", ("report-1", "draft", "submitted", None, None)),
+        ],
+    )
+    def test_legacy_minority_report_operations_fail_before_cursor_use(
+        self, method_name, args
+    ):
+        from services.delphi.minority import MinorityReportManager
+
+        connection = MagicMock()
+        manager = MinorityReportManager(connection)
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            getattr(manager, method_name)(*args)
+        connection.cursor.assert_not_called()
+        connection.commit.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -367,63 +324,92 @@ class TestDelphiAgent:
     def test_task_registered(self):
         from services.agents.tasks import get_task
         task = get_task("delphi_facilitation")
-        assert "delphi_recommendation:draft" in task["writes"]
+        assert task["writes"] == []
         assert task["high_risk"] is False
 
     def test_summarize_study(self):
+        from services.agents import worker_cli
         from services.agents.delphi_facilitator_agent import summarize_study
-        from services.delphi.facilitator import Facilitator
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        fac = Facilitator(conn=mock_conn)
-        study_dict = {"id": "study-1", "title": "Drought", "status": "open"}
-        item_dict = {"item_id": "item-1", "label": "Q1", "scale": "desirability", "item_type": "option",
-                     "median": 0.5, "iqr": 0.2, "stddev": 0.1, "cv": 0.2,
-                     "participant_count": 3, "weighted_median": 0.5, "consensus_reached": True}
-        mock_cursor.fetchone.side_effect = [
-            study_dict,
-            {"n": 2},
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [item_dict],
-            [],
-        ]
-        summary = summarize_study("study-1", fac)
+
+        study_id = "a0000000-0000-4000-8000-000000000001"
+        location_id = "a0000000-0000-4000-8000-000000000002"
+        row = {
+            "study_id": study_id,
+            "location_id": location_id,
+            "source_scope": {
+                "view": "kokonut_agent_source.delphi_live_summary",
+                "study_id": study_id,
+                "location_id": location_id,
+            },
+            "title": "Drought",
+            "status": "open",
+            "panel_size_available": True,
+            "panel_size": 4,
+            "items": [{
+                "item_id": "a0000000-0000-4000-8000-000000000003",
+                "label": "Q1",
+                "scale": "desirability",
+                "item_type": "option",
+                "results_available": True,
+                "median": 0.5,
+                "iqr": 0.2,
+                "participant_count": 4,
+                "consensus_reached": True,
+                "display_token": "must-not-be-present",
+                "reasoning": "must-not-be-present",
+            }],
+        }
+        with patch.object(worker_cli, "run_worker_delphi_facilitation", return_value=row) as read:
+            summary = summarize_study(study_id, location_id)
+        read.assert_called_once_with(study_id, location_id)
+        assert summary["source_scope"] == row["source_scope"]
         assert summary["title"] == "Drought"
+        assert summary["panel_size"] == 4
+        assert "display_token" not in summary
+        assert "must-not-be-present" not in summary["synthesis"]
+        assert "consented aggregate responses" in summary["privacy_note"]
         assert "synthesis" in summary
 
-    def test_draft_recommendation_draft_only(self):
+    def test_draft_recommendation_is_in_memory_and_ignores_supplied_actor(self):
         from services.agents.delphi_facilitator_agent import draft_recommendation
-        from services.delphi.facilitator import Facilitator
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        fac = Facilitator(conn=mock_conn)
-        mock_cursor.fetchone.return_value = {"id": "rec-1", "status": "draft"}
-        rec = draft_recommendation("study-1", "Adopt medians", facilitator=fac)
+        rec = draft_recommendation(
+            "a0000000-0000-4000-8000-000000000001",
+            "a0000000-0000-4000-8000-000000000002",
+            "Adopt medians",
+            created_by="caller-supplied-actor",
+        )
         assert rec["status"] == "draft"
+        assert rec["study_id"] == "a0000000-0000-4000-8000-000000000001"
+        assert rec["location_id"] == "a0000000-0000-4000-8000-000000000002"
+        assert "created_by" not in rec
+        assert "in-memory" in rec["safety_note"].lower()
 
     def test_run_facilitation(self):
+        from services.agents import worker_cli
         from services.agents.delphi_facilitator_agent import run_delphi_facilitation
-        from services.delphi.facilitator import Facilitator
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        fac = Facilitator(conn=mock_conn)
-        study_dict = {"id": "study-1", "title": "Drought", "status": "open"}
-        item_dict = {"item_id": "item-1", "label": "Q1", "scale": "desirability", "item_type": "option",
-                     "median": 0.5, "iqr": 0.2, "stddev": 0.1, "cv": 0.2,
-                     "participant_count": 3, "weighted_median": 0.5, "consensus_reached": True}
-        mock_cursor.fetchone.side_effect = [
-            study_dict,
-            {"n": 2},
-            {"id": "rec-1", "status": "draft"},  # draft_recommendation insert
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [item_dict],
-            [],
-        ]
-        output = run_delphi_facilitation("study-1", draft=True, facilitator=fac)
+
+        study_id = "a0000000-0000-4000-8000-000000000001"
+        location_id = "a0000000-0000-4000-8000-000000000002"
+        source_summary = {
+            "study_id": study_id,
+            "location_id": location_id,
+            "source_scope": {
+                "view": "kokonut_agent_source.delphi_live_summary",
+                "study_id": study_id,
+                "location_id": location_id,
+            },
+            "title": "Drought",
+            "status": "open",
+            "panel_size_available": True,
+            "panel_size": 4,
+            "items": [],
+        }
+        with patch.object(worker_cli, "run_worker_delphi_facilitation", return_value=source_summary):
+            output = run_delphi_facilitation(study_id, location_id, draft=True)
         assert "summary" in output
-        assert "recommendation_draft" in output
+        assert output["recommendation_draft"]["status"] == "draft"
+        assert "created_by" not in output["recommendation_draft"]
+        assert output["recommendation_draft"]["location_id"] == location_id
 
 
 # ---------------------------------------------------------------------------
@@ -440,3 +426,128 @@ class TestDelphiCLI:
         assert hasattr(services.delphi, "Facilitator")
         assert hasattr(services.delphi, "PanelManager")
         assert hasattr(services.delphi, "ConsensusCalculator")
+
+    def test_legacy_agent_cli_emits_in_memory_draft_without_database(self, monkeypatch, capsys):
+        from types import SimpleNamespace
+
+        import services.delphi.cli as cli
+
+        get_db = _forbid_cli_database(monkeypatch)
+        cli.cmd_draft_recommendation(
+            SimpleNamespace(
+                study_id="a0000000-0000-4000-8000-000000000001",
+                location_id="a0000000-0000-4000-8000-000000000002",
+                text="Adopt medians",
+                summary="Synthetic summary",
+                created_by="caller-supplied-actor",
+            )
+        )
+        output = json.loads(capsys.readouterr().out)
+        assert output["status"] == "draft"
+        assert "created_by" not in output
+        get_db.assert_not_called()
+
+    @pytest.mark.parametrize("command", ["cmd_live_summary", "cmd_consensus"])
+    def test_legacy_summary_commands_use_signed_worker_without_shared_db(
+        self, command, monkeypatch, capsys
+    ):
+        from types import SimpleNamespace
+
+        import services.delphi.cli as cli
+        from services.agents import delphi_facilitator_agent
+
+        study_id = "a0000000-0000-4000-8000-000000000001"
+        location_id = "a0000000-0000-4000-8000-000000000002"
+        summary = {
+            "study_id": study_id,
+            "location_id": location_id,
+            "title": "Drought",
+            "status": "open",
+            "panel_size": None,
+            "panel_size_available": False,
+            "items": [{"item_id": "item-1", "results_available": False}],
+            "privacy_note": "consented aggregate responses only",
+            "synthesis": "results suppressed",
+        }
+        get_db = _forbid_cli_database(monkeypatch)
+        with patch.object(
+            delphi_facilitator_agent, "summarize_study", return_value=summary
+        ) as read:
+            getattr(cli, command)(
+                SimpleNamespace(study_id=study_id, location_id=location_id)
+            )
+
+        read.assert_called_once_with(study_id, location_id)
+        output = json.loads(capsys.readouterr().out)
+        if command == "cmd_consensus":
+            assert output == {"study_id": study_id, "items": summary["items"]}
+        else:
+            assert output == summary
+        get_db.assert_not_called()
+
+    def test_legacy_summary_cli_requires_explicit_location_before_worker(self, monkeypatch):
+        import sys
+
+        import services.delphi.cli as cli
+        from services.agents import delphi_facilitator_agent
+
+        get_db = _forbid_cli_database(monkeypatch)
+        with patch.object(
+            delphi_facilitator_agent,
+            "summarize_study",
+            side_effect=AssertionError("worker must stay closed"),
+        ) as read:
+            original_argv = list(sys.argv)
+            try:
+                sys.argv = ["services.delphi.cli", "live-summary", "--study-id", "study"]
+                with pytest.raises(SystemExit) as exc:
+                    cli.main()
+            finally:
+                sys.argv = original_argv
+
+        assert exc.value.code == 2
+        read.assert_not_called()
+        get_db.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "cmd_create_study",
+            "cmd_open_study",
+            "cmd_close_study",
+            "cmd_add_panel",
+            "cmd_list_panel",
+            "cmd_add_item",
+            "cmd_submit",
+            "cmd_check_stopping",
+            "cmd_calibrate_panel",
+            "cmd_list_studies",
+        ],
+    )
+    def test_legacy_study_and_panel_commands_fail_before_database_access(
+        self, command, monkeypatch
+    ):
+        from types import SimpleNamespace
+
+        import services.delphi.cli as cli
+
+        database = _forbid_cli_database(monkeypatch)
+
+        with pytest.raises(SystemExit, match="authenticated location grant"):
+            getattr(cli, command)(SimpleNamespace())
+
+        database.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "command",
+        ["cmd_approve_recommendation", "cmd_reject_recommendation", "cmd_list_recommendations"],
+    )
+    def test_legacy_recommendation_commands_fail_before_database_access(self, command, monkeypatch):
+        from types import SimpleNamespace
+
+        import services.delphi.cli as cli
+
+        database = _forbid_cli_database(monkeypatch)
+        with pytest.raises(SystemExit, match="authenticated.*Gateway"):
+            getattr(cli, command)(SimpleNamespace())
+        database.assert_not_called()

@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "601_nutrient_input_cost_currency.sql",
+  "database_target": "fresh disposable PostgreSQL 16/PostGIS container",
+  "candidate_or_legacy_modified": false,
+  "assertions": [
+    "migration 601 applies and replays transactionally",
+    "historical cost values remain unclassified instead of defaulting to USD",
+    "currency-qualified cost totals remain separated for USD and DOP",
+    "unclassified cost amounts are excluded from totals and counted",
+    "malformed currency codes are rejected by the database constraint",
+    "new/changed cost amounts require currency while unrelated legacy edits remain possible"
+  ],
+  "assertions_passed": 6
+}

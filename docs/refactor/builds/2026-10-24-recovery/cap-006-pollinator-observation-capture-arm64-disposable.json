@@ -1,0 +1,29 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T03:52:58.587435+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "architecture": "aarch64",
+  "migrations": [
+    "155_pollinator_health.sql",
+    "602_pollinator_health_kernel_alignment.sql",
+    "619_location_pollinator_observation_capture.sql"
+  ],
+  "migration_619_replayed": true,
+  "checks": [
+    "migration 619 applies and replays after schema 155 and alignment 602",
+    "exact signed operator location create context creates recorded observation",
+    "same actor/request/input replay is idempotent",
+    "reused request ID with changed input is rejected",
+    "ungranted operator, wrong requested location, and mismatched context are denied",
+    "foreign-location plot and hive links are rejected",
+    "out-of-bounds values are rejected",
+    "operator attribution persists and capture cannot promote lifecycle",
+    "shared Gateway/Directus roles cannot insert, update, delete, or read private receipts",
+    "database function owner is no-login, no-inherit, and not RLS-bypassing",
+    "optional Directus role cannot execute the Gateway capture function",
+    "receipt contains only a digest and observation reference; no row was verified"
+  ],
+  "assertions_passed": 12,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false
+}

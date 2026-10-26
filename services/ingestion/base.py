@@ -146,6 +146,7 @@ def log_ingestion(
     validation_warnings: Optional[list[str]] = None,
     dedupe_key: Optional[str] = None,
     db=None,
+    location_id: Optional[str] = None,
 ) -> None:
     """Log ingestion event to the ingestion_log table."""
     owns_db = db is None
@@ -159,9 +160,9 @@ def log_ingestion(
                     (source_system, source_table, source_id, target_table, target_id,
                      operation, payload_hash, status, error_message, rows_affected,
                      processing_time_ms, processor_version, batch_id, validation_status,
-                     validation_errors, validation_warnings, dedupe_key)
+                     validation_errors, validation_warnings, dedupe_key, location_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s::jsonb, %s::jsonb, %s)
+                        %s::jsonb, %s::jsonb, %s, %s::uuid)
                 """,
                 (
                     source_system, source_table, source_id, target_table, target_id,
@@ -169,7 +170,7 @@ def log_ingestion(
                     processing_time_ms, processor_version or INGESTION_PROCESSOR_VERSION,
                     batch_id, validation_status,
                     json.dumps(validation_errors or []), json.dumps(validation_warnings or []),
-                    dedupe_key,
+                    dedupe_key, location_id,
                 ),
             )
         if owns_db:
@@ -177,7 +178,7 @@ def log_ingestion(
     except Exception as e:
         if not owns_db:
             raise
-        logger.error("Failed to log ingestion: %s", e)
+        logger.error("Failed to log ingestion (%s)", type(e).__name__)
     finally:
         if owns_db and db is not None:
             db.close()
@@ -190,6 +191,7 @@ def update_indexer_status(
     status: str = "syncing",
     error_message: Optional[str] = None,
     metadata: Optional[dict] = None,
+    db=None,
 ) -> None:
     """Update chain_indexer_status table.
 
@@ -197,9 +199,10 @@ def update_indexer_status(
     column; used by indexers that track non-block positions (e.g. EAS
     attestation time) without writing a fake block number.
     """
-    db = None
+    owns_db = db is None
     try:
-        db = get_db()
+        if owns_db:
+            db = get_db()
         with db.cursor() as cur:
             cur.execute(
                 """
@@ -216,11 +219,14 @@ def update_indexer_status(
                 (chain, indexer_type, last_synced_block, status, error_message,
                  json.dumps(metadata or {})),
             )
-        db.commit()
+        if owns_db:
+            db.commit()
     except Exception as e:
-        logger.error("Failed to update indexer status: %s", e)
+        if not owns_db:
+            raise
+        logger.error("Failed to update indexer status (%s)", type(e).__name__)
     finally:
-        if db is not None:
+        if owns_db and db is not None:
             db.close()
 
 

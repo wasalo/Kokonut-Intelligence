@@ -1,0 +1,18 @@
+{
+  "scope": "typed graph projection and RDF graph rebuild failure logging",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_graph_projection.py tests/test_rdf_graph.py tests/test_linked_data.py -q",
+    "focused_test_result": "157 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior_preserved": [
+    "failed graph rebuilds still roll back and re-raise",
+    "failed generations are not activated",
+    "RDF persistence retains its existing transactional boundary"
+  ],
+  "redaction": "graph rebuild failures omit exception details, tracebacks, and RDF location identifiers; only bounded exception classes are logged"
+}

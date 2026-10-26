@@ -3,8 +3,9 @@
 Production runs on a dedicated VPS managed via Coolify (Traefik for TLS).
 This runbook takes a fresh host to a deployed, healthy KI production stack.
 
-**Everything else is already built** — deploy scripts, CI promotion job,
-backup policy. This document covers the one-time host provisioning.
+**Everything else is already built** — deploy scripts, GitHub Actions
+promotion workflow, backup policy. This document covers the one-time host
+provisioning.
 
 ## Prerequisites
 
@@ -32,11 +33,10 @@ mkdir -p /home/kokonut-deploy/.ssh
 chmod 700 /home/kokonut-deploy/.ssh
 ```
 
-Authorize the CI runner's key (public key generated on cerberus — see
-`ssh-setup.md`):
+Authorize the GitHub Actions deploy key (see `ssh-setup.md`):
 
 ```bash
-echo "ssh-ed25519 AAAA... ki-deploy@cerebus" \
+echo "ssh-ed25519 AAAA... ki-deploy@github-actions" \
   > /home/kokonut-deploy/.ssh/authorized_keys
 chmod 600 /home/kokonut-deploy/.ssh/authorized_keys
 chown -R kokonut-deploy:kokonut-deploy /home/kokonut-deploy/.ssh
@@ -46,7 +46,7 @@ chown -R kokonut-deploy:kokonut-deploy /home/kokonut-deploy/.ssh
 
 ```bash
 sudo -u kokonut-deploy git clone \
-  https://git.kokonut.network/Kokonut-Intelligence /opt/ki-prod
+  https://github.com/wasalo/Kokonut-Intelligence.git /opt/ki-prod
 cd /opt/ki-prod
 
 # age keypair for production secrets (NEVER reuse staging's)
@@ -58,18 +58,19 @@ cp deploy/production/.env.production.example deploy/production/.env.production
 # edit: fill all replace-with-strong-* values
 cd deploy/production && sops -e -i .env.production && rm -f .env.production
 git add .sops.yaml .env.production.sops
+git switch -c chore/production-sops-setup
 git commit -m "chore(prod): production secrets"
-git push origin main   # or push to a branch and merge via PR
+git push -u origin chore/production-sops-setup
+# Open a GitHub pull request and merge through the protected main branch.
 ```
 
 ## 4. First deployment
 
-From cerberus (CI runner):
-
-```bash
-DEPLOY_PROD_HOST=ki-prod DEPLOY_CONFIRM=yes \
-  deploy/scripts/deploy-production.sh
-```
+From the repository's GitHub Actions page, dispatch
+`.github/workflows/deploy-production.yml` from `main`, select `yes`, and
+approve the `production` environment if it is configured with required
+reviewers. Configure the environment values described in
+[GitHub Actions setup](../../docs/github-actions.md).
 
 The script: backs up (no-op checkpoint on first run), pulls, composes up
 with `docker-compose.prod.yml` + `traefik.yml`, verifies health.
@@ -81,7 +82,7 @@ with `docker-compose.prod.yml` + `traefik.yml`, verifies health.
 - [ ] Gateway health: `curl https://kokonut.network/health`
 - [ ] `PUBLIC_RESTRICT=true` confirmed: unauthenticated data endpoints return 401/403
 - [ ] Backups: first nightly checkpoint appears in `/opt/ki-prod/backups`
-- [ ] OneDev `deploy-production` promotion job tested (dry-run shape)
+- [ ] GitHub Actions `deploy-production` promotion tested (dry-run shape)
 
 ## 6. Go-live data ingestion
 

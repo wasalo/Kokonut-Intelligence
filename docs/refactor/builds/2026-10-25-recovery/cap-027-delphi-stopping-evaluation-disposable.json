@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "639_location_scoped_delphi_stopping_evaluation.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "network_mode": "none",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 449\u2013451 and 630\u2013639 apply and replay in order",
+    "stopping evaluation uses the signed exact-location evaluate_stopping grant",
+    "current withdrawn consent is excluded from per-item aggregates",
+    "stability uses prior consent-filtered evaluations and insufficient current participation blocks stopping",
+    "consensus, insufficient participation, and advisory study results are bounded",
+    "exact retries replay and cross-location scope fails closed",
+    "runtime cannot read or mutate evaluation rows or receipts; Directus cannot execute the function"
+  ],
+  "assertions_passed": 7
+}

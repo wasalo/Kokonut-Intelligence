@@ -1,0 +1,22 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T01:30:05.178557+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "migration": "153_waste_management.sql",
+  "migration_replayed": true,
+  "checks": [
+    "migration 153 applies and replays with only the required location fixture",
+    "unscoped legacy waste, compost, recycling, report, and resolution writers fail closed; synthetic read fixtures are isolated",
+    "synthetic waste, compost, recycling, and incident fixtures use canonical lifecycle states",
+    "schema-constrained category mappings and JSONB compatibility fields persist",
+    "verified waste summary excludes the second location",
+    "compost efficiency reads canonical columns, verified rows, and numeric pH metadata",
+    "synthetic incident lifecycle fields retain reporter and resolution data"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "provider_calls": false,
+  "host_binding": "127.0.0.1 ephemeral port",
+  "synthetic_records_only": true,
+  "cleanup": "Disposable container stopped with --rm; connection closed."
+}

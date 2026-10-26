@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-26",
+  "scope": "Static worker call graph for the default deterministic AI-summary source path and its literal generator registry. No application behavior, runtime authorization, or database access was changed.",
+  "dispatches": {
+    "default_builder": "services.agents.worker_cli.run_worker_summary -> services.agents.ai_summary.build_summary",
+    "registry": "services.agents.ai_summary.GENERATORS",
+    "summary_types_in_order": [
+      "operations",
+      "financial",
+      "environmental",
+      "combined"
+    ],
+    "combined_components": [
+      "operations",
+      "financial",
+      "environmental"
+    ],
+    "test_injected_builder": "not treated as production dispatch"
+  },
+  "counts": {
+    "operation_roots": 49,
+    "function_memberships": 1151,
+    "direct_call_edges": 1635,
+    "dynamic_dispatch_edges": 56,
+    "sql_execution_sites": 473,
+    "sql_sites_with_static_operation_path": 398,
+    "sql_site_operation_memberships": 579,
+    "sql_sites_without_static_function_match": 75
+  },
+  "verification": {
+    "focused_test_command": "python3 -m pytest tests/test_worker_function_reachability.py tests/test_worker_sql_reachability.py -q",
+    "generated_inventory_checks": "source closure, function reachability, SQL inventory, SQL reachability, effect inventory, and boundary preflight --check all passed",
+    "ruff": "passed",
+    "compileall": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; named MAN-CAP checks separately gated",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "The default production builder path is modeled from its fixed fallback; callers that inject a custom builder are not modeled as trusted registry dispatch.",
+    "The static graph does not establish runtime authorization, database grants, RLS, or populated-data parity.",
+    "75 SQL execution sites remain without a static function match in current worker-root graphs; they are not thereby proven dead or unreachable."
+  ],
+  "environment_touched": {
+    "database": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  }
+}

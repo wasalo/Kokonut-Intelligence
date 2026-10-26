@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "Monte Carlo draws and tactical clash sweep failures",
+  "behavior": {
+    "monte_carlo": "Thrown simulator exceptions include only their bounded class; returned error results use a fixed summary while retaining draw indexes and failure counts.",
+    "clash_sweep": "Failed scenario details contain only the scenario label and bounded exception class; the sweep continues."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_simulation_resolution.py -q",
+    "result": "11 passed",
+    "coverage": [
+      "failing draw exception contents are omitted",
+      "simulator-returned error text is omitted",
+      "clash-sweep malformed input details are omitted",
+      "existing distribution and resolution behavior remains covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; deterministic in-process simulation"
+  },
+  "limitations": [
+    "This does not validate domain assumptions or outcomes against populated operational data."
+  ]
+}

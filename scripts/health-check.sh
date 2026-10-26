@@ -42,10 +42,13 @@ PG_PASSWORD="${PG_PASSWORD:-dev-kokonut-postgres-2026}"
 ALERT_WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
 ALERT_SMTP_HOST="${ALERT_SMTP_HOST:-}"
 ALERT_SMTP_PORT="${ALERT_SMTP_PORT:-587}"
+ALERT_SMTP_TLS_MODE="${ALERT_SMTP_TLS_MODE:-starttls}"
 ALERT_SMTP_USER="${ALERT_SMTP_USER:-}"
 ALERT_SMTP_PASSWORD="${ALERT_SMTP_PASSWORD:-}"
 ALERT_EMAIL_FROM="${ALERT_EMAIL_FROM:-alerts@kokonut.network}"
 ALERT_EMAIL_TO="${ALERT_EMAIL_TO:-}"
+export ALERT_SMTP_HOST ALERT_SMTP_PORT ALERT_SMTP_TLS_MODE ALERT_SMTP_USER
+export ALERT_SMTP_PASSWORD ALERT_EMAIL_FROM ALERT_EMAIL_TO
 
 # Disk threshold (percent)
 DISK_THRESHOLD="${DISK_THRESHOLD:-90}"
@@ -104,11 +107,13 @@ fi
 CHECK_DOCKER="${HEALTH_CHECK_DOCKER:-true}"
 if [ "$CHECK_DOCKER" = "true" ]; then
     if [ "$JSON_OUTPUT" = "false" ]; then echo "Docker containers:"; fi
-    check "container_database" "docker ps --format '{{.Names}}' | grep -q 'database'"
-    check "container_directus" "docker ps --format '{{.Names}}' | grep -q 'directus'"
-    check "container_clickhouse" "docker ps --format '{{.Names}}' | grep -q 'clickhouse'"
+    # Consume the complete `docker ps` output: with pipefail, grep -q can close
+    # the pipe early and make Docker report SIGPIPE even when a match exists.
+    check "container_database" "docker ps --format '{{.Names}}' | grep 'database' > /dev/null"
+    check "container_directus" "docker ps --format '{{.Names}}' | grep 'directus' > /dev/null"
+    check "container_clickhouse" "docker ps --format '{{.Names}}' | grep 'clickhouse' > /dev/null"
     if [ "$HEALTH_CHECK_METABASE" = "true" ]; then
-        check "container_metabase" "docker ps --format '{{.Names}}' | grep -q 'metabase'"
+        check "container_metabase" "docker ps --format '{{.Names}}' | grep 'metabase' > /dev/null"
     fi
 
     # Check for exited (crashed) containers
@@ -178,26 +183,28 @@ if [ "$FAIL" -gt 0 ] && [ "$ALERT" = "true" ]; then
 
     # Email via SMTP (Python helper for portability)
     if [ -n "$ALERT_SMTP_HOST" ] && [ -n "$ALERT_EMAIL_TO" ]; then
-        python3 -c "
-import smtplib
-from email.mime.text import MIMEText
+        ALERT_MESSAGE="$ALERT_MSG" ALERT_HOSTNAME="$HOSTNAME" PYTHONPATH="$PROJECT_DIR${PYTHONPATH:+:$PYTHONPATH}" python3 -c '
 import os
-msg = MIMEText('''$ALERT_MSG''')
-msg['Subject'] = 'Kokonut Health Alert — $HOSTNAME'
-msg['From'] = os.environ.get('ALERT_EMAIL_FROM', 'alerts@kokonut.network')
-msg['To'] = os.environ.get('ALERT_EMAIL_TO', '')
+from email.mime.text import MIMEText
+from services.common.smtp import send_message
+
+msg = MIMEText(os.environ.get("ALERT_MESSAGE", ""))
+host = os.environ.get("ALERT_HOSTNAME", "host")
+msg["Subject"] = "Kokonut Health Alert — " + host
+msg["From"] = os.environ.get("ALERT_EMAIL_FROM", "alerts@kokonut.network")
+msg["To"] = os.environ.get("ALERT_EMAIL_TO", "")
 try:
-    server = smtplib.SMTP(os.environ.get('ALERT_SMTP_HOST', ''), int(os.environ.get('ALERT_SMTP_PORT', '587')))
-    server.starttls()
-    user = os.environ.get('ALERT_SMTP_USER', '')
-    pw = os.environ.get('ALERT_SMTP_PASSWORD', '')
-    if user and pw:
-        server.login(user, pw)
-    server.send_message(msg)
-    server.quit()
+    send_message(
+        msg,
+        host=os.environ.get("ALERT_SMTP_HOST", ""),
+        port=int(os.environ.get("ALERT_SMTP_PORT", "587")),
+        username=os.environ.get("ALERT_SMTP_USER", ""),
+        password=os.environ.get("ALERT_SMTP_PASSWORD", ""),
+        tls_mode=os.environ.get("ALERT_SMTP_TLS_MODE", "starttls"),
+    )
 except Exception:
     pass
-" 2>/dev/null || true
+' 2>/dev/null || true
     fi
 fi
 

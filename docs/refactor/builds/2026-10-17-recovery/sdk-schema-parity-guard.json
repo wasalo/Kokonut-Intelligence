@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-17",
+  "scope": "Offline canonical SQL column coverage guard for SDK models",
+  "command": "python3 scripts/check-sdk-schema-parity.py",
+  "result": "passed: 12 models, 256 canonical columns checked per SDK",
+  "additional_checks": {
+    "ruff": "passed for scripts/check-sdk-schema-parity.py",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "guard_boundary": "Checks canonical column-name presence only; it does not validate data types, nullability, Directus projections, runtime behavior, or authorization.",
+  "network_and_database": "none"
+}

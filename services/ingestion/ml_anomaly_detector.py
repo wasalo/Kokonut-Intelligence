@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import psycopg2
 import psycopg2.extras
 
+from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
 
 logger = get_logger("ingestion.ml_anomaly_detector")
@@ -204,25 +205,32 @@ def _query_sensor_timeseries(
     location_id: str,
     sensor_type: str,
     lookback_days: int = 90,
+    sensor_id: str | None = None,
+    signed_source: bool = False,
 ) -> _pd.DataFrame:
     """Query sensor readings as a pandas DataFrame."""
     if _pd is None:
         return _pd.DataFrame()
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
+    source_relation = (
+        "kokonut_anomaly_ml_source.sensor_reading"
+        if signed_source else "sensor_reading"
+    )
+    cur.execute(f"""
         SELECT
             reading_date + COALESCE(reading_time, '00:00:00') AS timestamp,
             value,
             sensor_type,
             sensor_id
-        FROM sensor_reading
+        FROM {source_relation}
         WHERE location_id = %s
         AND sensor_type = %s
+        AND (%s::uuid IS NULL OR sensor_id = %s::uuid)
         AND quality IN ('good', 'estimated')
-        AND reading_date >= CURRENT_DATE - INTERVAL '%s days'
+        AND reading_date >= CURRENT_DATE - (%s * INTERVAL '1 day')
         ORDER BY reading_date, reading_time
-    """, (location_id, sensor_type, lookback_days))
+    """, (location_id, sensor_type, sensor_id, sensor_id, lookback_days))
     rows = cur.fetchall()
     cur.close()
 
@@ -239,21 +247,26 @@ def _query_all_sensors_timeseries(
     conn,
     location_id: str,
     lookback_days: int = 30,
+    signed_source: bool = False,
 ) -> _pd.DataFrame:
     """Query all sensor types as a multi-column DataFrame."""
     if _pd is None:
         return _pd.DataFrame()
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
+    source_relation = (
+        "kokonut_anomaly_ml_source.sensor_reading"
+        if signed_source else "sensor_reading"
+    )
+    cur.execute(f"""
         SELECT
             reading_date + COALESCE(reading_time, '00:00:00') AS timestamp,
             value,
             sensor_type
-        FROM sensor_reading
+        FROM {source_relation}
         WHERE location_id = %s
         AND quality IN ('good', 'estimated')
-        AND reading_date >= CURRENT_DATE - INTERVAL '%s days'
+        AND reading_date >= CURRENT_DATE - (%s * INTERVAL '1 day')
         ORDER BY reading_date, reading_time
     """, (location_id, lookback_days))
     rows = cur.fetchall()
@@ -283,6 +296,8 @@ def fit_prophet(
     location_id: str,
     sensor_type: str,
     lookback_days: int = 90,
+    sensor_id: str | None = None,
+    signed_source: bool = False,
 ) -> Optional[Any]:
     """Fit a Prophet model for a sensor type at a location.
 
@@ -291,7 +306,11 @@ def fit_prophet(
     if not _ensure_deps() or _prophet is None:
         return None
 
-    df = _query_sensor_timeseries(conn, location_id, sensor_type, lookback_days)
+    source_options = {"signed_source": True} if signed_source else {}
+    df = _query_sensor_timeseries(
+        conn, location_id, sensor_type, lookback_days,
+        sensor_id=sensor_id, **source_options
+    )
     if len(df) < 100:  # Need at least ~4 days hourly
         logger.info("Insufficient data for Prophet (%d points, need 100+)", len(df))
         return None
@@ -310,7 +329,7 @@ def fit_prophet(
         model.fit(prophet_df)
         return model
     except Exception as e:
-        logger.error("Prophet fit failed for %s: %s", sensor_type, e)
+        logger.error("Prophet fit failed (%s)", safe_exception_class(e))
         return None
 
 
@@ -368,6 +387,7 @@ def fit_isolation_forest(
     location_id: str,
     lookback_days: int = 30,
     contamination: float = 0.05,
+    signed_source: bool = False,
 ) -> Optional[Tuple[Any, Any]]:
     """Fit Isolation Forest on multi-sensor features.
 
@@ -378,7 +398,10 @@ def fit_isolation_forest(
 
     IsolationForest, StandardScaler = _iforest
 
-    df = _query_all_sensors_timeseries(conn, location_id, lookback_days)
+    source_options = {"signed_source": True} if signed_source else {}
+    df = _query_all_sensors_timeseries(
+        conn, location_id, lookback_days, **source_options
+    )
     if df.empty or len(df) < 50:
         logger.info("Insufficient multi-sensor data for Isolation Forest")
         return None
@@ -458,10 +481,21 @@ def score_anomalies_iforest(
     return anomalies
 
 
+def _load_models_for_location(
+    location_id: str,
+    models_by_location: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Load one cached model set for a location, without crossing scopes."""
+    if location_id not in models_by_location:
+        models_by_location[location_id] = load_models(location_id, max_age_days=7)
+    return models_by_location[location_id]
+
+
 def run_ml_check(
     conn,
     location_id: str = None,
     sensor_id: str = None,
+    signed_source: bool = False,
 ) -> Dict[str, Any]:
     """Run ML anomaly detection for a location or specific sensor.
 
@@ -470,66 +504,127 @@ def run_ml_check(
     if not _ensure_deps():
         return {"status": "error", "message": "ML dependencies not available", "anomalies": []}
 
+    if signed_source and not location_id:
+        raise ValueError("signed ML analysis requires exactly one location")
+
     # Get sensors to check
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    query = """
-        SELECT DISTINCT sr.sensor_type, sr.sensor_id, sd.slug AS device_slug
+    if signed_source:
+        query = """
+            SELECT DISTINCT sr.location_id::text AS location_id,
+                   sr.sensor_type, sr.sensor_id::text AS sensor_id,
+                   sr.device_slug
+              FROM kokonut_anomaly_ml_source.sensor_reading AS sr
+             WHERE sr.reading_date >= CURRENT_DATE - INTERVAL '7 days'
+               AND sr.location_id = %s::uuid
+               AND (%s::uuid IS NULL OR sr.sensor_id = %s::uuid)
+             ORDER BY location_id, sensor_type, sensor_id
+        """
+        params = (location_id, sensor_id, sensor_id)
+    else:
+        query = """
+        SELECT DISTINCT sr.location_id::text AS location_id,
+               sr.sensor_type, sr.sensor_id::text AS sensor_id,
+               sd.slug AS device_slug
         FROM sensor_reading sr
-        JOIN sensor_device sd ON sd.id = sr.sensor_id
+        JOIN sensor_device sd
+          ON sd.id = sr.sensor_id AND sd.location_id = sr.location_id
         WHERE sr.quality IN ('good', 'estimated')
         AND sr.reading_date >= CURRENT_DATE - INTERVAL '7 days'
-    """
-    params = []
-    if location_id:
-        query += " AND sr.location_id = %s"
-        params.append(location_id)
-    if sensor_id:
-        query += " AND sr.sensor_id = %s"
-        params.append(sensor_id)
+        AND (%s::uuid IS NULL OR sr.location_id = %s::uuid)
+        AND (%s::uuid IS NULL OR sr.sensor_id = %s::uuid)
+        ORDER BY location_id, sensor_type, sensor_id
+        """
+        params = (location_id, location_id, sensor_id, sensor_id)
     cur.execute(query, params)
     sensors = [dict(r) for r in cur.fetchall()]
     cur.close()
 
     all_anomalies = []
 
-    # Try loading saved models first (avoids expensive retraining)
-    saved = load_models(location_id, max_age_days=7)
-    prophet_cache = saved.get("prophet", {})
-    iforest_cache = saved.get("iforest")
-
-    # Prophet: per-sensor univariate detection
+    # A location-wide scan needs one independently loaded model set per
+    # location. Group sensor rows by location/type so the type-level model is
+    # evaluated once, rather than attempting to load it with location_id=None.
+    sensors_by_location_type: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for sensor in sensors:
-        sensor_type = sensor["sensor_type"]
-        df = _query_sensor_timeseries(conn, location_id or str(sensors[0].get("location_id")), sensor_type, lookback_days=30)
+        key = (str(sensor["location_id"]), str(sensor["sensor_type"]))
+        sensors_by_location_type.setdefault(key, []).append(sensor)
 
-        if len(df) >= 100:
-            model = prophet_cache.get(sensor_type)
-            if not model:
-                model = fit_prophet(conn, location_id, sensor_type, lookback_days=90)
-            if model:
-                anomalies = predict_anomalies_prophet(model, df, sensor_type)
-                for a in anomalies:
-                    a["device_slug"] = sensor["device_slug"]
-                all_anomalies.extend(anomalies)
+    models_by_location: dict[str, dict[str, Any]] = {}
 
-    # Isolation Forest: multivariate detection
-    if location_id:
-        all_sensors_df = _query_all_sensors_timeseries(conn, location_id, lookback_days=30)
-        if not all_sensors_df.empty and len(all_sensors_df) >= 50:
-            iforest_tuple = iforest_cache
+    # Prophet: one type-level time series per location. An explicit sensor
+    # selector narrows the source readings to that sensor.
+    for (sensor_location_id, sensor_type), group in sorted(sensors_by_location_type.items()):
+        source_options = {"signed_source": True} if signed_source else {}
+        df = _query_sensor_timeseries(
+            conn,
+            sensor_location_id,
+            sensor_type,
+            lookback_days=30,
+            sensor_id=sensor_id,
+            **source_options,
+        )
+
+        if len(df) < 100:
+            continue
+        model = None
+        if sensor_id is None:
+            model = _load_models_for_location(
+                sensor_location_id, models_by_location
+            ).get("prophet", {}).get(sensor_type)
+        if not model:
+            model = fit_prophet(
+                conn,
+                sensor_location_id,
+                sensor_type,
+                lookback_days=90,
+                sensor_id=sensor_id,
+                **source_options,
+            )
+        if model:
+            anomalies = predict_anomalies_prophet(model, df, sensor_type)
+            for anomaly in anomalies:
+                anomaly["location_id"] = sensor_location_id
+                anomaly["device_slug"] = group[0]["device_slug"]
+            all_anomalies.extend(anomalies)
+
+    # Isolation Forest is inherently multi-sensor. For --sensor, omit it so a
+    # sensor-specific request does not silently analyze every device nearby.
+    if sensor_id is None:
+        locations = {location for location, _sensor_type in sensors_by_location_type}
+        if location_id:
+            locations.add(str(location_id))
+        for sensor_location_id in sorted(locations):
+            source_options = {"signed_source": True} if signed_source else {}
+            all_sensors_df = _query_all_sensors_timeseries(
+                conn, sensor_location_id, lookback_days=30, **source_options
+            )
+            if all_sensors_df.empty or len(all_sensors_df) < 50:
+                continue
+            iforest_tuple = _load_models_for_location(
+                sensor_location_id, models_by_location
+            ).get("iforest")
             if not iforest_tuple:
-                iforest_tuple = fit_isolation_forest(conn, location_id, lookback_days=30)
+                iforest_tuple = fit_isolation_forest(
+                    conn, sensor_location_id, lookback_days=30, **source_options
+                )
             if iforest_tuple:
                 if_anomalies = score_anomalies_iforest(iforest_tuple, all_sensors_df)
-                for a in if_anomalies:
-                    a["device_slug"] = "multivariate"
+                for anomaly in if_anomalies:
+                    anomaly["location_id"] = sensor_location_id
+                    anomaly["device_slug"] = "multivariate"
                 all_anomalies.extend(if_anomalies)
 
     # Deduplicate by timestamp + method
     seen = set()
     unique_anomalies = []
     for a in all_anomalies:
-        key = (a["timestamp"], a["detection_method"])
+        key = (
+            a.get("location_id"),
+            a["timestamp"],
+            a["detection_method"],
+            a.get("sensor_type"),
+        )
         if key not in seen:
             seen.add(key)
             unique_anomalies.append(a)
@@ -543,7 +638,9 @@ def run_ml_check(
     }
 
 
-def save_models(conn, location_id: str) -> Dict[str, Any]:
+def save_models(
+    conn, location_id: str, *, signed_source: bool = False
+) -> Dict[str, Any]:
     """Fit and save ML models for a location."""
     if not _ensure_deps():
         return {"status": "error", "message": "ML dependencies not available"}
@@ -560,32 +657,42 @@ def save_models(conn, location_id: str) -> Dict[str, Any]:
     try:
         # Prophet models per sensor type
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("""
-            SELECT DISTINCT sensor_type FROM sensor_reading
+        source_relation = (
+            "kokonut_anomaly_ml_source.sensor_reading"
+            if signed_source else "sensor_reading"
+        )
+        cur.execute(f"""
+            SELECT DISTINCT sensor_type FROM {source_relation}
             WHERE location_id = %s AND quality IN ('good', 'estimated')
         """, (location_id,))
         sensor_types = [r["sensor_type"] for r in cur.fetchall()]
         cur.close()
 
         for sensor_type in sensor_types:
-            model = fit_prophet(conn, location_id, sensor_type, lookback_days=90)
+            source_options = {"signed_source": True} if signed_source else {}
+            model = fit_prophet(
+                conn, location_id, sensor_type, lookback_days=90, **source_options
+            )
             if model:
                 filename = f"prophet_{location_id[:8]}_{sensor_type}.pkl"
                 try:
                     _save_model_artifact(model_dir_fd, filename, model)
                     saved.append(f"prophet_{sensor_type}")
                 except Exception as e:
-                    logger.error("Failed to save Prophet model for %s: %s", sensor_type, e)
+                    logger.error("Failed to save Prophet model (%s)", safe_exception_class(e))
 
         # Isolation Forest model
-        iforest_tuple = fit_isolation_forest(conn, location_id, lookback_days=30)
+        source_options = {"signed_source": True} if signed_source else {}
+        iforest_tuple = fit_isolation_forest(
+            conn, location_id, lookback_days=30, **source_options
+        )
         if iforest_tuple:
             filename = f"iforest_{location_id[:8]}.pkl"
             try:
                 _save_model_artifact(model_dir_fd, filename, iforest_tuple)
                 saved.append("isolation_forest")
             except Exception as e:
-                logger.error("Failed to save Isolation Forest model: %s", e)
+                logger.error("Failed to save Isolation Forest model (%s)", safe_exception_class(e))
 
         return {"status": "success", "models_saved": saved, "model_dir": str(MODEL_DIR)}
     finally:
@@ -641,7 +748,7 @@ def load_models(
                 with stream:
                     result["prophet"][sensor_type] = pickle.load(stream)  # noqa: S301 - opened and validated by descriptor
             except Exception as e:
-                logger.warning("Failed to load Prophet model %s: %s", filename, e)
+                logger.warning("Failed to load Prophet model (%s)", safe_exception_class(e))
             finally:
                 if file_fd >= 0:
                     os.close(file_fd)
@@ -671,7 +778,7 @@ def load_models(
                         with stream:
                             result["iforest"] = pickle.load(stream)  # noqa: S301 - opened and validated by descriptor
                 except Exception as e:
-                    logger.warning("Failed to load Isolation Forest model: %s", e)
+                    logger.warning("Failed to load Isolation Forest model (%s)", safe_exception_class(e))
                 finally:
                     if file_fd >= 0:
                         os.close(file_fd)

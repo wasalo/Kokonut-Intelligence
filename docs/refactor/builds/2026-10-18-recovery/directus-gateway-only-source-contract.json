@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-18",
+  "scope": "Source and mocked fixture contract only; optional Directus farm_activity remains Gateway-owned",
+  "owner_decision": "Gateway operations for farm_activity; Directus remains optional",
+  "contract": {
+    "operator_tenant_grants_exist_for_synthetic_locations": true,
+    "directus_farm_activity_own_and_cross_reads_denied": true,
+    "directus_farm_activity_own_and_cross_writes_denied": true,
+    "farm_activity_rows_unchanged_after_api_write_attempts": true,
+    "field_note_granted_location_read_allowed": true,
+    "field_note_cross_location_read_hidden": true
+  },
+  "validation": {
+    "command": "python3 -m pytest -q tests/test_directus_tenant_permissions.py",
+    "result": "7 passed",
+    "ruff": "passed for scripts/fixtures/directus-api-parity-check.py and tests/test_directus_tenant_permissions.py",
+    "python_compilation": "passed"
+  },
+  "runtime_acceptance": "not run; a fresh pinned Directus image/API probe remains open",
+  "candidate_or_legacy_modified": false,
+  "capability_acceptance_or_classification_changed": false,
+  "remaining": [
+    "other Directus collection parity",
+    "field and relationship privacy",
+    "runtime hook and schedule parity",
+    "fresh pinned-runtime API verification",
+    "configured OIDC issuer and live operator mapping"
+  ]
+}

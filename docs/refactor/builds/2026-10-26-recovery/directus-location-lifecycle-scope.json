@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-26",
+  "slice": "Directus location-scoped lifecycle collection expansion",
+  "source": "extensions/kokonut-hooks/src/directus-authorization.ts",
+  "collection_count_before": 11,
+  "collection_count_after": 20,
+  "added_collections": [
+    "forecast_scenario",
+    "report_snapshot",
+    "dashboard_dataset",
+    "farm_registry_record",
+    "inventory_event",
+    "maintenance_event",
+    "stakeholder_outcome",
+    "credit_batch",
+    "project_credit_class_enrollment"
+  ],
+  "authorization_contract": {
+    "identity": "active Directus OIDC subject mapped to enabled Kokonut operator by exact issuer",
+    "scope": "exact organization/location grant for collection resource and CRUD action",
+    "reads": "grant-derived location filter plus returned-row location recheck",
+    "writes": "every create/update/delete target checked on Directus request database",
+    "relations": "deep and nested/wildcard relation expansion remain denied"
+  },
+  "reference_checks_added": [
+    "forecast_scenario.parent_scenario_id must reference a scenario at the same location",
+    "maintenance_event.infrastructure_asset_id must reference an asset at the same location"
+  ],
+  "verification": {
+    "extension_tests": 101,
+    "extension_test_files": 7,
+    "directus_bundle": "passed",
+    "typescript_check": "passed",
+    "database_or_runtime_used": false
+  },
+  "excluded_pending_relationship_contract": [
+    "impact_claim",
+    "mrv_event",
+    "retirement_certificate",
+    "data_stream_post"
+  ],
+  "limitations": [
+    "does not establish pinned Directus runtime or effective role/field permissions",
+    "does not provision live operator identities or location grants",
+    "does not establish PostgreSQL RLS",
+    "does not close broader collection, field, relation, hook, schedule, or populated-data parity"
+  ],
+  "candidate_or_legacy_modified": false,
+  "capability_classifications": {
+    "baseline_retained": 24,
+    "deployed": 7,
+    "prepared": 36,
+    "rows": 67
+  },
+  "checklist": {
+    "complete": 1226,
+    "open": 25,
+    "total": 1251
+  }
+}

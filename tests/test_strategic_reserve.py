@@ -93,9 +93,14 @@ def test_report_seed_vault_isolated_on_error():
     conn.cursor.return_value = cur
     with patch.object(srh, "reserve_health", return_value={
         "reserve_count": 1, "reserves": reserves, "generated_at": "x",
-    }), \
+    }) as network_health, \
          patch.object(srh, "seed_vault_health", side_effect=RuntimeError("boom")):
         out = rg.generate_strategic_reserve(conn, location_id="a0000000-0000-0000-0000-000000000001")
+    network_health.assert_not_called()
+    assert out["reserves"] == []
+    assert out["reserve_count"] is None
+    assert out["fundability_signal"] is None
+    assert "Network-wide reserve balances" in out["limitations"][-1]
     # Per-location seed-vault error is isolated, not crashing the report.
     seed = out["locations"][0]["seed_vault"]
     assert "error" in seed

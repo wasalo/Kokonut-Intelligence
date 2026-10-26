@@ -1,0 +1,41 @@
+{
+  "assertions": {
+    "measurement_date_mapping_preserved": "passed",
+    "spatial_block_cv_consumes_coordinate_records": "passed using synthetic rows and the mean-baseline fallback",
+    "training_query_keeps_location_id_parameter_scope": "passed",
+    "training_query_uses_plot_center_with_boundary_point_fallback": "passed",
+    "training_rows_map_latitude_and_longitude_for_spatial_cv": "passed"
+  },
+  "broader_focused_suite": {
+    "modules": [
+      "tests/test_dsm_soc_prediction.py",
+      "tests/test_geostatistics.py",
+      "tests/test_spectral_indices.py"
+    ],
+    "result": "passed",
+    "test_count": 95
+  },
+  "candidate_or_legacy_modified": false,
+  "check": "CAP-041 spatial training-coordinate extraction regression",
+  "date": "2026-10-19",
+  "disposable_database_contacted": true,
+  "focused_test_count": 22,
+  "focused_test_file": "tests/test_dsm_soc_prediction.py",
+  "limitations": [
+    "PostGIS execution used minimal synthetic tables rather than replaying the complete legacy schema migration chain or populated farm data.",
+    "The spatial-block regression forces the mean-baseline fallback; it does not train XGBoost or establish model fixture parity."
+  ],
+  "postgis_acceptance": {
+    "checks": {
+      "boundary_point_fallback": "passed",
+      "configured_plot_center": "passed",
+      "location_filter_excludes_other_location": "passed",
+      "two_expected_training_rows": "passed"
+    },
+    "container": "fresh no-volume container, host binding 127.0.0.1 only; removed after check",
+    "image": "postgis/postgis:16-3.4",
+    "schema": "minimal synthetic relations for plot, soil-carbon, remote-sensing, climate, and weather inputs"
+  },
+  "result": "passed",
+  "scientific_model_parity": "unassessed"
+}

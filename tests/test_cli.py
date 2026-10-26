@@ -1,8 +1,17 @@
 """CLI smoke tests — verify each CLI runs without error."""
 
+import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 
+import click
+import pytest
+from typer.testing import CliRunner
+
+import services.cli as unified_cli
+from services.ingestion import cli as ingestion_cli
 
 CLI_COMMANDS = [
     # forecast CLI
@@ -44,6 +53,162 @@ CLI_COMMANDS = [
     # Spreadsheet bridge CLI
     ("python3", "-m", "services.export.spreadsheet_bridge", "--help"),
 ]
+
+
+def test_unified_cli_help_lists_mounted_and_native_groups() -> None:
+    result = CliRunner().invoke(unified_cli.app, ["--help"])
+    assert result.exit_code == 0, result.output
+    for name, _module, _help in unified_cli._MOUNTED:
+        assert name in result.output
+    for name in ("kernel", "dao", "treasury"):
+        assert name in result.output
+
+
+def test_native_typer_command_surfaces_match_standalone_apps() -> None:
+    from typer.main import get_command
+
+    from services.core import cli as kernel_cli
+    from services.governance import cli as governance_cli
+    from services.treasury import cli as treasury_cli
+
+    root = get_command(unified_cli.app)
+    root_context = click.Context(root)
+
+    def command_surface(command: click.Command, *, root: bool = False) -> tuple[object, ...]:
+        parameters = tuple(
+            (
+                parameter.name,
+                parameter.type.name,
+                parameter.required,
+                parameter.nargs,
+                tuple(parameter.opts),
+                tuple(parameter.secondary_opts),
+                getattr(parameter, "is_flag", False),
+                getattr(parameter, "multiple", False),
+            )
+            for parameter in command.params
+            if not root or parameter.name not in {"install_completion", "show_completion"}
+        )
+        if not hasattr(command, "list_commands") or not hasattr(command, "get_command"):
+            return (command.name, command.help, parameters)
+        context = click.Context(command)
+        children = tuple(
+            (name, command_surface(command.get_command(context, name)))
+            for name in command.list_commands(context)
+        )
+        if root:
+            return (parameters, children)
+        return (command.name, command.help, parameters, children)
+
+    for group_name, native_app in (
+        ("kernel", kernel_cli.app),
+        ("dao", governance_cli.app),
+        ("treasury", treasury_cli.app),
+    ):
+        standalone = get_command(native_app)
+        mounted = root.get_command(root_context, group_name)
+        assert mounted is not None
+        assert command_surface(mounted, root=True) == command_surface(standalone, root=True), group_name
+
+
+def test_every_mounted_group_exposes_help() -> None:
+    runner = CliRunner()
+    for name, _module, _help in unified_cli._MOUNTED:
+        result = runner.invoke(unified_cli.app, [name, "--help"])
+        assert result.exit_code == 0, f"{name}: {result.output} {result.exception!r}"
+
+
+def test_every_mounted_argparse_help_is_offline() -> None:
+    environment = {**os.environ, "KOKONUT_ENV": "development"}
+    environment.pop("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", None)
+    environment.pop("SOPS_AGE_KEY", None)
+    environment["SOPS_AGE_KEY_FILE"] = "/__codex_no_sops_key__"
+
+    def check_group(entry):
+        name, _module, _help = entry
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "services.cli", name, "--", "--help"],
+                capture_output=True,
+                text=True,
+                timeout=20,
+                env=environment,
+            )
+        except subprocess.TimeoutExpired:
+            return name, "timed out"
+        if result.returncode != 0:
+            return name, (result.stderr or result.stdout).strip()
+        if "usage:" not in result.stdout.lower():
+            return name, "legacy argparse usage was not displayed"
+        if "sops" in result.stderr.lower():
+            return name, result.stderr.strip()
+        return None
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        failures = [failure for failure in pool.map(check_group, unified_cli._MOUNTED) if failure]
+    assert not failures, "legacy parser help failures: " + repr(failures)
+
+
+def test_every_mounted_group_forwards_legacy_arguments(monkeypatch) -> None:
+    runner = CliRunner()
+    original_argv = list(sys.argv)
+
+    for name, expected_module, _help in unified_cli._MOUNTED:
+        captured: dict[str, list[str]] = {}
+
+        def fake_main() -> None:
+            captured["argv"] = list(sys.argv)
+
+        def fake_import(module_path: str):
+            assert module_path == expected_module
+            return SimpleNamespace(main=fake_main)
+
+        monkeypatch.setattr(unified_cli.importlib, "import_module", fake_import)
+        result = runner.invoke(unified_cli.app, [name, "--forwarded-option", "sentinel"])
+        assert result.exit_code == 0, f"{name}: {result.output} {result.exception!r}"
+        assert captured["argv"][1:] == ["--forwarded-option", "sentinel"]
+        assert sys.argv == original_argv
+
+
+def test_unified_agent_catalogue_list_is_offline() -> None:
+    result = CliRunner().invoke(unified_cli.app, ["agents", "list"])
+    assert result.exit_code == 0, result.output
+    assert "cids_export" in result.output
+    assert "SOPS decryption failed" not in result.output
+
+
+def test_legacy_argparse_help_uses_separator_and_stays_offline() -> None:
+    result = CliRunner().invoke(unified_cli.app, ["agents", "--", "--help"])
+    assert result.exit_code == 0, result.output
+    assert "Kokonut agent task catalogue" in result.output
+    assert "SOPS decryption failed" not in result.output
+
+
+def test_ingestion_cli_preserves_help_and_list_commands(capsys) -> None:
+    ingestion_cli.main([])
+    help_output = capsys.readouterr().out
+    assert "Kokonut ingestion pipelines" in help_output
+
+    ingestion_cli.main(["--list"])
+    list_output = capsys.readouterr().out
+    assert "sensor_ingester" in list_output
+
+
+def test_ingestion_cli_rejects_unknown_top_level_argument(capsys) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        ingestion_cli.main(["--__codex_invalid_argument__"])
+
+    assert exc_info.value.code == 2
+    assert "unrecognized arguments: --__codex_invalid_argument__" in capsys.readouterr().err
+
+
+def test_unified_ingestion_cli_rejects_unknown_top_level_argument() -> None:
+    result = CliRunner().invoke(
+        unified_cli.app,
+        ["ingestion", "--", "--__codex_invalid_argument__"],
+    )
+    assert result.exit_code == 2
+    assert "unrecognized arguments: --__codex_invalid_argument__" in result.output
 
 
 def run_cli_tests():

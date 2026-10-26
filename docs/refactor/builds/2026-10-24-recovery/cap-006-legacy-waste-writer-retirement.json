@@ -1,0 +1,19 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T00:37:38Z",
+  "scope": "Retire the unscoped record_waste helper and CLI path before database access",
+  "focused_tests": {
+    "command": "python3 -m pytest tests/test_waste_management.py tests/test_gateway_waste_management_writes.py tests/test_gateway_waste_management_reads.py tests/test_operator_console_waste_management.py tests/test_operator_route_policy_inventory.py -q",
+    "passed": 61,
+    "subtests_passed": 5
+  },
+  "ruff": "passed",
+  "python_compile": "passed",
+  "disposable_postgres": "docs/refactor/builds/2026-10-24-recovery/cap-006-waste-management-disposable.json",
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "provider_calls": false,
+  "disposable_migration_applied": "153_waste_management.sql (isolated disposable PostgreSQL only)",
+  "candidate_migration_rollout": false,
+  "legacy_migration_rollout": false
+}

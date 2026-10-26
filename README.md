@@ -51,21 +51,24 @@ See [Architecture](docs/architecture.md) for system design, data flow, and secur
 cp .env.example .env
 # Edit .env with local secrets before starting services.
 
-# 2. Start infrastructure
+# 2. Build the Directus hook bundle (required by the Directus Compose mount)
+make hooks-build
+
+# 3. Start infrastructure
 docker compose up -d
 
-# 3. Apply schema, base seeds, and pilot data
+# 4. Apply schema, base seeds, and pilot data
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 
-# 4. Compute draft, unverified governed metric values
+# 5. Compute draft, unverified governed metric values
 ./scripts/compute-metrics.sh
 
-# 5. Have a human reviewer verify each accepted value
+# 6. Have a human reviewer verify each accepted value
 python3 -m services.metrics --verify-value METRIC_VALUE_UUID \
   --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"
 
-# 6. Verify the platform definition of done
+# 7. Verify the platform definition of done
 ./scripts/verify-platform.sh
 ```
 
@@ -96,7 +99,7 @@ Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus, ga
 | Service | Base URL | Notes |
 |---------|----------|-------|
 | Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
-| Field Collector | `https://localhost/mobile` | Offline-first companion; LAN phones use `https://<lan-ip>/mobile` |
+| Field Collector | `https://localhost/mobile/` | Offline-first companion; LAN phones use `https://<lan-ip>/mobile/` |
 | Directus API | `https://localhost/directus` | Canonical API and data access |
 | Directus admin | `https://localhost/admin` | Admin UI and data entry |
 | Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
@@ -115,10 +118,12 @@ The local override maps Metabase to `http://localhost:3001` only when the `metab
 ```bash
 docker compose up -d --build gateway caddy
 # Phone on the same Wi‑Fi:
-#   https://<host-lan-ip>/mobile
+#   https://<host-lan-ip>/mobile/
 ```
 
-Caddy terminates TLS and proxies `/mobile` and `/api/mobile/*` to the gateway.
+Caddy terminates TLS and proxies `/mobile*` and `/api/mobile/*` to the gateway.
+Use `/mobile/` as the canonical Field Collector URL; `/mobile` redirects to it
+so relative shell assets stay within the Gateway route.
 Full deploy steps (local, production Caddy, Traefik) are in
 [Deployment — Field Collector](docs/deployment.md#field-collector-mobile-lan-access).
 
@@ -192,7 +197,7 @@ Full deploy steps (local, production Caddy, Traefik) are in
 | | ARKIV parity | Time-scoped data (expires_at), origin transaction indexing, marketplace fee collection/distribution |
 | | GeoNode parity | Shapefile/KML import, raster metadata, CSW OGC Catalogue Service, ISO 19115 metadata, hierarchical thesaurus, Leaflet map viewer, geostories |
 | **External** | gRPC API | Type-safe external API with Protobuf schemas, server-side streaming (5s batching), API key auth, Buf codegen for Python/TypeScript, gRPC-web support |
-| | Business Model Canvas | 1-click BMC derivation from canonical tables; comprehensive status composing 13 per-location sections plus network-wide rollup |
+| | Business Model Canvas | 1-click BMC derivation from canonical tables; 14-section comprehensive status with an exact-location Gateway read and network-wide CLI rollup |
 | | State of Kokonut | Ecosystem report across locations with ecosystem-actor funding view; Mermaid + JSON visual timelines (ecosystem tree, Ikigai, farm phases, crop timelines) |
 
 > [!NOTE]
@@ -357,6 +362,8 @@ python3 -m services.capital.cli capacity --location-id UUID
 # Governance framework (Baal on Gnosis)
 python3 -m services.governance.cli framework list
 python3 -m services.governance.cli baal proposals
+# Non-admin Gateway API keys/capabilities need the global `governance:read` scope.
+# See services/gateway/README.md for the protected HTTP routes.
 
 # Tactical and simulation reports
 python3 -m services.export.report_generator --type tactical_layer --location-id UUID
@@ -373,7 +380,7 @@ See [AGENTS.md](AGENTS.md) for the full command catalogue and [CHANGELOG.md](CHA
 
 ## CI And Contributing
 
-CI runs on OneDev via `.onedev-buildspec.yml` as a single `ci` job on every push and pull request (~14 minutes). The pipeline is structured for fast feedback:
+CI and security checks run through GitHub Actions on pull requests to `main` and pushes to `main`. The `CI` workflow runs the complete suite, dependency and static-analysis gates, Solidity and Directus hook checks, and locked AMD64/ARM64 builds. The `Security` workflow scans tracked source and full Git history with Gitleaks. See [the GitHub Actions operations guide](docs/github-actions.md) for deployment setup and required repository settings.
 
 1. **Supply-chain gates**: Secret scanning (`check-tracked-secrets.sh`) and image digest pinning (`check-image-digests.sh`).
 2. **Fast-fail steps** (fail immediately, no Docker needed):
@@ -383,25 +390,28 @@ CI runs on OneDev via `.onedev-buildspec.yml` as a single `ci` job on every push
    - Unified CLI smoke test (`python3 -m services.cli --help`)
 3. **Infrastructure**: Docker Compose brings up PostgreSQL 16, ClickHouse 25.8, Redis 7, cache, and Directus. Database is seeded and metrics are computed.
 4. **Version verification**: Reads `VERSION` file and compares to `services.__version__` and `KOKONUT_GIT_SHA` in running containers.
-5. **Full test suite**: 4,034+ Python tests, 62 Solidity tests, 52 Directus hook tests via `verify-full-test-suite.sh` (fails closed on any skip).
+5. **Full test suite**: 4,034+ Python tests, 62 Solidity tests, 54 Directus hook tests via `verify-full-test-suite.sh` (fails closed on any skip).
 6. **Static analysis**: Slither (Solidity), Aderyn (Solidity), and Semgrep (`python.lang.security` + `python.lang.correctness`).
 7. **Solidity**: `forge fmt --check`, `forge build --sizes`, `forge test`.
 8. **Directus hooks**: `npm ci`, `npm run build`, `npm test`.
 
-The runner connects to the Compose network via `docker network bridge` for database access during tests. `compute-metrics.sh` runs in CI to populate governed metric rows required by platform-integrity tests.
-
-This repository is hosted on a self-managed Git instance (not GitHub), so GitHub-specific workflows, rulesets, and `.github/` config do not apply.
+The GitHub-hosted CI runner uses the isolated Compose project and loopback-only database ports for host-run checks. `compute-metrics.sh` runs in CI to populate governed metric rows required by platform-integrity tests. Staging remains paused behind a disabled workflow flag and manual dispatch; production promotion is manual and environment-gated.
 
 Contributing guidelines:
 
 > [!IMPORTANT]
 > - `AGENTS.md` is the canonical command reference and contributing workflow — update it when adding commands, env vars, or conventions.
-> - Branch from `main` (`feat/...`, `fix/...`, `chore/...`), open a pull request, and merge through the OneDev UI or the `tod` agent skills (`work-on-issue`, `submit-pull-request-work`) once reviewed. Never push directly to `main` except for hotfixes.
+> - Branch from `main` (`feat/...`, `fix/...`, `chore/...`), open a GitHub pull request, and merge after review and required checks pass. Never push directly to `main` except for hotfixes.
 > - Seed files must be idempotent with `ON CONFLICT` guards and `psql -v ON_ERROR_STOP=1`.
 
 ---
 
 ## Production Deployment
+
+Build the Directus hook bundle once from the checked-in lockfile before starting
+any Compose deployment. `make hooks-build` runs `npm ci` and produces the
+ignored `extensions/kokonut-hooks/dist/` artifact mounted by Directus. It only
+reinstalls dependencies when they are missing or the lockfile is newer.
 
 ```bash
 # With built-in Caddy (default)
@@ -410,8 +420,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 # With external Traefik (VPS already running Traefik)
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
 
-# With worker container for cron-based ingestion
+# With the legacy ingestion worker, event dispatcher, and notification sender
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d
+
+# Run only event dispatch (plus its declared dependencies)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d event-worker
+
+# Run only notification delivery (plus its declared dependencies)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d notification-worker
 ```
 
 Health monitoring with alerting:
@@ -447,13 +463,13 @@ tests/              382 test files covering platform services and invariants
 ```
 
 ```text
-Dockerfile.worker       Worker container for cron-based ingestion
+Dockerfile.worker       Python runtime image for ingestion, event, and notification workers
 Dockerfile.gateway      FastAPI gateway / Field Collector app
 Dockerfile.grpc         gRPC server container
 docker-compose.yml      Base services (PostgreSQL 16, ClickHouse 25.8, Redis 7, Directus 12.1.1, Caddy, Mosquitto 2; Metabase is opt-in)
 docker-compose.prod.yml     Production overlay (resource limits, no direct port exposure)
 docker-compose.traefik.yml  Traefik overlay (disables Caddy, adds Traefik labels)
-docker-compose.worker.yml   Worker overlay (cron-based Python ingestion container)
+docker-compose.worker.yml   Worker overlay (legacy ingestion, event dispatch, and notification delivery)
 ```
 
 The `services/` directory contains 65+ Python service modules organized by domain:

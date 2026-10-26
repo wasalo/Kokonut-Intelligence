@@ -7,18 +7,27 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def _fetch(cur, view: str, location_id: str | None = None) -> list[dict[str, Any]]:
     if location_id:
-        cur.execute(f"SELECT * FROM {view} WHERE location_id = %s OR location_id IS NULL", (location_id,))
+        cur.execute(
+            f"SELECT * FROM kokonut_agent_source.{view} "
+            "WHERE location_id = %s OR location_id IS NULL",
+            (location_id,),
+        )
     else:
-        cur.execute(f"SELECT * FROM {view}")
+        cur.execute(f"SELECT * FROM kokonut_agent_source.{view}")
     return [dict(r) for r in cur.fetchall()]
 
 
 def synthesize_kokonut_commons(conn, location_id: str | None = None) -> dict[str, Any]:
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     anti_capture = _fetch(cur, "v_public_anti_capture_governance_policy", location_id)
     redistribution = _fetch(cur, "v_public_commons_redistribution_policy", location_id)
@@ -60,6 +69,20 @@ class KokonutCommonsSynthesisAgent(SynthesisAgent):
     read_collection = "anti_capture_governance_policy"
     model_version = "kokonut-commons-agent-v1"
     source_tables = ["anti_capture_governance_policy", "commons_redistribution_policy", "federation_protocol", "algorithmic_redistribution_mechanism", "participatory_signal_experiment"]
+    source_reference_views = {
+        "anti_capture_governance_policy": "v_public_anti_capture_governance_policy",
+        "commons_redistribution_policy": "v_public_commons_redistribution_policy",
+        "algorithmic_redistribution_mechanism": "v_public_algorithmic_redistribution_mechanism",
+        "federation_protocol": "v_public_federation_protocol",
+        "participatory_signal_experiment": "v_public_participatory_signal_experiment",
+    }
+    source_reference_scopes = {
+        "anti_capture_governance_policy": "location_or_network",
+        "commons_redistribution_policy": "location_or_network",
+        "algorithmic_redistribution_mechanism": "location_or_network",
+        "federation_protocol": "network",
+        "participatory_signal_experiment": "network",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_kokonut_commons(conn, location_id)
@@ -74,7 +97,7 @@ def run_kokonut_commons_synthesis(location_id: str | None = None, store: bool = 
 
 
 def main() -> None:
-    agent_cli(agent, description="Run the Kokonut commons governance synthesis agent", location_required=False)
+    agent_cli(agent, description="Run the Kokonut commons governance synthesis agent")
 
 
 if __name__ == "__main__":

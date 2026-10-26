@@ -1,0 +1,59 @@
+{
+  "checked_at_utc": "2026-10-16T03:55:23Z",
+  "source_revision": "4559174",
+  "scope": "optional gRPC and MQTT application/broker ARM64 software smoke and Compose selection",
+  "grpc": {
+    "target": "Dockerfile.kernel target grpc",
+    "build_result": "passed",
+    "exported_image_manifest": "sha256:7f0e7cefcc37c8ac898ffffd09aeb30b8f44a47d7313b7697e22cc31adba8e89",
+    "runtime": {
+      "platform": "linux/arm64",
+      "user": "appuser",
+      "network": "none",
+      "cli_help": "passed",
+      "generated_ecocredit_and_data_stub_imports": "passed",
+      "grpcio": "1.84.0",
+      "protobuf": "6.33.6"
+    }
+  },
+  "mqtt": {
+    "subscriber_target": "Dockerfile.kernel target mqtt",
+    "subscriber_build_result": "passed",
+    "subscriber_exported_image_manifest": "sha256:88fd96729c6fc356da337d8e2900ab7de69e4457c658c47c7b087fba8a55e17b",
+    "subscriber_runtime": {
+      "platform": "linux/arm64",
+      "user": "appuser",
+      "network": "none",
+      "cli_help": "passed",
+      "paho_mqtt_import": "passed",
+      "paho_mqtt": "2.1.0"
+    },
+    "broker": {
+      "image": "eclipse-mosquitto:2@sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797",
+      "index_digest": "sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797",
+      "linux_arm64_manifest": "sha256:0cb9dcf861ada0efab0266b43a4e4c702c36df838a7b979c2820dc28bb61c5f0",
+      "runtime_platform_check": "aarch64",
+      "version": "2.1.2",
+      "help_command": "passed"
+    }
+  },
+  "compose_and_source_checks": {
+    "command": "python3 -m pytest tests/test_kernel_profile.py tests/test_compose_zitadel_profile.py -q",
+    "tests_passed": 25,
+    "all_selected_services_resolve_to_linux_arm64": true,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "valid; 66 rows; no MAN-CAP acceptance changed",
+    "git_diff_check": "passed"
+  },
+  "cleanup": {
+    "temporary_grpc_and_mqtt_application_image_tags_removed": true,
+    "broker_or_subscriber_service_started": false,
+    "project_compose_services_started_or_replaced": false
+  },
+  "limitations": [
+    "QEMU/container checks are software portability evidence, not Raspberry Pi hardware acceptance.",
+    "No gRPC server was started against PostgreSQL and no MQTT broker/client traffic or mTLS certificate was configured.",
+    "Provider credentials, persistent sensor identity, migration parity, physical power/storage behavior, and live ingestion remain separate gates."
+  ]
+}

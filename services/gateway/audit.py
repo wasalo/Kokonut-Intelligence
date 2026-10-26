@@ -6,6 +6,7 @@ import ipaddress
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.gateway.audit_spool import GatewayAuditSpool
 
@@ -188,7 +189,7 @@ class GatewayAudit:
         action: str = "read",
         location_id: str | None = None,
         capability_token_id: str | None = None,
-        scope_checked: str | None = None,
+        scope_checked: str | bool | None = None,
     ) -> None:
         """Log a gateway request."""
         logger.info(
@@ -218,6 +219,13 @@ class GatewayAudit:
         # The table accepts semantic actions, not raw HTTP verbs. The event ID
         # and occurrence time remain stable if a committed write must be retried.
         outcome = "allowed" if status == "allowed" else "error" if status == "error" else "denied"
+        if isinstance(scope_checked, bool):
+            scope_metadata = scope_checked
+        elif isinstance(scope_checked, str):
+            scope_metadata = scope_checked[:256] or None
+        else:
+            scope_metadata = None
+
         event = {
             "event_id": str(uuid4()),
             "caller": caller[:100],
@@ -236,7 +244,7 @@ class GatewayAudit:
                 "path": (path or "")[:2048],
                 "http_method": method.upper()[:16],
                 "route_action": (action or "")[:64],
-                "scope_checked": (scope_checked or "")[:256] or None,
+                "scope_checked": scope_metadata,
             },
             "occurred_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -252,7 +260,10 @@ class GatewayAudit:
             # Preserve the event locally so a later request or replay worker can
             # deliver it after PostgreSQL returns. The journal is bounded and
             # reports failures rather than silently dropping overflow.
-            logger.exception("Gateway audit database write failed: %s", exc)
+            logger.error(
+                "Gateway audit database write failed (%s)",
+                safe_exception_class(exc),
+            )
             try:
                 pending_count = self._get_spool().enqueue(event)
                 spool = self._get_spool()
@@ -267,5 +278,8 @@ class GatewayAudit:
                 state = "degraded" if capacity["alert_active"] else "ok"
                 self._report_capture_state(state, capacity=capacity)
                 logger.warning("Gateway audit event retained in local journal; pending=%d", pending_count)
-            except Exception:
-                logger.exception("Gateway audit local journal could not retain an event")
+            except Exception as exc:
+                logger.error(
+                    "Gateway audit local journal could not retain an event (%s)",
+                    safe_exception_class(exc),
+                )

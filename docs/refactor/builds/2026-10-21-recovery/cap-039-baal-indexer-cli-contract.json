@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 Baal indexer CLI range contract",
+  "result": "passed",
+  "changes": [
+    "Added a reusable Baal indexer parser and argv-aware main() for standalone and unified dispatch.",
+    "Rejected negative and reversed block intervals before provider/database setup.",
+    "Preserved an explicitly supplied --to-block 0 instead of treating it as latest block."
+  ],
+  "focused_tests": {
+    "command": "python3 -m pytest tests/test_baal_indexer_cli.py tests/test_baal_indexer_recovery.py tests/test_ingestion_cli_dispatch.py tests/test_ingestion_cli_help_isolation.py -q",
+    "result": "19 passed"
+  },
+  "ruff": {
+    "command": "ruff check services/ingestion/baal_indexer.py services/ingestion/cli.py services/ingestion/mock_sensors.py tests/test_baal_indexer_cli.py tests/test_ingestion_cli_dispatch.py tests/test_ingestion_cli_help_isolation.py tests/test_mock_sensors_cleanup.py",
+    "result": "passed"
+  },
+  "compileall": "passed",
+  "capability_matrix": "66 rows valid; MAN-CAP acceptance remains separately gated",
+  "database_provider_or_network_access": "none; provider and database paths were mocked or rejected before access"
+}

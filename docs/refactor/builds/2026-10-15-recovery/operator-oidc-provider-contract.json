@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-15",
+  "scope": "operator OIDC adapter route contract with an in-process fake provider",
+  "covered": [
+    "login starts with a cleared transient session and delegates to the configured callback URI",
+    "callback accepts only the fake client's state-validated userinfo result and issues opaque session/CSRF cookies",
+    "the actual OIDC adapter registers the normalized discovery URL, openid/profile/email scopes, and S256 PKCE configuration",
+    "the actual OIDC adapter rejects a wrong issuer, missing/empty subject, or oversized subject before opening the auth database connection",
+    "missing userinfo and unprovisioned subjects fail closed without issuing an operator session",
+    "session response is no-store and contains only the provider's active scope list",
+    "logout requires CSRF, revokes the local session, and a later session request is denied"
+  ],
+  "verification": {
+    "command": ".venv/bin/python -m pytest tests/test_operator_mobile_review.py tests/test_operator_route_policy_inventory.py tests/test_operator_auth.py tests/test_operator_console_mobile_disposition.py tests/test_event_bus_durability.py tests/test_operator_oidc_provider_contract.py -q",
+    "result": "105 passed",
+    "network_calls": 0,
+    "database_access": false,
+    "ruff": "passed"
+  },
+  "limitations": [
+    "The fake Authlib registration check validates configured discovery URL, scopes, and PKCE method, but does not exercise Authlib's protocol implementation, real issuer signatures, token exchange, or provider-specific claims.",
+    "No operator identity/session database function, live scope grant, browser, or external callback was exercised.",
+    "Real OIDC provider configuration and authenticated candidate acceptance remain open."
+  ]
+}

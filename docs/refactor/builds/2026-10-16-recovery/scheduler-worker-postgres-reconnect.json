@@ -1,0 +1,24 @@
+{
+  "checked_at_utc": "2026-10-16T03:46:11Z",
+  "source_revision": "397d64d",
+  "command": "python3 scripts/check-scheduler-worker-reconnect-disposable.py",
+  "database": {
+    "image": "postgres:16-alpine",
+    "port_binding": "127.0.0.1 only",
+    "volume": false,
+    "candidate_or_legacy_modified": false
+  },
+  "result": {
+    "status": "passed",
+    "worker_alive_during_database_outage": true,
+    "successful_tick_before_restart": true,
+    "successful_tick_after_restart": true,
+    "database_restart_reconnected": true,
+    "worker_id": "reconnect-probe",
+    "temporary_container_removed": true
+  },
+  "limitations": [
+    "The scheduler engine was stubbed; this verifies PostgreSQL reconnect and worker process survival, not task SQL, leases, or provider delivery.",
+    "This is a short disposable outage check, not 24-hour or scale acceptance."
+  ]
+}

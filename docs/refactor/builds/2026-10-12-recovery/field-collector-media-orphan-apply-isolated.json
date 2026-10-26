@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-12",
+  "acceptance": "private-media-orphan-apply-isolated-local",
+  "source_commit": "e523e2a7fc56d3482722eeba6ec247b026e9eee0",
+  "provider": "local",
+  "execution": {
+    "kind": "isolated acceptance harness",
+    "live_candidate_or_production_services_touched": false,
+    "live_database_used": false,
+    "temporary_directory": true
+  },
+  "fixture": {
+    "objects_created_with_local_media_store": 2,
+    "object_bytes": "synthetic encrypted JPEG data only",
+    "aged_object_age_hours": 26,
+    "younger_object_age_hours": 0
+  },
+  "dry_run": {
+    "provider_object_count": 2,
+    "registered_object_count": 0,
+    "unregistered_object_count": 2,
+    "eligible_count": 1,
+    "too_young_count": 1,
+    "deleted_count": 0
+  },
+  "apply": {
+    "deleted_count": 1,
+    "aged_synthetic_object_removed": true,
+    "younger_synthetic_object_preserved": true,
+    "preserved_object_authenticated_with_head_private": true,
+    "database_select_statements": 2,
+    "database_mutations": 0
+  },
+  "cleanup": {
+    "temporary_directory_removed": true,
+    "synthetic_objects_remaining": 0
+  },
+  "scope_and_limitations": {
+    "candidate_local_media_volume_modified": false,
+    "s3_or_r2_tested": false,
+    "production_data_touched": false,
+    "production_delete_recovery_tested": false
+  },
+  "rollback": "All objects were confined to an automatically removed temporary directory; no candidate or production state changed."
+}

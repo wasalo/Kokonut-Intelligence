@@ -1,0 +1,94 @@
+{
+  "record_type": "candidate_reference_catalog_seed_rollout",
+  "checked_at_utc": "2026-10-15T21:40:38Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "head_before_rollout": "b4b6ac208d15fd20259a86e1658fb0c6c65e9dd0",
+  "operation": "Apply the five owner-approved reference catalog seeds to the local migration-400 Kernel candidate.",
+  "approval": "The repository owner explicitly approved the exact five-file candidate rollout on 15 October 2026.",
+  "target": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_files": ["docker-compose.kernel-candidate.yml"],
+    "database_service": "database",
+    "database": "kokonut_intelligence",
+    "candidate_app_url": "http://127.0.0.1:8098",
+    "legacy_stack_touched": false,
+    "metabase_or_proxy_recreated": false,
+    "r2_contacted": false
+  },
+  "checkpoint": {
+    "relative_path": "backups/kernel-candidate-pre-five-reference-seeds-20261015T211905Z/postgres.dump.age",
+    "age_encrypted": true,
+    "bytes": 5724326,
+    "sha256": "56a08bdf48bce987deffc9a2075e7a4393246d02bfa12bc5f6897d8910e740f1",
+    "isolated_restore_rehearsal": "passed",
+    "scope_limit": "Same-disk local checkpoint of the PostgreSQL database only; it excludes global roles/grants, other databases, Docker volumes, external media, and provider state."
+  },
+  "preflight": {
+    "candidate_app_database_metabase": "healthy",
+    "candidate_proxy": "running",
+    "applied_schema_migrations": 391,
+    "latest_schema_migration": "schema:400_operator_auth_security_schema_usage.sql",
+    "applied_seeds_before": ["seed:140_mobile_forms.sql"],
+    "non_applied_migration_rows": 0,
+    "five_catalog_target_counts_before": {
+      "expense_category": 0,
+      "metric_definition": 0,
+      "ghg_emission_factor": 0,
+      "carbon_benchmark": 0,
+      "operations_protocol": 0
+    }
+  },
+  "migration_command": "python3 -m services.migration migrate --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --only-migration seed:000_expense_categories.sql --only-migration seed:000_metric_definitions.sql --only-migration seed:022_metric_governance.sql --only-migration seed:103_flow_metrics.sql --only-migration seed:027_carbon_framework_seeds.sql",
+  "migrations": [
+    {"id": "seed:000_expense_categories.sql", "sha256": "34688d67e9d7552a0252020e2f662ff7e757df409fed8edf99e23badac645db3", "status": "applied"},
+    {"id": "seed:000_metric_definitions.sql", "sha256": "c0068050fcd1a64ee25ccc1fc159a9931cfe24035c47a1335660984798286712", "status": "applied"},
+    {"id": "seed:022_metric_governance.sql", "sha256": "50ac004d390e115da639222bd6ab763479dcc93d5384b7402ca9a5a5e2eb4746", "status": "applied"},
+    {"id": "seed:103_flow_metrics.sql", "sha256": "5467ff7802b1337958a6d68178756fe0b592ab24626d4ab807f4fe1dafa1395d", "status": "applied"},
+    {"id": "seed:027_carbon_framework_seeds.sql", "sha256": "835fe72e6d824f755b9b291b8e6838dca8a62186934ba07e2f7f97f314368182", "status": "applied"}
+  ],
+  "result": {
+    "runner": "Applied: 5, Failed: 0",
+    "applied_schema_migrations": 391,
+    "latest_schema_migration": "schema:400_operator_auth_security_schema_usage.sql",
+    "applied_seed_count": 6,
+    "non_applied_migration_rows": 0,
+    "catalog_target_counts_after": {
+      "expense_category": 19,
+      "metric_definition": 20,
+      "ghg_emission_factor": 19,
+      "carbon_benchmark": 8,
+      "operations_protocol": 5
+    },
+    "preserved_existing_counts": {
+      "mobile_form": 5,
+      "mobile_form_version": 10,
+      "service_registry": 63
+    },
+    "candidate_services_after": {
+      "app": "running/healthy",
+      "database": "running/healthy",
+      "metabase": "running/healthy",
+      "proxy": "running"
+    },
+    "http_checks": {
+      "GET /health": 200,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401
+    }
+  },
+  "held_scope": {
+    "other_pending_curated_seed_files": 25,
+    "range_prefixed_pilot_seed": "064-068_impact_network.sql",
+    "already_applied_seed_left_untouched": "140_mobile_forms.sql",
+    "other_unselected_source_seeds": 90,
+    "pilot_or_farm_measurement_rows_added": false
+  },
+  "rollback": {
+    "checkpoint": "backups/kernel-candidate-pre-five-reference-seeds-20261015T211905Z/postgres.dump.age",
+    "restore_rehearsal": "passed before candidate rollout",
+    "procedure": "If a later reviewed need requires rollback, restore into a separately reviewed replacement database and cut over only after validation; do not overwrite the candidate in place or rerun a partially applied batch."
+  },
+  "limitations": [
+    "This applies reference catalog definitions and model defaults; it does not establish farm observations, verified outcomes, report/dashboard owner acceptance, provider activation, or tenant/RLS acceptance.",
+    "The checkpoint is encrypted but on the same local disk as the repository; it is not an independent backup or production R2 copy."
+  ]
+}

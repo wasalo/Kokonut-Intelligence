@@ -1,0 +1,33 @@
+{
+  "check": "gateway_data_stream_private_response_cache_policy",
+  "date": "2026-10-18",
+  "result": "passed",
+  "scope": {
+    "private_routes": [
+      "GET /api/data-stream/posts",
+      "GET /api/data-stream/posts/{post_id}/files",
+      "GET /api/data-stream/posts/{post_id}/attestation",
+      "POST /api/data-stream/post"
+    ],
+    "success_and_scope_denial_responses_use_cache_control_no_store": true,
+    "attachment_storage_urls_and_directus_ids_remain_omitted": true,
+    "stored_attestation_read_does_not_query_live_chain": true,
+    "candidate_or_legacy_database_touched": false
+  },
+  "pytest": {
+    "command": "python3 -m pytest tests/test_gateway_data_stream.py tests/test_gateway_auth.py tests/test_gateway_route_policy_inventory.py -q",
+    "passed": 54,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix_validation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "The database, identity verifier, and data are synthetic or mocked in these checks.",
+    "Signed attachment-byte delivery, live EAS verification, populated output parity, and domain-table RLS remain open.",
+    "MAN-CAP-022 remains unaccepted."
+  ]
+}

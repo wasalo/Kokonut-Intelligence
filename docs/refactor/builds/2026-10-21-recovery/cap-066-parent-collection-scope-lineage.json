@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-066",
+  "scope": "Propagate location scope from fetched parent collections into child queries in a simple row loop, while preserving conditional scope and rejecting unscoped or replaced collections.",
+  "pytest": {
+    "command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py -q",
+    "result": "passed",
+    "passed": 44
+  },
+  "report_inventory": {
+    "registered_report_types": 94,
+    "direct_query_sites": 176,
+    "bound_location_scope_signals_before": 129,
+    "bound_location_scope_signals_after": 131,
+    "newly_recognized": [
+      {
+        "report": "ebf_scorecard",
+        "child_relation": "v_public_ebf_scorecard",
+        "scope_path": "location-filtered scorecard_id"
+      },
+      {
+        "report": "stakeholder_engagement",
+        "child_relation": "v_stakeholder_commitment_health",
+        "scope_path": "conditionally location-filtered plan_id"
+      }
+    ],
+    "positional_bind_mismatches": 0,
+    "named_bind_mismatches": 0
+  },
+  "ruff": "passed",
+  "py_compile": "passed",
+  "report_query_inventory": "regenerated and current",
+  "report_helper_inventory": "current",
+  "capability_matrix": "passed",
+  "git_diff_check": "passed",
+  "database_or_provider_calls": false,
+  "limits": [
+    "Collection tracking supports direct fetchall list aliases and simple for loops; it does not follow branches, arbitrary transformations, helpers, or dynamic SQL.",
+    "The inherited signal is source analysis only and does not establish authorization, RLS, PostgreSQL execution, or populated output parity."
+  ]
+}

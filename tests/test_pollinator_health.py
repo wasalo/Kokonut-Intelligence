@@ -1,429 +1,228 @@
-#!/usr/bin/env python3
-"""
-Tests for Pollinator Health
-"""
+"""Focused contract tests for the pollinator service and migrations 155/602."""
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
+import json
 import unittest
-from unittest.mock import MagicMock, patch
-from datetime import date, datetime, timezone
+from datetime import date
+from decimal import Decimal
+from pathlib import Path
+from unittest.mock import MagicMock
 
-from services.analytics.pollinator_health import (
-    record_observation,
-    create_habitat,
-    record_pesticide_impact,
-    add_hive,
-    record_hive_inspection,
-    get_pollinator_summary,
-    get_habitat_inventory,
-    get_pesticide_risk,
-    get_hive_status,
-    get_pollinator_dashboard,
-)
+from services.analytics import pollinator_health as pollinators
 
 
-class TestRecordObservation(unittest.TestCase):
-
+class PollinatorWriteTests(unittest.TestCase):
     def setUp(self):
         self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
+        self.cursor = self.conn.cursor.return_value
 
-    def test_record_observation_returns_observation_id(self):
-        result = record_observation(
-            self.conn, "loc-001", "honeybee", 50,
+    def test_observation_targets_schema_and_defaults_review_state(self):
+        result = pollinators.record_observation(self.conn, "loc-1", "honeybee", 12)
+        sql, params = self.cursor.execute.call_args.args
+        self.assertIn("INSERT INTO pollinator_observation", sql)
+        self.assertIn("observation_date", sql)
+        self.assertIn("plot_id", sql)
+        self.assertIn("'recorded'", sql)
+        self.assertNotIn("habitat_area_id", sql)
+        self.assertEqual(params[7], "visual_count")
+        self.assertEqual(result["status"], "recorded")
+        self.assertEqual(result["observation_date"], date.today().isoformat())
+        self.conn.commit.assert_called_once()
+        self.cursor.close.assert_called_once()
+
+    def test_observation_maps_legacy_visual_and_serializes_weather(self):
+        pollinators.record_observation(
+            self.conn, "loc-1", "butterfly", 3, observation_method="visual",
+            weather_conditions="sunny", observation_date=date(2026, 10, 1),
         )
-        self.assertIn("observation_id", result)
-        self.assertEqual(result["pollinator_type"], "honeybee")
-        self.assertEqual(result["count"], 50)
-        self.assertEqual(result["observation_method"], "visual")
-        self.assertEqual(result["duration_minutes"], 15)
+        sql, params = self.cursor.execute.call_args.args
+        self.assertIn("weather_conditions", sql)
+        self.assertEqual(params[7], "visual_count")
+        self.assertEqual(json.loads(params[9]), {"description": "sunny"})
+        self.assertEqual(params[3], date(2026, 10, 1))
+
+    def test_observation_rejects_schema_invalid_type_before_database(self):
+        with self.assertRaises(ValueError):
+            pollinators.record_observation(self.conn, "loc-1", "bumblebee", 1)
+        self.conn.cursor.assert_not_called()
+
+    def test_habitat_maps_legacy_alias_but_rejects_unknown_type(self):
+        result = pollinators.create_habitat(
+            self.conn, "loc-1", "Flowers", "wildflower", 120,
+            plant_species=["clover"], bloom_start_month=3,
+        )
+        sql, params = self.cursor.execute.call_args.args
+        self.assertIn("INSERT INTO pollinator_habitat", sql)
+        self.assertIn("nesting_sites", sql)
+        self.assertEqual(params[3], "wildflower_strip")
+        self.assertEqual(result["habitat_type"], "wildflower_strip")
+        conn = MagicMock()
+        with self.assertRaises(ValueError):
+            pollinators.create_habitat(conn, "loc-1", "Bad", "clover", 1)
+        conn.cursor.assert_not_called()
+
+    def test_pesticide_writes_installed_log_and_all_structured_fields(self):
+        pollinators.record_pesticide_impact(
+            self.conn, "loc-1", date(2026, 10, 1), "Product", "active", "high",
+            pollinator_safe_period_days=3, pollinator_mortality_observed=True,
+            mortality_pct=12.5,
+        )
+        sql, params = self.cursor.execute.call_args.args
+        self.assertIn("INSERT INTO pesticide_impact_log", sql)
+        self.assertNotIn("pollinator_pesticide_impact", sql)
+        self.assertIn("pollinator_safe_period_days", sql)
+        self.assertIn("pollinator_mortality_observed", sql)
+        self.assertEqual(params[11:13], (3, True))
+
+    def test_hive_score_and_category_are_kept_separate(self):
+        score_result = pollinators.add_hive(self.conn, "loc-1", "H-1", colony_strength=8)
+        _, score_params = self.cursor.execute.call_args.args
+        self.assertIsNone(score_params[4])
+        self.assertEqual(score_params[5], 8)
+        self.assertEqual(score_result["colony_strength_score"], 8)
+        self.cursor.reset_mock()
+        category_result = pollinators.add_hive(self.conn, "loc-1", "H-2", colony_strength="strong")
+        _, category_params = self.cursor.execute.call_args.args
+        self.assertEqual(category_params[4], "strong")
+        self.assertIsNone(category_params[5])
+        self.assertEqual(category_result["colony_strength"], "strong")
+
+    def test_inspection_is_location_scoped_and_updates_same_hive(self):
+        self.cursor.fetchall.return_value = [("hive-uuid",)]
+        self.cursor.rowcount = 1
+        result = pollinators.record_hive_inspection(
+            self.conn, "loc-1", "H-1", colony_strength="moderate", varroa_count=2,
+        )
+        calls = [call.args[0] for call in self.cursor.execute.call_args_list]
+        self.assertIn("WHERE location_id = %s AND hive_id = %s FOR UPDATE", calls[0])
+        self.assertIn("INSERT INTO pollinator_hive_inspection", calls[1])
+        self.assertIn("UPDATE hive_record", calls[2])
+        self.assertIn("location_id = %s::uuid", calls[2])
+        self.assertEqual(result["location_id"], "loc-1")
         self.conn.commit.assert_called_once()
 
-    def test_record_observation_with_method(self):
-        result = record_observation(
-            self.conn, "loc-001", "butterfly", 12,
-            observation_method="transect", duration_minutes=30,
-        )
-        self.assertEqual(result["observation_method"], "transect")
-        self.assertEqual(result["duration_minutes"], 30)
+    def test_inspection_rejects_missing_or_ambiguous_hive_and_rolls_back(self):
+        for rows in ([], [("one",), ("two",)]):
+            conn = MagicMock()
+            cursor = conn.cursor.return_value
+            cursor.fetchall.return_value = rows
+            with self.assertRaises(ValueError):
+                pollinators.record_hive_inspection(conn, "loc-1", "H-1")
+            conn.rollback.assert_called_once()
+            cursor.close.assert_called_once()
+            self.assertEqual(cursor.execute.call_count, 1)
 
-    def test_record_observation_calls_execute(self):
-        record_observation(self.conn, "loc-001", "bumblebee", 5)
-        self.mock_cursor.execute.assert_called_once()
-        self.mock_cursor.close.assert_called_once()
+    def test_write_failure_rolls_back_and_closes_cursor(self):
+        self.cursor.execute.side_effect = RuntimeError("database failure")
+        with self.assertRaises(RuntimeError):
+            pollinators.record_observation(self.conn, "loc-1", "honeybee", 1)
+        self.conn.rollback.assert_called_once()
+        self.cursor.close.assert_called_once()
 
 
-class TestCreateHabitat(unittest.TestCase):
-
+class PollinatorReadTests(unittest.TestCase):
     def setUp(self):
         self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
+        self.cursor = self.conn.cursor.return_value
 
-    def test_create_habitat_returns_habitat_id(self):
-        result = create_habitat(
-            self.conn, "loc-001", "Wildflower Strip", "wildflower", 200.0,
-        )
-        self.assertIn("habitat_id", result)
-        self.assertEqual(result["habitat_name"], "Wildflower Strip")
-        self.assertEqual(result["habitat_type"], "wildflower")
-        self.assertEqual(result["area_m2"], 200.0)
-        self.assertEqual(result["water_source"], False)
-        self.conn.commit.assert_called_once()
-
-    def test_create_habitat_with_species(self):
-        result = create_habitat(
-            self.conn, "loc-001", "Clover Patch", "clover", 150.0,
-            plant_species=["white_clover", "red_clover"],
-            bloom_start_month=3, bloom_end_month=9,
-            water_source=True,
-        )
-        self.assertEqual(result["plant_species"], ["white_clover", "red_clover"])
-        self.assertEqual(result["water_source"], True)
-
-    def test_create_habitat_minimal(self):
-        result = create_habitat(
-            self.conn, "loc-001", "Nesting Area", "nesting", 50.0,
-        )
-        self.assertEqual(result["plant_species"], [])
-
-
-class TestRecordPesticideImpact(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_record_pesticide_impact_returns_record_id(self):
-        result = record_pesticide_impact(
-            self.conn, "loc-001", date(2026, 6, 15),
-            "Chlorpyrifos", "chlorpyrifos", "high",
-        )
-        self.assertIn("record_id", result)
-        self.assertEqual(result["product_name"], "Chlorpyrifos")
-        self.assertEqual(result["toxicity_class"], "high")
-        self.assertEqual(result["pollinator_risk"], "high")
-        self.assertEqual(result["pollinator_harm"], "lethal to foragers")
-        self.conn.commit.assert_called_once()
-
-    def test_record_pesticide_impact_low_toxicity(self):
-        result = record_pesticide_impact(
-            self.conn, "loc-001", date(2026, 6, 15),
-            "Bt spray", "bacillus_thuringiensis", "low",
-        )
-        self.assertEqual(result["pollinator_risk"], "low")
-        self.assertEqual(result["pollinator_harm"], "minimal")
-
-    def test_record_pesticide_impact_very_high(self):
-        result = record_pesticide_impact(
-            self.conn, "loc-001", date(2026, 6, 15),
-            "Neonicotinoid", "imidacloprid", "very_high",
-        )
-        self.assertEqual(result["pollinator_risk"], "very_high")
-        self.assertEqual(result["pollinator_harm"], "lethal to colony")
-
-
-class TestAddHive(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_add_hive_returns_record_id(self):
-        result = add_hive(
-            self.conn, "loc-001", "H-001",
-        )
-        self.assertIn("record_id", result)
-        self.assertEqual(result["hive_id"], "H-001")
-        self.assertEqual(result["colony_strength"], 5)
-        self.assertEqual(result["queen_status"], "present")
-        self.assertEqual(result["hive_type"], "langstroth")
-        self.conn.commit.assert_called_once()
-
-    def test_add_hive_custom_strength(self):
-        result = add_hive(
-            self.conn, "loc-001", "H-002",
-            colony_strength=8, queen_status="absent", frame_count=12,
-        )
-        self.assertEqual(result["colony_strength"], 8)
-        self.assertEqual(result["queen_status"], "absent")
-        self.assertEqual(result["frame_count"], 12)
-
-
-class TestRecordHiveInspection(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_record_hive_inspection_records_inspection(self):
-        result = record_hive_inspection(
-            self.conn, "H-001", colony_strength=9,
-            queen_status="present", varroa_count=5,
-        )
-        self.assertIn("inspection_id", result)
-        self.assertEqual(result["hive_id"], "H-001")
-        self.assertEqual(result["colony_strength"], 9)
-        self.assertEqual(result["queen_status"], "present")
-        self.assertEqual(result["varroa_count"], 5)
-        self.conn.commit.assert_called_once()
-
-    def test_record_hive_inspection_updates_hive(self):
-        result = record_hive_inspection(
-            self.conn, "H-001", colony_strength=10,
-        )
-        calls = self.mock_cursor.execute.call_args_list
-        update_calls = [c for c in calls if "UPDATE pollinator_hive" in str(c)]
-        self.assertEqual(len(update_calls), 1)
-
-    def test_record_hive_inspection_no_strength_update(self):
-        result = record_hive_inspection(
-            self.conn, "H-001", queen_seen=True,
-        )
-        calls = self.mock_cursor.execute.call_args_list
-        update_calls = [c for c in calls if "UPDATE pollinator_hive" in str(c)]
-        self.assertEqual(len(update_calls), 0)
-
-
-class TestPollinatorSummary(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_get_pollinator_summary_returns_summary(self):
-        self.mock_cursor.description = [
-            ("pollinator_type",), ("observations",), ("avg_count",),
-            ("max_count",), ("first_obs",), ("last_obs",),
-        ]
-        self.mock_cursor.fetchall.return_value = [
-            ("honeybee", 10, 45.0, 80, date(2026, 6, 1), date(2026, 7, 1)),
-        ]
-        self.mock_cursor.fetchone.side_effect = [
-            (20.0,),  # first half avg
-            (40.0,),  # second half avg
-        ]
-        result = get_pollinator_summary(self.conn, "loc-001")
-        self.assertEqual(result["location_id"], "loc-001")
-        self.assertEqual(result["period_days"], 30)
-        self.assertEqual(len(result["pollinator_types"]), 1)
+    def test_summary_uses_reviewed_rows_and_bound_intervals(self):
+        self.cursor.description = [(name,) for name in (
+            "pollinator_type", "observations", "avg_count", "max_count", "first_obs",
+            "last_obs", "first_half_avg", "second_half_avg", "total_count",
+        )]
+        self.cursor.fetchall.return_value = [(
+            "honeybee", 4, 12.5, 20, date(2026, 9, 1), date(2026, 10, 1), 10, 15, 50,
+        )]
+        result = pollinators.get_pollinator_summary(self.conn, "loc-1", 30)
+        sql, params = self.cursor.execute.call_args.args
+        self.assertIn("status IN ('verified', 'reviewed')", sql)
+        self.assertNotIn("INTERVAL '%s days'", sql)
+        self.assertEqual(params, (15, 15, "loc-1", 30))
         self.assertEqual(result["pollinator_types"][0]["trend"], "increasing")
+        self.assertEqual(result["pollinator_types"][0]["total_count"], 50.0)
 
-    def test_get_pollinator_summary_empty(self):
-        self.mock_cursor.description = [
-            ("pollinator_type",), ("observations",), ("avg_count",),
-            ("max_count",), ("first_obs",), ("last_obs",),
-        ]
-        self.mock_cursor.fetchall.return_value = []
-        result = get_pollinator_summary(self.conn, "loc-001")
-        self.assertEqual(result["pollinator_types"], [])
+    def test_summary_rejects_invalid_window_before_database(self):
+        for days in (0, -1, 3651, True):
+            conn = MagicMock()
+            with self.assertRaises(ValueError):
+                pollinators.get_pollinator_summary(conn, "loc-1", days)
+            conn.cursor.assert_not_called()
 
-
-class TestHabitatInventory(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_get_habitat_inventory_returns_inventory(self):
-        self.mock_cursor.description = [
-            ("id",), ("habitat_name",), ("habitat_type",), ("area_m2",),
-            ("plant_species",), ("bloom_start_month",), ("bloom_end_month",),
-            ("water_source",), ("nesting_sites",), ("management_notes",),
-        ]
-        self.mock_cursor.fetchall.return_value = [
-            ("h-001", "Wildflower Strip", "wildflower", 200.0,
-             '["clover", "daisy"]', 3, 9, True, "Logs", None),
-        ]
-        result = get_habitat_inventory(self.conn, "loc-001")
-        self.assertEqual(result["location_id"], "loc-001")
-        self.assertEqual(result["total_habitat_m2"], 200.0)
-        self.assertEqual(result["habitat_count"], 1)
-        self.assertEqual(len(result["habitats"]), 1)
-        self.assertEqual(result["habitats"][0]["plant_species"], ["clover", "daisy"])
-
-    def test_get_habitat_inventory_empty(self):
-        self.mock_cursor.description = [
-            ("id",), ("habitat_name",), ("habitat_type",), ("area_m2",),
-            ("plant_species",), ("bloom_start_month",), ("bloom_end_month",),
-            ("water_source",), ("nesting_sites",), ("management_notes",),
-        ]
-        self.mock_cursor.fetchall.return_value = []
-        result = get_habitat_inventory(self.conn, "loc-001")
+    def test_habitat_inventory_uses_current_columns_and_handles_null_area(self):
+        self.cursor.description = [(name,) for name in (
+            "id", "habitat_name", "habitat_type", "area_m2", "plant_species", "bloom_period",
+            "bloom_start_month", "bloom_end_month", "water_source", "nesting_features",
+            "nesting_sites", "condition", "last_maintenance", "notes",
+        )]
+        self.cursor.fetchall.return_value = [(
+            "id", "Strip", "wildflower_strip", None, '["clover"]', None, 3, 8, True,
+            '{"logs": 2}', "logs", "good", None, None,
+        )]
+        result = pollinators.get_habitat_inventory(self.conn, "loc-1")
+        sql, params = self.cursor.execute.call_args.args
+        self.assertIn("nesting_features", sql)
+        self.assertNotIn("management_notes", sql)
+        self.assertEqual(params, ("loc-1",))
         self.assertEqual(result["total_habitat_m2"], 0)
-        self.assertEqual(result["habitat_count"], 0)
+        self.assertEqual(result["habitats"][0]["plant_species"], ["clover"])
 
-
-class TestPesticideRisk(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_get_pesticide_risk_returns_risk(self):
-        self.mock_cursor.description = [
-            ("id",), ("application_date",), ("product_name",),
-            ("active_ingredient",), ("toxicity_class",), ("application_rate",),
-            ("rate_unit",), ("area_treated_m2",), ("bloom_stage_at_application",),
-            ("pollinator_distance_m",), ("pollinator_risk",),
-            ("pollinator_harm_description",),
+    def test_pesticide_read_uses_current_log_and_counts_advisory_records(self):
+        self.cursor.description = [(name,) for name in (
+            "id", "application_date", "product_name", "active_ingredient", "toxicity_class",
+            "application_rate", "rate_unit", "area_treated_m2", "bloom_stage_at_application",
+            "pollinator_distance_m", "pollinator_safe_period_days", "pollinator_mortality_observed",
+            "mortality_pct", "status", "total_matching",
+        )]
+        self.cursor.fetchall.side_effect = [
+            [("p-1", date(2026, 10, 1), "P", "ingredient", "high", None, None, None, None,
+              None, 3, True, 12.5, "verified", 1)],
+            [("high", 1, 1)],
         ]
-        self.mock_cursor.fetchall.side_effect = [
-            [("r-001", date(2026, 6, 1), "Chlorpyrifos", "chlorpyrifos",
-              "high", 2.0, "L/ha", 1000.0, "flowering", 50.0, "high", "lethal")],
-            [("high", 1)],
-        ]
-        result = get_pesticide_risk(self.conn, "loc-001")
-        self.assertEqual(result["location_id"], "loc-001")
+        result = pollinators.get_pesticide_risk(self.conn, "loc-1")
+        sql, params = self.cursor.execute.call_args_list[0].args
+        self.assertIn("FROM pesticide_impact_log", sql)
+        self.assertIn("status IN ('recorded', 'verified', 'reviewed')", sql)
+        self.assertNotIn("pollinator_pesticide_impact", sql)
+        self.assertEqual(params, ("loc-1", 90, 500))
         self.assertEqual(result["total_applications"], 1)
-        self.assertEqual(result["overall_risk"], "elevated")
-        self.assertEqual(len(result["applications"]), 1)
-
-    def test_get_pesticide_risk_low(self):
-        self.mock_cursor.description = [
-            ("id",), ("application_date",), ("product_name",),
-            ("active_ingredient",), ("toxicity_class",), ("application_rate",),
-            ("rate_unit",), ("area_treated_m2",), ("bloom_stage_at_application",),
-            ("pollinator_distance_m",), ("pollinator_risk",),
-            ("pollinator_harm_description",),
-        ]
-        self.mock_cursor.fetchall.return_value = []
-        self.mock_cursor.fetchone.return_value = []
-        result = get_pesticide_risk(self.conn, "loc-001")
-        self.assertEqual(result["overall_risk"], "low")
-
-    def test_get_pesticide_risk_critical(self):
-        self.mock_cursor.description = [
-            ("id",), ("application_date",), ("product_name",),
-            ("active_ingredient",), ("toxicity_class",), ("application_rate",),
-            ("rate_unit",), ("area_treated_m2",), ("bloom_stage_at_application",),
-            ("pollinator_distance_m",), ("pollinator_risk",),
-            ("pollinator_harm_description",),
-        ]
-        self.mock_cursor.fetchall.side_effect = [
-            [],
-            [("high", 2), ("very_high", 2)],
-        ]
-        result = get_pesticide_risk(self.conn, "loc-001")
         self.assertEqual(result["overall_risk"], "critical")
+        self.assertEqual(result["applications"][0]["pollinator_risk"], "high")
 
-
-class TestHiveStatus(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-
-    def test_get_hive_status_returns_status(self):
-        c1 = MagicMock()
-        c1.description = [
-            ("id",), ("hive_id",), ("hive_type",), ("colony_strength",),
-            ("queen_status",), ("frame_count",), ("queen_year",), ("status",),
-        ]
-        c1.fetchall.return_value = [
-            ("h-001", "H-001", "langstroth", 8, "present", 10, 2025, "active"),
-        ]
-
-        c2 = MagicMock()
-        c2.description = [
-            ("inspection_date",), ("colony_strength",), ("queen_status",),
-            ("queen_seen",), ("varroa_count",), ("brood_pattern",),
-            ("honey_stores",), ("disease_signs",), ("swarm_cells",),
-        ]
-        c2.fetchone.return_value = (
-            date(2026, 7, 1), 8, "present", True, 3, "solid", "adequate", None, False,
+    def test_hive_status_uses_location_bound_lateral_inspection(self):
+        columns = (
+            "id", "hive_id", "hive_type", "colony_strength", "colony_strength_score", "queen_status",
+            "frame_count", "queen_year", "honey_yield_kg", "inspection_date", "varroa_count", "status",
+            "avg_daily_foragers",
+            "inspection_id", "last_inspection_date", "last_colony_strength", "last_colony_strength_score",
+            "last_queen_status", "queen_seen", "last_varroa_count", "brood_pattern", "honey_stores",
+            "disease_signs", "temperament", "population_estimate", "swarm_cells", "inspection_status",
         )
-
-        c3 = MagicMock()
-        c3.fetchone.return_value = (45.0,)
-
-        self.conn.cursor.side_effect = [c1, c2, c3]
-
-        result = get_hive_status(self.conn, "loc-001")
-        self.assertEqual(result["location_id"], "loc-001")
-        self.assertEqual(result["total_hives"], 1)
-        self.assertEqual(result["active_hives"], 1)
+        self.cursor.description = [(name,) for name in columns]
+        self.cursor.fetchall.return_value = [(
+            "h-uuid", "H-1", "langstroth", "strong", 8, "present", 10, 2025,
+            Decimal("12.5"), date(2026, 10, 1), 2, "active", Decimal("20"), "i-uuid", date(2026, 10, 1),
+            "moderate", 6, "present", True, 3, "solid", "good", None, "calm", 5000, False, "verified",
+        )]
+        self.cursor.fetchone.return_value = (Decimal("8.0"),)
+        result = pollinators.get_hive_status(self.conn, "loc-1")
+        sql = self.cursor.execute.call_args_list[0].args[0]
+        self.assertIn("LEFT JOIN LATERAL", sql)
+        self.assertIn("pi.location_id = h.location_id AND pi.hive_record_id = h.id", sql)
+        self.assertIn("po.location_id = h.location_id", sql)
         self.assertEqual(result["avg_colony_strength"], 8.0)
-        self.assertEqual(len(result["hives"]), 1)
-
-    def test_get_hive_status_empty(self):
-        c1 = MagicMock()
-        c1.description = [
-            ("id",), ("hive_id",), ("hive_type",), ("colony_strength",),
-            ("queen_status",), ("frame_count",), ("queen_year",), ("status",),
-        ]
-        c1.fetchall.return_value = []
-        self.conn.cursor.return_value = c1
-
-        result = get_hive_status(self.conn, "loc-001")
-        self.assertEqual(result["total_hives"], 0)
-        self.assertEqual(result["active_hives"], 0)
+        self.assertEqual(result["hives"][0]["last_inspection"]["status"], "verified")
+        self.assertEqual(result["hives"][0]["avg_daily_foragers"], 20.0)
 
 
-class TestPollinatorDashboard(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-
-    @patch("services.analytics.pollinator_health.get_hive_status")
-    @patch("services.analytics.pollinator_health.get_pesticide_risk")
-    @patch("services.analytics.pollinator_health.get_habitat_inventory")
-    @patch("services.analytics.pollinator_health.get_pollinator_summary")
-    def test_get_pollinator_dashboard_returns_dashboard(
-        self, mock_summary, mock_habitat, mock_pesticide, mock_hive,
-    ):
-        mock_summary.return_value = {
-            "location_id": "loc-001",
-            "period_days": 30,
-            "pollinator_types": [
-                {"pollinator_type": "honeybee", "observations": 10,
-                 "avg_count": 45.0, "max_count": 80,
-                 "first_obs": date(2026, 6, 1), "last_obs": date(2026, 7, 1),
-                 "trend": "increasing", "change_pct": 50.0},
-            ],
-        }
-        mock_habitat.return_value = {
-            "location_id": "loc-001",
-            "total_habitat_m2": 200.0,
-            "habitat_count": 1,
-            "habitats": [],
-        }
-        mock_pesticide.return_value = {
-            "location_id": "loc-001",
-            "period_days": 90,
-            "total_applications": 1,
-            "overall_risk": "elevated",
-            "risk_distribution": {"high": 1},
-            "applications": [],
-        }
-        mock_hive.return_value = {
-            "location_id": "loc-001",
-            "total_hives": 2,
-            "active_hives": 2,
-            "avg_colony_strength": 7.5,
-            "hives": [],
-        }
-
-        result = get_pollinator_dashboard(self.conn, "loc-001")
-        self.assertEqual(result["location_id"], "loc-001")
-        self.assertIn("observations", result)
-        self.assertIn("habitats", result)
-        self.assertIn("pesticide_risk", result)
-        self.assertIn("hives", result)
-        self.assertIn("generated_at", result)
-        self.assertEqual(result["observations"]["total_observations"], 10)
-        self.assertEqual(result["habitats"]["total_area_m2"], 200.0)
-        self.assertEqual(result["pesticide_risk"]["overall_risk"], "elevated")
-        self.assertEqual(result["hives"]["total"], 2)
+class PollinatorMigrationContractTests(unittest.TestCase):
+    def test_alignment_migration_is_additive_and_location_binds_hive_links(self):
+        sql = (Path(__file__).parents[1] / "schemas/postgres/602_pollinator_health_kernel_alignment.sql").read_text()
+        self.assertIn("ADD COLUMN IF NOT EXISTS hive_record_id UUID", sql)
+        self.assertIn("FOREIGN KEY (location_id, hive_record_id)", sql)
+        self.assertIn("REFERENCES public.hive_record (location_id, id)", sql)
+        self.assertIn("ON DELETE SET NULL (hive_record_id)", sql)
+        self.assertIn("CREATE TABLE IF NOT EXISTS pollinator_hive_inspection", sql)
+        self.assertIn("ADD COLUMN IF NOT EXISTS source_system", sql)
+        self.assertIn("idx_pollinator_obs_location_hive_date", sql)
 
 
 if __name__ == "__main__":

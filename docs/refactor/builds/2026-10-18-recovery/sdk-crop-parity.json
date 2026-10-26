@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline Python/TypeScript Crop reference-record schema parity",
+  "table": "public.crop",
+  "schema_sources": [
+    "schemas/postgres/002_crops.sql",
+    "schemas/postgres/017_fr_gaps.sql"
+  ],
+  "contract": "Stored crop reference including names, variety/category, growing-season and expected-yield fields, water/climate descriptors, JSON metadata, and schema_version.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 71 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — 66 models, 1,381 canonical columns, 1,291 scalar types, 10 PostGIS shapes, 77 JSONB shapes, 22 enum fields, 43 CHECK-literal fields — passed",
+    "ruff": "ruff check scripts/check-sdk-schema-parity.py sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q scripts/check-sdk-schema-parity.py sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "Expected-yield values are stored reference data; the SDK does not calculate or verify yield.",
+    "No database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
 from services.common.logging import get_logger
@@ -182,7 +181,7 @@ def compute_resource_efficiency(conn, location_id: str) -> dict[str, Any]:
     cur.execute(
         """
         SELECT SUM(he.quantity) AS total_harvest_kg
-        FROM harvest_event he
+        FROM ecological_harvest_event he
         JOIN location l ON l.id = he.location_id
         WHERE he.location_id = %s AND he.status IN ('verified', 'published')
         """,
@@ -226,7 +225,7 @@ def compute_conservation_status_summary(conn, location_id: str) -> dict[str, Any
         SELECT conservation_status,
                COUNT(DISTINCT species_name) AS species_count,
                SUM(count) AS total_individuals
-        FROM species_observation
+        FROM ecological_species_observation
         WHERE location_id = %s AND status IN ('verified', 'published')
           AND conservation_status IS NOT NULL
         GROUP BY conservation_status

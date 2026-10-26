@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-25",
+  "slice": "isolated notification delivery worker; migration 647",
+  "focused_tests": {
+    "command": "pytest -q tests/test_notification_delivery_worker.py tests/test_notification_outbox.py tests/test_worker_database.py tests/test_runtime_role_boundary.py tests/test_kernel_profile.py tests/test_scheduled_command_contracts.py tests/test_worker_operation_map.py tests/test_worker_boundary_preflight.py tests/test_migration.py",
+    "passed": 359,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "dependency_groups": "passed (12 groups, 33 requirements)",
+    "provider_boundaries": "passed (17 vendor import sites)",
+    "worker_source_function_sql_effect_preflight_inventories": "passed",
+    "worker_operation_roots": 39,
+    "unresolved_function_roots": 0,
+    "runtime_sql_inventory": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_acceptance": "Network-disabled PostgreSQL 16 disposable migration 647 replay. Actual-login assertions cover PUBLIC table-grant removal, read/write/sequence denial, exact function ACL, forced RLS, lease fencing, retry/dead-letter, bounded expiry recovery, and rollback.",
+  "arm64_database_acceptance": {
+    "result": "passed",
+    "architecture": "aarch64",
+    "evidence": "notification-delivery-worker-arm64-disposable.json",
+    "scope": "Docker ARM64/QEMU software portability only; no physical Raspberry Pi, power-loss, endurance, or sustained-load acceptance."
+  },
+  "rollout": "No candidate or legacy database was changed; no provider credentials were provisioned; no external delivery occurred.",
+  "migration_sha256": "021f8490abac9d94f937bcb3fdd1d3df25b7c8a000299fc5961cf235549fc11a"
+}

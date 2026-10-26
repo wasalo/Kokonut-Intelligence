@@ -7,17 +7,17 @@ Triggers sensor_alert records and optionally creates mrv_claim records.
 Sends email and Directus real-time notifications for triggered alerts.
 
 Usage:
-    # Check all recent readings for anomalies
-    python3 -m services.ingestion.anomaly_detector
+    # Check all recent readings for anomalies (explicit aggregate operation)
+    python3 -m services.ingestion.anomaly_detector --all-locations
 
-    # Check readings for a specific sensor
-    python3 -m services.ingestion.anomaly_detector --sensor <uuid>
+    # Check readings for a specific sensor at a location
+    python3 -m services.ingestion.anomaly_detector --location-id <uuid> --sensor <uuid>
 
-    # Check readings since a specific time
-    python3 -m services.ingestion.anomaly_detector --since "2026-06-11 00:00:00"
+    # Check readings since a specific time across all locations
+    python3 -m services.ingestion.anomaly_detector --all-locations --since "2026-06-11 00:00:00"
 
     # Create alerts from baseline deviations
-    python3 -m services.ingestion.anomaly_detector --baseline-check
+    python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations
 
     # List active alert rules
     python3 -m services.ingestion.anomaly_detector --list-rules
@@ -26,7 +26,6 @@ Usage:
 import argparse
 import json
 import os
-import smtplib
 import uuid
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
@@ -37,6 +36,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.cli import print_json
+from services.common.smtp import send_message
 
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion
@@ -62,9 +62,22 @@ def handle_sensor_reading(
     sensor_id = payload.get("sensor_id") or payload.get("sensor_device_id")
     if not sensor_id:
         raise ValueError("sensor-reading events require sensor_id")
+    location_id = payload.get("location_id")
+    if not location_id:
+        raise ValueError("sensor-reading events require location_id")
     if not event_id:
         raise ValueError("sensor-reading event ID is required for idempotent processing")
-    run_check(sensor_id=str(sensor_id), event_id=str(event_id))
+    try:
+        canonical_location_id = str(uuid.UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("sensor-reading event location_id must be a UUID") from exc
+    from .sensor_anomaly_worker import process_sensor_reading
+
+    process_sensor_reading(
+        sensor_id=str(sensor_id),
+        location_id=canonical_location_id,
+        event_id=str(event_id),
+    )
 
 logger = get_logger("ingestion.anomaly")
 
@@ -366,16 +379,23 @@ def evaluate_metric(metric: str, value: float, rule: dict, db, sensor_id: str,
     return False
 
 
-def check_cooldown(db, alert_rule_id: str, sensor_device_id: str, cooldown_minutes: int) -> bool:
+def check_cooldown(
+    db,
+    alert_rule_id: str,
+    sensor_device_id: str,
+    cooldown_minutes: int,
+    location_id: str | None = None,
+) -> bool:
     """Check if alert is in cooldown period. Returns True if still cooling down."""
     with db.cursor() as cur:
         cur.execute(
             """
             SELECT triggered_at FROM sensor_alert
             WHERE alert_rule_id = %s AND sensor_device_id = %s
+              AND (%s::uuid IS NULL OR location_id = %s::uuid)
             ORDER BY triggered_at DESC LIMIT 1
             """,
-            (alert_rule_id, sensor_device_id),
+            (alert_rule_id, sensor_device_id, location_id, location_id),
         )
         row = cur.fetchone()
         if not row:
@@ -391,21 +411,39 @@ def check_cooldown(db, alert_rule_id: str, sensor_device_id: str, cooldown_minut
 
 def create_alert(db, sensor_device_id: str, alert_rule_id: str, reading_id: str,
                  severity: str, message: str, reading_value: float, threshold_value: float,
-                 auto_create_claim: bool = False, claim_type: str = None) -> str:
+                 auto_create_claim: bool = False, claim_type: str = None,
+                 location_id: str | None = None) -> str:
     """Create a sensor alert record. Returns alert ID."""
     with db.cursor() as cur:
         cur.execute(
             """
             INSERT INTO sensor_alert
-                (sensor_device_id, alert_rule_id, reading_id, severity, status,
+                (location_id, sensor_device_id, alert_rule_id, reading_id, severity, status,
                  message, reading_value, threshold_value, triggered_at)
-            VALUES (%s, %s, %s, %s, 'open', %s, %s, %s, NOW())
+            SELECT COALESCE(%s::uuid, device.location_id), device.id, %s, %s, %s,
+                   'open', %s, %s, %s, NOW()
+              FROM sensor_device AS device
+             WHERE device.id = %s
+               AND (%s::uuid IS NULL OR device.location_id = %s::uuid)
+               AND (
+                   %s::uuid IS NULL
+                   OR EXISTS (
+                       SELECT 1 FROM sensor_reading AS reading
+                       WHERE reading.id = %s
+                         AND reading.sensor_id::text = device.id::text
+                         AND reading.location_id = device.location_id
+                   )
+               )
             RETURNING id
             """,
-            (sensor_device_id, alert_rule_id, reading_id, severity,
-             message, reading_value, threshold_value),
+            (location_id, alert_rule_id, reading_id, severity, message,
+             reading_value, threshold_value, sensor_device_id, location_id, location_id,
+             location_id, reading_id),
         )
-        alert_id = str(cur.fetchone()[0])
+        alert_row = cur.fetchone()
+        if alert_row is None:
+            raise ValueError("sensor device is not assigned to the source location")
+        alert_id = str(alert_row[0])
 
         if auto_create_claim and claim_type:
             cur.execute(
@@ -417,6 +455,8 @@ def create_alert(db, sensor_device_id: str, alert_rule_id: str, reading_id: str,
                 FROM sensor_device sd
                 JOIN sensor_reading sr ON sr.id = %s
                 WHERE sd.id = %s
+                  AND sd.location_id = sr.location_id
+                  AND (%s::uuid IS NULL OR sd.location_id = %s::uuid)
                 RETURNING id
                 """,
                 (
@@ -429,6 +469,7 @@ def create_alert(db, sensor_device_id: str, alert_rule_id: str, reading_id: str,
                         "severity": severity,
                     }),
                     sensor_device_id, alert_id, reading_id, sensor_device_id,
+                    location_id, location_id,
                 ),
             )
             claim_row = cur.fetchone()
@@ -477,20 +518,20 @@ Kokonut Intelligence Alert System
 """
         msg.attach(MIMEText(body, "plain"))
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.ehlo()
-            if SMTP_PORT != 25:
-                server.starttls()
-                server.ehlo()
-            if SMTP_USER:
-                server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
+        send_message(
+            msg,
+            host=SMTP_HOST,
+            port=SMTP_PORT,
+            username=SMTP_USER,
+            password=SMTP_PASSWORD,
+            tls_mode=os.environ.get("ALERT_SMTP_TLS_MODE", "starttls").strip().lower(),
+        )
 
         logger.info("Email notification sent for alert %s", alert_data["alert_id"])
         return True
 
     except Exception as e:
-        logger.warning("Failed to send email notification: %s", e)
+        logger.warning("Failed to send email notification (%s)", type(e).__name__)
         return False
 
 
@@ -527,7 +568,7 @@ def send_directus_notification(alert_data: dict) -> bool:
         return True
 
     except Exception as e:
-        logger.warning("Failed to send Directus notification: %s", e)
+        logger.warning("Failed to send Directus notification (%s)", type(e).__name__)
         return False
 
 
@@ -595,13 +636,15 @@ def send_actuation_commands(alert_data: dict, db=None) -> None:
     except Exception as e:
         if not owns_db:
             raise
-        logger.warning("Actuation dispatch failed: %s", e)
+        logger.warning("Actuation dispatch failed (%s)", type(e).__name__)
     finally:
         if owns_db and db is not None:
             db.close()
 
 
-def get_sensor_device_info(db, sensor_device_id: str) -> dict:
+def get_sensor_device_info(
+    db, sensor_device_id: str, location_id: str | None = None
+) -> dict:
     """Get sensor device details for notification context."""
     with db.cursor() as cur:
         cur.execute(
@@ -612,8 +655,9 @@ def get_sensor_device_info(db, sensor_device_id: str) -> dict:
             JOIN sensor_type st ON sd.sensor_type_id = st.id
             LEFT JOIN location l ON sd.location_id = l.id
             WHERE sd.id = %s
+              AND (%s::uuid IS NULL OR sd.location_id = %s::uuid)
             """,
-            (sensor_device_id,),
+            (sensor_device_id, location_id, location_id),
         )
         row = cur.fetchone()
         if row:
@@ -629,14 +673,37 @@ def get_sensor_device_info(db, sensor_device_id: str) -> dict:
     }
 
 
-def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None):
+def run_check(
+    sensor_id: str = None,
+    since: str = None,
+    *,
+    event_id: str = None,
+    location_id: str = None,
+):
     """Check recent readings against alert rules."""
+    if event_id is not None:
+        raise ValueError(
+            "event-driven sensor readings must use handle_sensor_reading"
+        )
+    stable_event_id = None
+    requested_location_id = None
+    if event_id is not None:
+        try:
+            stable_event_id = str(uuid.UUID(str(event_id)))
+            requested_location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("event processing requires valid event and location UUIDs") from exc
+
+    if location_id is not None:
+        try:
+            requested_location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("location_id must be a valid UUID") from exc
+
     db = get_db()
     try:
         event_reading = None
-        stable_event_id = None
-        if event_id is not None:
-            stable_event_id = str(uuid.UUID(str(event_id)))
+        if stable_event_id is not None:
             with db.cursor() as cur:
                 cur.execute(
                     """
@@ -646,8 +713,22 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                     JOIN sensor_reading sr ON sr.id = e.source_id
                     WHERE e.id = %s AND e.event_type = 'sensor_reading'
                       AND e.source_table = 'sensor_reading'
+                      AND sr.location_id = %s::uuid
+                      AND e.payload ->> 'location_id' = %s
+                      AND (
+                          e.payload ->> 'sensor_id' = sr.sensor_id::TEXT
+                          OR e.payload ->> 'sensor_device_id' = sr.sensor_id::TEXT
+                      )
+                      AND (
+                          e.payload ->> 'sensor_id' IS NULL
+                          OR e.payload ->> 'sensor_id' = sr.sensor_id::TEXT
+                      )
+                      AND (
+                          e.payload ->> 'sensor_device_id' IS NULL
+                          OR e.payload ->> 'sensor_device_id' = sr.sensor_id::TEXT
+                      )
                     """,
-                    (stable_event_id,),
+                    (stable_event_id, requested_location_id, requested_location_id),
                 )
                 event_reading = cur.fetchone()
             if event_reading is None:
@@ -655,7 +736,10 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
             if sensor_id and str(event_reading[1]) != str(sensor_id):
                 raise ValueError("sensor-reading payload does not match its source reading")
 
-        ensure_alert_rules(db)
+        # Event workers treat shared alert rules as read-only reference data.
+        # Only the interactive all-readings CLI may bootstrap the defaults.
+        if stable_event_id is None and requested_location_id is None:
+            ensure_alert_rules(db)
 
         rules = []
         with db.cursor() as cur:
@@ -696,9 +780,10 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                                sr.reading_time, sr.location_id, sr.plot_id
                         FROM sensor_reading sr
                         WHERE sr.sensor_id = %s AND sr.created_at >= %s
+                          AND (%s::uuid IS NULL OR sr.location_id = %s::uuid)
                         ORDER BY sr.created_at DESC
                         """,
-                        (sensor_id, since_str),
+                        (sensor_id, since_str, requested_location_id, requested_location_id),
                     )
                 else:
                     cur.execute(
@@ -707,9 +792,10 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                                sr.reading_time, sr.location_id, sr.plot_id
                         FROM sensor_reading sr
                         WHERE sr.created_at >= %s
+                          AND (%s::uuid IS NULL OR sr.location_id = %s::uuid)
                         ORDER BY sr.created_at DESC
                         """,
-                        (since_str,),
+                        (since_str, requested_location_id, requested_location_id),
                     )
                 readings = cur.fetchall()
 
@@ -736,12 +822,13 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                         cur.execute(
                             """
                             INSERT INTO sensor_anomaly_effect
-                                (source_reading_id, alert_rule_id, source_event_id, outcome)
-                            VALUES (%s, %s, %s, 'no_match')
+                                (location_id, source_reading_id, alert_rule_id,
+                                 source_event_id, outcome)
+                            VALUES (%s::uuid, %s, %s, %s, 'no_match')
                             ON CONFLICT (source_reading_id, alert_rule_id) DO NOTHING
                             RETURNING source_reading_id
                             """,
-                            (reading_id, rule["id"], stable_event_id),
+                            (requested_location_id, reading_id, rule["id"], stable_event_id),
                         )
                         reserved = cur.fetchone() is not None
                     if not reserved:
@@ -752,7 +839,14 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
 
                 if sensor_id_val not in sensor_device_cache:
                     with db.cursor() as cur:
-                        cur.execute("SELECT id FROM sensor_device WHERE id::text = %s", (str(sensor_id_val),))
+                        cur.execute(
+                            """
+                            SELECT id FROM sensor_device
+                            WHERE id::text = %s
+                              AND (%s::uuid IS NULL OR location_id = %s::uuid)
+                            """,
+                            (str(sensor_id_val), requested_location_id, requested_location_id),
+                        )
                         row = cur.fetchone()
                         sensor_device_cache[sensor_id_val] = str(row[0]) if row else None
 
@@ -762,7 +856,13 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                         raise ValueError("sensor-reading source device is no longer registered")
                     continue
 
-                if check_cooldown(db, rule["id"], sensor_device_id, rule["cooldown_minutes"]):
+                if check_cooldown(
+                    db,
+                    rule["id"],
+                    sensor_device_id,
+                    rule["cooldown_minutes"],
+                    location_id=requested_location_id,
+                ):
                     if stable_event_id is not None:
                         with db.cursor() as cur:
                             cur.execute(
@@ -770,8 +870,9 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                                 UPDATE sensor_anomaly_effect
                                 SET outcome = 'cooldown', updated_at = NOW()
                                 WHERE source_reading_id = %s AND alert_rule_id = %s
+                                  AND source_event_id = %s AND location_id = %s::uuid
                                 """,
-                                (reading_id, rule["id"]),
+                                (reading_id, rule["id"], stable_event_id, requested_location_id),
                             )
                     continue
 
@@ -782,7 +883,14 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                         db, sensor_device_id, rule["id"], reading_id,
                         rule["severity"], message, value, rule["threshold_value"],
                         rule["auto_create_claim"], rule["claim_type"],
+                        location_id=requested_location_id,
                     )
+
+                    device_info = get_sensor_device_info(
+                        db, sensor_device_id, location_id=requested_location_id
+                    )
+                    if stable_event_id is not None and str(device_info.get("location_id")) != requested_location_id:
+                        raise ValueError("sensor device location no longer matches source reading")
 
                     log_ingestion(
                         source_system="anomaly_detector",
@@ -794,14 +902,18 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                         payload_hash=hash_payload({"reading_id": reading_id, "rule": rule["name"]}),
                         status="success",
                         rows_affected=1,
-                        db=db if stable_event_id is not None else None,
+                        db=db if requested_location_id is not None else None,
+                        location_id=device_info.get("location_id"),
                     )
 
-                    device_info = get_sensor_device_info(db, sensor_device_id)
                     with db.cursor() as cur:
                         cur.execute(
-                            "SELECT claim_id, triggered_at FROM sensor_alert WHERE id = %s",
-                            (alert_id,),
+                            """
+                            SELECT claim_id, triggered_at FROM sensor_alert
+                            WHERE id = %s
+                              AND (%s::uuid IS NULL OR location_id = %s::uuid)
+                            """,
+                            (alert_id, requested_location_id, requested_location_id),
                         )
                         claim_id, triggered_at = cur.fetchone()
                     alert_data = {
@@ -827,8 +939,12 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                                 SET outcome = 'alert_created', sensor_alert_id = %s,
                                     updated_at = NOW()
                                 WHERE source_reading_id = %s AND alert_rule_id = %s
+                                  AND source_event_id = %s AND location_id = %s::uuid
                                 """,
-                                (alert_id, reading_id, rule["id"]),
+                                (
+                                    alert_id, reading_id, rule["id"], stable_event_id,
+                                    requested_location_id,
+                                ),
                             )
                         from services.events.notification_outbox import enqueue_event_notification
 
@@ -837,6 +953,7 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                             event_id=alert_event_id,
                             event_type="sensor_alert",
                             payload=alert_data,
+                            location_id=device_info.get("location_id"),
                         )
                         send_actuation_commands(alert_data, db=db)
 
@@ -858,6 +975,7 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                         source_table="sensor_alert",
                         source_id=alert_id,
                         priority=priority,
+                        commit=False,
                     )
 
                     alerts_triggered += 1
@@ -869,12 +987,19 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
         db.close()
 
 
-def run_baseline_check():
+def run_baseline_check(location_id: str | None = None):
     """Check readings against environmental baselines.
 
     Compares recent sensor readings to established baselines and creates
     alerts when readings deviate beyond configurable thresholds.
     """
+    requested_location_id = None
+    if location_id is not None:
+        try:
+            requested_location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("location_id must be a valid UUID") from exc
+
     db = get_db()
     try:
         with db.cursor() as cur:
@@ -884,7 +1009,8 @@ def run_baseline_check():
                 FROM environmental_baseline eb
                 WHERE eb.metric_name IN ('soil_moisture', 'air_temperature', 'humidity',
                                           'soil_temperature', 'rainfall')
-            """)
+                  AND (%s::uuid IS NULL OR eb.location_id = %s::uuid)
+            """, (requested_location_id, requested_location_id))
             baselines = cur.fetchall()
 
         if not baselines:
@@ -897,7 +1023,7 @@ def run_baseline_check():
         DEVIATION_THRESHOLD = 0.30  # 30% deviation triggers alert
 
         for baseline in baselines:
-            location_id = str(baseline[1])
+            baseline_location_id = str(baseline[1])
             metric_name = baseline[3]
             baseline_value = float(baseline[4])
             unit = baseline[5]
@@ -910,12 +1036,12 @@ def run_baseline_check():
                     """
                     SELECT sr.id, sr.sensor_id, sr.value, sr.created_at
                     FROM sensor_reading sr
-                    WHERE sr.sensor_type = %s AND sr.location_id = %s
+                    WHERE sr.sensor_type = %s AND sr.location_id = %s::uuid
                       AND sr.created_at >= NOW() - INTERVAL '24 hours'
                     ORDER BY sr.created_at DESC
                     LIMIT 10
                     """,
-                    (metric_name, location_id),
+                    (metric_name, baseline_location_id),
                 )
                 recent_readings = cur.fetchall()
 
@@ -931,7 +1057,13 @@ def run_baseline_check():
                 direction = "above" if avg_value > baseline_value else "below"
 
                 with db.cursor() as cur:
-                    cur.execute("SELECT id FROM sensor_device WHERE id::text = %s", (sensor_id,))
+                    cur.execute(
+                        """
+                        SELECT id FROM sensor_device
+                        WHERE id = %s::uuid AND location_id = %s::uuid
+                        """,
+                        (sensor_id, baseline_location_id),
+                    )
                     row = cur.fetchone()
                     sensor_device_id = str(row[0]) if row else None
 
@@ -962,12 +1094,16 @@ def run_baseline_check():
 
                 rule_id = str(rule_row[0])
 
-                if check_cooldown(db, rule_id, sensor_device_id, 120):
+                if check_cooldown(
+                    db, rule_id, sensor_device_id, 120,
+                    location_id=baseline_location_id,
+                ):
                     continue
 
                 alert_id = create_alert(
                     db, sensor_device_id, rule_id, sensor_id,
                     "warning", message, avg_value, baseline_value,
+                    location_id=baseline_location_id,
                 )
 
                 device_info = get_sensor_device_info(db, sensor_device_id)
@@ -994,7 +1130,7 @@ def run_baseline_check():
                         "reading_value": avg_value,
                         "threshold_value": baseline_value,
                         "message": message,
-                        "location_id": location_id,
+                        "location_id": baseline_location_id,
                     },
                     source_table="sensor_alert",
                     source_id=alert_id,
@@ -1039,7 +1175,7 @@ def list_rules():
         db.close()
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Sensor anomaly detection")
     parser.add_argument("--sensor", help="Check readings for specific sensor UUID")
     parser.add_argument("--since", help="Check readings since datetime (YYYY-MM-DD HH:MM:SS)")
@@ -1047,14 +1183,60 @@ if __name__ == "__main__":
     parser.add_argument("--list-rules", action="store_true", help="List configured alert rules")
     parser.add_argument("--ml-check", action="store_true", help="Run ML anomaly detection")
     parser.add_argument("--ml-train", action="store_true", help="Train and save ML models")
-    parser.add_argument("--location-id", help="Location UUID for ML operations")
-    args = parser.parse_args()
+    scope = parser.add_mutually_exclusive_group()
+    scope.add_argument("--location-id", help="Limit this operation to one location UUID")
+    scope.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Explicitly run an aggregate operation across all locations",
+    )
+    args = parser.parse_args(argv)
+
+    if args.location_id is not None:
+        try:
+            args.location_id = str(uuid.UUID(str(args.location_id)))
+        except (TypeError, ValueError, AttributeError):
+            parser.error("--location-id must be a valid UUID")
 
     if args.list_rules:
+        if args.location_id is not None or args.all_locations:
+            parser.error("--list-rules does not accept a location selector")
         list_rules()
     elif args.baseline_check:
-        run_baseline_check()
+        if args.location_id is None and not args.all_locations:
+            parser.error("--baseline-check requires --location-id or --all-locations")
+        run_baseline_check(location_id=args.location_id)
     elif args.ml_check or args.ml_train:
+        if args.ml_train and (args.location_id is None or args.all_locations):
+            parser.error("--ml-train requires --location-id and cannot use --all-locations")
+        if args.ml_train and args.sensor is not None:
+            parser.error("--ml-train saves location/type models and does not accept --sensor")
+        if args.ml_check and args.location_id is None and not args.all_locations:
+            parser.error("--ml-check requires --location-id or --all-locations")
+        if args.ml_check and args.sensor is not None:
+            try:
+                args.sensor = str(uuid.UUID(str(args.sensor)))
+            except (TypeError, ValueError, AttributeError):
+                parser.error("--sensor must be a valid UUID for ML checks")
+
+        from services.core.features import is_enabled
+
+        if is_enabled("isolated_sensor_anomaly_ml_worker"):
+            if args.location_id is None or args.all_locations:
+                parser.error(
+                    "isolated ML analysis requires one --location-id; "
+                    "--all-locations is not available to the source-only worker"
+                )
+            from .sensor_anomaly_ml_worker import run_sensor_anomaly_ml
+
+            result = run_sensor_anomaly_ml(
+                args.location_id,
+                sensor_id=args.sensor,
+                train=args.ml_train,
+            )
+            print_json(result)
+            return
+
         from .base import get_db
         from .ml_anomaly_detector import run_ml_check, save_models
 
@@ -1071,4 +1253,13 @@ if __name__ == "__main__":
         finally:
             conn.close()
     else:
-        run_check(sensor_id=args.sensor, since=args.since)
+        if args.location_id is None and not args.all_locations:
+            if args.sensor or args.since:
+                parser.error("anomaly checks require --location-id or --all-locations")
+            parser.print_help()
+            return
+        run_check(sensor_id=args.sensor, since=args.since, location_id=args.location_id)
+
+
+if __name__ == "__main__":
+    main()

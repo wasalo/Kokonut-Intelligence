@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "scope": "SDK TypeScript nullability guard for canonical PostgreSQL columns",
+  "source_of_truth": "Mapped CREATE TABLE declarations and additive/altering PostgreSQL migrations",
+  "change": "The offline guard now requires TypeScript unions to include null for SQL-nullable mapped columns. AlertRule.threshold_value_max was corrected to match alert_rule.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py -q",
+      "result": "21 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "29 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed",
+    "schema_guard": "passed: 20 models, 473 base/additive columns checked per SDK, including nullable-column unions",
+    "capability_matrix": "passed: 66 rows; classifications unchanged",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local fixtures and mocked clients only"
+}

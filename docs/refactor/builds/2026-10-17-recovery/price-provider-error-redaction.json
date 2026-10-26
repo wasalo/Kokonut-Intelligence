@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "Yahoo Finance ingestion and Oracle price synchronization failure details",
+  "behavior": {
+    "yahoo_fetch": "Provider exceptions log only their class; price fetch remains best-effort.",
+    "yahoo_audit": "Ingestion-audit exceptions log only their class; the existing summary remains bounded.",
+    "oracle_sync": "Provider exceptions are returned as a fixed message plus exception class and are not copied from the exception text."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_price_provider_error_redaction.py tests/test_oracle_infrastructure.py tests/test_ingestion_base_error_redaction.py tests/test_market_data_recovery.py tests/test_ingestion_outbox_producers.py -q",
+    "result": "74 passed",
+    "new_regressions": 3,
+    "coverage": [
+      "secret-bearing Yahoo Finance provider failure is absent from logs",
+      "secret-bearing Yahoo Finance audit failure is absent from logs",
+      "secret-bearing Oracle sync provider failure is absent from returned results and logs"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_access": "none; fake connection only",
+    "provider_access": "none; provider failures are mocked"
+  },
+  "limitations": [
+    "No live provider or database was contacted.",
+    "Provider availability, price parity, and on-chain behavior remain unverified."
+  ]
+}

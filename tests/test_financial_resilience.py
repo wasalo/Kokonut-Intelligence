@@ -12,7 +12,6 @@ from services.export.report_generator import (
     generate_scaling_roadmap,
 )
 
-
 SCHEMA = Path("schemas/postgres/035_financial_resilience_and_scaling.sql")
 SEED = Path("schemas/seeds/036_financial_resilience_and_scaling.sql")
 PILOT_SEED = Path("schemas/seeds/030_pilot_financial_resilience.sql")
@@ -203,7 +202,7 @@ def test_financial_resilience_report_generators_public_safe() -> None:
     assert generate_financial_sustainability(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "financial_sustainability"
     assert generate_risk_mitigation(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "risk_mitigation"
     assert generate_scaling_roadmap(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "scaling_roadmap"
-    assert generate_green_paper_publication_status(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "green_paper_publication_status"
+    assert generate_green_paper_publication_status(conn, None)["report_type"] == "green_paper_publication_status"
 
 
 if __name__ == "__main__":

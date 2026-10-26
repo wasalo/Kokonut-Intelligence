@@ -9,7 +9,7 @@ expect, so KI-11 (crypto-asset compliance) and external audits have a trace.
 | CC | Control area | KI evidence |
 |----|--------------|-------------|
 | CC1 | Control environment | `isms-policy.md`, role model |
-| CC2 | Comm/info | AGENTS.md governance; Linear→OneDev issue tracking |
+| CC2 | Comm/info | AGENTS.md governance; GitHub pull requests and review |
 | CC3 | Risk assessment | `risk-register.md` |
 | CC4 | Monitoring | CI gates, `verify-platform.sh`, event-bus durability |
 | CC5 | Control activities | Gateway authz, SOPS, migration checksums |

@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "468_location_scoped_solution_funding.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 459, 466, 467, and 468 apply, and migration 468 replays",
+    "funding cases and tranches are included only for exact origin or location-linked solutions",
+    "cases without tranches remain visible and tranche states/timestamps preserve ordering",
+    "amounts, milestone conditions, rationale, evidence, and party identities are omitted from function output and reader column grants",
+    "the migration-459 aggregate summary continues to work with only its required funding columns",
+    "page bounds, signed context, exact location grant, and read-only behavior are enforced",
+    "runtime can call the bounded function but cannot read funding tables; Directus cannot call it"
+  ],
+  "assertions_passed": 9
+}

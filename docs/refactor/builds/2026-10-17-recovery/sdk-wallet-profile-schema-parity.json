@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-17",
+  "scope": "JavaScript SDK WalletProfile schema parity",
+  "source_of_truth": "schemas/postgres/006_web3.sql: wallet_profile",
+  "issue": "The TypeScript model omitted chain_id, label, first/last activity dates, and metadata, and its closed role union disagreed with the schema's valid role values.",
+  "change": "Added missing persisted columns, represented nullable/defaulted fields as optional nullable properties, widened role to the database string domain, and added the model to the CI schema guard.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py -q",
+      "result": "17 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "25 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed",
+    "schema_guard": "passed: 16 models, 326 canonical columns checked per SDK",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local fixtures and mocked clients only",
+  "capability_matrix": "classifications unchanged"
+}

@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "641_location_delphi_consent_activity_scopes.sql",
+  "database_target": "new disposable PostgreSQL 16 container with networking disabled",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 641 applies and replays after the Delphi consent and participant chain",
+    "new notice scopes are allowlisted, canonicalized, required, and immutable",
+    "notice and idempotency digests bind the exact text plus structured activity scopes",
+    "text-only runtime entry points are revoked while legacy notice rows remain readable",
+    "independent review receives scope and cannot approve unscoped pending legacy notices",
+    "new invites require a scoped approved notice and preview returns the exact bound scope",
+    "participant acceptance records the digest that includes the reviewed scope",
+    "Directus cannot call scoped notice or participant preview functions"
+  ],
+  "assertions_passed": 8
+}

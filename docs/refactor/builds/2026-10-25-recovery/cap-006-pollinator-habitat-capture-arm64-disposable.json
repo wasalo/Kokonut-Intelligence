@@ -1,0 +1,29 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T04:10:21.785110+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "architecture": "aarch64",
+  "migrations": [
+    "155_pollinator_health.sql",
+    "602_pollinator_health_kernel_alignment.sql",
+    "619_location_pollinator_observation_capture.sql",
+    "620_location_pesticide_impact_capture.sql",
+    "621_location_pollinator_habitat_capture.sql"
+  ],
+  "migration_621_replayed": true,
+  "checks": [
+    "migration 620 prerequisite applies after pollinator migrations 155/602/619",
+    "migration 621 applies and replays after pollinator migrations 155/602/619/620",
+    "exact signed location create grant creates self-reported active habitat inventory",
+    "same-input retries are idempotent and changed-input reuse is rejected",
+    "ungranted actors, wrong requested locations, and mismatched signed context are denied",
+    "out-of-bounds area and bloom-month values are rejected",
+    "operator attribution persists; active remains the descriptive inventory state",
+    "runtime and Directus cannot insert, update, delete, or read private receipts",
+    "dedicated writer is no-login/no-inherit/no-bypass and Directus cannot execute the capture function",
+    "one private receipt and one active self-reported inventory entry remain after retries and denials"
+  ],
+  "assertions_passed": 10,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false
+}

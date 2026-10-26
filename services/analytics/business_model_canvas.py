@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 # The 9 BMC building blocks in canonical order
 BMC_BLOCKS = [
     "key_partners", "key_activities", "key_resources",
@@ -93,15 +93,8 @@ def create_from_data(
     stakeholder_feedback) and writes a fully-populated draft canvas in a
     single call. Returns the created canvas plus the data sources used.
     """
-    if not location_id and not org_id:
-        raise ValueError("provide exactly one of org_id or location_id")
+    _entity(org_id, location_id)
     suggestion = suggest(conn, location_id) if location_id else {"blocks": {b: [] if b != "cost_structure" else {} for b in BMC_BLOCKS}, "generated_from": []}
-    # suggest() runs several independent read queries; a failure in one can abort
-    # the shared transaction, so clear any aborted-state before the write.
-    try:
-        conn.rollback()
-    except psycopg2.Error:
-        pass
     canvas = create(
         conn,
         location_id=location_id,
@@ -257,189 +250,221 @@ def _location_filter(conn, org_id: Optional[str], location_id: Optional[str]):
     raise ValueError("provide exactly one of org_id or location_id")
 
 
+def _suggestion_rows(conn, query: str, params: tuple = ()) -> List[tuple]:
+    """Run an optional-source read without poisoning the caller's transaction."""
+    savepoint = "bmc_optional_source"
+    with conn.cursor() as cur:
+        cur.execute(f"SAVEPOINT {savepoint}")
+        try:
+            cur.execute(query, params)
+            rows = cur.fetchall()
+        except psycopg2.Error:
+            cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+            cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+            return []
+        cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+        return rows
+
+
 def suggest(
     conn, location_id: str,
 ) -> Dict[str, Any]:
-    """Best-effort BMC suggestions from existing platform data."""
+    """Build best-effort suggestions from records tied to this location.
+
+    Global federation/process catalogs are intentionally excluded. Financial
+    values retain their source currency, and stakeholder feedback contributes
+    only consented public aggregates with at least five identified respondents.
+    """
     generated_from: List[str] = []
     blocks: Dict[str, Any] = {b: [] for b in BMC_BLOCKS}
     blocks["cost_structure"] = {}
 
-    # Key Partners from federation nodes + cooperatives + suppliers
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT name, 'federation' AS ptype FROM federation_node
-                WHERE status = 'active'
-                UNION ALL
-                SELECT name, 'cooperative' FROM cooperative WHERE location_id = %s
-                UNION ALL
-                SELECT supplier_name, 'supplier' FROM supplier_profile WHERE location_id = %s
-                LIMIT 20
-                """,
-                (location_id, location_id),
-            )
-            partners = [{"name": r[0], "type": r[1]} for r in cur.fetchall()]
-        if partners:
-            blocks["key_partners"] = partners
-            generated_from.append("federation/cooperative/supplier")
-    except psycopg2.Error:
-        pass
+    partners = _suggestion_rows(
+        conn,
+        """
+        SELECT partner_name, partner_type FROM (
+            SELECT c.name AS partner_name, 'cooperative'::TEXT AS partner_type
+              FROM cooperative AS c
+             WHERE c.location_id = %s AND c.status = 'active'
+            UNION
+            SELECT supplier.name, 'supplier'::TEXT
+              FROM supply_agreement AS agreement
+              JOIN supplier_profile AS supplier ON supplier.id = agreement.supplier_id
+             WHERE agreement.location_id = %s
+               AND agreement.status = 'active'
+               AND agreement.valid_from <= CURRENT_DATE
+               AND (agreement.valid_until IS NULL OR agreement.valid_until >= CURRENT_DATE)
+               AND supplier.status = 'active'
+        ) AS scoped_partners
+        ORDER BY partner_name, partner_type LIMIT 20
+        """,
+        (location_id, location_id),
+    )
+    if partners:
+        blocks["key_partners"] = [{"name": row[0], "type": row[1]} for row in partners]
+        generated_from.append("location_cooperative/supply_agreement")
 
-    # Key Activities from process_map
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT process_name, process_category FROM process_map
-                WHERE is_active = TRUE
-                ORDER BY sort_order LIMIT 20
-                """,
-            )
-            activities = [{"name": r[0], "category": r[1]} for r in cur.fetchall()]
-        if activities:
-            blocks["key_activities"] = activities
-            generated_from.append("process_map")
-    except psycopg2.Error:
-        pass
+    activities = _suggestion_rows(
+        conn,
+        """
+        SELECT activity_type, COUNT(*)::INTEGER AS verified_observations
+          FROM farm_activity
+         WHERE location_id = %s
+           AND status IN ('verified', 'published')
+         GROUP BY activity_type
+         ORDER BY COUNT(*) DESC, activity_type
+         LIMIT 20
+        """,
+        (location_id,),
+    )
+    if activities:
+        blocks["key_activities"] = [
+            {"name": row[0], "verified_observations": row[1]} for row in activities
+        ]
+        generated_from.append("verified_farm_activity")
 
-    # Key Resources from sensor_device + energy_source + cooperative_asset
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT device_name, 'sensor' AS rtype FROM sensor_device
-                WHERE location_id = %s AND status = 'active'
-                UNION ALL
-                SELECT name, 'energy' FROM energy_source WHERE location_id = %s
-                UNION ALL
-                SELECT name, 'cooperative_asset' FROM cooperative_asset ca
-                JOIN cooperative c ON c.id = ca.cooperative_id
-                WHERE c.location_id = %s
-                LIMIT 20
-                """,
-                (location_id, location_id, location_id),
-            )
-            resources = [{"name": r[0], "type": r[1]} for r in cur.fetchall()]
-        if resources:
-            blocks["key_resources"] = resources
-            generated_from.append("sensor/energy/cooperative_asset")
-    except psycopg2.Error:
-        pass
+    resources = _suggestion_rows(
+        conn,
+        """
+        SELECT resource_name, resource_type FROM (
+            SELECT device.name AS resource_name, 'sensor'::TEXT AS resource_type
+              FROM sensor_device AS device
+             WHERE device.location_id = %s AND device.status = 'active'
+            UNION
+            SELECT energy.source_name, 'energy'
+              FROM energy_source AS energy
+             WHERE energy.location_id = %s AND energy.status = 'active'
+            UNION
+            SELECT asset.name, ('shared_asset:' || asset.asset_type)::TEXT
+              FROM shared_asset AS asset
+              LEFT JOIN cooperative AS coop ON coop.id = asset.cooperative_id
+             WHERE asset.status IN ('available', 'in_use', 'reserved')
+               AND (asset.location_id = %s OR coop.location_id = %s)
+        ) AS scoped_resources
+        ORDER BY resource_name, resource_type LIMIT 20
+        """,
+        (location_id, location_id, location_id, location_id),
+    )
+    if resources:
+        blocks["key_resources"] = [
+            {"name": row[0], "type": row[1]} for row in resources
+        ]
+        generated_from.append("location_sensor/energy/shared_asset")
 
-    # Value Propositions from impact_claim
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT claim_type, claim_description FROM impact_claim
-                WHERE location_id = %s AND status IN ('verified', 'published')
-                ORDER BY created_at DESC LIMIT 10
-                """,
-                (location_id,),
-            )
-            vps = [{"type": r[0], "description": r[1]} for r in cur.fetchall()]
-        if vps:
-            blocks["value_propositions"] = vps
-            generated_from.append("impact_claim")
-    except psycopg2.Error:
-        pass
+    propositions = _suggestion_rows(
+        conn,
+        """
+        SELECT claim_type, claim_category
+          FROM impact_claim
+         WHERE location_id = %s
+           AND status IN ('verified', 'published')
+         ORDER BY created_at DESC, id
+         LIMIT 10
+        """,
+        (location_id,),
+    )
+    if propositions:
+        blocks["value_propositions"] = [
+            {"type": row[0], "category": row[1]} for row in propositions
+        ]
+        generated_from.append("verified_impact_claim")
 
-    # Channels from content_delivery
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT DISTINCT channel FROM content_delivery
-                WHERE location_id = %s
-                LIMIT 10
-                """,
-                (location_id,),
-            )
-            channels = [{"name": r[0]} for r in cur.fetchall()]
-        if channels:
-            blocks["channels"] = channels
-            generated_from.append("content_delivery")
-    except psycopg2.Error:
-        pass
+    channels = _suggestion_rows(
+        conn,
+        """
+        SELECT DISTINCT delivery_channel
+          FROM content_delivery
+         WHERE location_id = %s
+         ORDER BY delivery_channel
+         LIMIT 10
+        """,
+        (location_id,),
+    )
+    if channels:
+        blocks["channels"] = [{"name": row[0]} for row in channels]
+        generated_from.append("location_content_delivery")
 
-    # Customer Segments from buyer_segment
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT segment_name, segment_type FROM buyer_segment
-                WHERE location_id = %s
-                LIMIT 10
-                """,
-                (location_id,),
-            )
-            segments = [{"name": r[0], "type": r[1]} for r in cur.fetchall()]
-        if segments:
-            blocks["customer_segments"] = segments
-            generated_from.append("buyer_segment")
-    except psycopg2.Error:
-        pass
+    segments = _suggestion_rows(
+        conn,
+        """
+        SELECT segment_name, segment_type
+          FROM buyer_segment
+         WHERE location_id = %s
+           AND status IN ('verified', 'published')
+         ORDER BY segment_name, segment_type
+         LIMIT 10
+        """,
+        (location_id,),
+    )
+    if segments:
+        blocks["customer_segments"] = [
+            {"name": row[0], "type": row[1]} for row in segments
+        ]
+        generated_from.append("verified_buyer_segment")
 
-    # Revenue Streams from revenue_event (aggregated by type)
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT revenue_type, SUM(amount_usd) AS total
-                FROM revenue_event
-                WHERE location_id = %s
-                GROUP BY revenue_type
-                LIMIT 10
-                """,
-                (location_id,),
-            )
-            streams = [{"type": r[0], "total_usd": float(r[1] or 0)} for r in cur.fetchall()]
-        if streams:
-            blocks["revenue_streams"] = streams
-            generated_from.append("revenue_event")
-    except psycopg2.Error:
-        pass
+    streams = _suggestion_rows(
+        conn,
+        """
+        SELECT revenue_type, SUM(amount_usd) AS total_usd
+          FROM revenue_event
+         WHERE location_id = %s
+           AND status IN ('verified', 'published')
+           AND amount_usd IS NOT NULL
+         GROUP BY revenue_type
+         ORDER BY revenue_type
+         LIMIT 10
+        """,
+        (location_id,),
+    )
+    if streams:
+        blocks["revenue_streams"] = [
+            {"type": row[0], "total_usd": float(row[1] or 0)} for row in streams
+        ]
+        generated_from.append("verified_revenue_event_usd")
 
-    # Cost Structure from expense_event (aggregated by category)
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT category, SUM(amount_usd) AS total
-                FROM expense_event
-                WHERE location_id = %s
-                GROUP BY category
-                LIMIT 20
-                """,
-                (location_id,),
-            )
-            costs = {r[0]: float(r[1] or 0) for r in cur.fetchall()}
-        if costs:
-            blocks["cost_structure"] = costs
-            generated_from.append("expense_event")
-    except psycopg2.Error:
-        pass
+    costs = _suggestion_rows(
+        conn,
+        """
+        SELECT category, COALESCE(NULLIF(currency, ''), 'UNKNOWN') AS currency,
+               SUM(amount) AS total
+          FROM expense_event
+         WHERE location_id = %s
+           AND status IN ('verified', 'published')
+         GROUP BY category, COALESCE(NULLIF(currency, ''), 'UNKNOWN')
+         ORDER BY category, currency
+         LIMIT 40
+        """,
+        (location_id,),
+    )
+    if costs:
+        currency_costs: Dict[str, Dict[str, float]] = {}
+        for category, currency, total in costs:
+            currency_costs.setdefault(category, {})[currency] = float(total or 0)
+        blocks["cost_structure"] = currency_costs
+        generated_from.append("verified_expense_event_by_currency")
 
-    # Customer Relationships from stakeholder_feedback (aggregated sentiment)
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT sentiment, COUNT(*) AS cnt
-                FROM stakeholder_feedback
-                WHERE location_id = %s
-                GROUP BY sentiment
-                """,
-                (location_id,),
-            )
-            sentiments = {r[0]: r[1] for r in cur.fetchall()}
-        if sentiments:
-            blocks["customer_relationships"] = [{"feedback_sentiment": sentiments}]
-            generated_from.append("stakeholder_feedback")
-    except psycopg2.Error:
-        pass
+    sentiments = _suggestion_rows(
+        conn,
+        """
+        SELECT sentiment, COUNT(DISTINCT party_id)::INTEGER AS respondents
+          FROM stakeholder_feedback
+         WHERE location_id = %s
+           AND status = 'published'
+           AND is_public = TRUE
+           AND consent_given = TRUE
+           AND consent_scope IN ('public_summary', 'public_quote', 'public_full')
+           AND party_id IS NOT NULL
+         GROUP BY sentiment
+        HAVING COUNT(DISTINCT party_id) >= 5
+         ORDER BY sentiment
+        """,
+        (location_id,),
+    )
+    if sentiments:
+        blocks["customer_relationships"] = [
+            {"public_feedback_sentiment": {row[0]: row[1] for row in sentiments}}
+        ]
+        generated_from.append("consented_public_feedback_cohort")
 
     return {
         "blocks": blocks,

@@ -1,0 +1,4 @@
+# Select the verified ARM64 Kernel image for the HTTP sensor receiver.
+services:
+  http-sensors:
+    platform: linux/arm64

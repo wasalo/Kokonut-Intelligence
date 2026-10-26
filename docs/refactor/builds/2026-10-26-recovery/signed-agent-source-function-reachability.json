@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-26",
+  "scope": "Static source reachability for exact in-process signed, read-only agent source-reader functions. This is not a process boundary, authorization proof, ACL, live grant check, or RLS acceptance.",
+  "signed_source_functions": [
+    "services.agents.worker_cli.run_worker_summary_list",
+    "services.agents.worker_cli.run_worker_summary_list_result",
+    "services.agents.worker_cli.run_worker_summary_digest",
+    "services.agents.worker_cli.run_worker_summary_digest_result",
+    "services.agents.worker_cli.run_worker_ebf_evidence_gap",
+    "services.agents.worker_cli.run_worker_cids_export",
+    "services.agents.worker_cli.run_worker_delphi_facilitation"
+  ],
+  "counts": {
+    "operation_roots": 49,
+    "signed_source_function_roots": 7,
+    "source_closure_files": 136,
+    "function_graph_files": 138,
+    "function_memberships": 1142,
+    "direct_call_edges": 1614,
+    "dynamic_dispatch_edges": 48,
+    "sql_execution_sites": 473,
+    "sql_sites_with_static_operation_path": 395,
+    "sql_site_operation_memberships": 576,
+    "sql_sites_without_static_function_match": 78,
+    "candidate_effect_sites": 70,
+    "effect_operation_memberships": 98
+  },
+  "verification": {
+    "focused_test_command": "python3 -m pytest tests/test_worker_source_closure.py tests/test_worker_function_reachability.py tests/test_worker_sql_inventory.py tests/test_worker_sql_reachability.py tests/test_worker_boundary_preflight.py tests/test_worker_operation_map.py -q",
+    "focused_test_result": "61 passed",
+    "generated_inventory_checks": "source closure, function reachability, SQL inventory, SQL reachability, effect inventory, and boundary preflight --check all passed",
+    "ruff": "passed",
+    "compileall": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; named MAN-CAP checks separately gated",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "The seven source readers establish signed tenant context inside their in-process functions; their caller/dispatch does not establish it.",
+    "The worker boundary preflight remains review_required and RLS not_ready.",
+    "78 SQL execution sites remain without a static function match in the current worker-root graphs; they are not thereby proven dead or unreachable.",
+    "Static source analysis does not verify runtime credentials, database grants, tenant ownership, live providers, or external effects."
+  ],
+  "environment_touched": {
+    "database": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  }
+}

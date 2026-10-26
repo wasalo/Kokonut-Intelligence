@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-16",
+  "decision": "Gateway operations for farm activity; Directus remains optional",
+  "scope": "Native Field Collector farm_activity_v1 version 1.2.0 workflow",
+  "implementation": {
+    "role_templates": [
+      "field_worker",
+      "supervisor",
+      "manager",
+      "finance",
+      "analyst",
+      "auditor"
+    ],
+    "provisioning": "Atomic tenant-qualified location grants after enabled-operator, active-membership, current-owner/share validation",
+    "analyst_reads": "Dedicated list/detail routes filter to verified or published records and exclude Field Collector records no longer eligible for use",
+    "canonical_detail": "Requires farm_activity:read_detail; private collection payload detail remains separately permissioned",
+    "deletion": "No role template or Gateway delete route grants deletion"
+  },
+  "verification": {
+    "focused_pytest": "104 passed",
+    "disposable_postgresql_role_grant": {
+      "result": "passed",
+      "checks": [
+        "verified-owner grants are tenant-qualified and idempotent",
+        "active owner-issued share permits partner-tenant grants",
+        "conflicting existing tenant grant aborts the bundle without partial writes",
+        "expired location share is denied before any role grant"
+      ],
+      "fixture": "PostgreSQL 16, temporary database with no volume, dedicated Docker network, loopback-only ephemeral host port"
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "runtime_sql_inventory": "regenerated"
+  },
+  "not_verified": [
+    "Generic CRUD for arbitrary legacy farm_activity source types",
+    "Other Directus collection, field, and relationship parity",
+    "Directus hook side-effect or scheduled-job parity",
+    "Live OIDC provider, operator, or tenant grant acceptance",
+    "Candidate or legacy database behavior; neither database was touched"
+  ],
+  "manual_capability_status": "No MAN-CAP acceptance status changed"
+}

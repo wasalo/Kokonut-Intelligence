@@ -1,7 +1,7 @@
 id: https://kokonut.network/linkml/impact_claim
 name: ImpactClaim
 title: Kokonut Impact Claim
-version: "1.0.0"
+version: "1.1.0"
 description: Standardized metadata schema for impact claims with evidence chaining.
 
 imports:
@@ -11,43 +11,88 @@ prefixes:
   kokonut: https://kokonut.network/ontology#
   schema: http://schema.org/
   cids: https://ontology.commonapproach.org/cids#
+  rfs: https://framework.regen.network/schema/
+
+enums:
+  ClaimType:
+    permissible_values:
+      ecological: {}
+      social: {}
+      financial: {}
+      governance: {}
+      biocultural: {}
+  VerificationStatus:
+    permissible_values:
+      self_reported: {}
+      peer_reviewed: {}
+      verified: {}
+      ledger_anchored: {}
+      withdrawn: {}
 
 classes:
   ImpactClaim:
+    class_uri: rfs:Claim
     description: An impact claim linking ecological observations to verified outcomes
     attributes:
       claim_type:
+        slot_uri: kokonut:claimRecordType
         range: string
         required: true
-        description: Type of claim
+        description: Kokonut record kind; distinct from Regen ClaimType and lifecycle status.
         permissible_values:
-          raw_observed:
-          submitted_record:
-          verified_record:
-          published_record:
-          public_claim:
-          third_party_verified_claim:
+          raw_observation: {}
+          submitted_record: {}
+          verified_record: {}
+          published_record: {}
+          internal_estimate: {}
+          public_claim: {}
+          forecast: {}
+          assumption: {}
+          scenario: {}
+          third_party_verified_claim: {}
+          rejected_claim: {}
+          revised_claim: {}
       claim_category:
+        slot_uri: kokonut:claimCategory
         range: string
         required: true
-        description: Category of impact
+        description: Kokonut impact taxonomy classification.
         permissible_values:
-          social:
-          ecological:
-          financial:
-          governance:
-          carbon:
-          biodiversity:
-          operational:
-          other:
+          social: {}
+          ecological: {}
+          financial: {}
+          governance: {}
+          carbon: {}
+          biodiversity: {}
+          operational: {}
+          other: {}
+      claim_type_enum:
+        slot_uri: rfs:hasClaimType
+        range: ClaimType
+        description: Regen taxonomy for the primary category of the claim.
+      verification_status:
+        slot_uri: rfs:verificationStatus
+        range: VerificationStatus
+        description: Regen claim verification state, separate from Kokonut workflow status.
+      status:
+        slot_uri: kokonut:governanceStatus
+        range: string
+        permissible_values:
+          draft: {}
+          submitted: {}
+          verified: {}
+          published: {}
+          rejected: {}
       claim_text:
         range: string
         required: true
         description: Human-readable claim statement
       claim_value:
+        slot_uri: rfs:quantity
         range: decimal
         description: Numerical claim value
       claim_unit:
+        slot_uri: rfs:quantityUnit
         range: string
         description: Unit of claim value
       evidence_cid:

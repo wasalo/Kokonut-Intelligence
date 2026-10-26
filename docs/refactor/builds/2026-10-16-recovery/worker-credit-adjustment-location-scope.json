@@ -1,0 +1,27 @@
+{
+  "checked_at_utc": "2026-10-16T07:06:26Z",
+  "source_revision_before_batch_commit": "85d3c74",
+  "working_tree_changes_included": true,
+  "scope": "Source and focused test acceptance for requiring exactly one location on the scheduled carbon-credit adjustment check. No candidate or legacy database, persisted schedule, external provider, or secret was accessed.",
+  "changes": {
+    "cli": "--location-id is required and parsed as a UUID before opening the database connection",
+    "job_spec": "credit_adjustment declares location_id as a required runtime input",
+    "dispatcher": "run_job rejects a missing location before spawning a child process",
+    "schedule_plan": "disabled schedule plans require and validate one location UUID",
+    "database_command_contract": "missing --location-id is rejected before worker process creation",
+    "job_inventory": "15 JobSpecs classified as 11 default-argument jobs, three required-location jobs, and one source-less sensor job"
+  },
+  "verification": {
+    "pytest": "104 passed",
+    "focused_command_and_contract_tests": "93 passed",
+    "ruff": "passed for changed Python files",
+    "python_compile": "passed for changed service modules",
+    "worker_job_contract_inventory": "passed",
+    "capability_matrix": "passed; 66 rows and no MAN-CAP acceptance",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "Persisted scheduled_task rows and external Prefect schedules were not read or reconciled; existing unscoped rows will fail the new command contract and require operator review before activation.",
+    "The requested location UUID is syntax-validated but is not bound to signed operator or worker tenant context. Application-table RLS remains blocked and CAP-020 is unaccepted."
+  ]
+}

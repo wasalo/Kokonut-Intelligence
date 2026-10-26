@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-038",
+  "scope": "Make the shared signed synthesis worker enforce its own task registry before request lookup or source access.",
+  "pytest": {
+    "command": "python3 -m pytest tests/test_migration.py tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py tests/test_regenerative_outcomes.py tests/test_synthesis_source_references.py -q",
+    "result": "passed",
+    "passed": 138
+  },
+  "ruff": "passed",
+  "py_compile": "passed",
+  "runtime_sql_inventory": "regenerated and current",
+  "worker_source_closure": "passed",
+  "worker_sql_inventory": "passed",
+  "agent_write_boundary_inventory": "passed",
+  "capability_matrix": "passed",
+  "git_diff_check": "passed",
+  "database_or_provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "limits": [
+    "The runtime check establishes code-level registry enforcement only; it does not prove process deployment identity or least-privilege database grants.",
+    "Non-synthesis task execution remains unsupported by the signed synthesis worker and is rejected before receipt lookup or source DB access."
+  ]
+}

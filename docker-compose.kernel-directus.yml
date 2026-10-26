@@ -1,0 +1,95 @@
+# Optional Directus compatibility/admin adapter for the isolated Kernel
+# candidate. The profile is selected by scripts/kernel-profile.py --directus.
+services:
+  directus-role-bootstrap:
+    profiles: [directus-admin]
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+      args:
+        KOKONUT_CLICKHOUSE: "false"
+    restart: "no"
+    command: ["python3", "-m", "services.migration.directus_role"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      KOKONUT_DB_ADMIN_USER: ${KOKONUT_DB_ADMIN_USER:-kokonut}
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      KOKONUT_DIRECTUS_RUNTIME_USER: ${KOKONUT_DIRECTUS_RUNTIME_USER:-kokonut_directus_runtime}
+      KOKONUT_DIRECTUS_RUNTIME_PASSWORD: ${KOKONUT_DIRECTUS_RUNTIME_PASSWORD:?KOKONUT_DIRECTUS_RUNTIME_PASSWORD must be set}
+    networks: [kernel]
+
+  directus-bootstrap:
+    profiles: [directus-admin]
+    image: directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d
+    restart: "no"
+    command: ["cli.js", "bootstrap"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      SECRET: ${DIRECTUS_SECRET:?DIRECTUS_SECRET must be set}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL must be set}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set}
+      DB_CLIENT: pg
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_DATABASE: kokonut_intelligence
+      DB_USER: ${KOKONUT_DB_ADMIN_USER:-kokonut}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      DB_SEARCH_PATH: public,kokonut
+      CACHE_ENABLED: "false"
+      LOG_LEVEL: info
+    networks: [kernel]
+
+  directus:
+    image: directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d
+    restart: unless-stopped
+    command: ["cli.js", "start"]
+    ports:
+      - "${KOKONUT_KERNEL_DIRECTUS_BIND:-127.0.0.1}:${KOKONUT_KERNEL_DIRECTUS_PORT:-18055}:8055"
+    volumes:
+      - kernel-directus-uploads:/directus/uploads
+      - ./extensions/kokonut-hooks:/directus/extensions/directus-extension-kokonut-hooks:ro
+      - ./extensions/endpoints/kokonut-field-collector:/directus/extensions/directus-extension-endpoint-kokonut-field-collector:ro
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8055/server/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    environment:
+      SECRET: ${DIRECTUS_SECRET:?DIRECTUS_SECRET must be set}
+      DB_CLIENT: pg
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_DATABASE: kokonut_intelligence
+      DB_USER: ${KOKONUT_DIRECTUS_RUNTIME_USER:-kokonut_directus_runtime}
+      DB_PASSWORD: ${KOKONUT_DIRECTUS_RUNTIME_PASSWORD:?KOKONUT_DIRECTUS_RUNTIME_PASSWORD must be set}
+      DB_SEARCH_PATH: public,kokonut
+      CACHE_ENABLED: "false"
+      PUBLIC_URL: ${KOKONUT_DIRECTUS_PUBLIC_URL:-http://127.0.0.1:18055}
+      PUBLIC_RESTRICT: "true"
+      KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:-}
+      KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION: ${KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION:-false}
+      KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION: ${KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION:-false}
+      LOG_LEVEL: info
+      WEBSOCKETS_ENABLED: "true"
+      FILES_MAX_UPLOAD_SIZE: "50mb"
+      RATE_LIMITER_ENABLED: "true"
+      LOGIN_RATELIMIT_ENABLED: "true"
+      LOGIN_RATELIMIT_POINTS: "5"
+      LOGIN_RATELIMIT_DURATION: "900000"
+      CORS_ORIGIN: ${KOKONUT_DIRECTUS_CORS_ORIGINS:-http://127.0.0.1:18055}
+    networks: [kernel]
+
+volumes:
+  kernel-directus-uploads:

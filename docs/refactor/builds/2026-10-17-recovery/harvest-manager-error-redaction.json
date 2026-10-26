@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Remote URL harvesting source references and failure reporting",
+  "behavior": {
+    "source_reference": "Harvest logs retain the validated source host/path while removing URL user-info, query parameters, and fragments.",
+    "failure_reporting": "Unexpected HTTP/provider/parse failures persist and return only operation plus exception class; known local URL validation messages retain safe operator guidance.",
+    "request_behavior": "The original URL is still used for the request after validation, redirects remain disabled, and existing success/error status and log IDs remain intact."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_harvest_manager_error_redaction.py -q",
+    "result": "2 passed",
+    "new_regressions": 2,
+    "coverage": [
+      "URL credentials and query/fragment secrets are absent from stored source references",
+      "provider exception details are absent from persisted and returned error messages",
+      "the request still receives the original URL and safe embedded-credential validation guidance remains"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake connection, mocked HTTP client, and validation-only input"
+  },
+  "limitations": [
+    "No DNS resolution, external HTTP request, or database write was performed.",
+    "The retained URL path can contain source-specific identifiers; query data, fragments, and user-info are removed."
+  ]
+}

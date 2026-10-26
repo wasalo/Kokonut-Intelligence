@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import json
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from services.common.logging import get_logger
@@ -33,7 +34,23 @@ async def _request_location(request, policy: dict) -> str | None:
     """Resolve a route's location scope, including data-stream request bodies."""
     if policy.get("location_id"):
         return policy["location_id"]
-    if policy.get("resource") == "report_snapshot_review":
+    if policy.get("resource") in {
+        "report_snapshot_review",
+        "mobile_collection_review",
+        "mobile_collection_retention",
+        "farm_activity",
+    }:
+        from uuid import UUID
+
+        try:
+            return str(UUID(request.query_params.get("location_id", "")))
+        except ValueError:
+            return None
+    if policy.get("resource") in {
+        "data_stream_post",
+        "data_stream_file",
+        "data_stream_proof",
+    } and request.method == "GET":
         from uuid import UUID
 
         try:
@@ -46,6 +63,8 @@ async def _request_location(request, policy: dict) -> str | None:
         body = await request.body()
         request._body = body
         payload = json.loads(body or b"{}")
+        if not isinstance(payload, dict):
+            return None
         return payload.get("location_id")
     except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
         return None
@@ -54,15 +73,18 @@ async def _request_location(request, policy: dict) -> str | None:
 def create_app(*, rate_limiter: RateLimitBackend | None = None):
     """Create the FastAPI gateway application."""
     try:
-        from fastapi import FastAPI, Request
+        from fastapi import APIRouter, FastAPI, Request
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse
         from starlette.concurrency import run_in_threadpool
     except ImportError:
         raise ImportError("FastAPI is required: pip install fastapi uvicorn")
 
+    import psycopg2
+
     from services.gateway.audit import GatewayAudit
     from services.gateway.auth import verify_request
+    from services.gateway.delphi_participant_routes import register_delphi_participant_routes
     from services.gateway.operator_auth import (
         OperatorAuthConfigurationError,
         auth_route_policy,
@@ -73,14 +95,9 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     from services.gateway.router import get_route_policy, router
     from services.mobile.api import router as mobile_router
 
-    app = FastAPI(
-        title="Kokonut Intelligence Gateway",
-        version="1.0.0",
-        description="Unified API gateway for the Kokonut Intelligence platform",
-    )
     cors_origins = [
         origin.strip()
-        for origin in os.environ.get("CORS_ORIGIN", "").split(",")
+        for origin in os.environ.get("KOKONUT_GATEWAY_CORS_ORIGINS", "").split(",")
         if origin.strip()
     ]
     if "*" in cors_origins:
@@ -107,21 +124,27 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                 logger.warning("Gateway audit replay unavailable (%s)", type(exc).__name__)
             await asyncio.sleep(15)
 
-    @app.on_event("startup")
-    async def start_audit_replay():
+    @asynccontextmanager
+    async def lifespan(_app):
         nonlocal audit_replay_task
         audit_replay_task = asyncio.create_task(audit_replay_loop())
+        try:
+            yield
+        finally:
+            if audit_replay_task is not None:
+                audit_replay_task.cancel()
+                try:
+                    await audit_replay_task
+                except asyncio.CancelledError:
+                    pass
+                audit_replay_task = None
 
-    @app.on_event("shutdown")
-    async def stop_audit_replay():
-        nonlocal audit_replay_task
-        if audit_replay_task is not None:
-            audit_replay_task.cancel()
-            try:
-                await audit_replay_task
-            except asyncio.CancelledError:
-                pass
-            audit_replay_task = None
+    app = FastAPI(
+        title="Kokonut Intelligence Gateway",
+        version="1.0.0",
+        description="Unified API gateway for the Kokonut Intelligence platform",
+        lifespan=lifespan,
+    )
 
     @app.middleware("http")
     async def gateway_middleware(request: Request, call_next):
@@ -293,9 +316,17 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             return JSONResponse(
                 status_code=denial_status,
                 content={"error": "Unauthorized", "reason": auth_result.get("reason")},
+                headers={"Cache-Control": "no-store"},
             )
 
         request.state.caller = auth_result.get("caller", "anonymous")
+        request.state.gateway_authorization = {
+            "resource": policy["resource"],
+            "action": policy["action"],
+            "location_id": location_id,
+            "credential_type": auth_result.get("credential_type"),
+            "credential_hash": auth_result.get("credential_hash"),
+        }
 
         mutation_reservation = None
         if request.method in {"POST", "PUT", "PATCH", "DELETE"} and policy.get("action") != "read":
@@ -305,6 +336,17 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                     status_code=503,
                     content={"error": "Write operations are temporarily unavailable"},
                     headers={"Retry-After": "30"},
+                )
+
+        operator_session_context_token = None
+        if operator_policy is not None and auth_result.get("authenticated"):
+            operator_session = getattr(request.state, "operator_session", None)
+            session_token_hash = getattr(operator_session, "session_token_hash", None)
+            if session_token_hash is not None:
+                from services.common.tenant_context import bind_operator_session_token_hash
+
+                operator_session_context_token = bind_operator_session_token_hash(
+                    session_token_hash
                 )
 
         # Process and audit the request before releasing reserved spool headroom.
@@ -356,6 +398,10 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             )
             return response
         finally:
+            if operator_session_context_token is not None:
+                from services.common.tenant_context import reset_operator_session_token_hash
+
+                reset_operator_session_token_hash(operator_session_context_token)
             if mutation_reservation is not None:
                 await run_in_threadpool(audit.release_mutation, mutation_reservation)
 
@@ -383,7 +429,13 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             "health": "/health",
         }
 
-    @app.get("/mobile")
+    @app.get("/mobile", include_in_schema=False)
+    async def mobile_companion_canonical_redirect():
+        """Normalize the proxy entry URL so relative shell assets stay routed."""
+        from fastapi.responses import RedirectResponse
+
+        return RedirectResponse(url="/mobile/", status_code=308)
+
     @app.get("/mobile/")
     async def mobile_companion():
         """Serve the standalone field collector companion app."""
@@ -402,6 +454,15 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
         return FileResponse(VAULT_SCRIPT_PATH, media_type="application/javascript")
 
+    @app.get("/field-collector-service-worker.js")
+    async def field_collector_service_worker():
+        """Serve the offline shell worker relative to the /mobile entry point."""
+        from fastapi.responses import FileResponse
+
+        from services.mobile.api import SERVICE_WORKER_PATH
+
+        return FileResponse(SERVICE_WORKER_PATH, media_type="application/javascript")
+
     @app.get("/mobile/field-collector-vault.js")
     async def mobile_vault_script_alias():
         """Serve the encryption helper when the app is opened with a trailing slash."""
@@ -411,8 +472,20 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
         return FileResponse(VAULT_SCRIPT_PATH, media_type="application/javascript")
 
+    @app.get("/mobile/field-collector-service-worker.js")
+    async def mobile_service_worker_alias():
+        """Serve the offline shell worker when the app URL has a trailing slash."""
+        from fastapi.responses import FileResponse
+
+        from services.mobile.api import SERVICE_WORKER_PATH
+
+        return FileResponse(SERVICE_WORKER_PATH, media_type="application/javascript")
+
     app.include_router(router, prefix="/api")
     app.include_router(mobile_router, prefix="/api")
+    participant_router = APIRouter()
+    register_delphi_participant_routes(participant_router, run_in_threadpool, psycopg2)
+    app.include_router(participant_router, prefix="/api")
     app.include_router(create_auth_router(operator_provider))
 
     if operator_provider is not None:
@@ -433,7 +506,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=[
             "Content-Type", "Authorization", "api-key", "x-api-key",
             "capability-token", "x-capability-token", "x-csrf-token",

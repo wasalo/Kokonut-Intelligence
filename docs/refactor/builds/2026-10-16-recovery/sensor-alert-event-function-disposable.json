@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "Migration 408 bounded canonical sensor-alert event publication",
+  "database": "isolated disposable PostgreSQL 16 container",
+  "migrations": [
+    "schemas/postgres/405_signed_worker_tenant_context.sql",
+    "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
+    "schemas/postgres/407_sensor_anomaly_effect_functions.sql",
+    "schemas/postgres/408_sensor_alert_event_function.sql"
+  ],
+  "migration_408_sha256": "ac5f552bcac8cdae36c1cc9dddd10fe4f1062e7987be3087aba78ec5f0b505e4",
+  "migration_replay": "passed",
+  "command": "python3 scripts/check-sensor-alert-event-function-disposable.py",
+  "container_network": "loopback-only published port; runner makes no external requests",
+  "checks": [
+    {
+      "result": "passed",
+      "description": "migration 408 applies and replays after signed context and receipt migrations"
+    },
+    {
+      "result": "passed",
+      "description": "migration 407 receipt functions create the source proof required by event publication"
+    },
+    {
+      "result": "passed",
+      "description": "event publication requires a signed worker scope"
+    },
+    {
+      "result": "passed",
+      "description": "matching alert_created receipt publishes one canonical event"
+    },
+    {
+      "result": "passed",
+      "description": "same event ID and payload are idempotent on retry"
+    },
+    {
+      "result": "passed",
+      "description": "event payload and initial priority/status/retry values match the current handler contract"
+    },
+    {
+      "result": "passed",
+      "description": "event retry leaves completed queue state untouched"
+    },
+    {
+      "result": "passed",
+      "description": "wrong source, alert, and requested location are rejected"
+    },
+    {
+      "result": "passed",
+      "description": "stable event ID collision fails without replacing source content"
+    },
+    {
+      "result": "passed",
+      "description": "worker has bounded event EXECUTE only; runtime and operator-auth cannot execute it"
+    },
+    {
+      "result": "passed",
+      "description": "worker role cannot directly SELECT, INSERT, UPDATE, or DELETE global event rows"
+    }
+  ],
+  "candidate_or_legacy_database_access": false,
+  "worker_credential_printed": false
+}

@@ -1,0 +1,30 @@
+{
+  "result": "passed",
+  "migration": "510_location_solution_experiment_observation_capture.sql",
+  "additional_migrations": [
+    "511_location_solution_experiment_sequential_analysis.sql",
+    "512_location_solution_experiment_completion.sql"
+  ],
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 510 applies and replays after the signed exact-location experiment lifecycle chain",
+    "only active exact-origin experiments with declared metrics and arms accept observations",
+    "participant observations require an active exact-location link and the latest matching canonical consent grant",
+    "missing, wrong-purpose, wrong-location, expired, superseded-version, and revoked-link consent fail closed",
+    "non-personal measurement requires an explicit approved basis and cannot carry a participant link",
+    "request retries are idempotent and changed payload collisions are denied",
+    "consent withdrawal immediately hides previously captured participant observations from reviewer RLS reads",
+    "legacy unassessed observations remain hidden and direct runtime/Directus table access is denied",
+    "migration 511 binds higher/lower analysis direction and stopping thresholds to the approved protocol",
+    "analysis retries are idempotent and changed request payloads are rejected",
+    "analysis source lineage uses only currently consent-eligible observations and exact location scope",
+    "current consent withdrawal hides the derived analysis from reviewer and analyst reads",
+    "runtime and Directus cannot read or mutate analysis runs, source maps, or receipts",
+    "analysis remains advisory and leaves experiment and solution lifecycle state unchanged",
+    "only current terminal analyses for every primary metric can complete data collection",
+    "completion is exact-retry safe and does not create or review a result",
+    "runtime and Directus cannot read or mutate completion receipts directly"
+  ],
+  "acceptance_groups_passed": 20
+}

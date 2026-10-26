@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "631_location_scoped_delphi_study_lifecycle.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 449\u2013451, 630, and 631 apply and replay on disposable PostgreSQL 16",
+    "an unprepared draft cannot open and a failed attempt leaves its state unchanged",
+    "opening requires a question and enough currently consented panel members",
+    "open and close transitions preserve timestamps and exact retries replay",
+    "request-ID action collisions and reopening closed studies fail closed",
+    "runtime and Directus cannot access private lifecycle receipts; only runtime executes the bounded function"
+  ],
+  "assertions_passed": 6
+}

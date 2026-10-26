@@ -7,10 +7,12 @@ capacity 100 and refill 10 tokens/second. Row locks serialize consumption across
 API processes; clock_timestamp is read after acquiring the lock. Negative clock
 movement contributes zero refill. Updated balance commits before returning.
 
-Select `KOKONUT_RATE_LIMIT_PROVIDER=postgres` explicitly after applying migration
-373 through the checksummed runner and completing acceptance. Local remains the
-default and Redis remains unnecessary. Unsupported settings still fail startup.
-The candidate passes this setting to its API role; workers do not need it.
+The standard Kernel Compose overlay defaults to `KOKONUT_RATE_LIMIT_PROVIDER=postgres`.
+Apply migration 373 through the checksummed runner before exposing API traffic.
+Minimal and edge remain on the process-local provider by default; other shared
+deployments must select `postgres` explicitly. Redis remains unnecessary for
+Kernel rate limiting. Unsupported settings still fail startup. Worker processes
+do not need a rate-limit provider.
 No migration was applied and no running deployment selected this adapter.
 
 Each check/retry calculation uses a shared connection context, a two-second lock

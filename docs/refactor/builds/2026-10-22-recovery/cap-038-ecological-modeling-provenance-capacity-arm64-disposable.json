@@ -1,0 +1,20 @@
+{
+  "check": "CAP-038 ecological-modeling source migrations 550-551",
+  "image": "sogis/postgis:16-3.4",
+  "requested_platform": "linux/arm64",
+  "candidate_or_legacy_modified": false,
+  "real_credentials_used": false,
+  "result": "passed",
+  "assertions": [
+    "migration 550 applies and replays on isolated PostgreSQL 16",
+    "migration 551 applies and replays on isolated PostgreSQL 16",
+    "source-reference setter enforces a replay-safe 20-source bound",
+    "worker receipt and thirteen-source provenance registries accept the task",
+    "signed context scopes all ecological projections and 13 row-reference views",
+    "migration replay removes stale raw/public-view and schema-create grants",
+    "all source projections fail closed without signed location context"
+  ],
+  "server_architecture": "aarch64",
+  "assertions_passed": 7,
+  "scope_note": "Synthetic current_worker_scope context is used here; cryptographic signature validation is covered by separate worker-context checks."
+}

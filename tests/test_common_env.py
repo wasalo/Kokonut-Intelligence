@@ -5,12 +5,16 @@ import subprocess
 import pytest
 
 from services.common import env
+from services.common.worker_environment import ISOLATED_WORKER_KEY_ENV
 
 
 def _reset_loader(monkeypatch, tmp_path):
     monkeypatch.setattr(env, "_PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(env, "_LOADED", False)
     monkeypatch.delenv("KOKONUT_ALLOW_PLAINTEXT_ENV", raising=False)
+    monkeypatch.delenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", raising=False)
+    monkeypatch.delenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", raising=False)
+    monkeypatch.delenv(ISOLATED_WORKER_KEY_ENV, raising=False)
     monkeypatch.delenv("KOKONUT_ENV", raising=False)
     monkeypatch.delenv("FALLBACK_SECRET", raising=False)
     monkeypatch.delenv("LOADED_SECRET", raising=False)
@@ -26,14 +30,85 @@ def test_sops_failure_does_not_fall_back_in_production(monkeypatch, tmp_path):
     monkeypatch.setattr(
         env.subprocess,
         "run",
-        lambda *args, **kwargs: (_ for _ in ()).throw(
-            subprocess.CalledProcessError(1, "sops")
-        ),
+        lambda *args, **kwargs: (_ for _ in ()).throw(subprocess.CalledProcessError(1, "sops")),
     )
 
     with pytest.raises(env.SecretLoadError, match="SOPS decryption failed"):
         env.load_dotenv()
     assert "FALLBACK_SECRET" not in env.os.environ
+    assert env._LOADED is False
+
+
+def test_sops_child_receives_the_filtered_environment(monkeypatch, tmp_path):
+    child_env = {"PATH": "/synthetic/bin"}
+    captured = {}
+    monkeypatch.setattr(env, "worker_subprocess_environment", lambda: child_env)
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(command, 0, "decrypted", "")
+
+    monkeypatch.setattr(env.subprocess, "run", fake_run)
+
+    assert env._sops_decrypt(tmp_path / "synthetic.env.sops") == "decrypted"
+    assert captured["env"] == child_env
+
+
+def test_loader_reuses_secrets_exported_by_load_secrets_script(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "true")
+    monkeypatch.setenv("LOADED_SECRET", "already-exported")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    monkeypatch.setattr(
+        env,
+        "_sops_decrypt",
+        lambda *_args: pytest.fail("Python tried to decrypt secrets a second time"),
+    )
+
+    env.load_dotenv()
+
+    assert env.os.environ["LOADED_SECRET"] == "already-exported"
+    assert env._LOADED is True
+
+
+def test_explicit_secretless_bootstrap_skips_dotenv_in_development(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "development")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", "true")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    monkeypatch.setattr(
+        env,
+        "_sops_decrypt",
+        lambda *_args: pytest.fail("secretless schema bootstrap must not decrypt dotenv"),
+    )
+
+    env.load_dotenv()
+
+    assert env._LOADED is True
+
+
+def test_secretless_bootstrap_flag_is_rejected_outside_development(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", "true")
+
+    with pytest.raises(env.SecretLoadError, match="allowed only in development"):
+        env.load_dotenv()
+
+    assert env._LOADED is False
+
+
+def test_script_loaded_marker_keeps_production_environment_validation(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "true")
+    monkeypatch.setenv("PG_HOST", "database")
+    monkeypatch.setenv("PG_DB", "kokonut_intelligence")
+    monkeypatch.setenv("PG_USER", "kokonut")
+
+    with pytest.raises(env.SecretLoadError, match="required environment variable is missing: PG_PASSWORD"):
+        env.load_dotenv()
     assert env._LOADED is False
 
 
@@ -105,10 +180,42 @@ def test_production_rejects_placeholder_credentials(monkeypatch, tmp_path):
     monkeypatch.setenv("PG_USER", "kokonut")
     monkeypatch.setenv("PG_PASSWORD", "replace-with-strong-password-min-24-chars")
     (tmp_path / ".env.sops").write_text("encrypted")
-    monkeypatch.setattr(env.subprocess, "run", lambda *args, **kwargs: type(
-        "Result", (), {"stdout": ""}
-    )())
+    monkeypatch.setattr(env.subprocess, "run", lambda *args, **kwargs: type("Result", (), {"stdout": ""})())
 
     with pytest.raises(env.SecretLoadError, match="placeholder"):
         env.load_dotenv()
+    assert env._LOADED is False
+
+
+def test_isolated_worker_skips_shared_dotenv_and_production_validation(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "true")
+    monkeypatch.setenv(ISOLATED_WORKER_KEY_ENV, "weather")
+    monkeypatch.setenv("PG_PASSWORD", "must-be-removed")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://shared")
+    monkeypatch.setenv("POSTGRES_PASSWORD", "shared-admin-password")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    monkeypatch.setattr(
+        env,
+        "_sops_decrypt",
+        lambda *_args: pytest.fail("isolated worker must not decrypt shared secrets"),
+    )
+
+    env.load_dotenv()
+
+    assert "PG_PASSWORD" not in env.os.environ
+    assert "DATABASE_URL" not in env.os.environ
+    assert "POSTGRES_PASSWORD" not in env.os.environ
+    assert env._LOADED is True
+
+
+@pytest.mark.parametrize("marker", ["", "Weather", "bad-key", "a" * 42])
+def test_invalid_isolated_worker_marker_fails_closed(monkeypatch, tmp_path, marker):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv(ISOLATED_WORKER_KEY_ENV, marker)
+
+    with pytest.raises(env.SecretLoadError, match="lowercase worker identifier"):
+        env.load_dotenv()
+
     assert env._LOADED is False

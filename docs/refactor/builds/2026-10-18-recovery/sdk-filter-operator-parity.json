@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline specialized SDK query-filter operator parity",
+  "contract": "Python and JavaScript convenience methods override conflicting required filters with equivalent explicit Directus operators while preserving unrelated filters and list options.",
+  "covered_filters": [
+    "location, farm, plot, and crop-cycle equality filters",
+    "sensor device/plot and anomaly filters",
+    "wallet-address lookup",
+    "report type and NOI crop-cycle filters",
+    "attestation entity and pending filters",
+    "crop-cycle active, sales unpaid, and expense approval filters"
+  ],
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_method_parity.py -q — 64 passed",
+    "javascript": "npm test — 30 passed",
+    "typescript": "npm run build — passed",
+    "ruff_targeted": "ruff check tests/test_sdk.py — passed",
+    "diff_check": "git diff --check — passed",
+    "ruff_package_scan": "ruff check sdk/python/kokonut tests/test_sdk.py — reports 36 pre-existing violations in generated/legacy files; no autofix was applied"
+  },
+  "boundaries": [
+    "The SDK tests use mocked clients; no HTTP call was made.",
+    "No database or provider was contacted.",
+    "Client filters do not establish authorization or tenant isolation; capability classifications remain unchanged."
+  ]
+}

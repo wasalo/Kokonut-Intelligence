@@ -1,0 +1,21 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-14",
+  "subject": "Legacy mobile-offline CLI tenant boundary",
+  "changes": [
+    "all legacy mobile_offline service helpers fail before using the supplied database connection",
+    "all historic CLI commands fail before opening a database connection",
+    "historic command syntax remains discoverable and directs operators to the consent-aware Field Collector"
+  ],
+  "checks": {
+    "pytest_command": ".venv/bin/python -m pytest tests/test_mobile_offline.py tests/test_mobile_api.py tests/test_mobile_form_validation.py -q",
+    "pytest_result": "67 passed, 5 subtests passed",
+    "ruff_command": ".venv/bin/ruff check services/analytics/mobile_offline.py tests/test_mobile_offline.py",
+    "ruff_result": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "scope_limit": "Source-level fail-closed boundary only. It does not implement operator device inventory or aggregate sync statistics; those need an explicitly authorized tenant-scoped surface. Worker and other CLI database access remain under review."
+}

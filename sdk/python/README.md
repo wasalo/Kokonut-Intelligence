@@ -59,6 +59,30 @@ Generated modules are available as `kokonut.grpc.common.pagination_pb2`,
 `kokonut.grpc.data.v1`, and `kokonut.grpc.ecocredit.v1`. The protocol package
 names, service names, and field definitions remain those declared in `proto/`.
 
+The Python gRPC package exposes generated stubs and leaves channel ownership to
+the caller. Its optional `create_channel()` helper uses TLS for remote targets,
+plaintext for recognized loopback targets, and permits remote plaintext only
+with explicit opt-in. `grpcio` is imported lazily by the helper, so the base SDK
+can still be imported without the `grpc` extra:
+
+```python
+from pathlib import Path
+
+from kokonut.grpc import create_channel
+from kokonut.grpc.data.v1.service_pb2_grpc import DataServiceStub
+
+channel = create_channel(
+    "grpc.example.com:50051",
+    root_certificates=Path("/etc/kokonut/grpc-ca.pem").read_bytes(),
+)
+client = DataServiceStub(channel)
+```
+
+Use `create_channel("grpc.example.com:50051", allow_insecure=True)` only for a
+trusted private network. Close the channel when the client is finished.
+API-key metadata should only be sent over a trusted TLS channel or a controlled
+private transport.
+
 ## Usage
 
 ```python
@@ -75,6 +99,58 @@ farm = client.farms.get("farm-uuid")
 # List crop cycles for a plot
 cycles = client.crop_cycles.list_by_plot("plot-uuid")
 
+# Read stored farm task plans for one location
+tasks = client.farm_tasks.list_by_location("location-uuid")
+# This read does not assign, schedule, or complete work.
+
+# Read stored forecast/observation accuracy rows for one forecast
+accuracy = client.forecast_accuracies.list_by_forecast("forecast-uuid")
+# This returns persisted comparisons; it does not calculate or verify accuracy.
+
+# Read stored fitted variogram parameters for one location
+variograms = client.variogram_models.list_by_location("location-uuid")
+# This reads fitted output; it does not fit or validate a variogram.
+
+# Read saved spatial predictions and diagnostics for a location
+predictions = client.kriging_predictions.list_by_location("location-uuid")
+realizations = client.geostat_realizations.list_by_location("location-uuid")
+spatial_tests = client.spatial_autocorrelations.list_by_location("location-uuid")
+cv_results = client.geostat_cv_results.list_by_location("location-uuid")
+sensor_designs = client.sensor_network_designs.list_by_location("location-uuid")
+# Point rows are read through their owning prediction/realization.
+prediction_points = client.kriging_points.list_by_prediction("prediction-uuid")
+realization_points = client.geostat_realization_points.list_by_realization("realization-uuid")
+# These reads return stored output only; they do not run spatial analysis.
+
+# Read persisted OODA assessments, evidence, and cycle timing by location/parent
+assessments = client.situation_assessments.list_by_location("location-uuid")
+signals = client.assessment_signals.list_by_assessment("assessment-uuid")
+dimensions = client.assessment_dimensions.list_by_assessment("assessment-uuid")
+cycles = client.ooda_cycle_logs.list_by_location("location-uuid")
+# These records remain advisory; reading them does not choose or execute actions.
+
+# Read stored CRISP assessments and their five dimension records
+risk_assessments = client.crisp_risk_assessments.list_by_location("location-uuid")
+climate_details = client.crisp_climate_risks.list_by_assessment("assessment-uuid")
+# These return persisted scores/evidence only; they do not score or verify CRISP.
+
+# Read location-scoped organic certification, transition, and compliance records
+certifications = client.organic_certification_records.list_by_location("location-uuid")
+transitions = client.organic_transition_plans.list_by_location("location-uuid")
+readiness = client.organic_readiness_assessments.list_by_location("location-uuid")
+buffers = client.buffer_zones.list_by_location("location-uuid")
+# Other read-only groups cover substance, input, handling, and checklist evidence.
+# These are persisted records; they do not recalculate readiness or certify a farm.
+
+# Read systems-thinking definitions and location results
+loops = client.causal_loops.list()
+links = client.causal_links.list_by_loop("loop-uuid")
+models = client.stock_flow_models.list()
+runs = client.stock_flow_runs.list_by_location("location-uuid")
+archetypes = client.system_archetypes.list_by_location("location-uuid")
+leverage = client.leverage_assessments.list_by_location("location-uuid")
+# These return persisted definitions/results; they do not evaluate or simulate.
+
 # Create a harvest event
 harvest = client.harvest_events.create({
     "crop_cycle_id": "cycle-uuid",
@@ -89,8 +165,49 @@ harvest = client.harvest_events.create({
 # Query unpaid sales
 unpaid = client.sales_events.list_unpaid()
 
+# Read governed carbon-credit ledger records for one location
+credits = client.carbon_credits.list_by_location("location-uuid")
+retirements = client.credit_retirements.list_by_location("location-uuid")
+# Ledger helpers expose reads only; reviewed services own lifecycle changes.
+
+# Read recorded finance facts and stored cash-flow summaries
+transactions = client.financial_transactions.list_by_location("location-uuid")
+cash_flows = client.cash_flow_snapshots.list_by_location("location-uuid")
+# These reads do not initiate transactions or calculate/reconcile balances.
+
+# Read persisted ecological observations and reviewed MRV claims
+soil_samples = client.soil_samples.list_by_location("location-uuid")
+claims = client.mrv_claims.list_by_location("location-uuid")
+# These reads do not ingest, calculate, verify, or attest records.
+
+# Read registered sensor inventory and alert history for one location
+devices = client.sensor_devices.list_by_location("location-uuid")
+alerts = client.sensor_alerts.list_by_location("location-uuid")
+# These reads do not register devices, acknowledge/resolve alerts, or actuate equipment.
+
+# Read stored metrics and forecast results for one location
+metric_values = client.metric_values.list_by_location("location-uuid")
+forecasts = client.demand_forecasts.list_by_location("location-uuid")
+# Stored outputs are returned as-is; the SDK does not compute or verify them.
+
+# Read stored local prices and market demand records
+prices = client.price_observations.list_by_location("location-uuid")
+demand = client.buyer_demand_signals.list_by_location("location-uuid")
+# These reads do not fetch prices or confirm buyer commitments/fulfillment.
+
+# Read shared reference catalogs
+crops = client.crops.list()
+protocols = client.protocols.list()
+sensor_types = client.sensor_types.list()
+schemas = client.attestation_schemas.list()
+# Catalog helpers are read-only; API permissions still govern access.
+
 # Aggregate query
-count = client.aggregate("harvest_event", aggregate="count", groupBy="location_id")
+counts = client.aggregate(
+    "harvest_event",
+    aggregate={"count": "*"},
+    groupBy=["location_id"],
+)
 ```
 
 ## Authentication
@@ -139,8 +256,101 @@ except KokonutError as e:
 | `reports` | `report_snapshot` | `list_by_type` |
 | `exports` | `export_log` | `create_export` |
 | `noi` | `noi_snapshot` | `list_by_crop_cycle` |
+| `carbon_credits` | `carbon_credit` | `list_by_location` |
+| `credit_adjustments` | `credit_adjustment` | `list_by_location` |
+| `credit_retirements` | `credit_retirement` | `list_by_location` |
+| `credit_transfers` | `credit_transfer` | `list_by_location` |
+| `financial_transactions` | `financial_transaction` | `list_by_location` |
+| `cash_flow_snapshots` | `cash_flow_snapshot` | `list_by_location` |
+| `weather_observations` | `weather_observation` | `list_by_location` |
+| `sensor_devices` | `sensor_device` | `list_by_location` |
+| `sensor_alerts` | `sensor_alert` | `list_by_location` |
+| `soil_samples` | `soil_sample` | `list_by_location` |
+| `soil_carbon_measurements` | `soil_carbon_measurement` | `list_by_location` |
+| `environmental_baselines` | `environmental_baseline` | `list_by_location` |
+| `species_observations` | `species_observation` | `list_by_location` |
+| `remote_sensing_observations` | `remote_sensing_observation` | `list_by_location` |
+| `mrv_claims` | `mrv_claim` | `list_by_location` |
+| `metric_values` | `metric_value` | `list_by_location` |
+| `forecast_scenarios` | `forecast_scenario` | `list_by_location` |
+| `forecast_outputs` | `forecast_output` | `list_by_location` |
+| `time_series_forecasts` | `time_series_forecast` | `list_by_location` |
+| `demand_forecasts` | `demand_forecast` | `list_by_location` |
+| `market_size_estimates` | `market_size_estimate` | `list_by_location` |
+| `price_observations` | `price_observation` | `list_by_location` |
+| `demand_trends` | `demand_trend` | `list_by_location` |
+| `buyer_demand_signals` | `buyer_demand_signal` | `list_by_location` |
+| `production_market_matches` | `production_market_match` | `list_by_location` |
+| `buyer_segments` | `buyer_segment` | `list_by_location` |
+| `value_flow_events` | `value_flow_event` | `list_by_location` |
+| `trend_estimates` | `trend_estimate` | `list_by_location` |
+| `trend_smoothing` | `trend_smoothing` | `list_by_location` |
+| `change_points` | `change_point` | `list_by_location` |
+| `seasonal_decompositions` | `seasonal_decomposition` | `list_by_location` |
+| `trend_dashboard_metrics` | `trend_dashboard_metric` | `list_by_location` |
+| `infrastructure_assets` | `infrastructure_asset` | `list_by_location` |
+| `farm_tasks` | `farm_task` | `list_by_location` (read-only) |
+| `forecast_accuracies` | `forecast_accuracy` | `list_by_forecast` (read-only) |
+| `variogram_models` | `variogram_model` | `list_by_location` (read-only) |
+| `kriging_predictions` | `kriging_prediction` | `list_by_location` (read-only) |
+| `kriging_points` | `kriging_point` | `list_by_prediction` (read-only) |
+| `geostat_realizations` | `geostat_realization` | `list_by_location` (read-only) |
+| `geostat_realization_points` | `geostat_realization_point` | `list_by_realization` (read-only) |
+| `spatial_autocorrelations` | `spatial_autocorrelation` | `list_by_location` (read-only) |
+| `geostat_cv_results` | `geostat_cv_result` | `list_by_location` (read-only) |
+| `sensor_network_designs` | `sensor_network_design` | `list_by_location` (read-only) |
+| `causal_loops` | `causal_loop` | — (read-only list/detail) |
+| `causal_links` | `causal_link` | `list_by_loop` (read-only) |
+| `system_variables` | `system_variable` | `list_by_location` (read-only) |
+| `stock_flow_models` | `stock_flow_model` | — (read-only list/detail) |
+| `stock_flow_runs` | `stock_flow_run` | `list_by_location` (read-only) |
+| `system_archetypes` | `system_archetype` | `list_by_location` (read-only) |
+| `leverage_assessments` | `leverage_assessment` | `list_by_location` (read-only) |
+| `time_delays` | `time_delay` | — (read-only list/detail) |
+| `structural_assumptions` | `structural_assumption` | `list_by_location` (read-only) |
+| `situation_assessments` | `situation_assessment` | `list_by_location` (read-only) |
+| `assessment_signals` | `assessment_signal` | `list_by_assessment` (read-only) |
+| `assessment_dimensions` | `assessment_dimension` | `list_by_assessment` (read-only) |
+| `ooda_cycle_logs` | `ooda_cycle_log` | `list_by_location` (read-only) |
+| `crisp_risk_assessments` | `crisp_risk_assessment` | `list_by_location` (read-only) |
+| `crisp_carbon_yield_risks` | `crisp_carbon_yield_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `crisp_climate_risks` | `crisp_climate_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `crisp_policy_risks` | `crisp_policy_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `crisp_financial_risks` | `crisp_financial_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `crisp_implementation_risks` | `crisp_implementation_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `organic_certification_records` | `organic_certification_record` | `list_by_location` (read-only) |
+| `organic_transition_plans` | `organic_transition_plan` | `list_by_location` (read-only) |
+| `prohibited_substance_records` | `prohibited_substance_record` | `list_by_location` (read-only) |
+| `buffer_zones` | `buffer_zone` | `list_by_location` (read-only) |
+| `organic_input_audits` | `organic_input_audit` | `list_by_location` (read-only) |
+| `harvest_handling_records` | `harvest_handling_record` | `list_by_location` (read-only) |
+| `organic_compliance_checklists` | `organic_compliance_checklist` | `list_by_location` (read-only) |
+| `organic_readiness_assessments` | `organic_readiness_assessment` | `list_by_location` (read-only) |
+| `crops` | `crop` | — (read-only list/detail) |
+| `protocols` | `protocol` | — (read-only list/detail) |
+| `sensor_types` | `sensor_type` | — (read-only list/detail) |
+| `attestation_schemas` | `attestation_schema` | — (read-only list/detail) |
 
-All groups inherit `GenericMethods`: `list`, `get`, `create`, `create_many`, `update`, `delete`.
+Geostatistics groups expose saved outputs only. `kriging_points` requires a
+prediction ID, and `geostat_realization_points` requires a realization ID,
+because their canonical tables have no location column. Client-side filters do
+not grant access; the configured API must enforce the caller's authorization.
+Systems-thinking groups also expose persisted configuration and results only;
+`causal_links` requires a loop ID. Stakeholder `mental_model` records are not
+exposed because their canonical table has no location scope.
+
+Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
+`create_many`, `update`, `delete`. The credit-ledger and finance groups are
+read-only and expose only `list`, `get`, and `list_by_location`; the ecological,
+MRV, metric, forecast, market, and value-flow groups also expose only these read
+methods, except `forecast_accuracies`, which scopes reads by `forecast_id` because
+the canonical table has no `location_id`. SDK filters are query conveniences, not authorization
+boundaries; Directus must enforce the caller's grants, especially for buyer and
+commercial records. Shared reference catalog helpers also expose only list and
+detail reads. These methods do not ingest, calculate, verify, attest,
+confirm commitments, or mutate governed lifecycle state. Stored forecast,
+metric, and trend outputs are returned without recalculation or an assertion
+that they are current or verified.
 
 ## Examples
 

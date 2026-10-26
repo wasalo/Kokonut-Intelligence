@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Google Earth Engine climate initialization and provider errors",
+  "behavior": {
+    "initialization": "Credentialed and default GEE initialization logs report only exception classes.",
+    "fetch_failures": "MODIS, SMAP, Sentinel-1, and ERA5 failures return bounded summaries and log no provider exception text.",
+    "rollback": "Existing source-transaction rollback behavior is preserved on failed fetch/persistence paths."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_gee_climate_error_redaction.py tests/test_climate_data.py tests/test_climate_worker.py tests/test_climate_data_cli_scope.py -q",
+    "result": "44 passed",
+    "new_regressions": 6,
+    "coverage": [
+      "four climate provider failures are redacted from returned summaries and logs",
+      "service-account and default GEE initialization failures are redacted",
+      "failed source fetch rolls back the supplied connection"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "provider_or_database_access": "none; Earth Engine and connections were mocked"
+  },
+  "limitations": [
+    "No Earth Engine provider, database, or candidate runtime was contacted.",
+    "This does not establish live GEE availability, data parity, or scheduled recovery."
+  ]
+}

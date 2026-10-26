@@ -26,6 +26,16 @@ def _out(value):
     print_json(value)
 
 
+def _run_with_connection(operation) -> None:
+    """Own and close the database connection for one CLI read command."""
+    conn = _connection()
+    try:
+        result = operation(conn)
+    finally:
+        conn.close()
+    _out(result)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Kokonut tactical governance CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -46,7 +56,9 @@ def main() -> None:
     sessions = sub.add_parser("session-list")
     sessions.add_argument("--circle-id")
     sessions.add_argument("--status")
-    sessions.set_defaults(func=lambda a: _out(list_sessions(_connection(), circle_id=a.circle_id, status=a.status)))
+    sessions.set_defaults(func=lambda a: _run_with_connection(
+        lambda conn: list_sessions(conn, circle_id=a.circle_id, status=a.status)
+    ))
 
     session_start = sub.add_parser("session-start")
     session_start.add_argument("session_id")
@@ -75,7 +87,9 @@ def main() -> None:
     items = sub.add_parser("item-list")
     items.add_argument("session_id")
     items.add_argument("--status")
-    items.set_defaults(func=lambda a: _out(list_items(_connection(), a.session_id, status=a.status)))
+    items.set_defaults(func=lambda a: _run_with_connection(
+        lambda conn: list_items(conn, a.session_id, status=a.status)
+    ))
 
     item_start = sub.add_parser("item-start")
     item_start.add_argument("item_id")

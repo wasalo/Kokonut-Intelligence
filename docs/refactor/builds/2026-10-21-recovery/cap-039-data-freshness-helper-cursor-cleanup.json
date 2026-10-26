@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "74838bdd",
+  "scope": "Failure-safe cursor cleanup for data-freshness query and persistence helpers",
+  "verification": {
+    "focused_tests": "17 helper cursor-failure cases pass; 59 tests across cursor cleanup, CLI parity, and telemetry freshness",
+    "coverage": [
+      "freshness configuration, location inventory, latest-ingestion, and alert-state read cursors close on execute/fetch failure",
+      "alert-state initial lock, create-on-miss insert, and re-lock cursors close on failure",
+      "alert-history/state update, delivery-attempt/state update, and check-result insert cursors close on failure",
+      "helpers preserve transaction ownership and add no commit/rollback behavior"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; all cursor behavior is synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: data-freshness database helpers now close their cursors on representative SQL and receipt failures while preserving caller-owned transactions.",
+  "limitations": [
+    "This slice covers helper-owned cursors; the check_freshness orchestration SAVEPOINT cursors remain governed by their separate transaction-path acceptance.",
+    "Live database, global summary authorization/privacy, and alert delivery remain open."
+  ]
+}

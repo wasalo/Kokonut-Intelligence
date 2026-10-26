@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-10-21",
+  "capability": "CAP-066",
+  "change": "Remove the unused location parameter from the shared active operations-protocol query in the climate-impact report.",
+  "source_basis": {
+    "table": "operations_protocol",
+    "has_location_column": false,
+    "report_behavior": "Active protocol rows are shared reference metadata; location-specific summary, framework phase, and analytics reads retain their location scope."
+  },
+  "focused_test_command": "python3 -m pytest tests/test_climate_impact_report.py tests/test_report_generator_query_scope_inventory.py -q",
+  "focused_tests_passed": 12,
+  "regression": "All report SQL calls in the focused fake-connection path must receive exactly the parameters represented by SQL placeholders; the shared protocol query remains parameter-free and its projection is retained.",
+  "checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "current",
+    "report_generator_source_inventory": "current",
+    "report_generator_query_scope_inventory": "current",
+    "report_generator_helper_scope_inventory": "current",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared"
+  },
+  "database_or_provider_used": false,
+  "migration_added_or_applied": false,
+  "candidate_or_legacy_database_touched": false,
+  "populated_report_parity_or_MAN_CAP_066_acceptance_claimed": false,
+  "rollback": "Revert the source change and its regression; no persistent state changed."
+}

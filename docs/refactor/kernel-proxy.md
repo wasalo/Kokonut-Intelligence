@@ -148,8 +148,10 @@ deployment profile is selected.
 
 ## CORS preflight check
 
-The candidate gateway's active `CORS_ORIGIN` contains four explicit localhost
-origins. A direct loopback preflight for `http://localhost:3000`, method `GET`,
+At the time this candidate check ran, the gateway inherited `CORS_ORIGIN`,
+which contained four explicit localhost origins. Gateway CORS now has its own
+`KOKONUT_GATEWAY_CORS_ORIGINS` setting; `CORS_ORIGIN` is Directus-only. A direct
+loopback preflight for `http://localhost:3000`, method `GET`,
 and header `x-api-key` returned 200 with the same origin in
 `Access-Control-Allow-Origin`; the response allowed both the requested method
 and header. The same preflight from `https://untrusted.invalid` returned 400
@@ -166,8 +168,11 @@ returned 401. The configured origin received `Access-Control-Allow-Origin` on
 the error response; the untrusted origin did not. A read-only exact-path query
 found the two expected denied audit rows (`credentials_required`), which remain
 in the candidate database. [Evidence](builds/2026-10-10-recovery/proxy-cors-auth-response.json).
-This does not check successful authenticated responses, mutation responses,
-credentialed browser requests, mobile/private-media paths, or public origins.
+This historical check did not cover successful authenticated responses,
+mutation responses, credentialed browser requests, mobile/private-media paths,
+or public origins. Source tests now verify that the split setting controls
+Gateway CORS and that a Directus-only origin cannot enable Gateway access;
+browser/runtime acceptance remains open.
 
 ## Isolated source-level rate-limit middleware check
 

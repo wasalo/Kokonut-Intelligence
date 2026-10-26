@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "Approved decision action exception response",
+  "behavior": {
+    "failure_result": "Action adapter exceptions return a bounded operation and exception-class summary without the adapter message.",
+    "transaction": "Failed action execution still rolls back and closes the cursor; no decision-success or outcome writes are committed."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_decision_policy.py -q",
+    "result": "21 passed",
+    "coverage": [
+      "adapter failure response omits a synthetic credential marker",
+      "failure status is preserved",
+      "connection rolls back, does not commit, and cursor closes"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked connection and action adapter"
+  },
+  "limitations": [
+    "No policy database or real action adapter was used.",
+    "This does not validate any live decision workflow or external side effect."
+  ]
+}

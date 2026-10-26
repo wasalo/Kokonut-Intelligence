@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-006",
+  "batch": "energy dashboard calculation parity",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/energy/{location_id}/summary",
+    "authorization": "exact energy_monitoring:read location grant with signed tenant context",
+    "query_boundary": "read-only repeatable-read transaction; energy source and reading location IDs must match",
+    "evidence_states": ["verified", "approved"],
+    "calculations": [
+      "30-day consumption, production, and net energy",
+      "renewable consumption and share for solar, wind, biogas, and biomass source types",
+      "seven-day daily consumption and production trend",
+      "legacy fixed-factor carbon estimate using model legacy_source_type_factors_v1"
+    ],
+    "carbon_factors_kg_co2e_per_kwh": {
+      "grid": 0.45,
+      "diesel_generator": 0.7,
+      "solar": 0.0,
+      "wind": 0.0,
+      "biogas": 0.05,
+      "biomass": 0.1,
+      "battery": 0.0
+    },
+    "constraints": [
+      "Carbon output is explicitly advisory and is not verified emissions or a compliance result.",
+      "Cost totals are withheld because energy_reading has no currency field.",
+      "Registered renewable capacity, generation, and carbon offsets are not included.",
+      "No schema migration, database, provider, candidate, legacy archive, or Raspberry Pi was used."
+    ]
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_energy_monitoring.py tests/test_operator_console_energy_monitoring.py tests/test_energy_monitoring.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "59 passed in 4.45s",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed in console contract checks",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 26 baseline-retained, 7 deployed, 34 prepared",
+    "git_diff_check": "passed"
+  },
+  "remaining_acceptance": [
+    "populated archive output parity",
+    "registered renewable capacity, annual generation, and offset parity",
+    "currency classification before cost aggregation",
+    "runtime database ACL/RLS",
+    "live ZITADEL and browser acceptance",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Revert the energy calculation query/response and console rendering changes, then regenerate the runtime SQL inventory. No persistent data was written."
+}

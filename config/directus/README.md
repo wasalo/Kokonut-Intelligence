@@ -2,6 +2,23 @@
 
 SQL seed file that creates the complete Directus role-based access control system.
 
+## Extension Build Prerequisite
+
+The base Compose service mounts the hook package at
+`/directus/extensions/directus-extension-kokonut-hooks`. Directus loads its
+compiled entry point from the ignored `extensions/kokonut-hooks/dist/`
+directory, so a fresh checkout must build it before starting Compose:
+
+```bash
+make hooks-build
+docker compose up -d directus
+```
+
+`make hooks-build` installs the exact lockfile dependencies with `npm ci` when
+they are missing or stale, then runs the Directus extension bundler plus
+TypeScript validation. The Field Collector endpoint is plain JavaScript and
+does not require a build step.
+
 ## Files
 
 | File | Purpose |
@@ -46,3 +63,16 @@ Agent roles are restricted from `verified`/`published` status on all governed co
 2. Follow the existing pattern: `INSERT INTO directus_permissions (collection, action, fields, permissions, presets, ...)` with appropriate `role_id` and `policy_id`
 3. Re-apply via `./scripts/seed.sh`
 4. Test with `python3 -m tests.test_directus_metadata`
+
+`farm_activity` is intentionally excluded from Directus role permissions. The
+Kokonut Gateway owns Field Collector and operator farm-activity operations,
+including tenant-qualified grants, lifecycle validation, and the append-only
+actor ledger. Reapplying `permissions.sql` removes stale farm-activity rules
+from the repository-managed policies. Do not re-add these permissions to make
+the unlicensed Directus API expose that collection.
+
+The Auditor's `dashboard_dataset` read permission uses an explicit metadata
+field allowlist and excludes archived `query_sql`. Reapplying the seed repairs
+the wildcard rule and preserves non-wildcard operator-edited field lists. The
+hook also rejects query operators that reference the archived SQL and redacts
+it from responses; custom permission policies still need review.

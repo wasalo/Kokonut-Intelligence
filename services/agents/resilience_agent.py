@@ -7,7 +7,11 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -18,6 +22,7 @@ def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[A
 
 def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any]:
     """Summarize public-safe financial resilience, risks, scaling, and publication status."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     where, params = _location_filter("location_id", location_id)
@@ -27,7 +32,7 @@ def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any
                grant_dependency_pct, reinvestment_pct, public_goods_allocation_pct,
                runway_months, projected_annual_revenue_usd, projected_annual_noi_usd,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_financial_sustainability_summary
+        FROM kokonut_agent_source.v_public_financial_sustainability_summary
         {where}
         ORDER BY plan_period_start DESC, plan_name
         """,
@@ -42,7 +47,7 @@ def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any
                owner_role, review_cadence, next_review_date, insurance_scope,
                oversight_mechanism, technical_support_provider, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_risk_mitigation_summary
+        FROM kokonut_agent_source.v_public_risk_mitigation_summary
         {where}
         ORDER BY next_review_date NULLS LAST, risk_category
         """,
@@ -57,7 +62,7 @@ def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any
                capital_required_usd, partner_requirements, operational_dependencies,
                risk_gates, target_date, milestone_status, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_scaling_roadmap_summary
+        FROM kokonut_agent_source.v_public_scaling_roadmap_summary
         {where}
         ORDER BY target_date, roadmap_name
         """,
@@ -71,7 +76,7 @@ def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any
                target_publication_date, open_question_count, approval_record_count,
                publication_cid, publication_hash, published_at, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_green_paper_publication_status
+        FROM kokonut_agent_source.v_public_green_paper_publication_status
         ORDER BY target_publication_date DESC, version DESC
         """
     )
@@ -120,6 +125,13 @@ class ResilienceSynthesisAgent(SynthesisAgent):
     read_collection = "financial_sustainability_plan"
     model_version = "resilience-agent-v1"
     source_tables = ["financial_sustainability_plan", "risk_mitigation_register", "scaling_roadmap_milestone", "green_paper_publication_review"]
+    source_reference_views = {
+        "financial_sustainability_plan": "v_public_financial_sustainability_summary",
+        "risk_mitigation_register": "v_public_risk_mitigation_summary",
+        "scaling_roadmap_milestone": "v_public_scaling_roadmap_summary",
+        "green_paper_publication_review": "v_public_green_paper_publication_status",
+    }
+    source_reference_scopes = {"green_paper_publication_review": "network"}
 
     def synthesize(self, conn, location_id=None):
         return synthesize_resilience(conn, location_id)
@@ -134,7 +146,7 @@ def run_resilience_synthesis(location_id: str | None = None, store: bool = False
 
 
 def main() -> None:
-    agent_cli(agent, description="Run the Kokonut financial resilience synthesis agent", location_required=False)
+    agent_cli(agent, description="Run the Kokonut financial resilience synthesis agent")
 
 
 if __name__ == "__main__":

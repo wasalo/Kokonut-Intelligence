@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "working tree based on f667f2c0",
+  "capability": "CAP-006",
+  "batch": "legacy composting read/write schema alignment",
+  "implementation": {
+    "functions": [
+      "services.analytics.waste_management.get_composting_efficiency",
+      "services.analytics.waste_management.record_composting"
+    ],
+    "canonical_source": "schemas/postgres/153_waste_management.sql::composting_record",
+    "fields": [
+      "compost_date",
+      "feedstock_type",
+      "feedstock_kg",
+      "compost_method",
+      "finished_volume_kg",
+      "duration_days",
+      "temperature_c",
+      "moisture_pct",
+      "metadata",
+      "status"
+    ],
+    "lifecycle": "reader selects verified rows; writer inserts recorded rows, matching migration 153 constraints",
+    "yield": "finished_volume_kg / feedstock_kg * 100 for rows with output and positive feedstock",
+    "totals": "Overall feedstock includes verified batches with missing output to preserve the existing summary formula.",
+    "compatibility": "Existing CLI inputs and response fields are retained; supported category/method aliases map to canonical constraints, freeform labels are preserved in metadata, and numeric pH is stored/read through JSONB metadata.",
+    "resource_safety": "Close the cursor on success and query failure."
+  },
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_waste_management.py",
+    "result": "24 passed; five invalid-window subtests included",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "database_access": false,
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "migration_required": false,
+  "authorization_boundary": "Trusted local CLI operations only; they do not add Gateway auth, signed tenant context, or RLS.",
+  "remaining_acceptance": [
+    "other legacy waste writer/read schema alignment",
+    "tenant isolation and least-privilege database boundary",
+    "populated composting output parity",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Restore the prior reader/writer implementation and regression tests. Tests used mocked connections; no persistent database data was written."
+}

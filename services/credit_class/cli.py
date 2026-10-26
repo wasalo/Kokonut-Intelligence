@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import sys
 
-from services.common.database import get_connection
 from services.common.cli import print_json
+from services.common.database import get_connection
+
 
 def cmd_class_create(args):
     with get_connection() as conn:
@@ -44,6 +45,9 @@ def cmd_batch_create(args):
         result = create_batch(
             conn, credit_class_id=args.class_id, location_id=args.location_id,
             vintage_year=args.vintage, total_quantity=args.quantity,
+            origin_tx_id=args.origin_tx_id,
+            origin_tx_source=args.origin_tx_source,
+            origin_tx_contract=args.origin_tx_contract,
         )
         print_json(result)
 
@@ -148,6 +152,9 @@ def main():
     p_cb_create.add_argument("--location-id", required=True)
     p_cb_create.add_argument("--vintage", type=int, required=True)
     p_cb_create.add_argument("--quantity", type=float, required=True)
+    p_cb_create.add_argument("--origin-tx-id", default=None)
+    p_cb_create.add_argument("--origin-tx-source", default=None)
+    p_cb_create.add_argument("--origin-tx-contract", default=None)
     p_cb_create.set_defaults(func=cmd_batch_create)
 
     p_cb_issue = cb_sub.add_parser("issue", help="Issue a credit batch")

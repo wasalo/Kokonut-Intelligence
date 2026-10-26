@@ -1,13 +1,14 @@
 """Tests for VSM flow-metric calculators and definitions."""
 
-from unittest.mock import MagicMock, patch
+import re
+from pathlib import Path
 
-import pytest
 import psycopg2
+import pytest
 
 from services.ingestion.base import get_db
-from services.metrics.calculators.governed_lead_time import compute_governed_lead_time
 from services.metrics.calculators.first_time_through_yield import compute_first_time_through_yield
+from services.metrics.calculators.governed_lead_time import compute_governed_lead_time
 from services.metrics.calculators.rework_rate import compute_rework_rate
 
 
@@ -39,6 +40,20 @@ def test_calculators_return_governed_shape():
         pytest.skip("lifecycle_transition ledger not present (migrations not applied)")
     finally:
         conn.close()
+
+
+def test_flow_metric_seed_is_selected_for_default_bootstrap():
+    seed_script = (Path(__file__).resolve().parents[1] / "scripts/seed.sh").read_text(
+        encoding="utf-8"
+    )
+    default_seed_block = re.search(
+        r"\nelse\n    CURATED_SEEDS=\((.*?)\n    \)\nfi",
+        seed_script,
+        flags=re.DOTALL,
+    )
+
+    assert default_seed_block is not None
+    assert '"schemas/seeds/103_flow_metrics.sql"' in default_seed_block.group(1)
 
 
 def test_flow_metric_definitions_seeded():

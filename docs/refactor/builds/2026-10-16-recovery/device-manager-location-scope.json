@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-16",
+  "slice": "Location-scoped device-manager CLI and helper writes",
+  "implementation": {
+    "entrypoint": "services.ingestion.device_manager",
+    "required_scope": "List, registration, and health operations require one canonical --location-id UUID before the CLI connects to PostgreSQL.",
+    "query_boundary": "Device listing, health lookup, and health upsert bind the selected location. Device lookup accepts the slug or UUID only within that location.",
+    "registration_boundary": "An existing device slug may be reactivated or updated only when it already belongs to the requested location. A conflicting cross-location slug is rolled back and rejected.",
+    "offline_boundary": "No-operation help and malformed or incomplete operation arguments return before opening a database connection."
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_device_manager.py tests/test_iot_sensor_push.py -q",
+      "result": "passed",
+      "tests": 61
+    },
+    "ruff": "passed for services/ingestion/device_manager.py and tests/test_device_manager.py",
+    "compileall": "passed",
+    "generated_inventories": [
+      "runtime SQL inventory",
+      "repository inventory (66 capabilities, 66 service groups, 459 test files, zero parse errors)"
+    ]
+  },
+  "limitations": [
+    "The location UUID filters database selection but does not authenticate the operator or establish a tenant grant.",
+    "This does not prove least-privilege database access or application RLS.",
+    "No candidate or legacy database, device, provider, or persisted schedule was accessed.",
+    "A broad Ruff invocation also included unchanged tests/test_iot_sensor_push.py and reports its existing unsorted import block; the changed source and unit-test files pass Ruff."
+  ]
+}

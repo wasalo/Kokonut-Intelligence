@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 market-data CLI entrypoint",
+  "result": "passed",
+  "changes": [
+    "Added a reusable market-data parser and callable main(argv=None).",
+    "Unified ingestion dispatch now invokes the imported market-data module without runpy fallback.",
+    "Standalone and unified argument forwarding and help output match for World Bank and explicit seed modes.",
+    "Ingestion dispatcher restores the caller's sys.argv after successful execution and parser errors.",
+    "Invalid source and World Bank date filters are rejected before ingestion side effects."
+  ],
+  "checks": {
+    "market_data_pytest": {
+      "command": "python3 -m pytest tests/test_market_data_cli.py tests/test_market_data.py tests/test_market_data_recovery.py tests/test_market_data_worker.py -q",
+      "result": "passed",
+      "passed": 35
+    },
+    "ingestion_cli_pytest": {
+      "command": "python3 -m pytest tests/test_ingestion_cli_help_isolation.py tests/test_unified_cli_success_contract.py -q",
+      "result": "passed",
+      "passed": 62
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "standalone_unified_help_parity": "passed",
+    "capability_matrix_validation": "passed",
+    "git_diff_check": "passed"
+  },
+  "external_access": {
+    "database": false,
+    "provider": false,
+    "schedule": false,
+    "candidate": false,
+    "legacy_service": false
+  },
+  "limitations": [
+    "Does not establish populated price-data parity or live World Bank provider behavior.",
+    "Does not enable the isolated scheduled worker or close MAN-CAP-040/047 acceptance."
+  ]
+}

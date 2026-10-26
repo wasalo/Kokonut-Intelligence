@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-22",
+  "capability": "CAP-038",
+  "check": "fail-closed location scope for shared synthesis reads",
+  "command": "KOKONUT_ALLOW_PLAINTEXT_ENV=true python3 -m pytest tests/test_synthesis_source_references.py tests/test_agent_tasks.py tests/test_agents_base.py tests/test_agent_source_metadata.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py tests/test_regenerative_outcomes.py tests/test_commons_liberation.py tests/test_gnh_alignment.py tests/test_financial_resilience.py tests/test_open_source_capitalist_scaling.py tests/test_kokonut_commons_governance.py tests/test_holistic_wellbeing.py tests/test_ebf_privacy.py -q",
+  "result": "passed",
+  "tests_passed": 182,
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "capability_matrix": "passed: 66 rows",
+  "assertions": [
+    "All ten source-mapped shared synthesis task contracts require location_id.",
+    "Missing scope is rejected before database connection acquisition.",
+    "Direct synthesis functions reject missing and malformed UUIDs before cursor access.",
+    "CLI source-mapped agents require --location-id even when the call site requests an optional argument.",
+    "Location-only, mixed-scope, and network-view query filters remain consistent with registered source scopes.",
+    "Wellbeing provenance no longer claims a feedback source it does not query."
+  ],
+  "database_used": false,
+  "provider_used": false,
+  "candidate_or_legacy_touched": false,
+  "limitations": [
+    "A caller can still select any location until operator authorization is enforced.",
+    "This does not establish tenant row-level security or populated-output parity."
+  ]
+}

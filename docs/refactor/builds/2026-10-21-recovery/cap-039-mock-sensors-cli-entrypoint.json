@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 mock-sensor CLI entrypoint",
+  "result": "passed",
+  "changes": [
+    "Added a reusable mock-sensor parser and callable main(argv=None).",
+    "Standalone and unified setup/generate/cleanup/help dispatch match.",
+    "No-action invocations show help without running demo operations.",
+    "Removed unused imports and assignments identified by Ruff."
+  ],
+  "checks": {
+    "mock_sensor_pytest": {
+      "command": "python3 -m pytest tests/test_mock_sensors_cli.py tests/test_mock_sensor_error_redaction.py tests/test_iot_sensor_push.py tests/test_ingestion_outbox_producers.py -q",
+      "result": "passed",
+      "passed": 81
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "standalone_unified_help_parity": "passed"
+  },
+  "external_access": {
+    "database": false,
+    "clickhouse": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  },
+  "limitations": [
+    "Setup, generation, and cleanup operations were stubbed in CLI tests.",
+    "Does not test mock data semantics or cleanup database scope."
+  ]
+}

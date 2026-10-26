@@ -1,0 +1,39 @@
+{
+  "record_type": "sdk_forecast_accuracy_read_methods",
+  "recorded_at": "2026-10-18",
+  "scope": "Expose read-only Python and JavaScript access to stored forecast_accuracy records by their parent forecast.",
+  "source_contract": {
+    "schema": "schemas/postgres/131_trend_analysis.sql",
+    "collection": "forecast_accuracy",
+    "parent_field": "forecast_id",
+    "location_id_column": false,
+    "parent_index": "idx_forecast_accuracy_forecast"
+  },
+  "contract": {
+    "python_methods": ["list", "get", "list_by_forecast"],
+    "javascript_methods": ["list", "get", "listByForecast"],
+    "requested_forecast_filter_overrides_caller_filter": true,
+    "other_list_options_preserved": true,
+    "create_update_delete_exposed": false,
+    "calculation_or_verification_performed": false,
+    "authorization_enforced_by_sdk": false
+  },
+  "verification": {
+    "python_sdk_schema_and_method_tests": "98 passed",
+    "javascript_sdk_tests": "48 passed",
+    "typescript_build": "passed",
+    "ruff": "passed on touched Python files",
+    "python_compilation": "passed",
+    "sdk_schema_parity_guard": "passed: 74 models, 1555 canonical columns, 1456 scalar types, 10 PostGIS types, 86 JSONB shapes, 23 enum fields, 50 CHECK-literal fields per SDK",
+    "capability_matrix_validator": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "network": "not used",
+    "database": "not used",
+    "provider": "not used",
+    "credentials": "not used",
+    "candidate_or_legacy_services": "not accessed"
+  },
+  "capability_status": "No MAN-CAP classification or acceptance status changed."
+}

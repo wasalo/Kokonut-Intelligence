@@ -1,0 +1,31 @@
+{
+  "result": "passed",
+  "date": "2026-10-23",
+  "source_revision": "ba11ae3b",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": "kokonut-kernel-postgis-arm64:local",
+  "postgres_major_version": 16,
+  "isolated_compose_project": "kokonut-role-bootstrap-check-1792764476",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "candidate_or_legacy_touched": false,
+  "bootstrap_applications": 2,
+  "directus_role": {
+    "created_when_missing": true,
+    "flags": {
+      "rolcanlogin": false,
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": false
+    }
+  },
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  }
+}

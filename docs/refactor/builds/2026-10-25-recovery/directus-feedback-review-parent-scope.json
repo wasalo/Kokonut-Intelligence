@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-25",
+  "scope": "Directus stakeholder_feedback_review create authorization",
+  "result": "passed",
+  "checks": [
+    {
+      "command": "cd extensions/kokonut-hooks && npm test",
+      "result": "passed",
+      "summary": "7 test files; 84 tests passed"
+    },
+    {
+      "command": "cd extensions/kokonut-hooks && npm run build",
+      "result": "passed",
+      "summary": "Directus extension build and tsc --noEmit"
+    },
+    {
+      "command": "python3 -m pytest tests/test_directus_tenant_permissions.py tests/test_directus_extension_compatibility.py -q",
+      "result": "passed",
+      "summary": "10 tests passed"
+    }
+  ],
+  "authorization": {
+    "parent_collection": "stakeholder_feedback",
+    "parent_key": "feedback_id",
+    "grant_resource": "stakeholder_feedback_review",
+    "grant_action": "create",
+    "grant_location": "Resolved from parent feedback location_id using the request database context",
+    "reviewer_scope": "Optional reviewer_id must be staff directly assigned to the same location or linked to a farm at that location",
+    "request_transaction_regression": "The registered hook uses the request database for parent lookup, grant checks, and reviewer validation; a foreign parent is denied before reviewer lookup."
+  },
+  "limitations": [
+    "The repository-managed Directus permission grants create only; this change does not add review read, update, or delete operations.",
+    "No database, provider, candidate, legacy stack, or live Directus service was accessed.",
+    "No migration was added or applied.",
+    "Other parent-scoped collections and polymorphic references remain unaudited or unresolved."
+  ],
+  "rollback": "Disable stakeholder_feedback_review create permission before removing the parent-scope hook; otherwise the previous unscoped create behavior would return."
+}

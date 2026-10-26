@@ -1,0 +1,35 @@
+{
+  "slice": "CAP-038 single synthesis worker contract registry",
+  "date": "2026-10-25",
+  "result": "passed",
+  "registry": {
+    "task_count": 12,
+    "contract_fields": [
+      "agent_module",
+      "source_identity",
+      "source_reader"
+    ],
+    "behavior": "Agent loading, source credential lookup, database role selection, and CLI choices resolve from one task-key registry."
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_synthesis_source_references.py tests/test_worker_database.py tests/test_agent_summary_worker_profile.py -q",
+      "result": "219 passed"
+    },
+    "ruff": {
+      "command": "ruff check services/agents/worker_cli.py tests/test_agent_worker_cli.py",
+      "result": "passed"
+    },
+    "python_compilation": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "obsolete_parallel_maps": "no references found",
+    "git_diff_check": "passed"
+  },
+  "candidate_or_legacy_touched": false,
+  "database_touched": false,
+  "provider_touched": false,
+  "limitations": [
+    "This is a source-level consistency check; Compose deployment mappings remain separately checked.",
+    "It does not provision or prove effective production credentials/grants, populated output parity, live OIDC, automatic dispatch, or MAN-CAP-038 acceptance."
+  ]
+}

@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 import psycopg2.extras
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 from .evidence_lineage import build, load_sources
@@ -146,9 +147,9 @@ def _rebuild(
             "content_hash": content_hash,
             "source_cutoff": cutoff,
         }
-    except Exception:
+    except Exception as exc:
         conn.rollback()
-        logger.exception("Graph projection rebuild failed")
+        logger.error("Graph projection rebuild failed (%s)", safe_exception_class(exc))
         raise
     finally:
         cur.close()

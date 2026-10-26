@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-18",
+  "batch": "CAP-024 circle and role lifecycle console",
+  "base_commit": "4608e2e2",
+  "branch": "feat/mobile-offline-acceptance",
+  "implementation": {
+    "circle_inventory": "Uses the existing exact-location, read-only governance summary and now includes circle IDs for lifecycle routing; includes circles with no roles.",
+    "role_inventory": "Includes draft, submitted, approved, active, suspended, rejected, and retired states.",
+    "authorization": "Lifecycle controls are rendered only for their exact governance_roles action grant at the selected readable location. Gateway and database checks remain authoritative.",
+    "confirmation": "Required reason, same-origin credentials, CSRF token, secure request UUID, stable UUID for unchanged retry.",
+    "human_review": "The Gateway enforces active person binding and creator/reviewer separation for approve, reject, and activation transitions."
+  },
+  "checks": {
+    "focused_cap024_pytest": {
+      "passed": 107,
+      "skipped": 5,
+      "failed": 0
+    },
+    "ruff": "passed for modified Python implementation and regression files",
+    "python_compile": "passed",
+    "javascript_syntax": "passed with node --check",
+    "capability_matrix": "valid: 66 rows; 45 baseline-retained, 7 deployed, 14 prepared",
+    "runtime_sql_inventory": "current: 849 service files / 4,107 execution sites",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No migration was applied in this batch.",
+    "Candidate remains at migration 437; migrations 438\u2013442 are not rolled out because its app still uses administrative PG_USER=kokonut.",
+    "Candidate and legacy databases, live OIDC, and browser sessions were not accessed.",
+    "CAP-024 remains prepared, not accepted; authenticated browser, creation/edit parity, populated parity, domain RLS, and MAN-CAP review remain open."
+  ],
+  "rollback": "Revert the Gateway projection/service and console changes in this batch. No database rollback is needed."
+}

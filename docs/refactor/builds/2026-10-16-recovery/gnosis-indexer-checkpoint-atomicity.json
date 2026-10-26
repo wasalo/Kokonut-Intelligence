@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-16",
+  "scope": "mocked Gnosis Moloch indexer range/checkpoint recovery",
+  "commands": [
+    "python3 -m pytest tests/test_gnosis_indexer_recovery.py tests/test_ingestion_outbox_producers.py tests/test_scheduled_command_contracts.py -q",
+    "ruff check services/ingestion/gnosis_indexer.py tests/test_gnosis_indexer_recovery.py",
+    "python3 -m compileall -q services/ingestion/gnosis_indexer.py tests/test_gnosis_indexer_recovery.py"
+  ],
+  "result": {
+    "pytest": "130 passed",
+    "ruff": "passed",
+    "compileall": "passed"
+  },
+  "verified": [
+    "each scanned range commits its event/outbox work and checkpoint on the same connection",
+    "a later range failure rolls back and leaves the prior committed block as the retry boundary",
+    "provider errors stop the indexer and persist an error state without falsely marking the requested end block healthy",
+    "outbox enqueue failures retain their typed error and do not advance the failed range",
+    "database connections close after successful and failed runs"
+  ],
+  "boundaries": [
+    "all RPC, PostgreSQL, and outbox behavior in the new checks was mocked",
+    "no candidate or legacy database, provider, or schedule was accessed",
+    "the existing rpc indexer_type namespace remains and may be shared with the general RPC indexer",
+    "per-event replay idempotency and chain reorganization handling remain open"
+  ]
+}

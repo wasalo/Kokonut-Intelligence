@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-16",
+  "scope": "General event alert notification location lineage",
+  "command": "python3 -m pytest tests/test_notification_outbox.py -q",
+  "result": {
+    "passed": 14,
+    "failed": 0
+  },
+  "focused_checks": [
+    "A valid event payload location_id is forwarded to the durable notification outbox INSERT.",
+    "A malformed location UUID raises before the handler opens a database cursor or executes SQL.",
+    "A notification with no configured destination and no source event ID returns without opening a database connection.",
+    "A repeated source-event/channel/destination with matching payload and location remains idempotent.",
+    "Existing outbox checks preserve NULL-lineage retry fill and reject conflicting location lineage."
+  ],
+  "static_checks": [
+    "ruff check services/events/handlers.py tests/test_notification_outbox.py",
+    "python3 -m py_compile services/events/handlers.py tests/test_notification_outbox.py",
+    "git diff --check",
+    "worker-operation-map JSON parses successfully"
+  ],
+  "limitations": [
+    "All handler database interactions used mocks; no database, candidate, or legacy service was contacted.",
+    "The event payload location is optional, non-authoritative lineage and does not authorize tenant access or establish signed worker context.",
+    "No external notification provider was contacted."
+  ]
+}

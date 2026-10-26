@@ -64,24 +64,35 @@ def _breaches(operator: Optional[str], value: Optional[float], threshold: Option
 
 
 def _preempt_value(operator: Optional[str], threshold: Optional[float], preempt_pct: Optional[float]) -> Optional[float]:
-    """Compute the forward-deployment (preempt) threshold.
+    """Compute a preempt point only when its baseline is defined.
 
-    The preempt threshold is ``preempt_pct`` of the distance from a neutral
-    baseline (0) to the hard ``threshold``. For a falling-is-bad operator
-    (``lt``/``lte``) the baseline is +infinity-ish, so we treat the preempt
-    point as ``threshold * preempt_pct`` (i.e. 80% of the way to breach).
-    For a rising-is-bad operator (``gt``/``gte``) the same multiplicative rule
-    applies from 0. Returns None when not configured.
+    Rising triggers use zero as the baseline, so a positive hard threshold has
+    an unambiguous preempt point. Falling triggers need a normal/high baseline
+    from which to interpolate; the current reserve schema does not store one.
+    Returning None avoids presenting a point that occurs after the hard breach.
     """
-    if preempt_pct is None or threshold is None or not operator:
+    if preempt_pct is None or threshold is None:
         return None
-    if operator in ("lt", "lte"):
-        # falling is bad: deploy when value drops to preempt_pct of threshold
-        return threshold * preempt_pct
-    if operator in ("gt", "gte"):
-        # rising is bad: deploy when value rises to preempt_pct of threshold
+    if operator in ("gt", "gte") and threshold > 0 and 0 < preempt_pct < 1:
         return threshold * preempt_pct
     return None
+
+
+def _preempt_status(
+    operator: Optional[str], threshold: Optional[float], preempt_pct: Optional[float]
+) -> str:
+    """Explain whether the configured preempt point can be evaluated safely."""
+    if preempt_pct is None:
+        return "not_configured"
+    if not 0 < preempt_pct < 1:
+        return "invalid_percentage"
+    if threshold is None:
+        return "missing_threshold"
+    if operator in ("gt", "gte") and threshold is not None and threshold > 0:
+        return "active"
+    if operator in ("lt", "lte"):
+        return "baseline_required"
+    return "unsupported_trigger"
 
 
 def evaluate_trigger(
@@ -94,11 +105,12 @@ def evaluate_trigger(
     ``scope_id``). Returns whether the breach condition is met, the observed
     value, and the release threshold.
 
-    When the reserve defines ``preempt_threshold_pct`` (>0), the engine also
-    surfaces a DRAFT forward-deployment proposal once the observed value enters
-    the preempt band (``preempt_pct`` of the way to the hard breach) — the
-    "best defense is a good offense" posture. Forward deployment is still DRAFT
-    and requires human approval; this module never draws down autonomously.
+    When a supported reserve defines ``preempt_threshold_pct`` between zero and
+    one, the engine also surfaces a DRAFT proposal before a rising-metric hard
+    breach. Falling-metric triggers need a normal baseline not represented in
+    the current schema, so their preempt point is reported as unavailable while
+    the hard breach remains active. Forward deployment is still DRAFT and
+    requires human approval; this module never draws down autonomously.
     """
     key = reserve.get("trigger_metric_key")
     operator = reserve.get("trigger_operator")
@@ -131,7 +143,8 @@ def evaluate_trigger(
     breach = _breaches(operator, observed, threshold)
 
     preempt_pct = reserve.get("preempt_threshold_pct")
-    preempt_value = _preempt_value(operator, threshold, preempt_pct if preempt_pct else None)
+    preempt_status = _preempt_status(operator, threshold, preempt_pct)
+    preempt_value = _preempt_value(operator, threshold, preempt_pct)
     preempt_breach = _breaches(operator, observed, preempt_value) if preempt_value is not None else None
     # Forward-deployment proposal fires on the preempt band (but not yet hard breach).
     preempt_proposed = bool(preempt_breach) and not bool(breach)
@@ -145,6 +158,7 @@ def evaluate_trigger(
         "breach": breach,
         "release_proposed": bool(breach),
         "preempt_threshold_pct": preempt_pct,
+        "preempt_status": preempt_status,
         "preempt_value": preempt_value,
         "preempt_breach": preempt_breach,
         "preempt_proposed": preempt_proposed,

@@ -10,6 +10,7 @@
  * (migration 353) so Python and TypeScript share one implementation;
  * this module reads the view rather than re-implementing the SQL.
  */
+import { errorClass } from './error-safety.js';
 
 // Database client set by the hook initialization
 let db: any;
@@ -35,11 +36,19 @@ interface NoiCalculation {
   inputs: Record<string, unknown>;
 }
 
+export interface NoiBatchResult {
+  succeeded: number;
+  failed: number;
+}
+
 /**
  * Main NOI calculation: reads the shared v_crop_cycle_noi view
  * (single formula owner) and maps it onto the calculation shape.
  */
-export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation> {
+export async function calculateNoi(
+  cropCycleId: string,
+  databaseClient: any = db,
+): Promise<NoiCalculation> {
   const calculation: NoiCalculation = {
     cropCycleId,
     locationId: '',
@@ -60,7 +69,7 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
     },
   };
 
-  const row = await db('v_crop_cycle_noi')
+  const row = await databaseClient('v_crop_cycle_noi')
     .where('crop_cycle_id', cropCycleId)
     .first();
 
@@ -91,7 +100,10 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
 /**
  * Store NOI snapshot in the noi_snapshot table
  */
-export async function storeNoiSnapshot(calc: NoiCalculation): Promise<void> {
+export async function storeNoiSnapshot(
+  calc: NoiCalculation,
+  databaseClient: any = db,
+): Promise<void> {
   const snapshotData = {
     crop_cycle_id: calc.cropCycleId,
     location_id: calc.locationId,
@@ -112,7 +124,7 @@ export async function storeNoiSnapshot(calc: NoiCalculation): Promise<void> {
   };
 
   // Upsert: insert or update existing snapshot for this crop_cycle_id
-  await db('noi_snapshot')
+  await databaseClient('noi_snapshot')
     .insert(snapshotData)
     .onConflict('crop_cycle_id')
     .merge({
@@ -137,7 +149,7 @@ export async function storeNoiSnapshot(calc: NoiCalculation): Promise<void> {
 /**
  * Batch calculate NOI for all active crop cycles
  */
-export async function batchCalculateNoi(locationId?: string): Promise<NoiCalculation[]> {
+export async function batchCalculateNoi(locationId?: string): Promise<NoiBatchResult> {
   let query = db('crop_cycle').whereIn('status', [
     'active', 'flowering', 'harvesting', 'harvested', 'completed',
   ]);
@@ -147,19 +159,21 @@ export async function batchCalculateNoi(locationId?: string): Promise<NoiCalcula
   }
 
   const cropCycles = await query.select('id');
-  const results: NoiCalculation[] = [];
+  let succeeded = 0;
+  let failed = 0;
 
   for (const cc of cropCycles) {
     try {
       const result = await calculateNoi(cc.id);
       await storeNoiSnapshot(result);
-      results.push(result);
+      succeeded += 1;
     } catch (error) {
-      console.error(`[Kokonut] Failed to calculate NOI for crop cycle ${cc.id}:`, error);
+      failed += 1;
+      console.error(`[Kokonut] Failed to calculate NOI for crop cycle ${cc.id}: ${errorClass(error)}`);
     }
   }
 
-  return results;
+  return { succeeded, failed };
 }
 
 /**

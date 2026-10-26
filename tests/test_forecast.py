@@ -1,11 +1,11 @@
 """Forecast engine unit tests (no database required)."""
 
 from services.forecast.models import (
-    PriceAssumptions,
-    YieldAssumptions,
     CostAssumptions,
     GrowthAssumptions,
+    PriceAssumptions,
     ScenarioAssumptions,
+    YieldAssumptions,
 )
 from services.forecast.pricing import project_prices
 from services.forecast.risk import calculate_confidence_interval
@@ -48,6 +48,7 @@ def test_yield_and_cost_assumptions_roundtrip():
 def test_retained_value_computed_after_total_noi():
     """Guard against using total_noi before the crop NOI loop assigns it."""
     import inspect
+
     from services.forecast.engine import run_forecast
 
     source = inspect.getsource(run_forecast)
@@ -57,6 +58,7 @@ def test_retained_value_computed_after_total_noi():
 def test_forecast_submission_does_not_publish():
     """Forecast calculation must submit outputs for review, never publish them."""
     import inspect
+
     from services.forecast import engine
 
     run_source = inspect.getsource(engine.run_forecast)
@@ -65,6 +67,9 @@ def test_forecast_submission_does_not_publish():
     assert "SET status = 'published'" not in run_source
     assert "'draft'" in dashboard_source
     assert "status = 'published'" not in dashboard_source
+    assert "query_id = NULL" in dashboard_source
+    assert "query_sql = NULL" in dashboard_source
+    assert "forecast_output WHERE scenario_id" not in dashboard_source
 
 
 def test_negative_financial_interval_is_ordered_and_preserves_downside():

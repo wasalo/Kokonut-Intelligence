@@ -1,0 +1,77 @@
+{
+  "scope": "stored OODA advisory record SDK reads",
+  "date": "2026-10-18",
+  "result": "passed",
+  "network_access": false,
+  "database_access": false,
+  "provider_access": false,
+  "surfaces": {
+    "python": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q",
+      "result": "passed",
+      "tests": 104
+    },
+    "javascript": {
+      "command": "npm test -- --run",
+      "result": "passed",
+      "tests": 54
+    },
+    "typescript_build": {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    "schema_parity": {
+      "command": "python3 scripts/check-sdk-schema-parity.py",
+      "result": "passed",
+      "models": 95,
+      "canonical_columns": 1833,
+      "scalar_types": 1707,
+      "postgis_types": 12,
+      "jsonb_shapes": 111,
+      "enum_fields": 23,
+      "check_literal_fields": 75
+    },
+    "ruff": {
+      "command": "ruff check sdk/python/kokonut/client.py sdk/python/kokonut/methods.py sdk/python/kokonut/types.py sdk/python/kokonut/__init__.py tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py",
+      "result": "passed"
+    },
+    "python_compile": {
+      "command": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py",
+      "result": "passed"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "rows": 66,
+      "baseline_retained": 54,
+      "deployed": 7,
+      "prepared": 5
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "models": [
+    "SituationAssessment",
+    "AssessmentSignal",
+    "AssessmentDimension",
+    "OodaCycleLog"
+  ],
+  "accessors": {
+    "location_scoped": [
+      "situation_assessments",
+      "ooda_cycle_logs"
+    ],
+    "assessment_scoped": [
+      "assessment_signals",
+      "assessment_dimensions"
+    ]
+  },
+  "limits": [
+    "Reads expose persisted advisory records only.",
+    "No OODA evaluation, decision approval, or action execution was added.",
+    "The Directus/API authorization policy remains responsible for access control.",
+    "MAN-CAP-010 remains unaccepted."
+  ]
+}

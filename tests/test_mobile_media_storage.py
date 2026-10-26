@@ -3,8 +3,11 @@
 import re
 from pathlib import Path
 
+import pytest
+
 from services.mobile.media_storage import (
     MediaStorageNotConfigured,
+    S3CompatibleMediaStore,
     create_media_store,
 )
 
@@ -48,20 +51,48 @@ def test_s3_compatible_adapter_keeps_objects_private_and_supports_validation():
         "MOBILE_MEDIA_S3_REGION": "test-region",
     }
     store = create_media_store(config, client_factory=client_factory)
-    store.put_private("field-collector/item-1.jpg", b"jpeg", "image/jpeg")
-    head = store.head_private("field-collector/item-1.jpg")
-    store.delete_private("field-collector/item-1.jpg")
+    key = "private/field-collector/location/device/item-1.jpg"
+    store.put_private(key, b"jpeg", "image/jpeg")
+    head = store.head_private(key)
+    store.delete_private(key)
 
     assert factory_calls[0]["endpoint_url"] == config["MOBILE_MEDIA_S3_ENDPOINT"]
     assert factory_calls[0]["region_name"] == "test-region"
     assert head["ContentLength"] == 4
     put = client.calls[0][1]
     assert put["Bucket"] == "private-media"
-    assert put["Key"] == "field-collector/item-1.jpg"
+    assert put["Key"] == key
     assert put["Body"] == b"jpeg"
     assert put["ContentType"] == "image/jpeg"
     assert "ACL" not in put
     assert "PublicRead" not in str(put)
+
+
+@pytest.mark.parametrize("operation", ["put", "head", "delete"])
+@pytest.mark.parametrize(
+    "key",
+    [
+        "field-collector/item.jpg",
+        "private/other/item.jpg",
+        "private/field-collector/../outside.jpg",
+        "private/field-collector/location//item.jpg",
+        "private/field-collector/location/./item.jpg",
+        "private/field-collector/location/",
+    ],
+)
+def test_s3_operations_reject_keys_outside_the_private_prefix(operation, key):
+    client = FakeS3Client()
+    store = S3CompatibleMediaStore(client, "private-media")
+
+    with pytest.raises(ValueError, match="Invalid private media key"):
+        if operation == "put":
+            store.put_private(key, b"\xff\xd8\xffsynthetic", "image/jpeg")
+        elif operation == "head":
+            store.head_private(key)
+        else:
+            store.delete_private(key)
+
+    assert client.calls == []
 
 
 def test_private_media_migration_tracks_scope_size_and_attachment():

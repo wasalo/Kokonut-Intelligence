@@ -14,13 +14,15 @@ Usage:
     python -m services.analytics.digital_twin list --location-id UUID
 """
 
+import hashlib
 import json
 import math
 import uuid
-from datetime import datetime, date, timedelta, timezone
+from datetime import date, timedelta
 from typing import Optional
 
 from services.common.commands import CommandLine
+
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.digital_twin")
@@ -44,6 +46,7 @@ DEFAULT_PARAMS = {
     "initial_soil_carbon_pct": 1.5,
     "rainfall_multiplier": 1.0,   # × baseline
     "temperature_offset_c": 0,    # +°C offset from baseline
+    "weather_seed": 0,             # stable day-level weather variation
 }
 
 CROP_PARAMS = {
@@ -86,6 +89,15 @@ CROP_PARAMS = {
 }
 
 BASELINE_RAINFALL_MM_DAY = 3.0  # average daily rainfall
+
+
+def _weather_variation_index(seed: int, channel: str, day: int, modulus: int) -> int:
+    """Return a process-independent pseudo-random bucket for one weather input."""
+    # Python's built-in hash is salted per process, so identical runs used to
+    # produce different weather jitter across worker processes.
+    payload = f"kokonut-crop-simulation-v1:{seed}:{channel}:{day}".encode("ascii")
+    digest = hashlib.sha256(payload).digest()
+    return int.from_bytes(digest[:8], "big") % modulus
 
 
 # ============================================================
@@ -202,6 +214,12 @@ def run_simulation(conn, twin_id: str, parameters: dict = None) -> dict:
     if parameters:
         params.update(parameters)
 
+    weather_seed = params.get("weather_seed", 0)
+    if isinstance(weather_seed, bool) or not isinstance(weather_seed, int):
+        raise ValueError("weather_seed must be an integer")
+    run_parameters = dict(parameters or {})
+    run_parameters["weather_seed"] = weather_seed
+
     # Get twin info
     cur = conn.cursor()
     cur.execute(
@@ -225,7 +243,7 @@ def run_simulation(conn, twin_id: str, parameters: dict = None) -> dict:
         VALUES (%s, %s, 'base_simulation', 'running', %s::jsonb, NOW())
         RETURNING id
         """,
-        (run_id, twin_id, json.dumps(parameters or {})),
+        (run_id, twin_id, json.dumps(run_parameters)),
     )
 
     # Update twin run count
@@ -264,13 +282,19 @@ def run_simulation(conn, twin_id: str, parameters: dict = None) -> dict:
         day_of_year = current_date.timetuple().tm_yday
         # Seasonal temperature curve (peak at day 180)
         seasonal_temp = 25 + 10 * math.sin(2 * math.pi * (day_of_year - 80) / 365)
-        temp_avg = seasonal_temp + temp_offset + (hash(str(day)) % 10 - 5) * 0.3
+        temp_avg = seasonal_temp + temp_offset + (
+            _weather_variation_index(weather_seed, "temperature", day, 10) - 5
+        ) * 0.3
         temp_min = temp_avg - 5
         temp_max = temp_avg + 5
 
         # Seasonal rainfall
         seasonal_rain = BASELINE_RAINFALL_MM_DAY * (1 + 0.5 * math.sin(2 * math.pi * (day_of_year - 100) / 365))
-        rainfall = max(0, seasonal_rain * rain_mult + (hash(str(day + 1000)) % 8 - 4) * 0.5)
+        rainfall = max(
+            0,
+            seasonal_rain * rain_mult
+            + (_weather_variation_index(weather_seed, "rainfall", day, 8) - 4) * 0.5,
+        )
 
         # Solar radiation (MJ/m²/day)
         solar = 15 + 8 * math.sin(2 * math.pi * (day_of_year - 80) / 365)
@@ -339,7 +363,6 @@ def run_simulation(conn, twin_id: str, parameters: dict = None) -> dict:
 
         # --- Carbon ---
         c_biomass = biomass * 0.45 * 3.67  # C content × CO2 equivalent
-        c_soil = (soil_carbon / 100) * 1500000 * 0.001  # rough: 1500t soil/ha
         carbon_seq_day = c_biomass * 0.001  # rough sequestration rate
         total_carbon_seq += carbon_seq_day
 
@@ -398,6 +421,7 @@ def run_simulation(conn, twin_id: str, parameters: dict = None) -> dict:
         "run_id": run_id,
         "twin_id": twin_id,
         "status": "completed",
+        "weather_seed": weather_seed,
         "final_yield_kg_ha": round(final_yield, 2),
         "total_biomass_kg_ha": round(final_biomass, 2),
         "total_water_mm": round(total_water_in, 2),
@@ -598,8 +622,9 @@ def monte_carlo_yield(
     Returns:
         Distribution dict from ``services.simulation.resolution.monte_carlo``.
     """
-    from ..simulation.resolution import monte_carlo
     from services.common.database import get_db
+
+    from ..simulation.resolution import monte_carlo
 
     params = get_twin_config(conn, twin_id)
     base = {

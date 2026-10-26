@@ -1,0 +1,17 @@
+{
+  "capability": "CAP-038",
+  "result": "passed",
+  "change": "Legacy agent_action_log write and global-read helpers reject unauthenticated caller-supplied identity before database access.",
+  "tests": {
+    "command": "python3 -m pytest tests/test_agent_action_log_redaction.py tests/test_agent_write_boundary_inventory.py tests/test_agent_safety.py -q",
+    "passed": 16,
+    "skipped": 9,
+    "skips": "existing database-dependent checks without a configured disposable target"
+  },
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "candidate_or_legacy_database_touched": false,
+  "migration_applied": false,
+  "historical_action_log_rows_modified": false,
+  "remaining_boundary": "The repository has no current callers. Historical rows remain in PostgreSQL, but these legacy helpers no longer expose them; an authenticated worker/operator audit surface remains future work."
+}

@@ -66,6 +66,14 @@ const { classId } = await client.ecocredit.createClass({
 // List batches
 const { batches } = await client.ecocredit.batches();
 
+// Read paginated credit classes, then continue from the returned cursor
+const firstPage = await client.ecocredit.classes({ limit: 50 });
+const nextKey = firstPage.pagination?.next_key;
+if (nextKey?.length) {
+  const nextPage = await client.ecocredit.classes({ limit: 50, offset: nextKey });
+  console.log(nextPage.classes.length);
+}
+
 // Check balance
 const { balance } = await client.ecocredit.balance(
   "batch-001",
@@ -88,6 +96,36 @@ for await (const update of client.ecocredit.streamBalances("0x...")) {
 
 client.close();
 ```
+
+Remote targets use TLS with the system trust store by default; recognized
+loopback targets such as `localhost` and `127.0.0.1` use plaintext for local
+development. To trust a private CA, pass explicit gRPC credentials:
+
+```ts
+import { readFileSync } from "node:fs";
+import { credentials } from "@grpc/grpc-js";
+import { KokonutGrpcClient } from "@kokonut/intelligence-client";
+
+const client = new KokonutGrpcClient("grpc.internal:50051", {
+  credentials: credentials.createSsl(
+    readFileSync("/etc/kokonut/grpc-ca.pem"),
+  ),
+});
+```
+
+For a trusted private network without TLS, explicitly pass
+`credentials.createInsecure()` from `@grpc/grpc-js`. Do not use plaintext for
+public or otherwise untrusted networks. Caller-provided credentials always
+override the defaults.
+
+The EcocreditService list methods accept an optional `GrpcPageRequest` with a
+`limit` and byte `offset`. Paginated responses expose `pagination.next_key`
+and `pagination.total` when the server supplies metadata, matching the
+proto-loader's raw `keepCase` field names. The server defaults to 100 rows,
+accepts limits up to 500, and returns the next cursor as ASCII decimal offset
+bytes; pass it back unchanged. Existing calls without a pagination argument
+keep their previous behavior. See the gRPC API guide for pagination limits and
+the consistency boundary across multiple requests.
 
 ## Authentication
 

@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-16",
+  "slice": "Location-scoped scheduled weather-forecast JobSpec",
+  "base_commit": "74c9965a387635616571df0e82d44cce8a6678f7",
+  "implementation": {
+    "module": "services.ingestion.weather_forecast",
+    "required_inputs": ["location_id"],
+    "accepted_arguments": ["--location-id <UUID>"],
+    "rejected_arguments": ["--all-locations", "missing location"],
+    "schedule_plan": "Generated plans remain disabled and disallow overlap.",
+    "persistence": "Existing natural-key forecast upsert, ingestion audit, and ClickHouse outbox remain in the same PostgreSQL transaction."
+  },
+  "focused_checks": [
+    {
+      "command": "python3 -m pytest -q tests/test_scheduled_command_contracts.py tests/test_core_jobs_contract.py tests/test_worker_job_contract_inventory.py tests/test_worker_operation_map.py tests/test_worker_source_closure.py tests/test_worker_function_reachability.py tests/test_worker_sql_inventory.py tests/test_worker_sql_reachability.py tests/test_worker_boundary_preflight.py",
+      "passed": 154,
+      "failed": 0
+    },
+    {
+      "command": "python3 -m pytest -q tests/test_weather_forecast_atomicity.py tests/test_weather_forecast_cli_scope.py tests/test_ingestion_outbox_producers.py",
+      "passed": 43,
+      "failed": 0
+    }
+  ],
+  "generated_inventory": {
+    "job_specs": 16,
+    "scheduled_modules": 16,
+    "worker_roots_including_handlers": 23,
+    "worker_source_files": 83,
+    "worker_sql_sites": 289,
+    "runtime_sql_sites": 3894,
+    "worker_effect_candidates": 35,
+    "worker_sql_static_paths": 218,
+    "worker_sql_without_static_function_match": 71
+  },
+  "quality_checks": {
+    "ruff": "passed",
+    "generated_worker_inventories": "passed",
+    "runtime_sql_inventory": "regenerated and passed reproducibility check",
+    "capability_matrix": "valid: 66 rows; 55 baseline-retained, 7 deployed, 4 prepared; zero MAN-CAP acceptances"
+  },
+  "isolation": {
+    "database": "mocked only; no database contacted",
+    "openweathermap": "mocked; no provider request",
+    "clickhouse": "mocked outbox; no service contacted",
+    "candidate_or_legacy": "not accessed",
+    "schedule_activation": false,
+    "credentials_provisioned": false
+  },
+  "remaining_gates": [
+    "signed worker context and per-location authorization",
+    "provider credentials and live provider behavior",
+    "cadence and active schedule ownership review",
+    "candidate rollout and MAN-CAP-040/047 acceptance"
+  ]
+}

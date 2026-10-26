@@ -7,8 +7,8 @@ and incentive alignment tracking.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+import math
+from typing import Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
@@ -94,10 +94,28 @@ def issue_coins(
 
     Coins are issued from inflation, not from existing supply.
     """
+    if isinstance(impact_score, bool):
+        raise ValueError("impact_score must be finite and positive")
+    try:
+        impact_score = float(impact_score)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("impact_score must be finite and positive") from exc
+    if not math.isfinite(impact_score) or impact_score <= 0:
+        raise ValueError("impact_score must be finite and positive")
+
     # Simple issuance formula: amount proportional to impact
     amount = impact_score * 0.1  # 0.1 coins per unit of impact
 
     cur = conn.cursor()
+    cur.execute(
+        "SELECT status FROM periodic_validation WHERE id = %s FOR UPDATE",
+        (validation_id,),
+    )
+    validation = cur.fetchone()
+    if not validation or validation[0] not in ("validated", "finalized"):
+        cur.close()
+        raise ValueError("coins can only be issued from a validated periodic impact")
+
     cur.execute("""
         INSERT INTO coin_inflation_event
             (validation_id, amount, recipient_address, recipient_evaluator_id,

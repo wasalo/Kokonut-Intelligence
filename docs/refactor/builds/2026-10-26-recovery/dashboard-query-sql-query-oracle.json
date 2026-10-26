@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-26",
+  "scope": "Prevent Directus dashboard dataset queries from using archived query_sql as an information side channel.",
+  "directus_hook_test_command": "npm test -- --reporter=dot (extensions/kokonut-hooks)",
+  "directus_hook_tests_passed": 117,
+  "directus_extension_build_and_typecheck": "passed",
+  "capability_matrix_validation": "passed (67 rows)",
+  "git_diff_check": "passed",
+  "database_provider_candidate_or_live_directus_access": false,
+  "behavior": {
+    "blocked_query_uses": [
+      "Explicit or aliased query_sql projection",
+      "Nested or qualified filter predicates on query_sql",
+      "Sort and group-by references to query_sql",
+      "Aggregate references to query_sql",
+      "Broad collection search while archived query_sql remains stored"
+    ],
+    "denial": "Generic FORBIDDEN / HTTP 403 before collection data queries",
+    "preserved": [
+      "Ordinary metadata filters, projections, and sorting",
+      "Wildcard/default projections with query_sql removed from response payloads",
+      "Existing archived database values"
+    ]
+  },
+  "remaining_gates": [
+    "Effective deployed Directus field and role permissions for all fields",
+    "Pinned-version runtime acceptance",
+    "Populated dashboard parity and external consumer authorization"
+  ]
+}

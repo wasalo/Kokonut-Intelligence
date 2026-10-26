@@ -203,6 +203,9 @@ message CreateBatchRequest {
   double total_quantity = 4;
   string unit = 5;
   string jurisdiction = 6;
+  string origin_tx_id = 7;
+  string origin_tx_source = 8;
+  string origin_tx_contract = 9;
 }
 message CreateBatchResponse {
   string batch_id = 1;

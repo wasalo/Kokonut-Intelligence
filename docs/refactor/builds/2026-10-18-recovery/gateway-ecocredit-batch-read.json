@@ -1,0 +1,39 @@
+{
+  "check": "gateway_ecocredit_batch_read",
+  "date": "2026-10-18",
+  "result": "passed",
+  "scope": {
+    "route": "GET /operator/api/ecocredits/{location_id}/batches",
+    "required_scope": "ecocredit:read",
+    "read_only_transaction": true,
+    "signed_tenant_context_before_query": true,
+    "location_filter": "credit_batch.location_id",
+    "account_level_data_exposed": false,
+    "wallet_addresses_exposed": false,
+    "batch_and_ledger_quantities_returned_separately": true,
+    "numeric_quantities_serialized_as_four_decimal_strings": true,
+    "candidate_or_legacy_database_touched": false,
+    "wallet_or_chain_accessed": false
+  },
+  "pytest": {
+    "command": "python3 -m pytest tests/test_gateway_ecocredits.py tests/test_operator_route_policy_inventory.py tests/test_credit_balance.py tests/test_credit_batch_manager.py tests/test_operator_auth.py tests/test_gateway_auth.py tests/test_gateway_audit.py -q",
+    "passed": 122,
+    "failed": 0
+  },
+  "operator_route_policy_inventory": {
+    "concrete_method_path_entries": 47,
+    "all_registered_routes_have_exact_policy": true,
+    "near_miss_and_wrong_method_routes_remain_denied": true
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix_validation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "Synthetic fixtures and mocked database identity only; no populated-data parity was established.",
+    "No ecocredit custody mutations, supply reconciliation, domain-table RLS, live wallet, or chain access was performed.",
+    "Class, basket, fee, enrollment, and bridge Gateway parity remain incomplete; MAN-CAP-019 is not accepted."
+  ]
+}

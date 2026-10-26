@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "EventBus handler subprocess environment and result protocol unit checks",
+  "commands": [
+    "python3 -m pytest tests/test_event_bus_durability.py -q",
+    "python3 -m pytest tests/test_event_handler_runner.py -q"
+  ],
+  "result": "passed",
+  "test_count": 26,
+  "checks": [
+    "all worker-specific database URLs and worker credentials are removed from handler subprocess environments",
+    "shared runtime and non-worker environment entries are preserved for current handlers",
+    "handler requests are sent through stdin and not placed in command-line arguments",
+    "allowlisted handler runner supports legacy and event-id signatures and returns a stable JSON result",
+    "handler failures remain bounded error results",
+    "timeouts kill and reap the handler subprocess",
+    "invalid requests and subprocess exit failures do not expose captured worker secrets"
+  ],
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "database_access": false,
+  "candidate_or_legacy_database_access": false,
+  "real_worker_credential_provisioned_or_used": false,
+  "synthetic_credential_values_used": true
+}

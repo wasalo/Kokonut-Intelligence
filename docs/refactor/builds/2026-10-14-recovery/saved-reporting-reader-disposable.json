@@ -1,0 +1,32 @@
+{
+  "result": "passed",
+  "date": "2026-10-14",
+  "database": "kernel_reporting_check_20261014",
+  "postgres_image": "postgres:16",
+  "scope": "fresh disposable PostgreSQL instance with synthetic roles, views, and rows",
+  "checks": {
+    "application_updated_refresh_metadata_without_reporting_view_access": true,
+    "reader_identity_and_acl_verified": true,
+    "reader_selected_only_three_curated_views": true,
+    "reader_transaction_read_only": true,
+    "private_base_table_read_denied": true,
+    "data_changing_cte_denied": true,
+    "synthetic_rows_unchanged_after_denials": 3,
+    "error_diagnostics_omit_query_text": true,
+    "changed_saved_query_rejected_before_metadata_update": true
+  },
+  "focused_checks": {
+    "reporting_reader_dataset_refresh_core_features": "30 passed",
+    "compose_profile": "15 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "safe_denials": {
+    "private_relation": "InsufficientPrivilege (SQLSTATE 42501)",
+    "data_changing_cte": "FeatureNotSupported (SQLSTATE 0A000)"
+  },
+  "candidate_or_legacy_database_touched": false,
+  "disposable_container_removed": true,
+  "physical_raspberry_pi_tested": false
+}

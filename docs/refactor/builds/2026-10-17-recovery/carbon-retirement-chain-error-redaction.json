@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Non-blocking on-chain settlement after independently reviewed carbon-credit retirement",
+  "behavior": {
+    "returned_failure": "The internal confirmed retirement remains verified and the chain_sync result contains only a fixed summary plus exception class.",
+    "failure_log": "The warning retains retirement ID and exception class but omits raw RPC/provider details.",
+    "custody_and_review": "The existing human reviewer, reservation mutation, commit, and non-blocking chain-sync order remain unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_carbon_retirement_error_redaction.py tests/test_carbon_credits.py tests/test_credit_chain_sync.py -q",
+    "result": "53 passed",
+    "new_regressions": 1,
+    "coverage": [
+      "secret-bearing RPC failure is absent from result and warning",
+      "independent reviewer confirmation and committed verified state remain intact",
+      "non-blocking failure does not rollback the approved retirement"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked connection and chain-sync function"
+  },
+  "limitations": [
+    "No live chain or database was contacted.",
+    "This does not verify transaction submission, chain confirmation, or credit-registry parity."
+  ]
+}

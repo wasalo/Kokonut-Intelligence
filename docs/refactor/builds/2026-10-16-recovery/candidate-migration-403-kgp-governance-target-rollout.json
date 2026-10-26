@@ -1,0 +1,75 @@
+{
+  "checked_at_utc": "2026-10-16T06:29:26Z",
+  "source_revision_before_batch_commit": "6edc14e plus local KGP governance projection work",
+  "scope": "Apply migration 403 to the local Kokonut Kernel candidate after an encrypted PostgreSQL checkpoint and isolated restore rehearsal.",
+  "checkpoint": {
+    "directory": "backups/kernel-candidate-pre-kgp403-20261016T0617Z",
+    "created_at_utc": "2026-10-16T06:17:51.073782Z",
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "archive": "postgres.dump.age",
+    "archive_sha256": "8da07ebca8e6e7ec18f8e894c65409e11ab45874ce932b9e2b434f9c7660cc05",
+    "archive_bytes": 5782457,
+    "scope_limit": "One PostgreSQL database only. Roles/grants, other databases, Docker volumes, external media, and provider state are excluded."
+  },
+  "restore_rehearsal": {
+    "completed": true,
+    "project": "kokonut-kgp403-restore-20261016t0617z",
+    "target_database": "kokonut_restore",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "platform": "linux/amd64",
+    "restore_method": "age decrypt streamed directly to pg_restore with --exit-on-error --single-transaction --no-owner --no-privileges",
+    "entrypoint_race": "The first attempt raced the PostGIS image's temporary initialization server; pg_restore's single transaction rolled back. The retry waited for the final PostgreSQL server and restored successfully.",
+    "candidate_pre_migration_schema_ledger_rows": 393,
+    "restored_schema_ledger_rows": 393,
+    "candidate_pre_migration_applied_rows": 393,
+    "restored_applied_rows": 393,
+    "schema_ledger_fingerprint_candidate": "4ce27d5fab5aff5021a1b797f56ccf04",
+    "schema_ledger_fingerprint_restore": "4ce27d5fab5aff5021a1b797f56ccf04",
+    "extension_list_candidate": "btree_gist,fuzzystrmatch,pg_stat_statements,pg_trgm,pgcrypto,plpgsql,postgis,postgis_tiger_geocoder,postgis_topology,uuid-ossp",
+    "extension_list_restore": "btree_gist,fuzzystrmatch,pg_stat_statements,pg_trgm,pgcrypto,plpgsql,postgis,postgis_tiger_geocoder,postgis_topology,uuid-ossp",
+    "public_relation_count_candidate": 1392,
+    "public_relation_count_restore": 1392,
+    "recovery_container_stopped": true,
+    "recovery_volume_retained": true
+  },
+  "recovery_healthcheck": {
+    "change": "The recovery database healthcheck requires PID 1 to be postgres and a TCP readiness response, so the temporary PostGIS initialization server cannot satisfy readiness.",
+    "disposable_delayed_init_check": "During a synthetic 30-second init hook PID 1 was bash, health remained starting, and the healthcheck failed. After initialization PID 1 was postgres, health became healthy, and recent check exit codes were 1,1,1,0.",
+    "temporary_test_resources_removed": true
+  },
+  "candidate_rollout": {
+    "compose_project": "kokonut-kernel-candidate",
+    "candidate_services_before_and_after": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "candidate_app_recreated": false,
+    "migration_command": "python3 -m services.migration migrate --schemas-only --only-migration schema:403_kgp_governance_target_policy_projection.sql --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --compose-file docker-compose.kernel-metabase.yml",
+    "migration_id": "schema:403_kgp_governance_target_policy_projection.sql",
+    "migration_sha256": "6210389ff39ed86e947ac74eb2026abf7daf1643ffd39571a489e5d3dd294016",
+    "migration_status": "applied",
+    "applied_schema_migrations_after": 394,
+    "ordered_schema_plan_pending_after": 0,
+    "policy_table_rows_after": 0,
+    "application_table_rls_enabled_after": false,
+    "get_health_http_status": 200,
+    "anonymous_mobile_collection_review_queue_http_status": 401
+  },
+  "isolation": {
+    "legacy_stack_touched": false,
+    "candidate_metabase_recreated": false,
+    "candidate_proxy_recreated": false,
+    "seeds_applied": false,
+    "application_data_changed": false,
+    "candidate_database_schema_changed_only_by_migration_403": true
+  },
+  "limitations": [
+    "The restore verified schema ledger fingerprints, extensions, and public relation counts, not populated domain-row parity, media, grants, worker leases, or providers.",
+    "The candidate app image was not rebuilt or recreated; the rollout applies only the additive, empty governance projection schema.",
+    "Migration 403 is an informational mirror. The smart contract remains authoritative for governance policy execution.",
+    "This does not establish live RPC behavior, real-chain reorg recovery, application-table RLS, production backup completeness, Raspberry Pi hardware behavior, or long-duration recovery."
+  ]
+}

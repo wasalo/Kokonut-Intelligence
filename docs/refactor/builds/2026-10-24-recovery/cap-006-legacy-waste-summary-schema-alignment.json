@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "working tree based on da34512a",
+  "capability": "CAP-006",
+  "batch": "legacy waste summary schema alignment",
+  "implementation": {
+    "function": "services.analytics.waste_management.get_waste_summary",
+    "canonical_source": "schemas/postgres/153_waste_management.sql::waste_stream",
+    "columns": [
+      "location_id",
+      "waste_type",
+      "quantity_kg",
+      "disposal_method",
+      "record_date",
+      "status"
+    ],
+    "lifecycle": "verified only; the canonical constraint does not include published",
+    "time_window": "record_date >= CURRENT_DATE - (bound_positive_integer_days - 1), including exactly the requested number of calendar dates",
+    "compatibility": "Existing CLI response keys and aggregation breakdowns are preserved.",
+    "resource_safety": "Reject invalid windows before opening a cursor; close the cursor on success and query failure.",
+    "authorization_boundary": "Trusted local CLI path only; this does not add Gateway authentication or tenant isolation."
+  },
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_waste_management.py",
+    "result": "22 passed; five invalid-window subtests included",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "database_access": false,
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "migration_required": false,
+  "remaining_acceptance": [
+    "other legacy waste writer/read schema alignment",
+    "Gateway authorization and database tenant isolation remain separate controls",
+    "populated waste output parity",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Restore the prior query and regressions. No persistent data was written."
+}

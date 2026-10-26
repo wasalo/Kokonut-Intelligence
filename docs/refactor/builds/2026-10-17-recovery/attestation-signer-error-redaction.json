@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Pending EAS attestation submission failures",
+  "behavior": {
+    "persisted_failure": "The request remains failed and signing_attempts increments; error_message stores a bounded summary plus exception class.",
+    "returned_failure": "The result contains the same bounded summary without raw provider exception text.",
+    "failure_log": "The log includes the request ID and exception class only."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_attestation_signer_error_redaction.py tests/test_attestation.py tests/test_eas_indexer_recovery.py tests/test_eas_provider.py tests/test_eas_worker.py -q",
+    "result": "52 passed",
+    "new_regressions": 1,
+    "coverage": [
+      "secret-bearing EAS failure is absent from persisted error, returned result, and logs",
+      "failed status and signing-attempt increment remain intact"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake connection and mocked EAS client"
+  },
+  "limitations": [
+    "No live EAS provider or database was contacted.",
+    "This contains failure details but does not implement a live attestation submission."
+  ]
+}

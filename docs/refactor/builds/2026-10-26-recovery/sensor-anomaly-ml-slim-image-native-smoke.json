@@ -1,0 +1,41 @@
+{
+  "check": "sensor_anomaly_ml_slim_image_import_smoke",
+  "captured_on": "2026-10-26",
+  "image": "kokonut-kernel-candidate-sensor-anomaly-ml-worker:latest",
+  "image_id": "sha256:50dfdf6bbe9527bedb03210e27a2de9e82cb1c0542de451d54e593519446b61e",
+  "docker_image_size_bytes": 955405653,
+  "platform": "linux/amd64",
+  "reported_machine": "x86_64",
+  "python": "3.11",
+  "network": "none",
+  "root_filesystem_read_only": true,
+  "temporary_filesystem": "/tmp tmpfs",
+  "credentials_provided": false,
+  "database_or_provider_calls": false,
+  "cli_help": "passed",
+  "pip_check": "passed",
+  "installed_package_count": 27,
+  "imported_packages": {
+    "numpy": "1.26.4",
+    "pandas": "3.0.6",
+    "prophet": "1.5.0",
+    "scikit_learn": "1.9.1",
+    "scipy": "1.17.1",
+    "psycopg2": "2.9.13"
+  },
+  "unrelated_packages_absent": {
+    "fastapi": true,
+    "gstools": true,
+    "requests": true,
+    "typer": true,
+    "web3": true,
+    "yfinance": true
+  },
+  "sensor_anomaly_ml_worker_imported": true,
+  "candidate_or_legacy_touched": false,
+  "compose_services_started": false,
+  "physical_raspberry_pi_tested": false,
+  "non_fatal_notices": [
+    "Prophet optional Plotly visualization support is unavailable"
+  ]
+}

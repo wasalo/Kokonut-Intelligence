@@ -1,0 +1,25 @@
+{
+  "run_date_utc": "2026-10-26",
+  "scope": "Directus tenant lifecycle and business filters use the request database handle",
+  "result": "passed",
+  "checks": {
+    "focused_tenant_authorization_and_lifecycle_tests": "21 passed",
+    "full_directus_hook_suite": "93 passed",
+    "directus_extension_bundle": "passed",
+    "typescript_no_emit_check": "passed",
+    "tenant_update_collections_checked": 11,
+    "downstream_update_filters_fail_closed_without_request_database": "passed",
+    "request_database_identity_preserved": "passed",
+    "non_tenant_extension_database_fallback_preserved": "passed"
+  },
+  "database_or_directus_runtime_accessed": false,
+  "candidate_or_legacy_modified": false,
+  "limitations": [
+    "Source and unit evidence only; it does not establish request-context semantics in the pinned Directus runtime or broader role/field/hook parity."
+  ],
+  "source_sha256": {
+    "extensions/kokonut-hooks/src/directus-authorization.ts": "2dc156532541ce3db3ccaae1a277dcb00f470dbc30576047da52cc0601b85931",
+    "extensions/kokonut-hooks/src/index.ts": "74503886c56e0a27f3f0f04c9903c9f425a3a4a13dc94edd337ce5c62d9b0db5",
+    "extensions/kokonut-hooks/src/index.test.ts": "d84cf20d45cff1ba3b80524fd28fcc0604ed8c449f8044bc10b44dbb6b0c93e7"
+  }
+}

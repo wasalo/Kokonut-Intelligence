@@ -1,0 +1,621 @@
+# CAP-027 bounded Delphi consultation read contract
+
+## Purpose
+
+This is the first native Kernel access path for Real-time Delphi. It gives a
+location-authorized operator a privacy-aware view of consultation state while
+keeping participant identities, raw explanations, facilitator recommendations,
+and minority reports outside the response.
+
+## Route and authorization
+
+`GET /operator/api/delphi/{location_id}/studies?limit=50&offset=0`
+
+- Requires an authenticated OIDC operator and the exact location-scoped
+  `delphi:read` grant.
+- The Gateway establishes signed tenant context in the same transaction before
+  calling `kokonut_security.list_location_delphi_consultations`.
+- The database function checks actor type, signed location, and current exact
+  grant again. It returns only studies whose `location_id` equals that location;
+  null-location and other-location studies are omitted.
+- `limit` is 1–50, `offset` is 0–10,000, and the SQL function reads at most one
+  extra row to report `has_more`. Responses are `no-store` and vary by cookie.
+
+## Projection and consent
+
+Study rows include their title, description, variation, status, and lifecycle
+timestamps. Item rows include the question label/description, type, scale, and
+range. Scores are aggregated from contributions whose panel member is currently
+marked `consent_status = 'granted'`; pending and withdrawn members are excluded
+at query time. Median, mean, interquartile range, population standard deviation,
+coefficient of variation, weighted median, consensus flag, participant count,
+and latest included submission time are returned only when the eligible group
+meets `max(3, ceil(stopping_criteria.min_participants))`. Below that threshold,
+the response reports `results_available: false` and returns null statistics and
+participant count.
+
+The route never returns panel member IDs, participant references, display
+tokens, expert weights, contribution rows or reasoning, arbitrary metadata,
+consensus history, recommendations, stopping evaluations, diversity records,
+or minority reports.
+
+## Human recommendation review
+
+`GET /operator/api/delphi/{location_id}/recommendations?limit=50&offset=0`
+lists bounded draft summaries and text for an authenticated operator with the
+exact location-scoped `delphi:review` grant. The review queue returns only
+recommendations attached to that location and adds readiness blockers for
+self-review, missing diversity assessment, and draft/submitted minority
+reports. It never returns participant identifiers, raw reasoning, or arbitrary
+study metadata.
+
+`POST /operator/api/delphi/{location_id}/recommendations/{recommendation_id}/decision`
+accepts exactly `decision`, `request_id`, and `reason_code`. It supports
+approve/reject decisions on draft recommendations only. The creator cannot
+decide their own draft. Approval requires an existing diversity assessment and
+no draft or submitted minority report; rejection remains available for a draft
+even when approval gates are incomplete. Request IDs are bound to the operator,
+location, recommendation, decision, and reason code; retries must match exactly.
+The private append-only decision ledger contains the reviewer, request key,
+decision, and allowlisted reason code, without free-text feedback or review
+notes. Neither endpoint is cached.
+
+An approval changes the existing recommendation status to `approved`. Under
+the legacy `v_delphi_consensus_public` view, that status can make aggregate
+consensus visible when a verified/published farm registry record also exists;
+the view does not expose recommendation text. This Kernel route adds no separate
+publish action or publication surface. This approval behavior must be included
+in human review acceptance.
+
+The operator console shows this panel only when the signed-in session includes
+an exact `delphi:review` grant for the selected location. It loads the draft
+text through no-store requests, displays database blockers, hides approval when
+the queue says review is not ready, and withholds both decisions for the
+creator's own draft. Decisions use CSRF protection and only the database's
+allowlisted reason codes. A browser-generated request UUID is retained for an
+identical retry. Five focused console contract checks pass, including Node.js
+parsing of the inline application script. The console has not been accepted
+through live OIDC/browser use.
+
+## Study opening readiness
+
+`GET /operator/api/delphi/{location_id}/studies/{study_id}/open-readiness`
+requires the exact location-scoped `delphi:open` grant and signed operator
+context. Migration 633 checks the selected study, question presence, the
+configured minimum rule, and the current consent status of panel members. It
+returns only those booleans, the study/location/status, and fixed blocker codes;
+it never returns a participant identifier or panel count. Pending and
+withdrawn members do not satisfy the current-consent threshold.
+
+The console keeps **Open study** disabled until a fresh matching readiness
+response says the study is eligible, refreshes readiness when the selection or
+question set changes, and makes another no-store check before asking for the
+open confirmation. The migration-631 transition remains authoritative and
+rechecks prerequisites in its write transaction, so consent changes between
+the projection and the action cannot bypass the gate. The readiness result is
+advisory and can become stale immediately; it is not a reservation.
+
+Migrations 635–637 now provide the notice-bound single-use invitation,
+participant-authenticated consent receipt, withdrawal, and bounded
+pseudonymous membership path. This readiness projection remains read-only; it
+does not grant consent or enroll a participant.
+
+## Stopping-criteria evaluation
+
+`POST
+/operator/api/delphi/{location_id}/studies/{study_id}/stopping-evaluation`
+requires the exact location-scoped `delphi:evaluate_stopping` grant and one
+`request_id`. The Gateway sets signed operator/location context on the same
+transaction before calling migration 639's bounded function. PostgreSQL checks
+the active grant again and permits evaluation only while that exact-location
+study remains open.
+
+The evaluator locks the study and its panel rows while it calculates from
+currently consented contributions. Participant answer changes and study
+closure use the same study lock, so they cannot interleave with an evaluation.
+Withdrawn and pending participants are excluded even if their old contribution
+rows remain. Consensus, minimum participation, stability, and elapsed duration
+use the study's validated stopping criteria. Stability compares only the last
+prior Kernel evaluation whose consent-filtered snapshot is not older than the
+latest consent event; legacy snapshots are never trusted for stability.
+
+The response contains the study/location, one fixed outcome per question,
+whether the study-level rule recommends stopping, evaluation time, and retry
+status. It omits participant counts, numeric scores/statistics, response text,
+panel identities, and consent details. Private append-only item/study records
+support stability and audit; a separate digest-backed request receipt makes
+exact retries replay and rejects request-ID reuse with changed scope. The
+operator must review the advisory result and separately use the exact
+`delphi:close` action. Evaluation never closes a study or publishes a
+recommendation.
+
+The first-party console enables the action only for an open study when the
+selected location has both `delphi:read` and `delphi:evaluate_stopping`. It
+requires confirmation, CSRF, no-store requests, and a retry-stable request ID.
+It renders fixed outcome codes as text and states that closing remains a
+separate human action.
+
+## Study draft creation
+
+`POST /operator/api/delphi/{location_id}/studies` creates one private Delphi
+study in `draft` state. The request accepts exactly `request_id`, `title`,
+`description`, `variation`, `facilitator_type`, and `stopping_criteria`;
+`request_id` and title are required. Variations and facilitator types use
+explicit allowlists, title/description are bounded, and stopping criteria
+accept only the four supported fields with bounded numeric values. The
+operator identity comes from the authenticated OIDC session, and the route
+requires an exact location-scoped `delphi:draft` grant. The service sets signed
+tenant context before calling the bounded database function and returns
+no-store responses.
+
+Migration 630 rechecks signed operator/location context and the live grant in
+the database, inserts only `draft` state, and records an immutable private
+request receipt. The receipt stores a SHA-256 digest rather than duplicating
+the title or description. Identical retries return the original study;
+reusing a request ID with different content, a mismatched location, malformed
+criteria, or a read-only grant fails closed. Runtime and Directus cannot read
+the receipt table; only the Gateway runtime can execute the function, which is
+owned by a dedicated non-login role with column-limited study access. Study
+creation remains draft-only; questionnaire items, notice review, participant
+invites and consent, opening/closing, answer submission, and stopping
+evaluation use separate contracts and grants. The operator console provides
+the study-creation form only with an exact location `delphi:draft` grant. It
+uses bounded criteria, CSRF-protected no-store requests, and an unchanged retry
+ID in the active page; it confirms the returned location and `draft` state and
+does not offer open, review, or publish actions.
+
+## Questionnaire item draft creation
+
+`POST /operator/api/delphi/{location_id}/studies/{study_id}/items` adds one
+question to a private study draft. The authenticated operator must hold the
+exact location-scoped `delphi:draft` grant. The Gateway establishes signed
+tenant context on the same transaction before calling the bounded database
+function, which rechecks the live grant, exact study/location pair, and `draft`
+status under a row lock.
+
+The request accepts only `request_id`, `item_type`, `label`, `description`,
+`scale`, `min_value`, and `max_value`; `request_id` and `label` are required.
+Types and scales use explicit allowlists, text and numeric bounds are checked in
+the Gateway and again in PostgreSQL, and values must fit the legacy
+`NUMERIC(8,4)` columns. Item creation never opens a study, enrolls a panel, or
+submits a response. The private append-only receipt stores the operator,
+request key, location, study and item references, and a content digest. Exact
+retries replay; reusing a key with changed content fails. The dedicated
+non-login function owner has only eligibility reads and question insert
+columns, plus the row-lock privilege on the study. Runtime can execute the
+function but cannot read the receipt; Directus can neither execute it nor read
+the receipt.
+
+The current contract intentionally omits `target_entity_type` and
+`target_entity_id`: the repository does not yet define one generic
+location-safe resolver for all supported target entity types. Preserve those
+links in the legacy implementation until a typed, per-entity resolver and
+cross-location denial contract are implemented. The operator console question
+editor appears only where the session has both `delphi:read` and `delphi:draft`
+for the same location. Its bounded, paged study read filters the chooser to
+`draft` status; the write still relies on the database check, so a concurrent
+open makes the request fail closed. The form uses CSRF-protected, same-origin,
+no-store requests, reuses a request ID for an unchanged retry, and validates
+that the returned item belongs to the selected location and study. It does not
+enroll panel members, collect answers, open the study, or attach a target
+entity. Panel enrollment, contribution submission, and stopping evaluation
+remain separate work. Migration 632 and six grouped disposable PostgreSQL 16
+acceptance checks are recorded in the [implementation evidence](builds/2026-10-25-recovery/cap-027-delphi-study-items-disposable.json).
+
+## Facilitator draft creation
+
+`GET /operator/api/delphi/{location_id}/draft-studies?limit=50&offset=0`
+lists only open or closed studies at the requested location. It requires the
+distinct location-scoped `delphi:draft` grant and signed operator context.
+Study list pages are bounded to 50 rows and never include participant data.
+
+`POST
+/operator/api/delphi/{location_id}/studies/{study_id}/recommendation-drafts`
+accepts exactly `request_id`, `summary`, and `recommendation_text`. The
+request ID and study must be valid UUIDs; the summary is optional and bounded
+to 4,000 characters, and recommendation text is non-empty and bounded to
+20,000 characters. The database verifies that the study belongs to the signed
+location and is open or closed, then creates only a `draft` recommendation.
+The unique creator/request key is held in a private append-only ledger, so
+exact retries return the same recommendation and reuse with changed study or
+content is rejected. The ledger stores request identity and row references,
+not duplicate draft text. Creation does not approve, publish, or expose the
+draft through the public consensus view.
+Review remains a separate exact `delphi:review` grant and rejects creator
+self-review.
+
+The operator console lists draftable studies and provides a CSRF-protected,
+no-store form. Its retry key remains stable for identical content. On success
+the UI says that an independent decision is required and explicitly reports
+that nothing was published. The form appears only for a location with the
+`delphi:draft` grant; it does not grant review access.
+
+## Database boundary and limitations
+
+Migration 449 creates a non-login, non-inheriting read-function owner with only
+the table reads needed for the consultation projection. Migration 450 adds a
+separate non-login reviewer function owner, narrow recommendation update
+privileges, and a private immutable review ledger. Both migrations grant the
+Gateway runtime execute permission for bounded functions; Directus cannot call
+the review functions or read the review ledger. Migration 451 adds a separate
+non-login draft-function owner with study/grant reads, column-limited draft
+inserts, and a private append-only request ledger. Runtime and Directus cannot
+read or write that ledger directly; only the Gateway runtime can invoke the
+bounded functions, and Directus is explicitly denied. The shared runtime still has broader legacy
+DML on Delphi records, so neither route family proves that direct legacy/CLI
+access cannot bypass the Kernel contracts. Universal runtime ACL/RLS and
+Directus field/row parity remain open.
+
+The consent filter relies on the existing Delphi panel `consent_status` field;
+it does not replace the platform's broader consent/retention policy. The
+minimum-group suppression is a disclosure guard, not differential privacy.
+Published reports, cross-item differencing, populated legacy parity, live OIDC,
+and MAN-CAP-027 acceptance remain separate gates.
+
+## Verification and rollback
+
+Focused Gateway, exact route-policy, existing Delphi, and migration metadata
+checks pass (119 tests). The study draft route/service selection and route
+policy inventory pass 29 tests. Migration 449's disposable PostgreSQL 16
+acceptance passed. Migration 450 applies and replays in a fresh disposable PostgreSQL 16
+container and passes seven runtime assertions, including review scope, creator
+self-review denial, diversity/minority gates, exact retry/collision behavior,
+append-only audit, and runtime/Directus direct-table denial. A first run exposed
+the PostgreSQL row-lock privilege requirement; migration 450 now grants only
+`UPDATE(id)` to the non-login function owner for locking the study row. The
+corrected run passes. Candidate and legacy databases remain untouched, and
+migration 450 has not been rolled out there.
+The five focused reviewer-console contract and inline JavaScript syntax checks
+also pass ([console tests](../../tests/test_operator_console_delphi_recommendation_review.py)).
+The new draft path passes 33 focused Gateway, exact route-policy, and console
+checks; the combined selected Delphi and migration regression set passes 91
+tests. Disposable PostgreSQL 16 applies and replays migrations 449–451, then
+passes ten assertions for signed location/grant scope, open/closed study
+filtering, exact request retries and collision rejection, draft-only state,
+request payload bounds, private append-only ledger behavior, read-only grant
+denial, runtime/Directus privilege boundaries, and the drafter owner's narrow
+`UPDATE(id)` row-lock grant ([draft tests](../../tests/test_gateway_delphi_recommendation_drafts.py), [console tests](../../tests/test_operator_console_delphi_recommendation_drafts.py), [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json)).
+Migration 451 is not rolled out to candidate or legacy. Migration 630 applies
+and replays with migrations 449–451 on disposable PostgreSQL 16; six grouped
+assertions cover exact location/grant enforcement, draft-only creation, exact
+retry and changed-content rejection, malformed criteria, immutable digest-only
+receipts, runtime/Directus access denial, and the dedicated function owner
+([study draft tests](../../tests/test_gateway_delphi_study_drafts.py),
+[disposable check](../../scripts/check-delphi-study-drafts-disposable.py),
+[evidence](builds/2026-10-25-recovery/cap-027-delphi-study-drafts-disposable.json)).
+No candidate or legacy database was touched; migration 630 is not rolled out.
+The study-creation console panel has four focused contract checks and passes
+Node.js syntax validation; the three focused Delphi console suites pass 13
+tests total ([console tests](../../tests/test_operator_console_delphi_study_drafts.py),
+[evidence](builds/2026-10-25-recovery/cap-027-delphi-study-draft-console.json)).
+This is source/contract verification; live browser and OIDC acceptance remain
+open.
+The CAP-027 draft
+source slice is implemented and verified, not accepted as a capability.
+Live OIDC/browser, broader Delphi parity, universal runtime ACL/RLS, and
+MAN-CAP-027 owner acceptance remain open.
+
+Migration 631 adds authenticated `POST /operator/api/delphi/{location_id}/studies/{study_id}/open` and `/close` actions with separate `delphi:open` and `delphi:close` grants. Opening is allowed only from `draft`, and requires at least one question plus the configured minimum number of panel members whose `consent_status` is currently `granted`. Closing is allowed only from `open`; it preserves `opened_at`, stamps `closed_at`, and a closed study cannot be reopened. Each transition uses signed location context, a serialized request ID, and a private append-only receipt. Exact retries return the original transition result; changed action/scope reuse fails closed. The lifecycle function owner has only the required study/item/panel/grant reads and lifecycle-column updates. Runtime can execute the bounded function but cannot read receipts; Directus cannot execute it or access receipts. The focused lifecycle and route-policy selection passes 47 tests, and disposable PostgreSQL 16 applies/replays migrations 449–451, 630, and 631 before six grouped lifecycle assertions. The console lists studies under `delphi:read` and shows open/close controls only when the matching same-location action grant exists; it requires confirmation, CSRF/no-store, retry-stable IDs, and validates the transition response. The four Delphi study/recommendation console suites pass 19 tests including Node.js syntax checks. No candidate or legacy database was touched; migration 631 is not rolled out. Live OIDC/browser acceptance and questionnaire/panel authoring paths remain open.
+
+Before migrations 449–451, 630, or 631 are applied, roll back by removing the routes,
+services, route policies, and migrations from the proposed deployment. After
+application, retain additive functions, roles, and ledgers as ordered
+migrations; disable the routes to roll back application behavior. No candidate
+rollout is included in this batch.
+
+The legacy Delphi facilitator and CLI no longer persist, list, approve, or
+reject recommendations directly. The agent helper produces an in-memory
+suggestion only; the old recommendation command paths fail before database
+access. The remaining CLI study and panel commands (create/open/close study,
+list studies, add/list panel, add item, submit contribution, check stopping,
+and calibrate panel) now also fail before database access because they lack an
+authenticated location grant. Use the scoped Gateway study-list and
+recommendation workflows where available. The blocked study/panel operations
+remain capability gaps until their matching authenticated Gateway contracts
+are implemented; this is an access-boundary hardening step, not a claim of full
+Delphi lifecycle parity. No candidate or legacy database change is implied.
+
+The legacy Delphi service facades `Facilitator`, `PanelManager`, and
+`MinorityReportManager` now fail before using an injected/shared connection or
+cursor for every database-backed operation. This closes unscoped service
+reads and writes in addition to the legacy CLI. The authenticated Gateway is
+the only supported persistence path for implemented location-scoped study and
+participant workflows. Direct panel administration, diversity assessment,
+minority-report workflow, and calibration are unavailable until their own
+location-scoped Gateway contracts, consent/privacy rules, and independent
+review boundaries are implemented. The former calibration rule treated
+agreement with the current group median as expertise, then changed weights
+that affect later consensus; that is circular and not evidence of forecast
+accuracy. Any future calibration capability needs a documented scoring window,
+an advisory proposal, and independent human approval through a signed Gateway
+action; existing participant weights must remain unchanged.
+
+
+## Versioned participant consent and single-use invitation boundary
+
+Migration 634 adds an immutable, location-scoped notice for each Delphi study.
+An operator submits it only while the study is still in draft under
+delphi:consent_draft. A separate operator with delphi:consent_review must
+approve or reject using an allowlisted reason code. The author cannot review
+their own text. Exact request IDs replay only when all submitted content and
+scope match; each decision is recorded in a private append-only ledger. There
+can be only one approved version per study. Approving a replacement marks the
+previous approved version superseded.
+
+The three protected routes are:
+
+- POST /operator/api/delphi/{location_id}/studies/{study_id}/consent-notices
+  submits a version and notice text.
+- GET /operator/api/delphi/{location_id}/consent-notices?limit=50&offset=0
+  returns a bounded review queue and a fixed self-review blocker.
+- POST /operator/api/delphi/{location_id}/consent-notices/{notice_id}/decision
+  records an independent approval or rejection.
+
+All three require OIDC, exact location scope, same-transaction signed tenant
+context, and no-store responses. Runtime reaches private data through bounded
+functions only; Directus cannot read the notice ledger or invoke those
+functions. Notice versions are immutable, and invitation issuance must reject
+any version whose current state is not approved.
+
+The selected participant model is a study-scoped single-use invite. Migrations
+635–636 implement notice-bound token issuance, preview and atomic acceptance,
+with no canonical party link. The database stores only cryptographic digests
+for invite/session/CSRF credentials, and acceptance records the exact notice
+version/digest. Participant-facing state remains pseudonymous. A later
+approved notice version prevents both new issuance and redemption against the
+superseded version.
+
+Withdrawal prevents future submissions through the member's `withdrawn`
+consent state and revokes the participant session. Existing records remain
+private until the configured retention/erasure policy determines their
+disposition; no fixed period or automatic deletion is introduced here. Human
+review of actual notice language and applicable legal requirements remains
+necessary. Migration 634 does not itself issue invites or accept participant
+consent, and CAP-027 remains prepared.
+
+Migration 634 has passed focused Gateway/route-policy/migration checks (62
+tests) and a network-disabled disposable PostgreSQL 16 apply/replay with nine
+grouped assertions, including reviewer separation, exact retries, immutable
+content, version supersession, and runtime/Directus privilege boundaries.
+Candidate and legacy databases were not touched; migration 634 is not rolled
+out. To roll back before migration deployment, remove the three routes and
+their exact policy entries. After migration application, disable the routes
+while retaining immutable notices and audit records.
+
+
+### One-time invite issuance and revocation
+
+Migration 635 adds two operator-only routes:
+
+- POST /operator/api/delphi/{location_id}/studies/{study_id}/invites
+  takes only a request ID and lifetime in seconds.
+- POST /operator/api/delphi/{location_id}/invites/{invite_id}/revoke
+  takes a request ID and a fixed revoke reason.
+
+Issuance requires exact delphi:invite scope, signed same-transaction location
+context, a draft study, and a currently approved notice. The invite binds the
+study/location plus the exact notice ID, version, and digest. The database
+generates a 32-byte random token, persists only its SHA-256 digest, and returns
+the bearer token once with Cache-Control: no-store. Lifetime is bounded to one
+hour through thirty days, and each study is capped at 500 simultaneously
+pending unexpired invites. Exact request retries replay metadata but omit the
+secret; a lost or exposed token must be explicitly revoked and replaced with a
+new request. Revocation has its own exact delphi:invite_revoke grant and
+append-only reason-coded audit.
+
+No email or other external delivery occurs. Do not distribute invite tokens
+until the first-party participant page and live browser acceptance are
+implemented; the API primitives alone are not a finished participant
+experience.
+Operator responses are OIDC/CSRF protected by the enclosing Gateway middleware,
+location scoped, and no-store. Runtime and Directus have no direct access to
+invite rows or receipts.
+
+The focused Gateway/route-policy/migration tests pass (58); network-disabled
+disposable PostgreSQL 16 applies/replays migrations 449–451 and 630–635 and
+passes nine grouped assertions. Candidate and legacy databases remain
+untouched; migration 635 is not rolled out. Disable the two routes/policies to
+roll back application behavior; retain the additive migration and private
+invite history if applied.
+
+
+### Participant notice preview, consent acceptance, and withdrawal
+
+Migration 636 adds three exact public-capability routes. The invite token is
+accepted only in a JSON body, never in a URL:
+
+- `POST /api/participation/delphi/preview` accepts exactly `invite_token` and
+  returns the study title and exact approved notice text, version, digest, and
+  expiry. It succeeds only while the invite is pending and unexpired, the study
+  remains draft, and the approved notice still matches the stored location,
+  notice ID, version, and digest.
+- `POST /api/participation/delphi/accept` accepts the invite token, notice
+  digest, request UUID, literal `accepted: true`, and two client-generated
+  256-bit random values. These values support exact retries after a lost
+  response; only their SHA-256 digests reach the database. The database locks
+  and consumes the invite, creates one anonymous `pseudonymous_participant`
+  panel member with no party reference, records an immutable acceptance event,
+  and creates a 30-day revocable session in one transaction. Exact retries
+  replay without creating a second member; changed credentials or request
+  content fail closed.
+- `POST /api/participation/delphi/withdraw` accepts a request UUID, the
+  HttpOnly session cookie, and a CSRF header matching the readable CSRF cookie.
+  It marks consent `withdrawn`, revokes the session, and appends the withdrawal
+  event atomically. Exact retries replay; a different request or mismatched
+  CSRF token is rejected. Existing submissions remain private for disposition
+  under the configurable retention/erasure policy and are not deleted here.
+
+These routes are public only at the Gateway authentication layer; their
+capability tokens and bounded database functions enforce access. Responses are
+no-store and set `Referrer-Policy: no-referrer`. Session cookies are Secure,
+HttpOnly, SameSite=Strict, and path-limited. The CSRF cookie is same-origin
+readable and is checked with constant-time comparison against the request
+header and its database digest. PostgreSQL retains no raw invite, session, or
+CSRF token. A dedicated non-login role owns credential and consent ledgers;
+runtime and Directus cannot read those ledgers, and Directus cannot execute the
+participant functions.
+
+Migration 636 does not include the participant page or contribution path;
+migration 637 adds those separately. Do not distribute invites until the
+participant browser behavior has been accepted and operator invite delivery is
+available. The 27-test focused Gateway/policy selection passes within the
+broader 335-test Delphi, Gateway, route-policy, and migration-integrity
+regression. Network-disabled disposable PostgreSQL 16 applies and replays
+migrations 449–451 and 630–636 with ten grouped checks. Candidate and legacy
+databases remain untouched; migration 636 is not rolled out. Roll back by
+disabling the exact routes and policy entries; retain the additive migration,
+consumed invites, consent events, and withdrawal receipts if applied.
+
+
+### Participant workspace and contribution submission
+
+Migration 637 adds the first-party participant page at
+`GET /api/participation/delphi` and self-hosted JavaScript/CSS assets. The page
+uses a same-origin CSP, no-store/referrer protections, safe text rendering, and
+no third-party resources. An invite token is accepted only in the URL fragment;
+the browser removes that fragment from history before making requests. A
+session-scoped acceptance retry payload is held in `sessionStorage` only until
+the database confirms acceptance. The participant session cookie is Secure,
+HttpOnly, SameSite=Strict, and limited to the Delphi participation path; the
+readable CSRF cookie has the same scope and is checked with a same-origin
+double-submit header.
+
+`GET /api/participation/delphi/workspace?limit=50&offset=0` requires the active
+session cookie. It returns the study title and lifecycle state, a bounded page
+of questions, and only the authenticated participant's own saved score and
+reasoning. A draft study returns no questions. A closed study is read-only but
+continues to let the participant review their own answers. Response bodies are
+no-store; page bounds are one to 50 questions with offsets from zero to 10,000.
+
+`POST /api/participation/delphi/contributions` accepts exactly `item_id`,
+`score`, `reasoning`, and `request_id`; the session cookie and matching CSRF
+cookie/header are required. Scores must be finite, fit `NUMERIC(8,4)`, remain
+inside the item's configured range, and reasoning is limited to 4,000
+characters. Migration 637 serializes each write with that participant's
+withdrawal and locks the study row so closing the study cannot race a new
+answer. It verifies active session, current consent, exact study/item
+membership, and `open` status in the same transaction. It preserves the legacy
+upsert keyed by item and panel member, updates the live consensus snapshot,
+and appends consensus history when an answer changes. Repeating unchanged
+content creates a receipt but no duplicate consensus-history row. Exact
+request retries replay; request-ID reuse with changed content fails. The
+append-only receipt stores only the payload digest and contribution reference.
+
+Both SQL functions use the isolated non-login participant role and expose only
+bounded responses. Runtime may execute them but cannot read or write the
+private receipt directly; Directus cannot execute them or access the ledger.
+The global runtime still has broader legacy Delphi DML, so this does not prove
+universal tenant isolation or close every direct legacy write path. Withdrawal
+revokes the participant session and blocks later reads/writes while leaving
+prior submissions private for configured retention/erasure disposition.
+
+The focused Gateway, route-policy, acceptance, migration, and image-bundle
+selection passes 76 tests; the browser assets are bundled into both the default Kernel and
+legacy Gateway images and included in the Kernel source manifest. The
+network-disabled disposable PostgreSQL 16 runner applies/replays migration 637
+and passes eight grouped checks for draft hiding, own-answer privacy, paging,
+write validation, retries, legacy consensus/history parity, withdrawal, and
+role boundaries. Candidate and legacy databases remain untouched; migration
+637 is not rolled out. Roll back by disabling the exact participant routes and
+removing the participant page/asset image copies; retain the additive migration
+and private receipts if it has been applied. Live browser/OIDC acceptance,
+invite console and SMTP delivery, populated parity, universal ACL/RLS, and
+MAN-CAP-027 owner acceptance remain open. Do not distribute invite tokens yet.
+
+
+### Operator invite management
+
+Migration 638 adds kokonut_security.list_location_delphi_participant_invites,
+a bounded inventory that requires the signed operator context and current
+location-scoped delphi:invite grant. Pages contain invite ID, study ID, notice
+version, lifecycle status, and issue/expiry timestamps only. Token digests,
+bearer tokens, contact details, and operator identities are omitted. The
+runtime role can call the projection but has no direct invite-table access;
+Directus cannot execute it.
+
+The operator console requires both delphi:read and delphi:invite for the same
+location, filters study selection by current lifecycle state, and lets an
+authorized operator issue an invite only while the study is still a draft.
+The raw bearer link is returned once, placed in the URL fragment for the
+participant, and held only in the current page until the operator copies or
+clears it. Invite history shows safe metadata and supports paging. Revocation
+controls appear only with the separate delphi:invite_revoke grant and use
+fixed reason codes, confirmation, CSRF, and retry-stable request IDs. The
+console does not store participant contact details or send email; SMTP delivery
+and its recipient/ownership policy remain a separate gate.
+
+The focused Gateway, route-policy, and console suite passes 69 tests. The
+network-disabled disposable PostgreSQL 16 runner applies/replays migration 638
+after the Delphi participant chain and passes five grouped scope, privacy,
+pagination, and role checks. Candidate and legacy databases remain untouched;
+migration 638 is not rolled out. Live OIDC/browser and SMTP acceptance,
+populated parity, universal ACL/RLS, and MAN-CAP-027 owner acceptance remain
+open. Do not distribute invites yet. Evidence:
+[invite-console acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-invite-console-disposable.json).
+
+
+### Location-scoped review of existing minority reports
+
+Migration 640 adds a private review queue for existing submitted
+`delphi_minority_report` rows. `GET
+/operator/api/delphi/{location_id}/minority-reports` requires an authenticated
+operator with the exact location-scoped `delphi:review` grant and signed
+transaction context. It returns only submitted reports whose pseudonymous
+panel member still has `consent_status = 'granted'`; it omits member IDs and
+identity/contact fields. Withdrawal or a missing panel-member link hides the
+report from this queue while keeping the source record private pending human
+retention or erasure disposition.
+
+`POST
+/operator/api/delphi/{location_id}/minority-reports/{report_id}/decision`
+records only `verified` or `rejected` with an allowlisted reason code. The
+database rechecks current grant, study location, report state, and participant
+consent under row locks. Request IDs are idempotent for an exact decision and
+reject changed-content collisions. A private append-only ledger records the
+reviewer, scope, reason, and result; Gateway runtime and Directus cannot read
+it directly. Verification and rejection are review dispositions, not
+publication. This slice does not implement participant report submission or
+restore the retired CLI/library write path.
+
+The operator console gates the queue on the same exact review grant, uses
+no-store reads and CSRF-protected confirmed decisions, and preserves a request
+ID across retries. Migration 640 applies and replays on disposable PostgreSQL
+16; five grouped checks cover scope, active-consent filtering, exact retry,
+withdrawal denial, append-only history, and runtime/Directus boundaries. Fifty
+focused Gateway, route-policy, and console regressions pass. Candidate and
+legacy databases remain untouched; migration 640 is not rolled out. Rollback
+by disabling the route, policy, and console panel; retain the additive
+migration and review history if applied. Live OIDC/browser, populated parity,
+participant report submission, universal ACL/RLS, and MAN-CAP-027 owner
+acceptance remain open.
+
+
+### Participant-submitted minority reports
+
+Migration 642 adds `POST /api/participation/delphi/minority-reports` to the
+first-party participant Gateway. The request is accepted only from an active,
+CSRF-bound participant session when the exact versioned notice recorded in
+the invite and accepted-consent event includes the `minority_reports` scope.
+Notice text is never used to infer permission. The study must still be open,
+and an optional item must belong to that study. The title, position, rationale,
+and implications are bounded; arbitrary evidence references are not accepted.
+
+The database creates a `submitted` row and a private append-only retry receipt
+with only a SHA-256 payload digest. Exact request retries return the original
+report reference; changed-content reuse fails. The response does not expose
+participant or session identifiers. The participant path cannot edit,
+verify, publish, or delete reports. Independent review remains the separate
+`delphi:review` workflow. Withdrawal serializes with report submission,
+blocks future use, and hides withdrawn submissions from the review queue;
+existing content remains private pending retention or erasure disposition.
+Runtime and Directus cannot directly read or write report rows or inspect the
+private retry receipts; a dedicated non-login role owns the bounded writer.
+
+The focused Gateway, route-policy, participant asset, and migration selection
+passes 103 tests. The network-disabled disposable PostgreSQL 16 runner applies
+and replays migrations 637–642 and exercises consent-scope enforcement,
+study/item scope, exact retry, withdrawal, and role boundaries. Candidate and
+legacy databases remain untouched; migration 642 is not rolled out. Rollback
+by disabling the participant form and route; retain the additive migration
+and private receipts if applied. Live OIDC/browser, populated parity,
+universal ACL/RLS, SMTP, and MAN-CAP-027 owner acceptance remain open.

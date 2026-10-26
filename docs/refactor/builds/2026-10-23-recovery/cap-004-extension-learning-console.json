@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-004",
+  "surface": "operator-console",
+  "routes": [
+    "GET /operator/api/extension-learning/{location_id}/summary",
+    "GET /operator/api/extension-learning/{location_id}/modules"
+  ],
+  "authorization": "Panel is exposed only for exact OIDC extension_learning:read location grants; Gateway repeats authorization with signed tenant context.",
+  "privacy": "Fixed aggregate columns and active public catalog fields only. No participant identities, individual scores, notes, contact/device data, delivery errors, module IDs, URLs, descriptions, tags, prerequisites, or arbitrary metadata are rendered.",
+  "verification": {
+    "pytest": "15 passed: 5 console contracts, extension-learning service/HTTP coverage, and complete registered-route policy inventory",
+    "ruff": "passed",
+    "inline_javascript_syntax": "passed with Node.js --check",
+    "capability_matrix": "passed: 67 rows; 27 baseline-retained, 7 deployed, 33 prepared; 0 MAN-CAP accepted",
+    "git_diff_check": "passed"
+  },
+  "database_migration": false,
+  "candidate_or_legacy_database_used": false,
+  "provider_or_chain_contacted": false,
+  "capability_status": "prepared",
+  "remaining": [
+    "content ownership and delivery workflow review",
+    "populated legacy parity",
+    "audience and privacy review",
+    "live OIDC and browser acceptance",
+    "direct-database ACL/RLS review",
+    "MAN-CAP-004 acceptance"
+  ]
+}

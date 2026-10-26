@@ -6,7 +6,8 @@ opportunity map for a given location.
 """
 
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
+
+from services.common.errors import safe_exception_class
 
 from ..ingestion.base import get_db
 from ..revenue_multiplier.config import get_config
@@ -15,9 +16,18 @@ from .models import OpportunityDimension, RevenueMultiplierMap
 
 def analyze_location(location_id: str) -> RevenueMultiplierMap:
     """Run all 10 dimension analyzers for a location."""
-    from .dimensions import crop_mix, loss_reduction, buyer_channel, value_added
-    from .dimensions import web3_replication, bioinput, public_goods
-    from .dimensions import ecological_verification, partner_sponsorship, regional_clusters
+    from .dimensions import (
+        bioinput,
+        buyer_channel,
+        crop_mix,
+        ecological_verification,
+        loss_reduction,
+        partner_sponsorship,
+        public_goods,
+        regional_clusters,
+        value_added,
+        web3_replication,
+    )
 
     conn = get_db()
     location_name = _get_location_name(conn, location_id)
@@ -40,15 +50,15 @@ def analyze_location(location_id: str) -> RevenueMultiplierMap:
         try:
             dim = analyzer(conn, location_id)
             dimensions.append(dim)
-        except Exception as e:
+        except Exception as exc:
             dimensions.append(OpportunityDimension(
                 dimension_id=dim_id,
                 dimension_name=dim_name,
                 score=0,
                 impact_usd=0,
                 confidence="low",
-                current_state=f"Error: {e}",
-                recommendation="Fix analyzer error",
+                current_state=f"Analysis failed ({safe_exception_class(exc)})",
+                recommendation="Review analyzer availability",
                 data_points=0,
             ))
 

@@ -6,14 +6,14 @@ import argparse
 import json
 from typing import Any
 
-from services.common.logging import get_logger
 
-logger = get_logger(__name__)
-
-
-def _get_conn():
-    from services.common.database import get_db
-    return get_db()
+def _require_scoped_gateway(operation: str) -> None:
+    """Block legacy database operations that have no authenticated tenant scope."""
+    raise SystemExit(
+        f"Direct Delphi {operation} is disabled because the CLI has no authenticated "
+        "location grant; use an authenticated location-scoped Operator Gateway "
+        "operation when available"
+    )
 
 
 def _json(obj: Any) -> str:
@@ -21,110 +21,55 @@ def _json(obj: Any) -> str:
 
 
 def cmd_create_study(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    criteria = json.loads(args.criteria) if args.criteria else None
-    study = f.create_study(
-        title=args.title,
-        description=args.description,
-        location_id=args.location_id,
-        variation=args.variation,
-        facilitator_type=args.facilitator_type,
-        stopping_criteria=criteria,
-        created_by=args.created_by,
-    )
-    print(_json(study))
+    _require_scoped_gateway("study creation")
 
 
 def cmd_open_study(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    print(_json(f.open_study(args.study_id)))
+    _require_scoped_gateway("study opening")
 
 
 def cmd_close_study(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    print(_json(f.close_study(args.study_id)))
+    _require_scoped_gateway("study closing")
 
 
 def cmd_add_panel(args):
-    from services.delphi.panel import PanelManager
-    pm = PanelManager(conn=_get_conn())
-    member = pm.add_member(
-        study_id=args.study_id,
-        participant_ref_type=args.ref_type,
-        participant_ref_id=args.ref_id,
-        role=args.role,
-        display_token=args.token,
-        is_anonymous=not args.public,
-        expert_weight=args.weight,
-    )
-    print(_json(member))
+    _require_scoped_gateway("panel enrollment")
 
 
 def cmd_list_panel(args):
-    from services.delphi.panel import PanelManager
-    pm = PanelManager(conn=_get_conn())
-    print(_json(pm.list_members(args.study_id)))
+    _require_scoped_gateway("panel listing")
 
 
 def cmd_add_item(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    item = f.add_item(
-        study_id=args.study_id,
-        label=args.label,
-        item_type=args.type,
-        scale=args.scale,
-        description=args.description,
-        min_value=args.min_value,
-        max_value=args.max_value,
-        target_entity_type=args.target_type,
-        target_entity_id=args.target_id,
-    )
-    print(_json(item))
+    _require_scoped_gateway("item creation")
 
 
 def cmd_submit(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    result = f.submit_contribution(
-        study_id=args.study_id,
-        item_id=args.item_id,
-        panel_member_id=args.member_id,
-        score=args.score,
-        reasoning=args.reasoning,
-    )
-    print(_json(result))
+    _require_scoped_gateway("contribution submission")
 
 
 def cmd_live_summary(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    print(_json(f.get_live_summary(args.study_id)))
+    from services.agents.delphi_facilitator_agent import summarize_study
+
+    print(_json(summarize_study(args.study_id, args.location_id)))
 
 
 def cmd_consensus(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    study = f.get_study(args.study_id)
-    # Return current consensus snapshots via live summary items
-    summary = f.get_live_summary(args.study_id)
+    from services.agents.delphi_facilitator_agent import summarize_study
+
+    summary = summarize_study(args.study_id, args.location_id)
     print(_json({"study_id": args.study_id, "items": summary["items"]}))
 
 
 def cmd_check_stopping(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    print(_json(f.check_stopping(args.study_id)))
+    _require_scoped_gateway("stopping-criteria evaluation")
 
 
 def cmd_draft_recommendation(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    rec = f.draft_recommendation(
+    from services.agents.delphi_facilitator_agent import draft_recommendation
+    rec = draft_recommendation(
         study_id=args.study_id,
+        location_id=args.location_id,
         recommendation_text=args.text,
         summary=args.summary,
         created_by=args.created_by,
@@ -133,42 +78,23 @@ def cmd_draft_recommendation(args):
 
 
 def cmd_approve_recommendation(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    rec = f.approve_recommendation(args.recommendation_id, args.approved_by)
-    print(_json(rec))
+    _require_scoped_gateway("recommendation review")
 
 
 def cmd_list_recommendations(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    print(_json(f.list_recommendations(args.study_id)))
+    _require_scoped_gateway("recommendation reads")
 
 
 def cmd_reject_recommendation(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    rec = f.reject_recommendation(
-        args.recommendation_id, args.rejected_by, args.reason,
-    )
-    print(_json(rec))
+    _require_scoped_gateway("recommendation review")
 
 
 def cmd_calibrate_panel(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    print(_json(f.calibrate_panel(args.study_id)))
+    _require_scoped_gateway("panel calibration")
 
 
 def cmd_list_studies(args):
-    conn = _get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM delphi_study ORDER BY created_at DESC LIMIT 50")
-    rows = cur.fetchall()
-    cols = [d[0] for d in cur.description]
-    cur.close()
-    for row in rows:
-        print(_json(dict(zip(cols, row))))
+    _require_scoped_gateway("study listing")
 
 
 def main():
@@ -238,10 +164,12 @@ def main():
     # Consensus / summaries
     p = sub.add_parser("live-summary", help="Anonymized live summary")
     p.add_argument("--study-id", required=True)
+    p.add_argument("--location-id", required=True)
     p.set_defaults(func=cmd_live_summary)
 
     p = sub.add_parser("consensus", help="Current consensus snapshots")
     p.add_argument("--study-id", required=True)
+    p.add_argument("--location-id", required=True)
     p.set_defaults(func=cmd_consensus)
 
     p = sub.add_parser("check-stopping", help="Evaluate stopping criteria")
@@ -249,11 +177,15 @@ def main():
     p.set_defaults(func=cmd_check_stopping)
 
     # Recommendations
-    p = sub.add_parser("draft-recommendation", help="Draft a recommendation (agent)")
+    p = sub.add_parser(
+        "draft-recommendation",
+        help="Generate an in-memory recommendation suggestion (not persisted)",
+    )
     p.add_argument("--study-id", required=True)
+    p.add_argument("--location-id", required=True)
     p.add_argument("--text", required=True)
     p.add_argument("--summary")
-    p.add_argument("--created-by")
+    p.add_argument("--created-by", help="Ignored for compatibility; identity is Gateway-derived")
     p.set_defaults(func=cmd_draft_recommendation)
 
     p = sub.add_parser("approve-recommendation", help="Approve a recommendation (human)")

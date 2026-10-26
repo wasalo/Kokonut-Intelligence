@@ -1,0 +1,23 @@
+{
+  "capability": "CAP-064",
+  "title": "gRPC authentication denial preserves method cardinality",
+  "date": "2026-10-19",
+  "classification": "P",
+  "status": "Focused authorization behavior passes; capability remains prepared",
+  "changes": [
+    "API-key authentication denials now retain the registered unary-unary, unary-stream, stream-unary, or stream-stream method shape and its serializers.",
+    "The interceptor resolves the registered handler before deciding how to construct a denial handler; unknown methods remain unimplemented without database lookup.",
+    "The enabled loopback test verifies that a missing key on a server-streaming RPC returns UNAUTHENTICATED before acquiring a service database connection."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_grpc.py tests/test_grpc_auth_context_lifecycle.py tests/test_grpc_auth_denial_cardinality.py tests/test_grpc_enabled_transport.py tests/test_grpc_error_redaction.py tests/test_grpc_optional_boundary.py -q",
+    "result": "44 passed",
+    "ruff": "python3 -m ruff check services/grpc/auth.py tests/test_grpc.py tests/test_grpc_auth_denial_cardinality.py tests/test_grpc_enabled_transport.py: passed",
+    "compilation": "python3 -m compileall -q services/grpc/auth.py tests/test_grpc.py tests/test_grpc_auth_denial_cardinality.py tests/test_grpc_enabled_transport.py: passed",
+    "database_or_provider": "None used; authentication lookup and service dependencies are mocked. The loopback server binds an ephemeral localhost port and requires host access in this environment."
+  },
+  "scope_limits": [
+    "No TLS, live database/runtime-role, tenant-scope, streaming authorization parity, or REST contract parity was tested.",
+    "The optional gRPC service remains private-network only and has no configured TLS credentials in the candidate profile."
+  ]
+}

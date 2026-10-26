@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-19",
+  "result": "passed",
+  "foundry_version": "1.6.0-dev",
+  "focused_suite": "KokonutCreditTokenTest",
+  "focused_tests_passed": 17,
+  "full_contract_tests_passed": 67,
+  "fuzz_test": {
+    "name": "testFuzz_SequentialIssuancePreservesEachCreditAmount",
+    "runs": 1000,
+    "result": "passed"
+  },
+  "proxy_coverage": {
+    "deployment_uses_erc1967_proxy": true,
+    "repeat_issue_uses_distinct_serials": true,
+    "batch_repeat_issue_uses_distinct_serials": true,
+    "uninitialized_appended_counter_skips_existing_serial_zero": true,
+    "zero_batch_identity_rejected": true
+  },
+  "storage_layout": {
+    "existing_contract_slots_unchanged": [0, 1, 2, 3, 4],
+    "next_serial_mapping_appended_at_slot": 5
+  },
+  "tracked_abi_surface_matches_compiled_abi": true,
+  "compiled_and_tracked_abi_entries": 74,
+  "external_rpc_or_deployment": false,
+  "limitations": [
+    "Tests use local Foundry EVM and an ERC-1967 proxy; no deployed proxy or chain state was inspected or modified.",
+    "This closes serial identity for repeat issuance only. Ledger parity, operational role custody, retirement reconciliation, pause policy, and MAN-CAP-043 acceptance remain open.",
+    "Foundry reported an existing view-mutability warning in the unrelated KokonutSelectiveDisclosure test and a non-fatal signature-cache permission warning because its default signature-cache path is outside the workspace; compilation and all tests passed."
+  ]
+}

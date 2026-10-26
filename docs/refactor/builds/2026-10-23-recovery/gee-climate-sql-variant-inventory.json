@@ -1,0 +1,58 @@
+{
+  "result": "passed",
+  "base_commit": "48f1dfb8",
+  "inventory_change": "Resolve the GEE climate persistence helper from literal SQL templates assigned at each direct same-module caller.",
+  "gee_climate": {
+    "execution_site": "services/ingestion/gee_climate.py:92",
+    "statement_kind": "INSERT",
+    "variant_count": 4,
+    "callers": [
+      "fetch_era5_land",
+      "fetch_modis_lst",
+      "fetch_sentinel1_sar",
+      "fetch_smap_moisture"
+    ],
+    "query_text_persisted": false,
+    "values_are_separately_bound": true
+  },
+  "worker_sql_inventory": {
+    "execution_sites": 341,
+    "static_literal_sites": 298,
+    "composed_or_variable_sites": 43,
+    "remaining_unknown_statement_sites": [
+      "services/common/database.py:77",
+      "services/common/database.py:80",
+      "services/common/database.py:142"
+    ]
+  },
+  "runtime_sql_inventory": {
+    "execution_sites": 4619,
+    "unknown_statement_sites": 198,
+    "insert_statement_sites": 650
+  },
+  "tests": {
+    "command": "python3 -m pytest tests/test_worker_sql_inventory.py tests/test_runtime_sql_inventory.py tests/test_worker_function_reachability.py tests/test_worker_sql_reachability.py tests/test_worker_operation_map.py tests/test_worker_boundary_preflight.py -q",
+    "passed": 50
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "worker_sql_inventory": "current",
+    "runtime_sql_inventory": "current",
+    "worker_sql_reachability": "current",
+    "worker_function_reachability": "current",
+    "worker_source_closure": "current",
+    "worker_boundary_preflight": "current",
+    "worker_effect_inventory": "current",
+    "capability_matrix": "valid; 66 rows, 30 baseline-retained, 7 deployed, 29 prepared",
+    "git_diff_check": "passed"
+  },
+  "database_target": "none",
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "limitations": [
+    "The caller analysis is source-local and does not establish complete runtime call reachability.",
+    "Three generic shared database-adapter execution sites remain unknown for statement classification.",
+    "The inventory does not establish runtime authorization, tenant isolation, or database effects."
+  ]
+}

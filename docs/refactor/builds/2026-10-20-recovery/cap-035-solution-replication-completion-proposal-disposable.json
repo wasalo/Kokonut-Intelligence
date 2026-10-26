@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "497_location_solution_replication_completion_proposal.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 497 applies and replays after migration 496",
+    "only an active started exact-location replication with current independent source review accepts a report",
+    "report payload bounds, outcomes, and evidence arrays are checked by Gateway and PostgreSQL",
+    "exact retries replay; changed request reuse and second pending report fail closed",
+    "rejected replications, missing submit grants, and malformed reports fail closed",
+    "proposal remains private and does not change replication outcome, evidence, completion, or solution stage",
+    "runtime has function-only access and Directus cannot execute the proposal function"
+  ],
+  "acceptance_groups_passed": 10
+}

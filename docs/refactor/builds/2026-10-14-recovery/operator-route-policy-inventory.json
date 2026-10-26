@@ -1,0 +1,39 @@
+{
+  "check": "operator_route_policy_inventory",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "registered_operator_method_path_policies": 29,
+    "all_routes_have_explicit_oidc_policy": true,
+    "policy_tuples_pin_resource_action_public_scope_location_and_secondary_grants": true,
+    "farm_activity_lifecycle_actions_expanded": [
+      "submit",
+      "verify",
+      "reject",
+      "request-rework",
+      "publish",
+      "close-exception"
+    ],
+    "mobile_operations_inventory": {
+      "route": "GET /operator/api/mobile/locations/{location_id}/inventory",
+      "primary_scope": "mobile_device:read",
+      "additional_scope": "mobile_collection_review:read",
+      "location_scoped": true
+    },
+    "unknown_operator_path_and_wrong_method_return_401": true,
+    "candidate_or_legacy_database_touched": false
+  },
+  "pytest": {
+    "command": "SOPS_AGE_KEY_FILE=<configured local age identity> .venv/bin/python -m pytest tests/test_operator_route_policy_inventory.py -q",
+    "passed": 2,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "This verifies source policy registration and in-process default-deny behavior; it does not establish live OIDC provider, browser, database tenant, or external ingress acceptance."
+  ]
+}

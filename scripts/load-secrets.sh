@@ -80,3 +80,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     fi
     export "$key=$value"
 done < "$DECRYPTED_FILE"
+
+# Let Python subprocesses know this shell already loaded the encrypted values;
+# they can validate required settings without decrypting the file again.
+export KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT=true

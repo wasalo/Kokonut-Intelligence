@@ -1,0 +1,21 @@
+{
+  "title": "CAP-024 governance role assignment review console contract",
+  "status": "passed",
+  "date": "2026-10-18",
+  "test_command": "python3 -m pytest tests/test_gateway_governance_assignment_review.py tests/test_gateway_governance_assignment_proposals.py tests/test_gateway_governance_assignment_proposal_reads.py tests/test_operator_route_policy_inventory.py tests/test_operator_console_governance_assignment_proposals.py -q",
+  "tests_passed": 43,
+  "checks": [
+    "review-only location grants expose a separate review queue independently of the general role registry read grant",
+    "approve and reject controls are shown only when the matching location action grant is also present",
+    "review rows use safe text rendering and bounded keyset pagination",
+    "decision writes require a reason, same-origin session, CSRF token, and stable browser-generated idempotency UUID",
+    "Gateway review and decision routes return no-store responses and require exact method/path policies",
+    "Node.js parses the complete inline operator-console application script"
+  ],
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "capability_matrix": "valid",
+  "runtime_sql_inventory": "current: 847 service source files and 4,101 execution sites",
+  "candidate_and_legacy_databases": "not accessed",
+  "browser_runtime_acceptance": "not exercised"
+}

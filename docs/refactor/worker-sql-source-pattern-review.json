@@ -1,0 +1,130 @@
+{
+  "reviewed_on": "2026-10-26",
+  "purpose": "Record source-pattern findings for the non-literal SQL sites newly visible after adding the registered synthesis-agent worker closure. This is not an ACL or runtime authorization approval.",
+  "inventory_delta": {
+    "prior_execution_sites": 359,
+    "current_execution_sites": 473,
+    "new_execution_sites": 114,
+    "new_literal_sites": 78,
+    "new_nonliteral_sites": 36,
+    "new_nonliteral_expression_kinds": {
+      "fstring": 30,
+      "composed_or_variable": 6
+    }
+  },
+  "reviewed_patterns": [
+    {
+      "pattern": "agent projection SQL with fixed location predicates",
+      "expression_kind": "fstring",
+      "site_count": 27,
+      "sites": [
+        "services/agents/bio_factory_agent.py:25:4",
+        "services/agents/bio_factory_agent.py:43:4",
+        "services/agents/bio_factory_agent.py:61:4",
+        "services/agents/bio_factory_agent.py:79:4",
+        "services/agents/capital_efficiency_agent.py:29:4",
+        "services/agents/capital_efficiency_agent.py:44:4",
+        "services/agents/capital_efficiency_agent.py:59:4",
+        "services/agents/capital_efficiency_agent.py:73:4",
+        "services/agents/commons_agent.py:29:4",
+        "services/agents/commons_agent.py:44:4",
+        "services/agents/commons_agent.py:59:4",
+        "services/agents/commons_agent.py:75:4",
+        "services/agents/gnh_agent.py:29:4",
+        "services/agents/gnh_agent.py:43:4",
+        "services/agents/gnh_agent.py:58:4",
+        "services/agents/gnh_agent.py:74:4",
+        "services/agents/gnh_agent.py:89:4",
+        "services/agents/open_source_capitalist_agent.py:29:4",
+        "services/agents/open_source_capitalist_agent.py:61:4",
+        "services/agents/open_source_capitalist_agent.py:76:4",
+        "services/agents/regenerator_agent.py:29:4",
+        "services/agents/regenerator_agent.py:45:4",
+        "services/agents/regenerator_agent.py:60:4",
+        "services/agents/regenerator_agent.py:76:4",
+        "services/agents/resilience_agent.py:29:4",
+        "services/agents/resilience_agent.py:44:4",
+        "services/agents/resilience_agent.py:59:4"
+      ],
+      "finding": "The interpolated SQL predicate is returned by each module's fixed _location_filter helper, called with the literal location_id column. Location values and other data are passed separately as bound parameters; the projection names and SQL structure are source literals. This establishes a source pattern only, not the live grant or view policy."
+    },
+    {
+      "pattern": "Kokonut Commons literal view arguments",
+      "expression_kind": "fstring",
+      "site_count": 2,
+      "sites": [
+        "services/agents/kokonut_commons_agent.py:19:8",
+        "services/agents/kokonut_commons_agent.py:25:8"
+      ],
+      "finding": "The relation fragment is selected only by direct calls that pass literal view names from synthesize_kokonut_commons; location values are bound. The helper is not approved as an unrestricted SQL API."
+    },
+    {
+      "pattern": "task-specific reader role selection",
+      "expression_kind": "fstring",
+      "site_count": 1,
+      "sites": [
+        "services/agents/worker_cli.py:252:12"
+      ],
+      "finding": "The role identifier comes from the immutable source-owned _SYNTHESIS_WORKERS entry selected by the registered task key, not from a CLI role argument. Live role grants and database identity provisioning remain unverified here."
+    },
+    {
+      "pattern": "deterministic AI-summary source-reference query builder",
+      "expression_kind": "composed_or_variable",
+      "site_count": 1,
+      "sites": [
+        "services/agents/ai_summary.py:178:12"
+      ],
+      "finding": "The builder rejects tables outside _SOURCE_REFERENCE_TABLES; predicate and ordering fragments are supplied by code-owned summary scope definitions. Location and source values are bound. The SQL inventory remains conservative because the statement is assembled from these fixed components."
+    },
+    {
+      "pattern": "AI-summary fixed-query execution helpers",
+      "expression_kind": "composed_or_variable",
+      "site_count": 2,
+      "sites": [
+        "services/agents/ai_summary.py:197:8",
+        "services/agents/ai_summary.py:207:8"
+      ],
+      "finding": "Every call reachable from the registered worker passes a module-owned literal query template and separately bound parameters. This finding is limited to the current source graph and does not make the helper safe for arbitrary external callers."
+    },
+    {
+      "pattern": "registered synthesis provenance query",
+      "expression_kind": "composed_or_variable",
+      "site_count": 1,
+      "sites": [
+        "services/agents/base.py:149:12"
+      ],
+      "finding": "The registered worker verifies the concrete agent class and its metadata against the immutable task registry. A class-specific query override is source-owned; the default builder validates table/view identifiers and scope against closed patterns. Location values are bound. The generic cursor call therefore remains UNKNOWN in the automated inventory."
+    },
+    {
+      "pattern": "organic-readiness fixed query map",
+      "expression_kind": "composed_or_variable",
+      "site_count": 1,
+      "sites": [
+        "services/analytics/organic_certification.py:295:8"
+      ],
+      "finding": "The loop executes one of the fixed SQL strings in the local checks mapping and binds the requested location separately. The signed agent sets a restricted kokonut_agent_source search path before invoking these calculations."
+    },
+    {
+      "pattern": "CIDS fixed query tuple",
+      "expression_kind": "composed_or_variable",
+      "site_count": 1,
+      "sites": [
+        "services/registry/cids_export.py:122:12"
+      ],
+      "finding": "The loop executes literal statements from the local query tuple and binds the signed location. The optional source schema is checked against the fixed supported values before this branch."
+    }
+  ],
+  "result": {
+    "reviewed_sites": 36,
+    "new_sites_in_agent_modules": 34,
+    "new_sites_in_imported_modules": 2,
+    "source_controlled_fragments_and_bound_values_confirmed": true,
+    "sql_inventory_classifications_changed": false,
+    "approved_as_acl_input": false,
+    "remaining_requirements": [
+      "Review exact live worker logins, relation/view grants, and effective privileges.",
+      "Verify signed tenant context and forced-RLS behavior against the deployed schema.",
+      "Keep the three generic services.common.database adapter sites outside worker ACL decisions until their caller paths are bounded."
+    ]
+  }
+}

@@ -37,6 +37,21 @@ echo "Waiting for PostgreSQL..."
 wait_for_postgres
 echo "PostgreSQL is ready."
 
+# Fail before applying any pilot records if tenant ownership/grant foundations
+# have not been migrated. Pilot ownership evidence is seeded after locations.
+if ! docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" \
+    psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence -Atqc \
+    "SELECT EXISTS (
+         SELECT 1
+           FROM schema_migration
+          WHERE migration_id = 'schema:388_tenant_aware_operator_grants.sql'
+            AND status = 'applied'
+     )" \
+    | grep -qx t; then
+    echo "ERROR: Apply ordered migrations through 388 before loading pilot data." >&2
+    exit 1
+fi
+
 # Apply all pilot seed files
 echo ""
 echo "Applying pilot farm seed data..."
@@ -88,6 +103,18 @@ for seed_file in \
         seed_apply "$seed_file" pilot
     fi
 done
+
+# Ownership must be applied last: earlier pilot seeds create Adelphi's legacy
+# organization assignment, and Genesis is created by 098_multi_farm.sql. The
+# operating-tenant map skips future owner-confirmed locations until imported.
+echo "  Applying: 120_kokonut_network_ownership.sql"
+seed_apply "$SEED_DIR/120_kokonut_network_ownership.sql" pilot
+
+echo "  Applying: 121_kokonut_network_tenant_owner_verification.sql"
+seed_apply "$SEED_DIR/121_kokonut_network_tenant_owner_verification.sql" pilot
+
+echo "  Applying: 122_kokonut_network_operating_tenant_map.sql"
+seed_apply "$SEED_DIR/122_kokonut_network_operating_tenant_map.sql" pilot
 
 echo ""
 echo "=== Pilot Farm Data Loaded ==="

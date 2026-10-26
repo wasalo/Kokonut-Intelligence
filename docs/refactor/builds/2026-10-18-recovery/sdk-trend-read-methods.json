@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-18",
+  "scope": "Typed read-only location-scoped SDK accessors for stored trend-analysis records",
+  "collections": [
+    "trend_estimate",
+    "trend_smoothing",
+    "change_point",
+    "seasonal_decomposition",
+    "trend_dashboard_metric"
+  ],
+  "behavior": {
+    "methods": ["list", "get", "list_by_location/listByLocation"],
+    "explicit_location_overrides_conflicting_filter": true,
+    "preserves_other_query_options": true,
+    "write_or_lifecycle_methods_added": false,
+    "trend_calculation_or_verification_added": false,
+    "location_filter_is_authorization_boundary": false
+  },
+  "schema": {
+    "migration": "schemas/postgres/131_trend_analysis.sql",
+    "all_five_collections_have_required_location_id": true
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_method_parity.py tests/test_sdk_schema_parity.py -q",
+      "result": "passed",
+      "summary": "96 passed"
+    },
+    {
+      "command": "npm test -- --run",
+      "working_directory": "sdk/javascript",
+      "result": "passed",
+      "summary": "46 tests passed across 3 files"
+    },
+    {
+      "command": "npm run build",
+      "working_directory": "sdk/javascript",
+      "result": "passed",
+      "summary": "TypeScript compiler completed"
+    },
+    {
+      "command": "ruff check sdk/python/kokonut/client.py tests/test_sdk.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile sdk/python/kokonut/client.py tests/test_sdk.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-sdk-schema-parity.py --check",
+      "result": "passed",
+      "summary": "74 models, 1555 columns, 1456 scalar types, 10 PostGIS types, 86 JSONB shapes, 23 enum fields, 50 CHECK-literal fields per SDK"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "summary": "66 rows; 54 baseline-retained, 7 deployed, 5 prepared; MAN-CAP checks separately gated"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": "Offline SDK/source-contract checks with mocked calls; no database, candidate, legacy stack, provider, or external API contacted.",
+  "limitations": [
+    "The SDK location filter is a convenience; Directus grants remain the authorization boundary.",
+    "Stored trend outputs are not recalculated or verified, and CAP-008/MAN-CAP-008 acceptance remains open."
+  ]
+}

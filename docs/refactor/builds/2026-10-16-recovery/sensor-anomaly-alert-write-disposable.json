@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "Migration 413 signed sensor-anomaly alert, audit, and receipt write",
+  "database": "isolated disposable PostgreSQL 16 container",
+  "migrations": [
+    "schemas/postgres/405_signed_worker_tenant_context.sql",
+    "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
+    "schemas/postgres/407_sensor_anomaly_effect_functions.sql",
+    "schemas/postgres/408_sensor_alert_event_function.sql",
+    "schemas/postgres/409_sensor_alert_notification_intent.sql",
+    "schemas/postgres/410_sensor_alert_actuation_intent.sql",
+    "schemas/postgres/411_sensor_alert_draft_claim_intent.sql",
+    "schemas/postgres/412_sensor_anomaly_worker_reads.sql",
+    "schemas/postgres/413_sensor_anomaly_alert_write.sql"
+  ],
+  "migration_413_sha256": "23d49c8a3093541f09f41cabd8f336ee75ac97f215a80bd067a9d7b3cfe9f196",
+  "runner_sha256": "812eea1beb78be1e1aaf0adc8ee2c9c2e725bd8621a50acb721f302633118983",
+  "migration_replay": "passed",
+  "container_network": "loopback-only published port; runner makes no external requests",
+  "checks": [
+    {
+      "result": "passed",
+      "description": "migration 413 applies and replays after migrations 405 through 412"
+    },
+    {
+      "result": "passed",
+      "description": "alert creation rejects missing signed worker context"
+    },
+    {
+      "result": "passed",
+      "description": "event, reading, device, enabled rule, message, hash, and signed location are validated"
+    },
+    {
+      "result": "passed",
+      "description": "alert creation requires a matching reserved no_match receipt"
+    },
+    {
+      "result": "passed",
+      "description": "forced-RLS worker function creates a derived alert, one audit entry, and linked receipt atomically"
+    },
+    {
+      "result": "passed",
+      "description": "completed receipt suppresses duplicate alert and audit creation"
+    },
+    {
+      "result": "passed",
+      "description": "an audit constraint failure rolls back alert insertion and preserves the reserved receipt"
+    },
+    {
+      "result": "passed",
+      "description": "worker execution has no direct table SELECT/INSERT/UPDATE path for alert, audit, or receipt records"
+    },
+    {
+      "result": "passed",
+      "description": "function ownership, role separation, forced-RLS activation, and direct table grants are verified"
+    }
+  ],
+  "candidate_or_legacy_database_access": false,
+  "worker_credential_printed": false
+}

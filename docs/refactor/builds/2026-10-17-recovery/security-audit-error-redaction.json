@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-17",
+  "components": [
+    "services/security/audit.py",
+    "services/security/capabilities.py"
+  ],
+  "change": "Database exception logging now records only the exception class for access-audit and capability-token operations. Existing transaction rollback, return fallbacks, and issue() exception propagation are preserved.",
+  "verification": {
+    "tests": "38 passed",
+    "suites": [
+      "tests/test_security_audit.py",
+      "tests/test_security_capabilities.py",
+      "tests/test_security_interceptor.py",
+      "tests/test_gateway_audit.py"
+    ],
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "scope": "All database failures used mocked connections. No database, real capability token, provider, or external service was used."
+}

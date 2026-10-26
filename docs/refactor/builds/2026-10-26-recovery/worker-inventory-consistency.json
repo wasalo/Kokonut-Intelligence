@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-26",
+  "scope": "Generated static worker-boundary inventory consistency checks",
+  "checks": {
+    "worker_source_closure": "passed",
+    "worker_function_reachability": "passed",
+    "worker_sql_inventory": "passed",
+    "worker_sql_reachability": "passed",
+    "worker_boundary_preflight": "passed"
+  },
+  "current_source_graph": {
+    "operation_roots": 49,
+    "function_graph_source_files": 138,
+    "function_memberships": 1172,
+    "direct_call_edges": 1658,
+    "exact_callback_edges": 2,
+    "dynamic_dispatch_edges": 56
+  },
+  "sql_reachability": {
+    "execution_sites": 471,
+    "sites_with_static_operation_path": 404,
+    "sites_without_static_function_match": 67,
+    "unmatched_means_dead_code": false
+  },
+  "preflight": {
+    "status": "review_required",
+    "worker_identity_status": "not_tenant_bound",
+    "unbound_operation_roots": 42,
+    "signed_source_function_roots": 7,
+    "rls_readiness": "not_ready"
+  },
+  "live_database_or_provider_access": false,
+  "limitations": [
+    "static inventories do not inspect runtime role grants, applied migration state, persisted schedules, tenant ownership, or external dispatchers",
+    "unmatched SQL sites are review targets and are not assumed to be dead code",
+    "static call reachability is not an authorization or RLS boundary"
+  ]
+}

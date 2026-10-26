@@ -1,0 +1,32 @@
+{
+  "acceptance": "field-collector-edge-runtime-media-volume-recreation",
+  "date": "2026-10-12",
+  "image": "kokonut-kernel-candidate-app:latest",
+  "scope": {
+    "network": "existing kokonut-kernel-candidate_kernel",
+    "database": "existing candidate database; health SELECT only",
+    "media_volume": "unique temporary Docker named volume",
+    "provider": "local selected for disposable runtime instances",
+    "sops_fields_read_in_process_memory": [
+      "MOBILE_MEDIA_LOCAL_KEY",
+      "POSTGRES_PASSWORD"
+    ],
+    "candidate_app_database_metabase_modified": false
+  },
+  "checks": {
+    "first_full_runtime_container_reached_health": true,
+    "second_full_runtime_container_reached_health": true,
+    "runtime_container_replacement_preserved_named_volume_object": true,
+    "object_authenticated_and_plaintext_digest_matched_after_each_start": true,
+    "synthetic_object_deleted": true,
+    "temporary_containers_and_named_volume_removed": true,
+    "candidate_services_remained_healthy": true
+  },
+  "result": "passed across two disposable full runtime starts using the candidate network and image",
+  "limitations": [
+    "The primary candidate app service was not stopped, replaced, or reconfigured.",
+    "The candidate database was used only for runtime health connectivity; no rows were read or written by the acceptance fixture.",
+    "Background workers and end-to-end field upload/sync were not enabled."
+  ],
+  "rollback": "Removed the synthetic object, both disposable runtime containers, and the unique media volume. The candidate app, database, Metabase, their volumes, and Compose configuration were untouched."
+}

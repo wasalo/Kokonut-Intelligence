@@ -6,11 +6,17 @@ import hashlib
 import json
 import re
 from typing import Any
+
 from defusedxml.ElementTree import fromstring as xml_fromstring
 
 from services.common.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+def _safe_import_error(operation: str, error: Exception) -> str:
+    """Describe an import failure without echoing source data or DB details."""
+    return f"{operation} failed ({type(error).__name__})"
 
 
 def import_geojson(
@@ -114,8 +120,8 @@ def import_geojson(
                 zones_created += 1
 
         except Exception as e:
-            errors.append({"feature_index": i, "error": str(e)})
-            logger.warning("Failed to import feature %d: %s", i, e)
+            errors.append({"feature_index": i, "error": _safe_import_error("GeoJSON feature import", e)})
+            logger.warning("Failed to import GeoJSON feature %d (%s)", i, type(e).__name__)
 
     cur.close()
 
@@ -156,7 +162,7 @@ def import_kml(
         root = xml_fromstring(kml_data)
     except Exception as e:
         _log_import(conn, location_id, "kml", filename, content_hash, 0, 0, 0, 0, [], "failed")
-        return {"error": f"Invalid KML XML: {e}", "zones_created": 0}
+        return {"error": f"Invalid KML XML ({type(e).__name__})", "zones_created": 0}
 
     # Handle KML namespace
     ns = {"kml": "http://www.opengis.net/kml/2.2"}
@@ -280,8 +286,8 @@ def import_kml(
                 zones_created += 1
 
         except Exception as e:
-            errors.append({"placemark_index": i, "error": str(e)})
-            logger.warning("Failed to import Placemark %d: %s", i, e)
+            errors.append({"placemark_index": i, "error": _safe_import_error("KML Placemark import", e)})
+            logger.warning("Failed to import KML Placemark %d (%s)", i, type(e).__name__)
 
     cur.close()
 
@@ -327,7 +333,7 @@ def _log_import(
         )
         cur.close()
     except Exception as e:
-        logger.warning("Failed to log import: %s", e)
+        logger.warning("Failed to log spatial import (%s)", type(e).__name__)
 
 
 def _slugify(text: str) -> str:

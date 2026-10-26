@@ -1,0 +1,36 @@
+{
+  "task": "CAP-066 capital-accounting helper SQL/bind contract",
+  "date": "2026-10-21",
+  "change": {
+    "source_file": "services/capital/diversion.py",
+    "query_helper": "_sum_expenses",
+    "behavior": "Uses one fixed parameterized expense query for both consumption and reinvestment totals; keeps the location predicate and inclusive optional date bounds, and uses the schema's expense_date column (the previous dynamic query referenced nonexistent event_date when date bounds were supplied).",
+    "bind_contract": {
+      "placeholder_count": 6,
+      "supplied_count": 6,
+      "mismatch": false,
+      "location_value": "location_id",
+      "optional_date_values": ["period_start", "period_start", "period_end", "period_end"],
+      "capital_expenditure_value": "is_capex"
+    }
+  },
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_capital_accounting.py tests/test_report_generator_helper_scope_inventory.py -q",
+    "focused_tests_passed": 24,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "generated_helper_inventory_check": "passed",
+    "generated_query_inventory_check": "passed",
+    "generated_source_inventory_check": "passed",
+    "helper_query_memberships": 175,
+    "static_sql_sites": 159,
+    "unresolved_sql_sites": 16,
+    "positional_bind_contracts": 145,
+    "named_bind_contracts": 2,
+    "bind_mismatches": 0
+  },
+  "scope_boundary": "The static location predicate and bind are source signals only. They do not prove tenant authorization, row-level security, or populated report parity.",
+  "database_or_provider_used": false,
+  "candidate_or_legacy_changed": false,
+  "rollback": "Revert the diversion query/test, generated inventory, progress and checklist entries, and this evidence. No persisted data changed."
+}

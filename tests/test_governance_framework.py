@@ -119,6 +119,16 @@ def test_baal_read_client_proposal_and_member(monkeypatch):
     assert client.shaman_permission("0x0000000000000000000000000000000000000ABC") == 7
 
 
+def test_baal_config_does_not_report_zero_when_uint_read_fails(monkeypatch):
+    client = BaalReadClient(w3=_fake_w3())
+    _patch_client(monkeypatch, client)
+    client._baal.functions.votingPeriod.return_value.call.side_effect = RuntimeError(
+        "synthetic RPC failure"
+    )
+
+    assert client.config().voting_period is None
+
+
 def test_baal_normalizes_token_balance():
     w3 = _fake_w3()
     client = BaalReadClient(w3=w3)

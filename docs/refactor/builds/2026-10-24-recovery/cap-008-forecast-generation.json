@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008 trend forecast generation",
+  "implementation": {
+    "route": "POST /operator/api/trends/{location_id}/forecast",
+    "authorization": "exact trend_analysis:compute plus operator session and CSRF; request body capped at 4 KiB",
+    "source_data": "at most 365 verified values from active metric definitions at the exact location",
+    "persistence": "transactional active-ARIMA reuse or supersede-and-insert; other model types are untouched",
+    "ui": "compute-grant-gated generation followed by saved projection reload"
+  },
+  "checks": {
+    "pytest": {
+      "focused_command": "python3 -m pytest tests/test_gateway_trend_forecast_compute.py tests/test_gateway_trend_analysis_reads.py tests/test_operator_console_trend_analysis.py tests/test_operator_route_policy_inventory.py -q",
+      "focused_result": "43 passed",
+      "model_regression_command": "python3 -m pytest tests/test_trend_forecasting.py -q",
+      "combined_command": "python3 -m pytest tests/test_gateway_trend_forecast_compute.py tests/test_gateway_trend_analysis_reads.py tests/test_operator_console_trend_analysis.py tests/test_operator_route_policy_inventory.py tests/test_trend_forecasting.py -q",
+      "combined_result": "58 passed"
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "javascript_syntax": "passed",
+    "runtime_sql_inventory": "regenerated and check passed",
+    "capability_matrix": "67 rows valid"
+  },
+  "not_exercised": [
+    "candidate or legacy database",
+    "database migration or rollout",
+    "forecast scientific validation or populated-data parity",
+    "live OIDC/browser acceptance",
+    "provider calls"
+  ],
+  "rollback": "revert the source changes and regenerate docs/refactor/runtime-sql-inventory.json"
+}

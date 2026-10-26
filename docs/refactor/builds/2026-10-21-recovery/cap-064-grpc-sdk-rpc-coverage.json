@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Pin TypeScript SDK coverage for every protocol RPC",
+  "result": "PASS",
+  "inventory": {
+    "DataService": {"proto_rpcs": 13, "typescript_wrappers": 13},
+    "EcocreditService": {"proto_rpcs": 42, "typescript_wrappers": 42},
+    "total": 55,
+    "contract": "Every declared RPC has exactly one typed client wrapper; no wrapper refers to an undeclared RPC."
+  },
+  "verification": {
+    "pytest": "2 passed in tests/test_grpc_sdk_method_parity.py",
+    "typescript_vitest": "7 passed",
+    "typescript_build": "passed",
+    "package_dry_run": "passed; distribution contains the four required proto files",
+    "bundled_constructor_smoke": "Both built service clients loaded bundled protos and closed without RPC calls",
+    "ruff": "passed",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "diff_check": "passed"
+  },
+  "network_database_or_provider_access": false,
+  "limitations": [
+    "Method coverage does not prove request/response field semantics, authorization, tenant isolation, TLS, live transport, or REST parity.",
+    "CAP-064 and the broader SDK release gate remain open."
+  ]
+}

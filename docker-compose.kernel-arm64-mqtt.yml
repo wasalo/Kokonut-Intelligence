@@ -1,0 +1,7 @@
+# Select the verified ARM64 broker and subscriber images for MQTT ingestion.
+services:
+  mosquitto:
+    platform: linux/arm64
+
+  mqtt-subscriber:
+    platform: linux/arm64

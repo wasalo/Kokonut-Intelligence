@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "source_revision": "95622bce",
+  "working_tree_dirty": true,
+  "postgres_image": "postgres:16",
+  "platform": "native",
+  "container_architecture": "x86_64",
+  "migrations": [
+    "153_waste_management.sql",
+    "613_location_waste_stream_capture.sql",
+    "614_location_composting_capture.sql",
+    "615_location_recycling_capture.sql",
+    "616_location_pollution_incident_gateway.sql",
+    "617_location_scoped_pollution_incident_reads.sql",
+    "618_location_scoped_waste_summary_reader.sql"
+  ],
+  "checks": [
+    "migrations 613\u2013618 apply and replay after the canonical migration-153 tables",
+    "bounded waste windows preserve legacy totals, compost method averages and overall yield; recent numeric quality is limited to ten records and excludes arbitrary metadata",
+    "exact create grant captures a recorded kg row and an identical retry returns the same ID",
+    "composting capture writes recorded process data, preserves bounded freeform labels, and replays the exact request",
+    "compost changed-input replay conflicts and mismatched signed location is denied",
+    "recycling capture maps and preserves freeform labels, stores revenue, and replays exact requests",
+    "recycling changed-input reuse and foreign-location access fail; direct runtime inserts are denied",
+    "read-only grants cannot open narratives; review-only grants cannot retrieve aggregates; both function families reject mismatched locations",
+    "review narratives and read aggregates require signed exact-location functions; runtime direct incident SELECT is denied",
+    "incident capture maps legacy types, preserves bounded attribution, opens, and exactly replays",
+    "separate review grant resolves only the scoped incident, attributes the reviewer, and retries exactly",
+    "runtime and Directus cannot directly read incidents, access the narrative view, write incidents, or read private receipts; bounded function owners are isolated",
+    "runtime and Directus cannot directly read waste, compost, or recycling tables/views; runtime alone can call the exact-grant aggregate owned by an isolated role",
+    "direct runtime table and legacy aggregate-view reads fail closed",
+    "mismatched location, missing exact create grant, wrong actor type, and invalid category fail closed",
+    "idempotency key reuse with changed input conflicts",
+    "runtime cannot write recycling rows or read private receipts; Directus cannot write/read receipts/execute; all function owners are isolated"
+  ],
+  "candidate_or_legacy_database_used": false,
+  "provider_calls": false
+}

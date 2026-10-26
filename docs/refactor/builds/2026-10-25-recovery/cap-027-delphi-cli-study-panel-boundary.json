@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-25",
+  "capabilities": ["CAP-027", "CAP-038"],
+  "change": "Legacy Delphi CLI operations without authenticated location context fail before database access.",
+  "blocked_commands": [
+    "create-study",
+    "open-study",
+    "close-study",
+    "list-studies",
+    "add-panel",
+    "list-panel",
+    "add-item",
+    "submit",
+    "check-stopping",
+    "calibrate-panel"
+  ],
+  "retained_cli_paths": [
+    "live-summary uses the signed location-scoped worker",
+    "consensus uses the signed location-scoped worker",
+    "draft-recommendation returns an in-memory suggestion"
+  ],
+  "checks": {
+    "command": "python3 -m pytest tests/test_delphi.py -k 'CLI' -q",
+    "result": "19 passed, 48 deselected",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "diff_check": "passed"
+  },
+  "database_contacted": false,
+  "provider_contacted": false,
+  "candidate_or_legacy_touched": false,
+  "migration_added": false,
+  "limitation": "This closes an unauthenticated shared-database access path; blocked study and panel operations still need authenticated location-scoped Gateway contracts before lifecycle parity is complete."
+}

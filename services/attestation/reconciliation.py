@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("attestation.reconciliation")
@@ -122,7 +123,7 @@ def _verify_onchain(conn, chain: str) -> tuple[int, list[dict]]:
         for row in confirmed:
             uid = row["attestation_uid"]
             try:
-                attestation = client.get_attestation(uid)
+                client.get_attestation(uid)
                 is_valid = client.is_valid_attestation(uid)
                 if not is_valid:
                     discrepancies.append({
@@ -140,7 +141,7 @@ def _verify_onchain(conn, chain: str) -> tuple[int, list[dict]]:
                     "attestation_uid": uid,
                     "title": row["title"],
                     "issue": "attestation_not_found",
-                    "detail": str(e),
+                    "detail": f"Attestation verification failed ({safe_exception_class(e)})",
                 })
     except ImportError:
         logger.warning("web3 not available, skipping onchain verification")

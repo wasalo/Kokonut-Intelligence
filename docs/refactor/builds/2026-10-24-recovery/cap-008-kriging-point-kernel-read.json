@@ -1,0 +1,52 @@
+{
+  "capability": "CAP-008",
+  "batch": "saved kriging prediction point pages",
+  "date": "2026-10-24",
+  "status": "passed",
+  "verification": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_gateway_geostatistics_reads.py tests/test_operator_console_geostatistics.py tests/test_operator_route_policy_inventory.py -q",
+      "result": "45 passed"
+    },
+    "ruff": {
+      "command": "ruff check services/gateway/geostatistics_reads.py services/gateway/geostatistics_routes.py services/gateway/operator_auth.py tests/test_gateway_geostatistics_reads.py tests/test_operator_console_geostatistics.py tests/test_operator_route_policy_inventory.py",
+      "result": "passed"
+    },
+    "python_compilation": {
+      "command": "python3 -m compileall -q services/gateway/geostatistics_reads.py services/gateway/geostatistics_routes.py services/gateway/operator_auth.py",
+      "result": "passed"
+    },
+    "console_javascript": {
+      "command": "Extract last inline script from apps/operator-console/index.html and run node --check",
+      "result": "passed"
+    },
+    "runtime_sql_inventory": {
+      "command": "python3 scripts/runtime_sql_inventory.py --output docs/refactor/runtime-sql-inventory.json && python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "regenerated and current"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; MAN-CAP checks separately gated"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "behavior": [
+    "added a no-store location-scoped kriging-point route guarded by exact geostatistics:read operator authorization",
+    "sets signed tenant context on the same repeatable-read, read-only connection before reading the prediction, counting points, or loading a page",
+    "qualifies the prediction lookup and each point count/page query by requested location; missing or foreign runs return the same not-found response",
+    "bounds deterministic point pages to 50 rows and offset 10000 and omits point UUIDs, model references, threshold, weights, neighbor counts, search radius, and arbitrary metadata",
+    "returns point sequence, WGS84 coordinates, predicted value, variance, and standard deviation; non-finite and negative uncertainty values become null",
+    "adds a hidden-by-default console detail that keeps prediction IDs undisplayed, discards stale responses, and renders advisory values as text"
+  ],
+  "database_or_migration_used": false,
+  "candidate_or_legacy_touched": false,
+  "remaining": [
+    "numerical/populated-output parity and scientific review",
+    "live OIDC/browser acceptance",
+    "least-privilege ACL/RLS and audience review",
+    "named MAN-CAP-008 acceptance"
+  ]
+}

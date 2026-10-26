@@ -1,22 +1,18 @@
 # Candidate Kernel image. Legacy images remain the supported complete runtime.
 FROM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS kernel-base
 
+ARG KOKONUT_CLICKHOUSE=false
+
 WORKDIR /app
 
 RUN useradd -m -u 10001 -s /bin/bash appuser
 
-COPY requirements/kernel.txt requirements/web3.txt requirements/exports.txt requirements/clickhouse.txt requirements/storage.txt ./requirements/
-# Preserve Web3 and private field-media/spreadsheet dependencies in the candidate.
-RUN pip install --no-cache-dir \
-    -r requirements/kernel.txt \
-    -r requirements/web3.txt \
-    -r requirements/exports.txt \
-    -r requirements/storage.txt
-
-ARG KOKONUT_CLICKHOUSE=false
+# Install one reviewed, hash-checked closure. The optional ClickHouse profile
+# has a full superset lock so every selected runtime remains reproducible.
+COPY requirements/kernel-runtime.lock requirements/kernel-clickhouse.lock ./requirements/
 RUN case "$KOKONUT_CLICKHOUSE" in \
-    true) pip install --no-cache-dir -r requirements/clickhouse.txt ;; \
-    false) : ;; \
+    true) pip install --no-cache-dir --require-hashes -r requirements/kernel-clickhouse.lock ;; \
+    false) pip install --no-cache-dir --require-hashes -r requirements/kernel-runtime.lock ;; \
     *) echo "KOKONUT_CLICKHOUSE must be true or false" >&2; exit 1 ;; \
     esac
 
@@ -26,6 +22,7 @@ RUN pip list --disable-pip-version-check --format=json > /app/python-packages.js
     && python3 -VV > /app/python-runtime.txt
 
 COPY services/ ./services/
+COPY apps/delphi-participant/ ./apps/delphi-participant/
 COPY schemas/ ./schemas/
 COPY config/ ./config/
 COPY VERSION ./VERSION
@@ -44,7 +41,7 @@ EXPOSE 8099
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
     CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/health', timeout=5).close()" || exit 1
 
-CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers"]
+CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers", "--require-schema"]
 
 # Optional transport target. Generate protobufs inside the image, preserving
 # the existing service imports without committing generated Python artifacts.
@@ -99,7 +96,55 @@ RUN pip install --no-cache-dir -r requirements/oidc.txt \
 COPY apps/operator-console/ ./apps/operator-console/
 USER appuser
 RUN python3 -m services.core.image_manifest --target oidc
-CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers"]
+CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers", "--require-schema"]
+
+# Resolve and unpack architecture-specific ML wheels on the native build
+# platform. This avoids pip network resolution and wheel extraction under QEMU.
+FROM --platform=$BUILDPLATFORM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS ml-anomaly-dependencies
+ARG TARGETARCH
+WORKDIR /build
+COPY requirements/ml-anomaly.txt ./requirements/ml-anomaly.txt
+COPY requirements/ml-anomaly-runtime.in ./requirements/ml-anomaly-runtime.in
+COPY requirements/ml-anomaly-runtime.lock ./requirements/ml-anomaly-runtime.lock
+RUN set -eu; \
+    case "$TARGETARCH" in \
+      amd64) set -- --platform=manylinux_2_28_x86_64 --platform=manylinux2014_x86_64 ;; \
+      arm64) set -- --platform=manylinux_2_28_aarch64 --platform=manylinux2014_aarch64 ;; \
+      *) echo "Unsupported ML worker architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    python3 -m pip install --disable-pip-version-check --no-cache-dir \
+      --require-hashes --only-binary=:all: --ignore-installed \
+      --target=/opt/ml-anomaly-site \
+      "$@" --python-version=3.11 --implementation=cp --abi=cp311 \
+      -r requirements/ml-anomaly-runtime.lock
+
+# Optional one-shot ML anomaly worker. The default Kernel target stays small;
+# only this explicit profile receives the selected architecture's ML packages.
+FROM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS ml-anomaly
+WORKDIR /app
+RUN useradd -m -u 10001 -s /bin/bash appuser
+# The pinned base image includes packaging 26.2. Remove its metadata and code
+# before copying the hash-locked runtime (26.3), avoiding ambiguous duplicate
+# dist-info selection by pip's package inventory.
+RUN rm -rf /usr/local/lib/python3.11/site-packages/packaging \
+    /usr/local/lib/python3.11/site-packages/packaging-*.dist-info
+COPY --from=ml-anomaly-dependencies /opt/ml-anomaly-site/ /usr/local/lib/python3.11/site-packages/
+COPY requirements/ml-anomaly.txt requirements/ml-anomaly-runtime.in requirements/ml-anomaly-runtime.lock ./requirements/
+COPY services/ ./services/
+COPY schemas/ ./schemas/
+COPY config/ ./config/
+COPY VERSION ./VERSION
+COPY pyproject.toml ./pyproject.toml
+COPY Dockerfile.kernel ./Dockerfile.kernel
+RUN pip list --disable-pip-version-check --format=json > /app/python-packages.json \
+    && python3 -VV > /app/python-runtime.txt \
+    && mkdir -p /var/lib/kokonut/ml-models \
+    && chown -R appuser:appuser /var/lib/kokonut/ml-models \
+    && chown appuser:appuser /app/python-packages.json /app/python-runtime.txt
+RUN python3 -m services.core.image_manifest --target ml-anomaly
+RUN chown appuser:appuser /app/source-manifest.json
+USER appuser
+CMD ["python3", "-m", "services.ingestion.sensor_anomaly_ml_cli"]
 
 # Default builds remain the minimal API/worker image.
 FROM kernel-base AS kernel

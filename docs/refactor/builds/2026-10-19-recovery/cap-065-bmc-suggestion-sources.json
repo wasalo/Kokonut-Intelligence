@@ -1,0 +1,33 @@
+{
+  "capability": "CAP-065",
+  "date": "2026-10-19",
+  "scope": "Legacy Business Model Canvas one-click suggestion source correction",
+  "status": "source-level checks passed; database-backed service checks unavailable",
+  "changes": [
+    "Replaced stale column/table references with current cooperative, supply agreement, farm activity, sensor, energy, shared asset, impact claim, content delivery, buyer segment, revenue, expense, and feedback schemas.",
+    "Bound every suggestion source query to the requested location and excluded global federation/process catalogs.",
+    "Limited business facts to verified/published records where lifecycle status exists.",
+    "Kept revenue in its explicit USD field and grouped expense totals by native currency.",
+    "Limited feedback suggestions to public, consented, published records with at least five identified respondents.",
+    "Isolated optional source failures with savepoints so a missing source does not abort later suggestions or poison the caller transaction."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_bmc_oneclick.py tests/test_business_model_canvas.py -q -rs",
+    "result": "7 passed, 8 skipped",
+    "passed_checks": [
+      "five one-click source/behavior tests",
+      "offline module shape and entity validation checks"
+    ],
+    "skipped_checks": "Eight legacy database-backed tests skipped because localhost PostgreSQL was unavailable in the restricted shell.",
+    "additional_checks": [
+      "ruff check services/analytics/business_model_canvas.py tests/test_bmc_oneclick.py",
+      "python3 -m compileall -q services/analytics/business_model_canvas.py tests/test_bmc_oneclick.py",
+      "git diff --check"
+    ],
+    "additional_checks_result": "passed"
+  },
+  "database_touched": false,
+  "candidate_or_legacy_touched": false,
+  "kernel_gateway_generation_implemented": false,
+  "populated_output_parity_claimed": false
+}

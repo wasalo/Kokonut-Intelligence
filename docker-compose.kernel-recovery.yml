@@ -15,7 +15,9 @@ services:
       - recovery-postgres-data:/var/lib/postgresql/data
     networks: [recovery]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      # The PostGIS entrypoint starts a temporary server while initializing
+      # extensions. During that phase PID 1 is the entrypoint shell, not postgres.
+      test: ["CMD-SHELL", "test \"$(cat /proc/1/comm)\" = postgres && pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence"]
       interval: 10s
       timeout: 5s
       retries: 5

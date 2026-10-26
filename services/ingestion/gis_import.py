@@ -9,22 +9,25 @@ Supported formats:
     - GeoJSON FeatureCollection / Feature (Polygon, MultiPolygon)
     - CSV with lat/lon columns (generates point geometries)
     - CSV with WKT geometry column
+    - KML Placemark Polygon and MultiGeometry polygon boundaries
 
 Usage:
     python3 -m services.ingestion.gis_import --file boundaries.geojson --target location
     python3 -m services.ingestion.gis_import --file coords.csv --target plot
     python3 -m services.ingestion.gis_import --file boundaries.csv --target farm
+    python3 -m services.ingestion.gis_import --file boundaries.kml --target location
 """
 
 import argparse
 import csv
 import json
-import re
+import math
 import sys
-from datetime import datetime, timezone
+
+from defusedxml import ElementTree as SafeET
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
+from .base import get_db, hash_payload, log_ingestion
 
 logger = get_logger("ingestion.gis_import")
 
@@ -36,6 +39,78 @@ _MAX_AREA_HA = 1000000.0
 _MIN_AREA_HA = 0.0001
 
 
+def _normalize_position(position: list | tuple) -> tuple[float, float]:
+    """Return a validated WGS84 longitude/latitude pair for a boundary ring."""
+    if not isinstance(position, (list, tuple)) or len(position) < 2:
+        raise ValueError("position must contain longitude and latitude")
+
+    longitude, latitude = position[:2]
+    if (
+        isinstance(longitude, bool)
+        or isinstance(latitude, bool)
+        or not isinstance(longitude, (int, float))
+        or not isinstance(latitude, (int, float))
+    ):
+        raise ValueError("longitude and latitude must be numeric")
+
+    longitude = float(longitude)
+    latitude = float(latitude)
+    if not math.isfinite(longitude) or not math.isfinite(latitude):
+        raise ValueError("longitude and latitude must be finite")
+    if not -180 <= longitude <= 180 or not -90 <= latitude <= 90:
+        raise ValueError("coordinate is outside WGS84 longitude/latitude bounds")
+    return longitude, latitude
+
+
+def _normalize_ring(ring: list | tuple) -> list[tuple[float, float]]:
+    if not isinstance(ring, (list, tuple)) or len(ring) < 4:
+        raise ValueError("linear ring must contain at least four positions")
+    if len(ring) > _MAX_COORDS:
+        raise ValueError("linear ring exceeds maximum coordinate count")
+
+    positions = [_normalize_position(position) for position in ring]
+    if positions[0] != positions[-1]:
+        raise ValueError("linear ring must be closed")
+    return positions
+
+
+def _normalize_polygon_rings(coordinates: list | tuple) -> list[list[tuple[float, float]]]:
+    if not isinstance(coordinates, (list, tuple)) or not coordinates:
+        raise ValueError("polygon must contain an exterior ring")
+
+    rings = []
+    coordinate_count = 0
+    for ring in coordinates:
+        normalized_ring = _normalize_ring(ring)
+        coordinate_count += len(normalized_ring)
+        if coordinate_count > _MAX_COORDS:
+            raise ValueError("polygon exceeds maximum coordinate count")
+        rings.append(normalized_ring)
+    return rings
+
+
+def _normalize_multipolygon_rings(
+    coordinates: list | tuple,
+) -> list[list[list[tuple[float, float]]]]:
+    if not isinstance(coordinates, (list, tuple)) or not coordinates:
+        raise ValueError("multipolygon must contain at least one polygon")
+
+    polygons = []
+    coordinate_count = 0
+    for polygon in coordinates:
+        rings = _normalize_polygon_rings(polygon)
+        coordinate_count += sum(len(ring) for ring in rings)
+        if coordinate_count > _MAX_COORDS:
+            raise ValueError("multipolygon exceeds maximum coordinate count")
+        polygons.append(rings)
+    return polygons
+
+
+def _ring_to_wkt(ring: list[tuple[float, float]]) -> str:
+    points = ", ".join(f"{longitude:g} {latitude:g}" for longitude, latitude in ring)
+    return f"({points})"
+
+
 def parse_geojson(filepath: str) -> list:
     """Parse a GeoJSON file and extract boundary records.
 
@@ -44,6 +119,9 @@ def parse_geojson(filepath: str) -> list:
     """
     with open(filepath, "r") as f:
         data = json.load(f)
+
+    if not isinstance(data, dict):
+        raise ValueError("GeoJSON root must be an object")
 
     features = []
     if data.get("type") == "FeatureCollection":
@@ -67,6 +145,15 @@ def parse_geojson(filepath: str) -> list:
             logger.warning("  Skipping feature %d: empty coordinates", i + 1)
             continue
 
+        try:
+            if geom_type == "Polygon":
+                _normalize_polygon_rings(coords)
+            else:
+                _normalize_multipolygon_rings(coords)
+        except ValueError as exc:
+            logger.warning("  Skipping feature %d: invalid coordinates (%s)", i + 1, exc)
+            continue
+
         slug = props.get("slug") or props.get("name", f"import-{i + 1}").lower().replace(" ", "-")
         name = props.get("name", slug)
 
@@ -77,6 +164,110 @@ def parse_geojson(filepath: str) -> list:
             "coordinates": coords,
             "properties": props,
         })
+
+    return records
+
+
+def _local_xml_name(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def _direct_child_text(element, child_name: str) -> str | None:
+    for child in element:
+        if _local_xml_name(child.tag) == child_name:
+            return (child.text or "").strip()
+    return None
+
+
+def _kml_coordinates(text: str | None) -> list[tuple[float, float]]:
+    if not text:
+        raise ValueError("LinearRing has no coordinates")
+
+    positions = []
+    for coordinate in text.split():
+        parts = coordinate.split(",")
+        if len(parts) < 2:
+            raise ValueError("KML coordinate must contain longitude and latitude")
+        try:
+            positions.append((float(parts[0]), float(parts[1])))
+        except ValueError as exc:
+            raise ValueError("KML coordinate contains a non-numeric value") from exc
+    return positions
+
+
+def _kml_polygon_rings(polygon) -> list[list[tuple[float, float]]]:
+    rings = []
+    for boundary in polygon:
+        boundary_name = _local_xml_name(boundary.tag)
+        if boundary_name not in {"outerBoundaryIs", "innerBoundaryIs"}:
+            continue
+        linear_ring = next(
+            (element for element in boundary.iter() if _local_xml_name(element.tag) == "LinearRing"),
+            None,
+        )
+        if linear_ring is None:
+            raise ValueError("KML boundary is missing a LinearRing")
+        coordinate_element = next(
+            (element for element in linear_ring if _local_xml_name(element.tag) == "coordinates"),
+            None,
+        )
+        coordinates = _kml_coordinates(
+            coordinate_element.text if coordinate_element is not None else None
+        )
+        rings.append(_normalize_ring(coordinates))
+
+    if not rings:
+        raise ValueError("KML Polygon has no boundary rings")
+    return rings
+
+
+def parse_kml(filepath: str) -> list:
+    """Parse KML Placemark polygons into the shared GIS-import record shape."""
+    root = SafeET.parse(filepath).getroot()
+    placemarks = [element for element in root.iter() if _local_xml_name(element.tag) == "Placemark"]
+    records = []
+
+    for index, placemark in enumerate(placemarks, start=1):
+        properties = {}
+        for element in placemark.iter():
+            tag_name = _local_xml_name(element.tag)
+            if tag_name == "Data" and element.get("name"):
+                value = _direct_child_text(element, "value")
+                if value is not None:
+                    properties[element.get("name")] = value
+            elif tag_name == "SimpleData" and element.get("name"):
+                properties[element.get("name")] = (element.text or "").strip()
+
+        polygon_coordinates = []
+        try:
+            for element in placemark.iter():
+                if _local_xml_name(element.tag) == "Polygon":
+                    polygon_coordinates.append(_kml_polygon_rings(element))
+            if not polygon_coordinates:
+                logger.warning("  Skipping KML Placemark %d: no Polygon geometry", index)
+                continue
+            if len(polygon_coordinates) == 1:
+                geometry_type = "Polygon"
+                coordinates = _normalize_polygon_rings(polygon_coordinates[0])
+            else:
+                geometry_type = "MultiPolygon"
+                coordinates = _normalize_multipolygon_rings(polygon_coordinates)
+        except ValueError as exc:
+            logger.warning("  Skipping KML Placemark %d: invalid coordinates (%s)", index, exc)
+            continue
+
+        name = _direct_child_text(placemark, "name") or properties.get("name") or f"import-{index}"
+        slug = properties.get("slug") or name.lower().replace(" ", "-")
+        properties.setdefault("name", name)
+        records.append(
+            {
+                "slug": slug,
+                "name": name,
+                "geom_type": geometry_type,
+                "coordinates": coordinates,
+                "properties": properties,
+            }
+        )
 
     return records
 
@@ -110,10 +301,19 @@ def parse_csv_boundaries(filepath: str) -> list:
 
             lat = row.get("lat") or row.get("latitude")
             lon = row.get("lon") or row.get("longitude") or row.get("lng")
-            if lat and lon:
+            if (
+                lat is not None
+                and lon is not None
+                and str(lat).strip() != ""
+                and str(lon).strip() != ""
+            ):
                 try:
                     lat_f = float(lat)
                     lon_f = float(lon)
+                    if not math.isfinite(lat_f) or not math.isfinite(lon_f):
+                        raise ValueError("coordinates must be finite")
+                    if not -90 <= lat_f <= 90 or not -180 <= lon_f <= 180:
+                        raise ValueError("coordinates are outside WGS84 bounds")
                     wkt_point = f"SRID=4326;POINT({lon_f} {lat_f})"
                     records.append({
                         "slug": slug,
@@ -125,7 +325,7 @@ def parse_csv_boundaries(filepath: str) -> list:
                         "properties": dict(row),
                     })
                 except (ValueError, TypeError):
-                    logger.warning("  Skipping row %d: invalid lat/lon: %s, %s", i + 1, lat, lon)
+                    logger.warning("  Skipping row %d: invalid latitude/longitude", i + 1)
                 continue
 
             logger.warning("  Skipping row %d: no geometry, lat/lon, or WKT found", i + 1)
@@ -158,38 +358,30 @@ def validate_boundary_wkt(wkt: str) -> list:
 def build_polygon_wkt(coords: list) -> str:
     """Build PostGIS WKT for a Polygon from GeoJSON coordinate array.
 
-    GeoJSON Polygon coords: [[ [lon, lat], [lon, lat], ... ]]
-    PostGIS WKT: SRID=4326;POLYGON((lon lat, lon lat, ...))
+    GeoJSON Polygon coords contain an exterior ring followed by optional holes.
+    All rings are preserved in the generated PostGIS WKT.
     """
-    if not coords or not coords[0]:
+    if not coords or (len(coords) == 1 and not coords[0]):
         return ""
 
-    ring = coords[0]
-    points = ", ".join(f"{c[0]} {c[1]}" for c in ring)
-    return f"SRID=4326;POLYGON(({points}))"
+    rings = _normalize_polygon_rings(coords)
+    return f"SRID=4326;POLYGON({', '.join(_ring_to_wkt(ring) for ring in rings)})"
 
 
 def build_multipolygon_wkt(coords: list) -> str:
     """Build PostGIS WKT for a MultiPolygon from GeoJSON coordinate array.
 
-    GeoJSON MultiPolygon coords: [ [ [ [lon, lat], ... ] ], ... ]
-    PostGIS WKT: SRID=4326;MULTIPOLYGON(((lon lat, ...)), ((lon lat, ...)))
+    GeoJSON MultiPolygon coords contain polygons with exterior and optional
+    interior rings; all rings are preserved in the generated PostGIS WKT.
     """
     if not coords:
         return ""
 
-    polygons = []
-    for polygon_coords in coords:
-        if not polygon_coords or not polygon_coords[0]:
-            continue
-        ring = polygon_coords[0]
-        points = ", ".join(f"{c[0]} {c[1]}" for c in ring)
-        polygons.append(f"(({points}))")
-
-    if not polygons:
-        return ""
-
-    return f"SRID=4326;MULTIPOLYGON({', '.join(polygons)})"
+    polygons = _normalize_multipolygon_rings(coords)
+    polygon_wkts = [
+        f"({', '.join(_ring_to_wkt(ring) for ring in rings)})" for rings in polygons
+    ]
+    return f"SRID=4326;MULTIPOLYGON({', '.join(polygon_wkts)})"
 
 
 def compute_center(wkt: str) -> str:
@@ -197,15 +389,27 @@ def compute_center(wkt: str) -> str:
     return f"ST_Centroid(ST_GeomFromEWKT('{wkt}'))"
 
 
-def resolve_target_record(db, slug: str, target: str) -> str:
-    """Look up a record ID by slug from the target table. Returns UUID or None."""
+def resolve_target_record(db, slug: str, target: str) -> tuple[str, str | None] | None:
+    """Look up the record and its owning location by slug."""
+    if target == "location":
+        query = "SELECT id, id AS location_id FROM location WHERE slug = %s LIMIT 1"
+    elif target == "farm":
+        query = "SELECT id, location_id FROM farm WHERE slug = %s LIMIT 1"
+    elif target == "plot":
+        query = """
+            SELECT p.id, f.location_id
+            FROM plot p
+            JOIN farm f ON f.id = p.farm_id
+            WHERE p.slug = %s
+            LIMIT 1
+        """
+    else:
+        raise ValueError("target must be a supported GIS entity")
+
     with db.cursor() as cur:
-        cur.execute(
-            f"SELECT id FROM {target} WHERE slug = %s LIMIT 1",
-            (slug,),
-        )
+        cur.execute(query, (slug,))
         row = cur.fetchone()
-        return str(row[0]) if row else None
+        return (str(row[0]), str(row[1]) if row[1] is not None else None) if row else None
 
 
 def import_record(db, record_id: str, target: str, wkt: str, lat: float = None, lon: float = None) -> bool:
@@ -213,8 +417,10 @@ def import_record(db, record_id: str, target: str, wkt: str, lat: float = None, 
 
     Returns True if the record was updated.
     """
+    savepoint = "gis_import_update"
     try:
         with db.cursor() as cur:
+            cur.execute(f"SAVEPOINT {savepoint}")
             if lat is not None and lon is not None:
                 cur.execute(
                     f"""
@@ -241,9 +447,14 @@ def import_record(db, record_id: str, target: str, wkt: str, lat: float = None, 
                     """,
                     (wkt, wkt, wkt, wkt, record_id),
                 )
-        return cur.rowcount > 0
+            row_updated = cur.rowcount > 0
+            cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+        return row_updated
     except Exception as e:
-        logger.error("  Failed to update %s %s: %s", target, record_id, e)
+        with db.cursor() as cur:
+            cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+            cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+        logger.error("  Failed to update %s %s (%s)", target, record_id, type(e).__name__)
         return False
 
 
@@ -253,127 +464,160 @@ def run(file_path: str, target: str = "location"):
         logger.error("Invalid target: %s. Must be one of: %s", target, ", ".join(VALID_TARGETS))
         sys.exit(1)
 
+    if file_path.lower().endswith((".geojson", ".json")):
+        records = parse_geojson(file_path)
+    elif file_path.lower().endswith(".csv"):
+        records = parse_csv_boundaries(file_path)
+    elif file_path.lower().endswith(".kml"):
+        records = parse_kml(file_path)
+    else:
+        logger.error("Unsupported file format: %s", file_path)
+        sys.exit(1)
+
+    if not records:
+        logger.info("No valid boundary records to import from %s", file_path)
+        return
+
     db = get_db()
     success = 0
     errors = 0
-
-    if file_path.endswith(".geojson") or file_path.endswith(".json"):
-        records = parse_geojson(file_path)
-    elif file_path.endswith(".csv"):
-        records = parse_csv_boundaries(file_path)
-    else:
-        logger.error("Unsupported file format: %s", file_path)
-        db.close()
-        sys.exit(1)
-
     logger.info("Processing %d records from %s (target: %s)...", len(records), file_path, target)
 
-    for i, rec in enumerate(records):
-        slug = rec["slug"]
+    try:
+        for i, rec in enumerate(records):
+            slug = rec["slug"]
+            record_id = None
+            location_id = None
+            audit = {
+                "source_system": "gis_import",
+                "source_table": f"{target}_geojson",
+                "source_id": slug,
+                "target_table": target,
+                "operation": "update",
+                "payload_hash": hash_payload(rec),
+                "db": db,
+            }
 
-        try:
-            record_id = resolve_target_record(db, slug, target)
-            if not record_id:
+            try:
+                resolved = resolve_target_record(db, slug, target)
+                if not resolved:
+                    errors += 1
+                    logger.warning("  ✗ Target record not found (%s)", target)
+                    log_ingestion(
+                        **audit,
+                        target_id=None,
+                        status="failed",
+                        error_message="Target record not found",
+                        location_id=None,
+                    )
+                    continue
+                record_id, location_id = resolved
+
+                if rec["geom_type"] == "WKT":
+                    wkt = rec["wkt"]
+                    lat = None
+                    lon = None
+                elif rec["geom_type"] == "Point":
+                    wkt = rec["wkt"]
+                    lat = rec.get("lat")
+                    lon = rec.get("lon")
+                elif rec["geom_type"] == "Polygon":
+                    wkt = build_polygon_wkt(rec["coordinates"])
+                    lat = None
+                    lon = None
+                elif rec["geom_type"] == "MultiPolygon":
+                    wkt = build_multipolygon_wkt(rec["coordinates"])
+                    lat = None
+                    lon = None
+                else:
+                    errors += 1
+                    logger.warning("  ✗ Unsupported geometry type")
+                    log_ingestion(
+                        **audit,
+                        target_id=record_id,
+                        status="failed",
+                        error_message="Unsupported geometry type",
+                        location_id=location_id,
+                    )
+                    continue
+
+                validation_errors = validate_boundary_wkt(wkt)
+                if validation_errors:
+                    errors += 1
+                    logger.warning("  ✗ Invalid boundary (%s)", ", ".join(validation_errors))
+                    log_ingestion(
+                        **audit,
+                        target_id=record_id,
+                        status="failed",
+                        error_message=", ".join(validation_errors),
+                        location_id=location_id,
+                    )
+                    continue
+
+                updated = import_record(db, record_id, target, wkt, lat, lon)
+                if updated:
+                    success += 1
+                    logger.info("  ✓ %s boundary updated", target)
+                    log_ingestion(
+                        **audit,
+                        target_id=record_id,
+                        status="success",
+                        rows_affected=1,
+                        location_id=location_id,
+                    )
+                else:
+                    errors += 1
+                    logger.warning("  ✗ %s boundary update failed", target)
+                    log_ingestion(
+                        **audit,
+                        target_id=record_id,
+                        status="failed",
+                        error_message="Boundary update failed",
+                        location_id=location_id,
+                    )
+
+            except Exception as e:
                 errors += 1
-                logger.warning("  ✗ Record not found: %s (slug: %s)", target, slug)
+                logger.error("  ✗ Row %d failed (%s)", i + 1, type(e).__name__)
                 log_ingestion(
-                    source_system="gis_import",
-                    source_table=f"{target}_geojson",
-                    source_id=slug,
-                    target_table=target,
-                    target_id=None,
-                    operation="update",
-                    payload_hash=hash_payload(rec),
-                    status="failed",
-                    error_message=f"Record not found: {slug}",
-                )
-                continue
-
-            if rec["geom_type"] == "WKT":
-                wkt = rec["wkt"]
-                lat = None
-                lon = None
-            elif rec["geom_type"] == "Point":
-                wkt = rec["wkt"]
-                lat = rec.get("lat")
-                lon = rec.get("lon")
-            elif rec["geom_type"] == "Polygon":
-                wkt = build_polygon_wkt(rec["coordinates"])
-                lat = None
-                lon = None
-            elif rec["geom_type"] == "MultiPolygon":
-                wkt = build_multipolygon_wkt(rec["coordinates"])
-                lat = None
-                lon = None
-            else:
-                errors += 1
-                logger.warning("  ✗ Unsupported geometry type: %s", rec["geom_type"])
-                continue
-
-            validation_errors = validate_boundary_wkt(wkt)
-            if validation_errors:
-                errors += 1
-                logger.warning("  ✗ Invalid boundary for %s: %s", slug, ", ".join(validation_errors))
-                log_ingestion(
-                    source_system="gis_import",
-                    source_table=f"{target}_geojson",
-                    source_id=slug,
-                    target_table=target,
+                    **audit,
                     target_id=record_id,
-                    operation="update",
-                    payload_hash=hash_payload(rec),
                     status="failed",
-                    error_message=", ".join(validation_errors),
+                    error_message=f"boundary import failed ({type(e).__name__})",
+                    location_id=location_id,
                 )
-                continue
 
-            updated = import_record(db, record_id, target, wkt, lat, lon)
-            if updated:
-                success += 1
-                logger.info("  ✓ %s: %s boundary updated", target, slug)
-                log_ingestion(
-                    source_system="gis_import",
-                    source_table=f"{target}_geojson",
-                    source_id=slug,
-                    target_table=target,
-                    target_id=record_id,
-                    operation="update",
-                    payload_hash=hash_payload(rec),
-                    status="success",
-                    rows_affected=1,
-                )
-            else:
-                errors += 1
-                logger.warning("  ✗ %s: no rows updated for %s", target, slug)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
-        except Exception as e:
-            errors += 1
-            logger.error("  ✗ Row %d (%s): %s", i + 1, slug, e)
-            log_ingestion(
-                source_system="gis_import",
-                source_table=f"{target}_geojson",
-                source_id=slug,
-                target_table=target,
-                target_id=None,
-                operation="update",
-                payload_hash=hash_payload(rec),
-                status="failed",
-                error_message=str(e),
-            )
-
-    db.commit()
-    db.close()
     logger.info("Done: %d success, %d errors", success, errors)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="GIS boundary data ingestion")
-    parser.add_argument("--file", required=True, help="Path to GeoJSON or CSV file")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="gis_import.py",
+        description="GIS boundary data ingestion",
+    )
+    parser.add_argument("--file", required=True, help="Path to GeoJSON, CSV, or KML file")
     parser.add_argument(
         "--target",
         default="location",
         choices=["location", "farm", "plot"],
         help="Target table (default: location)",
     )
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run a GIS boundary import."""
+    args = build_parser().parse_args(argv)
     run(file_path=args.file, target=args.target)
+
+
+if __name__ == "__main__":
+    main()

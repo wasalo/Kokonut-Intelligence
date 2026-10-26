@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Single and all-dataset refresh CLI failure reporting",
+  "behavior": {
+    "all_datasets": "Outer failures omit exception contents and dataset names while the batch continues and closes its connection.",
+    "single_dataset": "Outer failures print and raise a bounded summary and always close the connection.",
+    "reader_failure": "Existing safe reporting-query error classification and metadata behavior remain intact."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_dataset_refresh_readonly.py -q",
+    "result": "12 passed",
+    "coverage": [
+      "all-dataset failure omits database details and dataset labels",
+      "single-dataset failure omits raw exception details",
+      "single and all modes close the application connection",
+      "existing restricted reporting reader and disabled-feature boundaries remain covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake connections and refresh functions"
+  },
+  "limitations": [
+    "No saved dataset query or database service was used.",
+    "This does not establish parity for operator-edited dashboard SQL."
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-25",
+  "component": "PostgreSQL-to-ClickHouse durable outbox",
+  "supported_targets": [
+    "attestation_events",
+    "dlego_events",
+    "remote_sensing_events",
+    "sensor_readings",
+    "wallet_events",
+    "weather_events"
+  ],
+  "contract": [
+    "target table and columns must match repository-owned ClickHouse schemas",
+    "projection columns must be unique and include required identity fields",
+    "projection rows must be non-empty and match the selected column width",
+    "unsupported projections are permanently dead-lettered with a fixed reason before ClickHouse is opened",
+    "valid projections preserve existing lease fencing, retry backoff, and idempotent insert token behavior"
+  ],
+  "checks": {
+    "focused_test_file": "tests/test_clickhouse_outbox.py",
+    "focused_tests_passed": 38,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "schema_column_contract": "passed"
+  },
+  "result": "passed",
+  "isolation": "Synthetic rows and repository schema files only; no database, ClickHouse service, candidate, legacy stack, or provider was accessed."
+}

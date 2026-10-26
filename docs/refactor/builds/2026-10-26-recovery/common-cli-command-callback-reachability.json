@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-26",
+  "scope": "Static function-graph tracing for the scheduled ClickHouse outbox compatibility operation. Runtime behavior, database identity, permissions, and database state were not changed.",
+  "callbacks": [
+    {
+      "dispatch": "services_common_cli_run_callback",
+      "caller": "services.ingestion.clickhouse_outbox:main",
+      "callee": "services.ingestion.clickhouse_outbox:command"
+    },
+    {
+      "dispatch": "clickhouse_outbox_finish_callback",
+      "caller": "services.ingestion.clickhouse_outbox:deliver_batch",
+      "callee": "services.ingestion.clickhouse_outbox:deliver_batch.finish"
+    }
+  ],
+  "compatibility_operation_sql_scopes": [
+    "_recover_expired",
+    "claim_batch",
+    "_finish",
+    "reconcile_pending",
+    "_operator_transition",
+    "list_dead_letters"
+  ],
+  "counts": {
+    "operation_roots": 49,
+    "function_memberships": 1172,
+    "direct_call_edges": 1658,
+    "callback_edges": 2,
+    "literal_dispatch_edges": 56,
+    "sql_execution_sites": 473,
+    "sql_sites_with_static_operation_path": 404,
+    "sql_site_operation_memberships": 585,
+    "sql_sites_without_static_function_match": 69
+  },
+  "verification": {
+    "focused_test_command": "python3 -m pytest tests/test_worker_function_reachability.py tests/test_worker_sql_reachability.py -q",
+    "focused_test_result": "22 passed",
+    "generated_inventory_checks": "source closure, function reachability, SQL inventory, SQL reachability, effect inventory, and boundary preflight --check all passed",
+    "ruff": "passed",
+    "compileall": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; named MAN-CAP checks separately gated",
+    "git_diff_check": "passed",
+    "worker_boundary_preflight": "review_required; RLS remains not_ready"
+  },
+  "limitations": [
+    "The compatibility command still uses the legacy shared application database identity; static graph coverage does not provide tenant authorization, least privilege, or RLS evidence.",
+    "The separate default-off ClickHouse outbox worker and its bounded database functions are unchanged.",
+    "Sixty-nine SQL sites remain without a static function match; absence from this graph does not prove they are dead or unreachable.",
+    "The source graph does not establish live schedules, runtime credentials, provider delivery, database grants, or populated-data parity."
+  ],
+  "environment_touched": {
+    "database": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "result": "passed",
+  "date": "2026-10-21",
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on a local linux/amd64 Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema539-762b8d3e",
+  "schema_files_expected": 530,
+  "schema_files_applied": 530,
+  "schema_files_failed": 0,
+  "latest_migration": "schema:539_agent_worker_structured_result_replay.sql",
+  "elapsed_seconds": 1601.2,
+  "network_access": "disabled",
+  "seed_or_farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "limitations": [
+    "This verifies the ARM64 database image under QEMU, not on a physical Raspberry Pi.",
+    "Power interruption, device storage behavior, and physical thermal behavior were not exercised."
+  ]
+}

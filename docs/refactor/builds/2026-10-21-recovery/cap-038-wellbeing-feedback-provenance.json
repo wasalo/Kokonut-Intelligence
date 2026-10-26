@@ -1,0 +1,91 @@
+{
+  "capability": "CAP-038",
+  "batch": "consent-safe wellbeing and feedback provenance",
+  "date": "2026-10-21",
+  "result": "passed",
+  "agents": [
+    "holistic_wellbeing_synthesis",
+    "feedback_synthesis"
+  ],
+  "registered_location_scoped_views": 4,
+  "feedback_scope": "Only consented, public, published feedback view rows receive IDs. Raw/private feedback aggregates remain outside manifests.",
+  "checks": [
+    {
+      "name": "focused tests",
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py tests/test_regenerative_outcomes.py tests/test_synthesis_source_references.py -q",
+      "result": "passed",
+      "passed": 76
+    },
+    {
+      "name": "Ruff",
+      "result": "passed"
+    },
+    {
+      "name": "Python compilation",
+      "result": "passed"
+    },
+    {
+      "name": "generated inventories and matrix",
+      "result": "passed",
+      "checks": [
+        "runtime SQL inventory",
+        "worker source closure",
+        "worker SQL inventory",
+        "agent write-boundary inventory",
+        "capability matrix: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared"
+      ]
+    },
+    {
+      "name": "migration and authorization acceptance",
+      "command": "python3 scripts/check-agent-worker-ai-summary-disposable.py",
+      "database": "network-disabled disposable PostgreSQL 16 container",
+      "result": "passed",
+      "migrations": [
+        "405_signed_worker_tenant_context.sql",
+        "419_private_worker_context_functions.sql",
+        "521_location_scoped_ai_summary_review.sql",
+        "522_authenticated_ai_summary_drafts.sql",
+        "523_ai_summary_source_references.sql",
+        "524_ai_summary_global_source_references.sql",
+        "529_signed_agent_ai_summary_drafts.sql",
+        "530_signed_agent_ai_summary_source_references.sql",
+        "531_capital_efficiency_synthesis_source_references.sql",
+        "532_registered_agent_source_reference_views.sql",
+        "533_regenerator_synthesis_source_references.sql",
+        "534_public_synthesis_source_reference_views.sql",
+        "535_consent_safe_wellbeing_feedback_source_views.sql"
+      ],
+      "replayed_migrations": [
+        "530_signed_agent_ai_summary_source_references.sql",
+        "531_capital_efficiency_synthesis_source_references.sql",
+        "532_registered_agent_source_reference_views.sql",
+        "533_regenerator_synthesis_source_references.sql",
+        "534_public_synthesis_source_reference_views.sql",
+        "535_consent_safe_wellbeing_feedback_source_views.sql"
+      ],
+      "assertions_passed": 19,
+      "candidate_or_legacy_modified": false,
+      "coverage": [
+        "wellbeing and feedback manifests round-trip under exact signed worker location scope",
+        "no-consent private feedback rows are rejected without partial manifests",
+        "the drafter can read only IDs and locations from all four safe views",
+        "worker execution has no direct access to source tables"
+      ]
+    },
+    {
+      "name": "diff whitespace validation",
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "rollout": {
+    "migration_535_applied_to_candidate": false,
+    "worker_credentials_provisioned": false,
+    "candidate_or_legacy_modified": false
+  },
+  "remaining_limits": [
+    "Kokonut Commons location rows and shared/global governance rows still need a safe lineage policy.",
+    "Other non-synthesis agents, runtime least privilege, populated task parity, and MAN-CAP-038 owner acceptance remain open."
+  ],
+  "disposable_evidence": "cap-038-wellbeing-feedback-source-references-disposable.json"
+}

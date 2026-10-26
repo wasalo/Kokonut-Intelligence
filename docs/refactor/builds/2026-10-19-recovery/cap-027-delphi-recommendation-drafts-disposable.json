@@ -1,0 +1,19 @@
+{
+  "result": "passed",
+  "migration": "451_location_scoped_delphi_recommendation_drafts.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 449\u2013451 apply and replay on a new disposable PostgreSQL 16 database",
+    "draft study listing requires signed location context and the exact delphi:draft grant",
+    "study listing is location-scoped, bounded, and limited to open or closed studies",
+    "draft creation only writes draft lifecycle state and exact request retries are idempotent",
+    "changed-content collisions, ineligible studies, cross-location studies, and oversized text fail closed",
+    "database function page/payload bounds and signed-context location matching are enforced",
+    "operators with only delphi:read cannot list draftable studies or create drafts",
+    "the private append-only request ledger contains no draft text and is inaccessible to runtime and Directus SQL",
+    "Gateway runtime can execute bounded functions while Directus cannot",
+    "the non-login draft owner has only the narrow study-row lock privilege needed to serialize study eligibility"
+  ],
+  "assertions_passed": 10
+}

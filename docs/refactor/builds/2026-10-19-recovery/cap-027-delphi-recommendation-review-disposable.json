@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "migration": "450_location_scoped_delphi_recommendation_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 450 applies and replays without modifying the candidate or legacy database",
+    "review queue is location-scoped and reports self-review, diversity, and minority blockers",
+    "only a signed operator with an exact delphi:review grant can read or decide",
+    "self-review, cross-location access, and missing reviewer grants fail closed",
+    "approval requires a diversity assessment and no pending minority report",
+    "approval and rejection remain human decisions; request retries are idempotent and collisions fail",
+    "decision audit is private, append-only, and inaccessible by direct runtime or Directus SQL"
+  ],
+  "privilege_preflight": "pg_get_userbyid             | prosecdef | has_table_privilege | has_table_privilege | has_table_privilege \n----------------------------------------+-----------+---------------------+---------------------+---------------------\n kokonut_delphi_recommendation_reviewer | t         | t                   | t                   | t\n(1 row)",
+  "reviewer_role_direct_read": "current_user              | count \n----------------------------------------+-------\n kokonut_delphi_recommendation_reviewer |     4\n(1 row)",
+  "assertions_passed": 7
+}

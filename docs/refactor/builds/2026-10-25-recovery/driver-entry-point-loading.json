@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-25",
+  "check": "driver registry import boundary",
+  "implementation": {
+    "builtin_targets": 9,
+    "builtin_targets_match_seed": true,
+    "builtin_class_contracts_verified": 9,
+    "third_party_entry_point_group": "kokonut.drivers",
+    "registration_rejects_uninstalled_or_mismatched_targets_before_database_access": true,
+    "plugin_registration_imports_plugin_code": false,
+    "database_module_path_selects_import": false,
+    "database_metadata_transaction_closed_before_import": true,
+    "driver_registration_invalidates_class_cache": true
+  },
+  "focused_tests": {
+    "command": "python3 -m pytest tests/test_driver_registry.py tests/test_sensor_driver_schedule.py -q",
+    "passed": 61
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "provider_boundaries": "passed",
+    "requirement_group_alignment": "passed",
+    "worker_source_closure": "passed",
+    "worker_function_reachability": "passed",
+    "worker_sql_inventory": "passed",
+    "worker_sql_reachability": "passed",
+    "worker_effect_inventory": "passed",
+    "worker_boundary_preflight": "passed",
+    "runtime_sql_inventory": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  },
+  "validation": {
+    "database_or_provider_access": false,
+    "candidate_or_legacy_database_touched": false
+  },
+  "limitations": [
+    "Installed third-party adapter packages are trusted executable code and are not sandboxed by the Kernel.",
+    "A package must be installed and locked in the runtime environment before its database registration can load.",
+    "This source change does not prove live plugin provisioning, provider operation, database grants, or persisted driver-instance safety."
+  ]
+}

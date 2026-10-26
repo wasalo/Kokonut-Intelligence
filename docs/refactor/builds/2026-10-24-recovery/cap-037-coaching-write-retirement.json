@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-24",
+  "result": "passed",
+  "scope": "CAP-037 legacy coaching-write boundary",
+  "test_command": "python3 -m pytest tests/test_operating_support.py -v",
+  "tests_passed": 3,
+  "checks": [
+    "coaching helper raises before cursor creation",
+    "resource creation helper raises before cursor creation",
+    "resource decision helper raises before cursor creation"
+  ],
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "diff_check": "passed",
+  "database_or_provider_touched": false,
+  "candidate_or_legacy_modified": false,
+  "migration_created": false,
+  "notes": "The unscoped legacy coaching helper is disabled until an authenticated signed location-scoped Gateway workflow exists. Aggregate-only coaching remains the only Kernel coaching surface."
+}

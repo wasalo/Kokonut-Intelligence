@@ -1,0 +1,19 @@
+{
+  "capability": "CAP-038",
+  "check": "ai-summary-list-scope-and-preview-minimization",
+  "date": "2026-10-20",
+  "command": "python3 -m pytest tests/test_ai_summary_cli_lifecycle.py -q",
+  "result": "passed",
+  "summary": {
+    "focused_cases_passed": 3,
+    "unscoped_list_rejected_before_database": true,
+    "all_locations_requires_explicit_flag": true,
+    "global_summary_preview_returned": false,
+    "location_filter_bound_as_uuid": true,
+    "database_or_provider_calls": 0
+  },
+  "limitations": [
+    "This is local CLI output minimization, not a database authorization boundary.",
+    "The CLI still relies on its configured database principal; tenant-level MAN-CAP-038 acceptance remains open."
+  ]
+}

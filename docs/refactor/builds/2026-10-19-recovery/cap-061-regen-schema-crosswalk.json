@@ -1,0 +1,32 @@
+{
+  "capability": "CAP-061",
+  "title": "Regen claim and entity schema crosswalk",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "local schema crosswalk and offline checks pass; capability not accepted",
+  "changes": [
+    "Project and CreditClass LinkML classes now declare rfs:ProjectInfo and rfs:CreditClassInfo class URIs; JSON-LD document generation preserves an explicit CURIE or absolute type URI while retaining the existing Kokonut default for plain local names.",
+    "ImpactClaim declares rfs:Claim and standard hasClaimType and verificationStatus fields. Local claim_type (record kind), claim_category, and governance status remain separately named and mapped to Kokonut vocabulary.",
+    "The ImpactClaim LinkML values now exactly match SQL checks for local claim record kinds, claim categories, Regen ClaimType, Regen VerificationStatus, and governance lifecycle states.",
+    "Replaced the previous enum-count-only tests, which asserted hard-coded set sizes without reading schema or SQL sources."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_regen_standards_parity.py tests/test_linked_data.py::TestSchemaOrgAlignment -q",
+    "result": "142 passed in 0.95s (tests/test_regen_standards_parity.py, tests/test_linkml_jsonld.py, tests/test_linked_data.py)",
+    "ruff": "python3 -m ruff check services/linkml/jsonld.py tests/test_regen_standards_parity.py tests/test_linkml_jsonld.py: passed",
+    "compilation": "python3 -m compileall -q services/linkml/jsonld.py tests/test_regen_standards_parity.py tests/test_linkml_jsonld.py: passed",
+    "yaml_parse": "All five services/linkml/schemas/*.yaml files parsed using PyYAML 6.0.3",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py: 66 rows valid; 32 baseline-retained, 7 deployed, 27 prepared",
+    "database_or_chain": "None used"
+  },
+  "reference_sources": [
+    "https://framework.regen.network/schema/ProjectInfo",
+    "https://framework.regen.network/schema/CreditClassInfo",
+    "https://framework.regen.network/schema"
+  ],
+  "scope_limits": [
+    "No external LinkML compiler, populated reference fixture, network-backed validator, database, or chain was used.",
+    "CreditBatch market/unit crosswalk, Attestation schema mapping, upstream version pinning, and populated Regen consumer interoperability remain open.",
+    "MAN-CAP-061 owner acceptance remains open."
+  ]
+}

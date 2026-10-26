@@ -2,8 +2,11 @@
 
 Usage:
     python3 -m services.events --process [--batch-size N] [--worker-id ID]
+    python3 -m services.events --event-worker [--worker-id ID]
+    python3 -m services.events --notification-worker [--worker-id ID]
+    python3 -m services.events --isolated-notification-worker [--worker-id ID]
     python3 -m services.events --stats
-    python3 -m services.events --cleanup [--days N]
+    python3 -m services.events --cleanup [--actor OPERATOR]
     python3 -m services.events --list-handlers
     python3 -m services.events --list-dead-letter
     python3 -m services.events --fork-opportunities [--location-id UUID]
@@ -20,7 +23,13 @@ import argparse
 import os
 import sys
 import time
+
 from services.common.cli import print_json
+from services.common.errors import safe_exception_class
+from services.common.logging import get_logger
+
+logger = get_logger("events.cli")
+
 
 def cmd_process(args):
     from services.events.backend import get_event_store
@@ -37,17 +46,89 @@ def cmd_process(args):
         bus.close()
 
 
-def cmd_worker(args):
-    from services.events.backend import get_event_store
-    from services.common.database import get_connection
-    from services.events.notification_outbox import deliver_batch
+def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
+                isolated_notification_delivery: bool = False,
+                isolated_event_dispatch: bool = False):
+    if args.poll_interval <= 0:
+        raise ValueError("poll_interval must be positive")
 
-    bus = get_event_store(lease_seconds=args.lease_seconds)
+    from services.core.features import is_enabled
+
+    isolated_event_dispatch_requested = isolated_event_dispatch
+    process_events = process_events and is_enabled("event_bus")
+    isolated_event_dispatch = (
+        isolated_event_dispatch
+        and process_events
+        and is_enabled("isolated_event_dispatch")
+    )
+    if isolated_event_dispatch_requested and not isolated_event_dispatch:
+        logger.info("Isolated EventBus worker is disabled by feature configuration")
+        return 0
+    deliver_notifications = deliver_notifications and is_enabled("notification_delivery")
+    isolated_notification_delivery = (
+        isolated_notification_delivery
+        and is_enabled("notification_delivery")
+        and is_enabled("isolated_notification_delivery")
+    )
+    deliver_notifications = deliver_notifications or isolated_notification_delivery
+    if not process_events and not deliver_notifications:
+        logger.info("Event and notification workers are disabled by feature configuration")
+        return 0
+
     try:
         while True:
-            result = bus.process_pending(args.batch_size, args.worker_id)
-            with get_connection() as conn:
-                notifications = deliver_batch(conn, args.worker_id, args.batch_size)
+            bus = None
+            iteration_failed = False
+            result = {"processed": 0, "failed": 0}
+            notifications = {"claimed": 0}
+            try:
+                if process_events:
+                    if isolated_event_dispatch:
+                        from services.events.dispatch_worker import run_once
+
+                        result = run_once(
+                            args.worker_id, args.batch_size, args.lease_seconds
+                        )
+                    else:
+                        from services.events.backend import get_event_store
+
+                        bus = get_event_store(lease_seconds=args.lease_seconds, connect_timeout=5)
+                        result = bus.process_pending(args.batch_size, args.worker_id)
+                if deliver_notifications:
+                    if isolated_notification_delivery:
+                        from services.events.notification_delivery_worker import run_once
+
+                        notifications = run_once(
+                            args.worker_id, args.batch_size, args.lease_seconds
+                        )
+                    else:
+                        from services.common.database import get_connection
+                        from services.events.notification_outbox import deliver_batch
+
+                        with get_connection(connect_timeout=5) as conn:
+                            notifications = deliver_batch(conn, args.worker_id, args.batch_size)
+            except KeyboardInterrupt:
+                return 0
+            except Exception as exc:
+                # A dead connection is discarded with this iteration's bus;
+                # the next poll gets a fresh event and notification connection.
+                logger.error(
+                    "Event worker iteration failed (%s)", safe_exception_class(exc)
+                )
+                iteration_failed = True
+            finally:
+                if bus is not None:
+                    try:
+                        bus.close()
+                    except Exception as exc:
+                        logger.warning(
+                            "Failed to close event worker bus (%s)", safe_exception_class(exc)
+                        )
+
+            if iteration_failed:
+                time.sleep(args.poll_interval)
+                continue
+
             # Lease loss means another worker owns the event; this worker has
             # no immediate event work. Notification failures also have a
             # durable backoff, so an empty claim can safely sleep.
@@ -56,8 +137,41 @@ def cmd_worker(args):
                 time.sleep(args.poll_interval)
     except KeyboardInterrupt:
         return 0
-    finally:
-        bus.close()
+
+
+def cmd_worker(args):
+    """Compatibility worker that dispatches events and sends notifications."""
+    return _run_worker(args, process_events=True, deliver_notifications=True)
+
+
+def cmd_event_worker(args):
+    """Continuously dispatch durable domain events without sending notifications."""
+    return _run_worker(args, process_events=True, deliver_notifications=False)
+
+
+def cmd_isolated_event_worker(args):
+    """Dispatch global events through the dedicated bounded database identity."""
+    return _run_worker(
+        args,
+        process_events=True,
+        deliver_notifications=False,
+        isolated_event_dispatch=True,
+    )
+
+
+def cmd_notification_worker(args):
+    """Continuously deliver durable notification intents without dispatching events."""
+    return _run_worker(args, process_events=False, deliver_notifications=True)
+
+
+def cmd_isolated_notification_worker(args):
+    """Deliver notification intents through the dedicated worker login."""
+    return _run_worker(
+        args,
+        process_events=False,
+        deliver_notifications=False,
+        isolated_notification_delivery=True,
+    )
 
 
 def cmd_stats(args):
@@ -75,11 +189,22 @@ def cmd_stats(args):
 
 
 def cmd_cleanup(args):
+    from services.events.retention import require_event_retention_cleanup
+
+    try:
+        require_event_retention_cleanup()
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
     from services.events.backend import get_event_store
 
     bus = get_event_store()
     try:
-        deleted = bus.cleanup_old_events(days=args.days)
+        deleted = bus.cleanup_old_events(actor=args.actor)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     finally:
         bus.close()
     print(f"Cleaned up {deleted} old events")
@@ -140,7 +265,7 @@ def cmd_list_dead_letter(args):
                 print(f"  [{created}] {etype} (failures: {fcount}, {disposition})")
                 print(f"    ID: {eid}")
                 if error:
-                    print(f"    Error: {error[:100]}")
+                    print("    Error: [details redacted]")
                 print()
             return 0
     finally:
@@ -236,7 +361,16 @@ def main():
     parser = argparse.ArgumentParser(description="Event Bus CLI")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--process", action="store_true", help="Process pending events")
-    group.add_argument("--worker", action="store_true", help="Continuously process events")
+    group.add_argument("--worker", action="store_true",
+                       help="Compatibility mode: dispatch events and deliver notifications")
+    group.add_argument("--event-worker", action="store_true",
+                       help="Continuously dispatch events without delivering notifications")
+    group.add_argument("--isolated-event-worker", action="store_true",
+                       help="Dispatch events using the dedicated bounded database identity")
+    group.add_argument("--notification-worker", action="store_true",
+                       help="Continuously deliver notifications without dispatching events")
+    group.add_argument("--isolated-notification-worker", action="store_true",
+                       help="Deliver notifications using the dedicated bounded database identity")
     group.add_argument("--stats", action="store_true", help="Show event statistics")
     group.add_argument("--cleanup", action="store_true", help="Clean up old events")
     group.add_argument("--list-handlers", action="store_true", help="List registered handlers")
@@ -270,7 +404,6 @@ def main():
     parser.add_argument("--worker-id", default=os.environ.get("HOSTNAME", "cli"), help="Worker identifier")
     parser.add_argument("--poll-interval", type=float, default=2.0)
     parser.add_argument("--lease-seconds", type=int, default=300)
-    parser.add_argument("--days", type=int, default=30, help="Days to keep events")
     parser.add_argument("--limit", type=int, default=20, help="Max dead letter entries")
     parser.add_argument("--event-id", help="Original event UUID")
     parser.add_argument("--notification-id", help="Notification outbox UUID")
@@ -293,6 +426,14 @@ def main():
         rc = cmd_process(args)
     elif args.worker:
         rc = cmd_worker(args)
+    elif args.event_worker:
+        rc = cmd_event_worker(args)
+    elif args.isolated_event_worker:
+        rc = cmd_isolated_event_worker(args)
+    elif args.notification_worker:
+        rc = cmd_notification_worker(args)
+    elif args.isolated_notification_worker:
+        rc = cmd_isolated_notification_worker(args)
     elif args.stats:
         rc = cmd_stats(args)
     elif args.cleanup:

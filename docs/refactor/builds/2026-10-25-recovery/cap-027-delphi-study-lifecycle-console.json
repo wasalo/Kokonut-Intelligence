@@ -1,0 +1,22 @@
+{
+  "result": "passed",
+  "capability": "CAP-027",
+  "slice": "operator-console study lifecycle controls",
+  "verification": "focused source-contract tests and Node.js inline-script syntax validation",
+  "tests": {
+    "test_file": "tests/test_operator_console_delphi_study_lifecycle.py",
+    "new_contract_checks": 6,
+    "selected_console_suites_passed": 19
+  },
+  "checks": [
+    "the panel requires an exact-location delphi:read grant and at least one matching delphi:open or delphi:close grant",
+    "study-list requests are location-scoped, bounded to 50 rows, and use no-store same-origin reads",
+    "open and close actions require confirmation and validate the returned location, study id, and transition status",
+    "transition requests use CSRF protection and reuse request ids for uncertain retries in the active page",
+    "only draft studies can be opened and only open studies can be closed in the console",
+    "inline JavaScript parses with Node.js and lifecycle output is rendered as text"
+  ],
+  "database_or_provider_used": false,
+  "live_oidc_or_browser_acceptance": false,
+  "candidate_or_legacy_modified": false
+}

@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-25",
+  "check": "source-only scheduled sensor driver dispatch and filesystem effect trace",
+  "operation": "services.ingestion.sensor_worker",
+  "registry": "services.drivers.registry.SCHEDULED_SENSOR_DRIVER_TARGETS",
+  "allowlisted_driver": "sensor_csv",
+  "dispatch_edges": [
+    "services.drivers.base:BaseDriver.__init__",
+    "services.ingestion.drivers.sensor_csv:Driver.discover",
+    "services.ingestion.drivers.sensor_csv:Driver.fetch_scheduled",
+    "services.ingestion.drivers.sensor_csv:Driver.transform"
+  ],
+  "reachable_driver_methods": [
+    "services.ingestion.drivers.sensor_csv:Driver.fetch_stream"
+  ],
+  "filesystem_effects": [
+    "pathlib.Path.expanduser.resolve",
+    "pathlib.Path.is_dir",
+    "os.open",
+    "os.fstat",
+    "os.fdopen",
+    "os.close"
+  ],
+  "worker_graph_summary": {
+    "operation_roots": 33,
+    "source_files": 99,
+    "function_memberships": 701,
+    "direct_call_edges": 952,
+    "dynamic_dispatch_edges": 24
+  },
+  "worker_effect_summary": {
+    "candidate_effect_sites": 67,
+    "operation_site_memberships": 81,
+    "filesystem_sites": 37
+  },
+  "static_preflight": {
+    "status": "review_required",
+    "sql_execution_sites": 342,
+    "sites_without_static_function_match": 75,
+    "active_schedules_and_database_grants": "not_assessed"
+  },
+  "validation": {
+    "database_or_provider_access": false,
+    "candidate_or_legacy_database_touched": false,
+    "source_graph_and_effect_inventories_match": true
+  },
+  "limitations": [
+    "The legacy data-selected driver loader remains outside this source-controlled scheduled-driver graph.",
+    "Static tracing does not prove branch execution or persisted schedule configuration.",
+    "Provider internals, database-side effects, unknown callbacks, runtime grants, and RLS readiness are not established."
+  ]
+}

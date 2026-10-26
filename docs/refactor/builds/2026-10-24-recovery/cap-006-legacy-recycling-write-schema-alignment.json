@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "working tree based on a858b4a6",
+  "capability": "CAP-006",
+  "batch": "legacy recycling writer schema alignment",
+  "implementation": {
+    "function": "services.analytics.waste_management.record_recycling",
+    "canonical_source": "schemas/postgres/153_waste_management.sql::recycling_log",
+    "fields": [
+      "id",
+      "location_id",
+      "record_date",
+      "material_type",
+      "quantity_kg",
+      "destination",
+      "revenue",
+      "notes",
+      "metadata",
+      "status"
+    ],
+    "lifecycle": "inserts as 'recorded'; the summary continues to include only 'verified' rows",
+    "compatibility": "existing CLI/function arguments and response fields remain unchanged",
+    "resource_safety": "close the cursor on success and query failure"
+  },
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_waste_management.py",
+    "result": "24 passed; five invalid-window subtests included",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "database_access": false,
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "migration_required": false,
+  "authorization_boundary": "Trusted local CLI write only; no Gateway auth, signed tenant context, or RLS was added.",
+  "remaining_acceptance": [
+    "legacy pollution incident writer/read schema alignment",
+    "tenant isolation and least-privilege database boundary",
+    "populated recycling output parity",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Restore the prior insert implementation and regression assertions. Tests used mocked connections; no persistent database data was written."
+}

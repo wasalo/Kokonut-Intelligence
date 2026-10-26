@@ -21,7 +21,6 @@ from services.common.cli import get_connection, print_json, run
 from services.governance.adapters import (  # registers adapters on import (side-effect)
     register as _register_adapters,  # noqa: F401
 )
-from services.governance.baal import BaalReadClient
 from services.governance.registry import (
     get_framework,
     list_frameworks,
@@ -31,8 +30,12 @@ app = typer.Typer(name="governance", help="Governance framework queries (read-on
 
 
 @app.command("framework")
-def framework_list() -> None:
+def framework_list(
+    action: str = typer.Argument("list", help="The supported action is `list`."),
+) -> None:
     """List configured governance frameworks (from the local registry/DB)."""
+    if action != "list":
+        raise ValueError("framework supports only the 'list' action")
     rows = list_frameworks()
     with get_connection() as conn:
         cur = conn.execute(
@@ -51,6 +54,8 @@ def baal_group(
     arg: str = typer.Argument(None, help="proposal id, wallet, or shaman address"),
 ) -> None:
     """Query the Kokonut DAO (Moloch v3 / Baal) on Gnosis Chain."""
+    from services.governance.baal import BaalReadClient
+
     client = get_framework("moloch_v3_baal")
     if not isinstance(client, BaalReadClient):
         raise TypeError("moloch_v3_baal adapter is not a BaalReadClient")

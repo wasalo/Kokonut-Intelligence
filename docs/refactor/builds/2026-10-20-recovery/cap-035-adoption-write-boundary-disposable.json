@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "migration": "514_location_solution_adoption_write_boundary.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 514 applies and replays idempotently",
+    "runtime keeps SELECT but loses table-level readiness/configuration writes",
+    "Directus keeps SELECT but loses table-level readiness/configuration writes",
+    "column-level INSERT and UPDATE grants are revoked",
+    "explicit PUBLIC DML grants no longer confer effective write access"
+  ],
+  "acceptance_groups_passed": 5
+}

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Historical scheduler-run, event dead-letter, and MQTT-delivery error display",
+  "behavior": {
+    "scheduler_runs": "The run list retains failure presence but replaces persisted error text with a redacted marker.",
+    "event_dead_letters": "Dead-letter identity, event type, failure count, timestamp, and disposition remain visible; raw persisted diagnostics are redacted.",
+    "mqtt_deliveries": "Delivery ID, state, attempt count, and timestamps remain in JSON output; the stored last_error is replaced with a redacted marker."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_worker_error_status_cli_redaction.py -q",
+    "result": "3 passed",
+    "coverage": [
+      "scheduler run output excludes historic raw error text",
+      "event dead-letter output excludes historic raw error text",
+      "MQTT delivery JSON excludes last_error contents while preserving delivery state and attempt count",
+      "record metadata and connection/cursor cleanup remain intact"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; synthetic rows and fake connections"
+  },
+  "limitations": [
+    "No database, worker, or event handler was executed.",
+    "The CLI displays an error marker but does not expose historical diagnostics."
+  ]
+}

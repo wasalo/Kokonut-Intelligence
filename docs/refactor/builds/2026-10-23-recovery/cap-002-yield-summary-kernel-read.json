@@ -1,0 +1,41 @@
+{
+  "capability": "CAP-002",
+  "slice": "tenant-scoped yield summary Kernel read",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_revision": "341034b6",
+  "tested_source": "CAP-002 working-tree changes on top of base_revision",
+  "status": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_yield_monitoring.py tests/test_yield_monitoring.py -q",
+    "passed": 23,
+    "failed": 0
+  },
+  "related_operator_auth_regression": {
+    "command": "python3 -m pytest tests/test_gateway_yield_monitoring.py tests/test_yield_monitoring.py tests/test_operator_auth.py -q",
+    "passed": 89,
+    "failed": 0
+  },
+  "ruff": "passed",
+  "python_compile": "passed",
+  "runtime_sql_inventory": "regenerated and current",
+  "capability_matrix": "valid: 67 rows; 28 baseline-retained, 7 deployed, 32 prepared",
+  "migration": "not required",
+  "candidate_database": "untouched",
+  "legacy_database": "untouched",
+  "provider_or_chain": "not contacted",
+  "verified_contract": [
+    "Exact location-scoped yield_monitoring:read route policy; other methods and suffixes do not match",
+    "Invalid operator/location UUIDs fail before opening PostgreSQL",
+    "Signed tenant context is set after read-only transaction controls and before data queries",
+    "All four SQL reads repeat exact location and verified/published lifecycle filters",
+    "Aggregates are grouped by stored yield unit and do not mix numeric units",
+    "Recent harvest list is bounded to ten and omits source IDs, actor data, metadata, and evidence",
+    "Authenticated route returns no-store response and missing location grant denies before handler"
+  ],
+  "remaining": [
+    "Irrigation, crop simulation, and nutrient Kernel output paths",
+    "Frozen-fixture and populated legacy output parity",
+    "Live ZITADEL/browser acceptance and direct-database least-privilege/RLS",
+    "MAN-CAP-002 owner acceptance"
+  ]
+}

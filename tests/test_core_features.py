@@ -5,20 +5,22 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from services.core.features import (
     FEATURES,
-    is_enabled,
+    critical_features,
+    enabled_features,
     get_feature,
+    is_enabled,
     list_features,
     require_feature,
-    enabled_features,
-    critical_features,
 )
+from services.core.providers import ProviderSettings
 
 
 def test_list_features_returns_list():
@@ -92,6 +94,32 @@ def test_critical_features_returns_core():
     result = critical_features()
     assert "database" in result
     assert "directus" in result
+
+
+def test_legacy_dataset_sql_is_disabled_by_default_and_can_be_selected():
+    """Legacy stored queries require an explicit provider setting."""
+    defaults = ProviderSettings.from_environment({})
+    enabled = ProviderSettings.from_environment({"KOKONUT_FEATURE_LEGACY_DATASET_SQL": "true"})
+
+    assert defaults.legacy_dataset_sql is False
+    assert enabled.legacy_dataset_sql is True
+
+
+def test_isolated_event_dispatch_is_default_off():
+    assert FEATURES["isolated_event_dispatch"]["enabled"] is False
+
+
+def test_dataset_refresh_checks_legacy_sql_gate_before_database_access(monkeypatch):
+    """A disabled compatibility path must not fetch or execute stored SQL."""
+    from services.export.dataset_refresh import refresh_dataset
+
+    monkeypatch.setitem(FEATURES["legacy_dataset_sql"], "enabled", False)
+    conn = Mock()
+
+    with pytest.raises(RuntimeError, match="legacy_dataset_sql.*not enabled"):
+        refresh_dataset(conn, "dataset-id")
+
+    conn.cursor.assert_not_called()
 
 
 if __name__ == "__main__":

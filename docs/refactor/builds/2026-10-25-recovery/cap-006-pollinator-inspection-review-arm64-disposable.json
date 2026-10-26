@@ -1,0 +1,39 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T05:43:52.256150+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "architecture": "aarch64",
+  "migrations": [
+    "155_pollinator_health.sql",
+    "602_pollinator_health_kernel_alignment.sql",
+    "619_location_pollinator_observation_capture.sql",
+    "620_location_pesticide_impact_capture.sql",
+    "621_location_pollinator_habitat_capture.sql",
+    "622_location_pollinator_hive_capture.sql",
+    "623_location_pollinator_hive_inspection_capture.sql",
+    "624_location_pollinator_habitat_lifecycle.sql",
+    "625_location_pollinator_hive_lifecycle.sql",
+    "626_location_pollinator_independent_review.sql",
+    "627_location_pollinator_hive_inspection_review.sql"
+  ],
+  "migration_627_replayed": true,
+  "checks": [
+    "migrations 155/602/619\u2013627 apply",
+    "migration 627 replays cleanly",
+    "signed review queue pages observations, pesticide reports, and hive inspections while excluding self, unattributed, and foreign submissions",
+    "operator without exact location review grant is denied",
+    "independent observation review updates only recorded status and exact retries replay",
+    "pesticide report can be reviewed or dismissed without an approval/safety state",
+    "independent hive-inspection review records a reasoned decision and exact retries replay",
+    "request ID input collisions and stale/non-recorded decisions fail closed",
+    "self-review and foreign-location decisions are denied",
+    "unknown-submitter, self-review, and foreign inspection decisions are denied",
+    "legacy observation with unknown submitter fails closed at immutable ledger guard",
+    "review decision, source status, and immutable audit event commit atomically",
+    "migration replay preserves immutable pollinator review history",
+    "runtime reaches bounded review functions; Directus and direct table/ledger access are denied"
+  ],
+  "assertions_passed": 14,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false
+}

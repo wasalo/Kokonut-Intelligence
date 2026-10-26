@@ -1,9 +1,8 @@
 """Tests for PESTEL Analysis service."""
 
-import json
 import uuid
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -111,6 +110,73 @@ def test_add_factor_invalid_type():
     conn = MagicMock()
     with pytest.raises(ValueError, match="factor_type"):
         pestel.add_factor(conn, "fake-id", "political", "invalid", "Test")
+
+
+def test_add_factor_rejects_location_mismatch_before_insert():
+    from services.analytics import pestel
+
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchone.return_value = ("analysis-location",)
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    with pytest.raises(ValueError, match="must match the PESTEL analysis location"):
+        pestel.add_factor(
+            conn,
+            "analysis-1",
+            "political",
+            "risk",
+            "Policy risk",
+            location_id="other-location",
+        )
+
+    assert cursor.execute.call_count == 1
+    conn.commit.assert_not_called()
+
+
+def test_add_factor_rejects_missing_analysis_even_with_location():
+    from services.analytics import pestel
+
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchone.return_value = None
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    with pytest.raises(ValueError, match="Analysis analysis-1 not found"):
+        pestel.add_factor(
+            conn,
+            "analysis-1",
+            "political",
+            "risk",
+            "Policy risk",
+            location_id="location-1",
+        )
+
+    assert cursor.execute.call_count == 1
+    conn.commit.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("impact", "likelihood"),
+    [(0, 0.5), (11, 0.5), (float("nan"), 0.5), (5, -0.1), (5, 1.1), (5, float("inf"))],
+)
+def test_add_factor_rejects_out_of_range_scores_before_database_access(impact, likelihood):
+    from services.analytics import pestel
+
+    conn = MagicMock()
+    with pytest.raises(ValueError):
+        pestel.add_factor(
+            conn,
+            "analysis-1",
+            "political",
+            "risk",
+            "Policy risk",
+            impact_score=impact,
+            likelihood=likelihood,
+        )
+    conn.cursor.assert_not_called()
 
 
 # --- Scoring math (no DB) ---

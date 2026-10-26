@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "506_location_solution_experiment_create.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 506 applies and replays after the ordered CAP-035 lifecycle chain",
+    "protocol creation requires signed exact-location create grant and active human binding",
+    "only active exact-origin solutions at experiment_ready or testing can receive a draft",
+    "protocol fields and JSON payload are bounded and immutable after creation",
+    "exact retries replay; changed retries, cross-origin/location, wrong-stage, and missing-grant requests fail",
+    "creation remains draft-only and leaves solution lifecycle stage unchanged",
+    "runtime may update only lifecycle fields; runtime and Directus cannot insert/update definitions or delete drafts",
+    "runtime can execute only the bounded function; Directus cannot execute or read private receipts"
+  ],
+  "acceptance_groups_passed": 11
+}

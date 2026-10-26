@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "location-scoped saved seasonal decomposition read",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/trends/{location_id}/decomposition",
+    "authorization": "exact trend_analysis:read location grant with signed tenant context",
+    "transaction": "read-only repeatable-read with statement and lock timeouts",
+    "source": "latest seasonal_decomposition row for the requested metric and exact location",
+    "maximum_component_values": 200,
+    "projection": [
+      "metric key",
+      "decomposition method",
+      "period",
+      "trend, seasonal, and residual component previews",
+      "component lengths and truncation flag",
+      "seasonal/trend strength and residual variance",
+      "source point count",
+      "save time"
+    ],
+    "component_safety": "SQL bounds each JSON array; malformed/non-array values become empty arrays and non-finite numbers become null",
+    "console": "grant-gated on-demand preview; fixed text rendering; truncation labeled partial; all results labeled advisory",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_trend_analysis_reads.py tests/test_operator_console_trend_analysis.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "27 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "not_used": ["candidate database", "legacy database", "provider", "external service", "Raspberry Pi hardware"],
+  "remaining_acceptance": [
+    "trend/decomposition numerical and populated parity",
+    "forecast and geostatistics Kernel paths",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the decomposition reader/route/policy and console panel, then regenerate the runtime SQL inventory. No persistent data was written."
+}

@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-26",
+  "result": "passed",
+  "scope": "Directus metric_value exact-location read scope, write denial, and Auditor field allowlist",
+  "source": {
+    "tenant_scoped_collections": 22,
+    "metric_value_location_column": "nullable location_id; null-location responses fail closed",
+    "mutation_policy": "create/update/delete denied before identity or row lookup",
+    "auditor_fields": [
+      "id",
+      "metric_id",
+      "location_id",
+      "period_start",
+      "period_end",
+      "value",
+      "unit",
+      "computation_method",
+      "computed_at",
+      "verified",
+      "verified_at"
+    ],
+    "excluded_fields": [
+      "source_record_ids",
+      "metadata",
+      "verified_by",
+      "verification_notes"
+    ]
+  },
+  "checks": {
+    "directus_extension_tests": "118 passed",
+    "permission_inventory_tests": "2 passed",
+    "directus_extension_build_and_typecheck": "passed",
+    "ruff_python_sources": "passed",
+    "permission_inventory_freshness": "passed",
+    "capability_matrix": "passed"
+  },
+  "pinned_profile": {
+    "runtime": "Directus 12.1.1",
+    "database_identity": "kokonut_directus_runtime",
+    "permission_seed_applied_and_replayed": true,
+    "permission_rows": 175,
+    "metric_value_auditor_field_list_explicit": true,
+    "legacy_metric_value_wildcard_repaired": true,
+    "replay_snapshot_unchanged": true,
+    "cleanup": "passed"
+  },
+  "candidate_or_legacy_database_used": false,
+  "limitations": [
+    "No populated metric-value rows, live metric API read, configured operator grant, candidate, or legacy database were used.",
+    "This does not establish effective API row behavior for a populated deployment or complete Directus parity."
+  ]
+}

@@ -1,6 +1,6 @@
 .PHONY: help seed seed-pilot ci test smoke fmt lint typecheck \
 	up down logs bootstrap metrics verify sast secrets audit \
-	forge-build forge-fmt hooks-build \
+	forge-build forge-fmt hooks-install hooks-build \
 	test-cli test-attestation test-directus test-platform test-agent-safety test-seeds
 
 help:
@@ -43,6 +43,7 @@ help:
 	@echo ""
 	@echo "  Directus Hooks"
 	@echo "  ─────────────────────────────────────"
+	@echo "  make hooks-install   Install locked Directus hook dependencies"
 	@echo "  make hooks-build     Build Directus hooks"
 	@echo "  make hooks-test      Run Directus hooks tests"
 	@echo ""
@@ -81,7 +82,7 @@ fmt:
 
 # --- Docker ---
 
-up:
+up: hooks-build
 	docker compose up -d
 
 down:
@@ -128,8 +129,14 @@ forge-fmt:
 
 # --- Directus Hooks ---
 
+hooks-install:
+	cd extensions/kokonut-hooks && npm ci --no-audit --no-fund
+
 hooks-build:
-	cd extensions/kokonut-hooks && npm run build
+	cd extensions/kokonut-hooks && \
+	if [ ! -x node_modules/.bin/directus-extension ] || [ package-lock.json -nt node_modules/.package-lock.json ]; then \
+		npm ci --no-audit --no-fund; \
+	fi && npm run build
 
 hooks-test:
 	cd extensions/kokonut-hooks && npm test

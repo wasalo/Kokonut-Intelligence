@@ -55,6 +55,10 @@ describe('agent_action_log schema', () => {
     expect(validateAgentActionLogCreate({ action: 'publish' }).action).toBe('publish');
   });
 
+  it('accepts verification as a high-risk action', () => {
+    expect(validateAgentActionLogCreate({ action: 'verify' }).action).toBe('verify');
+  });
+
   it('rejects an unknown action', () => {
     expect(() => validateAgentActionLogCreate({ action: 'weird_action' })).toThrow(z.ZodError);
   });

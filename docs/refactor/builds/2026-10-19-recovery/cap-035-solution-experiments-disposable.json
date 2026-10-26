@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "467_location_scoped_solution_experiments.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 459, 466, and 467 apply, and migration 467 replays",
+    "experiments follow solution origin or an explicit location link only",
+    "the projection includes protocol version, lifecycle state, metric counts, timestamps, and latest reviewed outcome",
+    "unreviewed result rows are suppressed, and page bounds, signed context, exact location grant, and read-only behavior are enforced",
+    "protocol narratives, raw metrics/results, observations, evidence, adverse events, and party identities are omitted",
+    "runtime can call the bounded function but cannot read source tables; Directus cannot call it"
+  ],
+  "assertions_passed": 8
+}

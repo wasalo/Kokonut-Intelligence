@@ -1,0 +1,35 @@
+{
+  "recorded_at": "2026-10-20",
+  "capability": "CAP-038",
+  "scope": "Validate declared top-level agent inputs before processing begins.",
+  "behavior": {
+    "required_fields": "Missing required inputs fail before processing.",
+    "types": "Declared primitive types are checked, with booleans excluded from integer/number values.",
+    "formats": [
+      "UUID strings are parsed before database access.",
+      "Date strings must round-trip as exact YYYY-MM-DD values."
+    ],
+    "call_sites": [
+      "Shared SynthesisAgent and run_fetch runners",
+      "Standalone AI summary and CIDS runners",
+      "EBF scorecard and calibration draft runners",
+      "Delphi facilitator entry points"
+    ]
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_agent_tasks.py tests/test_agents_base.py tests/test_ai_summary_safety.py tests/test_agent_input_preflight.py tests/test_bio_factory_operations.py tests/test_capital_efficiency.py tests/test_commons_liberation.py tests/test_financial_resilience.py tests/test_gnh_alignment.py tests/test_holistic_wellbeing.py tests/test_kokonut_commons_governance.py tests/test_open_source_capitalist_scaling.py tests/test_regenerative_outcomes.py tests/test_cids_export.py tests/test_ebf_agents.py tests/test_delphi.py tests/test_agent_safety.py tests/test_ebf_agent_safety.py tests/test_ebf_calibration.py -q",
+    "test_files": 19,
+    "passed": 172,
+    "skipped": 9,
+    "preflight_calls_use_database_or_provider": false,
+    "candidate_or_legacy_database_used": false,
+    "ruff": "passed after removing a stale unused import",
+    "python_compile": "passed",
+    "capability_matrix_validation": "passed"
+  },
+  "limitations": [
+    "Shape validation does not authenticate an agent or authorize access to a location or object.",
+    "Nested input payloads are not recursively schema-validated.",
+    "The focused run does not establish authenticated agent identities, least-privilege database roles, populated task/provider parity, or runtime recovery."
+  ]
+}

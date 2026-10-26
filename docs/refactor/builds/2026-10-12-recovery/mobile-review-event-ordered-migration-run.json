@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-12",
+  "subject": "Clean ordered schema replay through mobile review events migration 382",
+  "source_commit": "7c69510",
+  "runner": {
+    "command": "python -m services.migration migrate --schemas-only --compose-project kokonut-mobile-migration-382 --compose-file <temporary isolated manifest>",
+    "result": "Applied: 373, Failed: 0",
+    "follow_up_plan": "0 pending migration(s)",
+    "applied_records": 373,
+    "all_applied": 373,
+    "latest_migration": "schema:382_mobile_collection_review_events.sql"
+  },
+  "database": {
+    "image": "postgis/postgis:16-3.4",
+    "persistent_volume": false,
+    "host_port_published": false,
+    "review_event_table": "public.mobile_collection_review_event",
+    "review_event_non_internal_triggers": 2,
+    "extensions": {
+      "pgcrypto": "1.3",
+      "postgis": "3.4.3",
+      "uuid-ossp": "1.1"
+    }
+  },
+  "isolation": {
+    "compose_project": "kokonut-mobile-migration-382",
+    "temporary_container_and_network": "removed after verification",
+    "candidate_stack": "not targeted; app, Metabase, and database remained healthy",
+    "oidc_environment_keys_in_encrypted_settings": "none found when listing variable names only"
+  },
+  "limits": [
+    "This is a clean source replay; it does not apply migration 382 to the candidate database.",
+    "It does not establish compatibility with candidate or legacy data.",
+    "OIDC provider login, real operator grants, browser acceptance, and human content disposition remain open."
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "c82cdf60e90b0310d03afad5867967c17e25fe41",
+  "scope": "Synthetic standalone/unified parity for sensor inventory and calibration reads",
+  "invocations": [
+    "sensor_ingester --list --location-id <synthetic-location-uuid>",
+    "sensor_ingester --calibration --location-id <synthetic-location-uuid>"
+  ],
+  "verification": {
+    "focused_tests": "9 passed",
+    "coverage": [
+      "standalone and unified log output match for inventory and calibration reads",
+      "both query paths bind the exact location ID",
+      "missing or malformed location scope on the inventory command fails before database access through both CLIs",
+      "successful reads close fake cursors and connections",
+      "single-reading, CSV-ingestion, and scheduled-driver arguments reach the same stubbed operation through both CLIs"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; all query results and connections were synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: sensor inventory and calibration read output and location filters match across standalone and unified CLIs; three write/driver parsers preserve standalone/unified argument forwarding.",
+  "limitations": [
+    "Synthetic query results do not establish populated-data behavior or authorization.",
+    "Sensor ingestion and driver functions are stubbed for the forwarding checks; their effects and output are not covered."
+  ]
+}

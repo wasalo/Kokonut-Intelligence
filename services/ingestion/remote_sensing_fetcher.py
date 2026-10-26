@@ -5,8 +5,8 @@ Supports Google Earth Engine (primary) and Copernicus Data Space (fallback).
 
 Usage:
     python3 -m services.ingestion.remote_sensing_fetcher --location-id UUID
-    python3 -m services.ingestion.remote_sensing_fetcher --run-jobs
-    python3 -m services.ingestion.remote_sensing_fetcher --list-jobs
+    python3 -m services.ingestion.remote_sensing_fetcher --run-jobs --location-id UUID
+    python3 -m services.ingestion.remote_sensing_fetcher --list-jobs --location-id UUID
 """
 
 from __future__ import annotations
@@ -20,16 +20,38 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
+from services.common.cli import print_json
+
 from ..common.logging import get_logger
 from .base import get_db
-from services.common.cli import print_json
+from .clickhouse_outbox import OutboxEnqueueError
+
 logger = get_logger("ingestion.remote_sensing_fetcher")
 
 PROVIDERS = ("gee", "copernicus")
+MAX_RUN_BATCH_SIZE = 10
 RETRYABLE_MESSAGES = re.compile(
     r"(timeout|timed out|temporar|unavailable|connection|rate limit|429|502|503|504|try again)",
     re.IGNORECASE,
 )
+
+
+def _canonical_location_id(location_id: str | None) -> str:
+    """Require one canonical location before remote-sensing database access."""
+    if location_id is None:
+        raise ValueError("remote-sensing operations require an explicit location UUID")
+    try:
+        return str(uuid.UUID(str(location_id)))
+    except (ValueError, AttributeError, TypeError):
+        raise ValueError("location_id must be a UUID") from None
+
+
+def _canonical_job_id(job_id: str) -> str:
+    """Require a canonical job UUID before querying PostgreSQL."""
+    try:
+        return str(uuid.UUID(str(job_id)))
+    except (ValueError, AttributeError, TypeError):
+        raise ValueError("job_id must be a UUID") from None
 
 
 def _classify_provider_result(result: Optional[Dict[str, Any]] = None, error: Optional[Exception] = None) -> str:
@@ -50,6 +72,27 @@ def _classify_provider_result(result: Optional[Dict[str, Any]] = None, error: Op
     return "retryable" if RETRYABLE_MESSAGES.search(str(result.get("message", ""))) else "non_retryable"
 
 
+def _safe_provider_attempt_message(
+    provider: str,
+    outcome: str,
+    *,
+    error: Exception | None = None,
+) -> str | None:
+    """Summarize provider failures without persisting exception or response text."""
+    label = provider if provider in PROVIDERS else "remote-sensing"
+    if error is not None:
+        return f"{label} provider failed ({type(error).__name__})"
+    if outcome == "success":
+        return None
+    if outcome == "no_data":
+        return f"{label} returned no observations"
+    if outcome == "retryable":
+        return f"{label} provider failed (retryable)"
+    if outcome == "non_retryable":
+        return f"{label} provider rejected the request"
+    return "remote-sensing provider failed"
+
+
 def _fallback_provider(provider: str, job: Dict[str, Any]) -> Optional[str]:
     """Resolve the configured fallback without allowing an arbitrary provider."""
     metadata = job.get("metadata") or {}
@@ -66,23 +109,9 @@ def _fallback_provider(provider: str, job: Dict[str, Any]) -> Optional[str]:
     return fallback if fallback in PROVIDERS and fallback != provider else None
 
 
-def _query_active_jobs(conn) -> List[Dict[str, Any]]:
-    """Query active remote sensing fetch jobs that are due."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        SELECT * FROM remote_sensing_job
-        WHERE status = 'active'
-        AND (next_run_at IS NULL OR next_run_at <= NOW())
-        AND (lease_expires_at IS NULL OR lease_expires_at <= NOW())
-        ORDER BY next_run_at NULLS FIRST
-    """)
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
-
-
-def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
-    """Claim due jobs atomically so concurrent workers do not fetch twice."""
+def _claim_due_jobs(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Claim one due job for a required location, keeping leases bounded."""
+    location_id = _canonical_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     worker = f"remote-sensing-{uuid.uuid4()}"
     try:
@@ -94,7 +123,9 @@ def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
             WHERE status = 'active'
               AND (next_run_at IS NULL OR next_run_at <= NOW())
               AND (lease_expires_at IS NULL OR lease_expires_at <= NOW())
+              AND location_id = %s::uuid
             ORDER BY next_run_at NULLS FIRST
+            LIMIT 1
             FOR UPDATE SKIP LOCKED
         )
         UPDATE remote_sensing_job j
@@ -106,7 +137,7 @@ def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
         WHERE j.id = due.id
         RETURNING j.*
         """,
-            (worker,),
+            (location_id, worker),
         )
         rows = [dict(r) for r in cur.fetchall()]
         conn.commit()
@@ -118,13 +149,20 @@ def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
         cur.close()
 
 
-def _query_job(conn, job_id: str) -> Optional[Dict[str, Any]]:
-    """Query a specific job."""
+def _query_job(conn, job_id: str, location_id: str) -> Optional[Dict[str, Any]]:
+    """Query a specific job only within one location."""
+    job_id = _canonical_job_id(job_id)
+    location_id = _canonical_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT * FROM remote_sensing_job WHERE id = %s", (job_id,))
-    row = cur.fetchone()
-    cur.close()
-    return dict(row) if row else None
+    try:
+        cur.execute(
+            "SELECT * FROM remote_sensing_job WHERE id = %s AND location_id = %s",
+            (job_id, location_id),
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        cur.close()
 
 
 def _update_job_status(
@@ -141,42 +179,44 @@ def _update_job_status(
 ) -> None:
     """Update job run status."""
     cur = conn.cursor()
-    updates = []
-    params = []
-    if status is not None:
-        updates.append("status = %s")
-        params.append(status)
-    if last_run_at is not None:
-        updates.append("last_run_at = %s")
-        params.append(last_run_at)
-    if last_run_status is not None:
-        updates.append("last_run_status = %s")
-        params.append(last_run_status)
-    if observations_fetched is not None:
-        updates.append("observations_fetched = observations_fetched + %s")
-        params.append(observations_fetched)
-    if next_run_at is not None:
-        updates.append("next_run_at = %s")
-        params.append(next_run_at)
-    if lease_owner is not None:
-        updates.extend(["lease_owner = NULL", "lease_expires_at = NULL"])
-    if error_class is not None:
-        updates.append("last_error_class = %s")
-        params.append(error_class)
-    if error_message is not None:
-        updates.append("last_error = %s")
-        params.append(error_message[:2000])
-    updates.append("updated_at = NOW()")
-    params.append(job_id)
-    where = "id = %s"
-    if lease_owner is not None:
-        where += " AND lease_owner = %s"
-        params.append(lease_owner)
-    cur.execute(
-        f"UPDATE remote_sensing_job SET {', '.join(updates)} WHERE {where}",
-        params,
-    )
-    cur.close()
+    try:
+        updates = []
+        params = []
+        if status is not None:
+            updates.append("status = %s")
+            params.append(status)
+        if last_run_at is not None:
+            updates.append("last_run_at = %s")
+            params.append(last_run_at)
+        if last_run_status is not None:
+            updates.append("last_run_status = %s")
+            params.append(last_run_status)
+        if observations_fetched is not None:
+            updates.append("observations_fetched = observations_fetched + %s")
+            params.append(observations_fetched)
+        if next_run_at is not None:
+            updates.append("next_run_at = %s")
+            params.append(next_run_at)
+        if lease_owner is not None:
+            updates.extend(["lease_owner = NULL", "lease_expires_at = NULL"])
+        if error_class is not None:
+            updates.append("last_error_class = %s")
+            params.append(error_class)
+        if error_message is not None:
+            updates.append("last_error = %s")
+            params.append(error_message[:2000])
+        updates.append("updated_at = NOW()")
+        params.append(job_id)
+        where = "id = %s"
+        if lease_owner is not None:
+            where += " AND lease_owner = %s"
+            params.append(lease_owner)
+        cur.execute(
+            f"UPDATE remote_sensing_job SET {', '.join(updates)} WHERE {where}",
+            params,
+        )
+    finally:
+        cur.close()
 
 
 def _compute_next_run(cadence_days: int) -> datetime:
@@ -191,12 +231,14 @@ def _resolve_bbox_from_job(conn, job: Dict[str, Any]) -> Optional[Dict[str, floa
     # If job has explicit bbox, use it
     if job.get("bbox"):
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(
-            "SELECT ST_XMin(bbox) AS west, ST_YMin(bbox) AS south, ST_XMax(bbox) AS east, ST_YMax(bbox) AS north FROM (SELECT bbox FROM remote_sensing_job WHERE id = %s) sub",
-            (str(job["id"]),),
-        )
-        row = cur.fetchone()
-        cur.close()
+        try:
+            cur.execute(
+                "SELECT ST_XMin(bbox) AS west, ST_YMin(bbox) AS south, ST_XMax(bbox) AS east, ST_YMax(bbox) AS north FROM (SELECT bbox FROM remote_sensing_job WHERE id = %s AND location_id = %s) sub",
+                (str(job["id"]), str(job["location_id"])),
+            )
+            row = cur.fetchone()
+        finally:
+            cur.close()
         if row and row["west"] is not None:
             return {
                 "west": float(row["west"]),
@@ -207,21 +249,23 @@ def _resolve_bbox_from_job(conn, job: Dict[str, Any]) -> Optional[Dict[str, floa
 
     # Otherwise derive from plot geometries
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT
-            ST_XMin(ST_Extent(p.geometry)) AS west,
-            ST_YMin(ST_Extent(p.geometry)) AS south,
-            ST_XMax(ST_Extent(p.geometry)) AS east,
-            ST_YMax(ST_Extent(p.geometry)) AS north
-        FROM plot p
-        JOIN farm f ON p.farm_id = f.id
-        WHERE f.location_id = %s AND p.geometry IS NOT NULL
-    """,
-        (str(job["location_id"]),),
-    )
-    row = cur.fetchone()
-    cur.close()
+    try:
+        cur.execute(
+            """
+            SELECT
+                ST_XMin(ST_Extent(p.geometry)) AS west,
+                ST_YMin(ST_Extent(p.geometry)) AS south,
+                ST_XMax(ST_Extent(p.geometry)) AS east,
+                ST_YMax(ST_Extent(p.geometry)) AS north
+            FROM plot p
+            JOIN farm f ON p.farm_id = f.id
+            WHERE f.location_id = %s AND p.geometry IS NOT NULL
+        """,
+            (str(job["location_id"]),),
+        )
+        row = cur.fetchone()
+    finally:
+        cur.close()
     if row and row["west"] is not None:
         return {
             "west": float(row["west"]),
@@ -235,36 +279,43 @@ def _resolve_bbox_from_job(conn, job: Dict[str, Any]) -> Optional[Dict[str, floa
 def _record_provider_attempt(conn, job_id: str, attempt: Dict[str, Any]) -> None:
     """Persist one provider attempt; this is intentionally append-only."""
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO remote_sensing_provider_attempt
-            (job_id, provider, attempt_number, outcome, retryable, observations,
-             error_message, started_at, finished_at, fallback_used, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
-        """,
-        (
-            job_id,
-            attempt["provider"],
-            attempt["attempt_number"],
-            attempt["outcome"],
-            attempt.get("retryable"),
-            attempt.get("observations", 0),
-            attempt.get("message"),
-            attempt["started_at"],
-            attempt["finished_at"],
-            attempt.get("fallback_used", False),
-            json.dumps(attempt.get("metadata", {})),
-        ),
-    )
-    cur.close()
+    try:
+        cur.execute(
+            """
+            INSERT INTO remote_sensing_provider_attempt
+                (job_id, provider, attempt_number, outcome, retryable, observations,
+                 error_message, started_at, finished_at, fallback_used, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            """,
+            (
+                job_id,
+                attempt["provider"],
+                attempt["attempt_number"],
+                attempt["outcome"],
+                attempt.get("retryable"),
+                attempt.get("observations", 0),
+                attempt.get("message"),
+                attempt["started_at"],
+                attempt["finished_at"],
+                attempt.get("fallback_used", False),
+                json.dumps(attempt.get("metadata", {})),
+            ),
+        )
+    finally:
+        cur.close()
 
 
-def fetch_job(conn, job: Dict[str, Any]) -> Dict[str, Any]:
+def fetch_job(conn, job: Dict[str, Any], *, location_id: str) -> Dict[str, Any]:
     """Execute a remote sensing fetch job.
 
     Dispatches to the appropriate provider (gee or copernicus).
     Resolves bbox from job or plot geometries before dispatching.
     """
+    location_id = _canonical_location_id(location_id)
+    job_location_id = _canonical_location_id(job.get("location_id"))
+    if job_location_id != location_id:
+        raise ValueError("remote-sensing job is outside the requested location")
+
     provider = job.get("provider", "gee")
     job_id = str(job["id"])
 
@@ -292,11 +343,16 @@ def fetch_job(conn, job: Dict[str, Any]) -> Dict[str, Any]:
             else:
                 result = {"status": "error", "message": f"Unknown provider: {selected_provider}", "retryable": False}
             outcome = _classify_provider_result(result)
-            error = result.get("message")
+        except OutboxEnqueueError:
+            # Provider source writes and their projection must stay atomic.
+            conn.rollback()
+            raise OutboxEnqueueError("ClickHouse outbox enqueue failed") from None
         except Exception as exc:
-            result = {"status": "error", "message": str(exc), "observations": 0}
+            result = {"status": "error", "observations": 0}
             outcome = _classify_provider_result(error=exc)
-            error = str(exc)
+            error = _safe_provider_attempt_message(selected_provider, outcome, error=exc)
+        else:
+            error = _safe_provider_attempt_message(selected_provider, outcome)
 
         attempt = {
             "provider": selected_provider,
@@ -352,17 +408,23 @@ def fetch_job(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def run_due_jobs(conn) -> Dict[str, Any]:
-    """Run all due remote sensing fetch jobs."""
-    jobs = _claim_due_jobs(conn)
-    if not jobs:
-        return {"status": "no_jobs_due", "executed": 0}
+def run_due_jobs(conn, limit: int = 1, *, location_id: Optional[str] = None) -> Dict[str, Any]:
+    """Run a bounded number of due jobs for one explicit location."""
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_RUN_BATCH_SIZE:
+        raise ValueError(f"limit must be an integer between 1 and {MAX_RUN_BATCH_SIZE}")
+    location_id = _canonical_location_id(location_id)
 
     results = []
-    for job in jobs:
+    for _ in range(limit):
+        jobs = _claim_due_jobs(conn, location_id=location_id)
+        if not jobs:
+            break
+        job = jobs[0]
         logger.info("Running job %s (provider=%s)", str(job["id"])[:8], job.get("provider"))
-        result = fetch_job(conn, job)
-        results.append(result)
+        results.append(fetch_job(conn, job, location_id=location_id))
+
+    if not results:
+        return {"status": "no_jobs_due", "executed": 0}
 
     success = sum(1 for r in results if r.get("status") == "success")
     return {
@@ -374,61 +436,96 @@ def run_due_jobs(conn) -> Dict[str, Any]:
     }
 
 
-def list_jobs(conn) -> List[Dict[str, Any]]:
-    """List all remote sensing fetch jobs."""
+def list_jobs(conn, location_id: str) -> List[Dict[str, Any]]:
+    """List remote sensing fetch jobs for one location."""
+    location_id = _canonical_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        SELECT j.*, l.name AS location_name
-        FROM remote_sensing_job j
-        JOIN location l ON l.id = j.location_id
-        ORDER BY j.created_at DESC
-    """)
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        cur.execute("""
+            SELECT j.*, l.name AS location_name
+            FROM remote_sensing_job j
+            JOIN location l ON l.id = j.location_id
+            WHERE j.location_id = %s
+            ORDER BY j.created_at DESC
+        """, (location_id,))
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Remote sensing fetch orchestrator")
-    parser.add_argument("--run-jobs", action="store_true", help="Run all due jobs")
+    parser.add_argument("--run-jobs", action="store_true", help="Run a bounded batch of due jobs")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=1,
+        help=f"Maximum due jobs to run sequentially (1-{MAX_RUN_BATCH_SIZE}; default: 1)",
+    )
     parser.add_argument("--list-jobs", action="store_true", help="List all jobs")
     parser.add_argument("--job-id", help="Run a specific job by ID")
-    parser.add_argument("--location-id", help="Location UUID for new job")
+    parser.add_argument("--location-id", help="Location UUID to scope due jobs or to create a new job")
     parser.add_argument("--provider", choices=["gee", "copernicus"], default="gee")
     parser.add_argument("--cadence-days", type=int, default=7)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    explicit_operations = [args.run_jobs, args.list_jobs, args.job_id is not None]
+    if not any(explicit_operations) and args.location_id is None:
+        parser.print_help()
+        return
+    if sum(explicit_operations) > 1:
+        parser.error("choose exactly one of --run-jobs, --list-jobs, or --job-id")
+    if not any(explicit_operations) and args.cadence_days < 1:
+        parser.error("--cadence-days must be a positive integer when creating a job")
+
+    if args.run_jobs and not 1 <= args.limit <= MAX_RUN_BATCH_SIZE:
+        parser.error(f"--limit must be between 1 and {MAX_RUN_BATCH_SIZE}")
+    try:
+        if args.job_id is not None:
+            args.job_id = _canonical_job_id(args.job_id)
+        location_id = _canonical_location_id(args.location_id)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     conn = get_db()
     try:
         if args.run_jobs:
-            result = run_due_jobs(conn)
+            result = run_due_jobs(conn, limit=args.limit, location_id=location_id)
             print_json(result)
         elif args.list_jobs:
-            result = list_jobs(conn)
+            result = list_jobs(conn, location_id)
             print_json(result)
         elif args.job_id:
-            job = _query_job(conn, args.job_id)
+            job = _query_job(conn, args.job_id, location_id)
             if job:
-                result = fetch_job(conn, job)
+                result = fetch_job(conn, job, location_id=location_id)
                 print_json(result)
             else:
                 print(f"Job {args.job_id} not found")
-        elif args.location_id:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                INSERT INTO remote_sensing_job (location_id, provider, cadence_days, status)
-                VALUES (%s, %s, %s, 'active')
-                RETURNING id
-            """,
-                (args.location_id, args.provider, args.cadence_days),
-            )
-            job_id = str(cur.fetchone()[0])
-            conn.commit()
-            print(json.dumps({"job_id": job_id, "status": "created"}))
         else:
-            parser.print_help()
+            cur = conn.cursor()
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO remote_sensing_job (location_id, provider, cadence_days, status)
+                    VALUES (%s, %s, %s, 'active')
+                    RETURNING id
+                    """,
+                    (location_id, args.provider, args.cadence_days),
+                )
+                job_id = str(cur.fetchone()[0])
+                conn.commit()
+                print(json.dumps({"job_id": job_id, "status": "created"}))
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                cur.close()
     finally:
         conn.close()
+
+
+if __name__ == "__main__":
+    main()

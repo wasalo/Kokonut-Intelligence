@@ -186,7 +186,7 @@ def publish_to_mqtt(
         logger.error("paho-mqtt not installed")
         return False
     except Exception as e:
-        logger.error("MQTT client creation error: %s", e)
+        logger.error("MQTT client creation error (%s)", type(e).__name__)
         return False
 
     if client is None:
@@ -213,5 +213,5 @@ def publish_to_mqtt(
             logger.error("MQTT publish failed with rc=%d", result.rc)
             return False
     except Exception as e:
-        logger.error("MQTT publish error: %s", e)
+        logger.error("MQTT publish error (%s)", type(e).__name__)
         return False

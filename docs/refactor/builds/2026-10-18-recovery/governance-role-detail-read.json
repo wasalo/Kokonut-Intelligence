@@ -1,0 +1,40 @@
+{
+  "title": "CAP-024 location-scoped governance role detail read",
+  "date": "2026-10-18",
+  "status": "implemented; candidate app rebuilt; capability remains prepared, not accepted",
+  "endpoint": {
+    "method": "GET",
+    "path": "/operator/api/governance/{location_id}/roles/{role_id}",
+    "grant": "governance_roles:read",
+    "scope": "role and circle must be reviewable and circle must belong to the requested location; absent, out-of-scope, and non-reviewable role all return 404",
+    "response": "role summary; active accountability descriptions; applicable location and network authority-domain keys, levels, scope types, and human-approval flags; each nested list capped at 100",
+    "omitted": [
+      "assignee identities",
+      "role-policy text",
+      "evidence expectations",
+      "arbitrary constraint JSON",
+      "role metadata"
+    ]
+  },
+  "verification": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_gateway_governance_operations.py tests/test_gateway_governance_tension_review.py tests/test_gateway_governance_tension_actions.py tests/test_gateway_governance_roles.py tests/test_operator_route_policy_inventory.py tests/test_operator_console_governance_tensions.py -q",
+      "result": "44 passed"
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "66 rows valid; 45 baseline-retained, 7 deployed, 14 prepared",
+    "runtime_sql_inventory": "current; 844 service source files and 4,087 execution sites",
+    "candidate_sql_smoke": "the role, accountability, and authority-domain SELECT shapes executed as the candidate runtime role in a read-only transaction with random unmatched UUIDs; expected columns resolved and no rows were returned",
+    "candidate_http": "candidate app rebuilt alone; /health returned 200; anonymous role-detail request returned 401 with Cache-Control: no-store",
+    "candidate_services": "database, Metabase, and proxy remained healthy/running; legacy stack untouched",
+    "migration_or_seed_write": "none"
+  },
+  "rollback": "Revert the role-detail Gateway route/service and console panel as an app-code change. No schema or candidate data rollback is required.",
+  "limitations": [
+    "SQL smoke checked schema/query compatibility only and did not validate a real operator grant or positive row projection",
+    "governance domain tables do not yet have domain-table RLS",
+    "no decision/approval action, role assignment write, or tactical mutation is enabled",
+    "CAP-024 populated parity and MAN-CAP-024 acceptance remain open"
+  ]
+}

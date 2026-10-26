@@ -1,0 +1,175 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T03:20:59Z",
+  "subject": "Kernel candidate owner-bound Field Collector enrollment migration 391 rollout",
+  "source_commit": "eca4b2c78d84d617d3993cc7c6adb1cbc3cdae3a",
+  "working_tree_dirty_at_build": false,
+  "preflight": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_files": [
+      "docker-compose.kernel-candidate.yml",
+      "docker-compose.kernel-metabase.yml"
+    ],
+    "candidate_app_before": "healthy",
+    "candidate_database_before": "healthy",
+    "candidate_metabase_before": "healthy",
+    "candidate_proxy_before": "running",
+    "applied_schema_migrations_before": 381,
+    "pending_schema_migrations": [
+      "schema:391_mobile_device_tenant_binding.sql"
+    ],
+    "candidate_app_container_id_before": "15e5b6c42c2d4def431bc3000e69b485a04e54d4342004d1a29794f337c14513",
+    "candidate_database_container_id": "69417747ae35c006364b3d56f6a87d1ae43076b369a5523e897b26294b62e922",
+    "candidate_metabase_container_id": "6bf987cd9fb82a7bb726383cb9265b176dd63b7999e0232ce59d6292ef840a7d",
+    "candidate_proxy_container_id": "4ced55867e8bf92c88b4953bbcbe5163936ca48fdef42fcc34c16c157b9641cf"
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-migration-391-20261014T031347Z",
+    "format": "age-encrypted PostgreSQL custom archive",
+    "database": "kokonut_intelligence",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "sha256": "8212034b9b6093ce2dea3cd8325a6fe4784ee69974f02838d055d51ab5ea5c40",
+    "bytes": 5520202,
+    "age_authentication": "passed; plaintext streamed to candidate pg_restore, not written to disk",
+    "pg_restore_list": "passed",
+    "restore_rehearsed": true,
+    "scope": "Single PostgreSQL database; excludes roles/grants, other databases, Docker volumes, external media, and provider state.",
+    "restore_rehearsal": {
+      "compose_project": "kokonut-kernel-recovery-tenant-391-20261014",
+      "container_id": "549d9cd5f882c39a45b19c76d54f25d29b8aea8a86376f34cb7d4dd4ae813ff5",
+      "target_database": "kokonut_restore",
+      "target_created_from": "template0; public schema was empty before restore",
+      "result": "passed transactionally with age decryption streamed to pg_restore; no plaintext dump written",
+      "restored_schema_migrations": 381,
+      "restored_applied_seeds": 0,
+      "schema_fingerprint_excluding_391": "8340cd473680e3f83d8f2fccdce44184",
+      "candidate_schema_fingerprint_excluding_391": "8340cd473680e3f83d8f2fccdce44184",
+      "extension_versions_match_candidate": true,
+      "aggregate_counts_match_candidate": {
+        "organizations": 1,
+        "locations": 0,
+        "mobile_forms": 5,
+        "mobile_form_versions": 10,
+        "mobile_devices": 0,
+        "mobile_enrollments": 0,
+        "tenant_transfers": 0
+      },
+      "container_stopped": true,
+      "volume_retained": "kokonut-kernel-recovery-tenant-391-20261014_recovery-postgres-data"
+    }
+  },
+  "migration": {
+    "command": "python3 -m services.migration migrate --schemas-only --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --compose-file docker-compose.kernel-metabase.yml",
+    "result": "Applied: 1, Failed: 0",
+    "migration_id": "schema:391_mobile_device_tenant_binding.sql",
+    "sha256": "7888012b4165fa6e81f4c91f9a0881d3800ae3523f54d7ffd81a2bdb1cdd1be3",
+    "applied_schema_migrations_after": 382,
+    "pending_schema_migrations_after": 0,
+    "pending_seed_migrations_after": 120,
+    "applied_seed_migrations_recorded": 0,
+    "location_rows_after": 0,
+    "tenant_transfer_rows_after": 0,
+    "mobile_device_rows_after": 0,
+    "mobile_device_enrollment_rows_after": 0,
+    "tenant_organization_columns_after": 2,
+    "rls_enabled_on_mobile_device_and_enrollment": false,
+    "seed_reconciliation_required": "The candidate still has 120 pending seed files and zero applied seed migrations recorded, while existing mobile form data lacks seed-ledger history; no seeds were applied."
+  },
+  "application": {
+    "image_id": "sha256:3da2b305247575f1183b82d0bbec9db6996b942a3c4ba89b93e226611d4a6808",
+    "image_source_manifest_sha256": "ccc9b2c264601986b7478f78510a1490b12aa472d5caa86431335dd7b5711932",
+    "image_source_manifest_file_count": 1315,
+    "rollback_image_tag": "kokonut-kernel-candidate-app:rollback-pre-tenant-binding-20261014T031347Z",
+    "rollback_image_id": "sha256:11f87f7d69f5a64a98cfef3584c8ec3024b6daa7db851928e048fa20f15d6af2",
+    "only_candidate_app_recreated": true,
+    "candidate_app_container_id_after": "612d7b8911466ed423c4d0eb71dfbb885f997e4ddd65264580501b3b9d348c7e",
+    "candidate_database_container_id_preserved": "69417747ae35c006364b3d56f6a87d1ae43076b369a5523e897b26294b62e922",
+    "candidate_metabase_container_id_preserved": "6bf987cd9fb82a7bb726383cb9265b176dd63b7999e0232ce59d6292ef840a7d",
+    "candidate_proxy_container_id_preserved": "4ced55867e8bf92c88b4953bbcbe5163936ca48fdef42fcc34c16c157b9641cf",
+    "health": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "loopback_http": {
+      "GET /health": 200,
+      "GET /operator/api/farm-activities without credentials": 401,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401
+    }
+  },
+  "rollback": {
+    "app_only_tag": "kokonut-kernel-candidate-app:rollback-pre-tenant-binding-20261014T031347Z",
+    "database_checkpoint": "backups/kernel-candidate-pre-migration-391-20261014T031347Z",
+    "policy": "Migration 391 is additive; retain its columns. The pre-migration checkpoint was restore-rehearsed into an isolated template0 database and matched all 381 pre-391 schema fingerprints, extension versions, and selected aggregate counts. A candidate recovery still requires a separately reviewed restore and cutover. If an owner-aware app rollback is needed, disable mobile ingress until an owner-aware compatible app is restored; do not reopen location-only access after any transfer."
+  },
+  "cleanup": {
+    "candidate_app_database_metabase_proxy_running": true,
+    "legacy_stack_touched": false,
+    "pilot_or_reference_seeds_applied": false,
+    "encrypted_checkpoint_retained": true,
+    "rollback_image_retained": true
+  },
+  "post_approval_verification": {
+    "checked_at_utc": "2026-10-14T03:36:01Z",
+    "candidate_database_ledger": {
+      "applied_schema_migrations": 382,
+      "migration_391": {
+        "status": "applied",
+        "sha256": "7888012b4165fa6e81f4c91f9a0881d3800ae3523f54d7ffd81a2bdb1cdd1be3"
+      },
+      "non_applied_migration_rows": 0,
+      "applied_seed_migrations": 0
+    },
+    "candidate_app_container_checks": {
+      "GET /health": 200,
+      "GET /operator/api/farm-activities without credentials": 401,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401
+    },
+    "method": "Read-only migration-ledger query in the candidate database container; HTTP checks from the candidate app container.",
+    "legacy_stack_touched": false,
+    "verification_performed_writes": false
+  },
+  "follow_up_read_only_verification": {
+    "checked_at_utc": "2026-10-14T04:38:24Z",
+    "candidate_database_ledger": {
+      "applied_schema_migrations": 382,
+      "migration_391": {
+        "status": "applied",
+        "sha256": "7888012b4165fa6e81f4c91f9a0881d3800ae3523f54d7ffd81a2bdb1cdd1be3"
+      },
+      "applied_seed_migrations": 1,
+      "non_applied_migration_rows": 0
+    },
+    "candidate_containers": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "loopback_http": {
+      "GET /health": 200,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401
+    },
+    "method": "Read-only candidate ledger transaction, container status inspection, and loopback HTTP requests.",
+    "verification_performed_writes": false
+  },
+  "limitations": [
+    "The candidate contained no locations, tenant transfers, mobile devices, or enrollments; rollout validates ordered schema deployment and anonymous route protection, not populated ownership, re-enrollment, or transfer behavior.",
+    "The mobile-form seed history was reconciled after this rollout; one seed migration is now recorded and the remaining 120 seed files are pending.",
+    "RLS remains disabled; migration 391 does not claim database-enforced tenant isolation.",
+    "Live-browser re-enrollment acceptance and human retention/erasure disposition remain open.",
+    "The restore rehearsal validates the single candidate PostgreSQL database only; it excludes roles/grants, other databases, Docker volumes, external media, and provider state."
+  ],
+  "latest_read_only_runtime_recheck": {
+    "checked_at_utc": "2026-10-14T14:01:51Z",
+    "candidate_app": "healthy",
+    "candidate_database": "healthy",
+    "candidate_metabase": "healthy",
+    "candidate_proxy": "running",
+    "health_http_status": 200,
+    "anonymous_mobile_review_queue_http_status": 401,
+    "migration_391_checksum": "7888012b4165fa6e81f4c91f9a0881d3800ae3523f54d7ffd81a2bdb1cdd1be3",
+    "scope": "Read-only Docker status and HTTP checks after owner approval; no database or container changes made."
+  }
+}

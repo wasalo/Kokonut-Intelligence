@@ -1,46 +1,27 @@
 """Integration coverage for the canonical solution lifecycle."""
 
-import uuid
 from unittest.mock import MagicMock
 
 import pytest
 
-from services.ingestion.base import get_db
 from services.innovation import solution_lifecycle
 
 
-PARTY_ID = "b0000000-0000-0000-0000-000000002708"
-
-
-def test_solution_requires_gate_for_validated_promotion():
-    try:
-        conn = get_db()
-    except Exception as exc:  # pragma: no cover
-        pytest.skip(f"no database available: {exc}")
-    solution_id = None
-    try:
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
-            cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Solution Owner')", (PARTY_ID,))
-        conn.commit()
-        solution = solution_lifecycle.create_solution(conn, f"solution-{uuid.uuid4().hex[:8]}", "Field water protocol", "practice", "Unreliable water access", owner_party_id=PARTY_ID, created_by_party_id=PARTY_ID)
-        solution_id = str(solution["id"])
-        solution_lifecycle.transition(conn, solution_id, "triaged", PARTY_ID, rationale="Field need confirmed")
-        with pytest.raises(ValueError, match="stage gate"):
-            solution_lifecycle.transition(conn, solution_id, "validated", PARTY_ID, rationale="Validation attempted")
-        gate = solution_lifecycle.create_gate(conn, solution_id, "triaged", "validated", required_experiment_count=0)
-        solution_lifecycle.approve_gate(conn, str(gate["id"]), PARTY_ID)
-        solution_lifecycle.evaluate_gate(conn, str(gate["id"]), True, PARTY_ID, observed={"experiments": 1}, evidence=[{"source":"experiment"}])
-        promoted = solution_lifecycle.transition(conn, solution_id, "validated", PARTY_ID, approved_by_party_id=PARTY_ID, rationale="Evidence gate approved", evidence=[{"source":"field-review"}])
-        assert promoted["current_stage"] == "validated"
-    finally:
-        conn.rollback()
-        with conn.cursor() as cur:
-            if solution_id:
-                cur.execute("DELETE FROM solution WHERE id = %s::uuid", (solution_id,))
-            cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
-        conn.commit()
-        conn.close()
+def test_legacy_stage_transition_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    for target_stage in ("triaged", "validated", "scaled"):
+        with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+            solution_lifecycle.transition(
+                mock_conn,
+                "solution-id",
+                target_stage,
+                "actor-id",
+                approved_by_party_id="reviewer-id",
+                rationale="Attempted legacy stage transition",
+            )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+    mock_conn.rollback.assert_not_called()
 
 
 def test_stages_constant_covers_full_lifecycle():
@@ -56,7 +37,76 @@ def test_promotion_gates_constant():
     assert "scaled" in solution_lifecycle.PROMOTION_GATES
 
 
-def test_evaluate_gate_requires_evidence():
+def test_legacy_solution_create_fails_closed_before_database_access():
     mock_conn = MagicMock()
-    with pytest.raises(ValueError, match="evidence"):
-        solution_lifecycle.evaluate_gate(mock_conn, "gate-id", True, "party-id")
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+        solution_lifecycle.create_solution(
+            mock_conn, "local-key", "A practice", "practice", "A field need"
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+
+
+def test_legacy_solution_link_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="location-scoped sharing workflow"):
+        solution_lifecycle.add_link(
+            mock_conn, "solution-id", "location", "location-id", "supports"
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+
+
+def test_legacy_stage_gate_create_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="location-scoped Gateway grant"):
+        solution_lifecycle.create_gate(mock_conn, "solution-id", "testing", "validated")
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+
+
+def test_legacy_gate_approval_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+        solution_lifecycle.approve_gate(mock_conn, "gate-id", "party-id")
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+    mock_conn.rollback.assert_not_called()
+
+
+def test_legacy_gate_evaluation_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+        solution_lifecycle.evaluate_gate(
+            mock_conn, "gate-id", True, "party-id", evidence=[{"source": "review"}]
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+    mock_conn.rollback.assert_not_called()
+
+
+def test_legacy_retirement_stage_transition_fails_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="location-scoped execution and sunset"):
+        solution_lifecycle.transition(
+            mock_conn,
+            "solution-id",
+            "retired",
+            "actor-id",
+            approved_by_party_id="reviewer-id",
+            rationale="Retirement was independently approved.",
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+    mock_conn.rollback.assert_not_called()
+
+
+def test_legacy_transition_still_rejects_unknown_stage_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="invalid solution stage"):
+        solution_lifecycle.transition(
+            mock_conn, "solution-id", "not-a-stage", rationale="Invalid stage"
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+    mock_conn.rollback.assert_not_called()

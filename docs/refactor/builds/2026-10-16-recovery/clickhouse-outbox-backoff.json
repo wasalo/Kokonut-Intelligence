@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-16",
+  "slice": "ClickHouse outbox capped exponential retry backoff",
+  "implementation": [
+    "Failed ClickHouse outbox deliveries now use a 60-second exponential retry base, doubled by persisted attempt count and capped at one hour.",
+    "ClickHouse client setup failures use the same delay schedule as per-row insertion failures.",
+    "Successful deliveries retain their existing availability timestamp, lease fencing and stable insertion deduplication token; the maximum attempt count remains eight."
+  ],
+  "retry_schedule_seconds": {
+    "attempt_1": 60,
+    "attempt_2": 120,
+    "attempt_3": 240,
+    "attempt_6": 1920,
+    "attempt_7_and_later": 3600
+  },
+  "checks": {
+    "command": "python3 -m pytest tests/test_clickhouse_outbox.py tests/test_clickhouse_failure_injection.py tests/test_ingestion_outbox_producers.py -q",
+    "result": "57 passed",
+    "ruff": "passed for services/ingestion/clickhouse_outbox.py and tests/test_clickhouse_outbox.py",
+    "compileall": "passed for changed Python files",
+    "capability_matrix": "passed; 66 rows, MAN-CAP statuses unchanged",
+    "provider_boundaries": "passed; 17 vendor import sites",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "postgresql": "mocked connection only; no database contacted",
+    "clickhouse": "mocked client and delivery boundaries; no service contacted",
+    "providers": "no provider network requests",
+    "candidate_or_legacy": "not accessed"
+  },
+  "limitations": [
+    "The schedule and SQL binding are covered by unit/source checks; live PostgreSQL and ClickHouse outage behavior remains unverified.",
+    "No candidate rollout, MAN-CAP acceptance, or production configuration changed."
+  ]
+}

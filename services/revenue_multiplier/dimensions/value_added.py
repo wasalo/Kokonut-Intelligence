@@ -41,6 +41,9 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     cur.execute("""
         SELECT id FROM farm_activity
         WHERE location_id = %s AND activity_type IN ('processing', 'post_harvest', 'packaging')
+          AND farm_activity_source_eligible_for_use(
+              source_system, source_id, source_raw, location_id
+          )
     """, (location_id,))
     batches = [dict(r) for r in cur.fetchall()]
 

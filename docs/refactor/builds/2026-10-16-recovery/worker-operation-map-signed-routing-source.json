@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-16",
+  "scope": "Correct the worker operation map and static EventBus effect trace to match the signed sensor-anomaly and optional cache-handler integrations. No candidate or legacy database, live provider, or external worker deployment was accessed.",
+  "focused_tests": {
+    "command": "python3 -m pytest tests/test_worker_operation_map.py tests/test_worker_environment.py tests/test_event_bus_durability.py -q",
+    "result": "46 passed",
+    "coverage": [
+      "Operation map parity with scheduled and event allowlists",
+      "Exact source-controlled worker credential routing for the anomaly handler and four cache handlers",
+      "Worker operation source evidence, effect contracts, and retry boundaries",
+      "EventBus child environment filtering and delivery behavior"
+    ]
+  },
+  "static_inventory_checks": {
+    "worker_source_closure": "passed",
+    "worker_function_reachability": "passed",
+    "worker_sql_inventory": "passed",
+    "worker_sql_reachability": "passed",
+    "worker_effect_inventory": "passed",
+    "worker_boundary_preflight": "passed",
+    "runtime_sql_inventory": "passed"
+  },
+  "quality_checks": {
+    "ruff": "passed",
+    "json_parse": "passed",
+    "git_diff_check": "passed"
+  },
+  "current_inventory": {
+    "scheduled_modules": 15,
+    "event_handler_pairs": 7,
+    "worker_operation_roots": 22,
+    "worker_source_files": 81,
+    "worker_sql_execution_sites": 268,
+    "worker_sql_literal_sites": 228,
+    "worker_sql_composed_or_variable_sites": 40,
+    "sql_sites_with_static_operation_path": 204,
+    "operation_site_memberships": 244,
+    "sites_without_static_function_match": 64,
+    "effect_candidate_sites": 33,
+    "effect_operation_site_memberships": 36,
+    "runtime_sql_execution_sites": 3863,
+    "runtime_sql_worker_references": 268
+  },
+  "event_dispatch_trace": {
+    "child_entrypoint": "services.events.handler_runner:main",
+    "worker_secret_filter": "services.events.bus:_handler_child_environment",
+    "allowlist_validation_precedes_dynamic_import": true,
+    "allowlisted_handler_pairs": 7,
+    "runtime_dispatch_verified": false
+  },
+  "deployment_state": {
+    "candidate_migrations_405_416_applied": false,
+    "worker_credentials_or_active_grants_provisioned": false,
+    "application_rls_enabled": false
+  }
+}

@@ -8,7 +8,6 @@ what actually works.
 
 from __future__ import annotations
 
-from .baal import BaalReadClient
 from .base import GovernanceFramework
 from .registry import register
 
@@ -35,7 +34,16 @@ def _stub(key: str, name: str) -> type[GovernanceFramework]:
     return factory  # type: ignore[return-value]
 
 
-register("moloch_v3_baal", BaalReadClient)
+def _baal_client() -> GovernanceFramework:
+    # The CLI can register its command tree without importing ingestion
+    # configuration or decrypting database secrets. Load the Web3 adapter only
+    # when a Baal query is actually requested.
+    from .baal import BaalReadClient
+
+    return BaalReadClient()
+
+
+register("moloch_v3_baal", _baal_client)
 register("moloch_v2", _stub("moloch_v2", "Moloch v2 (legacy Kokonut DAO)"))
 register("governor", _stub("governor", "OpenZeppelin Governor"))
 register("aragon", _stub("aragon", "Aragon DAO"))

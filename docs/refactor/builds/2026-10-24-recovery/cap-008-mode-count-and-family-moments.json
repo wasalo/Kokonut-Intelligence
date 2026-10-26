@@ -1,0 +1,85 @@
+{
+  "capability": "CAP-008",
+  "batch": "configurable conditional-simulation mode count and family moments",
+  "date": "2026-10-24",
+  "status": "passed",
+  "implementation": {
+    "mode_count": {
+      "cli_option": "--mode-no",
+      "minimum": 1,
+      "maximum": 1000,
+      "default": 1000,
+      "default_preserves_previous_gstools_setting": true,
+      "lower_mode_tradeoff": "reduced runtime may reduce spectral fidelity",
+      "persisted_metadata": [
+        "mode_no",
+        "simulation_generator",
+        "simulation_sampling",
+        "gstools_version"
+      ],
+      "schema_migration_required": false
+    }
+  },
+  "verification": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_geostatistics.py -k 'synthetic_moments_for_bounded_mode_count or rejects_invalid_settings or simulation_database_pipeline_forwards_settings or persist_simulations_returns_id or persist_simulations_rejects_invalid_mode_count or cli_simulation_forwards_resource_settings or cli_simulation_rejects_invalid_settings' -q",
+      "result": "31 passed, 114 deselected"
+    },
+    "geostatistics_tests": {
+      "command": "python3 -m pytest tests/test_geostatistics.py -q",
+      "result": "145 passed in 35.18s"
+    },
+    "ruff": {
+      "command": "ruff check services/geostatistics/config.py services/geostatistics/simulation.py services/geostatistics/cli.py tests/test_geostatistics.py",
+      "result": "passed"
+    },
+    "python_compilation": {
+      "command": "python3 -m compileall -q services/geostatistics/config.py services/geostatistics/simulation.py services/geostatistics/cli.py tests/test_geostatistics.py",
+      "result": "passed"
+    },
+    "runtime_sql_inventory": {
+      "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "passed; inventory refreshed and checked"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; MAN-CAP checks remain separate"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "conditional_moment_coverage": [
+    {
+      "model_type": "spherical",
+      "nugget": 0.2,
+      "realizations": 128,
+      "mode_no": 100,
+      "checks": [
+        "ensemble mean and sample variance vs ordinary-kriging conditional moments within four-standard-error tolerances",
+        "finite outputs and recorded generator settings"
+      ]
+    },
+    {
+      "model_type": "gaussian",
+      "nugget": 0.2,
+      "realizations": 128,
+      "mode_no": 100,
+      "checks": [
+        "ensemble mean and sample variance vs ordinary-kriging conditional moments within four-standard-error tolerances",
+        "finite outputs and recorded generator settings"
+      ]
+    }
+  ],
+  "matern_coverage": "finite-draw smoke only; statistical-moment check deferred because spectral setup is substantially slower",
+  "database_or_provider_used": false,
+  "candidate_or_legacy_touched": false,
+  "remaining": [
+    "representative populated-data parity",
+    "independent scientific review",
+    "live OIDC/browser acceptance",
+    "least-privilege ACL/RLS and audience review",
+    "named MAN-CAP-008 acceptance"
+  ]
+}

@@ -8,8 +8,7 @@ before applying kriging or simulation.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import psycopg2
@@ -18,9 +17,8 @@ import psycopg2.extras
 from .config import (
     DEFAULT_DISTANCE_THRESHOLD,
     DEFAULT_K_NEIGHBORS,
-    SPATIAL_WEIGHTS_TYPES,
-    PROPERTY_DEFAULTS,
 )
+from .data_sources import location_point_query, supports_database_property
 
 
 class SpatialAutocorrelation:
@@ -115,7 +113,7 @@ class SpatialAutocorrelation:
         if denominator == 0:
             return {"error": "Zero denominator: all values identical"}
 
-        I = numerator / denominator
+        morans_i = numerator / denominator
 
         # Expected value under null
         expected = -1.0 / (n - 1)
@@ -128,7 +126,7 @@ class SpatialAutocorrelation:
         var_i = (n * w2_sum - w_sum) / ((n - 1) * w_sum) + (2 * w_sum - n * w2_sum) / ((n - 1) * w_sum * (n - 2)) * (n * s2 / (s2 + 1e-10))
 
         if var_i > 0:
-            z_score = (I - expected) / np.sqrt(var_i)
+            z_score = (morans_i - expected) / np.sqrt(var_i)
         else:
             z_score = 0.0
 
@@ -137,15 +135,15 @@ class SpatialAutocorrelation:
         p_value = 2.0 * (1.0 - norm.cdf(abs(z_score)))
 
         # Interpretation
-        if I > expected and p_value < 0.05:
+        if morans_i > expected and p_value < 0.05:
             interpretation = "clustered"
-        elif I < expected and p_value < 0.05:
+        elif morans_i < expected and p_value < 0.05:
             interpretation = "dispersed"
         else:
             interpretation = "random"
 
         return {
-            "statistic_value": round(I, 6),
+            "statistic_value": round(morans_i, 6),
             "expected_value": round(expected, 6),
             "z_score": round(float(z_score), 4),
             "p_value": round(float(p_value), 6),
@@ -188,8 +186,6 @@ class SpatialAutocorrelation:
         # Geary's C
         n_val = float(n)
         w_sum = float(np.sum(W_std))
-        s2 = float(np.sum(z_centered ** 2)) / (n_val - 1) if n_val > 1 else 1e-10
-
         diff_matrix = np.subtract.outer(z, z) ** 2
         numerator = (n_val - 1) * float(np.sum(W_std * diff_matrix))
         denominator = 2 * w_sum * float(np.sum(z_centered ** 2))
@@ -238,38 +234,14 @@ class SpatialAutocorrelation:
         k_neighbors: int = DEFAULT_K_NEIGHBORS,
     ) -> Dict[str, Any]:
         """Run spatial autocorrelation from database point data."""
+        if not supports_database_property(property_key):
+            return {"error": f"Unsupported property_key: {property_key}"}
+
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # Fetch point data
-        if property_key.startswith("soil_"):
-            col_map = {
-                "soil_carbon": "organic_carbon_pct",
-                "soil_moisture": "moisture_pct",
-                "soil_ph": "ph",
-            }
-            val_col = col_map.get(property_key, "organic_carbon_pct")
-            cur.execute(f"""
-                SELECT ss.gps_latitude AS lat, ss.gps_longitude AS lon,
-                       ss.{val_col} AS value
-                FROM soil_sample ss
-                WHERE ss.location_id = %s
-                  AND ss.gps_latitude IS NOT NULL
-                  AND ss.gps_longitude IS NOT NULL
-                  AND ss.{val_col} IS NOT NULL
-            """, (location_id,))
-        elif property_key == "ndvi":
-            cur.execute("""
-                SELECT ST_Y(rso.centroid) AS lat, ST_X(rso.centroid) AS lon,
-                       rso.ndvi AS value
-                FROM remote_sensing_observation rso
-                WHERE rso.location_id = %s
-                  AND rso.centroid IS NOT NULL
-                  AND rso.ndvi IS NOT NULL
-            """, (location_id,))
-        else:
-            cur.close()
-            return {"error": f"Unsupported property_key: {property_key}"}
+        point_query, point_params = location_point_query(location_id, property_key)
+        cur.execute(point_query, point_params)
 
         rows = cur.fetchall()
         cur.close()

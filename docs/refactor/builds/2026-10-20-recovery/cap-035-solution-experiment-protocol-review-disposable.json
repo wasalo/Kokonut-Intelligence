@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "508_location_solution_experiment_protocol_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 508 applies and replays after the ordered experiment submission chain",
+    "review requires signed exact-location context and a current review grant",
+    "private protocol detail exposes bounded submitted content and no actor identities",
+    "approval requires an active human distinct from the owner and submitter",
+    "approval uses immutable idempotency receipts and rejects request collisions",
+    "approval changes only protocol status and reviewer attribution, never solution stage",
+    "runtime and Directus cannot read, forge, edit, or delete private receipts",
+    "Directus cannot execute either protocol review function"
+  ],
+  "acceptance_groups_passed": 8
+}

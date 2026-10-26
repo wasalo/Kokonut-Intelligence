@@ -11,19 +11,27 @@ from typing import Protocol
 
 class QueryId(str, Enum):
     PUBLIC_METRIC_SUMMARY = "public_metric_summary"
+    PUBLIC_LOCATION_DIRECTORY = "public_location_directory"
 
 
 @dataclass(frozen=True)
 class AnalyticsContext:
     """Scope supplied by the application boundary, never by arbitrary SQL."""
 
-    location_id: str
+    location_id: str | None = None
     public: bool = True
 
 
 @dataclass(frozen=True)
 class MetricSummaryRequest:
     location_id: str
+
+
+@dataclass(frozen=True)
+class PublicLocationDirectoryRequest:
+    """Read the bounded public directory or one exact public location."""
+
+    location_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -44,7 +52,20 @@ class MetricSummary:
         }
 
 
+@dataclass(frozen=True)
+class PublicLocationSummary:
+    location_id: str
+    location_name: str
+    country: str | None
+    region: str | None
+    status: str
+
+
+AnalyticsRequest = MetricSummaryRequest | PublicLocationDirectoryRequest
+AnalyticsResult = MetricSummary | PublicLocationSummary
+
+
 class AnalyticsBackend(Protocol):
     def execute(
-        self, query_id: QueryId, request: MetricSummaryRequest, context: AnalyticsContext
-    ) -> tuple[MetricSummary, ...]: ...
+        self, query_id: QueryId, request: AnalyticsRequest, context: AnalyticsContext
+    ) -> tuple[AnalyticsResult, ...]: ...

@@ -1,0 +1,28 @@
+{
+  "capability": "CAP-044",
+  "title": "Oracle freshness and stale-feed recovery",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair verified; capability not accepted",
+  "changes": [
+    "Removed the previous-value maxAge check from updatePrice so an authorized updater can replace an expired feed.",
+    "Added isFresh and getFreshPrice; missing, future-dated, or expired values fail closed through the guarded read.",
+    "Preserved getPrice as the backward-compatible raw feed read.",
+    "A zero maxAge continues to disable expiry; the configured maximum age is inclusive."
+  ],
+  "verification": {
+    "focused_command": "FOUNDRY_CACHE_PATH=/private/tmp/kokonut-foundry-cache forge test --match-contract KokonutPriceOracleTest -vv",
+    "focused_result": "13 passed; 0 failed; 0 skipped",
+    "fuzz": "Freshness boundary test passed 256 runs.",
+    "full_command": "FOUNDRY_CACHE_PATH=/private/tmp/kokonut-foundry-cache forge test",
+    "full_result": "73 passed; 0 failed; 0 skipped across 7 suites",
+    "formatter": "forge fmt completed successfully"
+  },
+  "scope_limits": [
+    "The ingestion service does not yet consume getFreshPrice.",
+    "The contract update API has no source timestamp, so source-time validation is not established.",
+    "Feed consensus, service parity, live-chain behavior, deployment, and MAN-CAP-044 acceptance remain open.",
+    "No deployed contract, chain, candidate database, or legacy database was touched."
+  ],
+  "environment_note": "Foundry emitted a non-fatal warning because the restricted process could not flush /Users/gilbertoadon/.foundry/cache/signatures; the test suites completed successfully."
+}

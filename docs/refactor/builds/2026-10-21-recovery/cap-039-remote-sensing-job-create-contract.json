@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "96c50b68fd4bcad0f22a05e8adf060ba5f3c660d",
+  "scope": "Remote-sensing scheduled-job creation parity, cadence preflight, rollback, and cursor cleanup",
+  "invocation": "remote_sensing_fetcher --location-id <synthetic-location-uuid> --provider copernicus --cadence-days 14",
+  "verification": {
+    "focused_tests": "6 create-path checks pass; 11 total checks in the job-list/create CLI contract file",
+    "coverage": [
+      "standalone/unified creation arguments, parameterized INSERT, and JSON receipt match",
+      "non-positive cadence is rejected before database setup, consistent with the existing cadence_days > 0 schema constraint",
+      "insert failure rolls back, closes the cursor, and closes the connection",
+      "successful create commits once and closes all resources"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; all connection and cursor behavior was synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: job creation now validates cadence before DB setup and uses one rollback-safe transaction with explicit cursor cleanup.",
+  "limitations": [
+    "This is mocked database and CLI coverage; it does not verify live PostgreSQL or authorization.",
+    "Provider execution, job lease/retry behavior, and worker recovery remain open."
+  ]
+}

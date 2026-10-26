@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-12",
+  "subject": "Candidate migration 382 rollout and operator-console runtime refresh",
+  "source_commit": "7c69510",
+  "preflight": {
+    "compose_project": "kokonut-kernel-candidate",
+    "manifests": [
+      "docker-compose.kernel-candidate.yml",
+      "docker-compose.kernel-metabase.yml"
+    ],
+    "plan_before": [
+      "schema:382_mobile_collection_review_events.sql"
+    ],
+    "checksum_drift": false
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-mobile-review-20261012",
+    "format": "single-database pg_dump custom archive encrypted with age",
+    "sha256": "5c51e8e4c5ed229aacf174b77cc500288b5d8f806b926ee483d3426bd8f7ff6b",
+    "bytes": 5255197,
+    "restore_rehearsal": "passed into kokonut_restore created from template0 on an internal-only PostGIS 16 recovery project",
+    "parity": "372 applied schema migration IDs/checksums, installed extensions, and selected mobile/operator table counts matched the candidate",
+    "restore_container_network_volume": "removed after verification",
+    "scope_limit": "PostgreSQL kokonut_intelligence only; excludes roles/grants, other databases, Docker volumes, external media, and provider state"
+  },
+  "migration": {
+    "command": "python -m services.migration migrate --schemas-only --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --compose-file docker-compose.kernel-metabase.yml",
+    "result": "Applied: 1, Failed: 0",
+    "applied": "schema:382_mobile_collection_review_events.sql",
+    "follow_up_plan": "0 pending migration(s)",
+    "applied_schema_rows": 373,
+    "review_event_table": "public.mobile_collection_review_event",
+    "non_internal_triggers": 2,
+    "review_event_rows": 0
+  },
+  "application": {
+    "rebuilt_from_source_commit": "7c69510",
+    "new_image_id": "sha256:4a238b97dd2d6fa68ac68068948857b2cd93c2dbce17267f379991180fc886f8",
+    "only_candidate_app_recreated": true,
+    "candidate_database_container_volume_recreated": false,
+    "candidate_metabase_recreated": false,
+    "health_after_rollout": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy"
+    },
+    "container_http_checks": {
+      "/health": 200,
+      "/operator/auth/login": 404,
+      "/operator/api/mobile-collection-review-queue (anonymous)": 401
+    },
+    "oidc_configuration": "disabled; no KOKONUT_OPERATOR_OIDC or KOKONUT_OPERATOR_SESSION variable names are present in the encrypted settings"
+  },
+  "rollback": {
+    "database": "restore the retained encrypted checkpoint through the documented isolated recovery procedure",
+    "application_tag": "kokonut-kernel-candidate-app:rollback-pre-mobile-review-20261012",
+    "application_tag_image_id": "sha256:b2942d4d33d6620e628f8d2f4ca9b0956b1acb055f509d789d8386fa1068bf2c",
+    "limitation": "The exact prior app image object had been pruned from the local image store; the fallback tag is the retained pre-form-schema image, not an exact snapshot of the prior running image."
+  },
+  "scope_limits": [
+    "No real OIDC login or authorized browser queue/review workflow was possible because provider configuration is absent.",
+    "The candidate review-event table remains empty; no reviewer disposition was recorded.",
+    "The legacy kokonut-intelligence stack was not targeted."
+  ]
+}

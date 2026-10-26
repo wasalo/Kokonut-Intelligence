@@ -1,0 +1,40 @@
+{
+  "result": "passed",
+  "date": "2026-10-25",
+  "source_revision": "840d0f8a",
+  "working_tree_dirty": false,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "platform": "linux/arm64",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261025-8f39f24f",
+  "schema_files_expected": 620,
+  "schema_files_applied": 620,
+  "schema_files_pending": 0,
+  "schema_files_failed": 0,
+  "latest_migration": "629_location_operating_pilot_learning_plan_activation",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:629_location_operating_pilot_learning_plan_activation.sql",
+  "schema_status": {
+    "seeds": 0,
+    "failed": 0,
+    "latest": "629_location_operating_pilot_learning_plan_activation",
+    "applied": 620,
+    "pending": 0,
+    "pg_stat_public_select": false
+  },
+  "pg_stat_statements_public_select": false,
+  "container_architecture": "aarch64",
+  "elapsed_seconds": 2555.4
+}

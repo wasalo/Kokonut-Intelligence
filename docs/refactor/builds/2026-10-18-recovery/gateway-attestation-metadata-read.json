@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-18",
+  "branch": "feat/mobile-offline-acceptance",
+  "capability": "CAP-018",
+  "status": "prepared",
+  "route": "GET /operator/api/attestations/{location_id}",
+  "authorization": {
+    "identity": "OIDC operator session",
+    "scope": "attestation:read",
+    "scope_location": "path location UUID",
+    "database_context": "signed operator tenant context established before query"
+  },
+  "transaction": {
+    "read_only": true,
+    "statement_timeout": "5s",
+    "lock_timeout": "2s",
+    "limit": "1..100",
+    "cleanup": "rollback and close on success or failure"
+  },
+  "included_metadata": [
+    "attestation record ID and UID",
+    "schema UID and name",
+    "claim type and stored lifecycle status",
+    "Celo chain and transaction hash",
+    "attested, expiry, revocation, and creation timestamps"
+  ],
+  "excluded_private_fields": [
+    "claim_data",
+    "evidence_hash",
+    "evidence_cids",
+    "evidence_urls",
+    "review_notes"
+  ],
+  "chain_validation": "not performed; returned data describes stored database state only",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_attestations.py tests/test_attestation.py tests/test_gateway_auth.py tests/test_gateway_audit.py -q",
+    "result": "57 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 66 rows, 50 baseline-retained, 7 deployed, 9 prepared",
+    "diff_check": "passed"
+  },
+  "database_provider_network_touched": false,
+  "notes": [
+    "Service checks use synthetic UUIDs, fake result metadata, and mocked tenant context.",
+    "HTTP checks use synthetic OIDC sessions, mocked location scopes, mocked database service, and an in-memory audit adapter.",
+    "No live chain, candidate, legacy database, or provider was accessed."
+  ],
+  "remaining_gates": [
+    "cryptographic or live Celo EAS validity verification",
+    "reviewed publish/revoke execution through human-approved SAFE flow",
+    "other subject types and populated output parity",
+    "domain-table row-level security and runtime-role least privilege",
+    "candidate deployment and authenticated runtime acceptance",
+    "MAN-CAP-018 manual acceptance"
+  ],
+  "migration": null,
+  "rollback": "Revert the Gateway read service, route registration, scope policy, tests, and documentation; no schema/data change was made."
+}

@@ -1,0 +1,42 @@
+{
+  "slice": "Current-source ARM64 Kernel application software smoke",
+  "date": "2026-10-25",
+  "source_commit": "9385eeb927613abc9a86471f6041ea2408726f38",
+  "source_tree": "working-tree snapshot based on the source commit; includes the Delphi service boundary files listed below",
+  "changed_runtime_files": {
+    "services/delphi/facilitator.py": "e1416d40ac6d3a1d3c21c312a229fdc2de9b33f58db0f1a79c0a170ac22d085a",
+    "services/delphi/panel.py": "6b87958168967eb8f1cbf2f68f0ea0cba570462de2433c6ab650bdf377f33688",
+    "services/delphi/minority.py": "cdbe3ddc697e3d401caf88f55ab2fa5064a1a00436022064e4eec98757f63d82"
+  },
+  "result": "passed",
+  "build": {
+    "command": "docker buildx build --progress plain --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=false --load --tag kokonut-kernel-current-arm64-delphi-boundary:local --file Dockerfile.kernel .",
+    "image_id": "sha256:c302d6b1d45613650fa7cb16a4441e6b41e369fc7aede8dc220e0b124ae88633",
+    "platform": "linux/arm64",
+    "configured_user": "appuser",
+    "image_size_bytes": 546089863
+  },
+  "runtime_smoke": {
+    "command": "docker run --rm --platform linux/arm64 --network none --read-only --tmpfs /tmp:rw,size=64m -v <repository>/sdk/python:/sdk:ro -e PYTHONPATH=/sdk -e PYTHONDONTWRITEBYTECODE=1 --entrypoint python3 kokonut-kernel-current-arm64-delphi-boundary:local -u -c '<assert ARM64, Gateway route-tree counts, JobSpecs, and imports>'",
+    "container_architecture": "aarch64",
+    "direct_routes": 8,
+    "included_router_groups": [22, 13, 8, 296],
+    "registered_route_templates": 347,
+    "scheduled_job_specs": 18,
+    "imports": [
+      "kokonut.KokonutClient",
+      "kokonut.KokonutPublicApiClient",
+      "services.agents.worker_cli",
+      "services.agents.delphi_facilitator_agent"
+    ],
+    "database_or_provider_calls": false
+  },
+  "candidate_or_legacy_modified": false,
+  "persistent_compose_resources_modified": false,
+  "temporary_image_removed_after_smoke": true,
+  "limitations": [
+    "QEMU software-emulation evidence only; no physical Raspberry Pi, power-loss, thermal, measured performance, or storage-endurance acceptance.",
+    "The container had no network, a read-only root, a 64 MiB temporary /tmp, and only a read-only Python SDK source mount.",
+    "Gateway construction and route-tree inspection do not exercise authenticated requests or live providers."
+  ]
+}

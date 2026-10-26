@@ -1,0 +1,16 @@
+{
+  "conflicting_snapshot": "rejected",
+  "direct_table_access": "denied",
+  "forced_rls": "bounded function operations passed",
+  "legacy_snapshot_reuse": "passed without duplicate activity or outbox row",
+  "malformed_identity": "rejected",
+  "migration": "436_isolated_rpc_indexer.sql",
+  "migration_replay": "passed twice",
+  "migration_sha256": "77295ecfb43f53d2f620d54d7d6ca28e35c83e31220aba9147efc7a8770e9a77",
+  "network": "none",
+  "numeric_eight_decimal_precision": "passed",
+  "postgresql_major": 16,
+  "provider_contacted": false,
+  "runtime_database_touched": false,
+  "snapshot_and_outbox_idempotency": "passed"
+}

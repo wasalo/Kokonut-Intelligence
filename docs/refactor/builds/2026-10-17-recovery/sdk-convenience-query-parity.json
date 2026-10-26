@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Python and JavaScript Directus SDK specialized list-query contract; mocked clients only, no HTTP or database calls",
+  "files": [
+    "sdk/python/kokonut/methods.py",
+    "sdk/javascript/src/methods.ts",
+    "tests/test_sdk.py",
+    "sdk/javascript/src/__tests__/client.test.ts"
+  ],
+  "result": "passed",
+  "parity": [
+    "Specialized list methods keep their required location, entity, status, or quality filter when caller filters contain the same field",
+    "Python preserves sort, fields, limit, offset, page, and meta when adding the specialized filter; JavaScript already forwarded these options",
+    "Unrelated caller filter fields remain included"
+  ],
+  "checks": {
+    "python_sdk_tests": "5 passed",
+    "javascript_sdk_tests": "14 passed",
+    "python_ruff": "passed",
+    "javascript_typescript_build": "passed",
+    "http_database_provider_calls": 0
+  },
+  "limitations": [
+    "SDK query helpers are not an authorization or tenant-isolation boundary",
+    "This closes one client-method parity gap; authenticated route, tenant scope, live service, gRPC, and broader SDK parity remain open"
+  ]
+}

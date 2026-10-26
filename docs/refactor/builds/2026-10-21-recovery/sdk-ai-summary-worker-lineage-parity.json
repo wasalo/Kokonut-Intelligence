@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-21",
+  "area": "CAP-038 SDK model schema parity",
+  "base_commit": "32b00beb6f7d4b803dd0930e5a5fcb3f7adc730d",
+  "hosted_ci": {
+    "run_number": 695,
+    "result": "failed",
+    "failure": "SDK model schema column coverage: Python and TypeScript AiSummary lacked created_by_worker_id"
+  },
+  "change": {
+    "sql_column": "ai_summary.created_by_worker_id",
+    "sql_type": "UUID",
+    "nullable": true,
+    "models": [
+      "sdk/python/kokonut/types.py:AiSummary",
+      "sdk/javascript/src/types.ts:AiSummary"
+    ],
+    "regression": "tests/test_sdk.py::test_ai_summary_type_preserves_lineage_and_review_as_distinct_fields"
+  },
+  "verification": {
+    "schema_parity": {
+      "command": "python3 scripts/check-sdk-schema-parity.py",
+      "result": "passed",
+      "models": 109,
+      "canonical_columns": 2149
+    },
+    "python_sdk": {
+      "command": "python3 -m pytest tests/test_sdk.py -q",
+      "result": "passed",
+      "tests": 93
+    },
+    "javascript_sdk": {
+      "command": "npm run build",
+      "directory": "sdk/javascript",
+      "result": "passed"
+    }
+  },
+  "database_or_provider_accessed": false,
+  "candidate_or_legacy_modified": false,
+  "release_gate": "Await CI and Security results on the repair commit"
+}

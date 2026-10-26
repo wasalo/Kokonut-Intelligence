@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-20",
+  "scope": "Current-source ARM64 Kernel app and migration CLI import smoke under QEMU",
+  "source_revision": "c6aab4ea",
+  "build": {
+    "command": "docker buildx build --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=false --load --quiet --tag kokonut-kernel-current-arm64-c6aab4ea:local --file Dockerfile.kernel .",
+    "result": "passed",
+    "architecture": "linux/arm64",
+    "image_user": "appuser",
+    "image_id": "sha256:510366fd3a392397e0fe3680b5b3bc204218fba22b39e9ee90271009bb37166c",
+    "temporary_image_removed": true
+  },
+  "runtime": {
+    "architecture_reported": "aarch64",
+    "network": "none",
+    "root_filesystem": "read-only with 64 MiB temporary /tmp",
+    "mounts": "read-only sdk/python bind mount at /sdk",
+    "checks": {
+      "gateway_application_created": true,
+      "python_sdk_import": true,
+      "job_spec_entries": 18,
+      "migration_cli_module_import": true,
+      "migration_cli_help_without_database_credentials": true,
+      "synthetic_rpc_snapshot_construction": true
+    },
+    "database_access": false,
+    "provider_calls": false,
+    "credentials_or_secrets": false,
+    "published_ports": false
+  },
+  "cleanup": {
+    "runtime_container_removed": true,
+    "temporary_image_removed": true,
+    "candidate_app_database_proxy_metabase": "remained healthy",
+    "legacy_stack_targeted": false,
+    "persistent_volumes_or_compose_stacks_modified": false
+  },
+  "result": "PASS: committed ARM64 app and migration CLI import/help smoke with network and writes disabled.",
+  "limitations": [
+    "QEMU is not physical Raspberry Pi acceptance or a hardware/performance benchmark.",
+    "Current full-schema replay through migration 524 was performed on native linux/amd64 PostgreSQL; ARM64 schema replay remains evidenced only through migration 434.",
+    "No 24-hour recovery, power-loss, provider recovery, replica failover, or scale-concurrency acceptance was performed."
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Validate gRPC server TLS material before database pool creation",
+  "result": "PASS",
+  "configuration": {
+    "required_pair": [
+      "GRPC_TLS_CERT",
+      "GRPC_TLS_KEY"
+    ],
+    "preflight_order": [
+      "validate configured certificate/key pair",
+      "read certificate and private key",
+      "construct gRPC server credentials",
+      "open PostgreSQL pool",
+      "start gRPC transport"
+    ],
+    "error_output": "Fixed redacted messages; filesystem paths and provider exception text are not returned."
+  },
+  "verification": {
+    "focused_grpc_tests": "48 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "cases": {
+    "incomplete_pair": "Rejected before database pool creation.",
+    "missing_certificate_or_key": "Rejected with a fixed redacted error before database pool creation.",
+    "credential_construction_failure": "Exception class is retained; exception details are redacted and the pool is not opened.",
+    "valid_pair": "Synthetic key/certificate bytes are passed to the gRPC credential factory before the pool and transport."
+  },
+  "data_access": {
+    "database_pool": "Mock only; asserted unopened on invalid configuration.",
+    "candidate_database": false,
+    "legacy_database": false,
+    "provider": false
+  },
+  "limitations": [
+    "The valid credential factory and transport startup use mocks; no certificate handshake or listener was started.",
+    "Certificate rotation, client authentication, hostname validation, and production ingress remain open."
+  ]
+}

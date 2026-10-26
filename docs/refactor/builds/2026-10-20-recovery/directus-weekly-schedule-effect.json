@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "area": "directus_weekly_schedule_effect",
+  "schedule_cron": "0 3 * * 0",
+  "source": "extensions/kokonut-hooks/src/index.ts",
+  "observed_effect": {
+    "table_read": "farm_activity",
+    "filters": [
+      "status = verified",
+      "farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id)"
+    ],
+    "group_by": ["week", "location_id"],
+    "result_rows": "location-week aggregate rows",
+    "persisted_output": false
+  },
+  "change": "Log now identifies the query and row unit and explicitly says no snapshot records were persisted.",
+  "verification": {
+    "directus_hook_tests": "71 passed across 7 files",
+    "extension_build": "passed",
+    "mocked_query_regression": true,
+    "database_or_provider_contacted": false
+  },
+  "acceptance_limits": [
+    "Does not decide whether the callback should be removed, retained, or replaced by a durable report.",
+    "Does not establish deployed Directus identity, active schedule state, tenant isolation, or runtime output parity.",
+    "The daily Directus NOI callback still requires ownership reconciliation with the default-off signed per-location worker."
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "migration": "449_location_scoped_delphi_consultation_read.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration applies and replays cleanly",
+    "only the signed location's studies are returned",
+    "current consent filters pending and withdrawn panel members",
+    "group statistics are suppressed below max(3, configured minimum)",
+    "participant references, display tokens, reasoning, and drafts are excluded",
+    "location grant and signed context are mandatory",
+    "function page bounds are enforced and PUBLIC execute is revoked",
+    "reader role is read-only and cannot select recommendations or minority reports",
+    "projection function is STABLE"
+  ],
+  "assertions_passed": 9
+}

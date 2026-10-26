@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "migration": "447_location_scoped_identity_trust_projection.sql",
+  "prerequisite_migration": "446_location_scoped_stakeholder_identity_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "ordered migration 446 and 447 application",
+    "database-enforced stable projection and no legacy trust-table access",
+    "read-only identity evidence projection from independent approval",
+    "runtime direct-table denial",
+    "location grant and signed location enforcement",
+    "consent withdrawal suppresses scoped trust evidence",
+    "private canonical identity is not returned",
+    "legacy append-only decision ledger remains immutable"
+  ],
+  "assertions_passed": 8
+}

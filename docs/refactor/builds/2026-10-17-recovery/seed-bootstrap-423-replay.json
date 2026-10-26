@@ -1,0 +1,39 @@
+{
+  "recorded_at_utc": "2026-10-17T15:59:50Z",
+  "purpose": "Reproduce the fresh-database seed.sh path from CI after run 394 and verify optional role bootstrap and PostgreSQL readiness fixes.",
+  "source_revision": "87170cb5",
+  "ci_run": {
+    "number": 394,
+    "result": "failed",
+    "clean_bootstrap_check": "passed",
+    "failure": "After the fast-fail project was removed, a new database was started and seed.sh applied migrations without the optional kokonut_runtime and kokonut_worker_login role names. Migration 427 failed on a REVOKE for kokonut_runtime."
+  },
+  "fix": {
+    "role_bootstrap": "Shared scripts/bootstrap-optional-roles.sql creates only absent runtime and worker-login placeholders as NOLOGIN, NOINHERIT, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOREPLICATION, and NOBYPASSRLS roles. Both seed.sh and verify-clean-bootstrap.sh run it before schema replay.",
+    "readiness": "Base and Kernel candidate PostgreSQL healthchecks and wait_for_postgres now require the final TCP listener. This avoids treating the PostGIS entrypoint's temporary Unix-socket-only initialization server as ready. seed.sh waits again after init.sql/extensions.sql before migrations."
+  },
+  "isolated_replay": {
+    "entrypoint": "bash scripts/seed.sh",
+    "compose_project": "kokonut-seed-replay-20261017",
+    "compose_file": "docker-compose.kernel-candidate.yml",
+    "database_image": "postgis/postgis:16-3.4",
+    "schema_migrations_applied": 423,
+    "latest_migration": "schema:432_signed_remote_sensing_worker.sql",
+    "failed": 0,
+    "curated_seeds": "disabled via KOKONUT_RUN_CURATED_SEEDS=false",
+    "clickhouse": "not started; seed script skipped its schema step",
+    "directus": "not started; seed script skipped permissions",
+    "result": "PostgreSQL schema migrations applied successfully; seed.sh completed."
+  },
+  "cleanup": {
+    "temporary_compose_project_removed": true,
+    "temporary_postgres_volume_removed": true,
+    "candidate_and_legacy_stacks_targeted": false,
+    "candidate_services_rechecked": "healthy"
+  },
+  "limitations": [
+    "The replay used an isolated disposable local database; it did not apply migrations to the Kernel candidate or legacy stack.",
+    "No curated seed, pilot data, provider call, or external integration ran.",
+    "Hosted CI for the follow-up source revision has not run yet."
+  ]
+}

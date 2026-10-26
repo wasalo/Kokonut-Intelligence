@@ -16,7 +16,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REMOTE_REPO="${REMOTE_REPO:-https://git.kokonut.network/Kokonut-Intelligence}"
+REMOTE_REPO="https://github.com/wasalo/Kokonut-Intelligence.git"
 REMOTE_ROOT="${REMOTE_ROOT:-/opt/ki-prod}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 
@@ -29,11 +29,12 @@ command -v ssh >/dev/null 2>&1 || fail "ssh not installed."
 
 log "Production deployment to ${DEPLOY_PROD_HOST}:${REMOTE_ROOT} (branch ${BRANCH})"
 log "Step 1/5: pre-deploy backup checkpoint on the production host..."
-ssh "$DEPLOY_PROD_HOST" "cd ${REMOTE_ROOT} && sudo -E ./scripts/backup.sh" \
+ssh "$DEPLOY_PROD_HOST" "cd ${REMOTE_ROOT} && ./scripts/backup.sh" \
     || fail "pre-deploy backup failed — deployment aborted. Nothing was changed."
 
 log "Step 2/5: pulling ${BRANCH}..."
 ssh "$DEPLOY_PROD_HOST" "cd ${REMOTE_ROOT} \
+    && git remote set-url origin '${REMOTE_REPO}' \
     && git fetch origin ${BRANCH} --quiet \
     && git reset --hard origin/${BRANCH} --quiet \
     && echo \$(git rev-parse --short HEAD)" | { read -r SHA; log "deploying commit ${SHA:-unknown}"; }
@@ -49,7 +50,7 @@ ssh "$DEPLOY_PROD_HOST" "cd ${REMOTE_ROOT} \
 
 log "Step 4/5: health verification..."
 sleep 10
-if ssh "$DEPLOY_PROD_HOST" "./scripts/health-check.sh --json" > /tmp/ki-health.json 2>&1; then
+if ssh "$DEPLOY_PROD_HOST" "cd ${REMOTE_ROOT} && ./scripts/health-check.sh --json" > /tmp/ki-health.json 2>&1; then
     log "health check: PASS"
     cat /tmp/ki-health.json
     rm -f /tmp/ki-health.json

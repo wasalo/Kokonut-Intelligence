@@ -170,7 +170,11 @@ def test_specs_reference_current_production_states_and_controls():
 
     for state in ("pending", "processing", "completed", "dead_letter"):
         assert state in event_schema
-    assert "pg_advisory" not in event_service
+    retention_lock = "SELECT pg_advisory_xact_lock(hashtext('kokonut.retention.legal_hold'))"
+    assert retention_lock in event_service
+    assert event_service.index(retention_lock) < event_service.index(
+        "DELETE FROM platform_event"
+    )
     assert "lease_owner" in event_service
     assert "reserved_tonnes" in retirement_schema
     assert "FOR UPDATE" in retirement_service

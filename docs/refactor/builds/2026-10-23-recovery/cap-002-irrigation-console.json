@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-002",
+  "surface": "operator-console",
+  "route": "GET /operator/api/irrigation/{location_id}/status",
+  "authorization": "Panel is exposed only for syntactically valid locations with the exact OIDC precision_irrigation:read grant; the Gateway independently enforces the grant and signed tenant context.",
+  "privacy": "The console renders fixed zone, soil, area, moisture, target, and schedule fields through text nodes. It exposes no sensor or actuator identifiers, geometry, controls, reasons, or arbitrary metadata. The read is advisory and does not change irrigation state.",
+  "verification": {
+    "pytest": "53 passed: both CAP-002 console contracts, yield and irrigation Gateway reads, precision-irrigation domain checks, and the complete registered-route policy inventory",
+    "ruff": "passed",
+    "inline_javascript_syntax": "passed with Node.js --check",
+    "capability_matrix": "passed: 67 rows; 27 baseline-retained, 7 deployed, 33 prepared; 0 MAN-CAP accepted",
+    "git_diff_check": "passed"
+  },
+  "database_migration": false,
+  "candidate_or_legacy_database_used": false,
+  "provider_or_chain_contacted": false,
+  "capability_status": "prepared",
+  "remaining": [
+    "populated legacy-output and frozen-fixture parity",
+    "live ZITADEL/browser acceptance",
+    "database ACL/RLS and broader runtime-role boundary",
+    "human MAN-CAP-002 acceptance"
+  ],
+  "rollback": "Remove the additive irrigation panel, its exact-scope bootstrap and event bindings, and its console contract test. The read-only Gateway route and legacy irrigation behavior remain unchanged; no schema or data rollback is needed."
+}

@@ -5,15 +5,16 @@ Reads metric definitions, dispatches to calculators, and writes results to metri
 """
 
 import json
-from datetime import datetime, timezone
 import re
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from .calculators import CALCULATORS
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
+
+from .calculators import CALCULATORS
 
 logger = get_logger(__name__)
 
@@ -159,8 +160,10 @@ def _publish_metric_event(conn, location_id: str, period_start, period_end, resu
             source_table="metric_value",
             priority="normal",
         )
-    except Exception:
-        logger.exception("Failed to publish metric_computed event for location %s", location_id)
+    except Exception as exc:
+        logger.error(
+            "Failed to publish metric_computed event (%s)", safe_exception_class(exc)
+        )
 
 
 def verify_metric_value(

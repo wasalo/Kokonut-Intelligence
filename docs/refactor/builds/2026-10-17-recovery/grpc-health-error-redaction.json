@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Optional gRPC health adapter remote-error containment",
+  "behavior": {
+    "failure": "Remote gRPC diagnostics are replaced with the bounded RpcError class in the raised health-check error.",
+    "cleanup": "The channel closes after both successful and failed checks."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_grpc.py tests/test_grpc_health_error_redaction.py -q",
+    "result": "29 passed",
+    "new_regressions": 1,
+    "coverage": [
+      "synthetic remote diagnostic is absent from the raised error",
+      "the original bounded RPC failure class remains visible",
+      "the opened channel closes after a remote health failure",
+      "existing optional transport and service contract tests remain passing"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked channel and RPC failure"
+  },
+  "limitations": [
+    "No gRPC service or endpoint was contacted.",
+    "TLS, authenticated transport, tenant scope, and REST parity remain open."
+  ]
+}

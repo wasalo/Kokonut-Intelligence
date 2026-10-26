@@ -9,7 +9,6 @@ from typing import Mapping, Optional, Sequence
 from psycopg2.extras import RealDictCursor
 
 from services.common.logging import get_logger
-from services.common.database import get_db
 from services.planning import model
 from services.workflow_specs.budget import BUDGET
 
@@ -85,16 +84,22 @@ def get_plan(conn, plan_id: str) -> Optional[Mapping]:
 
 
 def list_plans(conn, organization_id: str, status: Optional[str] = None) -> Sequence[Mapping]:
-    clauses = ["organization_id = %s"]
-    params: list = [uuid.UUID(organization_id)]
-    if status:
-        clauses.append("status = %s")
-        params.append(status)
-    return model._rows(
-        conn,
-        f"SELECT * FROM financial_plan WHERE {' AND '.join(clauses)} ORDER BY created_at DESC",
-        tuple(params),
-    )
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(
+            """
+            SELECT *
+            FROM financial_plan
+            WHERE organization_id = %s
+              AND (%s::text IS NULL OR status::text = %s::text)
+            ORDER BY created_at DESC
+            """,
+            (
+                uuid.UUID(organization_id),
+                status or None,
+                status or None,
+            ),
+        )
+        return cur.fetchall()
 
 
 def approve(conn, plan_id: str, actor_type: str, actor_id: Optional[str] = None, note: Optional[str] = None) -> Mapping:

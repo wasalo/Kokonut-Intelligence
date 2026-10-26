@@ -1,0 +1,28 @@
+{
+  "schema_migrations": [
+    405,
+    419,
+    426,
+    427
+  ],
+  "checks": [
+    "migrations 405, 419, and 426 apply without a worker login role",
+    "migration 427 applies cleanly before the optional worker login exists",
+    "migration 427 replays after optional login provisioning and maintains its revoke boundary",
+    "signed location function returns only granted active-location coordinates",
+    "observation/audit/receipt commit once and an identical legacy projection intent is reused",
+    "conflicting outbox identity aborts the whole weather/audit/receipt transaction",
+    "ungranted and mismatched locations are denied before any cross-location write",
+    "bounded function rejects missing signed worker context",
+    "sanitized failed-provider audit is location-scoped and creates no observation/outbox rows",
+    "transaction completion clears the signed worker context",
+    "worker login/execution role have no direct table access; runtime cannot call the bounded function; forced RLS passes"
+  ],
+  "candidate_or_legacy_database_accessed": false,
+  "feature_enabled": false,
+  "worker_credentials_provisioned": false,
+  "provider_contacted": false,
+  "candidate_application_rls_enabled": false,
+  "fixture_forced_rls": true,
+  "completed_at_utc": "2026-10-17T12:00:21.410715+00:00"
+}

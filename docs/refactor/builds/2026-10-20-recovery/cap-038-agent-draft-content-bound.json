@@ -1,0 +1,24 @@
+{
+  "capability": "CAP-038",
+  "check": "shared-agent-draft-content-bound",
+  "date": "2026-10-20",
+  "command": "python3 -m pytest tests/test_agents_base.py tests/test_ai_summary_safety.py tests/test_agent_safety.py tests/test_agent_tasks.py tests/test_agent_input_preflight.py tests/test_ai_summary_cli_lifecycle.py tests/test_ai_summary_source_references.py tests/test_gateway_ai_summary_draft.py -q",
+  "result": "passed",
+  "summary": {
+    "tests_passed": 89,
+    "postgresql_dependent_skips": 9,
+    "content_limit": 20000,
+    "shared_and_standalone_oversized_content_rejected_before_cursor": true,
+    "standalone_insert_and_fetch_failures_close_cursor_without_commit": true,
+    "database_or_provider_calls": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "Tests use fake connections and do not prove database runtime behavior.",
+    "They do not establish authenticated agent identity, database least privilege, tenant authorization, or MAN-CAP-038 acceptance."
+  ]
+}

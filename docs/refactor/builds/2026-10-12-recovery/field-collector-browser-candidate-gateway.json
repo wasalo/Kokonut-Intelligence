@@ -1,0 +1,60 @@
+{
+  "acceptance": "partial-live-browser-candidate-gateway-sync",
+  "date": "2026-10-12",
+  "target": "Field Collector pending-queue summary refresh and online sync",
+  "browser": "Codex in-app browser",
+  "origin": "http://127.0.0.1:8098/mobile",
+  "candidate_compose_project": "kokonut-kernel-candidate",
+  "candidate_services": [
+    "app",
+    "database"
+  ],
+  "enrollment": "One-time synthetic enrollment fixture; candidate OIDC provider and API-key enrollment credentials were not configured.",
+  "steps": [
+    "Unlocked the user-created encrypted browser test vault; no passphrase or credential was recorded.",
+    "Saved two synthetic Field Note v1.2.0 records in the real browser against the candidate Gateway.",
+    "Observed two successful upload receipts in aggregate candidate database records.",
+    "After the second save, verified the home screen changed to Everything is up to date with a zero pending badge without manual sync or navigation.",
+    "Verified both records remained transport_pending and ineligible for downstream use.",
+    "Removed the synthetic location, device, enrollment, two offline collections, and two sync-log records in a guarded transaction; final counts were zero.",
+    "Locked the browser vault. Its encrypted IndexedDB record remains because the app does not provide a supported vault deletion/reset action; deleting the server-side device invalidated its stored test credential."
+  ],
+  "database_evidence": {
+    "candidate_location_rows_before_cleanup": 1,
+    "candidate_device_rows_before_cleanup": 1,
+    "candidate_enrollment_rows_before_cleanup": 1,
+    "candidate_offline_collection_rows_before_cleanup": 2,
+    "candidate_successful_upload_records_before_cleanup": 2,
+    "active_form_revision": "field_note_v1@1.2.0",
+    "form_review_required": false,
+    "consent_validation_status": "not_required",
+    "sync_status": "pending",
+    "eligible_for_use": false,
+    "eligibility_reason": "transport_pending",
+    "fixture_rows_after_cleanup": 0
+  },
+  "result": {
+    "candidate_gateway_online_sync": true,
+    "accepted_synthetic_records": 2,
+    "automatic_pending_badge_refresh": true,
+    "pending_badge_after_sync": 0,
+    "manual_sync_or_navigation_required": false,
+    "synthetic_candidate_rows_removed": true,
+    "encrypted_browser_test_vault_locked": true,
+    "encrypted_browser_test_vault_removed": false
+  },
+  "verification": {
+    "inline_javascript_node_check": "passed",
+    "git_diff_check": "passed",
+    "browser_acceptance": "passed for online candidate Gateway sync and automatic badge refresh"
+  },
+  "limitations": [
+    "The candidate provider configuration did not include a real OIDC provider or operator enrollment credentials; enrollment was supplied by a synthetic, one-time database fixture.",
+    "This was online sync, not OS airplane mode or browser network-outage recovery against the Gateway.",
+    "No retired-form, consent withdrawal, media, retention/erasure, tenant/RLS, or downstream human-disposition path was exercised.",
+    "Transport receipts do not verify, publish, or authorize use of the collected records.",
+    "The local encrypted browser vault remains locked because the app has no supported vault-destroy/reset control; its server device was removed, so the stored test credential is unusable."
+  ],
+  "rollback": "Revert the pending-summary refresh in services/mobile/field-collector.html and rebuild only the candidate app. No migration, seed, or provider configuration changed; the synthetic database fixture was removed.",
+  "capability_status_changed": false
+}

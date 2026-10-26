@@ -1,0 +1,38 @@
+{
+  "check": "sensor_anomaly_ml_source_implementation_checks",
+  "focused_test_command": "python3 -m pytest tests/test_sensor_anomaly_ml_cli.py tests/test_kernel_profile.py tests/test_anomaly_detector_cli_scope.py tests/test_sensor_anomaly_ml_worker.py tests/test_ml_anomaly.py tests/test_ml_anomaly_scope.py tests/test_runtime_role_boundary.py -q",
+  "focused_tests_passed": 119,
+  "ruff": "passed",
+  "python_compileall": "passed",
+  "generated_worker_runtime_inventories": "passed",
+  "dependency_groups": {
+    "status": "passed",
+    "groups": 13,
+    "legacy_requirements": 33,
+    "ml_anomaly_manifest_is_subset": true
+  },
+  "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+  "compose_config": {
+    "linux_amd64": "passed",
+    "linux_arm64": "passed"
+  },
+  "native_ml_image_build": "passed",
+  "native_ml_image_smoke": "sensor-anomaly-ml-image-native-smoke.json",
+  "disposable_postgres_migration_acceptance": "sensor-anomaly-ml-source-disposable.json",
+  "optional_ml_image_builds": "passed for linux/amd64 and linux/arm64; architecture-specific binary wheels resolve on BUILDPLATFORM",
+  "native_ml_image_build_evidence": "sensor-anomaly-ml-image-builds.json",
+  "arm64_ml_image_read_only_no_network_smoke": "sensor-anomaly-ml-image-arm64-smoke.json",
+  "arm64_runtime_acceptance": "passed under software emulation for architecture/package/worker imports only",
+  "image_dependency_metadata_check": "pip check passed for linux/amd64 and linux/arm64",
+  "physical_raspberry_pi_access": false,
+  "candidate_or_legacy_touched": false,
+  "migration_650_applied_to_candidate": false,
+  "real_worker_credentials_or_grants_provisioned": false,
+  "live_provider_calls": false,
+  "slim_image_evidence": "sensor-anomaly-ml-slim-image-builds.json",
+  "slim_amd64_smoke": "sensor-anomaly-ml-slim-image-native-smoke.json",
+  "slim_arm64_smoke": "sensor-anomaly-ml-slim-image-arm64-smoke.json",
+  "optional_ml_transitive_dependencies_hash_locked": false,
+  "constrained_resource_smoke": "passed on AMD64 and ARM64/QEMU at 1 GiB and 2 CPUs",
+  "constrained_resource_smoke_evidence": "sensor-anomaly-ml-slim-image-resource-smoke.json"
+}

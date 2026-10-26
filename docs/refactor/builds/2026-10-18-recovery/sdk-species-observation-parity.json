@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript species observation SDK schema parity",
+  "model": "SpeciesObservation",
+  "source_table": "schemas/postgres/005_environmental.sql:species_observation",
+  "additive_columns": {
+    "schemas/postgres/013_prd_completion.sql": [
+      "source_system", "source_id", "source_raw", "schema_version"
+    ],
+    "schemas/postgres/046_ecological_modeling.sql": [
+      "trophic_level", "population_density_per_m2"
+    ],
+    "schemas/postgres/047_ecological_modeling_v2.sql": ["conservation_status"],
+    "schemas/postgres/051_gap_closures.sql": ["status"],
+    "schemas/postgres/080_field_collection.sql": [
+      "verified_by", "verified_at", "schema_version", "evidence_maturity"
+    ]
+  },
+  "schema_guard": {
+    "models": 53,
+    "canonical_columns": 1133,
+    "scalar_types": 1061,
+    "postgis_shapes": 8,
+    "jsonb_shapes": 62,
+    "enum_fields": 20,
+    "check_literal_fields": 36
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 60 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "SpeciesObservation represents submitted data and does not verify field observations or ecological classifications.",
+    "Checks used local source and synthetic fixtures; no database or provider was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

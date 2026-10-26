@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Delphi participation · Kokonut Intelligence</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <p class="eyebrow">Kokonut Intelligence</p>
+        <h1>Delphi participation</h1>
+        <p class="intro">Share your perspective in a private, study-scoped consultation.</p>
+      </header>
+
+      <p id="status" class="notice" role="status" aria-live="polite">
+        Checking this participation link…
+      </p>
+
+      <section id="consent" class="panel" hidden>
+        <p class="eyebrow">Before you begin</p>
+        <h2 id="study-title"></h2>
+        <p id="notice-version" class="muted"></p>
+        <p class="muted">Activities covered by this notice</p>
+        <ul id="notice-scopes" class="consent-copy"></ul>
+        <div id="notice-text" class="consent-copy"></div>
+        <label class="consent-check">
+          <input id="consent-check" type="checkbox">
+          <span>I have read this notice and agree to participate.</span>
+        </label>
+        <button id="accept" type="button" disabled>Agree and continue</button>
+      </section>
+
+      <section id="workspace" hidden>
+        <div class="panel study-heading">
+          <div>
+            <p class="eyebrow">Your study</p>
+            <h2 id="workspace-title"></h2>
+          </div>
+          <span id="study-status" class="status-pill"></span>
+        </div>
+        <div id="study-message" class="notice" hidden></div>
+        <div id="questions" class="question-list"></div>
+        <button id="more" class="secondary" type="button" hidden>Load more questions</button>
+        <section id="minority-report-panel" class="panel" hidden>
+          <p class="eyebrow">Private participant report</p>
+          <h2>Share a perspective outside the questionnaire</h2>
+          <p class="muted">This report is available because the notice you accepted included minority reports. It is submitted privately for independent review, is not published automatically, and cannot be edited after submission. Withdrawal hides it from reviewers pending human disposition.</p>
+          <form id="minority-report-form">
+            <label class="field" for="minority-report-item">
+              Related question (optional)
+              <select id="minority-report-item">
+                <option value="">Entire study</option>
+              </select>
+            </label>
+            <label class="field" for="minority-report-title">
+              Report title
+              <input id="minority-report-title" maxlength="255" required>
+            </label>
+            <label class="field" for="minority-report-position">
+              Your position
+              <textarea id="minority-report-position" maxlength="4000" required></textarea>
+            </label>
+            <label class="field" for="minority-report-rationale">
+              Why you hold this position
+              <textarea id="minority-report-rationale" maxlength="8000" required></textarea>
+            </label>
+            <label class="field" for="minority-report-implications">
+              Implications (optional)
+              <textarea id="minority-report-implications" maxlength="3000"></textarea>
+            </label>
+            <button id="minority-report-submit" type="submit">Submit for private review</button>
+            <p id="minority-report-state" class="answer-state" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+        <div class="panel withdrawal-panel">
+          <h2>Withdraw from this study</h2>
+          <p>Your session will be revoked and no further answers can be submitted. Previously submitted answers remain private while the study owner reviews the applicable retention or erasure disposition.</p>
+          <button id="withdraw" class="danger" type="button">Withdraw consent</button>
+        </div>
+      </section>
+
+      <footer>
+        <p>Your invite and answers stay within this browser session and the study’s private review process.</p>
+      </footer>
+    </main>
+  </body>
+</html>

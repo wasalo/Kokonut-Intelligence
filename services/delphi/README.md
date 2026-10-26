@@ -23,3 +23,13 @@ python3 -m services.delphi.cli --help
 ## Files
 
 7 Python modules
+
+## Access boundary
+
+The legacy `Facilitator`, `PanelManager`, and `MinorityReportManager`
+database-backed methods are compatibility facades and raise before using a
+connection or cursor. Use the authenticated, location-scoped Gateway for the
+study and participant workflows it implements. Direct panel administration,
+diversity assessment, minority-report operations, and panel calibration are
+not available until their authorization, privacy, and review contracts exist.
+`ConsensusCalculator` remains available for pure, in-memory consensus math.

@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline native SDK local-logout failure parity",
+  "contract": "When the remote logout request fails, both clients clear local authentication state so offline failure does not leave a stale local token.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 77 passed",
+    "javascript": "npm test — 31 passed",
+    "typescript": "npm run build — passed",
+    "ruff": "ruff check tests/test_sdk.py — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — 70 models, 1,438 canonical columns, 1,345 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, 43 CHECK-literal fields — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The simulated network failure uses mocked clients and synthetic credentials.",
+    "No credentials, network, database, or live API was used.",
+    "This legacy Directus SDK behavior is separate from Gateway operator sessions and does not change MAN-CAP acceptance."
+  ]
+}

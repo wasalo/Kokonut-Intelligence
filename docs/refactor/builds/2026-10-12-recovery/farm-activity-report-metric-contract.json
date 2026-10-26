@@ -1,0 +1,134 @@
+{
+  "date": "2026-10-12",
+  "scope": "Batch 3 published farm activity report and rework metric source contract",
+  "source_commit_base": "d379765e0cc8b40452c9549d1906c300e7a20613",
+  "report": {
+    "entrypoint": "services/export/reports/core.py::generate_farm_summary",
+    "source_filter": "farm_activity.location_id, status = published, inclusive activity_date period",
+    "projection": [
+      "published_activity_count",
+      "reported_labor_hours",
+      "reported_labor_hours_unit",
+      "by_activity_type"
+    ],
+    "private_fields_excluded": [
+      "description",
+      "notes",
+      "source_raw",
+      "device_id",
+      "participant identity",
+      "media references",
+      "canonical source IDs"
+    ],
+    "snapshot_contract": "services/export/reports/context.py::store_snapshot stores a SHA-256 hashed status=draft, frozen=false snapshot"
+  },
+  "metric": {
+    "entrypoint": "services/metrics/calculators/rework_rate.py::compute_rework_rate",
+    "metric_key": "rework_rate_pct",
+    "cohort": "location lifecycle entities published in the inclusive date period, including farm_activity",
+    "formula": "published entities with a rejected transition / published entities * 100",
+    "provenance": "published source IDs and reworked subset are returned, each capped at 100 with truncation flags",
+    "verification": "services/metrics/engine.py inserts metric_value.verified=false; separate human verification remains required"
+  },
+  "verification": {
+    "command": "PYTHONPATH=. uv run --no-project --cache-dir /private/tmp/kokonut-kernel-uv-cache --with 'pytest>=9.1.1,<10.0' --with 'psycopg2-binary>=2.9.9' pytest tests/test_farm_activity_metrics.py tests/test_farm_activity_summary_report.py tests/test_report_governance.py tests/test_metrics.py::test_metric_computation_always_creates_draft_value -q",
+    "result": "11 passed",
+    "ruff": "All checks passed for the changed Python files",
+    "fixture_results": {
+      "published_activity_count": 3,
+      "reported_labor_hours": 5.25,
+      "rework_rate_pct": 50.0,
+      "report_snapshot_status": "draft",
+      "report_snapshot_frozen": false,
+      "metric_value_verified": false
+    },
+    "method": "Isolated fake database cursors and synthetic UUIDs; no live candidate or production records used",
+    "disposable_postgresql": {
+      "result": "passed",
+      "runtime": "PostGIS 16 disposable container on the private Docker network",
+      "schema_scope": "minimal synthetic tables matching the report and metric query contracts; no repository migration chain applied",
+      "fixture_results": {
+        "published_activity_count": 2,
+        "reported_labor_hours": 5.25,
+        "draft_activity_excluded": true,
+        "private_report_fields_absent": true,
+        "snapshot_status": "draft",
+        "snapshot_frozen": false,
+        "snapshot_hash_matches": true,
+        "rework_rate_pct": 50.0,
+        "metric_verified": false,
+        "metric_source_count": 2,
+        "reworked_source_ids": [
+          "10101010-1010-4010-8010-101010101010"
+        ]
+      },
+      "cleanup": "temporary database container removed; candidate app/database and volumes unchanged"
+    },
+    "limitations": [
+      "The full-schema replay applied schema migrations only; seed data was excluded and the metric definition and promotion fixtures were synthetic",
+      "The concurrent duplicate-promotion check covered two simultaneous callers; higher-contention stress was not run",
+      "The candidate database and app were not migrated, rebuilt, or written",
+      "Configured-provider acceptance and MAN-CAP-001 remain open"
+    ],
+    "full_schema_parity": {
+      "result": "passed",
+      "runtime": "PostGIS 16 disposable Compose project; repository candidate remained unchanged",
+      "schema_scope": "All 375 ordered PostgreSQL schema migrations applied by services.migration.cli with --schemas-only; no seed migrations",
+      "fixture_results": {
+        "published_activity_count": 2,
+        "reported_labor_hours": 5.25,
+        "draft_activity_excluded": true,
+        "private_source_marker_excluded": true,
+        "snapshot_status": "draft",
+        "snapshot_frozen": false,
+        "snapshot_hash_matches": true,
+        "rework_rate_pct": 50.0,
+        "metric_verified": false,
+        "metric_source_count": 2,
+        "reworked_source_count": 1,
+        "database_trigger_failure_rolled_back": true,
+        "duplicate_promotion_same_activity_id": true,
+        "duplicate_promotion_canonical_activity_count": 1,
+        "duplicate_promotion_draft_created_event_count": 1,
+        "duplicate_promotion_concurrent_calls": 2,
+        "duplicate_promotion_created_values": [
+          false,
+          true
+        ]
+      },
+      "cleanup": "Disposable database volume and Compose network removed; candidate app, database, and volumes unchanged",
+      "database_trigger_failure": {
+        "result": "passed",
+        "method": "Synthetic PostgreSQL BEFORE INSERT trigger rejected the submitted workflow event while the real transition service updated the canonical row",
+        "assertions": [
+          "farm_activity remained draft after the transition raised",
+          "no submitted farm_activity_workflow_event was committed",
+          "no submitted lifecycle_transition was committed"
+        ],
+        "scope": "Disposable full-schema PostGIS 16 database only; trigger and rows were synthetic and removed with the scratch project"
+      },
+      "duplicate_promotion": {
+        "result": "passed",
+        "method": "Ran two simultaneous calls to the real create_farm_activity_draft service behind a two-party start barrier for the same synthetic eligible capture after all schema migrations applied",
+        "assertions": [
+          "exactly one concurrent call created a canonical draft and the other returned created=false",
+          "both calls returned the same activity ID",
+          "exactly one canonical farm_activity row exists for the source collection",
+          "exactly one draft_created workflow event exists for the source collection"
+        ],
+        "scope": "Two simultaneous callers on a synthetic location, form revision, operator grants, and collection in disposable PostgreSQL; all fixture rows were removed with the project"
+      }
+    },
+    "focused_batch_3_acceptance": {
+      "result": "91 passed",
+      "ruff": "All checks passed",
+      "additional_cases": [
+        "wrong-location detail query binds the requested location and returns no row",
+        "wrong-location draft promotion performs no canonical write",
+        "injected workflow-event insert failure after the draft insert triggers rollback and closes the connection"
+      ],
+      "limitation": "The unit-double event failure is supplemented by real PostgreSQL transition rollback; a barrier-synchronized two-caller promotion race also passed, while higher-contention stress was not run.",
+      "command": "PYTHONPATH=. uv run --no-project --cache-dir /private/tmp/kokonut-kernel-uv-cache --with 'pytest>=9.1.1,<10.0' --with 'psycopg2-binary>=2.9.9' pytest tests/test_migration.py tests/test_workflow_specs.py tests/test_farm_activity_workflow.py tests/test_farm_activity_lifecycle.py tests/test_operator_auth.py tests/test_farm_activity_metrics.py tests/test_farm_activity_summary_report.py tests/test_report_governance.py tests/test_metrics.py::test_metric_computation_always_creates_draft_value -q"
+    }
+  }
+}

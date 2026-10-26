@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "migration": "521_location_scoped_ai_summary_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "synthetic_context_note": "SQL acceptance injects operator context directly in a no-network disposable fixture; Python regressions verify production service uses the signed context setter.",
+  "checks": [
+    "migration 521 applies and replays transactionally on disposable PostgreSQL 16",
+    "queue is exact-location scoped and reports empty, missing-lineage, and over-limit blockers",
+    "only signed operators with exact ai_summary:review grants can read and decide",
+    "approval verifies but never publishes and records reviewer/lifecycle attribution",
+    "rejection is recorded; blocked drafts cannot be approved",
+    "exact retries replay and request-key payload collisions fail closed",
+    "review history is append-only and inaccessible through direct runtime or Directus SQL",
+    "runtime and Directus cannot bypass the bounded review function with direct summary UPDATE"
+  ],
+  "assertions_passed": 8
+}

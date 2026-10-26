@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Bounded read-only retention policy and legal-hold CLI inventories plus database-free command help; mock-backed, no live database or provider access",
+  "files": [
+    "services/analytics/data_governance.py",
+    "services/analytics/cli_data_governance.py",
+    "services/common/commands.py",
+    "tests/test_data_governance.py",
+    "tests/test_data_retention_inventory_cli.py",
+    "tests/test_common_commands.py"
+  ],
+  "focused_tests": 70,
+  "subtests": 63,
+  "result": "passed",
+  "checks": [
+    "Policy inventory validates status, location UUID, jurisdiction and purpose codes, and row limit before opening a cursor",
+    "Policy inventory returns only bounded configuration and approval fields, excluding free-text metadata and audit reasons",
+    "Legal-hold inventory defaults to active records, supports a bounded released-history view and exact-entity filters, and excludes hold reasons",
+    "CLI argument wiring preserves bounded filters and active-only hold defaults",
+    "Declarative CLI help parses without loading database secrets; database connection creation remains lazy until a database command runs"
+  ],
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "policy_cli_help": "passed",
+    "hold_cli_help": "passed",
+    "capability_matrix_validation": "passed (66 rows)",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No live database, candidate, legacy stack, or provider was contacted",
+    "CLI actors remain attribution only; these commands are not authenticated or exposed through the Gateway",
+    "No retention period, policy, legal hold, archive workflow, or cleanup schedule was configured or enabled",
+    "Jurisdiction-owned retention, notification archive/deletion, and MAN-CAP-047/051 acceptance remain open"
+  ]
+}

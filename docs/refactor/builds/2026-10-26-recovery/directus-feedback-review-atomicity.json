@@ -1,0 +1,25 @@
+{
+  "run_date_utc": "2026-10-26",
+  "scope": "Directus stakeholder feedback decision audit shares the request transaction",
+  "result": "passed",
+  "checks": {
+    "full_directus_hook_suite": "93 passed",
+    "directus_extension_bundle": "passed",
+    "typescript_no_emit_check": "passed",
+    "publish_and_reject_reviews_use_request_database": "passed",
+    "review_write_occurs_before_item_update": "passed",
+    "review_write_failure_aborts_filter_and_clears_transition_marker": "passed",
+    "extension_global_database_unused": "passed"
+  },
+  "database_or_directus_runtime_accessed": false,
+  "candidate_or_legacy_modified": false,
+  "limitations": [
+    "Source and unit evidence only; pinned Directus transaction semantics, deployed permission behavior, and populated review parity remain open."
+  ],
+  "source_sha256": {
+    "extensions/kokonut-hooks/src/index.ts": "023d4379ed5fafd286721b30a6c4ed1e0e38b0f73cbcf367bbd4249e67ee232f",
+    "extensions/kokonut-hooks/src/index.test.ts": "e05d7298d731314a21eac1cc2458399028f01a364b7f5d53e85071e96f940091",
+    "extensions/kokonut-hooks/src/feedback.ts": "0caac3ea5c1124debc5e84f05f2e8aa9fd0204661b9685e9b93ab24ad1d2b7fa",
+    "extensions/kokonut-hooks/src/workflow.ts": "ecceb367794620ae126ef2eb45022f0d6372b35e2adf4c1486c694802623d68c"
+  }
+}

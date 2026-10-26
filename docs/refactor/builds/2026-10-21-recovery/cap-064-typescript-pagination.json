@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Expose EcocreditService cursor pagination in the TypeScript SDK",
+  "result": "PASS",
+  "paginated_methods": [
+    "classes",
+    "classesByAdmin",
+    "projects",
+    "projectsByClass",
+    "batches",
+    "batchesByClass",
+    "batchesByProject",
+    "baskets",
+    "sellOrders"
+  ],
+  "contract": {
+    "request": "Optional GrpcPageRequest.limit and offset are forwarded using the proto PageRequest shape.",
+    "response": "List response types model pagination.next_key and pagination.total as optional proto-loader keepCase fields.",
+    "compatibility": "Existing calls without a pagination argument preserve their prior request shape."
+  },
+  "verification": {
+    "typescript_vitest": "25 passed, including cursor forwarding and no-pagination compatibility for all nine methods",
+    "typescript_build": "passed",
+    "server_source_review": "Python gRPC list handlers ignore pagination requests and do not return page metadata",
+    "network_database_or_provider_access": false
+  },
+  "limitations": [
+    "The change verifies SDK request wiring and typing only; runtime pagination remains unimplemented in the Python gRPC service.",
+    "The checks do not verify server pagination semantics or live transport.",
+    "Authentication, tenant isolation, TLS, and REST parity remain unassessed; CAP-064 remains open."
+  ]
+}

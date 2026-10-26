@@ -18,7 +18,7 @@ dev = ["pytest>=7.0"]
 clickhouse = ["clickhouse-connect>=0.7.0"]
 web3 = ["web3>=7.16.0"]
 grpc = ["grpcio>=1.68.1,<2.0.0", "protobuf>=5.29.1,<6.0.0"]
-grpc-codegen = ["grpcio-tools==1.68.1"]
+grpc-codegen = ["grpcio-tools==1.68.1", "protobuf==5.29.1"]
 all = [
     "requests>=2.28.0",
     "clickhouse-connect>=0.7.0",

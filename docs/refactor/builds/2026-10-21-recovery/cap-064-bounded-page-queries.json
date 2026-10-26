@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Bound paginated EcocreditService result reads at the database query level",
+  "result": "PASS",
+  "implementation": {
+    "manager_queries": [
+      "credit classes",
+      "credit batches",
+      "credit baskets",
+      "credit sell orders"
+    ],
+    "project_queries": "Select only the requested active or class-associated location IDs before project metadata hydration",
+    "ordering": "created_at DESC, id DESC for manager pages; location ID for project pages",
+    "page_limit": "Validated request limit, default 100 and maximum 500",
+    "total": "Separate COUNT query with the same list filters"
+  },
+  "verification": {
+    "pagination_and_credit_list_selection": "78 passed, 1 skipped, 17 subtests",
+    "enabled_grpc_loopback": "4 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "data_access": {
+    "candidate_database": false,
+    "legacy_database": false,
+    "provider": false,
+    "loopback": "Enabled gRPC service with synthetic rows and mocked database factory"
+  },
+  "limitations": [
+    "COUNT(*) and large OFFSET values may still require scanning many records; bounded page materialization does not bound total database work.",
+    "The count and page are separate statements, and subsequent RPC pages use new result sets, so concurrent writes can change totals or shift offset pages.",
+    "Authentication and tenant scope, TLS, REST parity, live runtime behavior, and MAN-CAP-064 remain open."
+  ]
+}

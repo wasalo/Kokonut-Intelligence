@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-17",
+  "scope": "Python and JavaScript SDK offset pagination parity",
+  "issue": "A non-page-aligned offset such as 10 with a limit of 25 was converted to page 1, returning rows from the beginning instead of starting at row 10.",
+  "change": "Both clients now pass the exact offset to Directus when offset and a non-zero limit are provided. Explicit page handling and the existing zero-limit guard remain unchanged.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py -q",
+      "result": "7 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "16 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed",
+    "diff_check": "passed"
+  },
+  "directus_sdk_contract": "The locked @directus/sdk v17 Query type supports an offset field.",
+  "network": "none; requests are mocked"
+}

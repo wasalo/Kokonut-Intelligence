@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-15",
+  "scope": "Static source mapping of registered report generators and declared Python inputs",
+  "result": "passed",
+  "inventory": {
+    "report_types": 94,
+    "defining_source_modules": 15,
+    "generators_with_location_id_parameter": 94,
+    "generators_with_period_start_or_end_parameter": 93,
+    "artifact": "docs/refactor/report-generator-source-inventory.json",
+    "freshness_command": "python3 scripts/report_generator_inventory.py --check docs/refactor/report-generator-source-inventory.json"
+  },
+  "checks": {
+    "command": "python3 -m pytest tests/test_report_generator_inventory.py -q",
+    "passed": 2,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "inventory_freshness": "passed",
+    "capability_matrix": "passed"
+  },
+  "limitations": [
+    "Parameter names do not establish that SQL applies a tenant filter or that report outputs are semantically correct.",
+    "No report calculation, stored SQL, database, provider, SOPS secret, candidate, or legacy service was accessed."
+  ]
+}

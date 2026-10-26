@@ -1,0 +1,616 @@
+"""Direct worker SQL inventory stays deterministic and avoids query contents."""
+
+from __future__ import annotations
+
+import ast
+import json
+import re
+
+from scripts.worker_source_closure import build_inventory as build_source_closure
+from scripts.worker_sql_inventory import (
+    ROOT,
+    _candidate_relations,
+    _literal_caller_variants,
+    _local_statement_kind,
+    _operation_map_variants,
+    _query_template,
+    _serialize,
+    _statement_kind,
+    build_inventory,
+)
+
+INVENTORY_PATH = ROOT / "docs" / "refactor" / "worker-sql-inventory.json"
+SOURCE_PATTERN_REVIEW_PATH = ROOT / "docs" / "refactor" / "worker-sql-source-pattern-review.json"
+
+
+def _load_inventory() -> dict:
+    return json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+
+
+def test_saved_worker_sql_inventory_matches_current_sources():
+    saved = INVENTORY_PATH.read_text(encoding="utf-8")
+    assert saved == _serialize(build_inventory())
+
+
+def test_worker_sql_inventory_covers_source_closure_and_all_execution_sites():
+    inventory = _load_inventory()
+    closure = build_source_closure()
+    expected_operations = {f"{operation['kind']}:{operation['name']}" for operation in closure["operations"]}
+    expected_sources = {source for operation in closure["operations"] for source in operation["source_files"]}
+    sites = inventory["execution_sites"]
+
+    assert inventory["summary"]["operation_roots"] == len(closure["operations"])
+    assert inventory["summary"]["source_files"] == len(expected_sources)
+    assert {site["source"] for site in sites} <= expected_sources
+    assert len({site["id"] for site in sites}) == len(sites)
+    for site in sites:
+        assert site["operation_refs"]
+        assert set(site["operation_refs"]) <= expected_operations
+        assert (ROOT / site["source"]).is_file()
+        assert site["expression_kind"] in {"literal", "fstring", "composed", "composed_or_variable"}
+        assert isinstance(site["candidate_relations"], list)
+        assert "sql" not in site and "query" not in site
+        if site["static_sql_sha256"] is not None:
+            assert re.fullmatch(r"[0-9a-f]{64}", site["static_sql_sha256"])
+
+
+def test_dynamic_sql_call_sites_are_visible_without_persisting_query_text():
+    inventory = _load_inventory()
+    dynamic = [site for site in inventory["execution_sites"] if site["expression_kind"] != "literal"]
+
+    assert dynamic
+    assert inventory["summary"]["composed_or_variable_sites"] == len(dynamic)
+    assert all(site["static_sql_sha256"] is None for site in dynamic)
+    assert all(site["statement_kind"] for site in dynamic)
+
+
+def test_dynamic_statement_kinds_are_inferred_only_from_consistent_local_assignments():
+    select_function = ast.parse(
+        "def run(flag):\n"
+        "    if flag:\n"
+        "        statement = f'SELECT * FROM {table}'\n"
+        "    else:\n"
+        "        statement = 'SELECT id FROM fixed_table'\n"
+    ).body[0]
+    mixed_function = ast.parse(
+        "def run(flag):\n"
+        "    if flag:\n"
+        "        statement = 'SELECT id FROM fixed_table'\n"
+        "    else:\n"
+        "        statement = 'DELETE FROM fixed_table'\n"
+    ).body[0]
+    parameter_function = ast.parse("def run(statement):\n    pass\n").body[0]
+
+    assert _local_statement_kind(select_function, "statement") == "SELECT"
+    assert _local_statement_kind(mixed_function, "statement") == "UNKNOWN"
+    assert _local_statement_kind(parameter_function, "statement") == "UNKNOWN"
+
+
+def test_static_sqlalchemy_text_and_psycopg_sql_wrappers_are_unwrapped():
+    sqlalchemy_query = ast.parse(
+        "def run(conn):\n"
+        "    conn.execute(conn.text('SELECT id FROM public.location'))\n"
+    ).body[0].body[0].value.args[0]
+    psycopg_query = ast.parse(
+        "def run(cur):\n"
+        "    cur.execute(SQL('UPDATE public.location SET name = %s'))\n"
+    ).body[0].body[0].value.args[0]
+
+    assert _query_template(sqlalchemy_query) == (
+        "SELECT id FROM public.location",
+        "literal",
+    )
+    assert _query_template(psycopg_query) == (
+        "UPDATE public.location SET name = %s",
+        "literal",
+    )
+
+
+def test_unclassified_sql_sites_are_explicitly_enumerated_for_follow_up():
+    unknown = [site for site in _load_inventory()["execution_sites"] if site["statement_kind"] == "UNKNOWN"]
+
+    assert [(site["source"], site["line"]) for site in unknown] == [
+        ("services/agents/base.py", 149),
+        ("services/analytics/organic_certification.py", 295),
+        ("services/analytics/reporting_reader.py", 256),
+        ("services/common/database.py", 77),
+        ("services/common/database.py", 80),
+        ("services/common/database.py", 142),
+        ("services/registry/cids_export.py", 122),
+    ]
+
+
+def test_new_agent_worker_sql_patterns_are_reviewed_without_promoting_unknowns():
+    inventory = _load_inventory()
+    review = json.loads(SOURCE_PATTERN_REVIEW_PATH.read_text(encoding="utf-8"))
+    reviewed_sites = [
+        (group, site_id)
+        for group in review["reviewed_patterns"]
+        for site_id in group["sites"]
+    ]
+    inventory_by_id = {site["id"]: site for site in inventory["execution_sites"]}
+    agent_nonliteral_ids = {
+        site["id"]
+        for site in inventory["execution_sites"]
+        if site["source"].startswith("services/agents/")
+        and site["expression_kind"] != "literal"
+    }
+    imported_nonliteral_ids = {
+        "services/analytics/organic_certification.py:295:8",
+        "services/registry/cids_export.py:122:12",
+    }
+    reviewed_ids = {site_id for _, site_id in reviewed_sites}
+
+    assert len(reviewed_sites) == 36
+    assert len(reviewed_ids) == 36
+    assert reviewed_ids == agent_nonliteral_ids | imported_nonliteral_ids
+    assert sum(group["site_count"] for group in review["reviewed_patterns"]) == 36
+    assert review["result"]["approved_as_acl_input"] is False
+    assert all(inventory_by_id[site_id]["expression_kind"] == group["expression_kind"] for group, site_id in reviewed_sites)
+    assert all(
+        inventory_by_id[site_id]["statement_kind"] == "UNKNOWN"
+        for site_id in (
+            "services/agents/base.py:149:12",
+            "services/analytics/organic_certification.py:295:8",
+            "services/registry/cids_export.py:122:12",
+        )
+    )
+
+
+def test_gee_climate_inventory_records_its_four_literal_caller_templates():
+    inventory = _load_inventory()
+    site = next(
+        site
+        for site in inventory["execution_sites"]
+        if site["source"] == "services/ingestion/gee_climate.py" and site["line"] == 92
+    )
+
+    assert site["statement_kind"] == "INSERT"
+    assert len(site["statement_variants"]) == 4
+    assert {variant["operation"].split("@", 1)[0] for variant in site["statement_variants"]} == {
+        "fetch_modis_lst",
+        "fetch_smap_moisture",
+        "fetch_sentinel1_sar",
+        "fetch_era5_land",
+    }
+    assert all(variant["statement_kind"] == "INSERT" for variant in site["statement_variants"])
+    assert all(re.fullmatch(r"[0-9a-f]{64}", variant["static_sql_sha256"]) for variant in site["statement_variants"])
+    assert all("sql" not in variant and "query" not in variant for variant in site["statement_variants"])
+
+
+def test_local_caller_sql_resolution_accepts_exact_keyword_and_positional_literals():
+    safe_tree = ast.parse(
+        'def _persist(sql):\n'
+        '    cursor.execute(sql)\n'
+        'def fetch_one():\n'
+        '    sql = "INSERT INTO first_table (value) VALUES (%s)"\n'
+        '    _persist(sql=sql)\n'
+        'def fetch_two():\n'
+        '    sql = "INSERT INTO second_table (value) VALUES (%s)"\n'
+        '    _persist(sql=sql)\n'
+    )
+    helper = next(node for node in safe_tree.body if isinstance(node, ast.FunctionDef) and node.name == "_persist")
+    variants = _literal_caller_variants(safe_tree, helper, "sql")
+    assert variants is not None
+    assert {variant["operation"].split("@", 1)[0] for variant in variants} == {"fetch_one", "fetch_two"}
+    assert {variant["candidate_relations"][0] for variant in variants} == {"first_table", "second_table"}
+
+    positional_tree = ast.parse(
+        'def _persist(connection, sql):\n'
+        '    cursor.execute(sql)\n'
+        'def fetch_one():\n'
+        '    _persist(connection, "INSERT INTO first_table (value) VALUES (%s)")\n'
+        'def fetch_two():\n'
+        '    _persist(connection, "INSERT INTO second_table (value) VALUES (%s)")\n'
+    )
+    positional_helper = next(
+        node for node in positional_tree.body if isinstance(node, ast.FunctionDef) and node.name == "_persist"
+    )
+    positional_variants = _literal_caller_variants(positional_tree, positional_helper, "sql")
+    assert positional_variants is not None
+    assert {variant["candidate_relations"][0] for variant in positional_variants} == {
+        "first_table", "second_table"
+    }
+
+    dynamic_tree = ast.parse(
+        'def _persist(sql):\n'
+        '    cursor.execute(sql)\n'
+        'def fetch_one():\n'
+        '    _persist(build_query())\n'
+    )
+    dynamic_helper = next(
+        node for node in dynamic_tree.body if isinstance(node, ast.FunctionDef) and node.name == "_persist"
+    )
+    assert _literal_caller_variants(dynamic_tree, dynamic_helper, "sql") is None
+
+    starred_tree = ast.parse(
+        'class Adapter:\n'
+        '    def _persist(self, connection, sql):\n'
+        '        cursor.execute(sql)\n'
+        '    def write(self, *args):\n'
+        '        self._persist(*args)\n'
+    )
+    starred_helper = next(node for node in starred_tree.body[0].body if node.name == "_persist")
+    assert _literal_caller_variants(starred_tree, starred_helper, "sql") is None
+
+
+def test_local_caller_sql_resolution_accounts_for_bound_and_static_methods():
+    instance_tree = ast.parse(
+        'class Adapter:\n'
+        '    def _persist(self, connection, sql):\n'
+        '        cursor.execute(sql)\n'
+        '    def write(self, connection):\n'
+        '        self._persist(connection, "INSERT INTO instance_table (value) VALUES (%s)")\n'
+    )
+    instance_class = instance_tree.body[0]
+    instance_helper = next(node for node in instance_class.body if node.name == "_persist")
+    instance_variants = _literal_caller_variants(instance_tree, instance_helper, "sql")
+    assert instance_variants is not None
+    assert instance_variants[0]["candidate_relations"] == ["instance_table"]
+
+    static_tree = ast.parse(
+        'class Adapter:\n'
+        '    @staticmethod\n'
+        '    def _persist(connection, sql):\n'
+        '        cursor.execute(sql)\n'
+        '    def write(self, connection):\n'
+        '        self._persist(connection, "INSERT INTO static_table (value) VALUES (%s)")\n'
+    )
+    static_class = static_tree.body[0]
+    static_helper = next(node for node in static_class.body if node.name == "_persist")
+    static_variants = _literal_caller_variants(static_tree, static_helper, "sql")
+    assert static_variants is not None
+    assert static_variants[0]["candidate_relations"] == ["static_table"]
+
+
+def test_isolated_worker_adapter_inventory_resolves_bounded_function_variants():
+    inventory = _load_inventory()
+    expected = {
+        ("services/events/dispatch_worker.py", 34): 7,
+        ("services/ingestion/baal_worker.py", 37): 6,
+        ("services/ingestion/freshness_worker.py", 31): 3,
+        ("services/ingestion/freshness_worker.py", 36): 6,
+        ("services/ingestion/gnosis_worker.py", 45): 10,
+    }
+    for key, count in expected.items():
+        site = next(
+            site
+            for site in inventory["execution_sites"]
+            if (site["source"], site["line"]) == key
+        )
+        assert site["statement_kind"] == "SELECT"
+        variants = site["statement_variants"]
+        assert len(variants) == count
+        assert all(variant["statement_kind"] == "SELECT" for variant in variants)
+        assert all(
+            all(relation.startswith("kokonut_security.") for relation in variant["candidate_relations"])
+            for variant in variants
+        )
+        assert all(re.fullmatch(r"[0-9a-f]{64}", variant["static_sql_sha256"]) for variant in variants)
+        assert all("sql" not in variant and "query" not in variant for variant in variants)
+
+
+def test_sensor_anomaly_sql_inventory_records_only_fixed_map_variants():
+    inventory = _load_inventory()
+    sites = [
+        site
+        for site in inventory["execution_sites"]
+        if site["source"] == "services/ingestion/sensor_anomaly_worker.py"
+    ]
+
+    assert [(site["line"], site["statement_kind"]) for site in sites] == [
+        (118, "SELECT"),
+        (125, "SELECT"),
+    ]
+    assert all(len(site["statement_variants"]) == 13 for site in sites)
+    for site in sites:
+        variants = site["statement_variants"]
+        assert {variant["operation"] for variant in variants} == {
+            "read_source",
+            "list_pending_events",
+            "list_rules",
+            "reserve_effect",
+            "check_cooldown",
+            "evaluate_rule",
+            "record_outcome",
+            "create_alert",
+            "create_claim",
+            "publish_alert",
+            "enqueue_notification",
+            "check_actuator",
+            "create_actuation",
+        }
+        assert all(variant["statement_kind"] == "SELECT" for variant in variants)
+        assert all(re.fullmatch(r"[0-9a-f]{64}", variant["static_sql_sha256"]) for variant in variants)
+        assert all("sql" not in variant and "query" not in variant for variant in variants)
+
+
+def test_sql_map_inventory_resolver_requires_immutable_literal_variants():
+    safe_tree = ast.parse(
+        'from types import MappingProxyType\n'
+        'READ_SQL = "SELECT id FROM source"\n'
+        '_QUERY_SQL = MappingProxyType({"read": READ_SQL})\n'
+        'def _statement_for(operation):\n'
+        '    return _QUERY_SQL[operation]\n'
+        'def query(operation):\n'
+        '    statement = _statement_for(operation)\n'
+        '    cursor.execute(statement)\n'
+    )
+    query_function = next(node for node in safe_tree.body if isinstance(node, ast.FunctionDef) and node.name == "query")
+    variants = _operation_map_variants(safe_tree, query_function, "statement")
+    assert len(variants) == 1
+    assert variants[0]["operation"] == "read"
+    assert variants[0]["statement_kind"] == "SELECT"
+    assert variants[0]["candidate_relations"] == ["source"]
+    assert re.fullmatch(r"[0-9a-f]{64}", variants[0]["static_sql_sha256"])
+
+    mutable_tree = ast.parse(
+        'READ_SQL = "SELECT id FROM source"\n'
+        '_QUERY_SQL = {"read": READ_SQL}\n'
+        'def _statement_for(operation):\n'
+        '    return _QUERY_SQL[operation]\n'
+        'def query(operation):\n'
+        '    statement = _statement_for(operation)\n'
+        '    cursor.execute(statement)\n'
+    )
+    mutable_function = next(node for node in mutable_tree.body if isinstance(node, ast.FunctionDef) and node.name == "query")
+    assert _operation_map_variants(mutable_tree, mutable_function, "statement") is None
+
+
+def test_sensor_anomaly_worker_dispatches_only_named_fixed_sql_operations():
+    from services.ingestion.sensor_anomaly_worker import _QUERY_SQL
+
+    source = (ROOT / "services" / "ingestion" / "sensor_anomaly_worker.py").read_text(
+        encoding="utf-8"
+    )
+    tree = ast.parse(source)
+    operation_names = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if not isinstance(node.func, ast.Name) or node.func.id not in {"_one", "_many"}:
+            continue
+        assert len(node.args) >= 2
+        operation = node.args[1]
+        assert isinstance(operation, ast.Constant) and isinstance(operation.value, str)
+        operation_names.append(operation.value)
+
+    assert set(operation_names) == set(_QUERY_SQL)
+    assert len(_QUERY_SQL) == 13
+    assert len(set(_QUERY_SQL.values())) == len(_QUERY_SQL)
+
+
+def test_gee_climate_template_dispatch_uses_literal_templates_and_bound_values():
+    source = (ROOT / "services" / "ingestion" / "gee_climate.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    templates = [
+        node.value.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "sql" for target in node.targets)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    ]
+    persist_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_persist_summary"
+    ]
+    execute_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "execute"
+        and len(node.args) >= 2
+        and isinstance(node.args[0], ast.Name)
+        and node.args[0].id == "sql"
+        and isinstance(node.args[1], ast.Name)
+        and node.args[1].id == "parameters"
+    ]
+
+    assert len(templates) == 4
+    assert all("%s" in template for template in templates)
+    assert len(persist_calls) == 4
+    assert all(
+        any(keyword.arg == "sql" and isinstance(keyword.value, ast.Name) and keyword.value.id == "sql"
+            for keyword in call.keywords)
+        for call in persist_calls
+    )
+    assert len(execute_calls) == 1
+
+
+def test_dynamic_and_transaction_control_statement_kinds_are_classified():
+    inventory = _load_inventory()
+    by_source = {}
+    for site in inventory["execution_sites"]:
+        by_source.setdefault(site["source"], set()).add(site["statement_kind"])
+
+    freshness_kinds = by_source["services/ingestion/data_freshness.py"]
+    anomaly_kinds = by_source["services/ingestion/ml_anomaly_detector.py"]
+    assert {"SELECT", "SAVEPOINT", "ROLLBACK", "RELEASE"} <= freshness_kinds
+    assert "SELECT" in anomaly_kinds
+
+
+def test_dynamic_sql_review_categories_remain_explicit():
+    inventory = _load_inventory()
+    dynamic = [site for site in inventory["execution_sites"] if site["expression_kind"] != "literal"]
+    by_source: dict[str, list[dict]] = {}
+    for site in dynamic:
+        by_source.setdefault(site["source"], []).append(site)
+
+    assert {source: len(sites) for source, sites in by_source.items()} == {
+        "services/agents/ai_summary.py": 3,
+        "services/agents/base.py": 1,
+        "services/agents/bio_factory_agent.py": 4,
+        "services/agents/capital_efficiency_agent.py": 4,
+        "services/agents/commons_agent.py": 4,
+        "services/agents/gnh_agent.py": 5,
+        "services/agents/kokonut_commons_agent.py": 2,
+        "services/agents/open_source_capitalist_agent.py": 3,
+        "services/agents/regenerator_agent.py": 4,
+        "services/agents/resilience_agent.py": 3,
+        "services/agents/worker_cli.py": 1,
+        "services/analytics/carbon_balance.py": 3,
+        "services/analytics/carbon_credits.py": 3,
+        "services/analytics/reporting_reader.py": 3,
+        "services/cache/cache.py": 1,
+        "services/common/database.py": 3,
+        "services/common/tenant_context.py": 1,
+        "services/analytics/organic_certification.py": 1,
+        "services/registry/cids_export.py": 1,
+        "services/events/fork_detector.py": 1,
+        "services/events/insight_transfer.py": 2,
+        "services/ingestion/data_freshness.py": 5,
+        "services/ingestion/gee_climate.py": 1,
+        "services/ingestion/ml_anomaly_detector.py": 4,
+        "services/ingestion/remote_sensing_fetcher.py": 1,
+        "services/ingestion/sensor_anomaly_worker.py": 2,
+        "services/events/dispatch_worker.py": 1,
+        "services/ingestion/baal_worker.py": 1,
+        "services/ingestion/gnosis_worker.py": 1,
+        "services/ingestion/freshness_worker.py": 2,
+        "services/drivers/registry.py": 1,
+        "services/metrics/cli.py": 1,
+        "services/metrics/calculators/allocated_shared_cost.py": 1,
+        "services/metrics/calculators/attestation_coverage.py": 2,
+        "services/metrics/calculators/crop_revenue.py": 1,
+        "services/metrics/calculators/digital_lego.py": 2,
+        "services/metrics/calculators/direct_crop_cost.py": 1,
+        "services/metrics/calculators/first_time_through_yield.py": 1,
+        "services/metrics/calculators/governed_lead_time.py": 1,
+        "services/metrics/calculators/loss_rate_pct.py": 1,
+        "services/metrics/calculators/net_crop_revenue.py": 1,
+        "services/metrics/calculators/rework_rate.py": 1,
+        "services/metrics/calculators/value_flowed.py": 2,
+    }
+    assert {site["expression_kind"] for site in by_source["services/common/database.py"]} == {"composed_or_variable"}
+    assert {site["expression_kind"] for site in by_source["services/metrics/cli.py"]} == {"fstring"}
+    reporting_reader_kinds = [
+        site["expression_kind"] for site in by_source["services/analytics/reporting_reader.py"]
+    ]
+    assert reporting_reader_kinds.count("composed") == 0
+    assert reporting_reader_kinds.count("composed_or_variable") == 1
+    assert sum(site["expression_kind"] == "fstring" for site in by_source["services/ingestion/data_freshness.py"]) == 4
+
+
+def test_generic_database_sql_wrappers_have_no_unreviewed_worker_callsite():
+    closure = build_source_closure()
+    sources = {source for operation in closure["operations"] for source in operation["source_files"]}
+    query_callers = []
+    connection_execute_callers = []
+
+    def query_contract(node):
+        query, expression_kind = _query_template(node)
+        return (
+            expression_kind,
+            _statement_kind(query),
+            _candidate_relations(query),
+        )
+
+    for source in sorted(sources):
+        path = ROOT / source
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=source)
+        imported_query_names = set()
+        connection_factory_names = set()
+        database_module_aliases = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == "services.common.database":
+                        database_module_aliases[alias.asname or "services"] = alias.name if alias.asname else "services"
+                continue
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            if node.module == "services.common.database":
+                for alias in node.names:
+                    if alias.name in {"query", "query_one"}:
+                        imported_query_names.add(alias.asname or alias.name)
+                    if alias.name == "get_connection":
+                        connection_factory_names.add(alias.asname or alias.name)
+            elif node.module == "services.common" and any(alias.name == "database" for alias in node.names):
+                for alias in node.names:
+                    if alias.name == "database":
+                        database_module_aliases[alias.asname or alias.name] = "services.common.database"
+            elif node.module == "services.common.cli":
+                for alias in node.names:
+                    if alias.name == "get_connection":
+                        connection_factory_names.add(alias.asname or alias.name)
+
+        connection_names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.With):
+                for item in node.items:
+                    context = item.context_expr
+                    if (
+                        isinstance(context, ast.Call)
+                        and isinstance(context.func, ast.Name)
+                        and context.func.id in connection_factory_names
+                        and isinstance(item.optional_vars, ast.Name)
+                    ):
+                        connection_names.add(item.optional_vars.id)
+            elif (
+                isinstance(node, (ast.Assign, ast.AnnAssign))
+                and isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Name)
+                and node.value.func.id in connection_factory_names
+            ):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                connection_names.update(target.id for target in targets if isinstance(target, ast.Name))
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name) and node.func.id in imported_query_names:
+                query_argument = node.args[1] if len(node.args) > 1 else next(
+                    (keyword.value for keyword in node.keywords if keyword.arg == "sql"),
+                    ast.Constant(value=""),
+                )
+                query_callers.append((source, node.lineno, *query_contract(query_argument)))
+            elif isinstance(node.func, ast.Attribute) and node.func.attr in {"query", "query_one"}:
+                expression = ast.unparse(node.func)
+                prefix, separator, suffix = expression.partition(".")
+                module = database_module_aliases.get(prefix)
+                resolved = f"{module}.{suffix}" if module and separator else expression
+                if resolved in {
+                    "services.common.database.query",
+                    "services.common.database.query_one",
+                }:
+                    query_argument = node.args[1] if len(node.args) > 1 else next(
+                        (keyword.value for keyword in node.keywords if keyword.arg == "sql"),
+                        ast.Constant(value=""),
+                    )
+                    query_callers.append((source, node.lineno, *query_contract(query_argument)))
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr == "execute"
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id in connection_names
+            ):
+                query_arg = node.args[0] if node.args else None
+                expression_kind, statement_kind, relations = query_contract(
+                    query_arg if query_arg is not None else ast.Constant(value="")
+                )
+                connection_execute_callers.append(
+                    (source, node.lineno, expression_kind, statement_kind, relations)
+                )
+
+    # The carbon-balance import closure retains two source-owned SELECT
+    # templates; the manual NOI path uses a source-owned f-string INSERT with
+    # a location fragment selected from fixed literals.
+    assert query_callers == [
+        (
+            "services/analytics/carbon_balance.py", 79, "literal", "SELECT", ["tree_inventory"]
+        ),
+        (
+            "services/analytics/carbon_balance.py", 236, "literal", "SELECT",
+            ["regeneration_principle", "regenerative_practice_checklist"],
+        ),
+    ]
+    assert [
+        (source, line, expression_kind, statement_kind)
+        for source, line, expression_kind, statement_kind, _relations in connection_execute_callers
+    ] == [
+        ("services/metrics/cli.py", 79, "fstring", "INSERT")
+    ]
+    assert "noi_snapshot" in connection_execute_callers[0][4]

@@ -1,0 +1,58 @@
+{
+  "batch": "isolated-rpc-balance-snapshot-worker",
+  "branch": "feat/mobile-offline-acceptance",
+  "candidate_database_touched": false,
+  "candidate_schema_through": 435,
+  "checks": {
+    "capability_matrix": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "compose_config": {
+      "kernel_candidate": "passed",
+      "kernel_portability": "passed",
+      "kernel_standard_on_portability_base": "passed",
+      "services_started_or_recreated": false
+    },
+    "dependency_groups": "passed: 12 groups, 32 requirements",
+    "generated_inventories": "all current --check commands passed",
+    "git_diff_check": "passed",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "python_compileall": "passed",
+    "legacy_rpc_compatibility_precision": "passed: exact Decimal balance conversion, transaction parser conversion, PostgreSQL input, and ClickHouse decimal row values",
+    "rpc_snapshot_consistency": "passed: isolated and legacy paths capture one block height/timestamp per chain, query every wallet at that height, and revalidate the selected block hash before wallet snapshots become durable; changed anchors fail closed; RPC calls are not hash-pinned and recovery after later reorganizations remains open",
+    "wei_to_eth_precision": "passed: PostgreSQL-compatible half-up rounding, exact numeric JSON encoding, and matching canonical payload digest in the isolated worker; legacy values remain Decimal through projection preparation",
+    "ruff": "passed"
+  },
+  "date": "2026-10-18",
+  "feature_activated": false,
+  "focused_suite": {
+    "command": "python3 -m pytest tests/test_rpc_worker.py tests/test_rpc_indexer_recovery.py tests/test_rpc_indexer_contract.py tests/test_worker_environment.py tests/test_worker_database.py tests/test_core_jobs_contract.py tests/test_scheduled_command_contracts.py tests/test_runtime_role_boundary.py tests/test_worker_operation_map.py -q",
+    "result": "passed",
+    "tests_passed": 284
+  },
+  "inventory": {
+    "allowlisted_modules": 25,
+    "runtime_sql_execution_sites": 4027,
+    "scheduled_jobs": 18,
+    "worker_roots": 32,
+    "worker_source_files": 95,
+    "worker_sql_execution_sites": 329,
+    "worker_sql_static_paths": 256,
+    "worker_sql_without_static_function_match": 73
+  },
+  "legacy_stack_touched": false,
+  "migration_436": {
+    "conflicting_snapshot": "rejected",
+    "direct_table_access": "denied",
+    "evidence": "rpc-indexer-worker-disposable.json",
+    "forced_rls": "bounded function operations passed",
+    "legacy_snapshot_reuse": "passed without duplicate activity or outbox row",
+    "malformed_identity": "rejected",
+    "numeric_eight_decimal_precision": "passed",
+    "network": "none",
+    "postgresql_major": 16,
+    "replay": "passed twice",
+    "sha256": "77295ecfb43f53d2f620d54d7d6ca28e35c83e31220aba9147efc7a8770e9a77",
+    "snapshot_and_outbox_idempotency": "passed"
+  },
+  "rpc_provider_contacted": false,
+  "worker_credential_provisioned": false
+}

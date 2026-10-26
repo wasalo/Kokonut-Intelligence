@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-18",
+  "scope": "Current-source ARM64/QEMU Kernel runtime through schema migration 433",
+  "source_revision": "90f665ba7768deb91f1a735d8a53f4989d13c53a",
+  "host": {
+    "platform": "macOS Docker Desktop on darwin/amd64",
+    "docker_server": "29.8.2 linux/amd64",
+    "physical_raspberry_pi_available": false,
+    "free_disk_before_and_after_bytes_approx": 12884901888
+  },
+  "isolation": {
+    "compose_project": "kokonut-kernel-arm64-current-433-20261018",
+    "candidate_project_selected": false,
+    "legacy_project_selected": false,
+    "metabase_selected": false,
+    "network": "internal-only; explicit test subnet 10.253.240.0/24",
+    "host_ports_published": false,
+    "runtime_network_egress": false,
+    "seeds_applied": false,
+    "farm_data_loaded": false,
+    "provider_calls_made": false,
+    "database_password": "synthetic ephemeral test value; not retained"
+  },
+  "resource_limits": {
+    "app_memory_bytes": 1073741824,
+    "database_memory_bytes": 1610612736,
+    "cpus_each": 2
+  },
+  "images": {
+    "app": {
+      "image_id": "sha256:1f26bb16128e9d77ea932b262fb96c40e90f1bcfc2603986331a424d1f2e1d22",
+      "platform": "linux/arm64",
+      "built_from_current_source": true
+    },
+    "database": {
+      "image": "kokonut-kernel-candidate-postgis:arm64",
+      "platform": "linux/arm64",
+      "postgresql_major": 16,
+      "postgis_package_version": "3.6.4+dfsg-2.pgdg12+1"
+    }
+  },
+  "schema_replay": {
+    "runner": "python3 -m services.migration migrate --schemas-only with explicit disposable Compose project and ARM64 overlays",
+    "applied_schema_migrations": 424,
+    "failed_schema_migrations": 0,
+    "non_applied_schema_rows": 0,
+    "latest_migration": "schema:433_isolated_eas_indexer.sql",
+    "seeds_included": false,
+    "application_started_after_schema_replay": true
+  },
+  "application": {
+    "compose_health": "healthy",
+    "health_route": {
+      "path": "/health",
+      "status": 200,
+      "body_status": "ok"
+    },
+    "anonymous_protected_route": {
+      "path": "/operator/api/farm-activity-records?location_id=00000000-0000-4000-8000-000000000001",
+      "status": 401,
+      "reason": "credentials_required"
+    },
+    "kernel_processes_started": ["api", "scheduler", "events", "notifications"]
+  },
+  "cleanup": {
+    "temporary_project_containers_removed": true,
+    "temporary_project_network_removed": true,
+    "temporary_project_volumes_removed": true,
+    "temporary_app_image_removed": true,
+    "existing_candidate_containers_healthy_afterward": true,
+    "legacy_or_candidate_data_changed": false
+  },
+  "result": "The current-source Kernel app runs under linux/arm64 emulation after all 424 ordered schema migrations through 433, reports healthy, and preserves anonymous protected-route denial under the recorded resource limits.",
+  "limitations": [
+    "This is QEMU emulation evidence, not physical Raspberry Pi acceptance or a hardware benchmark.",
+    "No 24-hour recovery, power-loss, physical storage, network reliability, provider recovery, replica failover, or scale-concurrency check was performed.",
+    "No MAN-CAP acceptance is claimed.",
+    "Docker's default subnet pool was exhausted by existing networks. The disposable project used a confirmed-free explicit subnet; no global Docker configuration or existing network was changed."
+  ]
+}

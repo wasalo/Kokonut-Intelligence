@@ -8,14 +8,14 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import date, datetime, timezone
+import math
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
 
 # ──────────────────────────────────────────────
 # Revenue Stream Definitions
@@ -211,6 +211,18 @@ def create_cost_driver(
 # Break-Even Analysis
 # ──────────────────────────────────────────────
 
+def _finite_amount(name: str, value: Any) -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} must be a finite number")
+    try:
+        amount = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must be a finite number") from exc
+    if not math.isfinite(amount):
+        raise ValueError(f"{name} must be a finite number")
+    return amount
+
+
 def create_break_even(
     conn, location_id: str, total_fixed_costs: float,
     variable_cost_per_unit: float, price_per_unit: float,
@@ -219,6 +231,13 @@ def create_break_even(
     created_by: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a break-even analysis with auto-computed metrics."""
+    total_fixed_costs = _finite_amount("total_fixed_costs", total_fixed_costs)
+    variable_cost_per_unit = _finite_amount("variable_cost_per_unit", variable_cost_per_unit)
+    price_per_unit = _finite_amount("price_per_unit", price_per_unit)
+    if total_fixed_costs < 0:
+        raise ValueError("total_fixed_costs must be >= 0")
+    if variable_cost_per_unit < 0:
+        raise ValueError("variable_cost_per_unit must be >= 0")
     if price_per_unit <= 0:
         raise ValueError("price_per_unit must be > 0")
     contribution_margin = price_per_unit - variable_cost_per_unit
@@ -438,7 +457,7 @@ def main() -> None:
     cs.add_argument("--annual-usd", type=float, default=0)
     cs.add_argument("--created-by", default=None)
 
-    ls = sub.add_parser("list-streams")
+    sub.add_parser("list-streams")
 
     # Pricing
     cp = sub.add_parser("create-pricing")
@@ -451,7 +470,7 @@ def main() -> None:
     cp.add_argument("--discount-pct", type=float, default=0)
     cp.add_argument("--created-by", default=None)
 
-    lp = sub.add_parser("list-pricing")
+    sub.add_parser("list-pricing")
 
     # Cost structure
     cc = sub.add_parser("create-cost")
@@ -463,7 +482,7 @@ def main() -> None:
     cc.add_argument("--description", default=None)
     cc.add_argument("--created-by", default=None)
 
-    lc = sub.add_parser("list-costs")
+    sub.add_parser("list-costs")
 
     # Cost driver
     cd = sub.add_parser("create-driver")
@@ -481,7 +500,7 @@ def main() -> None:
     be.add_argument("--analysis-name", default="Default Analysis")
     be.add_argument("--created-by", default=None)
 
-    lbe = sub.add_parser("list-break-even")
+    sub.add_parser("list-break-even")
 
     se = sub.add_parser("sensitivity")
     se.add_argument("--break-even-id", required=True)

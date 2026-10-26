@@ -125,9 +125,24 @@ def test_plan_preemptive_actions_no_writes():
 
 def test_preempt_value_multiplicative():
     assert srh._preempt_value("gt", 100.0, 0.8) == 80.0
-    assert srh._preempt_value("lt", 30.0, 0.8) == 24.0
+    assert srh._preempt_value("gte", 100.0, 0.8) == 80.0
+    assert srh._preempt_value("lt", 30.0, 0.8) is None
+    assert srh._preempt_value("lte", 30.0, 0.8) is None
     assert srh._preempt_value("gt", 100.0, None) is None
     assert srh._preempt_value("eq", 100.0, 0.8) is None
+    assert srh._preempt_value("gt", 100.0, 0.0) is None
+    assert srh._preempt_value("gt", 100.0, 1.0) is None
+    assert srh._preempt_value("gt", 100.0, 1.1) is None
+
+
+def test_preempt_status_explains_supported_and_blocked_configuration():
+    assert srh._preempt_status("gt", 100.0, 0.8) == "active"
+    assert srh._preempt_status("lt", 30.0, 0.8) == "baseline_required"
+    assert srh._preempt_status("eq", 30.0, 0.8) == "unsupported_trigger"
+    assert srh._preempt_status("gt", None, 0.8) == "missing_threshold"
+    assert srh._preempt_status("gt", 100.0, 1.1) == "invalid_percentage"
+    assert srh._preempt_status("gt", 100.0, 1.0) == "invalid_percentage"
+    assert srh._preempt_status("gt", 100.0, None) == "not_configured"
 
 
 def test_evaluate_trigger_preempt_proposed():
@@ -149,7 +164,54 @@ def test_evaluate_trigger_preempt_proposed():
     t = srh.evaluate_trigger(conn, reserve)
     assert t["breach"] is False
     assert t["preempt_proposed"] is True
+    assert t["preempt_status"] == "active"
     assert t["preempt_value"] == 4.0
+
+
+def test_falling_trigger_disables_preempt_without_a_normal_baseline():
+    reserve = {
+        "trigger_metric_key": "seed_lines",
+        "trigger_operator": "lt",
+        "trigger_threshold": 30.0,
+        "preempt_threshold_pct": 0.8,
+        "scope_id": None,
+    }
+    conn = MagicMock()
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = {"value": 35.0, "computed_at": "2026-01-01"}
+    fake_cur.__enter__ = lambda self: self
+    fake_cur.__exit__ = MagicMock(return_value=False)
+    conn.cursor.return_value = fake_cur
+
+    result = srh.evaluate_trigger(conn, reserve)
+    assert result["breach"] is False
+    assert result["release_proposed"] is False
+    assert result["preempt_status"] == "baseline_required"
+    assert result["preempt_value"] is None
+    assert result["preempt_breach"] is None
+    assert result["preempt_proposed"] is False
+
+
+def test_invalid_preempt_percentage_does_not_propose():
+    reserve = {
+        "trigger_metric_key": "carbon_reversal_risk",
+        "trigger_operator": "gt",
+        "trigger_threshold": 5.0,
+        "preempt_threshold_pct": 1.2,
+        "scope_id": None,
+    }
+    conn = MagicMock()
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = {"value": 4.5, "computed_at": "2026-01-01"}
+    fake_cur.__enter__ = lambda self: self
+    fake_cur.__exit__ = MagicMock(return_value=False)
+    conn.cursor.return_value = fake_cur
+
+    result = srh.evaluate_trigger(conn, reserve)
+    assert result["breach"] is False
+    assert result["preempt_status"] == "invalid_percentage"
+    assert result["preempt_value"] is None
+    assert result["preempt_proposed"] is False
 
 
 def test_evaluate_trigger_preempt_not_proposed_when_breach():
@@ -192,4 +254,5 @@ def test_evaluate_trigger_no_preempt_configured():
     t = srh.evaluate_trigger(conn, reserve)
     assert t["breach"] is False
     assert t["preempt_proposed"] is False
+    assert t["preempt_status"] == "not_configured"
     assert t["preempt_value"] is None

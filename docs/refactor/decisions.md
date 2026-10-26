@@ -7,11 +7,11 @@ These decisions authorize incremental development, not an immediate cutover.
 | Provider | Current hard coupling | Default target | Preservation and removal gate |
 |---|---|---|---|
 | PostgreSQL/PostGIS | common/database.py; canonical schemas, jobs, outbox, audit | Keep canonical | Preserve ordered migration checksums, custody, lifecycle, scope, backup/restore |
-| Directus | core/features.py and health.py; gateway/router.py location proxies; extensions/kokonut-hooks; config/directus/permissions.sql | Native gateway/domain APIs, optional admin | Complete auth/role/field/row/hook/API and reviewer UI parity per collection |
+| Directus | core/features.py and health.py; extensions/kokonut-hooks; config/directus/permissions.sql | Optional admin and compatibility adapter; public location reads now use the native governed view | Complete auth/role/field/row/hook/API and reviewer UI parity per collection |
 | ClickHouse | ingestion/base.py; projection outbox; core health; gateway and gRPC require credentials; worker depends_on | PostgreSQL analytics and durable projections | Source lineage for each analytical dataset; export any unique data; result and performance parity; replay demonstration |
 | Metabase | dashboards assets, seed-metabase.sh, PostgreSQL metadata database | Optional analytics profile; PostgreSQL source limited to reviewed `kokonut_reporting` views | Preserve templates, questions, filters, metadata; replace user dashboards before claiming first-party parity; follow [reporting source contract](metabase-reporting-contract.md) |
 | Prefect | 17 Python source files import Prefect; config/prefect/deployment.yaml; required pip dependency | Existing scheduler plus event bus | Map every flow trigger/retry/dependency/approval; resolve baseline pipeline concerns; one schedule owner |
-| Redis | Compose cache service; Directus cache and limiter settings; required REDIS_PASSWORD interpolation | Preserve PG computation cache; local/shared cache only where needed | Inspect actual Directus sessions/keys; verify shared limits before multiple API replicas |
+| Redis | Legacy Compose cache service for optional Directus caching and throttling; no Kernel Redis client | No Redis in Kernel minimal/edge/standard core. Keep PostgreSQL computation cache and operator sessions; use local rate limits in single-instance minimal/edge and shared PostgreSQL limits in standard. Any future scale deployment must use a shared provider. Redis remains an optional Directus adapter. | Preserve archived Directus telemetry/collaboration/failed-login state; never clear it during cutover. Validate shared limits before scaling; define any Directus Redis transfer/reset with login lockout. |
 | Mosquitto | Compose service, cert/ACL mounts; two Python source files import paho | HTTP/CSV baseline, MQTT optional | Preserve topics, device authentication, TLS/ACLs, normalized readings, reconnect/idempotency |
 | gRPC | eight Python source files import gRPC libraries; proto, SDK generation, image | REST baseline, optional transport | Keep protobuf field compatibility, streaming semantics and shared authorization |
 | Caddy | routes /mobile and Directus; depends_on Directus+gateway; TLS volumes | Replaceable proxy; optional in minimal | HTTPS, trusted headers, paths, browser offline/security context, uploads and websocket parity |
@@ -82,8 +82,11 @@ be optional or explicitly offloaded, with capability parity retained.
 - Preserve named volumes and old app images; never use down -v during refactor.
 - Take an encrypted checkpoint with scripts/backup.sh and verify with
   scripts/verify-backup.sh; restore only into an isolated rehearsal stack.
-- Existing backup tooling requires ClickHouse running, even when empty.
-  Provider-aware backups need their own acceptance slice.
+- Encrypted upgrade checkpoints record PostgreSQL and ClickHouse inclusion.
+  PostgreSQL-only profiles can checkpoint and restore without ClickHouse;
+  ClickHouse-enabled backups and restores require the service and credentials
+  and preflight it before writes. External media and provider-specific state
+  still need separate backup coverage.
 - Add forward migrations; old and new app versions must coexist on additive
   schema changes until the consumer cutover completes.
 - Revert provider wiring/config before database restoration. Keep legacy

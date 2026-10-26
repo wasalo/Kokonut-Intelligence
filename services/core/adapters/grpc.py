@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import ipaddress
+import os
+
+from services.common.errors import safe_exception_class
+
 
 def require_enabled() -> None:
     from services.core.providers import ProviderSettings
@@ -17,13 +22,64 @@ def serve() -> None:
     run_server()
 
 
-def check_health(target: str) -> int:
-    """Return the existing gRPC health status, closing the channel on failure."""
+def _is_loopback_target(target: str) -> bool:
+    """Recognize common literal loopback gRPC targets; treat unknown forms as remote."""
+    value = target.strip()
+    for prefix in ("dns:///", "ipv4:", "ipv6:"):
+        if value.startswith(prefix):
+            value = value[len(prefix) :]
+            break
+    host = value.rsplit(":", 1)[0] if ":" in value else value
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1]
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def check_health(
+    target: str,
+    tls_ca_path: str | None = None,
+    *,
+    allow_insecure: bool = False,
+) -> int:
+    """Return gRPC health, using a configured CA for TLS and closing the channel."""
     require_enabled()
     import grpc
     from grpc_health.v1 import health_pb2, health_pb2_grpc
 
-    channel = grpc.insecure_channel(target)
+    tls_ca_path = tls_ca_path or os.environ.get("GRPC_TLS_CA")
+    server_tls_configured = bool(
+        os.environ.get("GRPC_TLS_CERT") or os.environ.get("GRPC_TLS_KEY")
+    )
+    if server_tls_configured and not tls_ca_path:
+        raise RuntimeError("GRPC_TLS_CA is required when gRPC server TLS is configured")
+
+    if not tls_ca_path and not allow_insecure and not _is_loopback_target(target):
+        raise RuntimeError(
+            "gRPC health checks to non-loopback targets require GRPC_TLS_CA; "
+            "use --insecure only on a trusted private network"
+        )
+
+    if tls_ca_path:
+        from pathlib import Path
+
+        try:
+            root_certificates = Path(tls_ca_path).read_bytes()
+        except OSError as error:
+            raise RuntimeError("gRPC health TLS trust file is unavailable") from error
+        try:
+            credentials = grpc.ssl_channel_credentials(root_certificates=root_certificates)
+        except Exception as error:
+            raise RuntimeError(
+                f"gRPC health TLS configuration failed ({safe_exception_class(error)})"
+            ) from error
+        channel = grpc.secure_channel(target, credentials)
+    else:
+        channel = grpc.insecure_channel(target)
     try:
         stub = health_pb2_grpc.HealthStub(channel)
         response = stub.Check(health_pb2.HealthCheckRequest(), timeout=5, wait_for_ready=True)
@@ -31,6 +87,8 @@ def check_health(target: str) -> int:
             raise RuntimeError(f"Health check returned non-serving status: {response.status}")
         return response.status
     except grpc.RpcError as error:
-        raise RuntimeError(f"Health check failed: {error}") from error
+        raise RuntimeError(
+            f"Health check failed ({safe_exception_class(error)})"
+        ) from error
     finally:
         channel.close()

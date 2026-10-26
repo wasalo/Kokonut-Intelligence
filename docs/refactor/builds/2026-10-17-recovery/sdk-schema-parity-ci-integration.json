@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-17",
+  "scope": "Run the offline SDK schema-column guard in fast-fail CI",
+  "change": "scripts/ci-check.sh now runs scripts/check-sdk-schema-parity.py; scripts/README.md documents the check.",
+  "checks": {
+    "sdk_schema_parity": "passed: 12 models, 256 canonical columns checked per SDK",
+    "shell_syntax": "passed: bash -n scripts/ci-check.sh",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none"
+}

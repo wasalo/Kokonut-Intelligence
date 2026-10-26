@@ -21,12 +21,14 @@ not abort the batch (each draw opens its own DB connection).
 from __future__ import annotations
 
 import concurrent.futures
+import math
 import threading
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import numpy as np
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger(__name__)
@@ -114,31 +116,36 @@ def monte_carlo(
     Returns:
         {"mean", "p5", "p50", "p95", "std", "n", "failures", "samples"}
         where ``failures`` lists per-draw errors (never fatal) and ``samples`` holds
-        the aggregated metric values.
+        metric values in draw-index order, including parallel execution.
     """
     specs = _coerce_sampler(sampler)
-    samples: List[float] = []
-    failures: List[Dict[str, Any]] = []
-    lock = threading.Lock()
+    samples_by_draw: List[Optional[float]] = [None] * n
+    failures_by_draw: List[Optional[Dict[str, Any]]] = [None] * n
 
     def _draw(draw_index: int) -> None:
-        draw_rng = np.random.default_rng(None if seed is None else seed + draw_index)
-        params = dict(base_params)
-        for name, spec in specs.items():
-            params[name] = spec.sample(draw_rng)
-        draw_conn = conn_factory() if conn_factory is not None else conn
+        draw_conn = None
         try:
+            draw_rng = np.random.default_rng(None if seed is None else seed + draw_index)
+            params = dict(base_params)
+            for name, spec in specs.items():
+                params[name] = spec.sample(draw_rng)
+            draw_conn = conn_factory() if conn_factory is not None else conn
             result = sim_callable(draw_conn, **params)
             if isinstance(result, dict) and "error" in result:
-                with lock:
-                    failures.append({"draw": draw_index, "error": result["error"]})
+                failures_by_draw[draw_index] = {
+                    "draw": draw_index,
+                    "error": "simulation returned an error",
+                }
                 return
             value = _get_metric(result, metric)
-            with lock:
-                samples.append(value)
+            if not math.isfinite(value):
+                raise ValueError("simulation metric is not finite")
+            samples_by_draw[draw_index] = value
         except Exception as exc:  # isolated per-draw failure
-            with lock:
-                failures.append({"draw": draw_index, "error": str(exc)})
+            failures_by_draw[draw_index] = {
+                "draw": draw_index,
+                "error": f"simulation failed ({safe_exception_class(exc)})",
+            }
         finally:
             if conn_factory is not None and draw_conn is not None:
                 try:
@@ -152,6 +159,9 @@ def monte_carlo(
     else:
         for i in range(n):
             _draw(i)
+
+    samples = [value for value in samples_by_draw if value is not None]
+    failures = [failure for failure in failures_by_draw if failure is not None]
 
     if not samples:
         return {
@@ -289,7 +299,10 @@ def clash_sweep(
                 results[idx] = outcome
         except Exception as exc:
             with lock:
-                results[idx] = {"label": scenario.get("label", str(idx)), "error": str(exc)}
+                results[idx] = {
+                    "label": scenario.get("label", str(idx)),
+                    "error": f"clash resolution failed ({safe_exception_class(exc)})",
+                }
 
     if max_workers > 1 and len(scenarios) > 1:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:

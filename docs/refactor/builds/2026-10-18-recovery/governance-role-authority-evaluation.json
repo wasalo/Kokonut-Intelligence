@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-18",
+  "slice": "CAP-024 role authority decision evaluation",
+  "authority_checks": [
+    "assignment is active, not recused, and within its effective dates",
+    "role and circle are active and within the role effective dates",
+    "authority domain is active and exactly matches requested domain and scope",
+    "maximum applicable authority level meets the requested minimum",
+    "any human-approval requirement at the maximum authority level is surfaced"
+  ],
+  "decision_contract": {
+    "authorized": "Role authority meets the requested level and no separate human gate is configured.",
+    "approval_required": "Role authority meets the requested level, but the caller must complete a separate human approval flow before execution.",
+    "denied": "No active authority path meets the requested level."
+  },
+  "compatibility": "role_can_act remains a boolean authority-threshold helper and does not itself authorize an action when a human approval gate is configured.",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_governance_role_authority_unit.py -q",
+      "result": "6 passed"
+    },
+    "ruff": "passed on changed Python modules/tests",
+    "runtime_sql_inventory": "current; regenerated to include six Gateway reader modules and 28 previously unreported SQL sites, for 841 service files and 4055 execution sites",
+    "py_compile": "passed on changed Python modules/tests",
+    "capability_matrix": "66 rows validated; 45 baseline-retained, 7 deployed, 14 prepared",
+    "git_diff_check": "passed"
+  },
+  "boundaries": {
+    "database_contacted": false,
+    "candidate_or_legacy_touched": false,
+    "provider_contacted": false,
+    "checks": "mocked connection only"
+  },
+  "limitations": [
+    "This evaluates role authority; it does not create or approve a governed action.",
+    "OIDC operator identities do not yet map to governance party records, so Gateway mutation/audit attribution remains unsafe and deferred.",
+    "No action-level human approval record or domain-table RLS is added.",
+    "MAN-CAP-024 remains unaccepted."
+  ]
+}

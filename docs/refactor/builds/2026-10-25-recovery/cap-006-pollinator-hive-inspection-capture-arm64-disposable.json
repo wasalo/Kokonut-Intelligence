@@ -1,0 +1,32 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T04:26:15.263460+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "architecture": "aarch64",
+  "migrations": [
+    "155_pollinator_health.sql",
+    "602_pollinator_health_kernel_alignment.sql",
+    "622_location_pollinator_hive_capture.sql",
+    "623_location_pollinator_hive_inspection_capture.sql"
+  ],
+  "migration_623_replayed": true,
+  "checks": [
+    "migrations 155/602/622 and migration 623 apply; migration 623 replays",
+    "function owner has only the selected hive snapshot and receipt columns",
+    "exact signed location create grant creates an active attributed hive inventory entry",
+    "exact retries are idempotent; changed-input reuse and duplicate location hive IDs are rejected",
+    "ungranted actors, mismatched locations, and non-operator context are denied",
+    "invalid queen status, frame count, and future queen year are rejected",
+    "stored operational state and creator attribution match the submitted inventory",
+    "signed exact-location inspection appends recorded observation under create grant",
+    "inspection retries are idempotent and changed-input request reuse is rejected",
+    "inspection denies ungranted actors, other locations, mismatched context, and workers",
+    "future dates, missing hive IDs, and out-of-range counts are rejected",
+    "inspection attribution/lifecycle and hive snapshot update commit atomically",
+    "runtime and Directus cannot insert/update/delete inspections, update hive snapshots, or read receipts",
+    "inspection writer is no-login/no-inherit/no-bypass and only Gateway can execute capture"
+  ],
+  "assertions_passed": 14,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false
+}

@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-26",
+  "migration": "648_isolated_event_dispatch_worker.sql",
+  "migration_sha256": "563798bc60adf358e110bb9ff6a5353b3e4966ea5fd08e4dd08d2d0224f83303",
+  "database": "PostgreSQL 16 disposable container; Docker network disabled",
+  "database_image": "postgres:16",
+  "requested_platform": null,
+  "container_architecture": "x86_64",
+  "checks": [
+    "migration 648 applies and replays over forced-RLS EventBus fixtures",
+    "actual dedicated login has no direct relation access and only seven bounded functions",
+    "claim order, bounds, handler registry binding, transaction rollback, and exact event type are enforced",
+    "completion is denied until every enabled handler succeeds, and retry is denied until a handler failure receipt exists",
+    "handler success/error receipts, atomic dead-letter, expiry reclaim, and stale worker/token fencing pass"
+  ],
+  "result": "passed",
+  "isolation": "Synthetic event/handler rows only; no candidate, legacy, handler process, provider, credential, or network access."
+}

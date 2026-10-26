@@ -3,24 +3,26 @@
 Tests for Energy Monitoring
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
+from datetime import date
 from unittest.mock import MagicMock, PropertyMock
-from datetime import date, timedelta
 
+from services.analytics.cli_energy_monitoring import _format_cost, _format_reading
 from services.analytics.energy_monitoring import (
-    add_source,
-    record_reading,
-    get_consumption,
-    get_efficiency,
     add_renewable,
-    get_renewable_summary,
-    get_energy_dashboard,
+    add_source,
     compute_carbon_intensity,
+    get_consumption,
     get_cost_analysis,
+    get_efficiency,
+    get_energy_dashboard,
+    get_renewable_summary,
+    record_reading,
 )
 
 
@@ -108,9 +110,33 @@ class TestRecordReading(unittest.TestCase):
     def test_computes_total_cost(self):
         result = record_reading(
             self.conn, "src-001", date(2026, 7, 1),
-            "consumption", 100.0, cost_per_kwh=0.15,
+            "consumption", 100.0, cost_per_kwh=0.15, cost_currency_code="usd",
         )
         self.assertEqual(result["total_cost"], 15.0)
+        self.assertEqual(result["cost_currency_code"], "USD")
+
+    def test_zero_cost_rate_is_preserved(self):
+        result = record_reading(
+            self.conn, "src-001", date(2026, 7, 1),
+            "consumption", 100.0, cost_per_kwh=0, cost_currency_code="USD",
+        )
+        self.assertEqual(result["total_cost"], 0)
+
+    def test_cost_requires_currency_before_database_access(self):
+        with self.assertRaisesRegex(ValueError, "cost_currency_code"):
+            record_reading(
+                self.conn, "src-001", date(2026, 7, 1),
+                "consumption", 100.0, cost_per_kwh=0.15,
+            )
+        self.conn.cursor.assert_not_called()
+
+    def test_currency_requires_cost_before_database_access(self):
+        with self.assertRaisesRegex(ValueError, "requires cost_per_kwh"):
+            record_reading(
+                self.conn, "src-001", date(2026, 7, 1),
+                "consumption", 100.0, cost_currency_code="USD",
+            )
+        self.conn.cursor.assert_not_called()
 
     def test_no_cost(self):
         result = record_reading(
@@ -135,6 +161,37 @@ class TestRecordReading(unittest.TestCase):
         self.assertEqual(result["activity_type"], "irrigation")
 
 
+class TestCurrencyFormatting(unittest.TestCase):
+
+    def test_zero_cost_is_rendered_with_its_currency(self):
+        formatted = _format_reading({
+            "reading_type": "consumption", "kwh": 10,
+            "cost_per_kwh": 0, "total_cost": 0,
+            "cost_currency_code": "USD", "reading_date": "2026-10-24",
+        })
+        self.assertIn("USD 0", formatted)
+        self.assertNotIn("$", formatted)
+
+    def test_cost_report_keeps_multiple_currencies_separate(self):
+        formatted = _format_cost({
+            "location_id": "location-123", "period_days": 30,
+            "total_kwh": 1500, "total_cost": None,
+            "cost_currency_code": None, "avg_cost_per_kwh": None,
+            "monthly_projected_cost": None, "unclassified_cost_readings": 1,
+            "costs_by_currency": [
+                {"cost_currency_code": "DOP", "total_cost": 600, "costed_kwh": 1000,
+                 "monthly_projected_cost": 600, "readings": 1},
+                {"cost_currency_code": "USD", "total_cost": 150, "costed_kwh": 500,
+                 "monthly_projected_cost": 150, "readings": 1},
+            ],
+            "by_activity": [], "by_source_type": [],
+        })
+        self.assertIn("DOP 600.00", formatted)
+        self.assertIn("USD 150.00", formatted)
+        self.assertIn("Unclassified cost readings: 1", formatted)
+        self.assertNotIn("$", formatted)
+
+
 class TestGetConsumption(unittest.TestCase):
 
     def setUp(self):
@@ -145,35 +202,50 @@ class TestGetConsumption(unittest.TestCase):
     def _mock_descriptions(self):
         type(self.mock_cursor).description = PropertyMock(side_effect=[
             [("source_name",), ("source_type",), ("activity_type",),
-             ("total_kwh",), ("total_cost",), ("readings",)],
-            [("source_type",), ("total_kwh",), ("total_cost",)],
+             ("total_kwh",), ("classified_cost",), ("cost_currency_count",),
+             ("unclassified_cost_count",), ("cost_currency_code",), ("readings",)],
+            [("source_type",), ("total_kwh",), ("classified_cost",),
+             ("cost_currency_count",), ("unclassified_cost_count",),
+             ("cost_currency_code",)],
         ])
 
     def test_returns_location_id(self):
         self._mock_descriptions()
-        self.mock_cursor.fetchall.side_effect = [[], []]
-        self.mock_cursor.fetchone.return_value = (0, 0, 0, 0)
+        self.mock_cursor.fetchall.side_effect = [[], [], []]
+        self.mock_cursor.fetchone.return_value = (0, None, 0, 0, None, 0, 0, 0)
         result = get_consumption(self.conn, "loc-001", days=30)
         self.assertEqual(result["location_id"], "loc-001")
         self.assertEqual(result["period_days"], 30)
 
     def test_returns_totals(self):
         self._mock_descriptions()
-        self.mock_cursor.fetchall.side_effect = [[], []]
-        self.mock_cursor.fetchone.return_value = (500.0, 75.0, 2, 10)
+        self.mock_cursor.fetchall.side_effect = [[], [], []]
+        self.mock_cursor.fetchone.return_value = (500.0, 75.0, 1, 0, "USD", 400.0, 2, 10)
         result = get_consumption(self.conn, "loc-001", days=30)
         self.assertEqual(result["total_kwh"], 500.0)
         self.assertEqual(result["total_cost"], 75.0)
+        self.assertEqual(result["avg_cost_per_kwh"], 0.1875)
 
     def test_returns_by_activity(self):
         self._mock_descriptions()
         self.mock_cursor.fetchall.side_effect = [
-            [("solar", "solar", "irrigation", 300.0, 0.0, 5)],
-            [("solar", "solar", "lighting", 200.0, 30.0, 5)],
+            [("Solar", "solar", "irrigation", 300.0, 0.0, 0, 0, None, 5)],
+            [("solar", 300.0, 0.0, 0, 0, None)],
+            [("USD", 30.0, 100.0, 5)],
         ]
-        self.mock_cursor.fetchone.return_value = (500.0, 30.0, 1, 10)
+        self.mock_cursor.fetchone.return_value = (500.0, 30.0, 1, 0, "USD", 300.0, 1, 10)
         result = get_consumption(self.conn, "loc-001", days=30)
         self.assertEqual(len(result["by_activity"]), 1)
+
+    def test_mixed_or_unclassified_costs_are_not_reported_as_one_total(self):
+        self._mock_descriptions()
+        self.mock_cursor.fetchall.side_effect = [[], [], [("DOP", 300.0, 500.0, 4), ("USD", 30.0, 100.0, 5)]]
+        self.mock_cursor.fetchone.return_value = (500.0, 330.0, 2, 1, "DOP", 600.0, 2, 10)
+        result = get_consumption(self.conn, "loc-001", days=30)
+        self.assertIsNone(result["total_cost"])
+        self.assertIsNone(result["cost_currency_code"])
+        self.assertEqual([item["cost_currency_code"] for item in result["costs_by_currency"]], ["DOP", "USD"])
+        self.assertEqual(result["unclassified_cost_readings"], 1)
 
 
 class TestGetEfficiency(unittest.TestCase):
@@ -329,9 +401,12 @@ class TestGetEnergyDashboard(unittest.TestCase):
         type(self.mock_cursor).description = PropertyMock(side_effect=[
             # get_consumption: by_activity
             [("source_name",), ("source_type",), ("activity_type",),
-             ("total_kwh",), ("total_cost",), ("readings",)],
+             ("total_kwh",), ("classified_cost",), ("cost_currency_count",),
+             ("unclassified_cost_count",), ("cost_currency_code",), ("readings",)],
             # get_consumption: by_source
-            [("source_type",), ("total_kwh",), ("total_cost",)],
+            [("source_type",), ("total_kwh",), ("classified_cost",),
+             ("cost_currency_count",), ("unclassified_cost_count",),
+             ("cost_currency_code",)],
             # get_efficiency: logs
             [("log_date",), ("period",), ("total_consumption_kwh",),
              ("total_production_kwh",), ("net_energy_kwh",),
@@ -349,9 +424,9 @@ class TestGetEnergyDashboard(unittest.TestCase):
 
     def test_returns_location_id(self):
         self._mock_all_descriptions()
-        self.mock_cursor.fetchall.side_effect = [[], [], [], [], [], []]
+        self.mock_cursor.fetchall.side_effect = [[], [], [], [], [], [], []]
         self.mock_cursor.fetchone.side_effect = [
-            (0, 0, 0, 0),  # consumption agg
+            (0, None, 0, 0, None, 0, 0, 0),  # consumption agg
             (0, 0),         # efficiency agg
             (0,),           # renewable cons
         ]
@@ -360,9 +435,9 @@ class TestGetEnergyDashboard(unittest.TestCase):
 
     def test_returns_all_sections(self):
         self._mock_all_descriptions()
-        self.mock_cursor.fetchall.side_effect = [[], [], [], [], [], []]
+        self.mock_cursor.fetchall.side_effect = [[], [], [], [], [], [], []]
         self.mock_cursor.fetchone.side_effect = [
-            (0, 0, 0, 0), (0, 0), (0,),
+            (0, None, 0, 0, None, 0, 0, 0), (0, 0), (0,),
         ]
         result = get_energy_dashboard(self.conn, "loc-001")
         self.assertIn("consumption", result)
@@ -449,41 +524,43 @@ class TestGetCostAnalysis(unittest.TestCase):
 
     def _mock_descriptions(self):
         type(self.mock_cursor).description = PropertyMock(side_effect=[
-            [("activity_type",), ("total_kwh",), ("total_cost",),
-             ("avg_cost_per_kwh",), ("readings",)],
-            [("source_type",), ("total_kwh",), ("total_cost",),
-             ("avg_cost_per_kwh",)],
+            [("activity_type",), ("cost_currency_code",), ("total_cost",),
+             ("costed_kwh",), ("readings",)],
+            [("source_type",), ("cost_currency_code",), ("total_cost",),
+             ("costed_kwh",)],
+            [("cost_currency_code",), ("total_cost",), ("costed_kwh",), ("readings",)],
         ])
 
     def test_returns_location_id(self):
         self._mock_descriptions()
-        self.mock_cursor.fetchall.side_effect = [[], []]
-        self.mock_cursor.fetchone.return_value = (0, 0, None)
+        self.mock_cursor.fetchall.side_effect = [[], [], []]
+        self.mock_cursor.fetchone.return_value = (0, 0)
         result = get_cost_analysis(self.conn, "loc-001", days=30)
         self.assertEqual(result["location_id"], "loc-001")
 
     def test_returns_totals(self):
         self._mock_descriptions()
-        self.mock_cursor.fetchall.side_effect = [[], []]
-        self.mock_cursor.fetchone.return_value = (150.0, 1000.0, 0.15)
+        self.mock_cursor.fetchall.side_effect = [[], [], [("USD", 150.0, 1000.0, 5)]]
+        self.mock_cursor.fetchone.return_value = (1000.0, 0)
         result = get_cost_analysis(self.conn, "loc-001", days=30)
         self.assertEqual(result["total_cost"], 150.0)
         self.assertEqual(result["total_kwh"], 1000.0)
 
     def test_monthly_projection(self):
         self._mock_descriptions()
-        self.mock_cursor.fetchall.side_effect = [[], []]
-        self.mock_cursor.fetchone.return_value = (100.0, 1000.0, 0.10)
+        self.mock_cursor.fetchall.side_effect = [[], [], [("USD", 100.0, 1000.0, 5)]]
+        self.mock_cursor.fetchone.return_value = (1000.0, 0)
         result = get_cost_analysis(self.conn, "loc-001", days=10)
         self.assertEqual(result["monthly_projected_cost"], 300.0)
 
     def test_returns_by_activity(self):
         self._mock_descriptions()
         self.mock_cursor.fetchall.side_effect = [
-            [("irrigation", 500.0, 75.0, 0.15, 5)],
+            [("irrigation", "USD", 75.0, 500.0, 5)],
             [],
+            [("USD", 75.0, 500.0, 5)],
         ]
-        self.mock_cursor.fetchone.return_value = (75.0, 500.0, 0.15)
+        self.mock_cursor.fetchone.return_value = (500.0, 0)
         result = get_cost_analysis(self.conn, "loc-001", days=30)
         self.assertEqual(len(result["by_activity"]), 1)
 
@@ -491,11 +568,25 @@ class TestGetCostAnalysis(unittest.TestCase):
         self._mock_descriptions()
         self.mock_cursor.fetchall.side_effect = [
             [],
-            [("grid", 500.0, 75.0, 0.15)],
+            [("grid", "USD", 75.0, 500.0)],
+            [("USD", 75.0, 500.0, 5)],
         ]
-        self.mock_cursor.fetchone.return_value = (75.0, 500.0, 0.15)
+        self.mock_cursor.fetchone.return_value = (500.0, 0)
         result = get_cost_analysis(self.conn, "loc-001", days=30)
         self.assertEqual(len(result["by_source_type"]), 1)
+
+    def test_mixed_currency_and_unclassified_costs_have_no_comparable_total(self):
+        self._mock_descriptions()
+        self.mock_cursor.fetchall.side_effect = [
+            [], [],
+            [("DOP", 300.0, 500.0, 4), ("USD", 75.0, 500.0, 5)],
+        ]
+        self.mock_cursor.fetchone.return_value = (1100.0, 1)
+        result = get_cost_analysis(self.conn, "loc-001", days=30)
+        self.assertIsNone(result["total_cost"])
+        self.assertIsNone(result["cost_currency_code"])
+        self.assertEqual(len(result["costs_by_currency"]), 2)
+        self.assertEqual(result["unclassified_cost_readings"], 1)
 
 
 if __name__ == "__main__":

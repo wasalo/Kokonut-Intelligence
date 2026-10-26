@@ -1,0 +1,29 @@
+# Optional, one-shot ML analysis role. It receives only its own signed-source
+# database identity and never inherits the app or long-running worker DSN.
+services:
+  sensor-anomaly-ml-worker:
+    profiles: [sensor-anomaly-ml]
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: ml-anomaly
+    restart: "no"
+    command: ["python3", "-m", "services.ingestion.sensor_anomaly_ml_cli"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      KOKONUT_FEATURE_ISOLATED_SENSOR_ANOMALY_ML_WORKER: "true"
+      KOKONUT_SENSOR_ANOMALY_ML_SOURCE_DATABASE_URL: ${KOKONUT_SENSOR_ANOMALY_ML_SOURCE_DATABASE_URL:-}
+      KOKONUT_SENSOR_ANOMALY_ML_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_SENSOR_ANOMALY_ML_SOURCE_WORKER_CREDENTIAL:-}
+      ML_MODEL_DIR: /var/lib/kokonut/ml-models
+    volumes:
+      - kernel-ml-models:/var/lib/kokonut/ml-models
+    networks:
+      - kernel
+
+volumes:
+  kernel-ml-models:
+
+networks:
+  kernel:

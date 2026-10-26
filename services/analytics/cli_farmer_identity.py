@@ -284,7 +284,8 @@ cli.subcommand("record-consent", "Record data sharing consent") \
     .add("--recipient-name") \
     .add("--purpose") \
     .add("--legal-basis", default="consent") \
-    .add("--retention-days", type=int, default=365) \
+    .add("--retention-days", type=int,
+         help="Optional consent-validity window in days; no default is inferred") \
     .add("--reciprocal", action="store_true") \
     .add("--no-consent", action="store_true") \
     .add("--data-scope") \

@@ -1,12 +1,10 @@
 """Tests for Environmental Scanning Workflow service."""
 
-import json
-import uuid
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
 import psycopg2
+import pytest
 
 SCHEMA = Path("schemas/postgres/206_env_scanning.sql")
 
@@ -147,6 +145,45 @@ def test_render_cli():
     cli = env_scanning.render_cli(scan)
     assert "ENVIRONMENTAL SCAN" in cli
     assert "2/5 steps" in cli
+
+
+def test_auto_populate_communicate_includes_findings_generated_in_same_run(monkeypatch):
+    from services.analytics import env_scanning
+
+    scan = {
+        "id": "scan-1",
+        "location_id": "location-1",
+        "steps": [
+            {"step_number": 1, "step_name": "identify", "findings": "Earlier threat"},
+            {"step_number": 2, "step_name": "gather", "findings": "Earlier market context"},
+            {"step_number": 3, "step_name": "analyze", "findings": None},
+            {"step_number": 4, "step_name": "communicate", "findings": None},
+            {"step_number": 5, "step_name": "decide", "findings": None},
+        ],
+    }
+    monkeypatch.setattr(env_scanning, "get_scan", lambda _conn, _scan_id: scan)
+    updated = []
+    monkeypatch.setattr(
+        env_scanning,
+        "update_step",
+        lambda _conn, _scan_id, step, **kwargs: updated.append((step, kwargs)),
+    )
+
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchall.side_effect = [
+        [{"name": "Drought", "severity": "high"}],
+        [], [], [], [], [], [],
+    ]
+    cursor.fetchone.return_value = None
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    env_scanning.auto_populate(conn, "scan-1")
+
+    communication = next(kwargs for step, kwargs in updated if step == 4)
+    assert "Drought (severity: high)" in communication["findings"]
+    assert "Earlier market context" in communication["findings"]
 
 
 # --- DB integration ---

@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-25",
+  "migration": "647_isolated_notification_delivery_worker.sql",
+  "migration_sha256": "021f8490abac9d94f937bcb3fdd1d3df25b7c8a000299fc5961cf235549fc11a",
+  "database": "PostgreSQL 16 disposable container; Docker network disabled",
+  "database_image": "postgres:16",
+  "requested_platform": null,
+  "container_architecture": "x86_64",
+  "checks": [
+    "migration 647 applies and replays while both notification tables are FORCE RLS",
+    "migration removes PUBLIC table privileges from the private notification outbox relations",
+    "the actual dedicated login enforces claim limits/channel allowlists and denies direct table, column, and sequence access",
+    "bounded claim receipts, rollback, expired recovery, worker/token fencing, retry, and terminal dead-letter transitions pass",
+    "migration replay preserves forced-RLS function ownership and the login has exactly two non-public bounded functions"
+  ],
+  "result": "passed",
+  "isolation": "Synthetic schema and rows only; no candidate, legacy, provider, credential, or network access."
+}

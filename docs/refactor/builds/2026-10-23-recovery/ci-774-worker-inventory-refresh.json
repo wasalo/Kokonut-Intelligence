@@ -1,0 +1,49 @@
+{
+  "recorded_at": "2026-10-23",
+  "repository": "wasalo/Kokonut-Intelligence",
+  "pull_request": 68,
+  "workflow_run_id": 39988981737,
+  "workflow_run": "CI #774",
+  "job_id": 120535511389,
+  "tested_merge_commit": "a2325500efeefbcf459a40bc6cf9eb255e756ab7",
+  "conclusion": "failure",
+  "suite_summary": {
+    "failed": 7,
+    "passed": 9114,
+    "subtests_passed": 163,
+    "duration_seconds": 534.1
+  },
+  "failed_checks": [
+    "tests/test_worker_boundary_preflight.py::test_saved_worker_boundary_preflight_matches_current_sources",
+    "tests/test_worker_function_reachability.py::test_saved_worker_function_graph_matches_current_sources",
+    "tests/test_worker_source_closure.py::test_saved_worker_source_closure_matches_current_python_sources",
+    "tests/test_worker_sql_inventory.py::test_saved_worker_sql_inventory_matches_current_sources",
+    "tests/test_worker_sql_inventory.py::test_worker_sql_inventory_covers_source_closure_and_all_execution_sites",
+    "tests/test_worker_sql_reachability.py::test_saved_worker_sql_reachability_matches_current_sources",
+    "tests/test_worker_sql_reachability.py::test_sql_reachability_covers_every_inventory_site_without_query_text"
+  ],
+  "root_cause": "The five tracked worker source reports were stale for the current source tree. In particular, the saved function graph counted 95 source files while regeneration found 96; dependent SQL coverage and reachability reports were consequently stale as well.",
+  "regenerated_reports": [
+    "docs/refactor/worker-source-closure.json",
+    "docs/refactor/worker-function-reachability.json",
+    "docs/refactor/worker-sql-inventory.json",
+    "docs/refactor/worker-sql-reachability.json",
+    "docs/refactor/worker-boundary-preflight.json"
+  ],
+  "current_graph_summary": {
+    "operation_roots": 32,
+    "source_files": 96,
+    "function_memberships": 682,
+    "direct_call_edges": 936,
+    "dynamic_dispatch_edges": 20,
+    "sql_execution_sites": 341
+  },
+  "local_validation": {
+    "command": "python3 -m pytest tests/test_worker_boundary_preflight.py tests/test_worker_function_reachability.py tests/test_worker_source_closure.py tests/test_worker_sql_inventory.py tests/test_worker_sql_reachability.py -q",
+    "passed": 35,
+    "duration_seconds": 41.14,
+    "diff_check": "passed"
+  },
+  "candidate_or_legacy_database_touched": false,
+  "hosted_rerun": "pending"
+}

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Durable scheduler task failure summaries",
+  "behavior": {
+    "child_failure": "Failed subprocess stdout and stderr are not persisted; the task run records only the exit code.",
+    "spawn_failure": "Unexpected scheduler execution exceptions persist only a bounded exception class.",
+    "retry_behavior": "Nonzero child exits retain normal retry policy; subprocess launch exceptions retain immediate retry behavior."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_scheduler_durability.py tests/test_scheduler_worker.py -q",
+    "result": "12 passed",
+    "coverage": [
+      "child stdout and stderr diagnostic markers are absent from persisted error arguments",
+      "exit code remains available for operator diagnosis",
+      "spawn exception details are replaced by the exception class",
+      "immediate retry behavior for launch errors is preserved"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked child process and scheduler connection boundaries"
+  },
+  "limitations": [
+    "No scheduler process, database, or provider was run.",
+    "This does not establish live task recovery, provider recovery, or long-duration worker acceptance."
+  ]
+}

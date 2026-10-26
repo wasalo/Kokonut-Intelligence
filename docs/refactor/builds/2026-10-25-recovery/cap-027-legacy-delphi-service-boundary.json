@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-25",
+  "capability": "CAP-027",
+  "check": "legacy Delphi service database operations fail closed before connection or cursor use",
+  "result": "passed",
+  "facades": [
+    "services.delphi.facilitator.Facilitator",
+    "services.delphi.panel.PanelManager",
+    "services.delphi.minority.MinorityReportManager"
+  ],
+  "compatibility": {
+    "removed_method_names": [],
+    "changed_method_signatures": [],
+    "new_internal_guard": "_deny_database_access"
+  },
+  "tests": {
+    "command": "python3 -m pytest tests/test_delphi.py -q",
+    "passed": 79
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 67 rows",
+    "runtime_sql_inventory": "regenerated and current; Delphi package has zero direct SQL execution sites"
+  },
+  "safety": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate_or_legacy": "untouched",
+    "migration_or_panel_weights": "unchanged",
+    "rollback": "source revert; no database state to restore"
+  },
+  "boundary": "Every database-backed method and helper on the three legacy facades raises before connection or cursor use. Existing method names and signatures are preserved. Implemented study and participant workflows remain available through the authenticated, location-scoped Gateway.",
+  "remaining_gap": "Direct panel administration, diversity assessment, minority-report workflow, and calibration remain unavailable until their location-scoped Gateway authorization, privacy, lifecycle, and independent-review contracts are implemented."
+}

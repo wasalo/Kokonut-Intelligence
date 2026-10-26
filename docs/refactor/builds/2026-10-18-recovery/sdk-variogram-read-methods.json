@@ -1,0 +1,40 @@
+{
+  "record_type": "sdk_variogram_model_read_methods",
+  "recorded_at": "2026-10-18",
+  "scope": "Add schema-aligned Python and JavaScript read models and location-scoped access to stored variogram_model records.",
+  "source_contract": {
+    "schema": "schemas/postgres/133_geostatistics.sql",
+    "collection": "variogram_model",
+    "location_field": "location_id",
+    "location_nullable": true,
+    "indexed_by_location": true,
+    "model_type_values": ["spherical", "exponential", "gaussian", "matern"],
+    "metadata_shape": "json object"
+  },
+  "contract": {
+    "methods": ["list", "get", "list_by_location/listByLocation"],
+    "location_filter_overrides_conflicting_caller_filter": true,
+    "other_list_options_preserved": true,
+    "create_update_delete_exposed": false,
+    "variogram_fitting_or_validation_performed": false,
+    "authorization_enforced_by_sdk": false
+  },
+  "verification": {
+    "python_sdk_schema_and_method_tests": "98 passed",
+    "javascript_sdk_tests": "48 passed",
+    "typescript_build": "passed",
+    "ruff": "passed on touched Python files",
+    "python_compilation": "passed",
+    "sdk_schema_parity_guard": "passed: 75 models, 1571 canonical columns, 1471 scalar types, 10 PostGIS types, 87 JSONB shapes, 23 enum fields, 51 CHECK-literal fields per SDK",
+    "capability_matrix_validator": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "network": "not used",
+    "database": "not used",
+    "provider": "not used",
+    "credentials": "not used",
+    "candidate_or_legacy_services": "not accessed"
+  },
+  "capability_status": "No MAN-CAP classification or acceptance status changed."
+}

@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript metric_definition SDK schema parity",
+  "model": "MetricDefinition",
+  "source_table": "schemas/postgres/007_modeled_outputs.sql:metric_definition",
+  "additive_columns": [
+    "schemas/postgres/013_prd_completion.sql:validation_tests",
+    "schemas/postgres/013_prd_completion.sql:report_usage",
+    "schemas/postgres/013_prd_completion.sql:deprecation_policy",
+    "schemas/postgres/013_prd_completion.sql:definition_state",
+    "schemas/postgres/029_impact_accountability_foundation.sql:for_stakeholder_group",
+    "schemas/postgres/029_impact_accountability_foundation.sql:participatory",
+    "schemas/postgres/180_metric_definition_category.sql:category"
+  ],
+  "schema_guard": {
+    "models": 29,
+    "canonical_columns": 617,
+    "scalar_types": 581,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 29,
+    "enum_fields": 17,
+    "check_literal_fields": 8
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 40 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/types.py sdk/python/kokonut/__init__.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The model describes governed metadata; it does not execute formulas or verify metric values.",
+    "Checks used local source and synthetic fixtures; no database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

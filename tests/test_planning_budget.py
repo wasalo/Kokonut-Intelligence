@@ -2,13 +2,34 @@
 
 import uuid
 from datetime import date, timedelta
+from unittest.mock import MagicMock
 
 import pytest
 
 from services.ingestion.base import get_db
 from services.planning import budget
-from services.workflow_specs.validator import validate
 from services.workflow_specs.budget import BUDGET
+from services.workflow_specs.validator import validate
+
+
+def test_list_plans_uses_static_sql_and_treats_empty_status_as_unfiltered():
+    cur = MagicMock()
+    cur.__enter__.return_value = cur
+    cur.fetchall.return_value = [{"id": uuid.UUID("10000000-0000-0000-0000-000000000001")}]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+
+    result = budget.list_plans(conn, "10000000-0000-0000-0000-000000000002", status="")
+
+    sql, params = cur.execute.call_args.args
+    assert result == cur.fetchall.return_value
+    assert "organization_id = %s" in sql
+    assert "status::text = %s::text" in sql
+    assert params == (
+        uuid.UUID("10000000-0000-0000-0000-000000000002"),
+        None,
+        None,
+    )
 
 
 def test_budget_spec_validates():

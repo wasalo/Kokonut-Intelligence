@@ -1,35 +1,34 @@
-"""Public location reads restricted to the existing governed aggregate view."""
+"""Public location reads through the typed analytics query catalog."""
 
 from __future__ import annotations
 
-from functools import partial
 from typing import Callable
+
+from services.analytics.backend import get_analytics_backend
+from services.analytics.queries import (
+    AnalyticsContext,
+    PublicLocationDirectoryRequest,
+    PublicLocationSummary,
+    QueryId,
+)
 
 
 def public_locations(location_id: str | None = None, *, connection_factory: Callable | None = None) -> list[dict]:
-    if connection_factory is None:
-        from services.common.database import get_db
+    backend = get_analytics_backend(connection_factory=connection_factory)
+    request = PublicLocationDirectoryRequest(location_id)
+    context = AnalyticsContext(location_id=location_id, public=True)
+    rows = backend.execute(QueryId.PUBLIC_LOCATION_DIRECTORY, request, context)
+    location_rows = tuple(row for row in rows if isinstance(row, PublicLocationSummary))
+    if len(location_rows) != len(rows):
+        raise TypeError("Public location query returned an unexpected analytics result")
+    return [_public_location(row) for row in location_rows]
 
-        connection_factory = partial(get_db, connect_timeout=3)
-    conn = connection_factory()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SET TRANSACTION READ ONLY")
-            cur.execute("SET LOCAL statement_timeout = '5s'")
-            cur.execute("SET LOCAL lock_timeout = '2s'")
-            sql = "SELECT location_id, location_name, country, region, status FROM v_public_farm_summary"
-            parameters = ()
-            if location_id is not None:
-                sql += " WHERE location_id = %s"
-                parameters = (location_id,)
-            sql += " ORDER BY location_name, location_id LIMIT 100"
-            cur.execute(sql, parameters)
-            return [
-                {"id": str(row[0]), "name": row[1], "country": row[2], "region": row[3], "status": row[4]}
-                for row in cur.fetchall()
-            ]
-    finally:
-        try:
-            conn.rollback()
-        finally:
-            conn.close()
+
+def _public_location(row: PublicLocationSummary) -> dict:
+    return {
+        "id": str(row.location_id),
+        "name": row.location_name,
+        "country": row.country,
+        "region": row.region,
+        "status": row.status,
+    }

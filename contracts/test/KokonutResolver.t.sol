@@ -4,6 +4,7 @@ pragma solidity ^0.8.34;
 import {Test} from "forge-std/Test.sol";
 import {KokonutResolver} from "../src/KokonutResolver.sol";
 import {IEAS} from "@eas-contracts/IEAS.sol";
+import {Attestation} from "@eas-contracts/Common.sol";
 
 contract KokonutResolverTest is Test {
     KokonutResolver public resolver;
@@ -54,6 +55,56 @@ contract KokonutResolverTest is Test {
         vm.prank(owner);
         vm.expectRevert("Zero address");
         resolver.addAttester(address(0));
+    }
+
+    function test_cannot_initialize_zero_address_attester() public {
+        address[] memory attesters = new address[](1);
+        attesters[0] = address(0);
+
+        vm.expectRevert("Zero address");
+        new KokonutResolver(IEAS(easMock), owner, attesters);
+    }
+
+    function test_eas_callbacks_gate_attestations_and_revocations() public {
+        Attestation memory attestation;
+        attestation.attester = attester1;
+
+        vm.prank(easMock);
+        assertTrue(resolver.attest(attestation));
+        vm.prank(easMock);
+        assertTrue(resolver.revoke(attestation));
+
+        attestation.attester = unauthorized;
+        vm.prank(easMock);
+        assertFalse(resolver.attest(attestation));
+        vm.prank(easMock);
+        assertFalse(resolver.revoke(attestation));
+    }
+
+    function test_eas_callbacks_require_eas_caller() public {
+        Attestation memory attestation;
+        attestation.attester = attester1;
+
+        vm.prank(unauthorized);
+        vm.expectRevert();
+        resolver.attest(attestation);
+
+        vm.prank(unauthorized);
+        vm.expectRevert();
+        resolver.revoke(attestation);
+    }
+
+    function test_removed_attester_cannot_attest_or_revoke() public {
+        vm.prank(owner);
+        resolver.removeAttester(attester1);
+
+        Attestation memory attestation;
+        attestation.attester = attester1;
+
+        vm.prank(easMock);
+        assertFalse(resolver.attest(attestation));
+        vm.prank(easMock);
+        assertFalse(resolver.revoke(attestation));
     }
 
     function test_is_payable_returns_false() public view {

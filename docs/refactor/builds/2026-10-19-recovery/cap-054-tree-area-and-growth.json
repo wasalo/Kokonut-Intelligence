@@ -1,0 +1,28 @@
+{
+  "capability": "CAP-054",
+  "title": "Tree tracking area units and zero-valued measurements",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair and synthetic disposable checks pass; capability not accepted",
+  "changes": [
+    "Tree-density reads use the deployed plot.area and plot.area_unit columns instead of nonexistent plot.area_ha, including the matching GROUP BY.",
+    "Known hectare, square-meter, and acre units are normalized to hectares; non-positive, missing, and unsupported areas produce unavailable density rather than a misleading value.",
+    "Growth deltas treat zero as a measurement instead of missing data, and canopy averages include canopy-only trees and zero growth.",
+    "Forward migration 462 updates the public density view with the same unit conversions and unknown/zero-area behavior without editing applied migration 057."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_tree_tracking.py -q",
+    "result": "20 passed",
+    "migration_tests": "tests/test_migration.py passed in the combined 53-test run",
+    "ruff": "python3 -m ruff check services/analytics/tree_tracking.py tests/test_tree_tracking.py: passed",
+    "compilation": "python3 -m compileall -q services/analytics/tree_tracking.py: passed",
+    "migration_validation": "python3 -m services.migration validate: 575 source files validated",
+    "inventory": "runtime SQL inventory is current; 66-row capability matrix validates",
+    "disposable_postgis": "Migration 462 applied twice to a network-isolated synthetic PostGIS database; acre=7.41 trees/ha, 10,000 square meters=4.00 trees/ha, unsupported and zero-area densities are NULL."
+  },
+  "scope_limits": [
+    "The disposable PostGIS instance used minimal synthetic tables and was removed; candidate and legacy databases were untouched.",
+    "Migration 462 has not been rolled out to the local candidate.",
+    "Silvi/provider behavior, populated legacy parity, pest analytics, and spatial export parity remain unassessed; CAP-054 remains unaccepted pending MAN-CAP-054 review."
+  ]
+}

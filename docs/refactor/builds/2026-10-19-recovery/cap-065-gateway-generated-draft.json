@@ -1,0 +1,37 @@
+{
+  "capability": "CAP-065",
+  "date": "2026-10-19",
+  "scope": "Location-scoped Gateway-generated Business Model Canvas draft",
+  "status": "source and route checks passed; database-backed legacy checks unavailable",
+  "route": "POST /operator/api/business-planning/{location_id}/canvases/from-data",
+  "changes": [
+    "Added a protected Gateway route requiring exact business_planning:create, OIDC, CSRF, and signed location context.",
+    "Establishes signed context before suggestion reads and uses the same connection and transaction for suggestion and bounded draft creation.",
+    "Rejects caller-supplied blocks, validates metadata before opening the database connection, and reserves bounded tags for generated source categories.",
+    "Returns generated source categories and populated block names; persists source-category tags without claiming row-level evidence lineage.",
+    "Extends exact operator route-policy coverage; GET and PATCH on the from-data path remain denied."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_business_planning_writes.py tests/test_operator_route_policy_inventory.py tests/test_bmc_oneclick.py tests/test_business_model_canvas.py -q -rs",
+    "result": "33 passed, 8 skipped",
+    "skipped_checks": "Eight legacy database-backed service checks skipped because localhost PostgreSQL was unavailable in the restricted shell.",
+    "additional_checks": [
+      "ruff check on changed Gateway and test modules",
+      "python3 -m compileall on changed Gateway modules",
+      "git diff --check",
+      "scripts/check-capability-matrix.py"
+    ],
+    "additional_checks_result": "passed"
+  },
+  "database_touched": false,
+  "candidate_or_legacy_touched": false,
+  "migration_added_or_rolled_out": false,
+  "populated_output_parity_claimed": false,
+  "remaining": [
+    "Thirteen-section status projection",
+    "Canvas edit and version routes",
+    "Populated reference-output parity and row-level source evidence links",
+    "Live OIDC/browser acceptance",
+    "Universal ACL/RLS and MAN-CAP-065 owner acceptance"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "capability": "CAP-038",
+  "check": "ai-summary-verify-read-only-digest-inspection",
+  "date": "2026-10-20",
+  "command": "python3 -m pytest tests/test_ai_summary_cli_lifecycle.py -q",
+  "result": "passed",
+  "summary": {
+    "tests_passed": 8,
+    "query_shape": "one SELECT by summary UUID",
+    "stored_digest_comparison": false,
+    "lifecycle_mutation": false,
+    "database_or_provider_calls": 0
+  },
+  "limitations": [
+    "The command remains a legacy local-database inspection utility; it is not an authenticated review workflow.",
+    "MAN-CAP-038 and human-review acceptance remain open."
+  ]
+}

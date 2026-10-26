@@ -19,11 +19,11 @@ return 400 and absent or ineligible locations return the same 404 response.
 These routes read only `v_public_farm_summary`, so they do not depend on the
 Directus provider flag and cannot expand fields based on credentials. Public
 visibility remains the view's active-location plus verified/published farm
-registry rule. The existing unversioned `/api/locations` routes remain intact
-for their historical double-encoded wrapper and Directus behavior; they have no
-deprecation date. Consumers should move only after response and authorization
-parity is reviewed. The API version namespace does not certify other unversioned
-gateway routes. Additive `/api/v1/metrics/{location_id}`,
+registry rule. The unversioned `/api/locations` routes now use the same native
+five-field projection and keep their historical double-encoded response
+wrapper. Directus no longer backs these public Gateway reads. The API version
+namespace does not certify other unversioned gateway routes. Additive
+`/api/v1/metrics/{location_id}`,
 `/api/v1/crisp/{location_id}`, and
 `/api/v1/analytics/{location_id}/summary` aliases now expose existing governed
 read handlers with strict OpenAPI response models and explicit public read
@@ -49,10 +49,11 @@ schema-driven SDK generation and runtime parity remain future work.
 `services/gateway/router.py` owns route policy and the versioned handlers;
 `services/gateway/public_models.py` defines their strict response envelopes;
 `services/gateway/locations.py` owns the native read and database cleanup.
-`schemas/postgres/018_public_views.sql` owns governed public visibility.
-`services/core/features.py` selects the legacy Directus branch. That branch proxies
-`/items/location?limit=100` or `/items/location/{UUID}` through the shared HTTP
-client and retains its serialized response wrapper.
+`schemas/postgres/018_public_views.sql` owns governed public visibility. The
+Directus feature flag no longer selects the backend for public location reads.
+Directus remains a separate administrative and compatibility surface; its
+authenticated CRUD parity is tracked in the
+[Directus inventory](directus-parity-inventory.md).
 
 The native projection excludes metadata, coordinates/geometry, financial
 baselines, and ownership fields. It does not expand fields for authenticated
@@ -72,10 +73,10 @@ consumer migration.
 Review fixtures for active/inactive locations and draft/submitted/verified/published
 registry records. Confirm list/detail field visibility, ordering, 100-row bound,
 UUID handling, excluded-record 404 behavior, response compatibility, and unchanged
-gateway authorization. Compare scoped responses with actual Directus policies.
-Exercise database timeout/error cleanup and concurrent requests before claiming
-availability or resource budgets. Existing gateway authorization tests are a
-starting point; no tests were added or run here.
+gateway authorization. Three source HTTP checks now pin the reviewed fields,
+wrapper, 400/404 behavior, and that the Directus feature flag cannot route these
+reads to the upstream. Candidate/populated results, timeout/error cleanup, and
+concurrent-request budgets remain open.
 
 The versioned native route implementation has source-level contract coverage
 through explicit response models and generated OpenAPI metadata. Runtime payload,

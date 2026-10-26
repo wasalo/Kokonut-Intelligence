@@ -9,23 +9,46 @@ configuration output containing credentials. The printed command uses
 required values through the encrypted-secrets loader before executing it.
 This POSIX planner is not a Windows deployment entry point.
 
-`--target-platform` declares linux/amd64 (default) or linux/arm64. ARM64 is
-currently rejected because the exact pinned PostGIS image is AMD64-only; see
-the [database blocker](arm64-database.md). The setting does not detect hardware
-or force a Docker platform, and manual Compose commands bypass the guard.
+`--target-platform` declares linux/amd64 (default) or linux/arm64. For ARM64,
+the planner appends `docker-compose.kernel-arm64.yml`, selects the custom
+PostgreSQL/PostGIS 16 image, and uses the distinct project
+`kokonut-kernel-candidate-arm64`; this keeps its database volume separate from
+the AMD64 candidate. The standard profile also appends the ARM64 worker
+override. Current ARM64 command selection supports minimal, edge, standard, and
+analytics. The HTTPS proxy, Gateway OIDC application, self-hosted ZITADEL
+profile, gRPC, MQTT, HTTP sensor receiver, and Directus adapter are also
+selectable on ARM64. ClickHouse analytics is supported as a combined or
+separate-worker profile. The app targets and pinned service images have ARM64
+build/runtime evidence and dedicated platform overlays. This is software
+compatibility evidence under QEMU, not a Raspberry Pi resource/performance
+recommendation.
+Image environment overrides must preserve the selected architecture.
+Current-source minimal ARM64 runtime,
+schema replay through migration 402, restore, and short recovery checks now pass
+under QEMU; this does not certify Raspberry Pi hardware. See the
+[ARM64 profile record](arm64-database.md).
 
 | Selection | Services/configuration | Acceptance remaining |
 | --- | --- | --- |
 | minimal | PostgreSQL + combined API/workers | Capability parity and recovery |
-| edge | Minimal + encrypted local media/resource limits | ARM64/Pi hardware and storage recovery |
-| standard | PostgreSQL + separate API and worker | Role cutover and worker progress monitoring |
+| edge | Minimal + encrypted local media/resource limits | Media/storage recovery and physical-device behavior |
+| standard | PostgreSQL + separate API and worker; PostgreSQL shared limiter by default | Migration 373, role cutover, and worker progress monitoring |
 | analytics | Minimal + private ClickHouse | Schema bootstrap and projection parity |
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Same gates plus worker analytics parity |
-| scale | Rejected with an explanation | Shared rate limits, replica concurrency, recovery and measured sizing |
+| scale | Rejected with an explanation | Multi-host failover, replica concurrency, recovery and measured sizing |
 
-Add `--proxy`, `--grpc`, `--mqtt`, or `--http-sensors` explicitly for the corresponding optional
-overlay. These options do not enable providers in unrelated services or promise
-transport capability parity. MQTT requires separately provisioned credentials,
+Add `--proxy`, `--oidc`, `--zitadel`, `--grpc`, `--mqtt`, `--http-sensors`, or
+`--directus` explicitly for the corresponding optional overlay. `--oidc` requires `--proxy`
+so Secure operator-session cookies use the HTTPS origin. `--zitadel` selects
+the proxy, Gateway OIDC client, and self-hosted ZITADEL overlays together. It
+uses a separate private PostgreSQL service and exposes its HTTP/2 API and
+Login V2 UI only through Caddy. ZITADEL remains absent from minimal and edge
+unless selected. These options do not enable providers in unrelated services
+or promise capability parity. OIDC and ZITADEL require provider values in the
+SOPS-loaded environment; the planner only prints the command and does not read
+or expose them. For ARM64, the planner appends explicit overlays for each
+verified optional service and analytics profile; registry/build evidence is not
+live service acceptance. MQTT requires separately provisioned credentials,
 certificates, persistent client identity, and migration 372. Standard/current
 scheduler source requires migration 371. Neither migration is applied by this
 planner. Read the individual overlay execution records before adoption.
@@ -37,6 +60,11 @@ python3 scripts/kernel-profile.py minimal
 python3 scripts/kernel-profile.py standard --proxy --action build
 python3 scripts/kernel-profile.py analytics --separate-workers --action config
 python3 scripts/kernel-profile.py edge --mqtt --action up
+python3 scripts/kernel-profile.py minimal --proxy --oidc --action config
+python3 scripts/kernel-profile.py minimal --zitadel --action config
+python3 scripts/kernel-profile.py standard --target-platform linux/arm64 --zitadel --action config
+python3 scripts/kernel-profile.py minimal --target-platform linux/arm64 --grpc --action config
+python3 scripts/kernel-profile.py edge --target-platform linux/arm64 --mqtt --action config
 ```
 
 Review the printed command, load encrypted secrets, and execute it separately
@@ -50,7 +78,8 @@ stop them explicitly before cutover, allowing active leases to settle. Preserve
 database, broker, certificate, and private-media volumes. Keep legacy services
 stopped; the planner never selects legacy manifests or legacy project names.
 
-Static lint and diff checks passed. No planner runtime tests, deployments,
-secrets reads, or profile cutovers were performed for this slice. Compose
-combinations were parsed in their individual implementation slices; runtime
-acceptance remains separate from command selection.
+Planner and Compose profile contract checks include minimal, edge, standard,
+analytics, portability, external OIDC, and optional self-hosted ZITADEL
+selections. The planner only builds a command string; no deployment, secret
+read, or profile cutover is performed. Runtime acceptance remains separate
+from command selection.

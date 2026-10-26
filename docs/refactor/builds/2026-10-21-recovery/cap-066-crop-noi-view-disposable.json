@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-10-21T06:14:32.341493+00:00",
+  "migration": "527_location_consistent_crop_cycle_noi_inputs.sql",
+  "postgres_image": "postgres:16",
+  "disposable_database_only": true,
+  "assertion_groups_passed": 3,
+  "checks": [
+    "verified and published same-location sales, expenses, shared allocations, and harvest contribute",
+    "draft and rejected sources do not contribute",
+    "sales, expenses, shared allocations, and harvest linked to another location do not contribute",
+    "existing NOI view output shape and ratio calculations remain intact",
+    "migration replay preserves the corrected result"
+  ],
+  "candidate_or_legacy_database_touched": false
+}

@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline Directus SDK login response parity",
+  "contract": "Python and TypeScript expose the Directus login response fields. TypeScript retains its existing token/refreshToken aliases and also returns access_token, refresh_token, expires, and expires_at from the SDK response.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 81 passed",
+    "javascript": "npm test — 35 passed",
+    "typescript": "npm run build — passed",
+    "ruff": "ruff check tests/test_sdk.py tests/test_sdk_method_parity.py — passed",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "Synthetic authentication responses and mocked clients are used; no credential or HTTP request is made.",
+    "The response includes authentication values already returned by Directus to the caller; this does not alter server authorization or Gateway sessions.",
+    "No MAN-CAP acceptance is claimed."
+  ]
+}

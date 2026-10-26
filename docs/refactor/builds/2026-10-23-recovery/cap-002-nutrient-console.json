@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-002",
+  "surface": "operator-console",
+  "routes": [
+    "GET /operator/api/nutrients/{location_id}/balances",
+    "GET /operator/api/nutrients/{location_id}/soil-tests",
+    "GET /operator/api/nutrients/{location_id}/events/inputs",
+    "GET /operator/api/nutrients/{location_id}/events/removals"
+  ],
+  "authorization": "Panel is exposed only for valid locations with the exact OIDC nutrient_budget:read grant; the Gateway independently enforces signed tenant context on every read.",
+  "privacy": "A local allowlist selects routes and fields. The console omits soil-test, event, and plot identifiers, notes, and arbitrary metadata. Cost is shown only as a classified amount/currency pair; unclassified historic amounts are withheld. All values render through text nodes.",
+  "verification": {
+    "pytest": "191 passed: all four CAP-002 console contracts, crop-simulation Gateway and digital-twin checks, nutrient Gateway/domain checks, yield and irrigation Gateway/domain checks, and the complete registered-route policy inventory",
+    "ruff": "passed",
+    "inline_javascript_syntax": "passed with Node.js --check",
+    "capability_matrix": "passed: 67 rows; 27 baseline-retained, 7 deployed, 33 prepared; 0 MAN-CAP accepted",
+    "git_diff_check": "passed"
+  },
+  "database_migration": false,
+  "candidate_or_legacy_database_used": false,
+  "provider_or_chain_contacted": false,
+  "capability_status": "prepared",
+  "remaining": [
+    "model and populated legacy-output/frozen-fixture parity",
+    "historic cost-currency reconciliation",
+    "live ZITADEL/browser acceptance",
+    "database ACL/RLS and broader runtime-role boundary",
+    "human MAN-CAP-002 acceptance"
+  ],
+  "rollback": "Remove the nutrient console panel, its exact-scope bootstrap and event bindings, and its console contract test. Existing read-only Gateway routes and legacy behavior remain unchanged; no schema or data rollback is needed."
+}

@@ -1,0 +1,36 @@
+{
+  "capability": "CAP-039",
+  "date": "2026-10-19",
+  "scope": "unified CLI registration, help, and shared legacy argument adapter",
+  "result": "passed",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_cli.py tests/test_common_env.py tests/test_common_cli_lazy_database.py -q",
+      "result": "23 passed",
+      "notes": "Includes six unified CLI regressions; all 37 actual mounted argparse help paths run with an unavailable SOPS key and pass without secret decryption."
+    },
+    {
+      "command": "python3 -m services.cli agents list",
+      "result": "passed",
+      "notes": "Runs without database access or SOPS decryption."
+    },
+    {
+      "command": "python3 -m services.cli agents -- --help",
+      "result": "passed",
+      "notes": "The separator passes --help to the legacy argparse parser."
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "external_state_touched": false,
+  "limitations": [
+    "Synthetic adapter coverage does not verify every legacy module's non-help arguments or command output.",
+    "Database-backed and provider-backed command parity and MAN-CAP-039 remain open."
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-14T01:29:01.255834+00:00",
+  "database": "PostgreSQL 16 on a disposable Docker bridge; host port bound to loopback only",
+  "migrations": [
+    "387_kokonut_network_tenant_ownership.sql",
+    "388_tenant_aware_operator_grants.sql",
+    "389_tenant_aware_field_collector_write_guards.sql",
+    "390_audited_location_tenant_transfers.sql"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "external_network_access": "Docker bridge egress was available; the check made no external requests",
+  "repository_secrets_read": false,
+  "checks": [
+    "operator CLI lists tenant-transfer history",
+    "owner and explicitly shared tenant-qualified grants set database-derived context",
+    "database uniqueness guard prevents ambiguous tenant-grant context",
+    "legacy NULL-tenant grants are denied and previous local context is cleared",
+    "transaction-local tenant context resets at commit on the reused connection",
+    "report-review owner and shared-grant queries set context before protected reads on one connection",
+    "report-review reads clear tenant context after transaction rollback",
+    "legacy location-only report-review grants are denied before query execution",
+    "Field Collector owner queue and shared-detail reads set same-connection tenant context",
+    "Field Collector list, detail, and audit reads clear tenant context after rollback",
+    "legacy location-only Field Collector grants are denied before collection query execution",
+    "multiple disposition grants set context only when they resolve to the same tenant",
+    "individually valid grants from different tenants are denied with context cleared",
+    "pending transfer preserves owner, shares, and all existing grants",
+    "self-approval and non-admin target approval are denied",
+    "changed owner-relationship snapshot blocks acceptance and can be cancelled",
+    "conflicting and unverified locations cannot enter a transfer",
+    "injected post-mutation failure rolls back owner, verification, grants, and shares",
+    "acceptance atomically transfers owner links and revokes owner, partner, and legacy access",
+    "new owner receives access only after a separate tenant-qualified grant",
+    "transfer request evidence cannot be updated, deleted, or truncated",
+    "migration 390 idempotent replay preserves accepted transfer and grants"
+  ],
+  "cleanup": {
+    "container_removed": true,
+    "named_network_removed": true,
+    "temporary_source_copy_removed": true,
+    "volume_retained": false
+  },
+  "scope_limit": "Synthetic disposable data only; no archive, pilot, candidate, or production records were used. Acceptance verifies database, local CLI, report-review and Field Collector review queue/detail/disposition-context wiring, not legal land title, human retention/erasure outcomes, other Gateway routes, worker isolation, direct-database boundaries, or RLS."
+}

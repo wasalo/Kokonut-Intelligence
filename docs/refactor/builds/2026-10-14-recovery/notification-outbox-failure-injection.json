@@ -1,0 +1,37 @@
+{
+  "record_type": "notification_outbox_failure_injection_unit_acceptance",
+  "recorded_at": "2026-10-15T02:07:33+00:00",
+  "scope": "Mocked notification claim/finish operations and mocked SMTP client, including real CLI argument parsing; no provider or PostgreSQL database was contacted.",
+  "checks": {
+    "focused_pytest": "8 passed",
+    "combined_pytest": "28 passed across Directus preflight, Kernel supervisor, ClickHouse outbox, and notification outbox suites",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed after all code, evidence, and documentation changes",
+    "gitleaks_full_history_scan": "Gitleaks 8.30.1 passed over all local Git refs; no leaks found",
+    "tracked_secret_scan": "passed; no tracked secret-like material detected"
+  },
+  "behaviors": [
+    "provider exception details are not placed in persisted error class or warning log; only the exception type is retained",
+    "one notification send failure does not prevent later rows in the claimed batch from being delivered",
+    "completion database errors propagate and stop processing later rows",
+    "lost completion leases are counted separately and do not block other rows",
+    "SMTP uses a stable outbox idempotency header and Message-ID and closes its client context"
+  ],
+  "limitations": [
+    "Claim and finish database SQL is mocked; this does not replace the existing disposable-PostgreSQL recovery acceptance.",
+    "SMTP and HTTP provider availability, TLS interoperability, authentication, rate limits, and live delivery were not exercised.",
+    "The last pushed head 0c703c55e0f991c2460afab1863b950aa7dd53ea has Security run #40 passed and CI run #316 in progress; neither run includes this local test slice.",
+    "The earlier Security #39 source-digest false positive was fixed with a file-scoped allowlist and passed local full-history scanning; hosted Security #40 also passes."
+  ],
+  "source_sha256": {
+    ".gitleaks.toml": "da359c23e165b28107f8cd7ce0fd1be1510888bea8d1d98b4b836be97fb15433",
+    "docs/refactor/projection-failure-boundaries.md": "648b2650697cff192c3f97b746162a3b1282cf125c3daa58fbd75713fb732f1e",
+    "services/events/notification_outbox.py": "13ea8f37e24bc0586996b0cec661bfcaa369d65bdd278ae5c8695665c37cac04",
+    "tests/test_notification_outbox.py": "8d0cbf9a148027c92bdd2c21ecc311d97332e3b6977f69e106ff66aaa5c6b892"
+  },
+  "test_environment": {
+    "python": "3.11.15",
+    "environment": "repository .venv"
+  }
+}

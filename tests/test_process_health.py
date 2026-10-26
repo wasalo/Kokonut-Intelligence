@@ -8,13 +8,12 @@ changes the instance count, and that the report-generator registers the
 import uuid
 from datetime import datetime, timedelta, timezone
 
-import pytest
 import psycopg2
+import pytest
 
-from services.ingestion.base import get_db
 from services.analytics import process_health as ph
-from services.analytics.process_health import _count_instances
 from services.export.report_generator import REPORT_GENERATORS
+from services.ingestion.base import get_db
 
 
 def _db():

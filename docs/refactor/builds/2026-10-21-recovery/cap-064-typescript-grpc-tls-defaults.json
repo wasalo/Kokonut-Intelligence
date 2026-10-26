@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Secure-by-default TypeScript gRPC client credentials",
+  "result": "PASS",
+  "behavior": {
+    "remote_target": "Uses grpc-js system-trusted TLS credentials by default.",
+    "loopback_target": "Uses plaintext for recognized localhost/loopback targets.",
+    "custom_credentials": "Caller-supplied ChannelCredentials take precedence for all targets.",
+    "private_plaintext": "Can be explicitly selected with credentials.createInsecure() from @grpc/grpc-js."
+  },
+  "verification": {
+    "vitest": "35 passed",
+    "typescript_build": "passed",
+    "npm_pack_dry_run": "passed; package includes dist/transport.js and bundled proto sources"
+  },
+  "data_access": {
+    "grpc_rpc": false,
+    "external_network": false,
+    "database": false,
+    "candidate_database": false,
+    "legacy_database": false,
+    "provider": false
+  },
+  "limitations": [
+    "Credential selection is unit-tested; no remote TLS server or external CA was contacted.",
+    "Python SDK exposes generated stubs rather than a managed client and documents secure channel construction; production certificate, ingress, tenant authorization, and REST parity remain open."
+  ]
+}

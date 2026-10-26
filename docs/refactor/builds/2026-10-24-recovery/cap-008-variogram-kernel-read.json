@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "location-scoped saved variogram fit read",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/geostatistics/{location_id}/variogram-models",
+    "authorization": "exact geostatistics:read location grant with signed tenant context",
+    "transaction": "read-only repeatable-read with statement and lock timeouts",
+    "source": "bounded location-qualified variogram_model rows ordered by fit time and a private ID tie-breaker",
+    "pagination": "limit 1-50; offset 0-10000",
+    "model_types": ["spherical", "exponential", "gaussian", "matern"],
+    "projection": [
+      "property key and model type",
+      "sill, range, nugget, and partial sill",
+      "lag distance, lag tolerance, and bandwidth",
+      "pair count and R-squared",
+      "fit time"
+    ],
+    "omitted": ["database/model IDs", "metadata", "raw observations"],
+    "non_finite_values": "converted to null",
+    "console": "shared grant-gated geostatistics panel; fixed text rendering; advisory label",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_geostatistics_reads.py tests/test_gateway_trend_analysis_reads.py tests/test_operator_console_geostatistics.py tests/test_operator_console_trend_analysis.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "48 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "not_used": ["candidate database", "legacy database", "provider", "external service", "Raspberry Pi hardware"],
+  "remaining_acceptance": [
+    "numerical and populated fixture parity",
+    "remaining geostatistics Kernel outputs and diagnostics",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the variogram reader/route/policy and console panel, then regenerate runtime_sql_inventory.json. No persistent data was written."
+}

@@ -71,7 +71,9 @@ class RateLimiter:
             bucket["tokens"] -= tokens_needed
             return True
 
-        logger.warning("Rate limit exceeded for caller: %s", caller)
+        # Caller keys can contain client IP addresses. Keep them out of the
+        # process log; request-level audit records have their own access controls.
+        logger.warning("Rate limit exceeded")
         return False
 
     def retry_after(self, caller: str, tokens_needed: int = 1) -> int:

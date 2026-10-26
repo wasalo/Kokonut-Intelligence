@@ -1,0 +1,74 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "source_revision": "f59148b735623e5f768d1c7ff7ad291e0d481c9a",
+  "candidate_project": "kokonut-kernel-candidate",
+  "migration": "schema:433_isolated_eas_indexer.sql",
+  "execution": {
+    "runner": "python3 -m services.migration.cli migrate --schemas-only --only-migration schema:433_isolated_eas_indexer.sql",
+    "before_applied_schema_migrations": 423,
+    "before_latest_migration": "schema:432_signed_remote_sensing_worker.sql",
+    "after_applied_schema_migrations": 424,
+    "after_latest_migration": "schema:433_isolated_eas_indexer.sql",
+    "pending_after": 0,
+    "applied": 1,
+    "failed": 0,
+    "seeds_applied": false
+  },
+  "checkpoint": {
+    "directory": "backups/kernel-candidate-pre-433-20261017T1736Z",
+    "archive": "postgres.dump.age",
+    "sha256": "e4c790e84a5aa4cdffcddca127a1a5f30d4932598661cd29770c1604ef4c4291",
+    "bytes": 6219862,
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "scope": "Candidate PostgreSQL database only; cluster roles, other databases, volumes, and external media excluded"
+  },
+  "restore_rehearsal": {
+    "result": "passed",
+    "project": "kokonut-kernel-restore-433-retry-20261017",
+    "network": "internal with no published host ports",
+    "target": "fresh isolated PostgreSQL volume and template0 database",
+    "parity_before_migration": {
+      "applied_schema_migrations": 423,
+      "schema_migration_sha256": "3cfd77598bd6f3a2eaa362959b58e948a892407a89e721cc71fe44798f6de5a6",
+      "extensions": 10,
+      "public_relations": 1396,
+      "representative_rows": {
+        "location": 0,
+        "metric_value": 0,
+        "platform_event": 0,
+        "schema_migration": 429,
+        "sensor_reading": 0
+      }
+    },
+    "initial_attempt": "A separate disposable restore rolled back because the bootstrap omitted kokonut_weather_observation_owner; the candidate was untouched. The role prerequisite SQL was expanded and covered by focused regression tests before a fresh restore attempt passed."
+  },
+  "candidate_after": {
+    "application_image": "sha256:055a42d87fa049abfa6fa7fc9200350f4bf49ab53c7c6cd8df191137c7575acd",
+    "rollback_application_image_tag": "kokonut-kernel-candidate-app:rollback-pre-433-20261017",
+    "health_http": 200,
+    "anonymous_protected_route_http": 401,
+    "eas_roles": {
+      "kokonut_eas_indexer_login": {
+        "can_login": false,
+        "is_superuser": false
+      },
+      "kokonut_eas_indexer_owner": {
+        "can_login": false,
+        "is_superuser": false
+      }
+    }
+  },
+  "scope": {
+    "legacy_stack_touched": false,
+    "clickhouse_touched": false,
+    "metabase_touched": false,
+    "seed_data_written": false,
+    "eas_provider_accessed": false,
+    "worker_credentials_enabled": false,
+    "persisted_schedule_enabled_or_changed": false,
+    "candidate_application_recreated": true
+  },
+  "rollback": "The pre-migration encrypted checkpoint remains available locally. The previous app image is retained under the recorded rollback tag. If database rollback is required, restore the checkpoint to a separate database and validate it before any deliberate candidate database replacement; no destructive automatic downgrade was run.",
+  "acceptance_limit": "This closes local candidate schema rollout and restore rehearsal only. It does not accept EAS provider parity, live worker credentials, persisted task reconciliation, offset pagination, earlier-arrival recovery, or MAN-CAP-040/047."
+}

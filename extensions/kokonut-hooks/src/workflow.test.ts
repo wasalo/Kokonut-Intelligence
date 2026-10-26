@@ -11,8 +11,8 @@ import {
 import { enforceStakeholderGovernanceSafety } from './agent-safety.js';
 import { roleNameToSlug } from './roles.js';
 import { normalizeFeedbackPayload, validateStakeholderFeedback } from './feedback.js';
-import { isValidMetricProposalTransition } from './metric-proposal.js';
-import { validateImpactClaim } from './impact-claim.js';
+import { handleMetricProposalUpdate, isValidMetricProposalTransition } from './metric-proposal.js';
+import { stampImpactClaimReview, validateImpactClaim } from './impact-claim.js';
 import { enforceAgentTaskSafety, enforceAiSummarySafety, prepareAgentActionLog } from './agent-safety.js';
 
 describe('roleNameToSlug', () => {
@@ -95,6 +95,52 @@ describe('pending transition stash', () => {
   });
 });
 
+describe('tenant lifecycle audit transaction', () => {
+  it('writes the transition through the request database before returning the update payload', async () => {
+    const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const db = (table: string) => ({
+      where: () => ({ first: async () => ({ status: 'submitted' }) }),
+      insert: async (row: Record<string, unknown>) => {
+        inserts.push({ table, row });
+      },
+    });
+    const payload: Record<string, unknown> = { status: 'verified' };
+
+    await expect(handleWorkflowTransition(
+      'field_note', payload, { id: 'note-1' }, ['admin'], db,
+      { user: 'operator-1' }, true,
+    )).resolves.toBe(payload);
+
+    expect(inserts).toEqual([{
+      table: 'workflow_history',
+      row: {
+        collection: 'field_note',
+        record_id: 'note-1',
+        from_status: 'submitted',
+        to_status: 'verified',
+        changed_by: 'operator-1',
+        notes: null,
+        rejection_reason: null,
+      },
+    }]);
+    expect(consumePendingTransition('field_note', 'note-1')).toBeUndefined();
+  });
+
+  it('fails the update when the request-transaction audit insert fails', async () => {
+    const db = (table: string) => ({
+      where: () => ({ first: async () => ({ status: 'submitted' }) }),
+      insert: async () => {
+        if (table === 'workflow_history') throw new Error('private database detail');
+      },
+    });
+
+    await expect(handleWorkflowTransition(
+      'field_note', { status: 'verified' }, { id: 'note-2' }, ['admin'], db,
+      { user: 'operator-1' }, true,
+    )).rejects.toThrow('Unable to record workflow transition for field_note');
+  });
+});
+
 describe('stakeholder feedback workflow', () => {
   it('defaults feedback to private draft', () => {
     const payload: Record<string, any> = {};
@@ -142,9 +188,100 @@ describe('metric proposal workflow', () => {
     expect(isValidMetricProposalTransition('proposed', 'approved')).toBe(true);
     expect(isValidMetricProposalTransition('implemented', 'approved')).toBe(false);
   });
+
+  it('does not treat the Directus user UUID as a staff reviewer ID', async () => {
+    const payload: Record<string, any> = { status: 'approved' };
+    const db = () => ({
+      where: () => ({
+        first: async () => ({ status: 'proposed', proposal_date: '2020-01-01' }),
+      }),
+    });
+
+    await handleMetricProposalUpdate(payload, { keys: ['proposal-1'] }, db);
+
+    expect(payload.review_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(payload).not.toHaveProperty('reviewed_by');
+  });
+
+  it('preserves an explicit staff reviewer for tenant validation', async () => {
+    const staffId = 'staff-1';
+    const payload = { status: 'approved', reviewed_by: staffId };
+    const db = () => ({
+      where: () => ({
+        first: async () => ({ status: 'proposed', proposal_date: '2020-01-01' }),
+      }),
+    });
+
+    await handleMetricProposalUpdate(payload, { keys: ['proposal-1'] }, db);
+
+    expect(payload.reviewed_by).toBe(staffId);
+  });
+
+  it('writes metric-proposal transition history through the request database before returning', async () => {
+    const writes: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const db = (table: string) => ({
+      where: () => ({
+        first: async () => ({ status: 'proposed', proposal_date: '2020-01-01' }),
+      }),
+      insert: async (row: Record<string, unknown>) => {
+        writes.push({ table, row });
+      },
+    });
+    const payload = { status: 'discussed', discussion_notes: [{ text: 'Reviewed' }] };
+
+    await expect(handleMetricProposalUpdate(
+      payload,
+      { keys: ['proposal-1'], accountability: { user: 'operator-1' } },
+      db,
+      true,
+    )).resolves.toBe(payload);
+
+    expect(writes).toEqual([{
+      table: 'workflow_history',
+      row: {
+        collection: 'metric_proposal',
+        record_id: 'proposal-1',
+        to_status: 'discussed',
+        changed_by: 'operator-1',
+        notes: '[{"text":"Reviewed"}]',
+      },
+    }]);
+  });
+
+  it('fails the metric-proposal update when request-transaction history insertion fails', async () => {
+    const db = (table: string) => ({
+      where: () => ({
+        first: async () => ({ status: 'proposed', proposal_date: '2020-01-01' }),
+      }),
+      insert: async () => {
+        if (table === 'workflow_history') throw new Error('private database detail');
+      },
+    });
+
+    await expect(handleMetricProposalUpdate(
+      { status: 'discussed' }, { keys: ['proposal-2'] }, db, true,
+    )).rejects.toThrow('Unable to record workflow transition for metric_proposal');
+  });
 });
 
 describe('impact claim workflow', () => {
+  it('does not copy the Directus user UUID into the staff reviewer field', async () => {
+    const payload: Record<string, any> = { status: 'verified' };
+
+    await stampImpactClaimReview(payload);
+
+    expect(payload.review_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(payload).not.toHaveProperty('reviewer_id');
+  });
+
+  it('preserves an explicitly selected staff reviewer', async () => {
+    const payload: Record<string, any> = { status: 'verified', reviewer_id: 'staff-1' };
+
+    await stampImpactClaimReview(payload);
+
+    expect(payload.reviewer_id).toBe('staff-1');
+  });
+
   it('blocks public carbon claims below level 6', () => {
     expect(() => validateImpactClaim({
       public_claim: true,

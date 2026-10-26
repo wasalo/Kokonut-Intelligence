@@ -7,7 +7,6 @@ to prevent spatial leakage in prediction accuracy assessment.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -16,10 +15,8 @@ import psycopg2.extras
 
 from .config import (
     CV_STRATEGIES,
-    DEFAULT_MAX_NEIGHBORS,
-    DEFAULT_SEARCH_RADIUS_M,
-    PROPERTY_DEFAULTS,
 )
+from .data_sources import location_point_query, supports_database_property
 
 
 class SpatialCrossValidator:
@@ -42,7 +39,7 @@ class SpatialCrossValidator:
         nugget: float,
     ):
         """Build a gstools variogram model from parameters."""
-        from gstools import Spherical, Exponential, Gaussian, Matern
+        from gstools import Exponential, Gaussian, Matern, Spherical
 
         model_map = {
             "spherical": Spherical,
@@ -153,11 +150,11 @@ class SpatialCrossValidator:
                 fold_results.append(fold_result)
                 all_predictions.extend(pred.tolist())
                 all_actuals.extend(test_values)
-            except Exception as e:
+            except Exception as exc:
                 fold_results.append({
                     "fold": i + 1,
                     "block_id": int(block_id),
-                    "error": str(e),
+                    "error": f"spatial cross-validation fold failed ({type(exc).__name__})",
                 })
 
         if not all_predictions:
@@ -200,6 +197,7 @@ class SpatialCrossValidator:
 
         fold_results = []
         all_predictions = []
+        all_actuals = []
 
         for i in range(n):
             test_coord = coords[i].tolist()
@@ -215,6 +213,7 @@ class SpatialCrossValidator:
                 )
                 error = float(pred[0] - test_val)
                 all_predictions.append(float(pred[0]))
+                all_actuals.append(test_val)
 
                 fold_results.append({
                     "fold": i + 1,
@@ -224,18 +223,19 @@ class SpatialCrossValidator:
                     "error": round(error, 4),
                     "variance": round(float(var[0]), 4),
                 })
-            except Exception as e:
+            except Exception as exc:
                 fold_results.append({
                     "fold": i + 1,
                     "held_out_index": i,
-                    "error": str(e),
+                    "error": f"spatial cross-validation fold failed ({type(exc).__name__})",
                 })
 
         if not all_predictions:
             return {"error": "No successful folds", "fold_results": fold_results}
 
         all_pred = np.array(all_predictions)
-        errors = all_pred - vals[:len(all_predictions)]
+        all_act = np.array(all_actuals)
+        errors = all_pred - all_act
 
         return {
             "cv_strategy": "leave_one_out",
@@ -246,7 +246,7 @@ class SpatialCrossValidator:
             "mean_squared_error": round(float(np.mean(errors ** 2)), 4),
             "root_mean_squared_error": round(float(np.sqrt(np.mean(errors ** 2))), 4),
             "mean_absolute_error": round(float(np.mean(np.abs(errors))), 4),
-            "r_squared": round(float(1 - np.sum(errors ** 2) / np.sum((vals[:len(all_pred)] - np.mean(vals[:len(all_pred)])) ** 2)), 4) if np.sum((vals[:len(all_pred)] - np.mean(vals[:len(all_pred)])) ** 2) > 0 else 0.0,
+            "r_squared": round(float(1 - np.sum(errors ** 2) / np.sum((all_act - np.mean(all_act)) ** 2)), 4) if np.sum((all_act - np.mean(all_act)) ** 2) > 0 else 0.0,
         }
 
     def cross_validate_from_db(
@@ -260,6 +260,8 @@ class SpatialCrossValidator:
         """Run spatial cross-validation from database point data."""
         if cv_strategy not in CV_STRATEGIES:
             return {"error": f"Unknown cv_strategy: {cv_strategy}. Use one of {CV_STRATEGIES}"}
+        if not supports_database_property(property_key):
+            return {"error": f"Unsupported property_key: {property_key}"}
 
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -267,13 +269,19 @@ class SpatialCrossValidator:
         # Fetch or fit variogram
         if variogram_model_id:
             cur.execute(
-                "SELECT * FROM variogram_model WHERE id = %s",
-                (variogram_model_id,),
+                """
+                SELECT model_type, sill, range, nugget
+                  FROM variogram_model
+                 WHERE id = %s
+                   AND location_id = %s
+                   AND property_key = %s
+                """,
+                (variogram_model_id, location_id, property_key),
             )
             vm_row = cur.fetchone()
             if vm_row is None:
                 cur.close()
-                return {"error": f"Variogram model {variogram_model_id} not found"}
+                return {"error": "Variogram model not found for requested location and property"}
             variogram_model = {
                 "model_type": vm_row["model_type"],
                 "sill": float(vm_row["sill"]),
@@ -289,35 +297,9 @@ class SpatialCrossValidator:
                 return vm_result
             variogram_model = vm_result
 
-        # Fetch point data
-        if property_key.startswith("soil_"):
-            col_map = {
-                "soil_carbon": "organic_carbon_pct",
-                "soil_moisture": "moisture_pct",
-                "soil_ph": "ph",
-            }
-            val_col = col_map.get(property_key, "organic_carbon_pct")
-            cur.execute(f"""
-                SELECT ss.gps_latitude AS lat, ss.gps_longitude AS lon,
-                       ss.{val_col} AS value
-                FROM soil_sample ss
-                WHERE ss.location_id = %s
-                  AND ss.gps_latitude IS NOT NULL
-                  AND ss.gps_longitude IS NOT NULL
-                  AND ss.{val_col} IS NOT NULL
-            """, (location_id,))
-        elif property_key == "ndvi":
-            cur.execute("""
-                SELECT ST_Y(rso.centroid) AS lat, ST_X(rso.centroid) AS lon,
-                       rso.ndvi AS value
-                FROM remote_sensing_observation rso
-                WHERE rso.location_id = %s
-                  AND rso.centroid IS NOT NULL
-                  AND rso.ndvi IS NOT NULL
-            """, (location_id,))
-        else:
-            cur.close()
-            return {"error": f"Unsupported property_key: {property_key}"}
+        # Fetch point data using a fixed property-to-column mapping.
+        point_query, point_params = location_point_query(location_id, property_key)
+        cur.execute(point_query, point_params)
 
         rows = cur.fetchall()
         cur.close()

@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-17",
+  "scope": "GeoJSON/KML farm-zone imports and spatial-import audit failure reporting",
+  "behavior": {
+    "feature_failures": "Per-feature and per-Placemark results and durable audit errors contain only operation and exception class; raw source/coordinate/database text is omitted.",
+    "invalid_kml": "Malformed XML returns a bounded parser-class summary without echoing source payload.",
+    "audit_write_failure": "Failure to persist an import audit logs only the exception class.",
+    "partial_import": "Existing feature counters, partial/failed status selection, and best-effort audit behavior remain unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_spatial_import.py tests/test_security_hardening.py -q",
+    "result": "22 passed",
+    "new_regressions": 4,
+    "coverage": [
+      "GeoJSON feature exceptions are redacted from response, audit payload, and logs",
+      "KML Placemark exceptions are redacted from response, audit payload, and logs",
+      "invalid KML payload is not echoed in the result",
+      "spatial audit-write exceptions are reduced to their class in logs"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake cursors and synthetic spatial payloads"
+  },
+  "limitations": [
+    "No PostGIS database or live spatial file was used.",
+    "This does not verify imported geometries against a populated farm-zone fixture."
+  ]
+}

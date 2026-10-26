@@ -3,21 +3,34 @@
 from __future__ import annotations
 
 import os
+import sys
 
 from services.core.providers import ProviderSettings
 
 from .env import load_dotenv
+from .worker_environment import ISOLATED_WORKER_KEY_ENV
 
-load_dotenv()
+_HELP_REQUESTED = any(argument in {"-h", "--help"} for argument in sys.argv[1:])
+if not _HELP_REQUESTED:
+    # Importing a legacy CLI module to render argparse help must not require
+    # database credentials. Argparse exits before command work when it sees
+    # either help flag; runtime invocations still load and validate secrets.
+    load_dotenv()
 
 KOKONUT_ENV = os.environ.get("KOKONUT_ENV", "development").lower()
 IS_DEV = KOKONUT_ENV in ("development", "dev", "local")
 
 
 def _require_secret(name: str) -> str:
+    if _HELP_REQUESTED:
+        return ""
     value = os.environ.get(name, "")
     if value:
         return value
+    if os.environ.get(ISOLATED_WORKER_KEY_ENV):
+        # Legacy config may be imported by a CLI parser, but an isolated
+        # worker must never inherit or synthesize the shared DB identity.
+        return ""
     if IS_DEV:
         return f"placeholder-{name.lower()}"
     raise RuntimeError(

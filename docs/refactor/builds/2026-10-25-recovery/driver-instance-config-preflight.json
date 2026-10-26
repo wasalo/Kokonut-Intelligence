@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-25",
+  "source_head_before_change": "193bca7e92270d76ef84d964c2487f5df2779e59",
+  "scope": "Driver instance creation validates JSON object configuration through the registered driver contract before persistence, rejects disabled registrations, and locks the enabled registry row while inserting.",
+  "checks": {
+    "command": "python3 -m pytest tests/test_driver_registry.py tests/test_sensor_driver_schedule.py -q",
+    "result": "66 passed"
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "isolation": "Tests use mocked connections and synthetic driver implementations. No database, provider, candidate, legacy service, or persistent Docker resource was used.",
+  "limitations": [
+    "Third-party driver configuration validation executes installed package code in-process; installed plugins remain trusted and are not sandboxed.",
+    "The mock checks do not prove PostgreSQL row-lock behavior against a live database."
+  ]
+}

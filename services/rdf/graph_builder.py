@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.rdf.triple_store import add_triples
 
@@ -417,9 +418,9 @@ def _persist_graph(conn, location_id: str, rebuild_id=None, cutoff=None, commit:
         )
         if commit:
             conn.commit()
-    except Exception:
+    except Exception as exc:
         conn.rollback()
-        logger.exception("RDF graph rebuild failed for %s", location_id)
+        logger.error("RDF graph rebuild failed (%s)", safe_exception_class(exc))
         raise
     logger.info("Persisted %d triples for location %s", count, location_id)
     return {"generation_id": generation_id, "count": count, "source_cutoff": cutoff, "content_hash": content_hash}

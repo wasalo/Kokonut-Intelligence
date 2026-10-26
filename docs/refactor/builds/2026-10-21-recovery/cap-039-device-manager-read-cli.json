@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "feb92a6ee604ceb3229cc644452f6e5a3773ae0b",
+  "scope": "Synthetic standalone/unified parity for location-scoped device inventory and health reads",
+  "invocations": [
+    "device_manager --list --location-id <synthetic-location-uuid>",
+    "device_manager --health --device-id <synthetic-device-slug> --location-id <synthetic-location-uuid>"
+  ],
+  "verification": {
+    "focused_tests": "10 passed",
+    "coverage": [
+      "standalone and unified output match for device list and health reads",
+      "the list and health SQL calls bind the requested location ID",
+      "both commands reject a missing or malformed location before database access in standalone and unified forms",
+      "connections and cursors close on successful reads"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; synthetic cursor and connection used",
+    "provider": "not contacted"
+  },
+  "result": "PASS: both read commands preserve output and exact location filters across CLI entrypoints, and invalid location scope fails before connection creation.",
+  "limitations": [
+    "The query results are synthetic; this is not populated-data or database authorization acceptance.",
+    "Device registration writes and live operator authorization remain outside this check."
+  ]
+}

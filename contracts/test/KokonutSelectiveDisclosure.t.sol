@@ -64,12 +64,64 @@ contract KokonutSelectiveDisclosureTest is Test {
         assertTrue(disclosure.verifyProof(ATTESTATION_UID, leaf, proof, flags));
     }
 
-    function testVerifyProofReturnsFalseForInvalidRoot() public {
+    function testVerifyProofReturnsFalseForInvalidRoot() public view {
         bytes32 leaf = keccak256("leaf-data");
         bytes32[] memory proof = new bytes32[](0);
         uint8[] memory flags = new uint8[](0);
 
         assertFalse(disclosure.verifyProof(ATTESTATION_UID, leaf, proof, flags));
+    }
+
+    function testVerifyProofReturnsFalseForMismatchedProofAndFlagLengths() public {
+        bytes32 leaf = keccak256("leaf-data");
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = keccak256("sibling");
+        uint8[] memory flags = new uint8[](0);
+        bytes32 root = keccak256(abi.encodePacked(leaf, proof[0]));
+
+        vm.prank(attester);
+        disclosure.setRoot(ATTESTATION_UID, root);
+
+        assertFalse(disclosure.verifyProof(ATTESTATION_UID, leaf, proof, flags));
+    }
+
+    function testVerifyProofReturnsFalseForUnsupportedFlag() public {
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = keccak256("sibling");
+        uint8[] memory flags = new uint8[](1);
+        flags[0] = 2;
+
+        vm.prank(attester);
+        disclosure.setRoot(ATTESTATION_UID, ROOT);
+
+        assertFalse(disclosure.verifyProof(ATTESTATION_UID, keccak256("leaf-data"), proof, flags));
+    }
+
+    function testFuzz_VerifyProofRejectsUnsupportedFlag(uint8 flagInput) public {
+        uint8 invalidFlag = uint8(bound(flagInput, 2, type(uint8).max));
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = keccak256("sibling");
+        uint8[] memory flags = new uint8[](1);
+        flags[0] = invalidFlag;
+
+        vm.prank(attester);
+        disclosure.setRoot(ATTESTATION_UID, ROOT);
+
+        assertFalse(disclosure.verifyProof(ATTESTATION_UID, keccak256("leaf-data"), proof, flags));
+    }
+
+    function testVerifyProofReturnsFalseForWrongLeaf() public {
+        bytes32 leaf = keccak256("leaf-data");
+        bytes32 sibling = keccak256("sibling");
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = sibling;
+        uint8[] memory flags = new uint8[](1);
+        flags[0] = 0;
+
+        vm.prank(attester);
+        disclosure.setRoot(ATTESTATION_UID, keccak256(abi.encodePacked(leaf, sibling)));
+
+        assertFalse(disclosure.verifyProof(ATTESTATION_UID, keccak256("different-leaf"), proof, flags));
     }
 
     function testPause() public {

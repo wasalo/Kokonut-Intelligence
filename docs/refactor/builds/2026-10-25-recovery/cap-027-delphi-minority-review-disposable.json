@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "migration": "640_location_scoped_delphi_minority_report_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 640 applies and replays on a disposable PostgreSQL 16 database",
+    "queue returns only submitted reports with active participant consent in the exact location",
+    "signed operator scope, verified decision, and exact retry are enforced",
+    "request collisions, cross-location access, and withdrawn-report decisions fail closed",
+    "review ledger is append-only and inaccessible to runtime and Directus roles"
+  ],
+  "assertions_passed": 5
+}

@@ -1,0 +1,25 @@
+{
+  "slice": "CAP-038 CIDS property-to-row lineage",
+  "date": "2026-10-25",
+  "result": "passed",
+  "contract": "The signed CIDS worker returns a private sidecar mapping each JSON-LD node property to sampled row identifiers from the exact signed projection views that contributed it. Each property records total rows, at most 50 sorted references, and whether references were truncated. Row identifiers remain outside the JSON-LD graph.",
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_cids_export.py tests/test_agent_tasks.py tests/test_agent_worker_cli.py -q",
+      "result": "107 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "refreshed and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "migration_required": false,
+  "database_touched": false,
+  "provider_touched": false,
+  "candidate_or_legacy_touched": false,
+  "limitations": [
+    "The sidecar contains bounded row identifiers and counts, not a content snapshot or source-value history.",
+    "Source snapshots, populated parity, production worker credentials/grants, and MAN-CAP-038 owner acceptance remain open."
+  ]
+}

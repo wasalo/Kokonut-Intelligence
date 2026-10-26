@@ -6,24 +6,23 @@ Imports NDVI/NDRE data from CSV files into remote_sensing_observation.
 Supports manual upload of pre-processed satellite/drone data.
 
 Expected CSV columns:
-    plot_id, observation_date, source, ndvi, ndre, evi, canopy_cover_pct,
-    bbox_west, bbox_south, bbox_east, bbox_north, cloud_cover_pct
+    plot_id, observation_date, optional location_id, source, ndvi, ndre, evi,
+    canopy_cover_pct, bbox_west, bbox_south, bbox_east, bbox_north, cloud_cover_pct
 
 Usage:
-    python -m services.ingestion.remote_sensing --file data.csv
     python -m services.ingestion.remote_sensing --file data.csv --location-id <uuid>
+    python -m services.ingestion.remote_sensing --file data.csv --all-locations
 """
 
 import argparse
 import csv
 import json
 import re
-import sys
-import time
+import uuid
 from datetime import datetime, timezone
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload, post_clickhouse_rows
+from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows
 from .clickhouse_outbox import enqueue
 
 logger = get_logger("ingestion.remote_sensing")
@@ -45,7 +44,7 @@ def validate_row(row: dict) -> list:
         errors.append("missing observation_date")
     source = row.get("source", "manual")
     if source not in VALID_SOURCES:
-        errors.append(f"invalid source: {source}")
+        errors.append("invalid source")
     return errors
 
 
@@ -152,11 +151,11 @@ def insert_clickhouse(record: dict, conn=None) -> None:
         ts = ts + " 00:00:00.000"
 
     try:
-        timestamp = _validate_timestamp(ts)
-        observation_id = _validate_uuid(record.get("id"), "observation_id")
-        location_uuid = _validate_uuid(record.get("location_id"), "location_id")
-        plot_uuid = _validate_uuid(record.get("plot_id"), "plot_id", nullable=True)
-        source = _validate_source(record.get("source"))
+        _validate_timestamp(ts)
+        _validate_uuid(record.get("id"), "observation_id")
+        _validate_uuid(record.get("location_id"), "location_id")
+        _validate_uuid(record.get("plot_id"), "plot_id", nullable=True)
+        _validate_source(record.get("source"))
         source_system = record.get("source_system", "csv_upload")
 
         columns = ["timestamp", "observation_id", "location_id", "plot_id", "source",
@@ -184,31 +183,58 @@ def insert_clickhouse(record: dict, conn=None) -> None:
             columns, rows,
         )
     except Exception as e:
-        logger.warning("ClickHouse insert failed: %s", e)
+        if conn is not None:
+            raise
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
-def run(file_path: str, location_id: str = None):
-    """Main ingestion entry point."""
+def run(file_path: str, location_id: str = None, *, all_locations: bool = False):
+    """Import CSV rows for one explicit location or an explicit aggregate scope."""
+    if all_locations and location_id is not None:
+        raise ValueError("choose one location or the explicit all-locations mode")
+    if not all_locations and location_id is None:
+        raise ValueError("provide --location-id or explicitly select all locations")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError):
+            raise ValueError("location_id must be a UUID") from None
+
+    with open(file_path, "r") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    candidate_plot_ids = set()
+    for row in rows:
+        try:
+            candidate_plot_ids.add(str(uuid.UUID(str(row.get("plot_id", "")))))
+        except (TypeError, ValueError, AttributeError):
+            continue
+
     db = get_db()
     success = 0
     errors = 0
     try:
-        # If no location_id provided, build lookup from plot → farm → location
+        # Limit the plot lookup to one location unless aggregate scope is explicit.
         plot_location_map = {}
-        if not location_id:
+        if candidate_plot_ids:
             with db.cursor() as cur:
-                cur.execute("""
-                    SELECT p.id, f.location_id
-                    FROM plot p
-                    JOIN farm f ON p.farm_id = f.id
-                    WHERE f.location_id IS NOT NULL
-                """)
+                if all_locations:
+                    cur.execute("""
+                        SELECT p.id, f.location_id
+                        FROM plot p
+                        JOIN farm f ON p.farm_id = f.id
+                        WHERE f.location_id IS NOT NULL AND p.id = ANY(%s)
+                    """, (sorted(candidate_plot_ids),))
+                else:
+                    cur.execute("""
+                        SELECT p.id, f.location_id
+                        FROM plot p
+                        JOIN farm f ON p.farm_id = f.id
+                        WHERE f.location_id = %s AND p.id = ANY(%s)
+                    """, (location_id, sorted(candidate_plot_ids)))
                 for row in cur.fetchall():
                     plot_location_map[str(row[0])] = str(row[1])
-
-        with open(file_path, "r") as f:
-            reader = csv.DictReader(f)
-            rows = list(reader)
 
         logger.info("Processing %d rows from %s...", len(rows), file_path)
 
@@ -220,9 +246,28 @@ def run(file_path: str, location_id: str = None):
                 continue
 
             try:
-                record = parse_row(row, location_id or plot_location_map.get(row.get("plot_id", "")))
+                try:
+                    plot_id = str(uuid.UUID(str(row.get("plot_id", ""))))
+                except (TypeError, ValueError, AttributeError):
+                    raise ValueError("CSV plot_id must be a UUID") from None
+                mapped_location_id = plot_location_map.get(plot_id)
+                if mapped_location_id is None:
+                    raise ValueError("plot does not belong to the selected location scope")
+                normalized_row = dict(row)
+                normalized_row["plot_id"] = plot_id
+                supplied_location_id = row.get("location_id")
+                if supplied_location_id:
+                    try:
+                        supplied_location_id = str(uuid.UUID(str(supplied_location_id)))
+                    except (TypeError, ValueError, AttributeError):
+                        raise ValueError("CSV location_id must be a UUID") from None
+                    if supplied_location_id != mapped_location_id:
+                        raise ValueError("CSV location_id does not match the plot's farm")
+                    normalized_row["location_id"] = supplied_location_id
+
+                record = parse_row(normalized_row, mapped_location_id)
                 record["source_system"] = "csv_upload"
-                record["source_id"] = hash_payload({"row": row, "location_id": record.get("location_id")})
+                record["source_id"] = hash_payload({"row": normalized_row, "location_id": record.get("location_id")})
                 pg_id = insert_observation(db, record)
                 record["id"] = pg_id
 
@@ -237,7 +282,7 @@ def run(file_path: str, location_id: str = None):
                     target_table="remote_sensing_observation",
                     target_id=pg_id,
                     operation="insert",
-                    payload_hash=hash_payload(row),
+                    payload_hash=hash_payload(normalized_row),
                     status="success",
                     rows_affected=1,
                 )
@@ -255,9 +300,9 @@ def run(file_path: str, location_id: str = None):
                     operation="insert",
                     payload_hash=hash_payload(row),
                     status="failed",
-                    error_message=str(e),
+                    error_message=f"row processing failed ({type(e).__name__})",
                 )
-                logger.error("  ✗ Row %d: %s", i + 1, e)
+                logger.error("  ✗ Row %d processing failed (%s)", i + 1, type(e).__name__)
 
         db.commit()
         logger.info("Done: %d success, %d errors", success, errors)
@@ -265,9 +310,26 @@ def run(file_path: str, location_id: str = None):
         db.close()
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Remote sensing CSV ingestion")
     parser.add_argument("--file", required=True, help="Path to CSV file")
-    parser.add_argument("--location-id", help="Default location UUID for all records")
-    args = parser.parse_args()
-    run(file_path=args.file, location_id=args.location_id)
+    scope = parser.add_mutually_exclusive_group()
+    scope.add_argument("--location-id", help="Import records for one location UUID")
+    scope.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Explicitly allow a CSV import spanning multiple locations",
+    )
+    args = parser.parse_args(argv)
+    if args.location_id is None and not args.all_locations:
+        parser.error("provide --location-id or explicitly select --all-locations")
+
+    try:
+        run(file_path=args.file, location_id=args.location_id, all_locations=args.all_locations)
+    except ValueError as exc:
+        parser.error(str(exc))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

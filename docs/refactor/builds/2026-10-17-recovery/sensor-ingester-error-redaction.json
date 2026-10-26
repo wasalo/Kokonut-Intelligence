@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-17",
+  "scope": "Legacy CSV sensor ingestion and demo ClickHouse error reporting",
+  "behavior": {
+    "clickhouse_fallback": "The direct demo/maintenance ClickHouse fallback logs only the exception class; canonical transaction-backed projection errors still propagate.",
+    "invalid_timestamp": "Raw parser text is replaced with a fixed message in warnings and ingestion audit fields.",
+    "invalid_numeric_value": "CSV numeric parse warnings no longer echo the raw cell value.",
+    "row_failure": "Row-processing failures use a fixed audit summary plus exception class; rollback behavior is preserved."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_sensor_ingester_error_redaction.py tests/test_sensor_ingester.py tests/test_sensor_ingester_cli_contract.py tests/test_sensor_driver_schedule.py tests/test_ingestion_outbox_producers.py -q",
+    "result": "88 passed",
+    "new_regressions": 4,
+    "coverage": [
+      "secret-bearing ClickHouse failure is absent from logs",
+      "invalid timestamp input is absent from warning and audit fields",
+      "invalid numeric CSV value is absent from warnings",
+      "secret-bearing row-processing exception is absent from log and audit while rollback and cleanup remain"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; synthetic CSV and mocked connections/providers"
+  },
+  "limitations": [
+    "No live sensor source, database, ClickHouse service, or provider was contacted.",
+    "This does not establish sensor source parity, live runtime recovery, or tenant acceptance."
+  ]
+}

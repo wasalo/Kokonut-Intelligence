@@ -7,7 +7,11 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -18,6 +22,7 @@ def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[A
 
 def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
     """Summarize public-safe GNH, cultural, renewable, access, and foundational well-being evidence."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     where, params = _location_filter("location_id", location_id)
@@ -26,7 +31,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
         SELECT gnh_domain, location_id, assessment_date, principle_refs, alignment_score,
                strengths, gaps, safeguards, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_gnh_alignment_summary
+        FROM kokonut_agent_source.v_public_gnh_alignment_summary
         {where}
         ORDER BY assessment_date DESC, gnh_domain
         """,
@@ -41,7 +46,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
                local_language, digital_integration_strategy, consent_protocol,
                local_reviewer_role, implementation_status, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_cultural_preservation_summary
+        FROM kokonut_agent_source.v_public_cultural_preservation_summary
         {where}
         ORDER BY plan_date DESC, cultural_element
         """,
@@ -57,7 +62,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
                estimated_annual_kwh, renewable_share_pct,
                fossil_displacement_estimate_co2e_tonnes, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_renewable_energy_summary
+        FROM kokonut_agent_source.v_public_renewable_energy_summary
         {where}
         ORDER BY plan_date DESC, energy_use_case
         """,
@@ -72,7 +77,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
                accommodations, participation_pathways, accountable_role,
                implementation_status, access_coverage_pct, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_vulnerable_access_summary
+        FROM kokonut_agent_source.v_public_vulnerable_access_summary
         {where}
         ORDER BY plan_date DESC, access_scope
         """,
@@ -86,7 +91,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
         SELECT wellbeing_domain, location_id, observation_date, stakeholder_group,
                score_value, count_value, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_foundational_wellbeing_summary
+        FROM kokonut_agent_source.v_public_foundational_wellbeing_summary
         {where}
         ORDER BY observation_date DESC, wellbeing_domain
         """,
@@ -139,6 +144,13 @@ class GnhSynthesisAgent(SynthesisAgent):
     read_collection = "gnh_alignment_assessment"
     model_version = "gnh-agent-v1"
     source_tables = ["gnh_alignment_assessment", "cultural_preservation_plan", "renewable_energy_plan", "vulnerable_group_access_plan", "foundational_wellbeing_observation"]
+    source_reference_views = {
+        "gnh_alignment_assessment": "v_public_gnh_alignment_summary",
+        "cultural_preservation_plan": "v_public_cultural_preservation_summary",
+        "renewable_energy_plan": "v_public_renewable_energy_summary",
+        "vulnerable_group_access_plan": "v_public_vulnerable_access_summary",
+        "foundational_wellbeing_observation": "v_public_foundational_wellbeing_summary",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_gnh(conn, location_id)
@@ -153,7 +165,7 @@ def run_gnh_synthesis(location_id: str | None = None, store: bool = False) -> di
 
 
 def main() -> None:
-    agent_cli(agent, description="Run the Kokonut GNH alignment synthesis agent", location_required=False)
+    agent_cli(agent, description="Run the Kokonut GNH alignment synthesis agent")
 
 
 if __name__ == "__main__":

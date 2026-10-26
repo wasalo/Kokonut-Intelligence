@@ -18,6 +18,7 @@ Usage:
 
 import argparse
 import uuid
+from datetime import date
 
 from .reports import (  # noqa: F401 (re-exported public report API)
     REPORT_GENERATORS,
@@ -126,38 +127,327 @@ from .reports import (  # noqa: F401 (re-exported public report API)
     store_snapshot,
 )
 
+NETWORK_SCOPE_ONLY_REPORTS = frozenset(
+    {
+        "bio_regional_input",
+        "capability_assessment",
+        "capability_dashboard",
+        "coordination_cockpit",
+        "dao_proposal_history",
+        "federation_mutual_aid",
+        "green_paper_publication_status",
+        "governance_coordination_health",
+        "open_source_impact",
+        "participatory_signal",
+        "process_health",
+        "stakeholder_cockpit",
+        "stakeholder_ecosystem",
+        "stakeholder_representation",
+        "stakeholder_trust",
+        "stakeholder_value_streams",
+        "strategy_execution",
+        "technology_roadmap",
+        "value_stream_formal",
+    }
+)
 
-def main():
+NETWORK_LEVEL_REPORTS = frozenset(
+    {
+        "state_of_kokonut",
+        "dao_proposal_history",
+        "state_of_kokonut_graphs",
+        "comprehensive_status",
+        "strategic_reserve",
+        "scaling_economics",
+        *NETWORK_SCOPE_ONLY_REPORTS,
+    }
+)
+
+# These generators explicitly interpret a selected-location list or the
+# literal ``all`` scope. Other generators receive one location UUID only.
+MULTI_LOCATION_REPORTS = frozenset(
+    {
+        "business_plan",
+        "comprehensive_status",
+        "state_of_kokonut",
+        "state_of_kokonut_graphs",
+        "strategic_reserve",
+    }
+)
+ALL_LOCATION_REPORTS = NETWORK_LEVEL_REPORTS | {"business_plan"}
+
+
+def _generator_location_arg(report_type: str, location_arg: str | None) -> str | None:
+    """Keep reports backed only by network-wide views out of farm snapshots."""
+    if report_type in NETWORK_SCOPE_ONLY_REPORTS:
+        return None
+    return location_arg
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate Kokonut report snapshots")
     parser.add_argument("--type", choices=list(REPORT_GENERATORS.keys()), help="Report type to generate")
     parser.add_argument(
-        "--location-id", action="append", help="Location UUID (repeatable; or use --all for every location)"
+        "--location-id",
+        action="append",
+        help="Location UUID (repeatable only for aggregate report types; or use --all when supported)",
     )
-    parser.add_argument("--all", action="store_true", help="Generate the report across ALL locations")
+    parser.add_argument("--all", action="store_true", help="Use the report type's supported all-location scope")
     parser.add_argument("--period-start", help="Report period start (YYYY-MM-DD)")
     parser.add_argument("--period-end", help="Report period end (YYYY-MM-DD)")
     parser.add_argument("--list", action="store_true", help="List existing snapshots")
     parser.add_argument("--verify", help="Verify a snapshot by hash")
-    parser.add_argument("--auto", action="store_true", help="Generate all report types for the location")
-    args = parser.parse_args()
+    parser.add_argument("--auto", action="store_true", help="Attempt all report types for one location or --all")
+    return parser
 
-    if not args.list:
-        if not args.type and not args.auto:
-            parser.error("--type or --auto is required (or use --list)")
 
-        # Location requirement: network-level reports (state_of_kokonut, dao_proposal_history)
-        # accept --all or no location; others require at least one --location-id.
-        network_level = args.type in (
-            "state_of_kokonut",
-            "dao_proposal_history",
-            "state_of_kokonut_graphs",
-            "comprehensive_status",
-            "strategic_reserve",
+def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Reject ambiguous or unscoped report CLI requests before opening a DB."""
+    if args.type and args.auto:
+        parser.error("--type and --auto are mutually exclusive")
+
+    if args.list and (args.verify or args.type or args.auto or args.all or args.period_start or args.period_end):
+        parser.error("--list may only be combined with --location-id")
+
+    if args.list and args.location_id and len(args.location_id) > 1:
+        parser.error("--list accepts at most one --location-id")
+
+    if args.verify and (args.list or args.type or args.auto or args.all or args.location_id or args.period_start or args.period_end):
+        parser.error("--verify cannot be combined with report generation or scope options")
+
+    if args.all and args.location_id:
+        parser.error("--all cannot be combined with --location-id")
+
+    if args.auto and args.location_id and len(args.location_id) > 1:
+        parser.error("--auto supports one --location-id or explicit --all, not multiple locations")
+
+    if args.type and args.all and args.type not in ALL_LOCATION_REPORTS:
+        parser.error(f"--all is not supported for report type {args.type}")
+
+    if args.type in NETWORK_SCOPE_ONLY_REPORTS and args.location_id:
+        parser.error(f"report type {args.type} is network-scoped and does not accept --location-id")
+
+    if args.type and args.location_id and len(args.location_id) > 1:
+        if args.type not in MULTI_LOCATION_REPORTS:
+            parser.error(f"multiple --location-id values are not supported for report type {args.type}")
+
+    if args.location_id:
+        try:
+            args.location_id = [str(uuid.UUID(value)) for value in args.location_id]
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id values must be valid UUIDs")
+        if len(set(args.location_id)) != len(args.location_id):
+            parser.error("--location-id values must be unique")
+
+    parsed_periods = {}
+    for option, value in (
+        ("--period-start", args.period_start),
+        ("--period-end", args.period_end),
+    ):
+        if value is None:
+            continue
+        try:
+            parsed = date.fromisoformat(value)
+        except (TypeError, ValueError):
+            parser.error(f"{option} must be a valid date in YYYY-MM-DD format")
+        if parsed.isoformat() != value:
+            parser.error(f"{option} must be a valid date in YYYY-MM-DD format")
+        parsed_periods[option] = parsed
+
+    if (
+        "--period-start" in parsed_periods
+        and "--period-end" in parsed_periods
+        and parsed_periods["--period-start"] > parsed_periods["--period-end"]
+    ):
+        parser.error("--period-start cannot be after --period-end")
+
+    if args.list or args.verify:
+        return
+
+    if not args.type and not args.auto:
+        parser.error("--type or --auto is required (or use --list or --verify)")
+
+    if args.auto and not args.all and not args.location_id:
+        parser.error("--auto requires --location-id or explicit --all")
+
+    if args.type and not args.all and not args.location_id and args.type not in NETWORK_LEVEL_REPORTS:
+        parser.error("--location-id is required (or use --all for network-level reports)")
+
+
+def _report_failure_summary(exc: Exception) -> str:
+    """Return a stable report failure without exposing exception details."""
+    name = type(exc).__name__
+    if not name.isascii() or not name.isidentifier() or len(name) > 64:
+        name = "Exception"
+    return f"report generation failed ({name})"
+
+
+def _get_report_connection():
+    try:
+        return get_pg()
+    except Exception as exc:
+        raise RuntimeError(_report_failure_summary(exc)) from None
+
+
+def _close_report_connection(conn) -> None:
+    try:
+        conn.close()
+    except Exception as exc:
+        raise RuntimeError(_report_failure_summary(exc)) from None
+
+
+def generate_report_data_read_only(conn, generator, location_arg, period_start, period_end):
+    """Calculate a report in a read-only PostgreSQL transaction.
+
+    Snapshot persistence happens afterward in its own write transaction. The
+    connection's session default keeps every query read-only after a generator
+    commits. Autocommit is rejected because it would bypass transaction-level
+    read-only enforcement.
+    """
+    previous_autocommit = conn.autocommit
+    conn.set_session(readonly=True)
+    try:
+        return generator(
+            _ReadOnlyReportConnection(conn), location_arg, period_start, period_end
         )
-        if not args.location_id and not args.all and not network_level:
-            parser.error("--location-id is required (or use --all for network-level reports)")
+    finally:
+        # End the calculation transaction before store_snapshot starts its
+        # separate, intentional draft-snapshot write.
+        try:
+            conn.rollback()
+        finally:
+            try:
+                conn.autocommit = previous_autocommit
+            finally:
+                conn.set_session(readonly=False)
 
-    conn = get_pg()
+
+class _ReadOnlyReportConnection:
+    """Prevent report code from lowering the session's read-only default."""
+
+    _BLOCKED = frozenset({"readonly", "deferrable", "set_session"})
+
+    def __init__(self, conn):
+        object.__setattr__(self, "_conn", conn)
+
+    def cursor(self, *args, **kwargs):
+        return _ReadOnlyReportCursor(self._conn.cursor(*args, **kwargs), self)
+
+    def __getattr__(self, name):
+        if name in self._BLOCKED:
+            raise RuntimeError("report generators cannot lower the read-only database mode")
+        return getattr(self._conn, name)
+
+    def __setattr__(self, name, value):
+        if name in self._BLOCKED:
+            raise RuntimeError("report generators cannot lower the read-only database mode")
+        if name == "autocommit" and value:
+            raise RuntimeError("report generators cannot enable autocommit during calculation")
+        setattr(self._conn, name, value)
+
+
+class _ReadOnlyReportCursor:
+    """Keep the raw psycopg connection from escaping through ``cursor.connection``."""
+
+    def __init__(self, cursor, connection):
+        object.__setattr__(self, "_cursor", cursor)
+        object.__setattr__(self, "_connection", connection)
+
+    def __enter__(self):
+        self._cursor.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        return self._cursor.__exit__(*args)
+
+    def __getattr__(self, name):
+        if name == "connection":
+            return self._connection
+        return getattr(self._cursor, name)
+
+
+def _run_auto_generation(
+    conn,
+    *,
+    location_arg: str | None,
+    location_label: str,
+    period_start: str | None,
+    period_end: str | None,
+) -> None:
+    report_types = list(REPORT_GENERATORS.keys())
+    run_id = str(uuid.uuid4())
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO report_generation_run (id, location_scope, total_reports) VALUES (%s, %s, %s)",
+            (run_id, location_arg, len(report_types)),
+        )
+    conn.commit()
+    print(f"Generating all {len(report_types)} report types for {location_label}...")
+    print()
+
+    success = 0
+    failed = 0
+    empty = 0
+
+    for report_type in report_types:
+        print(f"Generating {report_type}...")
+        item_id = str(uuid.uuid4())
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO report_generation_run_item (id, run_id, report_type, status) VALUES (%s, %s, %s, 'running')",
+                (item_id, run_id, report_type),
+            )
+        conn.commit()
+        try:
+            generator = REPORT_GENERATORS[report_type]
+            report_location_arg = _generator_location_arg(report_type, location_arg)
+            report_data = generate_report_data_read_only(
+                conn, generator, report_location_arg, period_start, period_end
+            )
+            report_has_empty_content = _check_report_empty(report_data, report_type)
+            snapshot_id = store_snapshot(
+                conn, report_data, report_location_arg, period_start, period_end
+            )
+            snapshot_hash = compute_hash(report_data)
+            print(f"  ✓ {report_type}: {snapshot_id} ({snapshot_hash[:16]})")
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE report_generation_run_item SET status = 'succeeded', snapshot_id = %s, completed_at = NOW() WHERE id = %s",
+                    (snapshot_id, item_id),
+                )
+            conn.commit()
+            success += 1
+            empty += bool(report_has_empty_content)
+        except Exception as exc:  # noqa: BLE001 - persist failure and continue the batch
+            safe_error = _report_failure_summary(exc)
+            print(f"  ✗ {report_type}: {safe_error}")
+            conn.rollback()
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE report_generation_run_item SET status = 'failed', error_message = %s, completed_at = NOW() WHERE id = %s",
+                    (safe_error, item_id),
+                )
+            conn.commit()
+            failed += 1
+
+    print(f"\nDone: {success} succeeded, {failed} failed, {empty} empty")
+    run_status = "succeeded" if failed == 0 else "partial" if success else "failed"
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE report_generation_run SET status = %s, succeeded_reports = %s, failed_reports = %s, completed_at = NOW() WHERE id = %s",
+            (run_status, success, failed, run_id),
+        )
+    conn.commit()
+    if failed > 0:
+        raise SystemExit(1)
+
+
+def main():
+    parser = build_parser()
+    args = parser.parse_args()
+    validate_args(parser, args)
+
+    conn = _get_report_connection()
 
     if args.list:
         list_loc = args.location_id[0] if args.location_id else None
@@ -172,15 +462,19 @@ def main():
                     print(
                         f"{str(s['id']):<38} {s['report_type']:<20} {s['status']:<12} {str(s['created_at']):<20} {s['snapshot_hash'][:16]}"
                     )
+        except Exception as exc:
+            raise RuntimeError(_report_failure_summary(exc)) from None
         finally:
-            conn.close()
+            _close_report_connection(conn)
         return
 
     if args.verify:
         try:
             _verify_snapshot(conn, args.verify)
+        except Exception as exc:
+            raise RuntimeError(_report_failure_summary(exc)) from None
         finally:
-            conn.close()
+            _close_report_connection(conn)
         return
 
     # Normalize the location argument for single/all/multi selection.
@@ -199,86 +493,48 @@ def main():
         location_arg = None
         location_label = "network (no location filter)"
 
+    if args.type in NETWORK_SCOPE_ONLY_REPORTS:
+        location_arg = None
+        location_label = "network"
+
     if args.auto:
-        report_types = list(REPORT_GENERATORS.keys())
-        run_id = str(uuid.uuid4())
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO report_generation_run (id, location_scope, total_reports) VALUES (%s, %s, %s)",
-                (run_id, location_arg, len(report_types)),
+        try:
+            _run_auto_generation(
+                conn,
+                location_arg=location_arg,
+                location_label=location_label,
+                period_start=args.period_start,
+                period_end=args.period_end,
             )
-        conn.commit()
-        print(f"Generating all {len(report_types)} report types for {location_label}...")
-        print()
-
-        success = 0
-        failed = 0
-        empty = 0
-
-        for report_type in report_types:
-            print(f"Generating {report_type}...")
-            item_id = str(uuid.uuid4())
-            with conn.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO report_generation_run_item (id, run_id, report_type, status) VALUES (%s, %s, %s, 'running')",
-                    (item_id, run_id, report_type),
-                )
-            conn.commit()
-            try:
-                generator = REPORT_GENERATORS[report_type]
-                report_data = generator(conn, location_arg, args.period_start, args.period_end)
-                _check_report_empty(report_data, report_type)
-                snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
-                snapshot_hash = compute_hash(report_data)
-                print(f"  ✓ {report_type}: {snapshot_id} ({snapshot_hash[:16]})")
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "UPDATE report_generation_run_item SET status = 'succeeded', snapshot_id = %s, completed_at = NOW() WHERE id = %s",
-                        (snapshot_id, item_id),
-                    )
-                conn.commit()
-                success += 1
-            except Exception as e:
-                print(f"  ✗ {report_type}: {e}")
-                conn.rollback()
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "UPDATE report_generation_run_item SET status = 'failed', error_message = %s, completed_at = NOW() WHERE id = %s",
-                        (str(e)[:4000], item_id),
-                    )
-                conn.commit()
-                failed += 1
-
-        print(f"\nDone: {success} succeeded, {failed} failed, {empty} empty")
-        run_status = "succeeded" if failed == 0 else "partial" if success else "failed"
-        with conn.cursor() as cur:
-            cur.execute(
-                "UPDATE report_generation_run SET status = %s, succeeded_reports = %s, failed_reports = %s, completed_at = NOW() WHERE id = %s",
-                (run_status, success, failed, run_id),
-            )
-        conn.commit()
-        conn.close()
-        if failed > 0:
-            exit(1)
+        except Exception as exc:
+            raise RuntimeError(_report_failure_summary(exc)) from None
+        finally:
+            _close_report_connection(conn)
         return
 
     print(f"Generating {args.type} report for {location_label}...")
 
     try:
         generator = REPORT_GENERATORS[args.type]
-        report_data = generator(conn, location_arg, args.period_start, args.period_end)
+        report_location_arg = _generator_location_arg(args.type, location_arg)
+        report_data = generate_report_data_read_only(
+            conn, generator, report_location_arg, args.period_start, args.period_end
+        )
 
-        snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
+        snapshot_id = store_snapshot(
+            conn, report_data, report_location_arg, args.period_start, args.period_end
+        )
         snapshot_hash = compute_hash(report_data)
 
         print(f"Snapshot stored: {snapshot_id}")
         print(f"Hash: {snapshot_hash}")
         print(f"Report type: {args.type}")
     except Exception as exc:
-        print(f"Report generation failed: {exc}")
-        raise
+        safe_error = _report_failure_summary(exc)
+        print(safe_error)
+        raise RuntimeError(safe_error) from None
     finally:
-        conn.close()
+        _close_report_connection(conn)
 
 
 

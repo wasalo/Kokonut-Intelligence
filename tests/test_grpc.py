@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import os
 import tempfile
 from unittest.mock import MagicMock, patch
@@ -22,7 +21,7 @@ class TestAPIKeyInterceptor:
         details.method = "grpc.health.v1.Health/Check"
         details.invocation_metadata = []
 
-        result = interceptor.intercept_service(continuation, details)
+        interceptor.intercept_service(continuation, details)
         continuation.assert_called_once_with(details)
 
     def test_exempt_methods_accept_wire_format_with_leading_slash(self):
@@ -40,7 +39,9 @@ class TestAPIKeyInterceptor:
     def test_missing_api_key_rejected(self):
         from services.grpc.auth import APIKeyInterceptor
         interceptor = APIKeyInterceptor(db_factory=lambda: MagicMock())
-        continuation = MagicMock()
+        continuation = MagicMock(
+            return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None)
+        )
 
         details = MagicMock()
         details.method = "ecocredit.v1.EcocreditService/Classes"
@@ -48,6 +49,7 @@ class TestAPIKeyInterceptor:
 
         result = interceptor.intercept_service(continuation, details)
         assert result is not None
+        continuation.assert_called_once_with(details)
 
     def test_valid_api_key_passes(self):
         from services.grpc.auth import APIKeyInterceptor
@@ -58,14 +60,17 @@ class TestAPIKeyInterceptor:
         details.method = "grpc.health.v1.Health/Check"
         details.invocation_metadata = [("x-api-key", "test_key_12345")]
 
-        result = interceptor.intercept_service(continuation, details)
+        interceptor.intercept_service(continuation, details)
         continuation.assert_called_once_with(details)
 
     def test_expired_api_key_rejected(self):
+        from datetime import datetime, timedelta, timezone
+
         from services.grpc.auth import APIKeyInterceptor
-        from datetime import datetime, timezone, timedelta
         interceptor = APIKeyInterceptor(db_factory=lambda: MagicMock())
-        continuation = MagicMock()
+        continuation = MagicMock(
+            return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None)
+        )
 
         details = MagicMock()
         details.method = "ecocredit.v1.EcocreditService/Classes"
@@ -91,13 +96,15 @@ class TestAPIKeyInterceptor:
 
         result = interceptor.intercept_service(continuation, details)
         assert result is not None
-        continuation.assert_not_called()
+        continuation.assert_called_once_with(details)
         mock_factory.release.assert_called_once_with(mock_conn)
 
     def test_deactivated_api_key_rejected(self):
         from services.grpc.auth import APIKeyInterceptor
         interceptor = APIKeyInterceptor(db_factory=lambda: MagicMock())
-        continuation = MagicMock()
+        continuation = MagicMock(
+            return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None)
+        )
 
         details = MagicMock()
         details.method = "ecocredit.v1.EcocreditService/Classes"
@@ -123,7 +130,7 @@ class TestAPIKeyInterceptor:
 
         result = interceptor.intercept_service(continuation, details)
         assert result is not None
-        continuation.assert_not_called()
+        continuation.assert_called_once_with(details)
         mock_factory.release.assert_called_once_with(mock_conn)
 
 
@@ -137,22 +144,24 @@ class TestLoggingInterceptor:
         details = MagicMock()
         details.method = "test/Method"
 
-        result = interceptor.intercept_service(continuation, details)
+        interceptor.intercept_service(continuation, details)
         continuation.assert_called_once_with(details)
 
 
 class TestHealthServicer:
     def test_check(self):
-        from services.grpc.health import HealthServicer
         from grpc_health.v1.health_pb2 import HealthCheckRequest, HealthCheckResponse
+
+        from services.grpc.health import HealthServicer
         servicer = HealthServicer()
         context = MagicMock()
         response = servicer.Check(HealthCheckRequest(), context)
         assert response.status == HealthCheckResponse.SERVING
 
     def test_watch_yields_serving_status(self):
-        from services.grpc.health import HealthServicer
         from grpc_health.v1.health_pb2 import HealthCheckRequest, HealthCheckResponse
+
+        from services.grpc.health import HealthServicer
         servicer = HealthServicer()
         context = MagicMock()
         context.is_active.return_value = False
@@ -164,8 +173,9 @@ class TestHealthServicer:
 
 class TestGrpcHealthCli:
     def test_health_uses_bounded_rpc_without_channel_ready_preflight(self):
-        from services.grpc import cli
         from grpc_health.v1 import health_pb2, health_pb2_grpc
+
+        from services.grpc import cli
 
         serving = health_pb2.HealthCheckResponse.SERVING
         with patch("grpc.insecure_channel") as insecure_channel:
@@ -174,7 +184,7 @@ class TestGrpcHealthCli:
             stub = MagicMock()
             stub.Check.return_value = health_pb2.HealthCheckResponse(status=serving)
             with patch.object(health_pb2_grpc, "HealthStub", return_value=stub):
-                cli.cmd_health(MagicMock(target="127.0.0.1:50051"))
+                cli.cmd_health(MagicMock(target="127.0.0.1:50051", tls_ca=None))
 
         stub.Check.assert_called_once()
         assert stub.Check.call_args.kwargs["timeout"] == 5
@@ -184,7 +194,7 @@ class TestGrpcHealthCli:
 
 class TestRequireScope:
     def test_scope_check_passes_with_matching_scope(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -193,13 +203,13 @@ class TestRequireScope:
         })
         try:
             mock_context = MagicMock()
-            require_scope(mock_context, "ecocredit", "class")
+            require_scope(mock_context, "ecocredit:class", "read")
             mock_context.abort.assert_not_called()
         finally:
             grpc_auth_context.reset(token)
 
     def test_scope_check_passes_with_wildcard(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -214,7 +224,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_denies_wrong_scope(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -234,7 +244,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_denies_empty_scopes(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -253,7 +263,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_denies_no_auth(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set(None)
         try:
@@ -269,7 +279,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_two_part_scope(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -284,7 +294,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_wildcard_action(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -308,7 +318,7 @@ class TestConnectionPoolRelease:
         mock_factory.release = MagicMock()
 
         interceptor = APIKeyInterceptor(db_factory=mock_factory)
-        continuation = MagicMock(return_value="handler")
+        continuation = MagicMock(return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None))
 
         details = MagicMock()
         details.method = "ecocredit.v1.EcocreditService/Classes"
@@ -362,7 +372,7 @@ class TestConnectionPoolRelease:
             mock_factory.release = release
 
             interceptor = APIKeyInterceptor(db_factory=mock_factory)
-            continuation = MagicMock(return_value="handler")
+            continuation = MagicMock(return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None))
 
             interceptor.intercept_service(continuation, details)
 
@@ -385,12 +395,13 @@ class TestTLSConfig:
             with patch.dict(os.environ, {
                 "GRPC_TLS_CERT": cert_path,
                 "GRPC_TLS_KEY": key_path,
-                "GRPC_PORT": "0",
+                "GRPC_PORT": "50051",
+                "GRPC_ALLOW_INSECURE": "true",
             }, clear=False):
                 env = os.environ.copy()
                 env["GRPC_TLS_CERT"] = cert_path
                 env["GRPC_TLS_KEY"] = key_path
-                env["GRPC_PORT"] = "0"
+                env["GRPC_PORT"] = "50051"
 
                 with patch.dict(os.environ, env, clear=True):
                     with patch("services.grpc.server._get_db_pool") as mock_pool:
@@ -413,10 +424,8 @@ class TestTLSConfig:
                                                     except (SystemExit, Exception):
                                                         pass
 
-                            if mock_server.add_secure_port.called:
-                                assert mock_server.add_secure_port.called
-                            elif mock_server.add_insecure_port.called:
-                                pass
+                            mock_server.add_secure_port.assert_called_once()
+                            mock_server.add_insecure_port.assert_not_called()
                             mock_server.start.assert_called_once_with()
         finally:
             if os.path.exists(cert_path):
@@ -430,7 +439,8 @@ class TestTLSConfig:
         env = os.environ.copy()
         env.pop("GRPC_TLS_CERT", None)
         env.pop("GRPC_TLS_KEY", None)
-        env["GRPC_PORT"] = "0"
+        env["GRPC_PORT"] = "50051"
+        env["GRPC_ALLOW_INSECURE"] = "true"
 
         with patch.dict(os.environ, env, clear=True):
             with patch("services.grpc.server._get_db_pool") as mock_pool:
@@ -453,10 +463,56 @@ class TestTLSConfig:
                                             except (SystemExit, Exception):
                                                 pass
 
-                    if mock_server.add_insecure_port.called:
-                        args = mock_server.add_insecure_port.call_args
-                        assert "[::]" in str(args)
+                    mock_server.add_insecure_port.assert_called_once_with("[::]:50051")
+                    mock_server.add_secure_port.assert_not_called()
                     mock_server.start.assert_called_once_with()
+
+
+class TestMessageSizeConfiguration:
+    def test_default_and_configured_limits_are_bounded(self, monkeypatch):
+        from services.grpc.server import (
+            DEFAULT_MAX_MESSAGE_BYTES,
+            MAX_MAX_MESSAGE_BYTES,
+            MIN_MAX_MESSAGE_BYTES,
+            _configured_max_message_bytes,
+        )
+
+        monkeypatch.delenv("GRPC_MAX_MESSAGE_BYTES", raising=False)
+        assert _configured_max_message_bytes() == DEFAULT_MAX_MESSAGE_BYTES
+
+        monkeypatch.setenv("GRPC_MAX_MESSAGE_BYTES", str(MAX_MAX_MESSAGE_BYTES))
+        assert _configured_max_message_bytes() == MAX_MAX_MESSAGE_BYTES
+
+        monkeypatch.setenv("GRPC_MAX_MESSAGE_BYTES", str(MIN_MAX_MESSAGE_BYTES))
+        assert _configured_max_message_bytes() == MIN_MAX_MESSAGE_BYTES
+
+    @pytest.mark.parametrize(
+        "raw_value",
+        ["", "invalid", "-1", "+1024", "1023", str(64 * 1024 * 1024 + 1)],
+    )
+    def test_invalid_message_limit_fails_before_database_pool_creation(self, monkeypatch, raw_value):
+        from services.grpc.server import serve
+
+        monkeypatch.setattr("services.core.adapters.grpc.require_enabled", lambda: None)
+        monkeypatch.setenv("GRPC_PORT", "50051")
+        monkeypatch.setenv("GRPC_MAX_MESSAGE_BYTES", raw_value)
+        with patch("services.grpc.server._get_db_pool") as get_pool:
+            with pytest.raises(ValueError, match="GRPC_MAX_MESSAGE_BYTES"):
+                serve()
+        get_pool.assert_not_called()
+
+    def test_server_sets_send_and_receive_limits(self):
+        from services.grpc.server import _build_server
+
+        with patch("services.grpc.server.grpc.server") as grpc_server:
+            mock_server = MagicMock()
+            grpc_server.return_value = mock_server
+            with patch("services.grpc.server.reflection.enable_server_reflection"):
+                _build_server(MagicMock(), MagicMock(), max_message_bytes=2048)
+
+        options = dict(grpc_server.call_args.kwargs["options"])
+        assert options["grpc.max_receive_message_length"] == 2048
+        assert options["grpc.max_send_message_length"] == 2048
 
 
 class TestProtoDefinitions:

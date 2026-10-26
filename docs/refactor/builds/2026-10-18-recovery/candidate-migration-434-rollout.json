@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-18",
+  "migration_id": "schema:434_financial_events_clickhouse_outbox.sql",
+  "target": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_files": [
+      "docker-compose.kernel-candidate.yml",
+      "docker-compose.kernel-local-db.yml"
+    ],
+    "database": "kokonut_intelligence",
+    "legacy_stack_touched": false
+  },
+  "checkpoint": {
+    "path": "/Users/gilbertoadon/Library/Application Support/Kokonut/Checkpoints/kernel-candidate-pre-434-20261018T1556Z",
+    "encrypted_archive": "postgres.dump.age",
+    "sha256": "7dc5210ecc49b4e9529140cd0ce20b827fcb6a3ae6d53f7e93212b189bc6383c",
+    "bytes": 6303569,
+    "restore_rehearsal": {
+      "result": "passed",
+      "network": "none",
+      "candidate_modified": false,
+      "schema_ledger_rows_before": 424,
+      "restored_schema_ledger_rows": 424,
+      "schema_ledger_fingerprint": "6f0d6a9fb9541b39244ba137ee9af6e5",
+      "extension_fingerprint": "5158f368ce9789c0e8696828225510ef",
+      "public_relations": 1396,
+      "selected_reference_counts_matched": {
+        "expense_category": 19,
+        "metric_definition": 20,
+        "ghg_emission_factor": 19,
+        "carbon_benchmark": 8,
+        "operations_protocol": 5
+      }
+    },
+    "retained_outside_repository": true
+  },
+  "rollout": {
+    "runner": "services.migration.cli",
+    "ordered_plan_before": [
+      "schema:434_financial_events_clickhouse_outbox.sql"
+    ],
+    "result": "applied",
+    "schema_migrations_applied": 425,
+    "schema_migrations_pending": 0,
+    "failed_ledger_rows": 0,
+    "applied_seed_entries": 6,
+    "seed_files_executed": 0,
+    "candidate_app_recreated": false
+  },
+  "runtime_verification": {
+    "database": "healthy",
+    "application": "healthy",
+    "metabase": "healthy",
+    "proxy": "running",
+    "health_endpoint": {
+      "path": "/health",
+      "http_status": 200,
+      "service_status": "ok"
+    },
+    "unauthenticated_operator_route": {
+      "path": "/operator/api/report-review-queue?location_id=00000000-0000-0000-0000-000000000001",
+      "http_status": 404,
+      "reason": "OIDC is disabled in this candidate profile; no protected data was returned"
+    },
+    "directus_profile_running": false,
+    "candidate_clickhouse_service_running": false
+  },
+  "cleanup": {
+    "disposable_restore_container_removed": true,
+    "disposable_restore_volume_removed": true,
+    "checkpoint_retained": true
+  },
+  "limitations": [
+    "This is a schema rollout and candidate health check, not financial report-output parity.",
+    "Directus was not running; its old hook must be rebuilt before any Directus write profile is enabled to avoid duplicate projections.",
+    "Historical financial-event backfill and update/delete reconciliation remain open.",
+    "No production, ClickHouse delivery, or MAN-CAP acceptance is claimed."
+  ]
+}

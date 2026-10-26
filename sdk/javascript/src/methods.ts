@@ -6,11 +6,15 @@ import type {
   HarvestEvent,
   SalesEvent,
   ExpenseEvent,
+  LossEvent,
+  LaborEvent,
+  FieldNote,
   SensorReading,
   WalletProfile,
   AttestationRecord,
   ReportSnapshot,
   ExportLog,
+  ExportFormat,
   NoiSnapshot,
   ListOptions,
 } from './types.js';
@@ -24,6 +28,54 @@ export interface GenericMethods {
   delete(id: string): Promise<void>;
 }
 
+export interface LocationReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByLocation(locationId: string, options?: ListOptions): Promise<T[]>;
+}
+
+export interface ReferenceReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+}
+
+export interface ForecastAccuracyReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByForecast(forecastId: string, options?: ListOptions): Promise<T[]>;
+}
+
+export interface KrigingPointReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByPrediction(predictionId: string, options?: ListOptions): Promise<T[]>;
+}
+
+export interface GeostatRealizationPointReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByRealization(realizationId: string, options?: ListOptions): Promise<T[]>;
+}
+
+export interface CausalLinkReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByLoop(loopId: string, options?: ListOptions): Promise<T[]>;
+}
+
+export interface AssessmentChildReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByAssessment(assessmentId: string, options?: ListOptions): Promise<T[]>;
+}
+
+export interface AssessmentLocationReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByLocation(locationId: string, options?: ListOptions): Promise<T[]>;
+  listByAssessment(assessmentId: string, options?: ListOptions): Promise<T[]>;
+}
+
 function createGenericMethods(client: any, collection: string): GenericMethods {
   return {
     list: (options?: ListOptions) => client.listItems(collection, options),
@@ -32,6 +84,122 @@ function createGenericMethods(client: any, collection: string): GenericMethods {
     createMany: (data: Record<string, any>[]) => client.createItems(collection, data),
     update: (id: string, data: Record<string, any>) => client.updateItem(collection, id, data),
     delete: (id: string) => client.deleteItem(collection, id),
+  };
+}
+
+export function buildLocationReadMethods<T>(
+  client: any,
+  collection: string,
+): LocationReadMethods<T> {
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByLocation: (locationId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildReferenceReadMethods<T>(
+  client: any,
+  collection: string,
+): ReferenceReadMethods<T> {
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+  };
+}
+
+export function buildForecastAccuracyReadMethods<T>(
+  client: any,
+): ForecastAccuracyReadMethods<T> {
+  const collection = 'forecast_accuracy';
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByForecast: (forecastId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, forecast_id: { _eq: forecastId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildKrigingPointReadMethods<T>(client: any): KrigingPointReadMethods<T> {
+  const collection = 'kriging_point';
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByPrediction: (predictionId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, prediction_id: { _eq: predictionId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildGeostatRealizationPointReadMethods<T>(
+  client: any,
+): GeostatRealizationPointReadMethods<T> {
+  const collection = 'geostat_realization_point';
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByRealization: (realizationId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, realization_id: { _eq: realizationId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildCausalLinkReadMethods<T>(client: any): CausalLinkReadMethods<T> {
+  const collection = 'causal_link';
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByLoop: (loopId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, loop_id: { _eq: loopId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildAssessmentChildReadMethods<T>(
+  client: any,
+  collection: string,
+): AssessmentChildReadMethods<T> {
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByAssessment: (assessmentId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, assessment_id: { _eq: assessmentId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildAssessmentLocationReadMethods<T>(
+  client: any,
+  collection: string,
+): AssessmentLocationReadMethods<T> {
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByLocation: (locationId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
+      }) as Promise<T[]>,
+    listByAssessment: (assessmentId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, assessment_id: { _eq: assessmentId } },
+      }) as Promise<T[]>,
   };
 }
 
@@ -100,6 +268,33 @@ export interface ExpenseEventMethods extends GenericMethods {
   listPendingApproval(options?: ListOptions): Promise<ExpenseEvent[]>;
 }
 
+export interface LossEventMethods extends GenericMethods {
+  list(options?: ListOptions): Promise<LossEvent[]>;
+  get(id: string, fields?: string[]): Promise<LossEvent>;
+  create(data: Partial<LossEvent>): Promise<LossEvent>;
+  createMany(data: Partial<LossEvent>[]): Promise<LossEvent[]>;
+  update(id: string, data: Partial<LossEvent>): Promise<LossEvent>;
+  listByLocation(locationId: string, options?: ListOptions): Promise<LossEvent[]>;
+}
+
+export interface LaborEventMethods extends GenericMethods {
+  list(options?: ListOptions): Promise<LaborEvent[]>;
+  get(id: string, fields?: string[]): Promise<LaborEvent>;
+  create(data: Partial<LaborEvent>): Promise<LaborEvent>;
+  createMany(data: Partial<LaborEvent>[]): Promise<LaborEvent[]>;
+  update(id: string, data: Partial<LaborEvent>): Promise<LaborEvent>;
+  listByLocation(locationId: string, options?: ListOptions): Promise<LaborEvent[]>;
+}
+
+export interface FieldNoteMethods extends GenericMethods {
+  list(options?: ListOptions): Promise<FieldNote[]>;
+  get(id: string, fields?: string[]): Promise<FieldNote>;
+  create(data: Partial<FieldNote>): Promise<FieldNote>;
+  createMany(data: Partial<FieldNote>[]): Promise<FieldNote[]>;
+  update(id: string, data: Partial<FieldNote>): Promise<FieldNote>;
+  listByLocation(locationId: string, options?: ListOptions): Promise<FieldNote[]>;
+}
+
 export interface SensorReadingMethods extends GenericMethods {
   list(options?: ListOptions): Promise<SensorReading[]>;
   get(id: string, fields?: string[]): Promise<SensorReading>;
@@ -139,17 +334,41 @@ export interface ReportMethods extends GenericMethods {
   listByType(reportType: string, options?: ListOptions): Promise<ReportSnapshot[]>;
 }
 
+export interface ExportCreateOptions {
+  format?: ExportFormat | null;
+  entity_type?: string;
+  entity_ids?: string[];
+  target_table?: string;
+  filters?: Record<string, any>;
+}
+
+export interface ExportCreateRequest extends ExportCreateOptions {
+  export_type: string;
+}
+
 export interface ExportMethods extends GenericMethods {
   list(options?: ListOptions): Promise<ExportLog[]>;
-  get(id: string): Promise<ExportLog>;
+  get(id: string, fields?: string[]): Promise<ExportLog>;
+  createExport(data: ExportCreateRequest): Promise<ExportLog>;
+  createExport(exportType: string, options?: ExportCreateOptions): Promise<ExportLog>;
+  createExport(
+    exportType: string,
+    format?: ExportFormat | null,
+    entityType?: string,
+    entityIds?: string[],
+    targetTable?: string,
+    filters?: Record<string, any>,
+  ): Promise<ExportLog>;
+  /** Existing JavaScript creation method; use createExport() for Python parity. */
   create(data: {
     export_type: string;
-    format: ExportLog['format'];
+    format: ExportFormat;
     entity_type?: string;
     entity_ids?: string[];
+    target_table?: string;
     filters?: Record<string, any>;
   }): Promise<ExportLog>;
-  createMany: never;
+  createMany(data: Partial<ExportLog>[]): Promise<ExportLog[]>;
   update(id: string, data: Record<string, any>): Promise<ExportLog>;
   delete(id: string): Promise<void>;
 }
@@ -178,7 +397,7 @@ export function buildFarmMethods(client: any): FarmMethods {
     listByLocation: (locationId: string, options?: ListOptions) =>
       client.listItems('farm', {
         ...options,
-        filter: { ...options?.filter, location_id: locationId },
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
       }) as Promise<Farm[]>,
   };
 }
@@ -195,7 +414,7 @@ export function buildPlotMethods(client: any): PlotMethods {
     listByFarm: (farmId: string, options?: ListOptions) =>
       client.listItems('plot', {
         ...options,
-        filter: { ...options?.filter, farm_id: farmId },
+        filter: { ...options?.filter, farm_id: { _eq: farmId } },
       }) as Promise<Plot[]>,
   };
 }
@@ -212,7 +431,7 @@ export function buildCropCycleMethods(client: any): CropCycleMethods {
     listByPlot: (plotId: string, options?: ListOptions) =>
       client.listItems('crop_cycle', {
         ...options,
-        filter: { ...options?.filter, plot_id: plotId },
+        filter: { ...options?.filter, plot_id: { _eq: plotId } },
       }) as Promise<CropCycle[]>,
     listActive: (options?: ListOptions) =>
       client.listItems('crop_cycle', {
@@ -234,7 +453,7 @@ export function buildHarvestEventMethods(client: any): HarvestEventMethods {
     listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
       client.listItems('harvest_event', {
         ...options,
-        filter: { ...options?.filter, crop_cycle_id: cropCycleId },
+        filter: { ...options?.filter, crop_cycle_id: { _eq: cropCycleId } },
       }) as Promise<HarvestEvent[]>,
   };
 }
@@ -251,7 +470,7 @@ export function buildSalesEventMethods(client: any): SalesEventMethods {
     listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
       client.listItems('sales_event', {
         ...options,
-        filter: { ...options?.filter, crop_cycle_id: cropCycleId },
+        filter: { ...options?.filter, crop_cycle_id: { _eq: cropCycleId } },
       }) as Promise<SalesEvent[]>,
     listUnpaid: (options?: ListOptions) =>
       client.listItems('sales_event', {
@@ -273,13 +492,64 @@ export function buildExpenseEventMethods(client: any): ExpenseEventMethods {
     listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
       client.listItems('expense_event', {
         ...options,
-        filter: { ...options?.filter, crop_cycle_id: cropCycleId },
+        filter: { ...options?.filter, crop_cycle_id: { _eq: cropCycleId } },
       }) as Promise<ExpenseEvent[]>,
     listPendingApproval: (options?: ListOptions) =>
       client.listItems('expense_event', {
         ...options,
         filter: { ...options?.filter, status: { _eq: 'submitted' } },
       }) as Promise<ExpenseEvent[]>,
+  };
+}
+
+export function buildLossEventMethods(client: any): LossEventMethods {
+  const base = createGenericMethods(client, 'loss_event');
+  return {
+    ...base,
+    list: (options?: ListOptions) => client.listItems('loss_event', options) as Promise<LossEvent[]>,
+    get: (id: string, fields?: string[]) => client.getItem('loss_event', id, fields) as Promise<LossEvent>,
+    create: (data: Partial<LossEvent>) => client.createItem('loss_event', data) as Promise<LossEvent>,
+    createMany: (data: Partial<LossEvent>[]) => client.createItems('loss_event', data) as Promise<LossEvent[]>,
+    update: (id: string, data: Partial<LossEvent>) => client.updateItem('loss_event', id, data) as Promise<LossEvent>,
+    listByLocation: (locationId: string, options?: ListOptions) =>
+      client.listItems('loss_event', {
+        ...options,
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
+      }) as Promise<LossEvent[]>,
+  };
+}
+
+export function buildLaborEventMethods(client: any): LaborEventMethods {
+  const base = createGenericMethods(client, 'labor_event');
+  return {
+    ...base,
+    list: (options?: ListOptions) => client.listItems('labor_event', options) as Promise<LaborEvent[]>,
+    get: (id: string, fields?: string[]) => client.getItem('labor_event', id, fields) as Promise<LaborEvent>,
+    create: (data: Partial<LaborEvent>) => client.createItem('labor_event', data) as Promise<LaborEvent>,
+    createMany: (data: Partial<LaborEvent>[]) => client.createItems('labor_event', data) as Promise<LaborEvent[]>,
+    update: (id: string, data: Partial<LaborEvent>) => client.updateItem('labor_event', id, data) as Promise<LaborEvent>,
+    listByLocation: (locationId: string, options?: ListOptions) =>
+      client.listItems('labor_event', {
+        ...options,
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
+      }) as Promise<LaborEvent[]>,
+  };
+}
+
+export function buildFieldNoteMethods(client: any): FieldNoteMethods {
+  const base = createGenericMethods(client, 'field_note');
+  return {
+    ...base,
+    list: (options?: ListOptions) => client.listItems('field_note', options) as Promise<FieldNote[]>,
+    get: (id: string, fields?: string[]) => client.getItem('field_note', id, fields) as Promise<FieldNote>,
+    create: (data: Partial<FieldNote>) => client.createItem('field_note', data) as Promise<FieldNote>,
+    createMany: (data: Partial<FieldNote>[]) => client.createItems('field_note', data) as Promise<FieldNote[]>,
+    update: (id: string, data: Partial<FieldNote>) => client.updateItem('field_note', id, data) as Promise<FieldNote>,
+    listByLocation: (locationId: string, options?: ListOptions) =>
+      client.listItems('field_note', {
+        ...options,
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
+      }) as Promise<FieldNote[]>,
   };
 }
 
@@ -295,12 +565,12 @@ export function buildSensorReadingMethods(client: any): SensorReadingMethods {
     listByDevice: (deviceId: string, options?: ListOptions) =>
       client.listItems('sensor_reading', {
         ...options,
-        filter: { ...options?.filter, sensor_id: deviceId },
+        filter: { ...options?.filter, sensor_id: { _eq: deviceId } },
       }) as Promise<SensorReading[]>,
     listByPlot: (plotId: string, options?: ListOptions) =>
       client.listItems('sensor_reading', {
         ...options,
-        filter: { ...options?.filter, plot_id: plotId },
+        filter: { ...options?.filter, plot_id: { _eq: plotId } },
       }) as Promise<SensorReading[]>,
     listAnomalies: (options?: ListOptions) =>
       client.listItems('sensor_reading', {
@@ -345,7 +615,7 @@ export function buildAttestationMethods(client: any): AttestationMethods {
       }) as Promise<AttestationRecord[]>,
     listByEntity: (subjectType: string, subjectId: string) =>
       client.listItems('attestation_record', {
-        filter: { subject_type: subjectType, subject_id: subjectId },
+        filter: { subject_type: { _eq: subjectType }, subject_id: { _eq: subjectId } },
       }) as Promise<AttestationRecord[]>,
   };
 }
@@ -362,29 +632,67 @@ export function buildReportMethods(client: any): ReportMethods {
     listByType: (reportType: string, options?: ListOptions) =>
       client.listItems('report_snapshot', {
         ...options,
-        filter: { ...options?.filter, report_type: reportType },
+        filter: { ...options?.filter, report_type: { _eq: reportType } },
       }) as Promise<ReportSnapshot[]>,
   };
 }
 
 export function buildExportMethods(client: any): ExportMethods {
+  const createExport = async (
+    requestOrType: ExportCreateRequest | string,
+    optionsOrFormat?: ExportCreateOptions | ExportFormat | null,
+    entityType?: string,
+    entityIds?: string[],
+    targetTable?: string,
+    filters?: Record<string, any>,
+  ): Promise<ExportLog> => {
+    let params: ExportCreateRequest;
+    if (typeof requestOrType === 'string') {
+      const options = typeof optionsOrFormat === 'object' && optionsOrFormat !== null
+        ? optionsOrFormat
+        : {
+            format: optionsOrFormat,
+            entity_type: entityType,
+            entity_ids: entityIds,
+            target_table: targetTable,
+            filters,
+          };
+      params = { ...options, export_type: requestOrType };
+    } else {
+      params = requestOrType;
+    }
+
+    return client.createItem('export_log', {
+      export_type: params.export_type,
+      format: params.format ?? null,
+      entity_type: params.entity_type ?? null,
+      entity_ids: params.entity_ids ?? null,
+      target_table: params.target_table ?? null,
+      filters: params.filters ?? null,
+      status: 'pending',
+      requested_by: 'sdk',
+    }) as Promise<ExportLog>;
+  };
+
+  const create = async (params: {
+    export_type: string;
+    format: ExportLog['format'];
+    entity_type?: string;
+    entity_ids?: string[];
+    target_table?: string;
+    filters?: Record<string, any>;
+  }): Promise<ExportLog> => client.createItem('export_log', {
+    ...params,
+    status: 'pending',
+    requested_by: 'sdk',
+  }) as Promise<ExportLog>;
+
   return {
     list: (options?: ListOptions) => client.listItems('export_log', options) as Promise<ExportLog[]>,
-    get: (id: string) => client.getItem('export_log', id) as Promise<ExportLog>,
-    create: async (params: {
-      export_type: string;
-      format: ExportLog['format'];
-      entity_type?: string;
-      entity_ids?: string[];
-      filters?: Record<string, any>;
-    }) => {
-      return client.createItem('export_log', {
-        ...params,
-        status: 'pending',
-        requested_by: 'sdk',
-      }) as Promise<ExportLog>;
-    },
-    createMany: undefined as never,
+    get: (id: string, fields?: string[]) => client.getItem('export_log', id, fields) as Promise<ExportLog>,
+    createExport,
+    create,
+    createMany: (data: Partial<ExportLog>[]) => client.createItems('export_log', data) as Promise<ExportLog[]>,
     update: (id: string, data: Record<string, any>) => client.updateItem('export_log', id, data) as Promise<ExportLog>,
     delete: (id: string) => client.deleteItem('export_log', id),
   };
@@ -411,7 +719,7 @@ export function buildNoiMethods(client: any): NoiMethods {
     listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
       client.listItems('noi_snapshot', {
         ...options,
-        filter: { ...options?.filter, crop_cycle_id: cropCycleId },
+        filter: { ...options?.filter, crop_cycle_id: { _eq: cropCycleId } },
       }) as Promise<NoiSnapshot[]>,
   };
 }

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { uuidSchema, isoDateSchema } from './common.js';
 
 const HIGH_RISK_ACTIONS = [
+  'verify',
   'publish',
   'attest',
   'onchain_submit',

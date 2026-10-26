@@ -1,0 +1,56 @@
+CREATE TABLE public.delphi_study (
+    id UUID PRIMARY KEY,
+    location_id UUID NOT NULL,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL,
+    stopping_criteria JSONB NOT NULL DEFAULT '{"min_participants": 3, "iqr_threshold": 1}'::jsonb
+);
+CREATE TABLE public.delphi_item (
+    id UUID PRIMARY KEY,
+    study_id UUID NOT NULL,
+    label TEXT NOT NULL,
+    scale TEXT NOT NULL,
+    item_type TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE public.delphi_panel_member (
+    id UUID PRIMARY KEY,
+    study_id UUID NOT NULL,
+    display_token TEXT NOT NULL,
+    expert_weight NUMERIC NOT NULL DEFAULT 1,
+    consent_status TEXT NOT NULL
+);
+CREATE TABLE public.delphi_contribution (
+    id UUID PRIMARY KEY,
+    study_id UUID NOT NULL,
+    item_id UUID NOT NULL,
+    panel_member_id UUID NOT NULL,
+    score NUMERIC NOT NULL,
+    reasoning TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO public.delphi_study (id, location_id, title, status) VALUES
+    ('d1000000-0000-4000-8000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Synthetic owned study', 'open'),
+    ('d1000000-0000-4000-8000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'Synthetic foreign study', 'open');
+INSERT INTO public.delphi_item (id, study_id, label, scale, item_type) VALUES
+    ('d2000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', 'Public-safe item', 'desirability', 'option'),
+    ('d2000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000001', 'Below-floor item', 'feasibility_technical', 'goal'),
+    ('d2000000-0000-4000-8000-000000000003', 'd1000000-0000-4000-8000-000000000002', 'Foreign item', 'desirability', 'option');
+INSERT INTO public.delphi_panel_member (id, study_id, display_token, expert_weight, consent_status) VALUES
+    ('d3000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', 'private-token-1', 1, 'granted'),
+    ('d3000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000001', 'private-token-2', 1, 'granted'),
+    ('d3000000-0000-4000-8000-000000000003', 'd1000000-0000-4000-8000-000000000001', 'private-token-3', 1, 'granted'),
+    ('d3000000-0000-4000-8000-000000000004', 'd1000000-0000-4000-8000-000000000001', 'private-token-4', 1, 'granted'),
+    ('d3000000-0000-4000-8000-000000000005', 'd1000000-0000-4000-8000-000000000001', 'private-token-5', 1, 'pending'),
+    ('d3000000-0000-4000-8000-000000000006', 'd1000000-0000-4000-8000-000000000001', 'private-token-6', 1, 'withdrawn'),
+    ('d3000000-0000-4000-8000-000000000007', 'd1000000-0000-4000-8000-000000000002', 'foreign-token', 1, 'granted');
+INSERT INTO public.delphi_contribution (id, study_id, item_id, panel_member_id, score, reasoning) VALUES
+    ('d4000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000001', 'd3000000-0000-4000-8000-000000000001', 0.1, 'private reasoning one'),
+    ('d4000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000001', 'd3000000-0000-4000-8000-000000000002', 0.3, 'private reasoning two'),
+    ('d4000000-0000-4000-8000-000000000003', 'd1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000001', 'd3000000-0000-4000-8000-000000000003', 0.5, 'private reasoning three'),
+    ('d4000000-0000-4000-8000-000000000004', 'd1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000001', 'd3000000-0000-4000-8000-000000000004', 0.9, 'private reasoning four'),
+    ('d4000000-0000-4000-8000-000000000005', 'd1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000002', 'd3000000-0000-4000-8000-000000000001', 0.2, 'suppressed reasoning one'),
+    ('d4000000-0000-4000-8000-000000000006', 'd1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000002', 'd3000000-0000-4000-8000-000000000002', 0.8, 'suppressed reasoning two'),
+    ('d4000000-0000-4000-8000-000000000007', 'd1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000002', 'd3000000-0000-4000-8000-000000000005', 0.5, 'pending reasoning must not count'),
+    ('d4000000-0000-4000-8000-000000000008', 'd1000000-0000-4000-8000-000000000002', 'd2000000-0000-4000-8000-000000000003', 'd3000000-0000-4000-8000-000000000007', 0.4, 'foreign reasoning');

@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-18",
+  "hosted_run": {
+    "workflow_run": 491,
+    "run_id": 39149489284,
+    "pushed_head": "ca6c1d1819297c215bb118906830305f0d35e2ad",
+    "result": "failed",
+    "summary": "2 failed, 6050 passed, 146 subtests passed"
+  },
+  "failures": [
+    {
+      "test": "tests/test_postgres_readiness_contract.py::test_python_postgres_readiness_probes_use_tcp",
+      "cause": "The disposable PostgreSQL 16 container was configured to listen on 127.0.0.1 while its readiness probe checked the Unix socket.",
+      "fix": "Probe 127.0.0.1 inside the isolated container, matching the listener and the readiness contract."
+    },
+    {
+      "test": "tests/test_worker_job_contract_inventory.py::test_inventory_distinguishes_location_and_sensor_driver_instance_inputs",
+      "cause": "The assertion expected 12 required-input jobs; the current catalog has 13, including rpc and rpc_legacy with required chain inputs.",
+      "fix": "Expect 13 and explicitly assert both RPC job contracts."
+    }
+  ],
+  "local_fix_commit": "02493e47",
+  "focused_check": {
+    "command": "python3 -m pytest tests/test_postgres_readiness_contract.py tests/test_worker_job_contract_inventory.py -q",
+    "result": "passed",
+    "tests_passed": 4
+  },
+  "full_ci_rerun": "awaits the next batched push",
+  "candidate_or_legacy_database_touched": false
+}

@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
 
-
 SCOPE_TYPES = (
     "network", "organization", "location", "farm", "cooperative",
     "value_stream", "initiative", "decision",
@@ -362,6 +361,70 @@ def list_assignments(conn, *, role_id: Optional[str] = None, party_id: Optional[
         return [_row(row) for row in cur.fetchall()]
 
 
+def evaluate_role_authority(
+    conn,
+    party_id: str,
+    domain_type: str,
+    domain_key: str,
+    *,
+    scope_type: str = "network",
+    scope_id: Optional[str] = None,
+    required_level: str = "recommend",
+) -> Dict[str, Any]:
+    """Evaluate active role authority and surface any separate human gate.
+
+    ``authority_granted`` means the current role assignment meets the requested
+    authority level. A decision of ``approval_required`` is not permission to
+    execute; callers must complete a distinct human approval flow first.
+    """
+    levels = {name: index for index, name in enumerate(AUTHORITY_LEVELS)}
+    if required_level not in levels:
+        raise ValueError(f"required_level must be one of {AUTHORITY_LEVELS}")
+    with conn.cursor() as cur:
+        cur.execute(
+            """SELECT d.authority_level, BOOL_OR(d.requires_human_approval)
+               FROM governance_role_assignment a
+               JOIN governance_role r ON r.id = a.role_id
+               JOIN governance_circle c ON c.id = r.circle_id
+               JOIN governance_role_domain d ON d.role_id = a.role_id
+               WHERE a.party_id = %s::uuid AND a.status = 'active'
+                 AND a.recusal_status = 'clear' AND d.status = 'active'
+                 AND r.status = 'active' AND c.status = 'active'
+                 AND (r.effective_from IS NULL OR r.effective_from <= NOW())
+                 AND (r.effective_until IS NULL OR r.effective_until >= NOW())
+                 AND a.effective_from IS NOT NULL AND a.effective_from <= NOW()
+                 AND (a.effective_until IS NULL OR a.effective_until >= NOW())
+                 AND d.domain_type = %s AND d.domain_key = %s
+                 AND d.scope_type = %s AND d.scope_id IS NOT DISTINCT FROM %s::uuid
+               GROUP BY d.authority_level
+               ORDER BY CASE d.authority_level
+                   WHEN 'observe' THEN 0 WHEN 'recommend' THEN 1
+                   WHEN 'decide' THEN 2 WHEN 'execute' THEN 3 END DESC
+               LIMIT 1""",
+            (party_id, domain_type, domain_key, scope_type, scope_id),
+        )
+        row = cur.fetchone()
+    authority_level = row[0] if row else None
+    authority_granted = bool(
+        authority_level is not None and levels[authority_level] >= levels[required_level]
+    )
+    human_approval_required = bool(authority_granted and row[1])
+    decision = (
+        "approval_required"
+        if human_approval_required
+        else "authorized"
+        if authority_granted
+        else "denied"
+    )
+    return {
+        "decision": decision,
+        "authority_granted": authority_granted,
+        "authority_level": authority_level,
+        "required_level": required_level,
+        "human_approval_required": human_approval_required,
+    }
+
+
 def role_can_act(
     conn,
     party_id: str,
@@ -372,24 +435,19 @@ def role_can_act(
     scope_id: Optional[str] = None,
     required_level: str = "recommend",
 ) -> bool:
-    levels = {name: index for index, name in enumerate(AUTHORITY_LEVELS)}
-    if required_level not in levels:
-        raise ValueError(f"required_level must be one of {AUTHORITY_LEVELS}")
-    with conn.cursor() as cur:
-        cur.execute(
-            """SELECT d.authority_level, d.requires_human_approval
-               FROM governance_role_assignment a
-               JOIN governance_role_domain d ON d.role_id = a.role_id
-               WHERE a.party_id = %s::uuid AND a.status = 'active'
-                 AND a.recusal_status = 'clear' AND d.status = 'active'
-                 AND d.domain_type = %s AND d.domain_key = %s
-                 AND d.scope_type = %s AND d.scope_id IS NOT DISTINCT FROM %s::uuid
-                 AND (a.effective_until IS NULL OR a.effective_until >= NOW())
-               ORDER BY CASE d.authority_level
-                   WHEN 'observe' THEN 0 WHEN 'recommend' THEN 1
-                   WHEN 'decide' THEN 2 WHEN 'execute' THEN 3 END DESC
-               LIMIT 1""",
-            (party_id, domain_type, domain_key, scope_type, scope_id),
-        )
-        row = cur.fetchone()
-    return bool(row and levels[row[0]] >= levels[required_level])
+    """Return whether role authority meets a level, independent of approval.
+
+    This compatibility helper does not authorize the action itself when the
+    domain requires human approval. New execution paths should inspect
+    :func:`evaluate_role_authority` and complete the separate approval flow.
+    """
+    result = evaluate_role_authority(
+        conn,
+        party_id,
+        domain_type,
+        domain_key,
+        scope_type=scope_type,
+        scope_id=scope_id,
+        required_level=required_level,
+    )
+    return result["authority_granted"]

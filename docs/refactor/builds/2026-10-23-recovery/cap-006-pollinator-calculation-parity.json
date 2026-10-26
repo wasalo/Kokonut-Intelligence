@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-006",
+  "scope": "Restore source-defined pollinator summary calculations to the tenant-scoped Kernel read path",
+  "implementation": {
+    "observation_trends": "Verified/reviewed observations from the last 30 days, compared across equal 15-day windows; increasing/decreasing thresholds remain +/-10 percent, matching the legacy calculation.",
+    "pesticide_risk": "Verified/reviewed applications from the last 90 days; critical for any reported mortality or at least three high/very-high toxicity records, elevated for one or more high/very-high records, otherwise low. Recorded rows remain excluded by the governed read contract.",
+    "active_hives": "Active-hive count and mean non-null colony_strength_score (0-10), preserving separation from categorical colony strength."
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_landscape_pollinator_reads.py tests/test_operator_console_landscape_pollinator.py tests/test_pollinator_health.py -q",
+    "result": "40 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "console_javascript_syntax": "passed via test_operator_console_landscape_pollinator.py",
+    "diff_check": "passed",
+    "synthetic_regressions": [
+      "10-to-12 mean observation count yields increasing at 20.0 percent",
+      "exact +10% and -10% boundaries remain stable; negative trend and zero-baseline cases preserve legacy behavior",
+      "moderate-only pesticide reports remain low risk; one high-toxicity report is elevated",
+      "three high-toxicity reports cross the critical threshold",
+      "one reported mortality event yields critical risk",
+      "active-hive score aggregation returns the expected 0-10 mean"
+    ]
+  },
+  "boundaries": {
+    "database_access": "none",
+    "candidate_or_legacy_rollout": "none",
+    "providers_or_raspberry_pi": "none",
+    "populated_output_parity": "not established",
+    "landscape_derived_dashboard_parity": "still open",
+    "tenant_acl_rls_and_live_oidc": "still open"
+  },
+  "rollback": "Revert the Gateway and console source change; no schema or persistent state changed."
+}

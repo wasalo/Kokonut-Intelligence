@@ -1,0 +1,38 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-14T15:11:19.597948+00:00",
+  "database": "PostgreSQL 16 disposable container with Docker networking disabled",
+  "migrations": [
+    "391_mobile_device_tenant_binding.sql",
+    "392_mobile_credential_functions.sql",
+    "392_mobile_credential_functions.sql (idempotency replay)",
+    "393_mobile_tenant_context_proof.sql",
+    "393_mobile_tenant_context_proof.sql (idempotency replay)"
+  ],
+  "checks": [
+    "migrations 392 and 393 replay idempotently after roles and functions are installed",
+    "a constrained application role cannot directly read or write device credential rows",
+    "device token resolver returns only minimal identity and current-owner state",
+    "legacy unbound token is preserved as an explicit re-enrollment outcome",
+    "unknown token hash does not resolve",
+    "device-ID conflict does not consume a valid enrollment code",
+    "single-use code registers one owner-bound device and cannot be reused",
+    "concurrent redemption registers exactly one device and consumes the code once",
+    "expired and unknown enrollment codes are rejected without device rows",
+    "owner transfer invalidates old device tokens and pending enrollment codes",
+    "the non-login credential function owner has no superuser, role, database, replication, or RLS bypass powers",
+    "forced RLS accepts only a valid device-token HMAC context and filters cross-tenant rows",
+    "caller-controlled GUC, tampered payload/signature, invalid token, and ended-transaction context all fail closed",
+    "credential resolution and single-use redemption continue working under forced RLS through non-login roles",
+    "definer roles retain forced-RLS row-lock access through narrow column grants",
+    "the application role cannot read the private context-signing key or credential tables",
+    "migrations 391-393 leave application-table RLS disabled"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "external_network_requests": 0,
+  "synthetic_rows_remaining": 0,
+  "rls_enabled": false,
+  "disposable_forced_rls": true,
+  "scope_limit": "Proves mobile credential functions under disposable forced RLS and signed transaction-context behavior only. It does not enable application-table RLS on the candidate, validate operator/Gateway context, or close legacy CLI, worker, Directus, or view access."
+}

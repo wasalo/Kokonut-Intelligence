@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Optional Python SDK channel factory with secure remote defaults",
+  "result": "PASS",
+  "behavior": {
+    "remote_target": "Uses grpcio system-trusted TLS credentials by default.",
+    "loopback_target": "Uses plaintext for recognized loopback targets.",
+    "private_ca": "Accepts a non-empty bytes CA bundle and uses a secure channel, including for loopback.",
+    "private_plaintext": "Remote plaintext requires allow_insecure=True.",
+    "validation": "Invalid target, CA type/emptiness, boolean values, and contradictory CA/plaintext settings fail before channel creation.",
+    "optional_dependency": "Importing kokonut.grpc and its helper does not import the grpc runtime; grpc is loaded only when create_channel is called."
+  },
+  "verification": {
+    "focused_tests": "16 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "wheel_build": "passed; wheel contains kokonut/grpc/channel.py"
+  },
+  "data_access": {
+    "grpc_rpc": false,
+    "external_network": false,
+    "database": false,
+    "candidate_database": false,
+    "legacy_database": false,
+    "provider": false
+  },
+  "limitations": [
+    "Credential selection is mocked; no gRPC endpoint or certificate authority was contacted.",
+    "Production certificate lifecycle, public ingress, authenticated tenant scope, and REST parity remain open."
+  ]
+}

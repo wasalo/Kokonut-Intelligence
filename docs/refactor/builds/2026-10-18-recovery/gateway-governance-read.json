@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-18",
+  "slice": "CAP-023 native Baal governance Gateway reads",
+  "routes": [
+    "GET /api/v1/governance/baal/config",
+    "GET /api/v1/governance/baal/proposals?limit=1..100",
+    "GET /api/v1/governance/baal/proposals/{proposal_id}",
+    "GET /api/v1/governance/baal/members/{wallet}"
+  ],
+  "authorization": "Global governance:read API-key/capability scope for non-admin credentials; location-bound credentials denied; configured Directus admin key keeps its existing Gateway-wide bypass; no farm tenant context.",
+  "chain_id_required": 100,
+  "projection": "Read-only; bounded proposal count/text; large share/loot/vote integers are exact decimal strings; omits raw provider/event payloads, vote arrays, sponsor field, and content_uri; required config reads fail closed.",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_governance.py tests/test_gateway_route_policy_inventory.py tests/test_gateway_auth.py tests/test_security_capabilities.py tests/test_governance_framework.py tests/test_gnosis_indexer_recovery.py -q",
+      "result": "98 passed"
+    },
+    "ruff": "passed on changed Python modules/tests",
+    "py_compile": "passed on changed Python modules/tests",
+    "git_diff_check": "passed"
+  },
+  "boundaries": {
+    "rpc_provider_contacted": false,
+    "database_contacted": false,
+    "candidate_or_legacy_touched": false,
+    "clients_and_data": "mocked/synthetic"
+  },
+  "limitations": [
+    "Live RPC latency/outage behavior and populated proposal/member parity remain unverified.",
+    "Legacy Moloch v2 identity separation and MAN-CAP-023 acceptance remain open.",
+    "OIDC location grants do not authorize the global DAO API.",
+    "Configured Gateway admin credentials retain their existing broad authorization behavior."
+  ]
+}

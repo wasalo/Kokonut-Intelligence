@@ -1,9 +1,63 @@
 """Agent task catalogue tests."""
 
+import pytest
+
 from services.agents.cids_agent import run_cids_export
 from services.agents.feedback_agent import synthesize_feedback
 from services.agents.safety import assess_agent_action
-from services.agents.tasks import get_task, list_tasks, validate_output
+from services.agents.tasks import (
+    CIDS_SOURCE_VIEWS,
+    TASK_CATALOGUE,
+    cids_artifact_sha256,
+    get_task,
+    list_tasks,
+    validate_output,
+    validate_task_capabilities,
+    validate_task_inputs,
+)
+
+
+def _lineage_for_node(node):
+    return [
+        {
+            "node_index": 0,
+            "node_id": node["@id"],
+            "properties": [
+                {
+                    "property": property_name,
+                    "row_count": len(views),
+                    "records": [
+                        {
+                            "view": view,
+                            "record_id": "a0000000-0000-4000-8000-000000000001",
+                        }
+                        for view in views
+                    ],
+                    "truncated": False,
+                }
+                for property_name, views in sorted(
+                    node["kokonut:propertySourceViews"].items()
+                )
+            ],
+        }
+    ]
+
+
+def _cids_document(graph):
+    return {
+        "@graph": graph,
+        "kokonut:alignmentTier": "essential",
+        "kokonut:cidsVersion": "3.2.0",
+    }
+
+
+def _cids_source_scope(document, property_source_records):
+    return {
+        "location_id": "a0000000-0000-4000-8000-000000000001",
+        "views": list(CIDS_SOURCE_VIEWS),
+        "property_source_records": property_source_records,
+        "artifact_sha256": cids_artifact_sha256(document, property_source_records),
+    }
 
 
 def test_task_catalogue_contains_green_paper_agents() -> None:
@@ -28,41 +82,523 @@ def test_task_catalogue_contains_green_paper_agents() -> None:
 def test_output_validation_checks_required_fields() -> None:
     errors = validate_output("cids_export", {"graph_count": 1})
     assert "Missing required output field: document" in errors
+    assert "Missing required output field: source_scope" in errors
+
+    ebf_errors = validate_output(
+        "ebf_evidence_gap",
+        {"evidence_gaps": [], "recommendations": []},
+    )
+    assert "Missing required output field: source_scope" in ebf_errors
+
+
+def test_output_validation_checks_declared_top_level_types_and_formats() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
+    document = _cids_document([node])
+    lineage = _lineage_for_node(node)
+    valid = {
+        "document": document,
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": _cids_source_scope(document, lineage),
+    }
+    assert validate_output("cids_export", valid) == []
+    assert validate_output(
+        "ai_summary_synthesis",
+        {"summary": {}, "ai_summary_id": "a0000000-0000-4000-8000-000000000001"},
+    ) == []
+
+    errors = validate_output(
+        "cids_export",
+        {
+            "document": [],
+            "graph_count": True,
+            "alignment_tier": 3,
+            "cids_version": "3.2.0",
+            "source_scope": {
+                "location_id": "a0000000-0000-4000-8000-000000000001",
+                "views": list(CIDS_SOURCE_VIEWS),
+            },
+        },
+    )
+    assert "Invalid output type for field: document (expected object)" in errors
+    assert "Invalid output type for field: graph_count (expected integer)" in errors
+    assert "Invalid output type for field: alignment_tier (expected string)" in errors
+
+    uuid_errors = validate_output(
+        "ai_summary_synthesis",
+        {"summary": {}, "ai_summary_id": "private-not-a-uuid"},
+    )
+    assert uuid_errors == ["Invalid output format for field: ai_summary_id (expected uuid)"]
+    assert "private-not-a-uuid" not in " ".join(uuid_errors)
+
+
+def test_cids_output_rejects_inconsistent_document_envelope() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
+    document = _cids_document([node])
+    lineage = _lineage_for_node(node)
+    valid = {
+        "document": document,
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": _cids_source_scope(document, lineage),
+    }
+    cases = (
+        ("graph_count", 2, "Invalid CIDS graph count"),
+        ("alignment_tier", "comprehensive", "Invalid CIDS alignment tier"),
+        ("cids_version", "3.3.0", "Invalid CIDS version"),
+    )
+    for field, value, expected_error in cases:
+        errors = validate_output("cids_export", {**valid, field: value})
+        assert expected_error in errors
+
+    unsupported_version_document = {
+        **document,
+        "kokonut:cidsVersion": "3.3.0",
+    }
+    unsupported_version = {
+        **valid,
+        "document": unsupported_version_document,
+        "cids_version": "3.3.0",
+        "source_scope": _cids_source_scope(unsupported_version_document, lineage),
+    }
+    assert "Unsupported CIDS version" in validate_output(
+        "cids_export", unsupported_version
+    )
+
+    unsupported_tier_document = {
+        **document,
+        "kokonut:alignmentTier": "comprehensive",
+    }
+    unsupported_tier = {
+        **valid,
+        "document": unsupported_tier_document,
+        "alignment_tier": "comprehensive",
+        "source_scope": _cids_source_scope(unsupported_tier_document, lineage),
+    }
+    assert "Unsupported CIDS alignment tier" in validate_output(
+        "cids_export", unsupported_tier
+    )
+
+
+def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
+    document = _cids_document([node])
+    lineage = _lineage_for_node(node)
+    valid_output = {
+        "document": document,
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": _cids_source_scope(document, lineage),
+    }
+    assert validate_output("cids_export", valid_output) == []
+
+    valid_node = valid_output["document"]["@graph"][0]
+    for invalid_node in (
+        {
+            "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+            "kokonut:propertySourceViews": {},
+        },
+        {
+            "@id": "https://kokonut.network/cids/Outcome/missing-provenance",
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
+        },
+        {
+            "@id": "https://kokonut.network/cids/Outcome/empty-provenance",
+            "kokonut:sourceViews": [],
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
+        },
+        {
+            "@id": "https://kokonut.network/cids/Outcome/malformed-provenance",
+            "kokonut:sourceViews": [None],
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
+        },
+        {
+            "@id": "https://kokonut.network/cids/Outcome/unsorted-provenance",
+            "kokonut:sourceViews": [
+                "kokonut_agent_source.cids_stakeholder_outcome",
+                "kokonut_agent_source.cids_location",
+            ],
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
+        },
+        {
+            "@id": "https://kokonut.network/cids/Outcome/unapproved-view",
+            "kokonut:sourceViews": ["public.location"],
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
+        },
+    ):
+        invalid_output = {
+            **valid_output,
+            "document": _cids_document([valid_node, invalid_node]),
+        }
+        errors = validate_output("cids_export", invalid_output)
+        assert "Invalid CIDS document graph node source-view provenance" in errors
+
+    for invalid_property_views in (
+        None,
+        {},
+        {"@id": ["public.location"]},
+        {"@id": ["kokonut_agent_source.cids_stakeholder_outcome", "kokonut_agent_source.cids_location"]},
+        {"@id": [None]},
+    ):
+        invalid_node = {
+            **valid_node,
+            "kokonut:propertySourceViews": invalid_property_views,
+        }
+        invalid_output = {
+            **valid_output,
+            "document": _cids_document([invalid_node]),
+        }
+        assert "Invalid CIDS document graph node property-source provenance" in validate_output(
+            "cids_export", invalid_output
+        )
+
+    empty_output = {
+        **valid_output,
+        "document": _cids_document([]),
+    }
+    assert "Invalid CIDS document graph (expected nodes)" in validate_output(
+        "cids_export", empty_output
+    )
+
+
+def test_cids_output_rejects_unmatched_or_unapproved_source_scope() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
+    document = _cids_document([node])
+    lineage = _lineage_for_node(node)
+    output = {
+        "document": document,
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": _cids_source_scope(document, lineage),
+    }
+    for location_id, views in (
+        ("location-id", list(CIDS_SOURCE_VIEWS)),
+        ("a0000000-0000-4000-8000-000000000001", list(CIDS_SOURCE_VIEWS[:-1])),
+    ):
+        invalid = {
+            **output,
+            "source_scope": {"location_id": location_id, "views": views},
+        }
+        errors = validate_output("cids_export", invalid)
+        assert errors
+        assert any("CIDS source scope" in error for error in errors)
+
+
+def test_cids_output_rejects_malformed_property_to_row_lineage() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
+    document = _cids_document([node])
+    lineage = _lineage_for_node(node)
+    valid = {
+        "document": document,
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": _cids_source_scope(document, lineage),
+    }
+    assert validate_output("cids_export", valid) == []
+    invalid_lineages = []
+    missing = {**valid["source_scope"], "property_source_records": []}
+    invalid_lineages.append(missing)
+    wrong_node = _lineage_for_node(node)
+    wrong_node[0]["node_id"] = "https://kokonut.network/cids/Organization/other"
+    invalid_lineages.append({**valid["source_scope"], "property_source_records": wrong_node})
+    unapproved = _lineage_for_node(node)
+    unapproved[0]["properties"][0]["records"][0]["view"] = "public.operator_identity"
+    invalid_lineages.append({**valid["source_scope"], "property_source_records": unapproved})
+    malformed_id = _lineage_for_node(node)
+    malformed_id[0]["properties"][0]["records"][0]["record_id"] = "contains private text"
+    invalid_lineages.append({**valid["source_scope"], "property_source_records": malformed_id})
+    inconsistent_count = _lineage_for_node(node)
+    inconsistent_count[0]["properties"][0]["row_count"] = 2
+    invalid_lineages.append(
+        {**valid["source_scope"], "property_source_records": inconsistent_count}
+    )
+    incomplete_truncated_sample = _lineage_for_node(node)
+    incomplete_truncated_sample[0]["properties"][0].update(
+        row_count=51,
+        records=[
+            {
+                "view": "kokonut_agent_source.cids_location",
+                "record_id": "a0000000-0000-4000-8000-000000000001",
+            }
+        ],
+        truncated=True,
+    )
+    invalid_lineages.append(
+        {**valid["source_scope"], "property_source_records": incomplete_truncated_sample}
+    )
+    missing_mapped_rows = _lineage_for_node(node)
+    missing_mapped_rows[0]["properties"][0].update(
+        row_count=0, records=[], truncated=False
+    )
+    invalid_lineages.append(
+        {**valid["source_scope"], "property_source_records": missing_mapped_rows}
+    )
+
+    for source_scope in invalid_lineages:
+        errors = validate_output("cids_export", {**valid, "source_scope": source_scope})
+        assert any("CIDS property-to-row lineage" in error for error in errors)
+
+
+def test_cids_output_rejects_artifact_digest_mismatch() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
+    document = _cids_document([node])
+    lineage = _lineage_for_node(node)
+    valid = {
+        "document": document,
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": _cids_source_scope(document, lineage),
+    }
+    assert validate_output("cids_export", valid) == []
+    reordered_document = _cids_document([dict(reversed(list(node.items())))])
+    assert cids_artifact_sha256(reordered_document, lineage) == cids_artifact_sha256(
+        document, lineage
+    )
+    mutated = {**node, "hasName": "changed after digest"}
+    errors = validate_output(
+        "cids_export", {**valid, "document": _cids_document([mutated])}
+    )
+    assert "Invalid CIDS artifact digest" in errors
+    changed_lineage = _lineage_for_node(node)
+    changed_lineage[0]["properties"][0]["records"][0]["record_id"] = (
+        "a0000000-0000-4000-8000-000000000002"
+    )
+    errors = validate_output(
+        "cids_export",
+        {
+            **valid,
+            "source_scope": {
+                **valid["source_scope"],
+                "property_source_records": changed_lineage,
+            },
+        },
+    )
+    assert errors == ["Invalid CIDS artifact digest"]
+
+
+def test_task_input_validation_checks_required_types_and_formats() -> None:
+    assert validate_task_inputs("ebf_evidence_gap", {}) == [
+        "Missing required task input: scorecard_id",
+        "Missing required task input: location_id",
+    ]
+    assert validate_task_inputs("financial_resilience_synthesis", {"store": False}) == [
+        "Missing required task input: location_id",
+    ]
+
+    valid = {
+        "location_id": "a0000000-0000-4000-8000-000000000001",
+        "period_start": "2026-01-01",
+        "period_end": "2026-12-31",
+    }
+    assert validate_task_inputs("ebf_scorecard_draft", valid) == []
+
+    errors = validate_task_inputs(
+        "ebf_scorecard_draft",
+        {"location_id": "bad-id", "period_start": "2026-W01-1", "period_end": 20261231},
+    )
+    assert "Invalid task input format for field: location_id (expected uuid)" in errors
+    assert "Invalid task input format for field: period_start (expected date)" in errors
+    assert "Invalid task input type for field: period_end (expected string)" in errors
+    assert "bad-id" not in " ".join(errors)
+
+
+def test_every_catalogue_write_is_draft_or_submission_only() -> None:
+    for task_key in list_tasks():
+        task = get_task(task_key)
+        assert task["high_risk"] is False
+        for target in task["writes"]:
+            collection, status = target.split(":", 1)
+            assert status in {"draft", "submitted"}
+            assert assess_agent_action("create", collection, {"status": status}).allowed
+
+
+def test_task_definitions_are_returned_as_copies() -> None:
+    task = get_task("ai_summary_synthesis")
+    task["writes"].append("ai_summary:published")
+    assert get_task("ai_summary_synthesis")["writes"] == ["ai_summary:draft"]
+
+
+def test_unsafe_catalogue_write_fails_before_agent_database_access(monkeypatch) -> None:
+    import services.agents.base as agent_base
+
+    calls = []
+
+    class ProbeAgent(agent_base.SynthesisAgent):
+        task_key = "ai_summary_synthesis"
+        summary_type = "probe"
+        read_collection = "ai_summary"
+
+        def synthesize(self, conn, location_id=None):
+            calls.append("synthesize")
+            return {"synthesis": "unused"}
+
+    def unexpected_database_access():
+        calls.append("database")
+        raise AssertionError("unsafe catalogue must be rejected before database access")
+
+    monkeypatch.setattr(agent_base, "get_db", unexpected_database_access, raising=False)
+    original_writes = TASK_CATALOGUE["ai_summary_synthesis"]["writes"]
+    monkeypatch.setitem(
+        TASK_CATALOGUE,
+        "ai_summary_synthesis",
+        {**TASK_CATALOGUE["ai_summary_synthesis"], "writes": ["ai_summary:published"]},
+    )
+    with pytest.raises(ValueError, match="unapproved write capability"):
+        ProbeAgent().run("00000000-0000-0000-0000-000000000001")
+    assert calls == []
+    assert original_writes == ["ai_summary:draft"]
+
+
+def test_task_catalogue_rejects_unknown_write_targets(monkeypatch) -> None:
+    task = dict(TASK_CATALOGUE["ai_summary_synthesis"])
+    task["writes"] = ["unreviewed_collection:draft"]
+    monkeypatch.setitem(TASK_CATALOGUE, "unreviewed_task", task)
+    with pytest.raises(ValueError, match="unapproved write capability"):
+        validate_task_capabilities("unreviewed_task")
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "value", "message"),
+    [
+        ("inputs", "type", "date", "unsupported inputs schema type"),
+        ("inputs", "format", "slug", "unsupported inputs format"),
+        ("inputs", "required", "yes", "invalid inputs required flag"),
+        ("inputs", "future_keyword", True, "unsupported inputs schema constraints"),
+        ("outputs", "format", [], "unsupported outputs format"),
+    ],
+)
+def test_task_catalogue_rejects_malformed_schema_declarations(
+    monkeypatch, section: str, field: str, value, message: str
+) -> None:
+    from copy import deepcopy
+
+    task = deepcopy(TASK_CATALOGUE["ai_summary_synthesis"])
+    target_field = "summary" if section == "outputs" else "location_id"
+    task[section][target_field][field] = value
+    monkeypatch.setitem(TASK_CATALOGUE, "malformed_input_schema", task)
+
+    with pytest.raises(ValueError, match=message):
+        validate_task_capabilities("malformed_input_schema")
 
 
 def test_cids_agent_output_with_monkeypatch(monkeypatch) -> None:
-    class Conn:
-        def close(self) -> None:
-            pass
+    from services.agents import worker_cli
 
-    import services.agents.cids_agent as cids_agent
-
-    monkeypatch.setattr(cids_agent, "get_connection", lambda: Conn())
-    monkeypatch.setattr(
-        cids_agent,
-        "export_location",
-        lambda conn, location_id: {
-            "@graph": [{"@type": "cids:Organization"}],
+    expected = {
+        "document": {
+            "@graph": [
+                {
+                    "@type": "cids:Organization",
+                    "@id": "https://kokonut.network/cids/Organization/adelphi",
+                    "kokonut:sourceViews": [
+                        "kokonut_agent_source.cids_location"
+                    ],
+                    "kokonut:propertySourceViews": {
+                        "@id": ["kokonut_agent_source.cids_location"]
+                    },
+                }
+            ],
             "kokonut:alignmentTier": "essential",
             "kokonut:cidsVersion": "3.2.0",
         },
-    )
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": {
+            "location_id": "a0000000-0000-4000-8000-000000000001",
+            "views": [
+                "kokonut_agent_source.cids_location",
+                "kokonut_agent_source.cids_stakeholder_outcome",
+                "kokonut_agent_source.cids_farm_impact_mapping",
+                "kokonut_agent_source.cids_metric_value",
+                "kokonut_agent_source.cids_stakeholder_feedback",
+                "kokonut_agent_source.cids_impact_claim",
+            ],
+            "property_source_records": _lineage_for_node(
+                {
+                    "@id": "https://kokonut.network/cids/Organization/adelphi",
+                    "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+                    "kokonut:propertySourceViews": {
+                        "@id": ["kokonut_agent_source.cids_location"]
+                    },
+                }
+            ),
+        },
+    }
+    monkeypatch.setattr(worker_cli, "run_worker_cids_export", lambda _location_id: expected)
 
     output = run_cids_export("a0000000-0000-0000-0000-000000000001")
-    assert output["graph_count"] == 1
-    assert output["alignment_tier"] == "essential"
+    assert output == expected
 
 
 def test_feedback_synthesis_omits_private_raw_text() -> None:
     class Cursor:
-        calls = 0
+        query = ""
 
         def execute(self, query, params):
-            self.calls += 1
+            self.query = query
 
         def fetchall(self):
-            if self.calls == 1:
-                return [{
+            return [{
+                    "stakeholder_group": "farm_operator",
+                    "feedback_type": "farmer_feedback",
+                    "sentiment": "mixed",
+                    "public_summary": "Operators requested simpler Spanish summaries.",
+                    "evidence_maturity": 3,
+                    "evidence_maturity_label": "Reviewed record",
+                }, {
                     "stakeholder_group": "farm_operator",
                     "feedback_type": "farmer_feedback",
                     "sentiment": "mixed",
@@ -70,30 +606,29 @@ def test_feedback_synthesis_omits_private_raw_text() -> None:
                     "evidence_maturity": 3,
                     "evidence_maturity_label": "Reviewed record",
                 }]
-            return [{
-                "stakeholder_group": "local_resident",
-                "feedback_type": "local_resident_feedback",
-                "sentiment": "positive",
-                "status": "verified",
-                "consent_given": False,
-                "is_public": False,
-                "evidence_maturity": 2,
-                "feedback_count": 1,
-                "private_or_no_consent_count": 1,
-                "harm_count": 0,
-            }]
 
         def close(self):
             pass
 
     class Conn:
-        def cursor(self, cursor_factory=None):
-            return Cursor()
+        cursor_instance = None
 
-    summary = synthesize_feedback(Conn(), "a0000000-0000-0000-0000-000000000001")
-    assert summary["public_feedback_count"] == 1
-    assert summary["private_or_no_consent_count"] == 1
-    assert "Raw private feedback is not included" in summary["safety_note"]
+        def cursor(self, cursor_factory=None):
+            self.cursor_instance = Cursor()
+            return self.cursor_instance
+
+    conn = Conn()
+    summary = synthesize_feedback(conn, "a0000000-0000-0000-0000-000000000001")
+    assert summary["public_feedback_count"] == 2
+    assert summary["private_or_no_consent_count"] is None
+    assert summary["harm_or_unintended_consequence_count"] is None
+    assert summary["aggregate_feedback"][0]["feedback_count"] == 2
+    assert "effective public-summary consent" in summary["safety_note"]
+    assert (
+        "FROM kokonut_agent_source.v_public_stakeholder_feedback_summary"
+        in conn.cursor_instance.query
+    )
+    assert "FROM stakeholder_feedback" not in conn.cursor_instance.query
 
 
 def test_ebf_agent_safety_blocks_publish_and_public_maturity() -> None:

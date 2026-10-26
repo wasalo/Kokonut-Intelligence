@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from uuid import UUID
 
 from services.common.logging import get_logger
 
@@ -35,6 +36,7 @@ def generate_iri(
     algorithm: str = "sha256",
     rebuild_id=None,
     source_cutoff=None,
+    publish_public_location: bool = False,
 ) -> str:
     if not entity_type or not entity_id:
         raise ValueError("entity_type and entity_id are required")
@@ -44,10 +46,44 @@ def generate_iri(
         raise ValueError("unsupported hash algorithm")
     if (rebuild_id is None) != (source_cutoff is None):
         raise ValueError("rebuild_id and source_cutoff must be provided together")
+    if not isinstance(publish_public_location, bool):
+        raise TypeError("publish_public_location must be a boolean")
+    if publish_public_location and entity_type != "location":
+        raise ValueError("public projection publication is supported for locations only")
+    if publish_public_location:
+        entity_id = str(UUID(str(entity_id)))
+
     conn.execute(
         conn.text("SELECT pg_advisory_xact_lock(hashtextextended(:key, :namespace))"),
         {"key": f"iri:{entity_type}:{entity_id}", "namespace": 173003},
     )
+
+    public_projection = None
+    if publish_public_location:
+        public_row = (
+            conn.execute(
+                conn.text(
+                    """
+                    SELECT location_name, country, region, status
+                    FROM v_public_farm_summary
+                    WHERE location_id = :location_id
+                      AND status = 'active'
+                    """
+                ),
+                {"location_id": entity_id},
+            )
+            .mappings()
+            .first()
+        )
+        if not public_row:
+            raise ValueError("location is not eligible for public IRI projection")
+        public_projection = {
+            "name": public_row["location_name"],
+            "country": public_row["country"],
+            "region": public_row["region"],
+            "status": public_row["status"],
+        }
+
     existing = (
         conn.execute(
             conn.text(
@@ -85,12 +121,13 @@ def generate_iri(
     conn.execute(
         conn.text(
             "INSERT INTO iri_registry (iri, entity_type, entity_id, content_hash, content_hash_type, version, "
-            "previous_iri, is_current, metadata_json, rebuild_id, source_cutoff) "
-            "VALUES (:iri, :et, :eid, :ch, :cht, :v, :pi, TRUE, :mj, :rebuild_id, :source_cutoff) "
+            "previous_iri, is_current, metadata_json, rebuild_id, source_cutoff, public_projection) "
+            "VALUES (:iri, :et, :eid, :ch, :cht, :v, :pi, TRUE, :mj, :rebuild_id, :source_cutoff, :public_projection) "
             "ON CONFLICT (iri) DO UPDATE SET "
             "content_hash = EXCLUDED.content_hash, content_hash_type = EXCLUDED.content_hash_type, "
             "metadata_json = EXCLUDED.metadata_json, rebuild_id = EXCLUDED.rebuild_id, "
-            "source_cutoff = EXCLUDED.source_cutoff, updated_at = NOW()"
+            "source_cutoff = EXCLUDED.source_cutoff, public_projection = EXCLUDED.public_projection, "
+            "updated_at = NOW()"
         ),
         {
             "iri": iri,
@@ -103,6 +140,7 @@ def generate_iri(
             "mj": json.dumps(content) if content else None,
             "rebuild_id": rebuild_id,
             "source_cutoff": source_cutoff,
+            "public_projection": json.dumps(public_projection) if public_projection else None,
         },
     )
     logger.info("Generated IRI %s for %s:%s (hash_type=%s)", iri, entity_type, entity_id, content_hash_type)

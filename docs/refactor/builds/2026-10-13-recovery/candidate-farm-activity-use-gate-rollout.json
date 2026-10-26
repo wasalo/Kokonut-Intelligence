@@ -1,0 +1,87 @@
+{
+  "date": "2026-10-13",
+  "checked_at_utc": "2026-10-13T16:05:44Z",
+  "subject": "Candidate migration 386 rollout and current-use gate deployment",
+  "source_commit": "d22fa49",
+  "preflight": {
+    "compose_project": "kokonut-kernel-candidate",
+    "candidate_containers_before": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "pending_schema_migrations": [
+      "schema:386_farm_activity_consent_use_gate.sql"
+    ],
+    "checksum_drift": false,
+    "farm_activity_rows": 0,
+    "farm_activity_workflow_event_rows": 0,
+    "offline_collection_rows": 0,
+    "mobile_device_rows": 0
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-farm-activity-use-gate-d22fa49",
+    "format": "age-encrypted single-database PostgreSQL custom archive",
+    "sha256": "889313f926b7cc1449a109de06ad88bd6ff808a0c8cfe2f599c3873ddb8e4ae8",
+    "bytes": 5399169,
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "restore_rehearsal": {
+      "target": "kokonut_restore from template0 in internal-only project kokonut-m386-checkpoint-restore-20261013",
+      "age_decryption_and_pg_restore": "passed without writing a plaintext archive",
+      "ordered_schema_migration_fingerprints": "376/376 matched",
+      "postgres_extension_versions": "10/10 matched",
+      "selected_row_count_comparisons": "6/6 matched",
+      "temporary_container_network_and_volume_removed": true
+    },
+    "scope": "PostgreSQL kokonut_intelligence only; excludes roles/grants, other databases, Docker volumes, external media, and provider state."
+  },
+  "migration": {
+    "command": "python -m services.migration.cli migrate --schemas-only --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --compose-file docker-compose.kernel-metabase.yml",
+    "result": "Applied: 1, Failed: 0",
+    "applied": "schema:386_farm_activity_consent_use_gate.sql",
+    "migration_sha256": "2968b14ee0089e6da713022a4f6d718294ceb126e6913bf60f485fb0bff9ceb1",
+    "applied_schema_rows_after": 377,
+    "pending_schema_rows_after": 0,
+    "migration_version_marker_count": 1,
+    "eligibility_function_present": true,
+    "directus_permissions_table": "absent; optional Directus provider is disabled in the Kernel candidate"
+  },
+  "application": {
+    "built_from_source_commit": "d22fa49",
+    "new_image_id": "sha256:a4155b3ad2665bc02ae9034a100d1e70cd669ee14b31a2ec80ab01faf967b7a4",
+    "previous_image_id": "sha256:92e883c1153e703dc82ae5f099d236b3b4a9992a52d0f35052d515469450254f",
+    "rollback_image_tag": "kokonut-kernel-candidate-app:rollback-pre-consent-use-gate-d22fa49",
+    "only_candidate_app_recreated": true,
+    "database_metabase_proxy_recreated": false,
+    "health": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "loopback_http": {
+      "GET /health": 200,
+      "GET /operator/api/farm-activities without credentials": 401,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401
+    }
+  },
+  "rollback": {
+    "application_tag": "kokonut-kernel-candidate-app:rollback-pre-consent-use-gate-d22fa49",
+    "database_checkpoint": "backups/kernel-candidate-pre-farm-activity-use-gate-d22fa49",
+    "policy": "Retain the additive migration and its database guards for an app-only rollback. Because the candidate had no farm activity, workflow event, or mobile collection rows at rollout, the encrypted checkpoint remains a viable pre-migration restore point; after accepting governed data, prefer a reviewed forward migration."
+  },
+  "cleanup": {
+    "restore_container_removed": true,
+    "restore_network_removed": true,
+    "restore_volume_removed": true,
+    "encrypted_checkpoint_retained": true,
+    "candidate_app_database_metabase_proxy_running": true,
+    "legacy_stack_accessed": false
+  },
+  "limitations": [
+    "The candidate contained no farm-activity, workflow-event, offline-collection, or mobile-device rows; candidate rollout confirms deployment and protected-route behavior, not populated domain workflow behavior.",
+    "Directus is optional and absent from the Kernel candidate; Directus policy SQL and idempotent seed repair passed separate disposable PostgreSQL acceptance.",
+    "OIDC provider login/session and operator grants remain unconfigured; MAN-CAP-001 and MAN-CAP-053 remain not run."
+  ]
+}

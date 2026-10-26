@@ -1,0 +1,48 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-16T18:51:09.882676+00:00",
+  "database": "PostgreSQL 16 disposable container with networking disabled",
+  "seed": "schemas/seeds/122_kokonut_network_operating_tenant_map.sql",
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "repository_secrets_read": false,
+  "checks": [
+    {
+      "id": "missing_future_locations",
+      "result": "passed"
+    },
+    {
+      "id": "five_location_mapping",
+      "result": "passed"
+    },
+    {
+      "id": "inactive_location_not_owner_confirmed",
+      "result": "passed"
+    },
+    {
+      "id": "idempotent_replay",
+      "result": "passed"
+    },
+    {
+      "id": "identity_mismatch_rollback",
+      "result": "passed"
+    },
+    {
+      "id": "conflicting_assignment_rollback",
+      "result": "passed"
+    }
+  ],
+  "aggregate_preflight_fields": [
+    "expected_location_count",
+    "present_exact_identity_count",
+    "owner_confirmed_count",
+    "missing_location_count",
+    "identity_mismatch_count",
+    "owner_mismatch_count"
+  ],
+  "cleanup": {
+    "container_removed": true,
+    "volume_retained": false
+  },
+  "scope_limit": "Synthetic records only; absent source locations are skipped, and this check does not backfill any candidate or production database."
+}

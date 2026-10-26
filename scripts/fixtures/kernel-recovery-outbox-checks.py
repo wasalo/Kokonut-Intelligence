@@ -1,6 +1,7 @@
 """Isolated PostgreSQL outbox checks with controlled transport outcomes only."""
 import json
 import os
+import sys
 from unittest.mock import patch
 
 from services.common.database import get_db
@@ -77,6 +78,35 @@ def main():
         assert len(sink) == 1
         assert read('SELECT status,attempt_count FROM clickhouse_outbox') == [('succeeded', 1)]
         checks['successful_delivery_not_reclaimed'] = True
+
+        def run_cli(worker_id, client):
+            original_argv = sys.argv
+            sys.argv = [
+                'clickhouse_outbox', '--run-once', '--worker-id', worker_id, '--limit', '1'
+            ]
+            try:
+                with patch.object(outbox, 'get_clickhouse', return_value=client):
+                    outbox.main()
+            except SystemExit as exc:
+                return exc.code
+            finally:
+                sys.argv = original_argv
+            return 0
+
+        failure_payload = dict(payload, event_key='kernel-recovery-outbox:cli-failure', source_id='cli-failure')
+        failure_id = outbox.enqueue(conn, **failure_payload)
+        conn.commit()
+        os.environ['KOKONUT_FEATURE_CLICKHOUSE'] = 'true'
+        assert run_cli('fixture-cli-failure', None) == 1
+        assert read('SELECT status,attempt_count FROM clickhouse_outbox WHERE id=%s', (failure_id,)) == [('retryable', 1)]
+        checks['one_shot_cli_failure_exit_and_durable_retry'] = True
+
+        success_payload = dict(payload, event_key='kernel-recovery-outbox:cli-success', source_id='cli-success')
+        success_id = outbox.enqueue(conn, **success_payload)
+        conn.commit()
+        assert run_cli('fixture-cli-success', ControlledClient()) == 0
+        assert read('SELECT status,attempt_count FROM clickhouse_outbox WHERE id=%s', (success_id,)) == [('succeeded', 1)]
+        checks['one_shot_cli_success_exit_and_durable_delivery'] = True
         print(json.dumps({'checks': checks, 'scope': 'Real PostgreSQL, controlled unavailable/successful transport. No live ClickHouse driver, cross-store crash deduplication or operator replay audit acceptance.'}))
     finally:
         conn.close()

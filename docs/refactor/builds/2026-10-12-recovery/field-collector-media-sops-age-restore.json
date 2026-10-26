@@ -1,0 +1,33 @@
+{
+  "acceptance": "isolated-media-checkpoint-restore-with-user-sops-age-identity",
+  "date": "2026-10-12",
+  "scripts": [
+    "scripts/kernel-media-checkpoint.py",
+    "scripts/kernel-media-restore.py"
+  ],
+  "fixture": {
+    "source": "one synthetic KKM1 AES-256-GCM media object",
+    "database_checkpoint": "synthetic archive and manifest used only to verify hash binding",
+    "outer_archive_identity": "user-provided SOPS age identity path; private identity was not emitted",
+    "media_key": "random synthetic key held only in process memory"
+  },
+  "checks": {
+    "recipient_derived_from_user_sops_age_identity": true,
+    "age_encrypted_checkpoint_created": true,
+    "restored_using_user_sops_age_identity": true,
+    "synthetic_database_checkpoint_hash_bound": true,
+    "media_key_excluded_from_manifest": true,
+    "restored_ciphertext_inventory_and_sha256_verified": true,
+    "restored_media_aes_gcm_authentication": true,
+    "restored_plaintext_sha256": "e8e9d63b0313e9b07df89c618e8a9edc196132174ad28d85dbd77c7a618f3329",
+    "wrong_media_key_rejected": true
+  },
+  "result": "passed for one synthetic object and the supplied age identity",
+  "limitations": [
+    "No .env.sops file or application secret was decrypted.",
+    "The database archive was synthetic; no database restore or upload-row hash/size parity was checked.",
+    "The separate media encryption key was synthetic and held in memory; production media-key custody/recovery remains unverified.",
+    "No persistent Compose volume/container replacement, expiry/orphan reconciliation, or production retention was tested."
+  ],
+  "rollback": "All synthetic data, keys, archives and temporary restored files were removed; candidate database and media-provider configuration were untouched."
+}

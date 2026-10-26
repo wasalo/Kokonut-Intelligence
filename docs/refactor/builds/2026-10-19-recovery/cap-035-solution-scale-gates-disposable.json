@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "470_location_scoped_solution_scale_gates.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 459, 466, 467, 468, 469, and 470 apply; migration 470 replays",
+    "only gates whose solution lineage and exact location scope match are returned",
+    "gate type/status and approval presence are reported without reviewer identity",
+    "requirements, thresholds, measurements, evidence, metrics, and identity are omitted",
+    "pagination, signed location context, exact grant, and no-write function stability are enforced",
+    "migration-459 scale aggregates continue to work with narrowed source columns",
+    "runtime can execute the bounded function but runtime and Directus cannot read the source table"
+  ],
+  "acceptance_groups_passed": 7
+}

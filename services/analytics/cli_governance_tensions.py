@@ -27,6 +27,16 @@ def _out(value):
     print_json(value)
 
 
+def _run_with_connection(operation) -> None:
+    """Own and close the database connection for one CLI read command."""
+    conn = _connection()
+    try:
+        result = operation(conn)
+    finally:
+        conn.close()
+    _out(result)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Kokonut governance tension CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -56,11 +66,15 @@ def main() -> None:
     listing.add_argument("--circle-id")
     listing.add_argument("--status")
     listing.add_argument("--overdue-only", action="store_true")
-    listing.set_defaults(func=lambda a: _out(list_tensions(_connection(), circle_id=a.circle_id, status=a.status, overdue_only=a.overdue_only)))
+    listing.set_defaults(func=lambda a: _run_with_connection(
+        lambda conn: list_tensions(conn, circle_id=a.circle_id, status=a.status, overdue_only=a.overdue_only)
+    ))
 
     show = sub.add_parser("show")
     show.add_argument("tension_id")
-    show.set_defaults(func=lambda a: _out(get_tension(_connection(), a.tension_id)))
+    show.set_defaults(func=lambda a: _run_with_connection(
+        lambda conn: get_tension(conn, a.tension_id)
+    ))
 
     submit = sub.add_parser("submit")
     submit.add_argument("tension_id")

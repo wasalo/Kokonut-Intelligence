@@ -15,7 +15,7 @@ python3 -m services.export.cli --help
 
 - `business_plan` — Business-plan assembler (composes existing EPS / VSM / analytics).
 - `cli` — Export CLI — delegates to report_generator for report generation and exports.
-- `dataset_refresh` — Dataset Refresh Engine — Execute stored dashboard_dataset queries
+- `dataset_refresh` — Dataset Refresh Engine — Execute registered, location-scoped dashboard query contracts
 - `exporter` — Export Service — CSV, JSON, Parquet
 - `kokonut_graphs` — Visual graph descriptors for the State of Kokonut report.
 - `report_generator` — Report Generator — Farm Summary, Crop NOI, Environmental Impact

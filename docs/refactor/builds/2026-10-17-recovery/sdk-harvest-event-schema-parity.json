@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "scope": "Python and JavaScript SDK HarvestEvent schema parity",
+  "source_of_truth": "schemas/postgres/003_operations.sql: harvest_event",
+  "issue": "SDK models omitted canonical evidence-hash, source-lineage, schema-version, and audit fields; Python also omitted evidence URLs and updated_at.",
+  "change": "Aligned HarvestEvent fields in both SDKs with the canonical table, including nullable evidence, verification, lineage, and audit values, and added local fixture regressions.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py -q",
+      "result": "9 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "18 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed for sdk/python/kokonut/types.py and tests/test_sdk.py",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local fixtures and mocked clients only",
+  "capability_matrix": "classifications unchanged"
+}

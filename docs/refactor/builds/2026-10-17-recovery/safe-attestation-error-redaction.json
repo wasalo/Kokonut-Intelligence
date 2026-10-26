@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "SAFE-proposed EAS attestation failure results and durable error metadata",
+  "behavior": {
+    "pending_proposals": "Failed proposals persist and return only a bounded operation label and exception class; per-request failure isolation and status updates remain intact."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_attestation_safe.py tests/test_attestation_signer_error_redaction.py -q",
+    "result": "5 passed",
+    "coverage": [
+      "provider exception details are omitted from the returned failure result",
+      "provider exception details are omitted from attestation_request.error_message",
+      "request failure accounting and update behavior remain covered",
+      "existing proposal, reconciliation, and direct signer error contracts remain covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake connection and mocked proposal boundary"
+  },
+  "limitations": [
+    "No SAFE service, EAS chain, database, or candidate request was accessed.",
+    "This does not establish live proposal or transaction reconciliation behavior."
+  ]
+}

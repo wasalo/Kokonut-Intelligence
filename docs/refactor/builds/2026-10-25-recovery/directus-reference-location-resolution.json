@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-25",
+  "scope": "Directus tenant-reference location resolution",
+  "result": "passed",
+  "checks": [
+    {
+      "command": "cd extensions/kokonut-hooks && npm test",
+      "result": "passed",
+      "summary": "7 test files; 81 tests passed"
+    },
+    {
+      "command": "cd extensions/kokonut-hooks && npm run build",
+      "result": "passed",
+      "summary": "Directus extension build and tsc --noEmit"
+    },
+    {
+      "command": "python3 -m pytest tests/test_directus_tenant_permissions.py tests/test_directus_extension_compatibility.py -q",
+      "result": "passed",
+      "summary": "10 tests passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "summary": "67 rows; 24 baseline-retained, 7 deployed, 36 prepared; MAN-CAP checks remain separately gated"
+    }
+  ],
+  "implemented": [
+    "Resolve plot_id location through plot.farm_id -> farm.id -> farm.location_id.",
+    "Validate writable stakeholder_feedback.farm_id against farm.location_id.",
+    "Keep crop_cycle_id and harvest_id location lookups explicit.",
+    "Validate labor_event.staff_id using direct staff location assignment or farm_staff_member -> farm.location_id.",
+    "Validate metric_proposal.reviewed_by using the same location-qualified staff resolver."
+  ],
+  "not_performed": [
+    "No database, provider, candidate, legacy stack, or live Directus service was accessed.",
+    "No migration was added or applied.",
+    "No full Directus relation, field, schedule, or runtime parity claim is made."
+  ],
+  "rollback": "Revert the resolver registry and its focused tests; no persistent state was changed."
+}

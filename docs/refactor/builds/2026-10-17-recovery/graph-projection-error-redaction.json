@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Synchronized typed-graph/RDF rebuild failure persistence",
+  "behavior": {
+    "durable_failure": "The rebuild coordinator persists a fixed operation label and bounded exception class instead of raw builder or database diagnostics.",
+    "caller_failure": "The original exception is still re-raised to the caller after failure status is recorded.",
+    "transaction": "Failed projection work rolls back before the separate failed-status update is committed; partial activation remains prevented."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_graph_projection.py -q",
+    "result": "13 passed",
+    "coverage": [
+      "failure persistence omits a synthetic diagnostic marker",
+      "failed status is committed after projection rollback",
+      "original exception still propagates to the caller"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked connection and projection builders"
+  },
+  "limitations": [
+    "No live PostgreSQL, graph builder source, RDF store, or IRI provider was used.",
+    "This does not establish populated projection parity or MAN-CAP-021 acceptance."
+  ]
+}

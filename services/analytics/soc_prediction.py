@@ -10,9 +10,7 @@ from services.common.logging import get_logger
 logger = get_logger(__name__)
 
 
-def extract_training_data(
-    conn, location_id: Optional[str] = None
-) -> list[dict[str, Any]]:
+def extract_training_data(conn, location_id: Optional[str] = None) -> list[dict[str, Any]]:
     """Extract paired SOC measurements and covariate features for model training.
 
     Joins soil_carbon_measurement with co-located remote sensing and weather features.
@@ -32,6 +30,8 @@ def extract_training_data(
             scm.id AS sample_id,
             scm.location_id,
             scm.plot_id,
+            ST_Y(COALESCE(plot_geom.center, ST_PointOnSurface(plot_geom.boundary))) AS gps_latitude,
+            ST_X(COALESCE(plot_geom.center, ST_PointOnSurface(plot_geom.boundary))) AS gps_longitude,
             scm.measurement_date,
             scm.carbon_pct,
             scm.carbon_tonnes_per_ha,
@@ -55,6 +55,8 @@ def extract_training_data(
             wo.temperature_c,
             wo.precipitation_mm
         FROM soil_carbon_measurement scm
+        LEFT JOIN plot plot_geom
+            ON plot_geom.id = scm.plot_id
         LEFT JOIN remote_sensing_observation rso
             ON rso.location_id = scm.location_id
             AND rso.plot_id = scm.plot_id
@@ -65,9 +67,18 @@ def extract_training_data(
                   AND plot_id = scm.plot_id
                   AND observation_date <= scm.measurement_date
             )
-        LEFT JOIN worldclim_climate wc
-            ON wc.location_id = scm.location_id
-            AND wc.plot_id = scm.plot_id
+        LEFT JOIN LATERAL (
+            SELECT baseline.bio1_mean_annual_temp,
+                   baseline.bio16_precip_wettest_quarter,
+                   baseline.bio17_precip_driest_quarter
+            FROM worldclim_climate baseline
+            WHERE baseline.location_id = scm.location_id
+              AND (baseline.plot_id = scm.plot_id OR baseline.plot_id IS NULL)
+            ORDER BY (baseline.plot_id = scm.plot_id) DESC NULLS LAST,
+                     baseline.updated_at DESC,
+                     baseline.id
+            LIMIT 1
+        ) wc ON TRUE
         LEFT JOIN weather_observation wo
             ON wo.location_id = scm.location_id
             AND wo.observation_date = (
@@ -88,12 +99,30 @@ def extract_training_data(
     cur.close()
 
     columns = [
-        "sample_id", "location_id", "plot_id", "measurement_date",
-        "carbon_pct", "carbon_tonnes_per_ha", "depth_cm",
-        "ndvi", "savi", "satvi", "bsi", "nbr2", "ndti", "lswi",
-        "tc_brightness", "tc_greenness", "tc_wetness",
-        "worldclim_bio1", "worldclim_bio16", "worldclim_bio17",
-        "temperature_c", "precipitation_mm",
+        "sample_id",
+        "location_id",
+        "plot_id",
+        "gps_latitude",
+        "gps_longitude",
+        "measurement_date",
+        "carbon_pct",
+        "carbon_tonnes_per_ha",
+        "depth_cm",
+        "ndvi",
+        "savi",
+        "satvi",
+        "bsi",
+        "nbr2",
+        "ndti",
+        "lswi",
+        "tc_brightness",
+        "tc_greenness",
+        "tc_wetness",
+        "worldclim_bio1",
+        "worldclim_bio16",
+        "worldclim_bio17",
+        "temperature_c",
+        "precipitation_mm",
     ]
 
     training_data = []
@@ -120,10 +149,21 @@ def prepare_feature_matrix(
     """
     feature_names = [
         "depth_cm",
-        "ndvi", "savi", "satvi", "bsi", "nbr2", "ndti", "lswi",
-        "tc_brightness", "tc_greenness", "tc_wetness",
-        "worldclim_bio1", "worldclim_bio16", "worldclim_bio17",
-        "temperature_c", "precipitation_mm",
+        "ndvi",
+        "savi",
+        "satvi",
+        "bsi",
+        "nbr2",
+        "ndti",
+        "lswi",
+        "tc_brightness",
+        "tc_greenness",
+        "tc_wetness",
+        "worldclim_bio1",
+        "worldclim_bio16",
+        "worldclim_bio17",
+        "temperature_c",
+        "precipitation_mm",
     ]
 
     X = []
@@ -166,8 +206,7 @@ def train_xgboost_model(
         logger.warning("xgboost/scikit-learn not installed — returning placeholder model metadata")
         return {
             "model_type": "xgboost_placeholder",
-            "error": "xgboost and scikit-learn packages not installed. "
-                     "Install with: pip install xgboost scikit-learn",
+            "error": "xgboost and scikit-learn packages not installed. Install with: pip install xgboost scikit-learn",
             "feature_count": len(feature_names),
             "feature_names": feature_names,
             "training_samples": len(X),
@@ -210,8 +249,7 @@ def train_xgboost_model(
     # Feature importance
     importance = model.feature_importances_
     feature_importance = sorted(
-        [{"feature": name, "importance": float(imp)}
-         for name, imp in zip(feature_names, importance)],
+        [{"feature": name, "importance": float(imp)} for name, imp in zip(feature_names, importance)],
         key=lambda x: x["importance"],
         reverse=True,
     )
@@ -237,7 +275,9 @@ def train_xgboost_model(
 
     logger.info(
         "XGBoost trained: R²=%.4f, RMSE=%.4f, CV R²=%.4f",
-        r2, rmse, cv_scores.mean(),
+        r2,
+        rmse,
+        cv_scores.mean(),
     )
 
     return result
@@ -364,13 +404,15 @@ def residual_kriging_correction(
 
     # Krig residuals at observation points (leave-one-out style)
     ke = KrigingEngine(conn=conn)
-    ok_result = ke.ordinary_kriging(
-        coordinates, residual_values, vm_result, resolution_m=100.0
-    )
+    ok_result = ke.ordinary_kriging(coordinates, residual_values, vm_result, resolution_m=100.0)
 
     # Compute correction quality metrics
     xgb_rmse = float(np.sqrt(np.mean((y_actual - y_pred) ** 2)))
-    xgb_r2 = float(1 - np.sum((y_actual - y_pred) ** 2) / np.sum((y_actual - np.mean(y_actual)) ** 2)) if np.sum((y_actual - np.mean(y_actual)) ** 2) > 0 else 0.0
+    xgb_r2 = (
+        float(1 - np.sum((y_actual - y_pred) ** 2) / np.sum((y_actual - np.mean(y_actual)) ** 2))
+        if np.sum((y_actual - np.mean(y_actual)) ** 2) > 0
+        else 0.0
+    )
 
     return {
         "location_id": location_id,
@@ -411,6 +453,7 @@ def spatial_block_cv_for_soc(
     X, y, feature_names = prepare_feature_matrix(training_data)
 
     import numpy as np
+
     lats = np.array([float(d.get("gps_latitude", 0) or 0) for d in training_data])
     lons = np.array([float(d.get("gps_longitude", 0) or 0) for d in training_data])
     y_arr = np.array(y)
@@ -423,10 +466,12 @@ def spatial_block_cv_for_soc(
     lat_to_m = 111320.0
     lon_to_m = 111320.0 * np.cos(np.radians(mean_lat))
 
-    coordinates = np.array([
-        (float(lon - mean_lon) * lon_to_m, float(lat - mean_lat) * lat_to_m)
-        for lat, lon in zip(lats[valid], lons[valid])
-    ])
+    coordinates = np.array(
+        [
+            (float(lon - mean_lon) * lon_to_m, float(lat - mean_lat) * lat_to_m)
+            for lat, lon in zip(lats[valid], lons[valid])
+        ]
+    )
     X_valid = np.array(X)[valid]
     y_valid = y_arr[valid]
 
@@ -443,6 +488,7 @@ def spatial_block_cv_for_soc(
 
     try:
         import xgboost as xgb
+
         has_xgb = find_spec("sklearn") is not None
     except ImportError:
         has_xgb = False
@@ -463,8 +509,12 @@ def spatial_block_cv_for_soc(
 
         if has_xgb:
             model = xgb.XGBRegressor(
-                n_estimators=200, learning_rate=0.05, max_depth=6,
-                subsample=0.8, colsample_bytree=0.8, random_state=42,
+                n_estimators=200,
+                learning_rate=0.05,
+                max_depth=6,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                random_state=42,
             )
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
@@ -473,20 +523,22 @@ def spatial_block_cv_for_soc(
             y_pred = np.full(len(y_test), np.mean(y_train))
 
         errors = y_pred - y_test
-        ss_res = float(np.sum(errors ** 2))
+        ss_res = float(np.sum(errors**2))
         ss_tot = float(np.sum((y_test - np.mean(y_test)) ** 2))
         r2 = round(1 - ss_res / ss_tot, 4) if ss_tot > 0 else 0.0
 
-        fold_results.append({
-            "fold": i + 1,
-            "block_id": int(block_id),
-            "train_samples": int(np.sum(train_mask)),
-            "test_samples": int(np.sum(test_mask)),
-            "rmse": round(float(np.sqrt(np.mean(errors ** 2))), 4),
-            "mae": round(float(np.mean(np.abs(errors))), 4),
-            "me": round(float(np.mean(errors)), 4),
-            "r_squared": r2,
-        })
+        fold_results.append(
+            {
+                "fold": i + 1,
+                "block_id": int(block_id),
+                "train_samples": int(np.sum(train_mask)),
+                "test_samples": int(np.sum(test_mask)),
+                "rmse": round(float(np.sqrt(np.mean(errors**2))), 4),
+                "mae": round(float(np.mean(np.abs(errors))), 4),
+                "me": round(float(np.mean(errors)), 4),
+                "r_squared": r2,
+            }
+        )
 
         all_predictions.extend(y_pred.tolist())
         all_actuals.extend(y_test.tolist())
@@ -498,7 +550,7 @@ def spatial_block_cv_for_soc(
     all_act = np.array(all_actuals)
     errors = all_pred - all_act
 
-    ss_res = float(np.sum(errors ** 2))
+    ss_res = float(np.sum(errors**2))
     ss_tot = float(np.sum((all_act - np.mean(all_act)) ** 2))
 
     return {
@@ -508,8 +560,8 @@ def spatial_block_cv_for_soc(
         "n_folds": len(fold_results),
         "n_successful_folds": len(fold_results),
         "mean_error": round(float(np.mean(errors)), 4),
-        "mean_squared_error": round(float(np.mean(errors ** 2)), 4),
-        "root_mean_squared_error": round(float(np.sqrt(np.mean(errors ** 2))), 4),
+        "mean_squared_error": round(float(np.mean(errors**2)), 4),
+        "root_mean_squared_error": round(float(np.sqrt(np.mean(errors**2))), 4),
         "mean_absolute_error": round(float(np.mean(np.abs(errors))), 4),
         "r_squared": round(1 - ss_res / ss_tot, 4) if ss_tot > 0 else 0.0,
         "fold_results": fold_results,

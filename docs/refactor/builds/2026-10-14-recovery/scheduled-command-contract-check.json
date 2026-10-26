@@ -1,0 +1,34 @@
+{
+  "check": "scheduled_command_contracts",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "scheduled_modules_with_contracts": 12,
+    "database_or_candidate_touched": false,
+    "remote_state_changed": false,
+    "raspberry_pi_hardware_used": false
+  },
+  "pytest": {
+    "command": ".venv/bin/python -m pytest tests/test_scheduled_command_contracts.py tests/test_scheduler_durability.py tests/test_worker_operation_map.py tests/test_security_allowlist.py tests/test_event_bus_durability.py -q",
+    "passed": 77,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "verified_boundaries": [
+    "Operation schemas match the scheduler module allowlist exactly.",
+    "Invalid commands are visible in schedule graph preflight and rejected before subprocess creation, including run-now.",
+    "Invalid runtime commands do not receive a retry deadline.",
+    "The curated job planner and static job catalog validate generated argument arrays for scheduler-allowlisted operations.",
+    "Metric verification, unbounded event workers, retention-sensitive event cleanup, operator dead-letter actions, and source-less recurring sensor ingestion are rejected."
+  ],
+  "limitations": [
+    "Existing enabled scheduled_task rows are not automatically rewritten; reconcile them before candidate rollout.",
+    "The schemas do not establish tenant context, narrow database grants, or RLS safety, and do not trace transitive worker effects.",
+    "This is software test evidence only and does not certify Raspberry Pi hardware."
+  ]
+}

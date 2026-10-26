@@ -1,0 +1,31 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-13T23:52:55.717877+00:00",
+  "database": "PostgreSQL 16 disposable container with Docker network disabled",
+  "candidate_database_touched": false,
+  "migrations": [
+    "387_kokonut_network_tenant_ownership.sql",
+    "388_tenant_aware_operator_grants.sql",
+    "389_tenant_aware_field_collector_write_guards.sql"
+  ],
+  "idempotency_replay": [
+    "388_tenant_aware_operator_grants.sql",
+    "389_tenant_aware_field_collector_write_guards.sql"
+  ],
+  "checks": [
+    "ordered 387-389 replay on a minimal compatible PostgreSQL 16 schema",
+    "replay of migrations 388 and 389 is idempotent",
+    "confirmed Kokonut Network ownership is recorded for both seed locations",
+    "owner access succeeds and partner access needs an explicit active share",
+    "expired and revoked shares deny partner access",
+    "revoked membership, inactive organization, disabled identity, and revoked grant deny access",
+    "unverified location and stale ownership verification deny tenant access",
+    "legacy NULL-tenant grants remain compatible but still require an enabled identity",
+    "Field Collector draft insert requires current create and review grants",
+    "Field Collector draft edit requires all three current grants",
+    "workflow events require current action grants; draft-edited events require review grants",
+    "legacy NULL-tenant grants pass the Field Collector trigger boundary",
+    "non-target manual records remain outside the Field Collector tenant triggers"
+  ],
+  "scope_limit": "Uses a minimal compatible schema for the touched tables. It does not replay the full repository migration chain or test migrations 384-385 trigger interaction."
+}

@@ -17,7 +17,8 @@ mkdir -p "$EVIDENCE_DIR"
 EVIDENCE_FILE="$EVIDENCE_DIR/verify-$(date +%Y%m%d).json"
 
 "$PYTHON_BIN" - <<'PY'
-import json, os, subprocess, sys
+import json, os
+from pathlib import Path
 
 def present(path):
     return os.path.exists(path)
@@ -38,12 +39,18 @@ checks = {
     "control_mapping": present("docs/compliance/control-mapping.md"),
 }
 
-# CI supply-chain scan presence (lightweight grep, no build)
+# CI supply-chain scan presence (lightweight source check, no build)
+workflow_sources = (
+    ".github/workflows/ci.yml",
+    ".github/workflows/security.yml",
+    "scripts/run-github-ci.sh",
+)
 try:
-    with open(".onedev-buildspec.yml") as f:
-        spec = f.read()
-    checks["ci_supply_chain"] = all(t in spec for t in ("pip-audit", "semgrep", "slither"))
-except FileNotFoundError:
+    spec = "\n".join(Path(path).read_text(encoding="utf-8") for path in workflow_sources)
+    checks["ci_supply_chain"] = all(
+        token in spec for token in ("pip-audit", "semgrep", "slither", "gitleaks", "build-kernel-multiarch.sh")
+    )
+except OSError:
     pass
 
 strong = sum(1 for k, v in checks.items() if v)

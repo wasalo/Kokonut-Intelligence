@@ -1,0 +1,516 @@
+"""Persist an agent-generated summary through its signed worker identity.
+
+This module is a write adapter only. Summary generation and its source reads
+remain with the caller; PostgreSQL rechecks worker identity, exact location,
+and the ``ai_summary:draft`` grant before storing the result.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from collections.abc import Callable, Mapping
+from typing import Any
+from uuid import UUID
+
+from services.common.tenant_context import (
+    set_agent_summary_draft_tenant_context,
+)
+from services.common.worker_database import get_worker_credential, get_worker_db
+
+_SUMMARY_TYPE = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
+DETERMINISTIC_SUMMARY_TYPES = ("operations", "financial", "environmental", "combined")
+SYNTHESIS_SUMMARY_TYPES = frozenset(
+    {
+        "bio_factory",
+        "capital_efficiency",
+        "commons_liberation",
+        "stakeholder_feedback",
+        "gnh_alignment",
+        "holistic_wellbeing",
+        "kokonut_commons",
+        "open_source_capitalist",
+        "financial_resilience",
+        "regenerative_outcomes",
+        "organic_readiness",
+        "ecological_modeling",
+    }
+)
+SUPPORTED_WORKER_SUMMARY_TYPES = frozenset(
+    (*DETERMINISTIC_SUMMARY_TYPES, *SYNTHESIS_SUMMARY_TYPES)
+)
+_TASK_SUMMARY_TYPES = {
+    "agent_summary_deterministic_source": frozenset(DETERMINISTIC_SUMMARY_TYPES),
+    "agent_organic_readiness_source": frozenset({"organic_readiness"}),
+    "agent_ecological_modeling_source": frozenset({"ecological_modeling"}),
+    "agent_holistic_wellbeing_source": frozenset({"holistic_wellbeing"}),
+    "agent_feedback_source": frozenset({"stakeholder_feedback"}),
+    "agent_commons_liberation_source": frozenset({"commons_liberation"}),
+    "agent_gnh_alignment_source": frozenset({"gnh_alignment"}),
+    "agent_regenerator_source": frozenset({"regenerative_outcomes"}),
+    "agent_capital_efficiency_source": frozenset({"capital_efficiency"}),
+    "agent_financial_resilience_source": frozenset({"financial_resilience"}),
+    "agent_bio_factory_source": frozenset({"bio_factory"}),
+    "agent_open_source_capitalist_source": frozenset({"open_source_capitalist"}),
+    "agent_kokonut_commons_source": frozenset({"kokonut_commons"}),
+}
+_TASK_WRITER_KEYS = frozenset(_TASK_SUMMARY_TYPES)
+_SOURCE_TABLE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
+_WORKER_RESULT_MAX_BYTES = 131072
+_SOURCE_REFERENCE_TABLES = frozenset(
+    {
+        "harvest_event",
+        "sales_event",
+        "crop_cycle",
+        "sensor_reading",
+        "expense_event",
+        "noi_snapshot",
+        "soil_carbon_measurement",
+        "species_observation",
+        "remote_sensing_observation",
+        "weather_observation",
+        "crop",
+        "expense_category",
+        "capital_efficiency_scenario",
+        "regenerative_efficiency_observation",
+        "governance_throughput_observation",
+        "capital_provider_utility_scenario",
+        "bio_factory_batch",
+        "bio_input_provenance",
+        "bio_recipe_library",
+        "bio_factory_quality_test",
+        "regenerative_outcome_summary",
+        "community_governance_mechanism",
+        "replication_readiness_assessment",
+        "adaptive_stewardship_review",
+        "time_liberation_observation",
+        "capital_alignment_assessment",
+        "governance_inclusion_observation",
+        "land_stewardship_commitment",
+        "gnh_alignment_assessment",
+        "cultural_preservation_plan",
+        "renewable_energy_plan",
+        "vulnerable_group_access_plan",
+        "foundational_wellbeing_observation",
+        "financial_sustainability_plan",
+        "risk_mitigation_register",
+        "scaling_roadmap_milestone",
+        "farm_launch_unit_economics",
+        "adoption_barrier_assessment",
+        "perpetual_value_stress_test",
+        "cultural_context_record",
+        "wellbeing_metric_observation",
+        "participatory_action_record",
+        "stakeholder_feedback",
+        "anti_capture_governance_policy",
+        "commons_redistribution_policy",
+        "algorithmic_redistribution_mechanism",
+        "bio_regional_input_availability",
+        "network_scaling_target",
+        "open_source_impact_artifact",
+        "green_paper_publication_review",
+        "federation_protocol",
+        "participatory_signal_experiment",
+        "organic_readiness_assessment",
+        "organic_transition_plan",
+        "organic_input_audit",
+        "buffer_zone",
+        "harvest_handling_record",
+        "organic_certification_record",
+        "prohibited_substance_record",
+        "ecological_interaction",
+        "energy_flow_measurement",
+        "population_dynamics_record",
+        "soil_input_application",
+        "pest_observation",
+        "biocontrol_release",
+        "resource_consumption",
+        "livestock_group",
+        "feed_intake_record",
+        "species_observation",
+        "token_reward_distribution",
+        "reward_calibration_model",
+    }
+)
+
+
+class AgentDraftInvalid(ValueError):
+    """Raised when an agent draft request fails local payload validation."""
+
+
+def _uuid(value: str, label: str) -> str:
+    try:
+        return str(UUID(str(value)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise AgentDraftInvalid(f"{label} must be a UUID") from exc
+
+
+def _validate_source_references(
+    value: Any, source_tables: list[str]
+) -> tuple[dict[str, dict[str, Any]], str]:
+    if value is None:
+        value = {}
+    if not isinstance(value, Mapping) or len(value) > 20:
+        raise AgentDraftInvalid("source_references must be an object with at most 20 source tables")
+    normalized: dict[str, dict[str, Any]] = {}
+    for table, entry in value.items():
+        if (
+            not isinstance(table, str)
+            or not _SOURCE_TABLE.fullmatch(table)
+            or table not in _SOURCE_REFERENCE_TABLES
+            or table not in source_tables
+            or not isinstance(entry, Mapping)
+            or set(entry) not in (
+                {"record_ids", "row_count", "truncated"},
+                {"record_ids", "row_count", "truncated", "scope"},
+            )
+        ):
+            raise AgentDraftInvalid("source_references must match declared supported source tables")
+        record_ids = entry["record_ids"]
+        row_count = entry["row_count"]
+        truncated = entry["truncated"]
+        scope = entry.get("scope", "location")
+        if not isinstance(scope, str) or scope not in {
+            "location",
+            "network",
+            "location_or_network",
+        }:
+            raise AgentDraftInvalid("source reference scope is invalid")
+        if not isinstance(record_ids, list) or len(record_ids) > 50:
+            raise AgentDraftInvalid("source reference record_ids must contain at most 50 UUIDs")
+        try:
+            normalized_ids = [_uuid(record_id, "source reference record_id") for record_id in record_ids]
+        except AgentDraftInvalid as exc:
+            raise AgentDraftInvalid("source reference record_ids must contain UUIDs") from exc
+        if len(set(normalized_ids)) != len(normalized_ids):
+            raise AgentDraftInvalid("source reference record_ids must be unique")
+        if (
+            not isinstance(row_count, int)
+            or isinstance(row_count, bool)
+            or row_count < len(normalized_ids)
+            or not isinstance(truncated, bool)
+            or truncated != (row_count > len(normalized_ids))
+        ):
+            raise AgentDraftInvalid("source reference counts and truncation flag are inconsistent")
+        normalized_entry = {
+            "record_ids": normalized_ids,
+            "row_count": row_count,
+            "truncated": truncated,
+        }
+        if "scope" in entry:
+            normalized_entry["scope"] = scope
+        normalized[table] = normalized_entry
+    try:
+        encoded = json.dumps(normalized, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise AgentDraftInvalid("source_references must contain JSON-compatible values") from exc
+    if len(encoded.encode("utf-8")) > 64000:
+        raise AgentDraftInvalid("source_references exceeds the 64000-byte limit")
+    return normalized, encoded
+
+
+def _validate_payload(
+    summary_type: str, summary: Mapping[str, Any]
+) -> tuple[str, list[str], str, dict[str, dict[str, Any]], str]:
+    if not isinstance(summary_type, str) or not _SUMMARY_TYPE.fullmatch(summary_type):
+        raise AgentDraftInvalid("summary_type is invalid")
+    if summary_type not in SUPPORTED_WORKER_SUMMARY_TYPES:
+        raise AgentDraftInvalid("summary_type is not a registered worker draft type")
+    if not isinstance(summary, Mapping):
+        raise AgentDraftInvalid("summary must be an object")
+    content = summary.get("content") or summary.get("synthesis")
+    if not isinstance(content, str) or not content.strip() or len(content) > 20000:
+        raise AgentDraftInvalid("summary content must contain 1 to 20000 characters")
+    source_tables = summary.get("source_tables")
+    if (
+        not isinstance(source_tables, list)
+        or not 1 <= len(source_tables) <= 20
+        or any(not isinstance(table, str) or not _SOURCE_TABLE.fullmatch(table) for table in source_tables)
+        or len(set(source_tables)) != len(source_tables)
+    ):
+        raise AgentDraftInvalid("source_tables must contain 1 to 20 unique table identifiers")
+    model_version = summary.get("model_version", "agent-worker-v1")
+    if (
+        not isinstance(model_version, str)
+        or not model_version.strip()
+        or len(model_version) > 100
+    ):
+        raise AgentDraftInvalid("model_version must contain 1 to 100 characters")
+    source_references, source_references_json = _validate_source_references(
+        summary.get("source_references"), source_tables
+    )
+    return content, source_tables, model_version, source_references, source_references_json
+
+
+def _serialize_worker_result(
+    summary: Mapping[str, Any], *, content: str
+) -> str | None:
+    """Serialize a bounded structured response that must match its draft text."""
+    worker_result = summary.get("worker_result")
+    if worker_result is None:
+        return None
+    if not isinstance(worker_result, Mapping):
+        raise AgentDraftInvalid("worker_result must be an object")
+    result_texts = [
+        worker_result[key]
+        for key in ("content", "synthesis")
+        if key in worker_result
+    ]
+    if not result_texts or any(
+        not isinstance(result_text, str) or result_text != content
+        for result_text in result_texts
+    ):
+        raise AgentDraftInvalid("worker_result content must match the stored draft")
+    try:
+        encoded = json.dumps(
+            worker_result,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise AgentDraftInvalid("worker_result must contain JSON-compatible values") from exc
+    if len(encoded.encode("utf-8")) > _WORKER_RESULT_MAX_BYTES:
+        raise AgentDraftInvalid("worker_result exceeds the 131072-byte limit")
+    return encoded
+
+
+def _set_context(
+    connection: Any,
+    *,
+    credential: str,
+    location_id: str,
+) -> None:
+    with connection.cursor() as cursor:
+        cursor.execute("SET LOCAL statement_timeout = '15s'")
+        cursor.execute("SET LOCAL lock_timeout = '3s'")
+    set_agent_summary_draft_tenant_context(
+        connection, credential=credential, location_id=location_id
+    )
+
+
+def _resolve_worker_key(worker_key: str | None) -> str:
+    if worker_key is None:
+        raise AgentDraftInvalid(
+            "worker_key must be an explicitly registered task draft identity"
+        )
+    if not isinstance(worker_key, str) or worker_key not in _TASK_WRITER_KEYS:
+        raise AgentDraftInvalid("worker_key is not a registered task draft identity")
+    return worker_key
+
+
+def _validate_task_summary_type(worker_key: str, summary_type: str) -> None:
+    if summary_type not in _TASK_SUMMARY_TYPES[worker_key]:
+        raise AgentDraftInvalid(
+            "summary_type is not allowed for the registered worker task"
+        )
+
+
+def _verify_operator_task_request(
+    connection: Any,
+    *,
+    location_id: str,
+    summary_type: str,
+    request_id: str,
+) -> None:
+    """Require the signed worker scope to match an immutable operator receipt."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """SELECT task_key, operator_id
+                 FROM kokonut_security.verify_current_ai_summary_operator_task_request(
+                      %s::uuid, %s::text, %s::uuid
+                 )""",
+            (location_id, summary_type, request_id),
+        )
+        if cursor.fetchone() is None:
+            raise PermissionError("authenticated operator task request is required")
+
+
+def _read_row(row: tuple[Any, ...] | None, *, replayed: bool) -> dict[str, Any] | None:
+    if row is None:
+        return None
+    result = {
+        "summary_id": str(row[0]),
+        "content": row[1],
+        "source_tables": list(row[2] or []),
+        "model_version": row[3],
+        "created_at": row[4],
+        "resulting_status": row[5],
+        "replayed": replayed,
+        "source_references": {},
+    }
+    if len(row) > 6 and isinstance(row[6], dict):
+        result["worker_result"] = row[6]
+    return result
+
+
+def _read_source_references(
+    connection: Any, *, location_id: str, summary_id: str, request_id: str
+) -> dict[str, Any]:
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """SELECT kokonut_security.get_location_ai_summary_worker_source_references(
+                       %s::uuid, %s::uuid, %s::uuid
+                   )""",
+            (location_id, summary_id, request_id),
+        )
+        row = cursor.fetchone()
+    return row[0] if row and isinstance(row[0], dict) else {}
+
+
+def get_worker_ai_summary_draft(
+    location_id: str,
+    summary_type: str,
+    request_id: str,
+    *,
+    worker_key: str | None = None,
+    connection_factory: Callable[[], Any] | None = None,
+) -> dict[str, Any] | None:
+    """Return a prior exact worker request before an agent recomputes output."""
+    location_id = _uuid(location_id, "location_id")
+    request_id = _uuid(request_id, "request_id")
+    if not isinstance(summary_type, str) or not _SUMMARY_TYPE.fullmatch(summary_type):
+        raise AgentDraftInvalid("summary_type is invalid")
+    worker_key = _resolve_worker_key(worker_key)
+    _validate_task_summary_type(worker_key, summary_type)
+    credential = get_worker_credential(worker_key)
+    connection = (connection_factory or (lambda: get_worker_db(worker_key)))()
+    try:
+        _set_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+        )
+        _verify_operator_task_request(
+            connection,
+            location_id=location_id,
+            summary_type=summary_type,
+            request_id=request_id,
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.get_location_ai_summary_worker_result(
+                           %s::uuid, %s::text, %s::uuid
+                       )""",
+                (location_id, summary_type, request_id),
+            )
+            result = _read_row(cursor.fetchone(), replayed=True)
+        if result is not None:
+            result["source_references"] = _read_source_references(
+                connection,
+                location_id=location_id,
+                summary_id=result["summary_id"],
+                request_id=request_id,
+            )
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def create_worker_ai_summary_draft(
+    location_id: str,
+    summary_type: str,
+    request_id: str,
+    summary: Mapping[str, Any],
+    *,
+    worker_key: str | None = None,
+    connection_factory: Callable[[], Any] | None = None,
+) -> dict[str, Any]:
+    """Create or replay one draft under the exact signed worker scope.
+
+    Call :func:`get_worker_ai_summary_draft` before expensive generation when
+    possible. This write function remains idempotent if concurrent workers race
+    after that lookup.
+    """
+    location_id = _uuid(location_id, "location_id")
+    request_id = _uuid(request_id, "request_id")
+    (
+        content,
+        source_tables,
+        model_version,
+        source_references,
+        source_references_json,
+    ) = _validate_payload(summary_type, summary)
+    worker_result_json = _serialize_worker_result(summary, content=content)
+    worker_key = _resolve_worker_key(worker_key)
+    _validate_task_summary_type(worker_key, summary_type)
+    credential = get_worker_credential(worker_key)
+    connection = (connection_factory or (lambda: get_worker_db(worker_key)))()
+    try:
+        _set_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+        )
+        _verify_operator_task_request(
+            connection,
+            location_id=location_id,
+            summary_type=summary_type,
+            request_id=request_id,
+        )
+        with connection.cursor() as cursor:
+            if worker_result_json is not None:
+                cursor.execute(
+                    """SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft_with_result(
+                               %s::uuid, %s::text, %s::text, %s::text[], %s::text,
+                               %s::uuid, %s::jsonb
+                           )""",
+                    (
+                        location_id,
+                        summary_type,
+                        content,
+                        source_tables,
+                        model_version,
+                        request_id,
+                        worker_result_json,
+                    ),
+                )
+            else:
+                cursor.execute(
+                    """SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft(
+                               %s::uuid, %s::text, %s::text, %s::text[], %s::text, %s::uuid
+                           )""",
+                    (location_id, summary_type, content, source_tables, model_version, request_id),
+                )
+            row = cursor.fetchone()
+        result = (
+            _read_row(
+                (*row[:6], row[7]) if len(row) > 7 else row[:6],
+                replayed=bool(row[6]),
+            )
+            if row is not None
+            else None
+        )
+        if result is None:
+            raise RuntimeError("AI summary worker draft function returned no result")
+        if source_references:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """SELECT kokonut_security.set_location_ai_summary_source_references(
+                               %s::uuid, %s::uuid, %s::uuid, %s::jsonb
+                           )""",
+                    (
+                        location_id,
+                        result["summary_id"],
+                        request_id,
+                        source_references_json,
+                    ),
+                )
+                cursor.fetchone()
+        result["source_references"] = _read_source_references(
+            connection,
+            location_id=location_id,
+            summary_id=result["summary_id"],
+            request_id=request_id,
+        )
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

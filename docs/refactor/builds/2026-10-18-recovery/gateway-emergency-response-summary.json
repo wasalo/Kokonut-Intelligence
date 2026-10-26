@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-18",
+  "branch": "feat/mobile-offline-acceptance",
+  "capability": "CAP-017",
+  "status": "prepared",
+  "route": "GET /operator/api/emergency-response/{location_id}/summary",
+  "authorization": {
+    "identity": "OIDC operator session",
+    "scope": "emergency_response:read",
+    "scope_location": "path location UUID",
+    "database_context": "signed operator tenant context established before aggregate reads"
+  },
+  "transaction": {
+    "read_only": true,
+    "statement_timeout": "8s",
+    "lock_timeout": "2s",
+    "cleanup": "rollback and close on success or failure"
+  },
+  "returned_fields": [
+    "total/resolved/escalated/recovered incident counts",
+    "average response time and deadline compliance",
+    "aggregate financial impact and affected area",
+    "bounded type and severity groups"
+  ],
+  "excluded_fields": [
+    "incident descriptions",
+    "response and recovery actions",
+    "emergency support notes",
+    "ecological impact notes",
+    "lessons learned",
+    "individual incident rows"
+  ],
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_emergency_response.py tests/test_emergency_response.py tests/test_gateway_auth.py tests/test_gateway_audit.py -q",
+    "result": "59 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 66 rows, 51 baseline-retained, 7 deployed, 8 prepared",
+    "diff_check": "passed"
+  },
+  "database_provider_network_touched": false,
+  "notes": [
+    "Service checks use synthetic UUIDs, mocked tenant context, and a fake connection that captures SQL and transaction cleanup.",
+    "HTTP checks use synthetic OIDC sessions, mocked scope providers, mocked service calls, and an in-memory audit adapter.",
+    "No candidate, legacy, or provider state was accessed."
+  ],
+  "remaining_gates": [
+    "incident create/update/recovery writes and lifecycle transitions",
+    "governed approval, evidence, and audit-history parity",
+    "output parity against representative populated fixtures",
+    "domain-table row-level security and runtime-role least privilege",
+    "candidate deployment and authenticated runtime acceptance",
+    "MAN-CAP-017 manual acceptance"
+  ],
+  "migration": null,
+  "rollback": "Revert the Gateway service, route registration, authorization policy, tests, and documentation; no schema/data change was made."
+}

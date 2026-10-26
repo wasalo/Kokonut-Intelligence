@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-16",
+  "slice": "Explicit scope for manual OpenWeatherMap ingestion",
+  "implementation": {
+    "entrypoint": "services.ingestion.weather",
+    "accepted_manual_modes": [
+      "--location-id <canonical UUID>",
+      "--all-locations"
+    ],
+    "omitted_scope": "Prints CLI help without loading a provider key or opening a database connection.",
+    "single_location_query": "Binds the canonical UUID and selects only active locations with coordinates.",
+    "aggregate_query": "Remains available only through the explicit --all-locations option.",
+    "scheduler_contract": "Requires --location-id and rejects --all-locations."
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_weather_cli_scope.py tests/test_scheduled_command_contracts.py -q",
+      "result": "passed",
+      "tests": 86
+    },
+    "ruff": "passed",
+    "compileall": "passed",
+    "generated_inventories": [
+      "worker source closure",
+      "worker function reachability",
+      "worker SQL inventory",
+      "worker SQL reachability",
+      "worker effect inventory",
+      "worker JobSpec contract inventory",
+      "runtime SQL inventory",
+      "worker boundary preflight",
+      "repository inventory"
+    ],
+    "capability_matrix": "66 rows; no MAN-CAP status changed"
+  },
+  "limitations": [
+    "Tests use mocked provider/database boundaries and do not make network calls or connect to PostgreSQL.",
+    "The location UUID and explicit aggregate flag are operation selectors, not operator authorization, signed worker context, or RLS.",
+    "No provider, persisted schedule, candidate database, legacy database, or live deployment was accessed."
+  ]
+}

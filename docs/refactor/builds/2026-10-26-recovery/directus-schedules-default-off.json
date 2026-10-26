@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-26",
+  "change": "Directus schedules default off in root and Kernel Compose profiles",
+  "schedule_variables": [
+    "KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION",
+    "KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION"
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_directus_extension_compatibility.py -q",
+    "result": "passed",
+    "tests": 3
+  },
+  "explicit_true_override_preserved": true,
+  "native_signed_noi_worker_available": true,
+  "docker_or_directus_runtime_accessed": false,
+  "schedule_activated_or_run": false,
+  "limitations": [
+    "Existing environment values set to true continue to opt in.",
+    "Active task ownership, runtime identity, schedule overlap, and output parity remain open."
+  ],
+  "rollback": "Restore the root Compose defaults to true if compatibility requires the historical automatic schedules."
+}

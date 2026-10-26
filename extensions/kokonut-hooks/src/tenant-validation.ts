@@ -1,25 +1,88 @@
-const REFERENCE_TABLES: Record<string, string[]> = {
-  plot_id: ['plot'],
-  crop_cycle_id: ['crop_cycle'],
-  harvest_id: ['harvest_event'],
+import { createError } from '@directus/errors';
+import { TENANT_SCOPED_COLLECTIONS } from './directus-authorization.js';
+
+type TenantReferenceLookup = (
+  database: any,
+  referenceId: string,
+  locationId: string,
+) => Promise<{ location_id?: string | null } | undefined>;
+
+async function lookupStaffAtLocation(
+  database: any,
+  referenceId: string,
+  locationId: string,
+): Promise<{ location_id: string } | undefined> {
+  const directlyAssigned = await database('staff')
+    .where({ id: referenceId, location_id: locationId })
+    .first('id');
+  if (directlyAssigned) return { location_id: locationId };
+
+  const farmMember = await database('farm_staff_member as member_ref')
+    .join('farm as farm_ref', 'member_ref.farm_id', 'farm_ref.id')
+    .where({
+      'member_ref.staff_id': referenceId,
+      'farm_ref.location_id': locationId,
+    })
+    .first('member_ref.staff_id');
+  return farmMember ? { location_id: locationId } : undefined;
+}
+
+const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
+  farm_id: (database, referenceId) => database('farm')
+    .where('id', referenceId)
+    .first('location_id'),
+  plot_id: (database, referenceId) => database('plot as plot_ref')
+    .join('farm as farm_ref', 'plot_ref.farm_id', 'farm_ref.id')
+    .where('plot_ref.id', referenceId)
+    .first('farm_ref.location_id as location_id'),
+  crop_cycle_id: (database, referenceId) => database('crop_cycle')
+    .where('id', referenceId)
+    .first('location_id'),
+  harvest_id: (database, referenceId) => database('harvest_event')
+    .where('id', referenceId)
+    .first('location_id'),
+  staff_id: lookupStaffAtLocation,
+  reviewed_by: lookupStaffAtLocation,
+  reviewer_id: lookupStaffAtLocation,
+  parent_scenario_id: (database, referenceId) => database('forecast_scenario')
+    .where('id', referenceId)
+    .first('location_id'),
+  infrastructure_asset_id: (database, referenceId) => database('infrastructure_asset')
+    .where('id', referenceId)
+    .first('location_id'),
 };
 
-const TENANT_SCOPED_COLLECTIONS = [
-  'farm_activity',
-  'harvest_event',
-  'expense_event',
-  'sales_event',
-  'loss_event',
-  'labor_event',
-  'field_note',
-  'stakeholder_feedback',
-  'metric_proposal',
-  'mrv_claim',
-];
+const InvalidTenantPayloadError = createError<{ message: string }>(
+  'INVALID_PAYLOAD',
+  ({ message }) => message,
+  400,
+);
+
+function invalidTenantPayload(message: string): Error {
+  return new InvalidTenantPayloadError({ message });
+}
 
 function isUuid(value: unknown): value is string {
   return typeof value === 'string' &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function validateReferencesAtLocation(
+  database: any,
+  locationId: string,
+  payload: Record<string, any>,
+): Promise<void> {
+  for (const [field, lookup] of Object.entries(TENANT_REFERENCE_LOOKUPS)) {
+    const referenceId = payload[field];
+    if (referenceId === undefined || referenceId === null) continue;
+    if (!isUuid(referenceId)) throw invalidTenantPayload(`Invalid ${field}`);
+
+    const reference = await lookup(database, referenceId, locationId);
+    if (!reference) throw invalidTenantPayload(`Unknown ${field}`);
+    if (reference.location_id !== locationId) {
+      throw invalidTenantPayload(`${field} belongs to a different location`);
+    }
+  }
 }
 
 /** Validate foreign references against the record's explicit location. */
@@ -28,25 +91,46 @@ export async function validateTenantReferences(
   collection: string,
   payload: Record<string, any>
 ): Promise<Record<string, any>> {
-  if (!TENANT_SCOPED_COLLECTIONS.includes(collection)) return payload;
+  if (!(TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) return payload;
 
   const locationId = payload.location_id;
-  if (!isUuid(locationId)) return payload;
+  // The request-level authorization hook rejects missing/null tenant scope;
+  // this helper validates only the explicit scope and its foreign references.
+  // An explicitly supplied but malformed scope must never skip validation.
+  if (locationId !== undefined && locationId !== null && !isUuid(locationId)) {
+    throw invalidTenantPayload('Invalid location_id');
+  }
+  if (locationId === undefined || locationId === null) return payload;
 
-  for (const [field, tables] of Object.entries(REFERENCE_TABLES)) {
-    const referenceId = payload[field];
-    if (referenceId === undefined || referenceId === null) continue;
-    if (!isUuid(referenceId)) throw new Error(`Invalid ${field}`);
+  await validateReferencesAtLocation(database, locationId, payload);
 
-    let reference: any;
-    for (const table of tables) {
-      reference = await database(table).where('id', referenceId).first('location_id');
-      if (reference) break;
+  return payload;
+}
+
+/** Validate changed references against every authorized target row's location. */
+export async function validateTenantReferencesForRows(
+  database: any,
+  collection: string,
+  payload: Record<string, any>,
+  rows: ReadonlyArray<{ location_id: string | null }>,
+): Promise<Record<string, any>> {
+  if (!(TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) return payload;
+  if (rows.length === 0) throw invalidTenantPayload('No tenant rows to validate');
+  if (payload.location_id !== undefined && payload.location_id !== null && !isUuid(payload.location_id)) {
+    throw invalidTenantPayload('Invalid location_id');
+  }
+
+  const locationIds = new Set<string>();
+  for (const row of rows) {
+    if (!isUuid(row.location_id)) throw invalidTenantPayload('Invalid location_id');
+    if (payload.location_id !== undefined && payload.location_id !== row.location_id) {
+      throw invalidTenantPayload('location_id cannot be changed');
     }
-    if (!reference) throw new Error(`Unknown ${field}`);
-    if (reference.location_id !== locationId) {
-      throw new Error(`${field} belongs to a different location`);
-    }
+    locationIds.add(row.location_id);
+  }
+
+  for (const locationId of locationIds) {
+    await validateReferencesAtLocation(database, locationId, payload);
   }
 
   return payload;

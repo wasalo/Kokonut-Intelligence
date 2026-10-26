@@ -1,4 +1,9 @@
 import { defineHook } from '@directus/extensions-sdk';
+import { createError } from '@directus/errors';
+import {
+  denyLegacyDashboardSqlQueryAccess,
+  omitLegacyDashboardQuerySql,
+} from './dashboard-datasets.js';
 import { calculateNoi, batchCalculateNoi, storeNoiSnapshot, setDb } from './metrics-calculator.js';
 import {
   handleWorkflowTransition,
@@ -30,7 +35,6 @@ import {
 } from './feedback.js';
 import {
   handleMetricProposalUpdate,
-  logMetricProposalTransition,
 } from './metric-proposal.js';
 import {
   normalizeImpactClaimPayload,
@@ -44,8 +48,28 @@ import {
   prepareAgentActionLog,
   STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS,
 } from './agent-safety.js';
-import { validateTenantReferences } from './tenant-validation.js';
+import {
+  validateTenantReferences,
+  validateTenantReferencesForRows,
+} from './tenant-validation.js';
+import { errorClass } from './error-safety.js';
+import {
+  authorizeDirectusCreate,
+  authorizeDirectusFeedbackReviewCreate,
+  authorizeDirectusRead,
+  authorizeDirectusReadResult,
+  authorizeDirectusRows,
+  createDirectusTenantStore,
+  requireDirectusRequestDatabase,
+  TENANT_SCOPED_COLLECTIONS,
+} from './directus-authorization.js';
 import { z } from 'zod';
+
+const InvalidDashboardQueryPayload = createError<{ message: string }>(
+  'INVALID_PAYLOAD',
+  ({ message }) => message,
+  400,
+);
 import {
   validateAgentTaskCreate,
   validateAgentTaskUpdate,
@@ -77,6 +101,18 @@ function parseOrThrow(validate: (p: Record<string, any>) => Record<string, any>,
   }
 }
 
+/** Tenant-scoped hook queries must use Directus's request transaction. */
+export function resolveHookDatabase(
+  collection: string,
+  context: Record<string, any> | null | undefined,
+  extensionDatabase: any,
+): any {
+  if ((TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) {
+    return requireDirectusRequestDatabase(context?.database);
+  }
+  return context?.database || extensionDatabase;
+}
+
 /** Collections with only workflow enforcement (no create-time validation). */
 const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
   (c) =>
@@ -94,18 +130,138 @@ const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
     ].includes(c)
 );
 
-export default defineHook(({ filter, action, schedule }, { database }) => {
+function isExplicitlyEnabled(value: unknown): boolean {
+  return value === true || (typeof value === 'string' && value.trim().toLowerCase() === 'true');
+}
+
+export default defineHook(({ filter, action, schedule }, { database, env }) => {
   setDb(database);
 
-  for (const collection of [
-    'farm_activity', 'harvest_event', 'expense_event', 'sales_event',
-    'loss_event', 'labor_event', 'field_note', 'stakeholder_feedback',
-    'metric_proposal', 'mrv_claim',
-  ]) {
-    filter(`${collection}.create`, async (payload: Record<string, any>) => {
-      return await validateTenantReferences(database, collection, payload);
+  // Archived dataset SQL is retained only for old records. Reject attempts to
+  // create or rewrite it even when callers bypass the published OpenAPI spec.
+  const rejectDashboardQuerySqlWrite = (payload: Record<string, any>) => {
+    if (Object.prototype.hasOwnProperty.call(payload, 'query_sql')) {
+      throw new InvalidDashboardQueryPayload({
+        message: 'dashboard_dataset.query_sql is read-only; use query_id',
+      });
+    }
+    return payload;
+  };
+  filter('dashboard_dataset.items.create', rejectDashboardQuerySqlWrite);
+  filter('dashboard_dataset.items.update', rejectDashboardQuerySqlWrite);
+
+  for (const collection of TENANT_SCOPED_COLLECTIONS) {
+    filter(`${collection}.items.query`, async (
+      query: Record<string, any>,
+      _meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const requestDatabase = requireDirectusRequestDatabase(context?.database);
+      if (collection === 'dashboard_dataset') denyLegacyDashboardSqlQueryAccess(query);
+      return await authorizeDirectusRead(
+        createDirectusTenantStore(requestDatabase),
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        query,
+      );
+    });
+
+    filter(`${collection}.items.read`, async (
+      items: unknown,
+      _meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const authorizedItems = await authorizeDirectusReadResult(
+        createDirectusTenantStore(requireDirectusRequestDatabase(context?.database)),
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        items,
+      );
+      return collection === 'dashboard_dataset'
+        ? omitLegacyDashboardQuerySql(authorizedItems)
+        : authorizedItems;
+    });
+
+    filter(`${collection}.items.create`, async (
+      payload: Record<string, any>,
+      _meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const requestDatabase = requireDirectusRequestDatabase(context?.database);
+      const tenantStore = createDirectusTenantStore(requestDatabase);
+      await authorizeDirectusCreate(
+        tenantStore,
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        payload,
+      );
+      return await validateTenantReferences(requestDatabase, collection, payload);
+    });
+
+    filter(`${collection}.items.update`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const requestDatabase = requireDirectusRequestDatabase(context?.database);
+      const authorizedRows = await authorizeDirectusRows(
+        createDirectusTenantStore(requestDatabase),
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        'update',
+        meta?.keys,
+        payload,
+      );
+      await validateTenantReferencesForRows(
+        requestDatabase,
+        collection,
+        payload,
+        authorizedRows,
+      );
+      return payload;
+    });
+
+    filter(`${collection}.items.delete`, async (
+      keys: string[] | string,
+      _meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      await authorizeDirectusRows(
+        createDirectusTenantStore(requireDirectusRequestDatabase(context?.database)),
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        'delete',
+        keys,
+      );
+      return keys;
     });
   }
+
+  // Review rows have no location_id; bind their create action to the exact
+  // parent feedback location and require the child collection's scoped grant.
+  filter('stakeholder_feedback_review.items.create', async (
+    payload: Record<string, any>,
+    _meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    const requestDatabase = requireDirectusRequestDatabase(context?.database);
+    const locationId = await authorizeDirectusFeedbackReviewCreate(
+      createDirectusTenantStore(requestDatabase),
+      context?.accountability,
+      env.KOKONUT_OPERATOR_OIDC_ISSUER,
+      payload,
+    );
+    await validateTenantReferences(requestDatabase, 'stakeholder_feedback', {
+      location_id: locationId,
+      reviewer_id: payload.reviewer_id,
+    });
+    return payload;
+  });
 
   function getUserId(meta: Record<string, any>): string | undefined {
     const accountability = meta?.accountability;
@@ -126,40 +282,56 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
         database, collection, recordId, fromStatus, toStatus, userId, undefined, notes
       );
     } catch (error) {
-      console.error(`[Kokonut] Failed to log workflow transition for ${collection}:`, error);
+      console.error(`[Kokonut] Failed to log workflow transition for ${collection}: ${errorClass(error)}`);
     }
   }
 
   async function applyWorkflow(
     collection: string,
     payload: Record<string, any>,
-    meta: Record<string, any>
+    meta: Record<string, any>,
+    requestDatabase: any = database,
   ) {
-    const userRoles = await resolveUserRoles(database, meta);
+    const userRoles = await resolveUserRoles(requestDatabase, meta);
     const accountability = meta?.accountability;
     return await handleWorkflowTransition(
-      collection, payload, meta.keys || {}, userRoles, database, accountability
+      collection,
+      payload,
+      meta.keys || {},
+      userRoles,
+      requestDatabase,
+      accountability,
+      (TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection) &&
+        collection !== 'metric_proposal',
     );
   }
 
   // Register workflow-only filter hooks
   for (const collection of WORKFLOW_ONLY_COLLECTIONS) {
-    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
-      return await applyWorkflow(collection, payload, meta);
+    filter(`${collection}.items.update`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      return await applyWorkflow(collection, payload, meta, resolveHookDatabase(collection, context, database));
     });
   }
 
   // Data-stream records always enter the governed lifecycle as drafts. Their
   // status can only advance through the standard role-gated workflow.
   for (const collection of ['data_stream_post', 'data_stream_post_comment', 'data_stream_file']) {
-    filter(`${collection}.create`, (payload: Record<string, any>) => {
+    filter(`${collection}.items.create`, (payload: Record<string, any>) => {
       if (payload.status && payload.status !== 'draft') {
         delete payload.status;
       }
       return payload;
     });
-    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
-      return await applyWorkflow(collection, payload, meta);
+    filter(`${collection}.items.update`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      return await applyWorkflow(collection, payload, meta, resolveHookDatabase(collection, context, database));
     });
   }
 
@@ -167,7 +339,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   // Filter hooks (blocking - run before DB write)
   // ============================================================
 
-  filter('expense_event.create', (payload: Record<string, any>) => {
+  filter('expense_event.items.create', (payload: Record<string, any>) => {
     const validated = parseOrThrow(validateExpenseEventCreate, payload);
     autoCategorizeExpense(validated);
 
@@ -195,7 +367,11 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return validated;
   });
 
-  filter('expense_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('expense_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateExpenseEventUpdate, payload);
     // Re-run auto-categorization if category was cleared
     if (!validated.category || validated.category === '') {
@@ -209,10 +385,12 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     }
 
-    return await applyWorkflow('expense_event', validated, meta);
+    return await applyWorkflow(
+      'expense_event', validated, meta, resolveHookDatabase('expense_event', context, database),
+    );
   });
 
-  filter('sales_event.create', (payload: Record<string, any>) => {
+  filter('sales_event.items.create', (payload: Record<string, any>) => {
     const validated = parseOrThrow(validateSalesEventCreate, payload);
     if (validated.total_amount !== undefined) {
       validated.net_amount = calculateNetAmount(
@@ -246,11 +424,16 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return validated;
   });
 
-  filter('sales_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('sales_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    const requestDatabase = resolveHookDatabase('sales_event', context, database);
     const validated = parseOrThrow(validateSalesEventUpdate, payload);
     const recordId = meta.keys?.[0];
     if (recordId && (validated.total_amount !== undefined || validated.return_amount !== undefined || validated.discount_amount !== undefined)) {
-      const current = await database('sales_event')
+      const current = await requestDatabase('sales_event')
         .where('id', recordId)
         .first();
 
@@ -260,10 +443,10 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       validated.net_amount = calculateNetAmount(total, returns, discount);
     }
 
-    return await applyWorkflow('sales_event', validated, meta);
+    return await applyWorkflow('sales_event', validated, meta, requestDatabase);
   });
 
-  filter('harvest_event.create', (payload: Record<string, any>) => {
+  filter('harvest_event.items.create', (payload: Record<string, any>) => {
     if (payload.loss_amount && !payload.loss_estimated_value) {
       const estimated = autoCalculateLossValue(
         payload.loss_amount,
@@ -300,11 +483,15 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('harvest_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('harvest_event', payload, meta);
+  filter('harvest_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('harvest_event', payload, meta, resolveHookDatabase('harvest_event', context, database));
   });
 
-  filter('farm_activity.create', (payload: Record<string, any>) => {
+  filter('farm_activity.items.create', (payload: Record<string, any>) => {
     if (payload.activity_date) {
       const dateError = validateNotFutureDate(payload.activity_date);
       if (dateError) {
@@ -319,11 +506,15 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('farm_activity.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('farm_activity', payload, meta);
+  filter('farm_activity.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('farm_activity', payload, meta, resolveHookDatabase('farm_activity', context, database));
   });
 
-  filter('loss_event.create', (payload: Record<string, any>) => {
+  filter('loss_event.items.create', (payload: Record<string, any>) => {
     if (payload.loss_date) {
       const dateError = validateNotFutureDate(payload.loss_date);
       if (dateError) {
@@ -341,11 +532,15 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('loss_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('loss_event', payload, meta);
+  filter('loss_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('loss_event', payload, meta, resolveHookDatabase('loss_event', context, database));
   });
 
-  filter('labor_event.create', (payload: Record<string, any>) => {
+  filter('labor_event.items.create', (payload: Record<string, any>) => {
     if (payload.hours_worked && payload.hourly_rate && !payload.total_cost) {
       payload.total_cost = calculateLaborCost(payload.hours_worked, payload.hourly_rate);
     }
@@ -360,11 +555,15 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('labor_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('labor_event', payload, meta);
+  filter('labor_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('labor_event', payload, meta, resolveHookDatabase('labor_event', context, database));
   });
 
-  filter('field_note.create', (payload: Record<string, any>) => {
+  filter('field_note.items.create', (payload: Record<string, any>) => {
     autoSummarizeFieldNote(payload);
 
     if (payload.note_date) {
@@ -384,83 +583,153 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('field_note.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('field_note', payload, meta);
+  filter('field_note.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('field_note', payload, meta, resolveHookDatabase('field_note', context, database));
   });
 
-  filter('stakeholder_feedback.create', (payload: Record<string, any>) => {
+  filter('stakeholder_feedback.items.create', (payload: Record<string, any>) => {
     normalizeFeedbackPayload(payload);
     validateStakeholderFeedback(payload);
     return parseOrThrow(validateStakeholderFeedbackCreate, payload);
   });
 
-  filter('stakeholder_feedback.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('stakeholder_feedback.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    const requestDatabase = resolveHookDatabase('stakeholder_feedback', context, database);
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
-    const current = recordId ? await database('stakeholder_feedback').where('id', recordId).first() : {};
+    const current = recordId
+      ? await requestDatabase('stakeholder_feedback').where('id', recordId).first()
+      : {};
     validateStakeholderFeedback({ ...(current || {}), ...payload });
     const validated = parseOrThrow(validateStakeholderFeedbackUpdate, payload);
-    return await applyWorkflow('stakeholder_feedback', validated, meta);
+    const workflowPayload = await applyWorkflow(
+      'stakeholder_feedback', validated, meta, requestDatabase,
+    );
+    if (recordId && (validated.status === 'published' || validated.status === 'rejected')) {
+      try {
+        await recordFeedbackReview(requestDatabase, {
+          feedbackId: recordId,
+          action: validated.status === 'published' ? 'published_summary' : 'dismissed',
+          responseText: validated.status === 'published'
+            ? 'Public summary published.'
+            : validated.rejection_reason,
+          actorDirectusUserId: getUserId(meta),
+        });
+      } catch (error) {
+        consumePendingTransition('stakeholder_feedback', recordId);
+        throw error;
+      }
+    }
+    return workflowPayload;
   });
 
-  filter('metric_proposal.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    const accountability = meta?.accountability;
-    return await handleMetricProposalUpdate(payload, meta, database, accountability);
+  filter('metric_proposal.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    const requestDatabase = resolveHookDatabase('metric_proposal', context, database);
+    return await handleMetricProposalUpdate(payload, meta, requestDatabase, true);
   });
 
-  filter('impact_claim.create', (payload: Record<string, any>) => {
+  filter('impact_claim.items.create', (payload: Record<string, any>) => {
     normalizeImpactClaimPayload(payload);
     validateImpactClaim(payload);
     return parseOrThrow(validateImpactClaimCreate, payload);
   });
 
-  filter('impact_claim.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('impact_claim.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    const requestDatabase = resolveHookDatabase('impact_claim', context, database);
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
-    const current = recordId ? await database('impact_claim').where('id', recordId).first() : {};
+    const current = recordId
+      ? await requestDatabase('impact_claim').where('id', recordId).first()
+      : {};
     validateImpactClaim({ ...(current || {}), ...payload });
     const validated = parseOrThrow(validateImpactClaimUpdate, payload);
-    const accountability = meta?.accountability;
-    await stampImpactClaimReview(validated, accountability);
-    return await applyWorkflow('impact_claim', validated, meta);
+    await stampImpactClaimReview(validated);
+    return await applyWorkflow('impact_claim', validated, meta, requestDatabase);
   });
 
-  filter('agent_task.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('agent_task.items.create', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateAgentTaskCreate, payload);
-    const roles = await resolveUserRoles(database, meta);
+    const roles = await resolveUserRoles(resolveHookDatabase('agent_task', context, database), meta);
     return enforceAgentTaskSafety(validated, roles);
   });
-  filter('agent_task.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('agent_task.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateAgentTaskUpdate, payload);
-    const roles = await resolveUserRoles(database, meta);
+    const roles = await resolveUserRoles(resolveHookDatabase('agent_task', context, database), meta);
     return enforceAgentTaskSafety(validated, roles);
   });
-  filter('ai_summary.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('ai_summary.items.create', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateAiSummaryCreate, payload);
-    const roles = await resolveUserRoles(database, meta);
+    const roles = await resolveUserRoles(resolveHookDatabase('ai_summary', context, database), meta);
     return enforceAiSummarySafety(validated, roles);
   });
-  filter('ai_summary.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('ai_summary.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateAiSummaryUpdate, payload);
-    const roles = await resolveUserRoles(database, meta);
+    const requestDatabase = resolveHookDatabase('ai_summary', context, database);
+    const roles = await resolveUserRoles(requestDatabase, meta);
     enforceAiSummarySafety(validated, roles);
-    return await applyWorkflow('ai_summary', validated, meta);
+    return await applyWorkflow('ai_summary', validated, meta, requestDatabase);
   });
-  filter('agent_action_log.create', (payload: Record<string, any>) => prepareAgentActionLog(parseOrThrow(validateAgentActionLogCreate, payload)));
+  filter('agent_action_log.items.create', (payload: Record<string, any>) => prepareAgentActionLog(parseOrThrow(validateAgentActionLogCreate, payload)));
 
-  filter('revenue_event.create', (payload: Record<string, any>) => {
+  filter('revenue_event.items.create', (payload: Record<string, any>) => {
     return parseOrThrow(validateRevenueEventCreate, payload);
   });
-  filter('revenue_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('revenue_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateRevenueEventUpdate, payload);
-    return await applyWorkflow('revenue_event', validated, meta);
+    return await applyWorkflow(
+      'revenue_event', validated, meta, resolveHookDatabase('revenue_event', context, database),
+    );
   });
 
   for (const collection of STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS) {
-    filter(`${collection}.create`, async (payload: Record<string, any>, meta: Record<string, any>) => {
-      const roles = await resolveUserRoles(database, meta);
+    filter(`${collection}.items.create`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const roles = await resolveUserRoles(resolveHookDatabase(collection, context, database), meta);
       return enforceStakeholderGovernanceSafety(collection, payload, roles);
     });
-    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
-      const roles = await resolveUserRoles(database, meta);
+    filter(`${collection}.items.update`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const roles = await resolveUserRoles(resolveHookDatabase(collection, context, database), meta);
       return enforceStakeholderGovernanceSafety(collection, payload, roles);
     });
   }
@@ -470,7 +739,13 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   // ============================================================
 
   for (const collection of LIFECYCLE_COLLECTIONS) {
-    action(`${collection}.update`, async (meta: Record<string, any>) => {
+    // Tenant-scoped lifecycle filters write workflow_history in the same
+    // Directus request transaction as the item update. Do not write a second,
+    // best-effort copy through the extension-global connection afterward.
+    if ((TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) {
+      continue;
+    }
+    action(`${collection}.items.update`, async (meta: Record<string, any>) => {
       const newStatus = meta?.payload?.status;
       const recordId = meta.keys?.[0] ?? meta.keys?.id;
       if (newStatus && recordId) {
@@ -480,140 +755,97 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     });
   }
 
-  action('stakeholder_feedback.update', async (meta: Record<string, any>) => {
-    const recordId = meta.keys?.[0] ?? meta.keys?.id;
-    const status = meta?.payload?.status;
-    if (!recordId || !status) return;
-
-    const userId = getUserId(meta);
-    if (status === 'published') {
-      await recordFeedbackReview(database, recordId, 'published_summary', userId, 'Public summary published.');
-    } else if (status === 'rejected') {
-      await recordFeedbackReview(database, recordId, 'dismissed', userId, meta?.payload?.rejection_reason);
-    }
-  });
-
-  action('metric_proposal.update', async (meta: Record<string, any>) => {
-    const recordId = meta.keys?.[0] ?? meta.keys?.id;
-    const status = meta?.payload?.status;
-    if (!recordId || !status) return;
-    await logMetricProposalTransition(
-      database,
-      recordId,
-      status,
-      getUserId(meta),
-      meta?.payload?.discussion_notes ? JSON.stringify(meta.payload.discussion_notes) : undefined
-    );
-  });
-
-  action('harvest_event.create', async (meta: Record<string, any>) => {
+  action('harvest_event.items.create', async (
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const payload = meta.payload || meta;
-    await recalculateNoi(payload.crop_cycle_id);
+    await recalculateNoi(payload.crop_cycle_id, context?.database);
   });
 
-  action('sales_event.create', async (meta: Record<string, any>) => {
+  // sales_event and expense_event financial mirrors are captured atomically
+  // by PostgreSQL migration 434 and delivered by the optional outbox worker.
+  action('sales_event.items.create', async (
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const payload = meta.payload || meta;
-    await recalculateNoi(payload.crop_cycle_id);
-    await writeFinancialEvent('sales', payload);
+    await recalculateNoi(payload.crop_cycle_id, context?.database);
   });
 
-  action('expense_event.create', async (meta: Record<string, any>) => {
+  action('expense_event.items.create', async (
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const payload = meta.payload || meta;
     if (payload.crop_cycle_id) {
-      await recalculateNoi(payload.crop_cycle_id);
+      await recalculateNoi(payload.crop_cycle_id, context?.database);
     }
-    await writeFinancialEvent('expense', payload);
   });
 
   // ============================================================
   // Scheduled hooks
   // ============================================================
 
-  schedule('0 2 * * *', async () => {
-    console.log('[Kokonut] Running daily NOI reconciliation...');
-    try {
-      const results = await batchCalculateNoi();
-      console.log(`[Kokonut] NOI reconciled for ${results.length} crop cycles`);
-    } catch (error) {
-      console.error('[Kokonut] NOI reconciliation failed:', error);
-    }
-  });
+  if (isExplicitlyEnabled(env?.KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION)) {
+    schedule('0 2 * * *', async () => {
+      console.log('[Kokonut] Running daily NOI reconciliation...');
+      try {
+        const result = await batchCalculateNoi();
+        if (result.failed > 0) {
+          console.error(
+            `[Kokonut] NOI reconciliation completed with partial failures: succeeded=${result.succeeded} failed=${result.failed}`
+          );
+        } else {
+          console.log(
+            `[Kokonut] NOI reconciliation completed: succeeded=${result.succeeded} failed=0`
+          );
+        }
+      } catch (error) {
+        console.error(`[Kokonut] NOI reconciliation failed: ${errorClass(error)}`);
+      }
+    });
+  }
 
-  schedule('0 3 * * 0', async () => {
-    console.log('[Kokonut] Running weekly metric snapshots...');
-    try {
-      const activities = await database('farm_activity')
-        .where('status', 'verified')
-        .select(
-          database.raw('DATE_TRUNC(\'week\', activity_date) as week'),
-          'location_id',
-          database.raw('COUNT(*) as activity_count'),
-          database.raw('SUM(labor_hours) as total_labor_hours'),
-          database.raw('SUM(labor_cost) as total_labor_cost')
-        )
-        .groupBy('week', 'location_id');
+  if (isExplicitlyEnabled(env?.KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION)) {
+    schedule('0 3 * * 0', async () => {
+      console.log('[Kokonut] Running weekly verified farm activity aggregation...');
+      try {
+        const activities = await database('farm_activity')
+          .where('status', 'verified')
+          .whereRaw(
+            'farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id)'
+          )
+          .select(
+            database.raw('DATE_TRUNC(\'week\', activity_date) as week'),
+            'location_id',
+            database.raw('COUNT(*) as activity_count'),
+            database.raw('SUM(labor_hours) as total_labor_hours'),
+            database.raw('SUM(labor_cost) as total_labor_cost')
+          )
+          .groupBy('week', 'location_id');
 
-      console.log(`[Kokonut] Weekly snapshots created for ${activities.length} locations`);
-    } catch (error) {
-      console.error('[Kokonut] Weekly snapshots failed:', error);
-    }
-  });
+        console.log(
+          `[Kokonut] Weekly verified farm activity query returned ${activities.length} location-week rows; no snapshot records were persisted`
+        );
+      } catch (error) {
+        console.error(`[Kokonut] Weekly verified farm activity aggregation failed: ${errorClass(error)}`);
+      }
+    });
+  }
 });
 
-async function recalculateNoi(cropCycleId: string | undefined) {
+async function recalculateNoi(cropCycleId: string | undefined, requestDatabase: any) {
   if (!cropCycleId) return;
+  if (typeof requestDatabase !== 'function') {
+    console.error('[Kokonut] Skipping NOI recalculation: request database unavailable');
+    return;
+  }
   try {
-    const calc = await calculateNoi(cropCycleId);
-    await storeNoiSnapshot(calc);
+    const calc = await calculateNoi(cropCycleId, requestDatabase);
+    await storeNoiSnapshot(calc, requestDatabase);
     console.log(`[Kokonut] NOI recalculated for crop cycle: ${cropCycleId}`);
   } catch (error) {
-    console.error(`[Kokonut] Failed to recalulate NOI for ${cropCycleId}:`, error);
-  }
-}
-
-async function writeFinancialEvent(type: string, payload: Record<string, any>) {
-  try {
-    const amount = payload.total_amount || payload.amount || 0;
-    if (amount === 0) return;
-
-    const chHost = process.env.CH_HOST || 'clickhouse';
-    const chPort = process.env.CH_PORT || '8123';
-    const chUser = process.env.CH_USER || 'kokonut';
-    const chPass = process.env.CH_PASSWORD || '';
-
-    // Validate all values before ClickHouse interpolation
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const STR_RE = /^[a-zA-Z0-9_\- ]+$/;
-    const CAT_RE = /^[a-zA-Z0-9_\-]+$/;
-    const CUR_RE = /^[A-Z]{3}$/;
-
-    const txId = (payload.id && UUID_RE.test(payload.id)) ? payload.id : crypto.randomUUID();
-    const locId = (payload.location_id && UUID_RE.test(payload.location_id)) ? payload.location_id : '00000000-0000-0000-0000-000000000000';
-    const cat = payload.category && CAT_RE.test(payload.category) ? payload.category.substring(0, 50) : (type || 'other');
-    const rawCurrency = payload.currency || 'USD';
-    const cur = CUR_RE.test(rawCurrency) ? rawCurrency : 'USD';
-    const amt = typeof amount === 'number' && isFinite(amount) ? amount : 0;
-    const ts = new Date().toISOString().replace('T', ' ').replace('Z', '');
-    const safeType = STR_RE.test(type) ? type : 'other';
-
-    const query = `INSERT INTO financial_events
-      (timestamp, transaction_id, location_id, transaction_type, category,
-       amount, currency, amount_usd, chain, token, metadata)
-      VALUES (
-        '${ts}', '${txId}', '${locId}', '${safeType}', '${cat}',
-        ${amt}, '${cur}', ${amt}, '', '', map()
-      )`;
-
-    const auth = Buffer.from(`${chUser}:${chPass}`).toString('base64');
-    await fetch(`http://${chHost}:${chPort}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain',
-        'Authorization': `Basic ${auth}`,
-      },
-      body: query,
-    });
-  } catch (error) {
-    console.error(`[Kokonut] Failed to write financial event to ClickHouse:`, error);
+    console.error(`[Kokonut] Failed to recalulate NOI for ${cropCycleId}: ${errorClass(error)}`);
   }
 }

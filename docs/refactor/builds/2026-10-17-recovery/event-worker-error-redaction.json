@@ -1,0 +1,19 @@
+{
+  "scope": "durable event worker failure logging",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_event_bus_durability.py tests/test_event_worker_recovery.py -q",
+    "focused_test_result": "40 passed, 3 subtests passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior_preserved": [
+    "event batch failures still roll back and re-raise",
+    "worker iteration failures still discard the bus and retry with a fresh instance",
+    "bus close failures remain contained so the worker can continue",
+    "durable lease, retry, and dead-letter behavior is unchanged"
+  ],
+  "redaction": "database and close failures log only bounded exception classes; exception messages and tracebacks are omitted"
+}

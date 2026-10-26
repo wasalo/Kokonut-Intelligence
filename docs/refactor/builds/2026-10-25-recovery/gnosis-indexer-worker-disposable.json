@@ -1,0 +1,15 @@
+{
+  "migration": "643_isolated_gnosis_moloch_indexer.sql",
+  "migration_sha256": "7f89ee5c2263f19f7417aabd4e9d8a3f21da99ceedf1d5a049b62500c7ee7407",
+  "postgres_image": "postgres:16",
+  "checks": [
+    "migration 643 applies and replays",
+    "forced-RLS worker writes require matching Gnosis receipts and event mappings",
+    "outbox enforces fixed wallet/dLEGO row shapes and canonical source rows",
+    "receipt replay, canonical mismatch rejection, and identical outbox retry are enforced",
+    "worker login has no direct relation privileges and cannot invoke an unknown function"
+  ],
+  "candidate_or_legacy_accessed": false,
+  "provider_accessed": false,
+  "schedule_activated": false
+}

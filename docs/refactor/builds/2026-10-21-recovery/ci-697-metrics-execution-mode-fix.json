@@ -1,0 +1,14 @@
+{
+  "result": "fixed_locally",
+  "ci_run": 697,
+  "failed_commit": "c2cf9e87a64f5fdc19eea2090db6b0035f6d10fc",
+  "failure": "The CI script configures PostgreSQL through published loopback port 15432, but compute-metrics.sh selected the Compose worker when it saw loopback and a running Compose database. Compose interpolation then failed because the worker profile requires KOKONUT_RUNTIME_PASSWORD, which CI does not provision.",
+  "change": "run-github-ci.sh explicitly sets KOKONUT_METRICS_EXECUTION=host so metric computation uses the already configured host-side CI database connection.",
+  "checks": [
+    "2 focused execution-mode tests passed",
+    "bash -n passed for compute-metrics.sh and run-github-ci.sh",
+    "Ruff and git diff checks passed"
+  ],
+  "candidate_or_legacy_modified": false,
+  "hosted_verification": "Pending push of the fix commit"
+}

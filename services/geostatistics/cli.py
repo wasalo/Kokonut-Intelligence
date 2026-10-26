@@ -17,8 +17,77 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import math
 import sys
+
 from services.common.cli import print_json
+
+from .config import (
+    DEFAULT_BANDWIDTH,
+    DEFAULT_LAG_DISTANCE,
+    DEFAULT_LAG_TOLERANCE,
+    DEFAULT_MAX_NEIGHBORS,
+    DEFAULT_SEARCH_RADIUS_M,
+    DEFAULT_SGS_GRID_SIZE_M,
+    DEFAULT_SGS_MODE_NO,
+    DEFAULT_SGS_REALIZATIONS,
+    DEFAULT_SGS_SEED,
+    MAX_SGS_MODE_NO,
+    MAX_SGS_REALIZATIONS,
+    PROPERTY_DEFAULTS,
+)
+
+
+def _positive_finite_float(value: str) -> float:
+    """Parse a finite positive CLI distance."""
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a finite number greater than zero")
+    return parsed
+
+
+def _nonnegative_finite_float(value: str) -> float:
+    """Parse a finite non-negative CLI tolerance."""
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(parsed) or parsed < 0:
+        raise argparse.ArgumentTypeError("must be a finite non-negative number")
+    return parsed
+
+
+def _finite_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(parsed):
+        raise argparse.ArgumentTypeError("must be finite")
+    return parsed
+
+
+def _positive_integer(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return parsed
+
+
+def _nonnegative_integer(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if parsed < 0 or parsed > 2**32 - 1:
+        raise argparse.ArgumentTypeError("must be between 0 and 4294967295")
+    return parsed
 
 def main():
     parser = argparse.ArgumentParser(
@@ -37,27 +106,40 @@ def main():
                     help="Property key (soil_carbon, soil_moisture, soil_ph, ndvi)")
     vg.add_argument("--model", default=None,
                     help="Variogram model type (spherical, exponential, gaussian, matern)")
-    vg.add_argument("--lag-distance", type=float, default=None, help="Lag distance in meters")
+    vg.add_argument("--lag-distance", type=_positive_finite_float, default=None, help="Lag-bin width in meters")
+    vg.add_argument("--lag-tolerance", type=_nonnegative_finite_float, default=None, help="Half-width around each lag-bin center in meters")
+    vg.add_argument("--bandwidth", type=_positive_finite_float, default=DEFAULT_BANDWIDTH, help="Maximum pair distance searched in meters")
     vg.add_argument("--persist", action="store_true", help="Persist to database")
 
     # kriging
     kr = sub.add_parser("kriging", help="Run kriging interpolation")
     kr.add_argument("--location-id", required=True, help="Location UUID")
     kr.add_argument("--property", required=True, dest="property_key")
-    kr.add_argument("--method", default="ordinary",
+    kr.add_argument("--method", choices=("ordinary", "simple", "indicator"), default="ordinary",
                     help="Kriging method (ordinary, simple, indicator)")
-    kr.add_argument("--resolution", type=float, default=10.0, help="Grid resolution in meters")
+    kr.add_argument("--resolution", type=_positive_finite_float, default=10.0, help="Grid resolution in meters")
     kr.add_argument("--variogram-id", default=None, help="Variogram model UUID to use")
-    kr.add_argument("--threshold", type=float, default=None, help="Threshold for indicator kriging")
+    kr.add_argument("--threshold", type=_finite_float, default=None, help="Threshold for indicator kriging")
+    kr.add_argument("--max-neighbors", type=_positive_integer, default=DEFAULT_MAX_NEIGHBORS,
+                    help="Maximum conditioning points per prediction")
+    kr.add_argument("--search-radius", type=_positive_finite_float, default=DEFAULT_SEARCH_RADIUS_M,
+                    help="Maximum conditioning-point distance in meters")
     kr.add_argument("--persist", action="store_true", help="Persist to database")
 
     # simulate
-    sim = sub.add_parser("simulate", help="Sequential Gaussian Simulation")
+    sim = sub.add_parser("simulate", help="Conditional Gaussian field simulation")
     sim.add_argument("--location-id", required=True, help="Location UUID")
     sim.add_argument("--property", required=True, dest="property_key")
-    sim.add_argument("--realizations", type=int, default=100, help="Number of realizations")
-    sim.add_argument("--resolution", type=float, default=10.0, help="Grid resolution in meters")
-    sim.add_argument("--seed", type=int, default=42, help="Random seed")
+    sim.add_argument("--realizations", type=_positive_integer, default=DEFAULT_SGS_REALIZATIONS, help="Number of realizations")
+    sim.add_argument("--resolution", type=_positive_finite_float, default=DEFAULT_SGS_GRID_SIZE_M, help="Grid resolution in meters")
+    sim.add_argument("--seed", type=_nonnegative_integer, default=DEFAULT_SGS_SEED, help="Random seed")
+    sim.add_argument(
+        "--mode-no", type=_positive_integer, default=DEFAULT_SGS_MODE_NO,
+        help=(
+            "GSTools random modes (1-1000); lower values trade spectral "
+            "fidelity for runtime"
+        ),
+    )
     sim.add_argument("--variogram-id", default=None, help="Variogram model UUID")
     sim.add_argument("--persist", action="store_true", help="Persist to database")
 
@@ -103,6 +185,41 @@ def main():
         parser.print_help()
         return
 
+    if args.command == "variogram":
+        from .data_sources import supports_database_property
+
+        if not supports_database_property(args.property_key):
+            parser.error(f"Unsupported property_key: {args.property_key}")
+        defaults = PROPERTY_DEFAULTS.get(args.property_key, {})
+        lag_distance = args.lag_distance or defaults.get(
+            "lag_distance", DEFAULT_LAG_DISTANCE
+        )
+        lag_tolerance = args.lag_tolerance
+        if lag_tolerance is None:
+            lag_tolerance = defaults.get("lag_tolerance", DEFAULT_LAG_TOLERANCE)
+        if lag_tolerance > lag_distance / 2:
+            parser.error("--lag-tolerance cannot exceed half of --lag-distance")
+
+    if args.command == "kriging":
+        from .data_sources import supports_database_property
+
+        if not supports_database_property(args.property_key):
+            parser.error(f"Unsupported property_key: {args.property_key}")
+        if args.method == "indicator" and args.threshold is None:
+            parser.error("indicator kriging requires --threshold")
+
+    if args.command == "simulate":
+        from .data_sources import supports_database_property
+
+        if not supports_database_property(args.property_key):
+            parser.error(f"Unsupported property_key: {args.property_key}")
+        if args.realizations > MAX_SGS_REALIZATIONS:
+            parser.error(
+                f"--realizations cannot exceed {MAX_SGS_REALIZATIONS}"
+            )
+        if args.mode_no > MAX_SGS_MODE_NO:
+            parser.error(f"--mode-no cannot exceed {MAX_SGS_MODE_NO}")
+
     from services.common.database import get_db
 
     conn = get_db()
@@ -116,6 +233,8 @@ def main():
                 args.property_key,
                 model_type=args.model,
                 lag_distance=args.lag_distance,
+                lag_tolerance=args.lag_tolerance,
+                bandwidth=args.bandwidth,
             )
             if args.persist and "error" not in result:
                 model_id = va.persist_variogram(
@@ -133,6 +252,8 @@ def main():
                 resolution_m=args.resolution,
                 variogram_model_id=args.variogram_id,
                 threshold=args.threshold,
+                max_neighbors=args.max_neighbors,
+                search_radius=args.search_radius,
             )
             if args.persist and "error" not in result:
                 # Need variogram_model_id for persistence
@@ -152,6 +273,7 @@ def main():
                 n_realizations=args.realizations,
                 grid_resolution_m=args.resolution,
                 seed=args.seed,
+                mode_no=args.mode_no,
                 variogram_model_id=args.variogram_id,
             )
             if args.persist and "error" not in result:
@@ -238,7 +360,7 @@ def _print_result(command: str, result: dict):
         return
 
     if command == "variogram":
-        print(f"Variogram Model Fitted")
+        print("Variogram Model Fitted")
         print(f"  Property:    {result.get('property_key', 'N/A')}")
         print(f"  Model type:  {result.get('model_type', 'N/A')}")
         print(f"  Sill:        {result.get('sill', 'N/A'):.4f}")
@@ -250,7 +372,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_id']}")
 
     elif command == "kriging":
-        print(f"Kriging Interpolation")
+        print("Kriging Interpolation")
         print(f"  Property:    {result.get('property_key', 'N/A')}")
         print(f"  Method:      {result.get('method', 'N/A')}")
         print(f"  Points:      {result.get('n_points', 'N/A')}")
@@ -259,7 +381,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_prediction_id']}")
 
     elif command == "simulate":
-        print(f"Sequential Gaussian Simulation")
+        print("Conditional Gaussian Field Simulation")
         print(f"  Property:       {result.get('property_key', 'N/A')}")
         print(f"  Realizations:   {result.get('n_realizations', 'N/A')}")
         print(f"  Grid points:    {result.get('n_points', 'N/A')}")
@@ -271,7 +393,7 @@ def _print_result(command: str, result: dict):
     elif command == "autocorrelation":
         mi = result.get("morans_i", {})
         gc = result.get("gearys_c", {})
-        print(f"Spatial Autocorrelation")
+        print("Spatial Autocorrelation")
         print(f"  Property:    {result.get('property_key', 'N/A')}")
         print(f"  Samples:     {result.get('n_samples', 'N/A')}")
         print(f"  Moran's I:   {mi.get('statistic_value', 'N/A')} (p={mi.get('p_value', 'N/A')}, {mi.get('interpretation', 'N/A')})")
@@ -280,7 +402,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_ids']}")
 
     elif command == "cross-validate":
-        print(f"Spatial Cross-Validation")
+        print("Spatial Cross-Validation")
         print(f"  Strategy:    {result.get('cv_strategy', 'N/A')}")
         print(f"  Folds:       {result.get('n_folds', 'N/A')} ({result.get('n_successful_folds', 'N/A')} successful)")
         print(f"  RMSE:        {result.get('root_mean_squared_error', 'N/A')}")
@@ -291,7 +413,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_cv_id']}")
 
     elif command == "sensor-design":
-        print(f"Sensor Network Design")
+        print("Sensor Network Design")
         print(f"  Property:    {result.get('property_key', 'N/A')}")
         print(f"  Range:       {result.get('variogram_range_m', 'N/A')} m")
         print(f"  Optimal:     {result.get('optimal_spacing_m', 'N/A')} m spacing")

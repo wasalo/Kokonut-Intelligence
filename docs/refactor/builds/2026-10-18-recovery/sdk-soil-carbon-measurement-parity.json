@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript soil-carbon measurement SDK schema parity",
+  "model": "SoilCarbonMeasurement",
+  "source_table": "schemas/postgres/005_environmental.sql:soil_carbon_measurement",
+  "additive_columns": {
+    "schemas/postgres/013_prd_completion.sql": [
+      "source_system", "source_id", "source_raw", "schema_version"
+    ],
+    "schemas/postgres/080_field_collection.sql": [
+      "status", "verified_by", "verified_at", "evidence_maturity"
+    ],
+    "schemas/postgres/095_soil_protocol.sql": [
+      "lab_accredited", "analytical_method", "protocol_id"
+    ]
+  },
+  "schema_guard": {
+    "models": 51,
+    "canonical_columns": 1087,
+    "scalar_types": 1017,
+    "postgis_shapes": 8,
+    "jsonb_shapes": 60,
+    "enum_fields": 20,
+    "check_literal_fields": 33
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 57 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "SoilCarbonMeasurement represents stored observations and does not calculate or verify carbon stocks.",
+    "Checks used local source and synthetic fixtures; no database or provider was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

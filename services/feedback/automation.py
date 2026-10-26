@@ -102,18 +102,19 @@ class FeedbackAutomation:
                 "duration_ms": round(duration_ms, 2),
             }
 
-        except Exception as e:
+        except Exception as exc:
             conn.rollback()
+            safe_error = f"feedback evaluation failed ({type(exc).__name__})"
             cur.execute("""
                 UPDATE feedback_automation_log
                 SET status = 'failed', errors = %s, completed_at = NOW()
                 WHERE id = %s
-            """, (psycopg2.extras.Json([str(e)]), log_id))
+            """, (psycopg2.extras.Json([safe_error]), log_id))
             conn.commit()
             return {
                 "log_id": log_id,
                 "status": "failed",
-                "error": str(e),
+                "error": safe_error,
             }
         finally:
             cur.close()
@@ -209,15 +210,16 @@ class FeedbackAutomation:
                 "duration_ms": round(duration_ms, 2),
             }
 
-        except Exception as e:
+        except Exception as exc:
             conn.rollback()
+            safe_error = f"feedback cycle failed ({type(exc).__name__})"
             cur.execute("""
                 UPDATE feedback_automation_log
                 SET status = 'failed', errors = %s, completed_at = NOW()
                 WHERE id = %s
-            """, (psycopg2.extras.Json([str(e)]), log_id))
+            """, (psycopg2.extras.Json([safe_error]), log_id))
             conn.commit()
-            return {"log_id": log_id, "status": "failed", "error": str(e)}
+            return {"log_id": log_id, "status": "failed", "error": safe_error}
         finally:
             cur.close()
 
@@ -424,7 +426,8 @@ class FeedbackAutomation:
 
         # 1. Check conformance
         try:
-            from services.analytics import process_mining as pm, value_stream
+            from services.analytics import process_mining as pm
+            from services.analytics import value_stream
             for etype in value_stream.INSTRUMENTED_TYPES:
                 traces = pm.get_traces(conn, entity_type=etype)
                 if len(traces) < 5:

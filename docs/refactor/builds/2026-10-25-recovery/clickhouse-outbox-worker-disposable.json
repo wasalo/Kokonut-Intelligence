@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-25",
+  "migration": "646_isolated_clickhouse_outbox_worker.sql",
+  "migration_sha256": "33f4c161822583f49c9fadf7a444fb4265878019145aa3eb5e0da017fc2c4ee1",
+  "database": "PostgreSQL 16 disposable container; Docker network disabled",
+  "database_image": "postgres:16",
+  "container_architecture": "x86_64",
+  "checks": [
+    "migration 646 applies and replays while clickhouse_outbox is FORCE RLS",
+    "claim and expired-lease recovery are capped at the requested limit (up to 100), skip active leases, and increment attempts",
+    "only the claimed worker and live token can finish; duplicate and stale completion fail closed",
+    "transient retry, explicit permanent failure, and exhausted expired lease states are preserved",
+    "dedicated login has no direct table, column, sequence, or unexpected SECURITY DEFINER access"
+  ],
+  "result": "passed",
+  "isolation": "Synthetic schema and rows only; no candidate, legacy, provider, or network access."
+}

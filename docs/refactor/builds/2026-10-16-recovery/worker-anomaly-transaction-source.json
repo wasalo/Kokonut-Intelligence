@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "scope": "Mocked/source-only anomaly worker location and transaction acceptance",
+  "date": "2026-10-16",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_anomaly_detector.py tests/test_pilot_farm_activity_seed_guard.py -q",
+      "result": "passed",
+      "passed": 19,
+      "failed": 0,
+      "coverage": [
+        "missing and malformed location selectors",
+        "validation before database access",
+        "event/source location mismatch",
+        "pilot seed lineage guards",
+        "event path does not bootstrap shared alert rules",
+        "interactive path retains default alert-rule bootstrap",
+        "anomaly event publication leaves transaction commit to caller"
+      ]
+    },
+    {
+      "command": "python3 -m pytest tests/test_os_architecture.py -k 'publish_can_leave_injected_transaction_to_caller or publish_leaves_failed_caller_owned_transaction_for_caller_rollback' -q",
+      "result": "passed",
+      "passed": 2,
+      "failed": 0,
+      "coverage": [
+        "publish(commit=False) does not commit or roll back on success",
+        "publish(commit=False) leaves error rollback to caller"
+      ]
+    },
+    {
+      "command": "python3 -m pytest tests/test_event_bus_durability.py -q",
+      "result": "passed",
+      "passed": 17,
+      "failed": 0,
+      "coverage": [
+        "existing event delivery, lease, retry, and replay behavior"
+      ]
+    },
+    {
+      "command": "ruff check services/events/bus.py services/ingestion/anomaly_detector.py tests/test_anomaly_detector.py tests/test_os_architecture.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/events/bus.py services/ingestion/anomaly_detector.py tests/test_anomaly_detector.py tests/test_os_architecture.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "database_access": "none",
+  "candidate_or_legacy_data_changed": false,
+  "limitations": [
+    "No PostgreSQL migration, runtime credential, worker deployment, or RLS policy was exercised.",
+    "The checks do not establish database-signed system_worker authorization or least-privilege runtime grants."
+  ]
+}

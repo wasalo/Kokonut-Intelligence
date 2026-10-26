@@ -1,0 +1,32 @@
+{
+  "assertions": {
+    "accepted_receipt_and_terminal_duplicate_suppression": "passed",
+    "concurrent_identical_deliveries_execute_handler_once": "passed",
+    "concurrent_operator_replay_and_disposal_are_single_winner": "passed",
+    "database_payload_constraint_rejects_oversized_evidence": "passed",
+    "five_persisted_failures_and_dead_letter_duplicate_suppression": "passed",
+    "operator_action_rows": 4,
+    "operator_delivery_list_redacts_raw_failure_details": "passed",
+    "operator_disposal_audit_and_terminal_duplicate_suppression": "passed",
+    "operator_disposal_cli_output_is_terminal": "passed",
+    "process_crash_between_source_and_receipt_commits_recovers_idempotently": "passed",
+    "rejected_receipt_and_duplicate_suppression": "passed",
+    "reviewed_replay_audit_and_fresh_attempt_budget": "passed",
+    "row_lock_timeout_and_redelivery_recovery": "passed",
+    "synthetic_receipt_rows": 6
+  },
+  "candidate_or_legacy_modified": false,
+  "check": "CAP-040 MQTT durable receipt PostgreSQL acceptance",
+  "database_image": "postgres:16-alpine",
+  "database_target": "new disposable PostgreSQL 16 container; no volume; host port bound to 127.0.0.1",
+  "database_volume": false,
+  "date": "2026-10-19",
+  "host_port_binding": "127.0.0.1 only",
+  "limitations": [
+    "This exercises receipt SQL, not MQTT broker ACK or persistent-session behavior.",
+    "The child exits after a synthetic source commit; it does not establish real source/outbox parity or restart a real subscriber or broker.",
+    "It does not verify replay after device-authorization changes or live sensor/provider parity."
+  ],
+  "provider_or_broker_contacted": false,
+  "result": "passed"
+}

@@ -146,12 +146,44 @@ def test_geographic_cross_validation() -> None:
     assert len(folds) == 5
     total_test = sum(f["test_samples"] for f in folds)
     assert total_test == 60  # 20 fields * 3 samples
+    assert folds == geographic_cross_validation(data, n_folds=5)
+    assert folds == geographic_cross_validation(list(reversed(data)), n_folds=5)
+    excluded_fields = [
+        field_id for fold in folds for field_id in fold["excluded_fields"]
+    ]
+    assert set(excluded_fields) == {f"plot-{i}" for i in range(20)}
+    assert len(excluded_fields) == 20
+    assert [fold["test_samples"] for fold in folds] == [12] * 5
 
 
 def test_geographic_cv_few_fields() -> None:
     data = [{"plot_id": "plot-1", "carbon_pct": 1.0}]
     folds = geographic_cross_validation(data, n_folds=5)
     assert len(folds) <= 1
+
+
+def test_spatial_block_cv_uses_extracted_plot_coordinates(monkeypatch) -> None:
+    training_data = [
+        {
+            "plot_id": f"plot-{index}",
+            "gps_latitude": 18.5 + (index // 4) * 0.004,
+            "gps_longitude": -69.8 + (index % 4) * 0.004,
+            "carbon_pct": 1.0 + index * 0.1,
+            "depth_cm": 15,
+        }
+        for index in range(12)
+    ]
+    monkeypatch.setattr(soc, "extract_training_data", lambda *_args: training_data)
+    monkeypatch.setattr(soc, "find_spec", lambda _name: None)
+
+    result = soc.spatial_block_cv_for_soc(
+        object(), "location-1", block_size_m=200.0
+    )
+
+    assert result["cv_strategy"] == "spatial_block"
+    assert result["n_successful_folds"] >= 2
+    assert sum(fold["test_samples"] for fold in result["fold_results"]) == 12
+    assert all(fold["train_samples"] > 0 for fold in result["fold_results"])
 
 
 # ---------------------------------------------------------------------------
@@ -186,6 +218,58 @@ def test_prepare_feature_matrix() -> None:
     assert len(y) == 2
     assert len(names) == 16
     assert y == [2.5, 3.0]
+
+
+def test_extract_training_data_includes_location_scoped_plot_coordinates() -> None:
+    measurement_date = date(2026, 6, 15)
+    row = (
+        "sample-1",
+        "location-1",
+        "plot-1",
+        18.5,
+        -69.8,
+        measurement_date,
+        2.5,
+        3.5,
+        15.0,
+        *([None] * 15),
+    )
+
+    class _Cursor:
+        query = ""
+        params = None
+        closed = False
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return [row]
+
+        def close(self):
+            self.closed = True
+
+    class _Connection:
+        def __init__(self):
+            self.test_cursor = _Cursor()
+
+        def cursor(self):
+            return self.test_cursor
+
+    conn = _Connection()
+    result = soc.extract_training_data(conn, "location-1")
+
+    assert len(result) == 1
+    assert result[0]["gps_latitude"] == 18.5
+    assert result[0]["gps_longitude"] == -69.8
+    assert result[0]["measurement_date"] == str(measurement_date)
+    assert conn.test_cursor.params == ["location-1"]
+    assert "LEFT JOIN plot plot_geom" in conn.test_cursor.query
+    assert "ST_Y(COALESCE(plot_geom.center, ST_PointOnSurface(plot_geom.boundary)))" in conn.test_cursor.query
+    assert "ST_X(COALESCE(plot_geom.center, ST_PointOnSurface(plot_geom.boundary)))" in conn.test_cursor.query
+    assert "scm.location_id = %s" in conn.test_cursor.query
+    assert conn.test_cursor.closed
 
 
 def test_train_xgboost_no_xgboost() -> None:

@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "495_location_solution_replication_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 494 and 495 apply and 495 replays",
+    "review queue/detail are exact-location, review-grant, active-human, and pending-proposal scoped",
+    "only a different active human may approve or reject the attributed proposer",
+    "approve/reject decisions, reasons, reviewer attribution, and immutable request receipts are atomic",
+    "exact retries replay; changed input and self-review fail closed",
+    "review does not activate, complete, add outcomes, or alter solution lifecycle stage",
+    "runtime uses bounded functions only and cannot access review receipts directly; Directus cannot execute them"
+  ],
+  "acceptance_groups_passed": 9
+}

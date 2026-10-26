@@ -7,11 +7,13 @@ better over time instead of degrading silently.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
+
+from services.common.errors import safe_exception_class
 
 
 class MLRetrainingPipeline:
@@ -84,8 +86,7 @@ class MLRetrainingPipeline:
                 except Exception as exc:
                     from services.common.logging import get_logger
                     logger = get_logger("systems.ml_retraining")
-                    logger.error("Auto-retrain failed for %s: %s",
-                                 schedule["model_name"], exc)
+                    logger.error("Auto-retrain failed (%s)", safe_exception_class(exc))
 
             results.append({
                 "model_name": schedule["model_name"],
@@ -150,8 +151,8 @@ class MLRetrainingPipeline:
         accuracy_after = accuracy_before
         try:
             from services.ingestion.ml_anomaly_detector import (
-                fit_prophet,
                 fit_isolation_forest,
+                fit_prophet,
                 save_models,
             )
 
@@ -184,7 +185,7 @@ class MLRetrainingPipeline:
         except Exception as exc:
             from services.common.logging import get_logger
             logger = get_logger("systems.ml_retraining")
-            logger.error("Training failed for %s: %s", model_name, exc)
+            logger.error("Training failed (%s)", safe_exception_class(exc))
             accuracy_after = accuracy_before
             improvement_pct = 0.0
 

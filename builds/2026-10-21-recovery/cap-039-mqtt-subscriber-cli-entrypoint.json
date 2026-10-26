@@ -1,0 +1,20 @@
+{
+  "capability": "CAP-039",
+  "slice": "MQTT subscriber port and environment preflight",
+  "date": "2026-10-21",
+  "implementation": "services/ingestion/mqtt_subscriber.py",
+  "test": "tests/test_mqtt_subscriber_cli.py",
+  "command": "python3 -m pytest tests/test_http_sensor_receiver_cli.py tests/test_mqtt_subscriber_cli.py -q",
+  "result": "14 MQTT subscriber CLI tests passed (25 total across both listener CLIs). Ruff and Python compilation passed.",
+  "verified": [
+    "Standalone and unified CLIs reject port 0, -1, and 65536 before subscriber startup.",
+    "Non-integer ports remain rejected before startup.",
+    "An invalid MQTT_BROKER_PORT no longer fails module import or --help; operation parsing rejects it before startup.",
+    "Valid default and explicit broker options and help output retain parity."
+  ],
+  "external_effects": "Subscriber startup was stubbed; no broker, database, or network connection was attempted.",
+  "limitations": [
+    "No live MQTT broker was contacted.",
+    "QoS delivery and runtime recovery acceptance remain open."
+  ]
+}

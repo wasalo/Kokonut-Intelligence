@@ -1,0 +1,52 @@
+{
+  "capability": "CAP-065",
+  "slice": "comprehensive-status-source-scope-and-failure-recovery",
+  "date": "2026-10-19",
+  "report_sections": 14,
+  "changes": [
+    {
+      "area": "stakeholder_outcomes",
+      "result": "Location-scoped reports omit capability/value-stream links from the network-wide view because those links have no location lineage. Network-wide reports retain the view."
+    },
+    {
+      "area": "capital_accounting.capture_risk",
+      "result": "Anti-capture policy counts are restricted to published policies assigned to the requested location."
+    },
+    {
+      "area": "comprehensive_status",
+      "result": "Each per-location report section runs under a PostgreSQL savepoint. Failed statements roll back to the section boundary so later sections can continue; an inner helper that swallows a database exception is detected when releasing the savepoint."
+    },
+    {
+      "area": "report_inventories",
+      "result": "The report source, query-scope, helper-scope, and runtime SQL inventories were regenerated from the changed source."
+    }
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_comprehensive_status.py tests/test_stakeholder_outcomes_scope.py tests/test_capital_accounting.py tests/test_report_state_error_redaction.py -q",
+    "result": "28 passed",
+    "neighboring_report_regression_selection": {
+      "command": "python3 -m pytest tests/test_comprehensive_status.py tests/test_stakeholder_outcomes_scope.py tests/test_capital_accounting.py tests/test_report_state_error_redaction.py tests/test_state_of_kokonut.py tests/test_state_of_kokonut_graphs.py tests/test_farm_activity_summary_report.py -q",
+      "result": "47 passed"
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix_check": "passed",
+    "generated_inventories": {
+      "freshness": "passed",
+      "comprehensive_status_reachable_helper_queries": 13,
+      "helper_queries_with_location_scope_signal": 6
+    }
+  },
+  "boundaries": {
+    "database_contacted": false,
+    "candidate_or_legacy_changed": false,
+    "gateway_report_route_added": false,
+    "populated_output_parity_proven": false,
+    "complete_source_lineage_proven": false
+  },
+  "remaining_gates": [
+    "Review every report section and reachable helper against populated tenant fixtures.",
+    "Define the protected comprehensive-status read contract before adding Gateway exposure.",
+    "Complete populated output parity, live OIDC/browser acceptance, broader ACL/RLS, and MAN-CAP-065 owner review."
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "check": "sensor_anomaly_ml_optional_image_builds",
+  "captured_on": "2026-10-26",
+  "dockerfile": "Dockerfile.kernel",
+  "dependency_build_stage": "ml-anomaly-dependencies",
+  "dependency_resolution_platform": "BUILDPLATFORM",
+  "target_architecture_selection": "TARGETARCH",
+  "pip_binary_wheels_only": true,
+  "native_amd64": {
+    "status": "passed",
+    "image": "kokonut-kernel-candidate-sensor-anomaly-ml-worker:latest",
+    "image_id": "sha256:8d20bd833d7921c756c368225b4be9bbf87a41991038963bdaedee1b8a359b41",
+    "platform": "linux/amd64",
+    "image_size_bytes": 1196104910,
+    "read_only_no_network_import_smoke": "passed",
+    "pip_check": "passed"
+  },
+  "arm64": {
+    "status": "passed",
+    "image": "kokonut-kernel-candidate-arm64-sensor-anomaly-ml-worker:latest",
+    "image_id": "sha256:74c294176a3ba3e12256dd9e9b543ccee9188a4d47b75adb357d620636be2132",
+    "platform": "linux/arm64",
+    "image_size_bytes": 1231777316,
+    "read_only_no_network_import_smoke": "sensor-anomaly-ml-image-arm64-smoke.json",
+    "pip_check": "passed"
+  },
+  "arm64_dependency_installation": "AArch64 wheels were resolved and unpacked on the native build platform; target image verification ran under software emulation",
+  "candidate_or_legacy_touched": false,
+  "compose_services_started": false,
+  "database_or_provider_calls": false,
+  "physical_raspberry_pi_tested": false
+}

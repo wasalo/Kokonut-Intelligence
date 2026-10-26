@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline SDK convenience-method signature parity inventory",
+  "contract": "For every Python convenience method, TypeScript exposes a matching method and at least one overload with the same number of positional parameters and required/optional shape; inherited generic methods are included.",
+  "validation": {
+    "method_parity": "python3 -m pytest tests/test_sdk_method_parity.py -q — 2 passed",
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 80 passed",
+    "javascript": "npm test — 34 passed",
+    "typescript": "npm run build — passed",
+    "ruff": "ruff check tests/test_sdk.py tests/test_sdk_method_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The static inventory checks method names and argument requiredness; it does not compare parameter types or runtime behavior.",
+    "The full focused Python and JavaScript suites use mocked local clients; no HTTP, database, provider, or credential is used.",
+    "No MAN-CAP acceptance is claimed."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "MQTT sensor callback and compatibility ClickHouse fallback error containment",
+  "behavior": {
+    "callback_logs": "Legacy and QoS 1 callback logs include only the exception class, not broker, payload, or database details.",
+    "qos1_retry": "QoS 1 processing failures raise a bounded error without acknowledging the message so broker redelivery remains available.",
+    "clickhouse_fallback": "The direct compatibility fallback logs only the ClickHouse exception class.",
+    "tls_startup": "Certificate/key configuration failures log and raise only the bounded exception class; startup remains fail-closed."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_mqtt_subscriber_error_redaction.py tests/test_iot_sensor_push.py tests/test_ingestion_outbox_producers.py -q",
+    "result": "75 passed",
+    "new_regressions": 4,
+    "coverage": [
+      "legacy callback log excludes secret-bearing exception text",
+      "QoS 1 callback propagates a bounded error and does not acknowledge a failed delivery",
+      "ClickHouse compatibility fallback log excludes secret-bearing endpoint details",
+      "TLS startup error and log exclude secret-bearing certificate paths and details"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_broker_access": "none; mocked callback, process-delivery, and projection boundaries"
+  },
+  "limitations": [
+    "No MQTT broker, ClickHouse endpoint, or database was contacted.",
+    "This does not establish live QoS redelivery, consumer availability, or MAN-CAP acceptance."
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-17",
+  "scope": "Nested advisory and business-plan report failures",
+  "behavior": {
+    "business_plan_sections": "Best-effort section errors contain only the operation and bounded exception class; transaction rollback remains intact.",
+    "reference_class": "Reference-class analysis errors omit exception details from the financial-plan payload.",
+    "reward_calibration": "Overjustification advisory errors omit exception details from the public-safe report payload.",
+    "simulation_wargame": "Reserve-clash advisory errors omit exception details while preserving the rest of the simulation report."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_report_embedded_error_redaction.py tests/test_business_plan.py tests/test_overjustification.py tests/test_report_generator_readonly.py tests/test_remaining_gaps.py -q",
+    "result": "41 passed, 2 skipped",
+    "coverage": [
+      "business-plan section failure rolls back and returns only exception class",
+      "reference-class advisory failure is sanitized in the financial plan",
+      "reward-calibration advisory failure is sanitized",
+      "simulation reserve-clash failure is sanitized",
+      "existing business-plan, report, and reward-calibration contracts remain covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked connections and advisory functions"
+  },
+  "limitations": [
+    "Two database-backed business-plan integration tests were skipped because no database was configured.",
+    "This does not establish populated report-output parity or authorization scope."
+  ]
+}

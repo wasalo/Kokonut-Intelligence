@@ -6,20 +6,13 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_pollinator_health --help
 """
 
-from datetime import date
-
 from ..common.commands import CommandLine
 from .pollinator_health import (
-    add_hive,
-    create_habitat,
     get_habitat_inventory,
     get_hive_status,
     get_pesticide_risk,
     get_pollinator_dashboard,
     get_pollinator_summary,
-    record_hive_inspection,
-    record_observation,
-    record_pesticide_impact,
 )
 
 # ============================================================
@@ -29,88 +22,60 @@ from .pollinator_health import (
 cli = CommandLine("pollinator_health", "Pollinator health monitoring")
 
 
-def _cmd_record_observation(db, a):
-    return record_observation(
-        db, a.location_id, a.pollinator_type, a.count,
-        observation_method=a.observation_method,
-        duration_minutes=a.duration_minutes,
-        habitat_area_id=a.habitat_area_id,
-        weather_conditions=a.weather,
-        temperature_c=a.temperature,
-        notes=a.notes,
+def _cmd_retired_record_observation(_db, _a):
+    raise RuntimeError(
+        "Unscoped pollinator observation writes are retired; use the authenticated "
+        "Kokonut Gateway pollinator capture form with a location create grant."
     )
 
 
 def _cmd_create_habitat(db, a):
-    return create_habitat(
-        db, a.location_id, a.name, a.habitat_type, a.area_m2,
-        plant_species=a.plant_species,
-        bloom_start_month=a.bloom_start_month,
-        bloom_end_month=a.bloom_end_month,
-        water_source=a.water_source,
-        nesting_sites=a.nesting_sites,
-        management_notes=a.management_notes,
+    raise RuntimeError(
+        "Unscoped pollinator habitat writes are retired; use the authenticated "
+        "Kokonut Gateway habitat form with a location create grant."
     )
 
 
-def _cmd_record_pesticide(db, a):
-    app_date = date.fromisoformat(a.application_date)
-    return record_pesticide_impact(
-        db, a.location_id, app_date, a.product_name,
-        a.active_ingredient, a.toxicity_class,
-        application_rate=a.application_rate,
-        rate_unit=a.rate_unit,
-        area_treated_m2=a.area_treated_m2,
-        bloom_stage_at_application=a.bloom_stage_at_application,
-        pollinator_distance_m=a.pollinator_distance_m,
-        notes=a.notes,
+def _cmd_retired_record_pesticide(_db, _a):
+    raise RuntimeError(
+        "Unscoped pesticide-impact writes are retired; use the authenticated "
+        "Kokonut Gateway pesticide-report form with a location create grant."
     )
 
 
-def _cmd_add_hive(db, a):
-    return add_hive(
-        db, a.location_id, a.hive_id,
-        colony_strength=a.colony_strength,
-        queen_status=a.queen_status,
-        hive_type=a.hive_type,
-        frame_count=a.frame_count,
-        queen_year=a.queen_year,
-        notes=a.notes,
+def _cmd_add_hive(_db, _a):
+    raise RuntimeError(
+        "Unscoped managed-hive writes are retired; use the authenticated "
+        "Kokonut Gateway hive form with a location create grant."
     )
 
 
-def _cmd_record_inspection(db, a):
-    return record_hive_inspection(
-        db, a.hive_id,
-        colony_strength=a.colony_strength,
-        queen_status=a.queen_status,
-        queen_seen=a.queen_seen,
-        varroa_count=a.varroa_count,
-        brood_pattern=a.brood_pattern,
-        honey_stores=a.honey_stores,
-        disease_signs=a.disease_signs,
-        temperament=a.temperament,
-        population_estimate=a.population_estimate,
-        swarm_cells=a.swarm_cells,
-        notes=a.notes,
+def _cmd_record_inspection(_db, _a):
+    raise RuntimeError(
+        "Unscoped hive inspection writes are retired; use the authenticated "
+        "Kokonut Gateway inspection form with a location create grant."
     )
 
 
-cli.subcommand("record-observation", "Record pollinator observation") \
+cli.subcommand("record-observation", "Retired; use authenticated Gateway capture") \
     .add("--location-id", required=True) \
     .add("--type", required=True, dest="pollinator_type",
-         help="Pollinator type (honeybee, bumblebee, butterfly, etc.)") \
+         help="Pollinator type (honeybee, wild_bee, butterfly, moth, etc.)") \
     .add("--count", type=int, required=True) \
-    .add("--method", default="visual", dest="observation_method") \
+    .add("--method", default="visual_count", dest="observation_method") \
     .add("--duration", type=int, default=15, dest="duration_minutes") \
-    .add("--habitat-area-id") \
+    .add("--plot-id", "--habitat-area-id", dest="habitat_area_id",
+         help="Plot UUID (the legacy habitat-area-id spelling remains accepted)") \
     .add("--weather") \
     .add("--temperature", type=float) \
+    .add("--date", dest="observation_date", help="Observation date (YYYY-MM-DD); defaults to today") \
+    .add("--species-name") \
+    .add("--hive-record-id", help="Optional UUID linking this observation to a managed hive") \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_observation)
+    .run(_cmd_retired_record_observation, needs_db=False)
 
-cli.subcommand("create-habitat", "Create pollinator habitat") \
+cli.subcommand("create-habitat", "Retired; use authenticated Gateway habitat capture") \
     .add("--location-id", required=True) \
     .add("--name", required=True) \
     .add("--type", required=True, dest="habitat_type") \
@@ -122,9 +87,9 @@ cli.subcommand("create-habitat", "Create pollinator habitat") \
     .add("--nesting-sites") \
     .add("--notes", dest="management_notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_create_habitat)
+    .run(_cmd_create_habitat, needs_db=False)
 
-cli.subcommand("record-pesticide", "Record pesticide impact") \
+cli.subcommand("record-pesticide", "Retired; use authenticated Gateway pesticide report") \
     .add("--location-id", required=True) \
     .add("--date", required=True, dest="application_date") \
     .add("--product", required=True, dest="product_name") \
@@ -135,27 +100,32 @@ cli.subcommand("record-pesticide", "Record pesticide impact") \
     .add("--area", type=float, dest="area_treated_m2") \
     .add("--bloom-stage", dest="bloom_stage_at_application") \
     .add("--distance", type=float, dest="pollinator_distance_m") \
+    .add("--safe-period-days", type=int, dest="pollinator_safe_period_days") \
+    .add("--mortality-observed", action="store_true", dest="pollinator_mortality_observed") \
+    .add("--mortality-pct", type=float) \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_pesticide)
+    .run(_cmd_retired_record_pesticide, needs_db=False)
 
 cli.subcommand("add-hive", "Add managed hive") \
     .add("--location-id", required=True) \
     .add("--hive-id", required=True) \
-    .add("--colony-strength", type=int, default=5) \
+    .add("--colony-strength", default="5", help="Category or legacy score from 0 to 10") \
     .add("--queen-status", default="present") \
     .add("--hive-type", default="langstroth") \
     .add("--frames", type=int, default=10, dest="frame_count") \
     .add("--queen-year", type=int) \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_add_hive)
+    .run(_cmd_add_hive, needs_db=False)
 
 cli.subcommand("record-inspection", "Record hive inspection") \
+    .add("--location-id", required=True) \
     .add("--hive-id", required=True) \
-    .add("--colony-strength", type=int) \
+    .add("--colony-strength", help="Category or legacy score from 0 to 10") \
     .add("--queen-status") \
-    .add("--queen-seen", type=bool) \
+    .add("--queen-seen", action="store_true", dest="queen_seen", default=None) \
+    .add("--queen-not-seen", action="store_false", dest="queen_seen", default=None) \
     .add("--varroa-count", type=int) \
     .add("--brood-pattern") \
     .add("--honey-stores") \
@@ -165,7 +135,7 @@ cli.subcommand("record-inspection", "Record hive inspection") \
     .add("--swarm-cells", action="store_true") \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_inspection)
+    .run(_cmd_record_inspection, needs_db=False)
 
 cli.subcommand("summary", "Pollinator summary") \
     .add("--location-id", required=True) \

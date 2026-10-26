@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-10-21",
+  "capability": "CAP-066",
+  "report_type": "strategic_reserve",
+  "scope_basis": "The reserve-health helper aggregates reserve state across locations; seed-vault health accepts an explicit location.",
+  "policy": "Selected-location snapshots omit network reserves, reserve count, and fundability signal; they retain the selected location's seed-vault section. Unassigned network snapshots include aggregate reserve health and fundability.",
+  "focused_test_command": "python3 -m pytest tests/test_strategic_reserve.py tests/test_report_state_error_redaction.py tests/test_report_generator_cli.py tests/test_report_generator_inventory.py -q",
+  "focused_tests": {
+    "passed": 123,
+    "skipped": 0
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "current",
+    "report_generator_source_inventory": "current",
+    "report_generator_query_scope_inventory": "current",
+    "report_generator_helper_scope_inventory": "current",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared"
+  },
+  "database_or_provider_used": false,
+  "migration_added_or_applied": false,
+  "candidate_or_legacy_database_touched": false,
+  "tenant_authorization_or_populated_output_parity_claimed": false
+}

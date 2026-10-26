@@ -1,0 +1,34 @@
+{
+  "scope": "Separate durable event and notification worker outage recovery",
+  "run_date_utc": "2026-10-22",
+  "result": "passed",
+  "database_image": "postgres:16-alpine",
+  "database_port_binding": "127.0.0.1 only",
+  "database_volume": false,
+  "migrations_replayed": [
+    "116_event_bus.sql",
+    "165_event_bus_durability.sql",
+    "375_notification_outbox.sql"
+  ],
+  "fixture_schema_shims": [
+    "notification_outbox.location_id from migration 406"
+  ],
+  "checks": {
+    "event_worker_alive_during_outage": true,
+    "notification_worker_alive_during_outage": true,
+    "database_restart_reconnected": true,
+    "event_completed_before_and_after_restart": true,
+    "notification_succeeded_before_and_after_restart": true,
+    "synthetic_503_retry_reused_idempotency_key": true,
+    "notification_worker_killed_before_ack": true,
+    "expired_lease_reclaimed": true,
+    "attempt_history_after_crash": "lease_lost,succeeded",
+    "loopback_webhook_requests": 5,
+    "external_provider_calls": 0
+  },
+  "candidate_or_legacy_modified": false,
+  "limitations": [
+    "The full ordered schema ledger and sensor tables required by migration 406 were not applied; only its notification location column was represented as a fixture shim.",
+    "This bounded synthetic recovery check does not establish production-duration recovery, real-provider delivery, or long-duration acceptance."
+  ]
+}

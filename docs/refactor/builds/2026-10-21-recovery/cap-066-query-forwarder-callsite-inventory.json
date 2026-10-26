@@ -1,0 +1,36 @@
+{
+  "task": "CAP-066 shared query forwarder caller-site accounting",
+  "date": "2026-10-21",
+  "forwarder": {
+    "source_file": "services/common/database.py",
+    "callable": "query",
+    "execution_lines": [77, 80],
+    "recognition": "Only excluded from helper SQL-site counting while both execute calls receive the unchanged formal `sql` argument and that argument is not reassigned.",
+    "caller_inventory": "The direct report query inventory or the caller's helper query site records the SQL and bind contract."
+  },
+  "reachable_reports": 3,
+  "forwarded_caller_sites": 4,
+  "reports": ["bio_regional_input", "climate_impact", "open_source_impact"],
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+    "focused_tests_passed": 17,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "source_query_helper_inventory_checks": "passed",
+    "runtime_sql_inventory_check": "passed",
+    "capability_matrix_validation": "passed",
+    "helper_inventory": {
+      "query_memberships": 169,
+      "static_sql_sites": 169,
+      "unresolved_sql_sites": 0,
+      "positional_bind_contracts": 149,
+      "named_bind_contracts": 8,
+      "bind_mismatches": 0,
+      "unresolved_local_helper_calls": 0
+    }
+  },
+  "scope_boundary": "This de-duplicates a transparent adapter body; it does not certify query authorization, tenant isolation, RLS, PostgreSQL execution, or populated report parity.",
+  "database_or_provider_used": false,
+  "candidate_or_legacy_changed": false,
+  "rollback": "Revert the helper inventory recognizer/tests, generated helper inventory, progress/checklist updates, and this evidence. No persisted data changed."
+}

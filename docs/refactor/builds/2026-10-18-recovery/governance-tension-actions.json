@@ -1,0 +1,68 @@
+{
+  "title": "Governed Gateway governance tension actions",
+  "status": "passed",
+  "date": "2026-10-18",
+  "branch": "feat/mobile-offline-acceptance",
+  "pull_request": 68,
+  "migration": {
+    "number": 437,
+    "file": "schemas/postgres/437_governance_operator_binding_and_actions.sql",
+    "candidate_applied": false,
+    "legacy_applied": false
+  },
+  "implemented": [
+    "Explicit administrator-provisioned one-to-one binding between OIDC operator UUIDs and active person-party UUIDs; no email or display-name inference",
+    "Audited binding revocation that preserves history",
+    "Local identity-admin CLI commands to bind, revoke, and list operator-party mappings",
+    "Exact location-scoped Gateway action grants for tension draft creation and reporter-owned submission",
+    "Signed tenant context and bounded database functions on the same transaction",
+    "Idempotent draft intake keyed by an explicit request UUID",
+    "No triage, verification, publication, role assignment, or approval route"
+  ],
+  "verification": {
+    "unit_tests": {
+      "command": "python3 -m pytest tests/test_gateway_governance_tension_actions.py tests/test_operator_route_policy_inventory.py tests/test_gateway_governance_roles.py -q",
+      "result": "passed",
+      "passed": 15
+    },
+    "disposable_postgresql": {
+      "command": "python3 scripts/check-governance-tension-actions-disposable.py",
+      "result": "passed",
+      "postgres_major": 16,
+      "evidence": "governance-tension-actions-disposable.json",
+      "checks": [
+        "transactional migration application",
+        "runtime function and binding-ledger ACL boundaries",
+        "administrator-only bind, revoke, and list functions",
+        "binding eligibility, uniqueness, and idempotent replay",
+        "signed context, exact grant, and active-binding enforcement",
+        "draft attribution and duplicate-event suppression",
+        "reporter-owned submission and idempotent retry",
+        "denial of direct identity-ledger and lifecycle writes",
+        "revocation history and explicit rebinding"
+      ],
+      "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed."
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "runtime_sql_inventory": {
+      "result": "passed",
+      "service_source_files": 842,
+      "execution_sites": 4067
+    },
+    "capability_matrix": {
+      "result": "passed",
+      "rows": 66,
+      "classification": "45 baseline-retained, 7 deployed, 14 prepared; MAN-CAP acceptance remains separately gated"
+    },
+    "git_diff_check": "passed"
+  },
+  "remaining_gates": [
+    "No real OIDC provider or live browser session was used",
+    "No populated governance parity fixture or production operator/person mapping has been provisioned",
+    "Item-level review and governance approval records are not implemented",
+    "CAP-024 remains prepared; MAN-CAP-024 has not been accepted",
+    "Domain-table RLS remains open"
+  ],
+  "rollback": "Revert Gateway application code if needed. Preserve the additive ordered migration and any binding/revocation history; do not edit or remove an applied migration."
+}

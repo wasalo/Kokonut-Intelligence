@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-18",
+  "slice": "organic-compliance-location-scoped-sdk-reads",
+  "scope": {
+    "models": [
+      "OrganicCertificationRecord",
+      "OrganicTransitionPlan",
+      "ProhibitedSubstanceRecord",
+      "BufferZone",
+      "OrganicInputAudit",
+      "HarvestHandlingRecord",
+      "OrganicComplianceChecklist",
+      "OrganicReadinessAssessment"
+    ],
+    "read_only": true,
+    "location_filter": true,
+    "computation_or_certification": false,
+    "candidate_or_legacy_database_touched": false,
+    "provider_or_network_contacted": false
+  },
+  "validation": {
+    "python": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q",
+      "result": "107 passed"
+    },
+    "javascript": {
+      "command": "cd sdk/javascript && npm test -- --run",
+      "result": "56 passed"
+    },
+    "typescript_build": {
+      "command": "cd sdk/javascript && npm run build",
+      "result": "passed"
+    },
+    "ruff": {
+      "command": "ruff check sdk/python/kokonut/client.py sdk/python/kokonut/types.py sdk/python/kokonut/__init__.py tests/test_sdk.py scripts/check-sdk-schema-parity.py",
+      "result": "passed"
+    },
+    "python_compile": {
+      "command": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py",
+      "result": "passed"
+    },
+    "schema_guard": {
+      "command": "python3 scripts/check-sdk-schema-parity.py",
+      "result": "passed",
+      "models": 109,
+      "canonical_columns": 2148,
+      "scalar_types": 1985,
+      "postgis_types": 12,
+      "jsonb_shapes": 147,
+      "enum_fields": 23,
+      "check_literal_fields": 95
+    },
+    "capability_guard": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 66,
+      "baseline_retained": 53,
+      "deployed": 7,
+      "prepared": 6,
+      "accepted_man_cap_checks": 0
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "capability_status": "CAP-015 prepared: the read-only SDK slice uses optional Directus and does not establish a Directus-independent Kernel access path. MAN-CAP-015 remains open pending Gateway integration, baseline readiness-score parity, and owner acceptance."
+}

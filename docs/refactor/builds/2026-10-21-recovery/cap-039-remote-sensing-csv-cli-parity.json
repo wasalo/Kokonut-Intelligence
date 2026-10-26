@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "4a73ab5cfb38e1db58810721a9d07ed54ce2859a",
+  "scope": "Remote-sensing CSV import standalone/unified CLI parity for single-location and explicit aggregate scopes",
+  "invocations": [
+    "remote_sensing --file <synthetic-csv> --location-id <synthetic-location-uuid>",
+    "remote_sensing --file <synthetic-csv> --all-locations"
+  ],
+  "verification": {
+    "focused_tests": "2 passed",
+    "coverage": [
+      "both scope modes parse the same temporary synthetic CSV through standalone and unified entrypoints",
+      "single-location mode constrains plot mapping to the requested location",
+      "aggregate mapping is allowed only with the explicit all-locations option",
+      "synthetic observation validation and log output match, transactions commit, and resources close"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; mapping results and connections were synthetic",
+    "provider": "not contacted; canonical and analytical writes were stubbed"
+  },
+  "result": "PASS: scoped and explicitly aggregate CSV imports preserve standalone/unified parsing, plot/location selection, and output with synthetic persistence.",
+  "limitations": [
+    "This validates CLI and mocked persistence behavior only; live database, ClickHouse, and authorization are not verified.",
+    "The all-locations mode remains an explicit privileged operation whose caller authorization is outside this legacy CLI check."
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 MQTT subscriber CLI entrypoint",
+  "result": "passed",
+  "changes": [
+    "Added a reusable MQTT subscriber parser and callable main(argv=None).",
+    "Standalone and unified broker/port forwarding and help output match.",
+    "Non-integer port input is rejected before subscriber startup."
+  ],
+  "checks": {
+    "mqtt_pytest": {
+      "command": "python3 -m pytest tests/test_mqtt_subscriber_cli.py tests/test_mqtt_subscriber_error_redaction.py tests/test_mqtt_delivery.py tests/test_iot_sensor_push.py tests/test_ingestion_outbox_producers.py -q",
+      "result": "passed",
+      "passed": 91
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "standalone_unified_help_parity": "passed"
+  },
+  "external_access": {
+    "broker": false,
+    "database": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  },
+  "limitations": [
+    "Subscriber startup was stubbed in CLI tests.",
+    "Does not establish message delivery, broker recovery, TLS, or tenant acceptance."
+  ]
+}

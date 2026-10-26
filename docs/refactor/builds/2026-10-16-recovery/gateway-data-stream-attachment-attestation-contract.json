@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-16",
+  "branch": "feat/mobile-offline-acceptance",
+  "scope": "Tenant-scoped Data Stream attachment metadata and stored attestation reads",
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_data_stream.py tests/test_gateway_auth.py tests/test_gateway_route_policy_inventory.py -q",
+    "result": "passed",
+    "tests_passed": 52
+  },
+  "lint": {
+    "command": "ruff check services/gateway/data_stream.py services/gateway/app.py services/gateway/router.py tests/test_gateway_data_stream.py tests/test_gateway_auth.py tests/test_gateway_route_policy_inventory.py",
+    "result": "passed"
+  },
+  "contracts_checked": [
+    "Attachment metadata reads require the distinct data_stream_file:read:<location> grant",
+    "Attachment SQL matches both post ID and location ID and excludes deleted records",
+    "Attachment responses omit storage URLs, Directus identifiers, and arbitrary metadata",
+    "Stored attestation reads require the distinct data_stream_proof:read:<location> grant",
+    "Attestation SQL ties the request to the scoped post and returns only recorded status and proof references",
+    "Attestation read performs no live chain lookup and does not claim cryptographic verification",
+    "The database verifies each exact credential/resource/action/location in the same transaction as its query",
+    "Route policy inventory covers both endpoints and both routes remain protected from anonymous access"
+  ],
+  "database_targets_touched": [],
+  "limitations": [
+    "No candidate or legacy database was used by this focused unit and HTTP contract run",
+    "Signed attachment byte delivery and live EAS validity checks remain open"
+  ]
+}

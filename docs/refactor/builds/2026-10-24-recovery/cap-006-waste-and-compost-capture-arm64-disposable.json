@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "postgres_image": "postgres:16",
+  "platform": "linux/arm64",
+  "migrations": [
+    "153_waste_management.sql",
+    "613_location_waste_stream_capture.sql",
+    "614_location_composting_capture.sql"
+  ],
+  "checks": [
+    "migrations 613 and 614 apply and replay after the canonical migration-153 tables",
+    "exact create grant captures a recorded kg row and an identical retry returns the same ID",
+    "composting capture writes recorded process data, preserves bounded freeform labels, and replays the exact request",
+    "compost changed-input replay conflicts and mismatched signed location is denied",
+    "mismatched location, missing exact create grant, wrong actor type, and invalid category fail closed",
+    "idempotency key reuse with changed input conflicts",
+    "runtime cannot read private receipts; Directus cannot read or execute and both function owners are isolated"
+  ],
+  "candidate_or_legacy_database_used": false,
+  "provider_calls": false
+}

@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-17",
+  "scope": "Capital-accounting composite section failures",
+  "behavior": {
+    "section_failures": "Capacity, diversion, capture-risk, and deferred-credit section errors return only the stable section label and bounded exception class. Successful sections remain included."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_capital_accounting_error_redaction.py tests/test_capital_accounting.py -q",
+    "result": "10 passed",
+    "coverage": [
+      "all four section exceptions omit raw database and ledger details",
+      "existing capital-accounting composition and core calculations remain covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none planned; mocked failures and existing fixture tests"
+  },
+  "limitations": [
+    "This does not establish populated capital-accounting parity or tenant authorization."
+  ]
+}

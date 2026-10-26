@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "EAS CLI top-level and signer-info error reporting",
+  "behavior": {
+    "command_failure": "Top-level attestation command failures print a fixed operation label and bounded exception class before exiting nonzero.",
+    "signer_info": "Best-effort attester status reports an unavailable class summary without echoing signer or RPC diagnostics."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_attestation_cli_error_redaction.py tests/test_attestation_safe.py tests/test_attestation_signer_error_redaction.py -q",
+    "result": "7 passed",
+    "coverage": [
+      "top-level command failure omits provider details and exits with status 1",
+      "best-effort signer status omits raw exception and synthetic key marker",
+      "SAFE proposal error storage/return behavior remains covered",
+      "direct EAS signer result behavior remains covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake modules and mocked SAFE proposal boundary"
+  },
+  "limitations": [
+    "No live attester key, EAS chain, SAFE service, or database was used.",
+    "This does not establish provider login, transaction proposal, or on-chain acceptance."
+  ]
+}

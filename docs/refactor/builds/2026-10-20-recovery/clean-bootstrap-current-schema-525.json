@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-20",
+  "scope": "Fresh clean-bootstrap replay of all current PostgreSQL schema migrations through 525",
+  "source_revision": "8e6a20f231102b27bd8e181f4b49dd8f4c1eba94",
+  "database": {
+    "image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "architecture": "linux/amd64",
+    "postgres_major": 16,
+    "resource_limits": {
+      "memory_bytes": 1610612736,
+      "cpus": 2.0
+    }
+  },
+  "isolation": {
+    "compose_project": "kokonut-schema-525-8e6a20f2",
+    "database_service_only": true,
+    "host_ports_published": false,
+    "network": "temporary private Compose bridge; no external provider or data source was contacted",
+    "seeds_applied": false,
+    "farm_data_loaded": false,
+    "candidate_or_legacy_targeted": false,
+    "candidate_status_before_replay": "read-only status had migrations 510 through 525 pending; no rollout was performed",
+    "candidate_services_after_run": "app/database/proxy/Metabase remained healthy",
+    "credential_handling": "Encrypted local development PostgreSQL credential was used only for the disposable database and was not logged or included in evidence."
+  },
+  "schema_replay": {
+    "runner": "scripts/verify-clean-bootstrap.sh and services.migration migrate --schemas-only",
+    "schema_files_discovered": 516,
+    "schema_migrations_applied": 516,
+    "schema_migrations_failed": 0,
+    "latest_migration": "schema:525_operator_identity_disable_audit.sql",
+    "migration_475_applied": true,
+    "migration_475_optional_directus_role_prerequisite": "satisfied by locked NOLOGIN kokonut_directus_runtime placeholder"
+  },
+  "docker_pool_recovery": {
+    "cause": "all predefined Docker address pools were allocated to existing networks",
+    "removed_empty_kokonut_test_networks": 20,
+    "active_candidate_network_removed": false,
+    "legacy_networks_removed": false,
+    "unrelated_networks_removed": false
+  },
+  "cleanup": {
+    "temporary_container_removed": true,
+    "temporary_volume_removed": true,
+    "temporary_network_removed": true,
+    "candidate_stack_unchanged": true,
+    "legacy_stack_targeted": false
+  },
+  "companion_checks": {
+    "tests": "105 passed: tests/test_migration.py, tests/test_operator_cli_identity_lifecycle.py, tests/test_unified_cli_success_contract.py",
+    "ruff": "passed for migration, operator CLI, disposable checker, and focused tests",
+    "python_compile": "passed for changed migration, CLI, checker, and focused tests",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "migration_source_validation": "516 files validated"
+  },
+  "result": "PASS: all 516 current schema migrations applied on a fresh isolated PostgreSQL 16 database with no seed or farm data.",
+  "limitations": [
+    "This replay used native linux/amd64 PostgreSQL; ARM64 database schema replay remains evidenced only through migration 434.",
+    "The separate ARM64 Gateway/schema runtime check is through migration 524 and was not rerun against migration 525.",
+    "QEMU checks do not certify physical Raspberry Pi hardware, resource endurance, or power-loss behavior.",
+    "The candidate was not migrated; its earlier read-only status showed 510 through 525 pending, so rollout still requires a fresh encrypted checkpoint and restore rehearsal for the ordered pending migration set."
+  ]
+}

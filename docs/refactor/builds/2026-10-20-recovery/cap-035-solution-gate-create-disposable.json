@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "505_location_solution_gate_definition.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 505 applies and replays after ordered migrations 503 and 504",
+    "gate creation requires exact signed location context, active human, and create grant",
+    "only a matching supported promotion for an active exact-origin solution can be created",
+    "gate criterion and thresholds are immutable and start draft with one evaluation required",
+    "retries are exact and safe after later lifecycle state changes; collisions cannot overwrite a gate",
+    "creation does not evaluate, approve, or transition a solution",
+    "criteria are visible to authorized readers/reviewers only for their location-origin solution",
+    "runtime and Directus have no direct gate-table access; runtime uses bounded functions and neither role can read private receipts"
+  ],
+  "acceptance_groups_passed": 10
+}

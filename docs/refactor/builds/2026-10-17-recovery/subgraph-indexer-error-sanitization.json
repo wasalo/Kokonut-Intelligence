@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "Legacy subgraph provider and ClickHouse outbox reporting",
+  "behavior": {
+    "provider_failures": "Raw provider and database exception details are replaced with a fixed Subgraph indexing failed summary containing only the exception class before status, ingestion audit, and log reporting.",
+    "outbox_failures": "The indexer preserves OutboxEnqueueError and source rollback while using a fixed summary and suppressing raw cause text.",
+    "connection_free_projection": "The demo/maintenance ClickHouse warning records only the exception class."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_subgraph_indexer_recovery.py -q",
+    "result": "3 passed",
+    "coverage": [
+      "secret-bearing provider exception redacted from chain status, ingestion audit, and logs",
+      "outbox failure keeps its exception type, rolls back, and suppresses sensitive detail",
+      "connection-free ClickHouse warning omits provider exception text"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_provider_access": "none; a fake connection and mocked provider boundary were used"
+  },
+  "limitations": [
+    "No subgraph or ClickHouse endpoint was contacted.",
+    "The legacy indexer remains outside the isolated EAS worker path; this change does not establish provider parity or recovery completeness."
+  ]
+}

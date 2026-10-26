@@ -262,7 +262,8 @@ export async function handleWorkflowTransition(
   keys: Record<string, unknown>,
   userRoles: string[] = [],
   db?: any,
-  accountability?: Record<string, any>
+  accountability?: Record<string, any>,
+  auditInRequestTransaction = false,
 ): Promise<Record<string, unknown>> {
   const newStatus = payload.status as string | undefined;
   if (!newStatus) return payload;
@@ -286,7 +287,7 @@ export async function handleWorkflowTransition(
     throw new Error(`Unable to verify current status for ${collection}`);
   }
 
-  if (recordId) {
+  if (recordId && !auditInRequestTransaction) {
     stashPendingTransition(collection, recordId, currentStatus);
   }
 
@@ -356,6 +357,26 @@ export async function handleWorkflowTransition(
 
   if (newStatus === 'rejected' && payload.rejection_reason) {
     payload.rejection_reason = payload.rejection_reason;
+  }
+
+  if (auditInRequestTransaction) {
+    if (!recordId || !db) {
+      throw new Error(`Unable to record workflow transition for ${collection}`);
+    }
+    try {
+      await logWorkflowTransition(
+        db,
+        collection,
+        recordId,
+        currentStatus,
+        newStatus,
+        accountability?.user,
+        undefined,
+        typeof payload.rejection_reason === 'string' ? payload.rejection_reason : undefined,
+      );
+    } catch {
+      throw new Error(`Unable to record workflow transition for ${collection}`);
+    }
   }
 
   return payload;

@@ -1,0 +1,20 @@
+{
+  "result": "passed",
+  "test": "tests/test_gateway_auth.py::test_mobile_upload_success_has_credentialed_cors_for_device_auth",
+  "route": "POST /api/mobile/media/uploads",
+  "response_status": 201,
+  "origin": "https://collector.example",
+  "cors_allow_origin": "https://collector.example",
+  "cors_allow_credentials": true,
+  "vary": "Origin",
+  "device_auth": "synthetic token resolver",
+  "database": "mocked policy and write connections",
+  "media_storage": "mocked private store",
+  "network": "none",
+  "real_oidc_or_device_credentials": false,
+  "candidate_or_legacy_modified": false,
+  "limitations": [
+    "In-process middleware and handler response only; browser-through-proxy acceptance remains open.",
+    "Device token validation, database policy, and private object storage were mocked."
+  ]
+}

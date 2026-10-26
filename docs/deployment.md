@@ -37,7 +37,7 @@ docker compose ps
 | Service | Base Compose URL | Purpose |
 |---------|------------------|---------|
 | Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
-| Field Collector | `https://localhost/mobile` or `https://localhost/field/field-collector.html` | Offline-first mobile companion (LAN: `https://<lan-ip>/mobile`) |
+| Field Collector | `https://localhost/mobile/` or `https://localhost/field/field-collector.html` | Offline-first mobile companion (LAN: `https://<lan-ip>/mobile/`) |
 | Directus | `https://localhost` or `https://localhost/directus` | Schema management, API, admin |
 | Directus admin | `https://localhost/admin` | Admin UI route through Caddy |
 | Metabase (opt-in) | `http://localhost:3001` when enabled | BI dashboards; not routed through default Caddy |
@@ -67,10 +67,10 @@ docker compose up -d --build gateway caddy
 # 2. Confirm health
 docker compose ps gateway caddy
 curl -fsS http://127.0.0.1:8099/health
-curl -kfsS https://localhost/mobile | head -c 200
+curl -kfsS https://localhost/mobile/ | head -c 200
 
 # 3. Open on a phone (same Wi‑Fi as the host)
-#    https://<host-lan-ip>/mobile
+#    https://<host-lan-ip>/mobile/
 ```
 
 Find the host LAN IP on macOS with `ipconfig getifaddr en0` (or `en1`). Dev
@@ -79,7 +79,7 @@ warning on the device the first time.
 
 | URL | Use |
 |-----|-----|
-| `https://<lan-ip>/mobile` | Preferred — HTML + `/api/mobile/*` same origin |
+| `https://<lan-ip>/mobile/` | Preferred — HTML + `/api/mobile/*` same origin; `/mobile` redirects here so relative shell assets stay on the Gateway route |
 | `https://<lan-ip>/field/field-collector.html` | Static HTML; API still via Caddy `/api/mobile/*` |
 | `http://127.0.0.1:8099/mobile` | Host loopback only (not for phones) |
 
@@ -95,14 +95,14 @@ warning on the device the first time.
 ```bash
 # .env: CADDY_DOMAIN, PUBLIC_URL, KOKONUT_ENV=production, strong secrets
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-# Field Collector: https://$CADDY_DOMAIN/mobile
+# Field Collector: https://$CADDY_DOMAIN/mobile/
 ```
 
 **Production (Traefik)**
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d --build
-# Field Collector: https://$KOKONUT_DOMAIN/mobile
+# Field Collector: https://$KOKONUT_DOMAIN/mobile/
 ```
 
 Traefik labels route `PathPrefix(/mobile)` and `PathPrefix(/api/mobile)` to the
@@ -234,7 +234,7 @@ The platform includes `scripts/health-check.sh` for continuous health monitoring
 | Channel | Env vars | Notes |
 |---------|----------|-------|
 | Webhook | `ALERT_WEBHOOK_URL` | Slack/Discord/Teams incoming webhook |
-| Email | `ALERT_SMTP_HOST`, `ALERT_SMTP_USER`, `ALERT_SMTP_PASSWORD`, `ALERT_EMAIL_TO` | SMTP with TLS |
+| Email | `ALERT_SMTP_HOST`, `ALERT_SMTP_PORT`, `ALERT_SMTP_TLS_MODE`, `ALERT_SMTP_USER`, `ALERT_SMTP_PASSWORD`, `ALERT_EMAIL_TO` | Verified STARTTLS by default; configure `implicit` for SMTPS. Plain SMTP requires explicit opt-in and cannot use authentication. |
 
 Both channels can be active simultaneously. Alerts are only sent on failure — healthy checks produce no output (quiet cron).
 
@@ -254,7 +254,7 @@ Before deploying to production:
 - [ ] `CADDY_DOMAIN` or `KOKONUT_DOMAIN` set to your domain
 - [ ] TLS configured (Caddy auto-provisions or Traefik with cert resolver)
 - [ ] `docker-compose.prod.yml` applied (no direct port exposure to host)
-- [ ] Gateway healthy and Field Collector reachable at `https://$CADDY_DOMAIN/mobile` (or Traefik host)
+- [ ] Gateway healthy and Field Collector reachable at `https://$CADDY_DOMAIN/mobile/` (or Traefik host)
 - [ ] Exactly one scheduling owner selected for each recurring job (worker cron, host cron, or database scheduler)
 - [ ] `event-worker` running if queued events must be processed continuously
 - [ ] Health-check cron with alerting configured
@@ -288,7 +288,7 @@ Example cron entries for host-based scheduling (adjust paths and timezone as nee
 
 ```cron
 # Weather — every 6 hours
-0 */6 * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.weather >> /var/log/kokonut/weather.log 2>&1
+0 */6 * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.weather --all-locations >> /var/log/kokonut/weather.log 2>&1
 
 # Market data — daily at 06:00 UTC
 0 6 * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.market_data >> /var/log/kokonut/market.log 2>&1
@@ -299,8 +299,8 @@ Example cron entries for host-based scheduling (adjust paths and timezone as nee
 # RPC wallet indexer — every 30 minutes
 */30 * * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.rpc_indexer >> /var/log/kokonut/rpc.log 2>&1
 
-# Sensor ingester — every 5 minutes (when devices are active)
-*/5 * * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.sensor_ingester >> /var/log/kokonut/sensors.log 2>&1
+# Sensor readings are source-driven (CSV/manual, HTTP, or MQTT); do not schedule
+# sensor_ingester without a configured recurring source adapter.
 ```
 
 Ensure `KOKONUT_ENV=production` and all required secrets are set in the environment used by the scheduler. Use `./scripts/health-check.sh` after deploy to verify service connectivity.

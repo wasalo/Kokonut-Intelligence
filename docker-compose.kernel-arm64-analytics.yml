@@ -1,0 +1,4 @@
+# Select the verified ARM64 ClickHouse image for the analytics profile.
+services:
+  clickhouse:
+    platform: linux/arm64

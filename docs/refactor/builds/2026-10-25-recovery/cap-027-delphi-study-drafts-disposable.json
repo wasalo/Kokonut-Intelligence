@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "630_location_scoped_delphi_study_drafts.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 449\u2013451 and 630 apply and replay on disposable PostgreSQL 16",
+    "exact signed location and delphi:draft grant create only draft lifecycle state",
+    "exact request retries return the same study and changed-content collisions fail closed",
+    "mismatched location, read-only grant, and malformed criteria are rejected",
+    "private retry records are append-only and inaccessible to runtime and Directus",
+    "the bounded function is owned by the dedicated non-login drafter role"
+  ],
+  "assertions_passed": 6
+}

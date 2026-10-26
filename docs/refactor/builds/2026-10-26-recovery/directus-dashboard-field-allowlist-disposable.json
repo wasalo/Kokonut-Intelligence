@@ -1,0 +1,26 @@
+{
+  "candidate_or_legacy_database_used": false,
+  "database": "fresh isolated Kernel PostgreSQL volume",
+  "database_identity": "kokonut_directus_runtime",
+  "date": "2026-10-26",
+  "legacy_dashboard_wildcard_repaired": true,
+  "limitations": [
+    "Fresh repository-managed policy fixture only; custom/operator-edited policies are excluded.",
+    "No populated dashboard records or external consumers were used."
+  ],
+  "permission": {
+    "action": "read",
+    "collection": "dashboard_dataset",
+    "fields": "id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,last_refreshed_at,status,metadata,created_at,updated_at,updated_by",
+    "policy": "Auditor Policy",
+    "roles": [
+      "Auditor"
+    ],
+    "row_filter": {},
+    "validation": {}
+  },
+  "permission_seed_applied_and_replayed": true,
+  "replay_snapshot_unchanged": true,
+  "result": "passed",
+  "runtime": "Directus 12.1.1"
+}

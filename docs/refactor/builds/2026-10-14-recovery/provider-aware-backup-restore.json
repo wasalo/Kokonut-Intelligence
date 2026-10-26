@@ -1,0 +1,32 @@
+{
+  "check": "provider_aware_backup_restore",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "postgres_only_backup_without_clickhouse_password_or_service": true,
+    "clickhouse_enabled_backup_preflights_before_artifacts": true,
+    "manifest_records_provider_and_database_inventory": true,
+    "verifier_matches_disk_archives_to_checksums_and_inventory": true,
+    "restore_uses_manifest_provider_selection": true,
+    "restore_preflights_services_before_database_writes": true,
+    "rollback_preflights_before_stopping_application_services": true,
+    "legacy_manifest_clickhouse_behavior_preserved": true,
+    "fake_compose_cli_used": true,
+    "live_docker_or_database_used": false,
+    "raspberry_pi_hardware_used": false
+  },
+  "pytest": {
+    "command": ".venv/bin/python -m pytest tests/test_backup_optional_providers.py tests/test_upgrade.py -q",
+    "provider_profile_tests_passed": 6,
+    "existing_upgrade_tests_passed": 13,
+    "passed": 19,
+    "failed": 0
+  },
+  "static_checks": {
+    "shell_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "The Compose CLI is a test double; this does not prove PostgreSQL or ClickHouse archive compatibility against a running service, production retention, private-media backup, or external object-store recovery."
+  ]
+}

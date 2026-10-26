@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-25",
+  "migration": "644_isolated_baal_indexer.sql",
+  "migration_sha256": "8873d068fb280939815ad667e954493bea841c12bfbb72832f3e3cc6036104e7",
+  "database": "PostgreSQL 16 disposable container; Docker network disabled",
+  "checks": [
+    "migration 644 applies and replays before login provisioning",
+    "migration 644 replays after the dedicated login is provisioned",
+    "forced-RLS contract resolves only the Gnosis wallet and canonical Baal protocol",
+    "bounded event insert is idempotent and status advances the dedicated cursor",
+    "unknown event types and non-Gnosis records fail closed",
+    "login has no direct relation or sequence privileges"
+  ],
+  "result": "passed",
+  "isolation": "Synthetic schema and records only; no candidate, legacy, provider, or network access."
+}

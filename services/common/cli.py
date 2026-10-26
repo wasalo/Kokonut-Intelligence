@@ -34,11 +34,12 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import typer
 
-from services.common.database import DatabaseConnection, get_connection
+if TYPE_CHECKING:
+    from services.common.database import DatabaseConnection
 
 __all__ = [
     "run",
@@ -47,6 +48,26 @@ __all__ = [
     "DatabaseConnection",
     "mount_argparse",
 ]
+
+
+def get_connection(*, connect_timeout: int | None = None, readonly: bool = False) -> "DatabaseConnection":
+    """Lazily open a database connection for commands that need one.
+
+    Keeping the database module out of import-time CLI setup lets offline
+    commands and help screens run without decrypting database credentials.
+    """
+    from services.common.database import get_connection as _get_connection
+
+    return _get_connection(connect_timeout=connect_timeout, readonly=readonly)
+
+
+def __getattr__(name: str) -> Any:
+    """Keep the historical DatabaseConnection re-export lazy."""
+    if name == "DatabaseConnection":
+        from services.common.database import DatabaseConnection
+
+        return DatabaseConnection
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def print_json(obj: Any) -> None:

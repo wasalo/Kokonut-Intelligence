@@ -1,0 +1,24 @@
+{
+  "schema_migrations": [
+    405,
+    419,
+    426
+  ],
+  "checks": [
+    "migrations 405, 419, and 426 apply in order; migration 426 replays cleanly",
+    "signed location lookup returns only the granted active location coordinates",
+    "forecast upsert, ingestion audit, and canonical outbox intent commit atomically and replay idempotently",
+    "bounded function rejects a requested location different from signed context",
+    "bounded function denies a missing signed worker context",
+    "function rejects cross-location forecast rows without writing forecast or outbox data",
+    "sanitized provider failure records audit state with zero forecast rows and no outbox intent",
+    "signed worker context clears at transaction end",
+    "worker login/execution role have no direct application-table access; runtime cannot call bounded function"
+  ],
+  "candidate_or_legacy_database_accessed": false,
+  "feature_enabled": false,
+  "worker_credentials_provisioned": false,
+  "candidate_application_rls_enabled": false,
+  "fixture_forced_rls": true,
+  "completed_at_utc": "2026-10-17T03:56:12.377250+00:00"
+}

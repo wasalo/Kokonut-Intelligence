@@ -12,33 +12,52 @@ Usage:
 from __future__ import annotations
 
 import json
-import smtplib
 from datetime import datetime, timezone
-from email.mime.text import MIMEText
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from ..common.logging import get_logger
-from .base import get_db
 from services.common.cli import print_json
+
+from ..common.logging import get_logger
+
 logger = get_logger("ingestion.data_freshness")
+
+FRESHNESS_SOURCE_TABLES = {
+    "weather": "weather_observation",
+    "sensors": "sensor_reading",
+    "remote_sensing": "remote_sensing_observation",
+    "market_data": "price_observation",
+    "eas_indexer": "attestation_record",
+    "rpc_indexer": "wallet_activity_event",
+    "gnosis_indexer": "governance_event",
+}
+FRESHNESS_TABLE_TIMESTAMP_COLUMNS = {
+    "weather_observation": "observation_date",
+    "sensor_reading": "created_at",
+    "remote_sensing_observation": "observation_date",
+    "price_observation": "observation_date",
+    "attestation_record": "attested_at",
+    "wallet_activity_event": "block_timestamp",
+    "governance_event": "block_timestamp",
+}
 
 
 def _query_freshness_configs(conn, source: Optional[str] = None) -> List[Dict[str, Any]]:
     """Query active freshness configurations."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if source:
-        cur.execute(
-            "SELECT * FROM data_freshness_config WHERE is_active = TRUE AND source_system = %s",
-            (source,),
-        )
-    else:
-        cur.execute("SELECT * FROM data_freshness_config WHERE is_active = TRUE")
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        if source:
+            cur.execute(
+                "SELECT * FROM data_freshness_config WHERE is_active = TRUE AND source_system = %s",
+                (source,),
+            )
+        else:
+            cur.execute("SELECT * FROM data_freshness_config WHERE is_active = TRUE")
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def _validate_thresholds(stale_threshold: int, critical_threshold: int) -> None:
@@ -49,10 +68,11 @@ def _validate_thresholds(stale_threshold: int, critical_threshold: int) -> None:
 
 def _location_ids(conn) -> List[str]:
     cur = conn.cursor()
-    cur.execute("SELECT id FROM location ORDER BY id")
-    rows = [str(row[0]) for row in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        cur.execute("SELECT id FROM location ORDER BY id")
+        return [str(row[0]) for row in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def _query_latest_data_at(
@@ -61,34 +81,12 @@ def _query_latest_data_at(
     """Get the most recent data timestamp for a source system."""
     if location_scoped and not location_id:
         raise ValueError("location_id is required for a scoped freshness query")
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    source_table_map = {
-        "weather": "weather_observation",
-        "sensors": "sensor_reading",
-        "remote_sensing": "remote_sensing_observation",
-        "market_data": "price_observation",
-        "eas_indexer": "attestation_record",
-        "rpc_indexer": "wallet_activity_event",
-        "gnosis_indexer": "governance_event",
-    }
-
-    table = source_table_map.get(source_system)
+    table = FRESHNESS_SOURCE_TABLES.get(source_system)
     if not table:
-        cur.close()
-        return None
+        raise ValueError(f"unsupported freshness source: {source_system}")
 
-    # Determine the timestamp column
-    ts_column_map = {
-        "weather_observation": "observation_date",
-        "sensor_reading": "created_at",
-        "remote_sensing_observation": "observation_date",
-        "price_observation": "observation_date",
-        "attestation_record": "attested_at",
-        "wallet_activity_event": "block_timestamp",
-        "governance_event": "block_timestamp",
-    }
-    ts_col = ts_column_map.get(table, "created_at")
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    ts_col = FRESHNESS_TABLE_TIMESTAMP_COLUMNS[table]
 
     query = f"SELECT MAX({ts_col}) AS last_at FROM {table}"
     params = []
@@ -107,18 +105,6 @@ def _query_latest_data_at(
         return row["last_at"] if row and row["last_at"] else None
     finally:
         cur.close()
-
-
-def _query_latest_ingestion(conn, source_system: str) -> Optional[datetime]:
-    """Get the most recent ingestion log entry for a source."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        "SELECT MAX(created_at) AS last_at FROM ingestion_log WHERE source_system = %s AND status = 'success'",
-        (source_system,),
-    )
-    row = cur.fetchone()
-    cur.close()
-    return row["last_at"] if row and row["last_at"] else None
 
 
 def _determine_status(
@@ -165,40 +151,45 @@ def _alert_event(
 def _alert_state(conn, source_system: str, location_id: Optional[str]) -> Dict[str, Any]:
     """Lock and return the alert state for one source/location scope."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT * FROM data_freshness_alert_state
-        WHERE source_system = %s AND location_id IS NOT DISTINCT FROM %s
-        FOR UPDATE
-        """,
-        (source_system, location_id),
-    )
-    state = cur.fetchone()
-    cur.close()
+    try:
+        cur.execute(
+            """
+            SELECT * FROM data_freshness_alert_state
+            WHERE source_system = %s AND location_id IS NOT DISTINCT FROM %s
+            FOR UPDATE
+            """,
+            (source_system, location_id),
+        )
+        state = cur.fetchone()
+    finally:
+        cur.close()
     if state:
         return dict(state)
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO data_freshness_alert_state (source_system, location_id, current_status)
-        VALUES (%s, %s, 'no_data')
-        ON CONFLICT DO NOTHING
-        """,
-        (source_system, location_id),
-    )
-    cur.close()
+    try:
+        cur.execute(
+            """
+            INSERT INTO data_freshness_alert_state (source_system, location_id, current_status)
+            VALUES (%s, %s, 'no_data')
+            ON CONFLICT DO NOTHING
+            """,
+            (source_system, location_id),
+        )
+    finally:
+        cur.close()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT * FROM data_freshness_alert_state
-        WHERE source_system = %s AND location_id IS NOT DISTINCT FROM %s
-        FOR UPDATE
-        """,
-        (source_system, location_id),
-    )
-    state = dict(cur.fetchone())
-    cur.close()
-    return state
+    try:
+        cur.execute(
+            """
+            SELECT * FROM data_freshness_alert_state
+            WHERE source_system = %s AND location_id IS NOT DISTINCT FROM %s
+            FOR UPDATE
+            """,
+            (source_system, location_id),
+        )
+        return dict(cur.fetchone())
+    finally:
+        cur.close()
 
 
 def _persist_alert_event(
@@ -214,55 +205,35 @@ def _persist_alert_event(
     now: datetime,
 ) -> str:
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO data_freshness_alert_history
-            (state_id, check_id, source_system, location_id, event_type,
-             previous_status, status, gap_minutes, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """,
-        (state["id"], check_id, source_system, location_id, event_type,
-         previous_status, status, gap_minutes, now),
-    )
-    alert_id = str(cur.fetchone()[0])
-    count_column = {
-        "alert": "alert_count",
-        "escalation": "escalation_count",
-        "recovery": "recovery_count",
-    }[event_type]
-    cur.execute(
-        f"""
-        UPDATE data_freshness_alert_state
-        SET current_status = %s, last_event_type = %s, last_event_status = %s,
-            last_event_at = %s, {count_column} = {count_column} + 1, updated_at = %s
-        WHERE id = %s
-        """,
-        (status, event_type, status, now, now, state["id"]),
-    )
-    cur.close()
-    return alert_id
-
-
-def _persist_delivery_attempt(
-    conn, alert_id: str, channel: str, delivered: bool, error_message: Optional[str] = None
-) -> None:
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO data_freshness_alert_delivery_attempt
-            (alert_id, channel, outcome, error_message)
-        VALUES (%s, %s, %s, %s)
-        """,
-        (alert_id, channel, "delivered" if delivered else "failed", error_message),
-    )
-    if delivered:
+    try:
         cur.execute(
-            "UPDATE data_freshness_alert_state SET last_delivered_at = NOW(), updated_at = NOW() "
-            "WHERE id = (SELECT state_id FROM data_freshness_alert_history WHERE id = %s)",
-            (alert_id,),
+            """
+            INSERT INTO data_freshness_alert_history
+                (state_id, check_id, source_system, location_id, event_type,
+                 previous_status, status, gap_minutes, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (state["id"], check_id, source_system, location_id, event_type, previous_status, status, gap_minutes, now),
         )
-    cur.close()
+        alert_id = str(cur.fetchone()[0])
+        count_column = {
+            "alert": "alert_count",
+            "escalation": "escalation_count",
+            "recovery": "recovery_count",
+        }[event_type]
+        cur.execute(
+            f"""
+            UPDATE data_freshness_alert_state
+            SET current_status = %s, last_event_type = %s, last_event_status = %s,
+                last_event_at = %s, {count_column} = {count_column} + 1, updated_at = %s
+            WHERE id = %s
+            """,
+            (status, event_type, status, now, now, state["id"]),
+        )
+        return alert_id
+    finally:
+        cur.close()
 
 
 def _insert_check_result(
@@ -279,101 +250,100 @@ def _insert_check_result(
 ) -> str:
     """Insert a freshness check result. Returns check ID."""
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO data_freshness_check
-            (config_id, source_system, location_id, last_data_at,
-             gap_minutes, status, alert_sent, alert_channel, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """,
-        (
-            config_id,
-            source_system,
-            location_id,
-            last_data_at,
-            gap_minutes,
-            status,
-            alert_sent,
-            alert_channel,
-            json.dumps(metadata or {}),
-        ),
-    )
-    check_id = str(cur.fetchone()[0])
-    cur.close()
-    return check_id
+    try:
+        cur.execute(
+            """
+            INSERT INTO data_freshness_check
+                (config_id, source_system, location_id, last_data_at,
+                 gap_minutes, status, alert_sent, alert_channel, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (
+                config_id,
+                source_system,
+                location_id,
+                last_data_at,
+                gap_minutes,
+                status,
+                alert_sent,
+                alert_channel,
+                json.dumps(metadata or {}),
+            ),
+        )
+        return str(cur.fetchone()[0])
+    finally:
+        cur.close()
 
 
-def _send_alert(
+def _safe_evaluation_error(exc: Exception) -> str:
+    """Summarize freshness read/evaluation failures without exception details."""
+    return f"freshness evaluation failed ({type(exc).__name__})"
+
+
+def _publish_alert_event(
+    conn,
+    alert_id: str,
     source_system: str,
     status: str,
     gap_minutes: Optional[int],
     last_data_at: Optional[datetime],
+    event_type: str,
     location_id: Optional[str] = None,
-    attempts: Optional[List[Dict[str, Optional[str]]]] = None,
 ) -> str:
-    """Send freshness alert. Returns alert channel used."""
-    import os
+    """Persist a durable notification event in the caller's transaction.
 
-    alert_msg = (
-        f"[CRISP] Data freshness alert: {source_system}"
-        f" ({location_id or 'global'})\n"
+    The EventBus handler and notification outbox perform provider delivery after
+    this transaction commits. Reusing the alert-history UUID makes retries
+    traceable back to the freshness transition without sending inline.
+    """
+    from services.events.bus import EventBus
+
+    location_label = location_id or "global"
+    last_data_value = last_data_at.isoformat() if last_data_at else None
+    message = (
+        f"[CRISP] Data freshness {event_type}: {source_system} ({location_label})\n"
         f"Status: {status}\n"
         f"Gap: {gap_minutes} minutes\n"
-        f"Last data: {last_data_at}\n"
+        f"Last data: {last_data_value or 'none'}\n"
+    )
+    payload = {
+        "alert_id": alert_id,
+        "event_type": event_type,
+        "source_system": source_system,
+        "status": status,
+        "severity": "info" if event_type == "recovery" else (
+            "critical" if status == "critical" else "warning"
+        ),
+        "gap_minutes": gap_minutes,
+        "last_data_at": last_data_value,
+        "location_id": location_id,
+        "message": message,
+    }
+    return EventBus(conn=conn).publish(
+        "data_stale",
+        payload,
+        event_id=alert_id,
+        source_table="data_freshness_alert_history",
+        source_id=alert_id,
+        priority="high" if status == "critical" else "normal",
+        commit=False,
     )
 
-    # Webhook alert
-    webhook_url = os.environ.get("ALERT_WEBHOOK_URL")
-    if webhook_url:
-        try:
-            from services.common.http import http
 
-            response = http.post(
-                webhook_url,
-                json={"text": alert_msg, "source": source_system, "status": status},
-                timeout=10,
-            )
-            response.raise_for_status()
-            if attempts is not None:
-                attempts.append({"channel": "webhook", "error": None})
-            return "webhook"
-        except Exception as e:
-            logger.warning("Webhook alert failed: %s", e)
-            if attempts is not None:
-                attempts.append({"channel": "webhook", "error": str(e)})
-
-    # Email alert
-    smtp_host = os.environ.get("ALERT_SMTP_HOST")
-    smtp_to = os.environ.get("ALERT_EMAIL_TO")
-    if smtp_host and smtp_to:
-        try:
-            msg = MIMEText(alert_msg)
-            msg["Subject"] = f"[Kokonut] Data freshness alert: {source_system}"
-            msg["From"] = os.environ.get("ALERT_EMAIL_FROM", "alerts@kokonut.network")
-            msg["To"] = smtp_to
-            with smtplib.SMTP(smtp_host, int(os.environ.get("ALERT_SMTP_PORT", 587))) as server:
-                server.send_message(msg)
-            if attempts is not None:
-                attempts.append({"channel": "email", "error": None})
-            return "email"
-        except Exception as e:
-            logger.warning("Email alert failed: %s", e)
-            if attempts is not None:
-                attempts.append({"channel": "email", "error": str(e)})
-
-    if attempts is not None and not attempts:
-        attempts.append({"channel": "none", "error": "no alert channel configured"})
-    return "none"
-
-
-def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
+def check_freshness(
+    conn, source: Optional[str] = None, *, persistence=None
+) -> Dict[str, Any]:
     """Check freshness for all configured sources (or a specific one).
 
     Returns:
         Dict with summary of check results.
     """
-    configs = _query_freshness_configs(conn, source)
+    configs = (
+        persistence.list_configs(source)
+        if persistence is not None
+        else _query_freshness_configs(conn, source)
+    )
     results = []
 
     for config in configs:
@@ -381,7 +351,14 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
         stale_threshold = config["stale_threshold_minutes"]
         critical_threshold = config["critical_threshold_minutes"]
         scoped = bool(config["location_scoped"])
-        scope_ids = _location_ids(conn) if scoped else [None]
+        if scoped:
+            scope_ids = (
+                persistence.list_location_ids()
+                if persistence is not None
+                else _location_ids(conn)
+            )
+        else:
+            scope_ids = [None]
         for location_id in scope_ids:
             last_data_at = None
             gap_minutes = None
@@ -389,11 +366,17 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
             now = datetime.now(timezone.utc)
             savepoint = "freshness_scope"
             save_cur = conn.cursor()
-            save_cur.execute(f"SAVEPOINT {savepoint}")
-            save_cur.close()
+            try:
+                save_cur.execute(f"SAVEPOINT {savepoint}")
+            finally:
+                save_cur.close()
             try:
                 _validate_thresholds(stale_threshold, critical_threshold)
-                last_data_at = _query_latest_data_at(conn, source_system, scoped, location_id)
+                last_data_at = (
+                    persistence.latest_data_at(source_system, scoped, location_id)
+                    if persistence is not None
+                    else _query_latest_data_at(conn, source_system, scoped, location_id)
+                )
                 if last_data_at:
                     if last_data_at.tzinfo is None:
                         last_data_at = last_data_at.replace(tzinfo=timezone.utc)
@@ -401,90 +384,109 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                 status = _determine_status(gap_minutes, stale_threshold, critical_threshold)
             except Exception as exc:
                 rollback_cur = conn.cursor()
-                rollback_cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
-                rollback_cur.close()
+                try:
+                    rollback_cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                finally:
+                    rollback_cur.close()
                 status = "error"
-                metadata = {"error": str(exc)}
-                logger.error("Freshness query failed for %s/%s: %s", source_system, location_id, exc)
+                metadata = {"error": _safe_evaluation_error(exc)}
+                logger.error(
+                    "Freshness evaluation failed for %s/%s (%s)",
+                    source_system,
+                    location_id,
+                    type(exc).__name__,
+                )
 
             alert_sent = False
             alert_channel = None
             try:
-                check_id = _insert_check_result(
-                    conn,
-                    str(config["id"]),
-                    source_system,
-                    location_id,
-                    last_data_at,
-                    gap_minutes,
-                    status,
-                    alert_sent,
-                    alert_channel,
-                    metadata,
+                check_id = (
+                    persistence.insert_check(
+                        str(config["id"]), source_system, location_id, last_data_at,
+                        gap_minutes, status, alert_sent, alert_channel, metadata,
+                    )
+                    if persistence is not None
+                    else _insert_check_result(
+                        conn, str(config["id"]), source_system, location_id,
+                        last_data_at, gap_minutes, status, alert_sent,
+                        alert_channel, metadata,
+                    )
                 )
-                state = _alert_state(conn, source_system, location_id)
+                state = (
+                    persistence.lock_alert_state(source_system, location_id)
+                    if persistence is not None
+                    else _alert_state(conn, source_system, location_id)
+                )
                 previous_status = state["current_status"]
                 last_event_at = state.get("last_event_at")
                 if last_event_at and last_event_at.tzinfo is None:
                     last_event_at = last_event_at.replace(tzinfo=timezone.utc)
-                event_type = _alert_event(
-                    previous_status,
-                    status,
-                    state.get("last_event_status"),
-                    last_event_at,
-                    now,
-                    int(config.get("alert_cooldown_minutes", 60)),
-                    int(config.get("escalation_cooldown_minutes", 15)),
-                )
+                event_type = None
+                if status != "error":
+                    event_type = _alert_event(
+                        previous_status,
+                        status,
+                        state.get("last_event_status"),
+                        last_event_at,
+                        now,
+                        int(config.get("alert_cooldown_minutes", 60)),
+                        int(config.get("escalation_cooldown_minutes", 15)),
+                    )
                 alert_sent = False
                 alert_channel = None
                 if event_type:
-                    alert_id = _persist_alert_event(
-                        conn,
-                        state,
-                        check_id,
-                        source_system,
-                        location_id,
-                        event_type,
-                        previous_status,
-                        status,
-                        gap_minutes,
-                        now,
-                    )
-                    delivery_attempts: List[Dict[str, Optional[str]]] = []
-                    alert_channel = _send_alert(
-                        source_system,
-                        status,
-                        gap_minutes,
-                        last_data_at,
-                        location_id,
-                        delivery_attempts,
-                    )
-                    alert_sent = alert_channel != "none"
-                    for attempt in delivery_attempts:
-                        _persist_delivery_attempt(
-                            conn,
-                            alert_id,
-                            attempt["channel"] or "none",
-                            attempt["error"] is None,
-                            attempt["error"],
+                    alert_id = (
+                        persistence.persist_alert_event(
+                            state, check_id, source_system, location_id, event_type,
+                            previous_status, status, gap_minutes, now,
                         )
-                else:
-                    update_cur = conn.cursor()
-                    update_cur.execute(
-                        "UPDATE data_freshness_alert_state SET current_status = %s, updated_at = %s WHERE id = %s",
-                        (status, now, state["id"]),
+                        if persistence is not None
+                        else _persist_alert_event(
+                            conn, state, check_id, source_system, location_id,
+                            event_type, previous_status, status, gap_minutes, now,
+                        )
                     )
-                    update_cur.close()
-                update_check_cur = conn.cursor()
-                update_check_cur.execute(
-                    "UPDATE data_freshness_check SET alert_sent = %s, alert_channel = %s WHERE id = %s",
-                    (alert_sent, alert_channel, check_id),
-                )
-                update_check_cur.close()
+                    if persistence is not None:
+                        persistence.enqueue_alert_event(
+                            alert_id, source_system, status, gap_minutes,
+                            last_data_at, event_type, location_id,
+                        )
+                    else:
+                        _publish_alert_event(
+                            conn, alert_id, source_system, status, gap_minutes,
+                            last_data_at, event_type, location_id,
+                        )
+                    # The durable event is committed here; provider delivery is
+                    # asynchronous and is tracked by notification_outbox.
+                    alert_channel = "event_bus"
+                elif status != "error":
+                    if persistence is not None:
+                        persistence.update_alert_state(state["id"], status, now)
+                    else:
+                        update_cur = conn.cursor()
+                        try:
+                            update_cur.execute(
+                                "UPDATE data_freshness_alert_state SET current_status = %s, updated_at = %s WHERE id = %s",
+                                (status, now, state["id"]),
+                            )
+                        finally:
+                            update_cur.close()
+                if persistence is not None:
+                    persistence.update_check_alert(check_id, alert_sent, alert_channel)
+                else:
+                    update_check_cur = conn.cursor()
+                    try:
+                        update_check_cur.execute(
+                            "UPDATE data_freshness_check SET alert_sent = %s, alert_channel = %s WHERE id = %s",
+                            (alert_sent, alert_channel, check_id),
+                        )
+                    finally:
+                        update_check_cur.close()
                 release_cur = conn.cursor()
-                release_cur.execute(f"RELEASE SAVEPOINT {savepoint}")
-                release_cur.close()
+                try:
+                    release_cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+                finally:
+                    release_cur.close()
             except Exception:
                 conn.rollback()
                 raise
@@ -502,7 +504,13 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                 }
             )
             logger.info(
-                "  %s/%s: %s (gap=%s min, alert=%s)", source_system, location_id, status, gap_minutes, alert_sent
+                "  %s/%s: %s (gap=%s min, alert_sent=%s, dispatch=%s)",
+                source_system,
+                location_id,
+                status,
+                gap_minutes,
+                alert_sent,
+                alert_channel or "none",
             )
 
     try:
@@ -526,20 +534,28 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
 def get_freshness_summary(conn) -> List[Dict[str, Any]]:
     """Get current freshness summary from the database view."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT * FROM v_data_freshness_summary")
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        cur.execute("SELECT * FROM v_data_freshness_summary")
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
-if __name__ == "__main__":
+def main(argv: Optional[List[str]] = None) -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Data freshness monitoring")
-    parser.add_argument("--check", action="store_true", help="Run freshness check")
-    parser.add_argument("--summary", action="store_true", help="Show freshness summary")
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument("--check", action="store_true", help="Run freshness check")
+    action.add_argument("--summary", action="store_true", help="Show freshness summary")
     parser.add_argument("--source", help="Limit to specific source")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    if args.source and not args.check:
+        parser.error("--source requires --check")
+    if not args.check and not args.summary:
+        parser.print_help()
+        return
 
     conn = get_db()
     try:
@@ -553,3 +569,14 @@ if __name__ == "__main__":
             parser.print_help()
     finally:
         conn.close()
+
+
+def get_db():
+    """Load the ingestion database connection only when a DB action is run."""
+    from .base import get_db as _get_db
+
+    return _get_db()
+
+
+if __name__ == "__main__":
+    main()

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
 from typing import Any
 
 from services.common.logging import get_logger
@@ -162,10 +160,50 @@ def list_sell_orders(conn, credit_batch_id: str = None, seller_address: str = No
         params["seller"] = seller_address
     where = "WHERE " + " AND ".join(conditions) if conditions else ""
     result = conn.execute(
-        conn.text(f"SELECT * FROM credit_sell_order {where} ORDER BY created_at DESC"),
+        conn.text(f"SELECT * FROM credit_sell_order {where} ORDER BY created_at DESC, id DESC"),
         params,
     )
     return [dict(r) for r in result.mappings()]
+
+
+def list_sell_orders_page(
+    conn,
+    *,
+    limit: int,
+    offset: int,
+    credit_batch_id: str = None,
+    seller_address: str = None,
+    status: str = None,
+    active_only: bool = True,
+) -> tuple[list[dict], int]:
+    """Fetch a bounded sell-order page using the regular list filters."""
+    from services.credit_class.page_queries import fetch_page
+
+    conditions = []
+    params: dict[str, Any] = {}
+    if active_only:
+        conditions.append("status = 'active'")
+    elif status:
+        conditions.append("status = :s")
+        params["s"] = status
+    if credit_batch_id:
+        conditions.append("credit_batch_id = :cbid")
+        params["cbid"] = credit_batch_id
+    if seller_address:
+        conditions.append("seller_address = :seller")
+        params["seller"] = seller_address
+    where = "WHERE " + " AND ".join(conditions) if conditions else ""
+    return fetch_page(
+        conn,
+        count_sql=f"SELECT COUNT(*) AS total FROM credit_sell_order {where}",
+        select_sql=(
+            f"SELECT * FROM credit_sell_order {where} "
+            "ORDER BY created_at DESC, id DESC LIMIT :_page_limit OFFSET :_page_offset"
+        ),
+        params=params,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def cancel_sell_order(conn, order_id: str, seller_address: str) -> dict:

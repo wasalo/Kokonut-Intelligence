@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-25",
+  "migration": "645_isolated_data_freshness_worker.sql",
+  "migration_sha256": "c0efd666eadf2179eceb31667b1baa830c0ff51ac960ca647243aa550c356f03",
+  "database": "PostgreSQL 16 disposable container; Docker network disabled",
+  "database_image": "postgres:16",
+  "requested_platform": null,
+  "container_architecture": "x86_64",
+  "checks": [
+    "migration 645 applies and replays with forced RLS already enabled",
+    "location-scoped and global source timestamps return bounded values",
+    "scope mismatch and direct source-table reads fail closed",
+    "check, state transition, history, and notification event commit together",
+    "a rejected event enqueue rolls back the enclosing check and alert transition",
+    "login has no direct table/sequence/schema-create access and can execute exactly nine bounded SECURITY DEFINER functions",
+    "migration 645 replays after dedicated login provisioning"
+  ],
+  "result": "passed",
+  "isolation": "Synthetic schema and records only; no candidate, legacy, provider, or network access."
+}

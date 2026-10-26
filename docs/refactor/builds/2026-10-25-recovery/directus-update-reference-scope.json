@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-25",
+  "scope": "Directus tenant reference validation on updates",
+  "status": "passed",
+  "checks": {
+    "targeted_extension_tests": {"passed": 20, "failed": 0},
+    "full_extension_tests": {"passed": 78, "failed": 0},
+    "python_tenant_and_compose_contract_tests": {"passed": 10, "failed": 0},
+    "directus_extension_build_and_typescript": "passed",
+    "capability_matrix_validation": "passed",
+    "git_diff_check": "passed"
+  },
+  "coverage": [
+    "update reference IDs are checked against each authorized target row's existing location",
+    "bulk updates with incompatible target locations fail closed",
+    "reference queries use the Directus request database context",
+    "malformed reference IDs fail before a reference query"
+  ],
+  "database_access": "none",
+  "provider_access": "none",
+  "candidate_database": "untouched",
+  "legacy_database": "untouched",
+  "live_directus_runtime": "not started"
+}

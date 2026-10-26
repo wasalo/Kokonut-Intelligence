@@ -1,0 +1,32 @@
+{
+  "capability": "CAP-063",
+  "title": "GeoNode CSW metadata XML integrity",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "focused CSW serializer integrity checks pass; capability not accepted",
+  "changes": [
+    "ISO 19115 metadata values are escaped as XML text before serialization, preventing caller-supplied values from breaking document structure or injecting elements; characters forbidden by XML 1.0 are replaced with U+FFFD.",
+    "CSW record responses declare the gmd and gco namespaces used by their child elements.",
+    "CSW GetRecord now applies the same public-visibility predicate as GetRecords, and catalog page sizes are validated before database queries.",
+    "CSW GetRecords now counts all matching public records with the same filters before applying the bounded page offset and limit.",
+    "The Leaflet map builds farm popups with DOM text nodes rather than interpolating database metadata into HTML.",
+    "Map coordinates are parsed as finite WGS84 values with legal latitude/longitude ranges; zero-valued coordinates are retained.",
+    "GIS boundary parsing validates finite WGS84 positions, ring closure, and a bounded coordinate count before WKT generation; Polygon and MultiPolygon builders preserve every interior ring.",
+    "GIS import validates target, file format, and source records before opening PostgreSQL; empty or malformed source inputs do not acquire a database connection.",
+    "GIS import supports KML Placemark Polygon and MultiGeometry polygon boundaries, preserves interior rings and ExtendedData fields, and parses with defusedxml to reject entity declarations.",
+    "Raster metadata maps known filename suffixes to the raster_metadata schema's format vocabulary and preserves unknown CRS as unknown instead of assuming EPSG:4326.",
+    "Focused tests parse both serializer outputs, verify markup-shaped input remains text, protect the map popup/coordinate contract, and exercise GeoJSON/CSV/KML validation and serialization."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_csw_catalog.py tests/test_csw_serializer.py tests/test_map_viewer_contract.py tests/test_gis_import.py tests/test_geospatial_import_error_redaction.py tests/test_legacy_geo_import_error_redaction.py tests/test_spatial_import.py tests/test_security_hardening.py tests/test_raster_metadata_error_redaction.py -q",
+    "result": "70 passed, including CSW catalog/serializer, map viewer, GeoJSON/CSV/KML, legacy spatial KML, security-hardening, raster metadata, and import-redaction checks",
+    "ruff": "python3 -m ruff check on changed CSW/GIS/raster metadata and focused test files: passed",
+    "compilation": "python3 -m compileall -q on changed CSW/GIS/raster metadata and focused test files: passed",
+    "javascript": "Extracted Leaflet inline script passes node --check.",
+    "database_or_provider": "None used; preflight tests assert PostgreSQL is not opened for invalid or empty source inputs."
+  },
+  "scope_limits": [
+    "This work does not add a CSW HTTP endpoint or establish ISO 19115 semantic/output parity against a GeoNode reference fixture; database-backed matched-total fixture parity and output-schema selection remain unverified.",
+    "The map still fetches the legacy Directus path; a tenant-scoped Gateway map API and layer authorization are not implemented. KML styling, altitude preservation, raster GroundOverlay ingestion, raster metadata persistence, PostGIS apply/recovery, and populated spatial fixture parity were not exercised. Geostory runtime access, thesaurus integration, and MAN-CAP-063 owner acceptance remain open."
+  ]
+}

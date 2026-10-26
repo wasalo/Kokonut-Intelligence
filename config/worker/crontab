@@ -21,7 +21,7 @@
 # ── Jobs below are deprecated — managed by DB scheduler ──────────────
 # Uncomment only if the DB scheduler is not running.
 # Weather ingestion — every 6 hours
-# 0 */6 * * * cd /app && python3 -m services.ingestion.weather >> /var/log/cron.log 2>&1
+# 0 */6 * * * cd /app && python3 -m services.ingestion.weather --all-locations >> /var/log/cron.log 2>&1
 
 # Market data — daily at 06:00 UTC
 # 0 6 * * * cd /app && python3 -m services.ingestion.market_data --source world_bank >> /var/log/cron.log 2>&1
@@ -32,14 +32,14 @@
 # RPC wallet indexer — every 30 minutes
 # */30 * * * * cd /app && python3 -m services.ingestion.rpc_indexer >> /var/log/cron.log 2>&1
 
-# Sensor ingester — every 5 minutes
-# */5 * * * * cd /app && python3 -m services.ingestion.sensor_ingester >> /var/log/cron.log 2>&1
+# Sensor ingestion is source-driven (CSV/manual, HTTP, or MQTT), not a
+# no-argument recurring job. Configure a real source adapter before scheduling.
 
 # Gnosis Chain indexer — every 2 hours
 # 0 */2 * * * cd /app && python3 -m services.ingestion.gnosis_indexer >> /var/log/cron.log 2>&1
 
 # Anomaly detection — every hour
-# 0 * * * * cd /app && python3 -m services.ingestion.anomaly_detector >> /var/log/cron.log 2>&1
+# 0 * * * * cd /app && python3 -m services.ingestion.anomaly_detector --all-locations >> /var/log/cron.log 2>&1
 
 # Metrics computation — every 4 hours (draft values for independent review)
 # 0 */4 * * * cd /app && python3 -m services.metrics --compute --all-locations >> /var/log/cron.log 2>&1

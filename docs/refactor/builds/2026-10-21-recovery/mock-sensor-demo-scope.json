@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 mock-sensor generation and cleanup scope",
+  "result": "passed",
+  "changes": [
+    "Demo setup marks inserted sample devices and adopts existing devices only when name, manufacturer, model, and serial number match the stable sample identity.",
+    "Mock generation selects only active devices marked as mock_sensor_demo.",
+    "Cleanup deletes alerts and mock readings only for marked demo devices; device registry rows remain to preserve dependent references.",
+    "Cleanup rolls back and closes the connection if either delete fails."
+  ],
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_mock_sensors_cleanup.py tests/test_mock_sensors_cli.py tests/test_mock_sensor_error_redaction.py tests/test_iot_sensor_push.py -q",
+      "result": "57 passed"
+    },
+    "ruff": {
+      "command": "ruff check services/ingestion/mock_sensors.py tests/test_mock_sensors_cleanup.py",
+      "result": "passed"
+    },
+    "compileall": {
+      "command": "python3 -m compileall -q services/ingestion/mock_sensors.py tests/test_mock_sensors_cleanup.py",
+      "result": "passed"
+    }
+  },
+  "database_access": "none; all database interactions were mocked",
+  "limitations": [
+    "Demo sensor registry rows are retained rather than deleted so telemetry, alert, and claim references are not broken.",
+    "This does not establish live PostgreSQL behavior or production sensor inventory parity."
+  ]
+}

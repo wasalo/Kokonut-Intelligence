@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-25",
+  "scope": "Directus request-database use for review-related updates",
+  "result": "passed",
+  "checks": [
+    {
+      "command": "cd extensions/kokonut-hooks && npm test",
+      "result": "passed",
+      "summary": "7 test files; 90 tests passed"
+    },
+    {
+      "command": "cd extensions/kokonut-hooks && npm run build",
+      "result": "passed",
+      "summary": "Directus extension build and TypeScript no-emit check"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "summary": "67 valid rows: 24 baseline-retained, 7 deployed, 36 prepared"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "request_database_paths": [
+    "stakeholder_feedback.items.update current-row and workflow status/role reads",
+    "metric_proposal.items.update review-state read",
+    "impact_claim.items.update current-row and workflow status/role reads"
+  ],
+  "regression": "Registered Directus filters were invoked with distinct request and global database fakes; all three paths used only the request database handle.",
+  "limitations": [
+    "The regression is mocked source verification, not proof of pinned Directus runtime transaction semantics.",
+    "No database, provider, candidate, legacy stack, live Directus service, or migration was used."
+  ],
+  "rollback": "The optional context argument falls back to the configured Directus database when the host provides no request database. Revert the scoped call-site changes only if the pinned host context contract disproves the tested behavior."
+}

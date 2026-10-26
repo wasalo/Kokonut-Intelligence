@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-038",
+  "scope": "Retire the generic SynthesisAgent direct ai_summary insert and route the ten registered shared synthesis agents through the signed worker adapter.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_agents_base.py tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_agent_write_boundary_inventory.py tests/test_agent_source_metadata.py tests/test_agent_input_preflight.py tests/test_agent_tasks.py tests/test_agent_safety.py tests/test_ai_summary_safety.py tests/test_ai_summary_cli_lifecycle.py tests/test_ai_summary_source_references.py tests/test_agent_action_log_redaction.py tests/test_worker_database.py -q",
+      "result": "153 passed, 9 skipped (existing PostgreSQL-dependent skips)"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "agent_write_boundary_inventory": "current; zero literal direct-DML sites",
+    "runtime_sql_inventory": "current",
+    "worker_source_closure": "current",
+    "worker_function_reachability": "current",
+    "worker_sql_reachability": "current",
+    "worker_boundary_preflight": "current",
+    "capability_matrix": "valid; 66 rows",
+    "compose_yaml": "parses"
+  },
+  "source_boundary": {
+    "literal_direct_agent_dml_sites": 0,
+    "registered_shared_synthesis_tasks": 10,
+    "worker_request_lookup_before_source_read": true,
+    "source_read_transaction": "read-only with 15 second statement and 3 second lock timeouts",
+    "draft_write": "dedicated signed worker adapter with exact location scope",
+    "stored_shared_agent_cli_output": "draft ID, request ID, status, and replay flag only"
+  },
+  "limitations": [
+    "Migrations 529 and 530 and worker credentials are prerequisites and were not applied or provisioned.",
+    "No candidate or legacy database, provider, or container was used.",
+    "Generic synthesis drafts retain source table hints but do not yet include row-level source manifests.",
+    "Generic exact retries return the stored synthesis text and receipt, not every task-specific output field.",
+    "Source query least privilege, populated task parity, runtime acceptance, and MAN-CAP-038 approval remain open."
+  ]
+}

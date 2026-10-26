@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-038 Agent ecosystem",
+  "scope": "Preserve declared location-scoped source references in the shared compatibility draft writer",
+  "result": "PASS",
+  "behavior": {
+    "writer": "SynthesisAgent.store_summary",
+    "read_authorization": "Checks the declared agent collection under the exact location before source-reference collection",
+    "source_reference_collection": "Uses the agent's fixed public-view map and the caller-supplied source connection",
+    "signed_persistence": "Includes collected references in the signed worker draft request",
+    "failure_behavior": "Read denial or source-reference collection failure prevents draft persistence"
+  },
+  "verification": {
+    "pytest": "61 passed across tests/test_agents_base.py, tests/test_synthesis_source_references.py, and tests/test_agent_worker_cli.py",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "diff_check": "passed"
+  },
+  "database_or_provider_access": false,
+  "limitations": [
+    "This compatibility helper does not establish repeatable-read isolation; callers must use the canonical signed worker runner for a consistent synthesis/source snapshot.",
+    "The source connection's authentication and least-privilege boundary are not established by this helper.",
+    "Worker migrations and runtime credentials remain unrolled out; populated task parity and MAN-CAP-038 acceptance remain open."
+  ]
+}

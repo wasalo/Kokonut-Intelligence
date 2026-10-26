@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "81f7eed5",
+  "scope": "Remote-sensing status-update and provider-attempt cursor cleanup on write failures",
+  "verification": {
+    "focused_tests": "2 write-failure cases pass; 89 tests in the fetcher, scheduler, and automation selection",
+    "coverage": [
+      "job status update closes its cursor after an execute failure",
+      "provider attempt insert closes its cursor after an execute failure",
+      "helpers do not commit or roll back, preserving the caller-owned transaction"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; cursor behavior was synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: both remote-sensing write helpers close cursors on database errors while leaving transaction control to their caller.",
+  "limitations": [
+    "This is mocked resource-lifecycle coverage; it does not verify live PostgreSQL behavior.",
+    "Durable provider execution, lease/retry behavior, and worker recovery remain open."
+  ]
+}

@@ -126,7 +126,7 @@ def get_run_status(conn, run_id: str) -> dict[str, Any]:
     steps = [
         {"name": r[0], "type": r[1], "status": r[2],
          "started": str(r[3]) if r[3] else None, "completed": str(r[4]) if r[4] else None,
-         "error": r[5]}
+         "error": "[details redacted]" if r[5] else None}
         for r in cur.fetchall()
     ]
     cur.close()
@@ -139,7 +139,7 @@ def get_run_status(conn, run_id: str) -> dict[str, Any]:
         "status": row[4],
         "started_at": str(row[5]) if row[5] else None,
         "completed_at": str(row[6]) if row[6] else None,
-        "error_message": row[7],
+        "error_message": "[details redacted]" if row[7] else None,
         "steps": steps,
     }
 

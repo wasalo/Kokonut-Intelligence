@@ -1,0 +1,39 @@
+{
+  "record_type": "directus_tenant_scope_fixture_preflight_source_acceptance",
+  "recorded_at": "2026-10-15T01:25:36.067753+00:00",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_pushed_head": "35f7750eef7681cc020a565e3ea35d29e2b4f6f3",
+  "preflight": {
+    "required_identity_attribute": "public.directus_users.location_id",
+    "policy_variable": "$CURRENT_USER.location_id",
+    "when_missing": "blocked before synthetic user creation, farm_activity insertion, and user-scoped API reads/writes",
+    "live_directus_or_database_calls_during_this_check": false
+  },
+  "checks": {
+    "pytest": "4 passed (three source checks and one fake-schema execution)",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "fake_schema_observation": {
+    "result": "blocked",
+    "api_requests": [
+      "GET /server/ping",
+      "POST /auth/login"
+    ],
+    "database_queries": 1,
+    "database_query_kind": "SELECT information_schema.columns",
+    "database_write_statements": 0,
+    "cleanup_complete": true
+  },
+  "source_sha256": {
+    "scripts/fixtures/directus-api-parity-check.py": "cae0b5d2a250b8a313b219c36720b6b3a422c869ee71b3731709458456efd1c4",
+    "tests/test_directus_tenant_permissions.py": "37cac48eb66df99276f6d7cf5c747330070beff23351a7ad37c231f3b63ef65b",
+    "docs/refactor/directus-parity-inventory.md": "615818db7b63172fed63b406ca1b7a35bb63afc8aecdd29b3ffd0e3386ac5906"
+  },
+  "limitations": [
+    "The fake-schema execution mocks the Directus API and PostgreSQL connection; the Directus runtime, user API, real database, hooks, and schedules were not exercised.",
+    "The identity schema decision (single location attribute or explicit grant model) remains open; full row, field, write, hook, and schedule parity is not accepted.",
+    "No MAN-CAP acceptance status changes."
+  ]
+}

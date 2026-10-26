@@ -7,7 +7,7 @@ stores soil-test results, and computes nutrient use efficiency.
 
 Usage:
     python -m services.analytics.nutrient_budget create-budget --location-id UUID --season 2026S1 --crop maize --area 2.5
-    python -m services.analytics.nutrient_budget record-input --budget-id UUID --type fertilizer --product "Urea 46-0-0" --n 50 --p 0 --k 0
+    python -m services.analytics.nutrient_budget record-input --budget-id UUID --type fertilizer --product "Urea 46-0-0" --n 50 --cost 24.50 --cost-currency USD
     python -m services.analytics.nutrient_budget record-removal --budget-id UUID --crop maize --yield 3.5 --n 86.8 --p 30.1 --k 63.7
     python -m services.analytics.nutrient_budget balance --location-id UUID
     python -m services.analytics.nutrient_budget input-summary --budget-id UUID
@@ -19,11 +19,12 @@ Usage:
 """
 
 import json
+import re
 import uuid
 from datetime import date
-from typing import Optional
 
 from services.common.commands import CommandLine
+
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.nutrient_budget")
@@ -138,8 +139,20 @@ def record_input(
     cost: float = None,
     notes: str = None,
     metadata: dict = None,
+    cost_currency_code: str = None,
 ) -> dict:
     """Record a nutrient input event against a budget."""
+    if cost is None:
+        if cost_currency_code is not None:
+            raise ValueError("cost_currency_code requires a cost")
+        normalized_currency_code = None
+    else:
+        if not isinstance(cost_currency_code, str):
+            raise ValueError("cost_currency_code is required when cost is set")
+        normalized_currency_code = cost_currency_code.strip().upper()
+        if not re.fullmatch(r"[A-Z]{3}", normalized_currency_code, flags=re.ASCII):
+            raise ValueError("cost_currency_code must be a three-letter code")
+
     cur = conn.cursor()
     input_id = str(uuid.uuid4())
     input_date = input_date or date.today()
@@ -150,14 +163,16 @@ def record_input(
             INSERT INTO nutrient_input
                 (id, budget_id, input_date, input_type, product_name,
                  nitrogen_kg, phosphorus_kg, potassium_kg,
-                 application_rate, rate_unit, cost, notes, metadata, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
+                 application_rate, rate_unit, cost, cost_currency_code,
+                 notes, metadata, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
             RETURNING id
             """,
             (
                 input_id, budget_id, input_date, input_type, product_name,
                 n_kg, p_kg, k_kg,
-                application_rate, rate_unit, cost, notes, json.dumps(metadata or {}),
+                application_rate, rate_unit, cost, normalized_currency_code,
+                notes, json.dumps(metadata or {}),
             ),
         )
 
@@ -186,6 +201,8 @@ def record_input(
         "nitrogen_kg": n_kg,
         "phosphorus_kg": p_kg,
         "potassium_kg": k_kg,
+        "cost": cost,
+        "cost_currency_code": normalized_currency_code,
     }
 
 
@@ -331,7 +348,8 @@ def get_input_summary(conn, budget_id: str) -> dict:
             """
             SELECT input_type, event_count, total_nitrogen_kg,
                    total_phosphorus_kg, total_potassium_kg,
-                   total_cost, avg_application_rate, rate_unit
+                   total_cost, avg_application_rate, rate_unit,
+                   cost_currency_code, unclassified_cost_count
             FROM v_nutrient_input_summary
             WHERE budget_id = %s
             ORDER BY input_type
@@ -352,7 +370,9 @@ def get_input_summary(conn, budget_id: str) -> dict:
                 "nitrogen_kg": float(r["total_nitrogen_kg"]),
                 "phosphorus_kg": float(r["total_phosphorus_kg"]),
                 "potassium_kg": float(r["total_potassium_kg"]),
-                "total_cost": float(r["total_cost"]) if r["total_cost"] else None,
+                "total_cost": float(r["total_cost"]) if r["total_cost"] is not None else None,
+                "cost_currency_code": r["cost_currency_code"],
+                "unclassified_cost_count": int(r["unclassified_cost_count"]),
                 "avg_application_rate": round(float(r["avg_application_rate"]), 2) if r["avg_application_rate"] else None,
                 "rate_unit": r["rate_unit"],
             }
@@ -507,12 +527,14 @@ def get_nutrient_dashboard(conn, location_id: str) -> dict:
                    SUM(ni.nitrogen_kg) AS total_n,
                    SUM(ni.phosphorus_kg) AS total_p,
                    SUM(ni.potassium_kg) AS total_k,
-                   SUM(ni.cost) AS total_cost
+                   SUM(ni.cost) FILTER (WHERE ni.cost_currency_code IS NOT NULL) AS total_cost,
+                   COUNT(ni.cost) FILTER (WHERE ni.cost_currency_code IS NULL) AS unclassified_cost_count,
+                   ni.cost_currency_code
             FROM nutrient_input ni
             JOIN nutrient_budget nb ON nb.id = ni.budget_id
             WHERE nb.location_id = %s AND ni.status IN ('recorded', 'verified')
-            GROUP BY ni.input_type
-            ORDER BY ni.input_type
+            GROUP BY ni.input_type, ni.cost_currency_code
+            ORDER BY ni.input_type, ni.cost_currency_code NULLS LAST
             """,
             (location_id,),
         )
@@ -559,7 +581,9 @@ def get_nutrient_dashboard(conn, location_id: str) -> dict:
                 "nitrogen_kg": float(i["total_n"]),
                 "phosphorus_kg": float(i["total_p"]),
                 "potassium_kg": float(i["total_k"]),
-                "total_cost": float(i["total_cost"]) if i["total_cost"] else None,
+                "total_cost": float(i["total_cost"]) if i["total_cost"] is not None else None,
+                "cost_currency_code": i["cost_currency_code"],
+                "unclassified_cost_count": int(i["unclassified_cost_count"]),
             }
             for i in inputs
         ],
@@ -659,6 +683,7 @@ def _cmd_record_input(db, a):
         n_kg=a.n, p_kg=a.p, k_kg=a.k,
         application_rate=a.rate, rate_unit=a.rate_unit,
         cost=a.cost, notes=a.notes,
+        cost_currency_code=a.cost_currency_code,
     )
 
 
@@ -709,7 +734,8 @@ cli.subcommand("record-input", "Record nutrient input") \
     .add("--k", type=float, default=0, help="Potassium kg") \
     .add("--rate", type=float, help="Application rate") \
     .add("--rate-unit", help="Rate unit (kg/ha, L/ha, etc)") \
-    .add("--cost", type=float, help="Cost") \
+    .add("--cost", type=float, help="Cost amount") \
+    .add("--cost-currency", dest="cost_currency_code", help="Three-letter currency code (required with --cost)") \
     .add("--notes") \
     .add("--json", action="store_true") \
     .run(_cmd_record_input)

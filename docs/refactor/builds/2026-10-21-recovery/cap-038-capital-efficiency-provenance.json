@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "capability": "CAP-038",
+  "change": "signed capital-efficiency synthesis source references",
+  "date": "2026-10-21",
+  "result": "passed",
+  "implementation": {
+    "source_tables": [
+      "capital_efficiency_scenario",
+      "regenerative_efficiency_observation",
+      "governance_throughput_observation",
+      "capital_provider_utility_scenario"
+    ],
+    "read_views": [
+      "v_public_capital_efficiency_summary",
+      "v_public_regenerative_efficiency_summary",
+      "v_public_governance_throughput_summary",
+      "v_public_capital_provider_utility_summary"
+    ],
+    "manifest": "private append-only AI-summary source manifest; exact row counts and at most 50 ordered IDs per table",
+    "snapshot": "repeatable-read, read-only source transaction",
+    "database_revalidation": "migration 531 validates sample IDs and exact row counts against the corresponding location-filtered public view"
+  },
+  "offline_checks": {
+    "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_capital_efficiency.py tests/test_agent_worker_draft.py -q",
+    "result": "passed",
+    "tests_passed": 41,
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "current",
+    "worker_source_closure": "current",
+    "worker_sql_inventory": "current",
+    "agent_write_boundary_inventory": "current",
+    "capability_matrix": "66 rows valid",
+    "diff_check": "passed"
+  },
+  "disposable_postgresql": {
+    "evidence": "cap-038-capital-efficiency-source-references-disposable.json",
+    "engine": "PostgreSQL 16 in a network-disabled temporary Docker container",
+    "result": "passed",
+    "migrations": [
+      "529",
+      "530",
+      "531"
+    ],
+    "migration_replay": [
+      "530",
+      "531"
+    ],
+    "assertion_groups": 11,
+    "covers": [
+      "signed worker and exact-location scope",
+      "bounded source manifests",
+      "published-view ID validation",
+      "exact public-view row-count validation",
+      "unpublished and cross-location reference rejection",
+      "worker direct-table access denial",
+      "reviewer queue and operator setter compatibility"
+    ]
+  },
+  "candidate_or_legacy_modified": false,
+  "migration_531_rolled_out": false,
+  "limitations": [
+    "other generic synthesis agents still record table-name hints without row-level manifests",
+    "runtime worker credentials and migrations 529-531 are not provisioned or rolled out",
+    "this does not establish populated-task parity, live OIDC behavior, or MAN-CAP-038 owner acceptance"
+  ]
+}

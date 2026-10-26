@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from services.agents.regenerator_agent import synthesize_regenerator
+from services.agents.regenerator_agent import RegeneratorSynthesisAgent, synthesize_regenerator
 from services.agents.tasks import get_task, list_tasks, validate_output
 from services.export.report_generator import (
     REPORT_GENERATORS,
@@ -11,7 +11,6 @@ from services.export.report_generator import (
     generate_regenerative_outcomes,
     generate_replication_readiness,
 )
-
 
 SCHEMA = Path("schemas/postgres/039_regenerative_outcomes_and_stewardship.sql")
 SEED = Path("schemas/seeds/040_regenerative_outcomes_and_stewardship.sql")
@@ -186,6 +185,53 @@ def test_regenerator_agent_summarizes_public_safe_records() -> None:
     assert summary["adaptive_stewardship_count"] == 1
     assert summary["total_hectares_restored"] == 1.3838
     assert "unlimited-scaling claim" in summary["safety_note"]
+
+
+def test_regenerator_worker_lineage_uses_location_scoped_published_views() -> None:
+    class Cursor:
+        def __init__(self):
+            self.query = None
+            self.params = None
+
+        def execute(self, query, params=None):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return [
+                {
+                    "source_table": source_table,
+                    "row_count": 51,
+                    "record_ids": [
+                        f"e0000000-0000-4000-8000-{index:012d}"
+                        for index in range(1, 51)
+                    ],
+                }
+                for source_table in RegeneratorSynthesisAgent.source_reference_views
+            ]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    references = RegeneratorSynthesisAgent().collect_source_references(conn, location_id)
+
+    assert set(references) == set(RegeneratorSynthesisAgent.source_reference_views)
+    for source_table, view_name in RegeneratorSynthesisAgent.source_reference_views.items():
+        assert view_name in conn.cursor_value.query
+        assert references[source_table]["row_count"] == 51
+        assert len(references[source_table]["record_ids"]) == 50
+        assert references[source_table]["truncated"] is True
+    assert "WHERE location_id = %s" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id,) * 4
 
 
 def test_regenerative_report_generators_registered() -> None:

@@ -1,0 +1,52 @@
+{
+  "checked_at_utc": "2026-10-16T07:00:39Z",
+  "source_revision_before_batch_commit": "913fa80",
+  "working_tree_changes_included": true,
+  "scope": "Source and unit acceptance for isolating the scheduled carbon-credit adjustment check. No candidate or legacy database, external provider, persisted schedule, or secret was accessed.",
+  "changes": {
+    "scheduled_module": "services.analytics.carbon_credit_adjustment_check",
+    "interactive_management_module_scheduler_allowed": false,
+    "database_connection_mode": "get_connection(readonly=True) configures psycopg2 session transactions as read-only before the first query",
+    "source_graph": "Follows callbacks passed to services.common.cli.run(main) and reaches the scheduled check body"
+  },
+  "verification": {
+    "pytest": "183 passed",
+    "ruff": "passed for changed Python files",
+    "python_compile": "passed for changed service and graph modules",
+    "worker_source_closure": "passed",
+    "worker_function_reachability": "passed",
+    "worker_sql_inventory": "passed",
+    "worker_sql_reachability": "passed",
+    "worker_boundary_preflight": "passed",
+    "worker_effect_inventory": "passed",
+    "worker_job_contract_inventory": "passed",
+    "runtime_sql_inventory": "passed",
+    "disposable_postgresql_readonly_probe": {
+      "result": "passed",
+      "transaction_read_only": "on",
+      "write_denial_sqlstate": "25006",
+      "rows_after_denied_write": 0,
+      "container": "temporary no-volume postgis/postgis:16-3.4 with ephemeral localhost port; removed after probe"
+    }
+  },
+  "inventory_summary": {
+    "worker_source_files": 77,
+    "worker_import_edges": 483,
+    "worker_function_memberships": 391,
+    "worker_direct_call_edges": 534,
+    "worker_sql_execution_sites": 257,
+    "worker_sql_unique_sites_with_static_path": 196,
+    "worker_sql_site_operation_memberships": 239,
+    "worker_sql_sites_without_static_function_match": 61,
+    "worker_effect_candidate_sites": 38,
+    "worker_effect_operation_site_memberships": 44,
+    "runtime_service_source_files": 807,
+    "runtime_sql_execution_sites": 3799,
+    "runtime_worker_linked_sql_sites": 257,
+    "runtime_relation_candidates": 1034
+  },
+  "limits": [
+    "No persisted scheduled_task rows or external Prefect schedules were read or changed; legacy module paths must be reviewed before activation.",
+    "The dedicated entrypoint has no worker-specific database principal or signed tenant context. It does not make worker RLS safe or accept CAP-020."
+  ]
+}

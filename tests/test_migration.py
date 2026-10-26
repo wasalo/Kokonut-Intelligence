@@ -3,15 +3,96 @@
 import shlex
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from services.migration import cli
 
 
+def test_malformed_tracking_query_output_is_not_echoed(monkeypatch):
+    secret_diagnostic = "postgresql://operator:secret@db.internal/kokonut"
+    monkeypatch.setattr(
+        cli,
+        "_psql",
+        lambda *_args, **_kwargs: SimpleNamespace(stdout=f"{secret_diagnostic}\n"),
+    )
+
+    with pytest.raises(cli.MigrationError, match="invalid schema_migration query output") as error:
+        cli._get_applied()
+
+    assert secret_diagnostic not in str(error.value)
+
+
 def _sql_file(path: Path, content: str = "SELECT 1;") -> Path:
     path.write_text(content)
     return path
+
+
+def test_clean_bootstrap_declares_locked_directus_role_for_migration_replay():
+    bootstrap = Path(__file__).parents[1] / "scripts" / "bootstrap-optional-roles.sql"
+    source = bootstrap.read_text()
+
+    assert "rolname = 'directus'" in source
+    assert "CREATE ROLE directus NOLOGIN NOINHERIT NOSUPERUSER " in source
+    assert "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS" in source
+    assert "rolname = 'kokonut_directus_runtime'" in source
+    assert "CREATE ROLE kokonut_directus_runtime NOLOGIN NOINHERIT NOSUPERUSER " in source
+    assert "rolname = 'kokonut_worker_login'" in source
+    assert "rolname = 'kokonut_runtime'" in source
+
+
+def test_dashboard_dataset_query_registry_migration_is_additive_and_replay_safe():
+    migration = (
+        Path(__file__).parents[1]
+        / "schemas"
+        / "postgres"
+        / "651_dashboard_dataset_query_registry.sql"
+    ).read_text()
+
+    assert migration.lstrip().startswith("--")
+    assert migration.count("BEGIN;") == 1
+    assert migration.count("COMMIT;") == 1
+    assert "ADD COLUMN IF NOT EXISTS query_id TEXT" in migration
+    assert "dashboard_dataset_query_id_format" in migration
+    assert "query_id IS NULL OR query_id ~ '^[a-z][a-z0-9_]{0,99}$'" in migration
+    assert "COMMENT ON COLUMN public.dashboard_dataset.query_id" in migration
+    assert "UPDATE public.dashboard_dataset" not in migration
+
+
+def test_schema_migrate_bootstraps_optional_roles_before_applying(monkeypatch, capsys):
+    files = [{"id": "schema:475_location_solution_retirement_review.sql", "kind": "schema"}]
+    operations = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(cli, "_psql", lambda statement: operations.append(("bootstrap", statement)))
+    monkeypatch.setattr(cli, "_apply_files", lambda pending: operations.append(("apply", pending)))
+
+    cli.cmd_migrate(schemas_only=True)
+
+    assert [operation for operation, _value in operations] == ["bootstrap", "apply"]
+    assert "directus" in operations[0][1]
+    assert "kokonut_directus_runtime" in operations[0][1]
+    assert "NOLOGIN" in operations[0][1]
+    assert "Applying 1 migration(s)" in capsys.readouterr().out
+
+
+def test_schema_migration_dry_run_does_not_bootstrap_or_apply(monkeypatch, capsys):
+    files = [{"id": "schema:475_location_solution_retirement_review.sql", "kind": "schema"}]
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(
+        cli,
+        "_bootstrap_optional_roles",
+        lambda: pytest.fail("dry-run must not mutate global role state"),
+    )
+    monkeypatch.setattr(
+        cli,
+        "_apply_files",
+        lambda _pending: pytest.fail("dry-run must not apply migrations"),
+    )
+
+    cli.cmd_migrate(dry_run=True, schemas_only=True)
+
+    assert "Would apply 1 migration(s)" in capsys.readouterr().out
 
 
 def test_discovery_uses_kind_and_full_filename_and_orders_schema_first(tmp_path, monkeypatch):
@@ -41,6 +122,26 @@ def test_discovery_uses_kind_and_full_filename_and_orders_schema_first(tmp_path,
         "schema:002_first.sql",
         "schema:010_second.sql",
     ]
+
+
+def test_discovery_includes_range_prefixed_seed_file(tmp_path, monkeypatch):
+    schemas = tmp_path / "postgres"
+    seeds = tmp_path / "seeds"
+    schemas.mkdir()
+    seeds.mkdir()
+    _sql_file(schemas / "001_initial.sql")
+    _sql_file(seeds / "064-068_impact_network.sql")
+    monkeypatch.setattr(cli, "SCHEMA_DIR", schemas)
+    monkeypatch.setattr(cli, "SEED_DIR", seeds)
+
+    files = cli._discover_files()
+
+    assert [item["id"] for item in files] == [
+        "schema:001_initial.sql",
+        "seed:064-068_impact_network.sql",
+    ]
+    assert files[1]["version"] == "064-068"
+    cli._validate_sources(files)
 
 
 def test_discovery_rejects_duplicate_ids(tmp_path, monkeypatch):
@@ -84,22 +185,41 @@ def test_source_validation_rejects_database_switch(tmp_path):
         cli._validate_sources(files)
 
 
-def test_psql_raises_on_query_failure(monkeypatch):
+def test_psql_raises_on_query_failure_without_exposing_database_output(monkeypatch):
     monkeypatch.setattr(
         subprocess,
         "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 1, "", "bad query"),
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], 1, "sensitive stdout", "sensitive database error"
+        ),
     )
 
-    with pytest.raises(cli.MigrationError, match="bad query"):
+    with pytest.raises(cli.MigrationError, match="exit status 1") as error:
         cli._psql("SELECT 1")
+    assert "sensitive" not in str(error.value)
+
+
+def test_psql_timeout_does_not_expose_subprocess_output(monkeypatch):
+    def raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(
+            args[0], 5, output="sensitive stdout", stderr="sensitive stderr"
+        )
+
+    monkeypatch.setattr(subprocess, "run", raise_timeout)
+
+    with pytest.raises(cli.MigrationError, match="TimeoutExpired") as error:
+        cli._psql("SELECT 1")
+    assert "sensitive" not in str(error.value)
 
 
 def test_psql_passes_values_as_variables_not_interpolated_sql(monkeypatch):
     captured = {}
+    child_env = {"PATH": "/synthetic/bin"}
+    monkeypatch.setattr(cli, "worker_subprocess_environment", lambda: child_env)
 
     def fake_run(command, **kwargs):
         captured["command"] = command
+        captured.update(kwargs)
         return subprocess.CompletedProcess(command, 0, "", "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -111,6 +231,7 @@ def test_psql_passes_values_as_variables_not_interpolated_sql(monkeypatch):
     assert "psql -X -q" in shell_command
     assert shell_command.count("docker compose exec") == 1
     assert "database psql" in shell_command
+    assert captured["env"] == child_env
 
 
 def test_psql_pins_canonical_search_path(monkeypatch):
@@ -221,6 +342,99 @@ def test_apply_batch_folds_explicit_transaction_into_atomic_ledger_write(tmp_pat
     assert apply_sql.index("INSERT INTO schema_migration") < apply_sql.index("COMMIT;")
 
 
+def test_mobile_form_seed_locks_and_checks_source_parity_in_its_transaction(monkeypatch):
+    calls = []
+
+    def fake_psql(sql, variables=None):
+        calls.append((sql, variables))
+        return subprocess.CompletedProcess([], 0, "", "")
+
+    monkeypatch.setattr(cli, "_psql", fake_psql)
+    cli._apply_files([{
+        "id": cli.MOBILE_FORM_SEED_ID,
+        "name": "140_mobile_forms",
+        "path": cli.SEED_DIR / "140_mobile_forms.sql",
+        "checksum": "abc",
+    }])
+
+    guarded_sql = calls[0][0]
+    assert "LOCK TABLE public.mobile_form IN SHARE ROW EXCLUSIVE MODE" in guarded_sql
+    assert "LOCK TABLE public.mobile_form_version IN SHARE ROW EXCLUSIVE MODE" in guarded_sql
+    assert "existing mobile form or active revision differs" in guarded_sql
+    assert "consent_policy_evidence" in guarded_sql
+    assert guarded_sql.index("LOCK TABLE") < guarded_sql.index("INSERT INTO mobile_form")
+    assert guarded_sql.index("INSERT INTO mobile_form") < guarded_sql.index("INSERT INTO schema_migration")
+
+
+def test_curated_migrate_preflights_mobile_forms_before_applying_batch(monkeypatch):
+    files = [
+        {"id": "seed:000_reference.sql"},
+        {
+            "id": cli.MOBILE_FORM_SEED_ID,
+            "path": cli.SEED_DIR / "140_mobile_forms.sql",
+        },
+    ]
+    applied_files = []
+    calls = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(cli, "_apply_files", applied_files.extend)
+
+    def fake_psql(sql, variables=None):
+        calls.append((sql, variables))
+        return subprocess.CompletedProcess([], 0, "mismatch\n", "")
+
+    monkeypatch.setattr(cli, "_psql", fake_psql)
+
+    with pytest.raises(cli.MigrationError, match="active revision differs"):
+        cli.cmd_migrate(
+            only_migrations=["seed:000_reference.sql", cli.MOBILE_FORM_SEED_ID]
+        )
+
+    assert applied_files == []
+    assert len(calls) == 1
+    assert "public.mobile_form" in calls[0][0]
+    assert "public.mobile_form_version" in calls[0][0]
+    assert "farm_activity_v1" in calls[0][0]
+    assert calls[0][1] is None
+
+
+def test_curated_migrate_allows_empty_mobile_form_state(monkeypatch, capsys):
+    files = [{
+        "id": cli.MOBILE_FORM_SEED_ID,
+        "path": cli.SEED_DIR / "140_mobile_forms.sql",
+    }]
+    applied_files = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(
+        cli,
+        "_psql",
+        lambda sql, variables=None: subprocess.CompletedProcess([], 0, "empty\n", ""),
+    )
+    monkeypatch.setattr(cli, "_apply_files", applied_files.extend)
+
+    cli.cmd_migrate(only_migrations=[cli.MOBILE_FORM_SEED_ID])
+
+    assert [item["id"] for item in applied_files] == [cli.MOBILE_FORM_SEED_ID]
+    assert "Applying 1 migration(s)" in capsys.readouterr().out
+
+
+def test_curated_migrate_accepts_exact_existing_mobile_form_state(monkeypatch, capsys):
+    files = [{"id": cli.MOBILE_FORM_SEED_ID, "path": cli.SEED_DIR / "140_mobile_forms.sql"}]
+    applied_files = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(
+        cli,
+        "_psql",
+        lambda sql, variables=None: subprocess.CompletedProcess([], 0, "matched\n", ""),
+    )
+    monkeypatch.setattr(cli, "_apply_files", applied_files.extend)
+
+    cli.cmd_migrate(only_migrations=[cli.MOBILE_FORM_SEED_ID])
+
+    assert [item["id"] for item in applied_files] == [cli.MOBILE_FORM_SEED_ID]
+    assert "Applying 1 migration(s)" in capsys.readouterr().out
+
+
 def test_transaction_wrapper_rejects_unmatched_boundary():
     with pytest.raises(cli.MigrationError, match="unsupported transaction boundaries"):
         cli._migration_body_without_transaction("schema:001_bad.sql", "BEGIN;\nSELECT 1;\n")
@@ -236,6 +450,45 @@ def test_plan_does_not_initialize_or_reconcile_tracking(monkeypatch):
     cli.cmd_plan()
 
     assert calls == ["validate", "checksums"]
+
+
+def test_migrate_applies_only_requested_ids_in_requested_order(monkeypatch, capsys):
+    files = [
+        {"id": "schema:001_schema.sql"},
+        {"id": "seed:010_first.sql"},
+        {"id": "seed:020_second.sql"},
+    ]
+    applied_files = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(cli, "_apply_files", applied_files.extend)
+
+    cli.cmd_migrate(only_migrations=["seed:020_second.sql", "seed:010_first.sql"])
+
+    assert [item["id"] for item in applied_files] == [
+        "seed:020_second.sql",
+        "seed:010_first.sql",
+    ]
+    assert "Applying 2 migration(s)" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("selected", "error"),
+    [
+        (["seed:010_first.sql", "seed:010_first.sql"], "must be unique"),
+        (["seed:missing.sql"], "were not discovered"),
+        ([], "requires at least one"),
+    ],
+)
+def test_migrate_rejects_invalid_selected_ids_before_apply(monkeypatch, selected, error):
+    files = [{"id": "seed:010_first.sql"}]
+    applied_files = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(cli, "_apply_files", applied_files.extend)
+
+    with pytest.raises(cli.MigrationError, match=error):
+        cli.cmd_migrate(only_migrations=selected)
+
+    assert applied_files == []
 
 
 def test_modified_applied_migration_is_rejected():

@@ -1,0 +1,8 @@
+# ARM64 platform selection for the worker declared by the standard profile.
+# Must be selected after docker-compose.kernel-standard.yml.
+services:
+  worker:
+    platform: linux/arm64
+    build:
+      platforms:
+        - linux/arm64

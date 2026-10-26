@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-25",
+  "source_head": "f799d70c22d8b930736814f2afe93702593ef71b",
+  "scope": "Bound Gnosis Moloch indexing to 10,000 blocks per invocation. Oversized explicit ranges fail before provider or database access; automatic backlog catch-up advances only the committed range and resumes from the checkpoint on the next invocation.",
+  "checks": {
+    "command": "python3 -m pytest tests/test_gnosis_indexer_cli.py tests/test_gnosis_indexer_recovery.py tests/test_scheduled_command_contracts.py -q",
+    "result": "161 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "67 rows valid",
+    "git_diff_check": "passed"
+  },
+  "isolation": "All tests use mocked provider/database boundaries. No network provider, database, candidate, legacy service, or persistent Compose resource was used.",
+  "limitations": [
+    "The Gnosis indexer still uses its legacy shared database path; this change does not provide a dedicated worker identity or runtime least-privilege grants."
+  ]
+}

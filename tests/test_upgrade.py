@@ -21,9 +21,7 @@ def test_release_identity_matches_version_file():
     assert all(part.isdigit() for part in version.split("."))
 
 
-@pytest.mark.parametrize(
-    "script", ["backup.sh", "restore.sh", "rollback.sh", "upgrade.sh", "verify-upgrade.sh"]
-)
+@pytest.mark.parametrize("script", ["backup.sh", "restore.sh", "rollback.sh", "upgrade.sh", "verify-upgrade.sh"])
 def test_upgrade_scripts_have_valid_shell_syntax(script):
     result = subprocess.run(
         ["bash", "-n", str(SCRIPTS / script)],
@@ -47,12 +45,33 @@ def test_upgrade_does_not_pull_or_load_pilot_data_by_default():
     assert "113_pilot_organization.sql" not in seed_source
 
 
+def test_upgrade_transitions_the_exact_started_history_row():
+    source = (SCRIPTS / "upgrade.sh").read_text(encoding="utf-8")
+
+    assert "UPGRADE_ROW_ID=\"$(record_upgrade_started \"$CHECKPOINT\")\"" in source
+    assert "WHERE id = :'upgrade_id' AND status = 'started'" in source
+    assert "finish_upgrade failed \"upgrade command failed with exit code $exit_code\"" in source
+    assert "The migration may have created the history table before a later" in source
+    assert "finish_upgrade succeeded" in source
+    assert "Post-upgrade health verification failed." in source
+    assert 'on_error 1' in source
+    assert "ORDER BY started_at DESC LIMIT 1)" not in source
+
+
 def test_reference_only_seed_mode_skips_schema_bootstrap():
     source = (SCRIPTS / "seed.sh").read_text(encoding="utf-8")
 
     assert "--reference-only" in source
     assert 'if [ "$REFERENCE_ONLY" = "false" ]; then' in source
     assert "services.migration migrate --schemas-only" in source
+
+
+def test_curated_seeds_use_ordered_migration_ledger():
+    source = (SCRIPTS / "seed.sh").read_text(encoding="utf-8")
+
+    assert 'CURATED_MIGRATIONS+=(--only-migration "seed:${seed_file##*/}")' in source
+    assert 'services.migration migrate "${CURATED_MIGRATIONS[@]}"' in source
+    assert 'psql_exec "$PROJECT_DIR/$seed_file"' not in source
 
 
 def test_upgrade_docs_define_maintenance_window_and_manual_rollback():
@@ -64,15 +83,22 @@ def test_upgrade_docs_define_maintenance_window_and_manual_rollback():
 
 
 def test_verify_backup_accepts_valid_manifest(tmp_path):
-    artifact = tmp_path / "artifact.enc"
+    artifact = tmp_path / "postgres" / "testdb.dump.enc"
+    artifact.parent.mkdir()
     artifact.write_bytes(b"test backup")
     manifest = {
         "backup_id": "test-checkpoint",
-        "files": [{
-            "path": artifact.name,
-            "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
-            "size": artifact.stat().st_size,
-        }],
+        "providers": {
+            "postgres": {"included": True, "databases": ["testdb"]},
+            "clickhouse": {"included": False, "database": None},
+        },
+        "files": [
+            {
+                "path": "postgres/testdb.dump.enc",
+                "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+                "size": artifact.stat().st_size,
+            }
+        ],
     }
     (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
@@ -87,15 +113,22 @@ def test_verify_backup_accepts_valid_manifest(tmp_path):
 
 
 def test_verify_backup_rejects_tampered_artifact(tmp_path):
-    artifact = tmp_path / "artifact.enc"
+    artifact = tmp_path / "postgres" / "testdb.dump.enc"
+    artifact.parent.mkdir()
     artifact.write_bytes(b"original")
     manifest = {
         "backup_id": "test-checkpoint",
-        "files": [{
-            "path": artifact.name,
-            "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
-            "size": artifact.stat().st_size,
-        }],
+        "providers": {
+            "postgres": {"included": True, "databases": ["testdb"]},
+            "clickhouse": {"included": False, "database": None},
+        },
+        "files": [
+            {
+                "path": "postgres/testdb.dump.enc",
+                "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+                "size": artifact.stat().st_size,
+            }
+        ],
     }
     (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     artifact.write_bytes(b"tampered")

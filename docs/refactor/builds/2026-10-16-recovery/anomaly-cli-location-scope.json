@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-16",
+  "slice": "Explicit manual anomaly CLI location scope",
+  "implementation": {
+    "entrypoint": "services.ingestion.anomaly_detector",
+    "default_invocation": "Prints help without opening a database connection.",
+    "manual_scan_modes": [
+      "--location-id <canonical UUID>",
+      "--all-locations"
+    ],
+    "baseline_and_ml_check": "Require one location or explicit all-locations selection.",
+    "ml_training": "Requires exactly one location.",
+    "rule_listing": "Remains an explicit global read via --list-rules.",
+    "event_handler": "Unchanged; it uses the signed source-reading worker path.",
+    "scheduler": "Unchanged; scheduled JobSpec still requires one --location-id and rejects aggregate mode."
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_anomaly_detector_cli_scope.py tests/test_scheduled_command_contracts.py tests/test_worker_operation_map.py -q",
+      "result": "passed",
+      "tests": 109
+    },
+    "ruff": "passed",
+    "compileall": "passed",
+    "generated_inventories": [
+      "worker source closure",
+      "worker function reachability",
+      "worker SQL inventory",
+      "worker SQL reachability",
+      "worker effect inventory",
+      "worker JobSpec contract inventory",
+      "runtime SQL inventory",
+      "worker boundary preflight",
+      "repository inventory"
+    ],
+    "capability_matrix": "66 rows; no MAN-CAP status changed"
+  },
+  "limitations": [
+    "CLI tests mock database access and ML operations; no database or provider was contacted.",
+    "The UUID is a query selector, not operator authorization, signed worker context, or RLS.",
+    "No provider, persisted schedule, candidate database, legacy database, or live deployment was accessed."
+  ]
+}

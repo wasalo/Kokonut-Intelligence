@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-22",
+  "change": "Signed agent source-reader search-path hardening",
+  "paths": [
+    "deterministic_summary",
+    "summary_inspection",
+    "ebf_evidence_gap",
+    "cids_export",
+    "delphi_facilitation"
+  ],
+  "search_path": ["kokonut_agent_source", "pg_catalog"],
+  "excluded_schema": "public",
+  "verification": {
+    "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_ebf_agents.py -q",
+    "result": "56 passed"
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "66 rows valid; MAN-CAP acceptance separately gated"
+  },
+  "database_or_provider_access": false,
+  "candidate_or_legacy_changed": false,
+  "scope_limit": "Source name-resolution hardening only; does not prove deployed credentials, runtime role grants, populated parity, or capability acceptance."
+}

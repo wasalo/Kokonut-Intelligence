@@ -1,0 +1,24 @@
+{
+  "capability": "CAP-038",
+  "check": "shared-agent-draft-cursor-failure-lifecycle",
+  "date": "2026-10-20",
+  "command": "python3 -m pytest tests/test_agents_base.py tests/test_ai_summary_cli_lifecycle.py tests/test_ai_summary_safety.py tests/test_agent_input_preflight.py -q",
+  "result": "passed",
+  "summary": {
+    "tests_passed": 29,
+    "new_failure_cases": [
+      "insert failure closes cursor and commit is not called",
+      "fetch failure closes cursor and commit is not called"
+    ],
+    "database_or_provider_calls": 0,
+    "migration_added_or_applied": false
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed"
+  },
+  "limitations": [
+    "The check uses fake connections and verifies resource and transaction behavior only.",
+    "It does not establish agent identity, database least privilege, tenant authorization, provider parity, or MAN-CAP-038 acceptance."
+  ]
+}

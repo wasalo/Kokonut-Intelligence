@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "be094223",
+  "scope": "Standalone/unified current-weather CLI parity for scoped and explicit aggregate reads",
+  "verification": {
+    "focused_tests": "4 parity/preflight cases pass; 41 tests across current-weather and forecast CLI, atomicity, and ingestion suites",
+    "coverage": [
+      "single-location mode canonicalizes the UUID, binds exact location scope, and matches logs/output across entrypoints",
+      "all-locations mode is explicit and preserves the aggregate-only query scope across entrypoints",
+      "empty and malformed location IDs fail before database setup in standalone and unified invocation",
+      "synthetic empty results prevent all provider calls and both paths close database resources"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; query result and connection are synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: current-weather standalone and unified commands preserve location and explicit aggregate scope with identical offline behavior.",
+  "limitations": [
+    "Synthetic empty query results do not establish populated-data parity.",
+    "Live database, provider, alert delivery, and authorization acceptance remain open."
+  ]
+}

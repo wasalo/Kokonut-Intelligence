@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "466_location_scoped_solution_gates.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 459 and 466 apply, and migration 466 replays",
+    "solution and gate rows are returned only for exact origin or explicit location links",
+    "latest evaluation wins with stable timestamp/id ordering and no reviewer identity",
+    "page bounds, signed context, and exact location solution_lifecycle:read are enforced",
+    "the projection omits evidence, observations, narratives, and party identifiers",
+    "runtime can call the bounded function but cannot read source tables; Directus cannot call it"
+  ],
+  "assertions_passed": 6
+}

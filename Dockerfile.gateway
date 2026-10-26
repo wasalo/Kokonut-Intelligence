@@ -19,6 +19,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY services/ ./services/
+COPY apps/delphi-participant/ ./apps/delphi-participant/
 COPY schemas/ ./schemas/
 COPY config/ ./config/
 COPY VERSION ./VERSION

@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "cross-validation variogram location and property scope",
+  "classification": "prepared",
+  "implementation": {
+    "source": "services/geostatistics/cross_validation.py:SpatialCrossValidator.cross_validate_from_db",
+    "selected_model_predicate": "variogram ID, requested location ID, and requested property key must all match",
+    "mismatch_behavior": "generic not-found result before sample reads; model existence in another scope is not disclosed",
+    "source_point_scope": "soil_sample and remote_sensing_observation reads retain the exact requested-location predicate",
+    "no_schema_migration": true,
+    "database_role_or_rls": "not established by this source-level check"
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_geostatistics.py -q",
+    "result": "58 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "database_execution": "not run; mocked cursor checks assert model and point-query scope",
+    "git_diff_check": "passed"
+  },
+  "not_used": [
+    "candidate database",
+    "legacy database",
+    "provider",
+    "external service",
+    "Raspberry Pi hardware"
+  ],
+  "remaining_acceptance": [
+    "least-privilege database roles and RLS",
+    "numerical and populated fixture parity",
+    "live ZITADEL and browser acceptance",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the variogram model predicate and tests, then regenerate runtime_sql_inventory.json. No persistent data was changed."
+}

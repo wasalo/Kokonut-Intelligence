@@ -2,6 +2,7 @@
  * Directus role resolution — maps role UUIDs to normalized slugs
  * for workflow authorization checks.
  */
+import { errorClass } from './error-safety.js';
 
 const ROLE_CACHE = new Map<string, { slug: string; expiresAt: number }>();
 
@@ -42,7 +43,7 @@ export async function resolveUserRoles(
       return [slug];
     }
   } catch (error) {
-    console.error('[Kokonut] Failed to resolve role name:', error);
+    console.error(`[Kokonut] Failed to resolve role name: ${errorClass(error)}`);
   }
 
   return [];

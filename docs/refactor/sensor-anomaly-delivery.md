@@ -1,26 +1,33 @@
 # Sensor anomaly idempotency and delivery
 
-Status: implemented and exercised in a synthetic internal-only PostgreSQL
-fixture. This closes the selected sensor anomaly crash/replay gate, not the
-broader event-bus, provider, or Batch 2 acceptance gates.
+Status: the signed worker integration is implemented and passed eight
+synthetic end-to-end PostgreSQL 16 checks, including an EventBus child-process
+crash after effects commit and attempt-two recovery without duplicate effects.
+This verifies the signed adapter's recovery path against disposable services,
+not a deployed credential, candidate database, external provider, or
+long-duration production recovery window. Broader event-bus, provider, and
+Batch 2 acceptance gates remain open.
 
 ## Event processing boundary
 
-`services.ingestion.anomaly_detector.handle_sensor_reading` now requires the
-stable `platform_event.id`. It resolves that event's exact
-`source_table='sensor_reading'` / `source_id` and evaluates that one reading;
-event delivery no longer rescans the sensor's recent hour of readings.
+`services.ingestion.anomaly_detector.handle_sensor_reading` requires the stable
+`platform_event.id` and delegates to `services.ingestion.sensor_anomaly_worker`.
+The adapter requires a dedicated worker DSN and opaque credential, establishes
+signed `sensor_reading/process` context, and reads the exact event-linked source
+row through bounded database functions. It never rescans recent sensor history
+or directly reads/writes the protected tables.
 
 For every enabled alert rule, `sensor_anomaly_effect` reserves the
 `(source_reading_id, alert_rule_id)` pair before evaluation and records
 `no_match`, `cooldown`, or `alert_created`. A replay skips a rule with an
-existing receipt. The receipt, alert, optional draft claim, ingestion log,
+existing receipt. The receipt, alert, audit row, optional draft claim,
 notification intents, actuator approval record, and follow-up `sensor_alert`
-event share the handler's PostgreSQL transaction. The `EventBus.publish()`
-event ID is allocated before enqueue and reused when publishing, so
-`notification_outbox.source_event_id` points to the actual follow-up event. The
-`EventBus.publish()` commit is the durable boundary; a crash immediately
-afterward can cause a handler retry but does not recreate those effects.
+event share one non-autocommit PostgreSQL transaction. Migration 414 publishes
+canonical, source-derived event context through a bounded function, then
+enqueues notification intents with matching payloads. The downstream
+notification handler deduplicates the event-backed intent. The worker commits
+once after all bounded effects succeed and rolls back on any error. The receipt
+suppresses duplicate work after a retry.
 
 The receipt intentionally has no foreign key to source events or readings so
 event cleanup or later source archival cannot erase duplicate suppression.
@@ -38,10 +45,11 @@ time and are not written into outbox rows. Email includes an outbox-derived
 `Message-ID` and `X-Kokonut-Idempotency-Key`; SMTP delivery remains at-least-once
 because receiver-side deduplication is not guaranteed.
 
-The event handler records configured actuator work in `actuation_log` within
-the same transaction. Critical alerts always use status `requires_approval`,
-with `human_approval_required=true` and no approver. The anomaly handler does
-not publish commands to MQTT or execute them; approval remains a separate human
+The worker checks actuator configuration through a signed boolean-only
+function, then records configured work as an approval-required intent in the
+same transaction. Critical alerts always use status `requires_approval`, with
+`human_approval_required=true` and no approver. The anomaly worker does not
+publish commands to MQTT or execute them; approval remains a separate human
 action. Legacy CLI and baseline alert paths retain their existing notification
 entry points.
 
@@ -50,6 +58,7 @@ SMTP configuration is optional and forwarded only to Kernel app/worker roles:
 ```dotenv
 ALERT_SMTP_HOST=
 ALERT_SMTP_PORT=587
+ALERT_SMTP_TLS_MODE=starttls
 ALERT_SMTP_USER=
 ALERT_SMTP_PASSWORD=
 ALERT_EMAIL_FROM=alerts@kokonut.network
@@ -57,6 +66,11 @@ ALERT_EMAIL_TO=
 ```
 
 Email is enabled only when both `ALERT_SMTP_HOST` and `ALERT_EMAIL_TO` are set.
+The shared transport defaults to verified STARTTLS on any configured port. Set
+`ALERT_SMTP_TLS_MODE=implicit` for SMTPS (commonly port 465). `plain` is an
+explicit opt-in for trusted private relays and is rejected when an SMTP username
+or password is configured. The same transport contract is used by the durable
+notification worker and the legacy anomaly CLI.
 Directus still requires its feature flag and admin token. Provider settings are
 read at delivery time, so disabled or removed providers remain unclaimed rather
 than consuming retry attempts.
@@ -81,14 +95,26 @@ contacted. The fixture's internal network disabled egress, published no ports,
 and its volume was retained after stopping the database. It applied only the
 schema set needed for this slice, not all repository migrations.
 
-Machine record: [sensor anomaly crash/retry](builds/2026-10-11-recovery/sensor-anomaly-crash-retry.json).
+Machine record: [sensor anomaly crash/retry](builds/2026-10-11-recovery/sensor-anomaly-crash-retry.json). This is retained as evidence for the prior handler path, not the new migration-414 adapter.
+
+The current signed adapter was exercised by
+[`check-sensor-anomaly-worker-delivery-disposable.py`](../../scripts/check-sensor-anomaly-worker-delivery-disposable.py)
+against isolated PostgreSQL 16 after EventBus migrations 116/165 and worker
+migrations 405–414. Its eight checks cover migration replay, signed forced-RLS
+operations, alert/claim/notification and approval-intent writes, notification
+payload parity, retry suppression, direct-table denial, and a real EventBus
+child-process crash followed by lease reclaim and attempt-two completion
+without duplicate effects. Evidence:
+[sensor-anomaly-worker-delivery-disposable.json](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json).
 
 Migration 376 is additive. To roll back application behavior, disable the
 `anomaly_detector` event registration or deploy the prior application image;
 keep receipt and outbox data intact. Do not drop receipts or queued notices as a
 rollback shortcut. Candidate and legacy application databases were not changed.
 
-Remaining gates: external provider contract/acceptance, authenticated operator
-approval/replay policies, receipt and notification retention ownership, and
-recovery coverage for additional handlers and runtime conditions. CAP-047,
-CAP-040 and Batch 2 remain partial.
+Remaining gates: provision a real isolated worker login, secret, and active
+location grant; roll migration 414 onto the candidate after a fresh checkpoint;
+verify candidate recovery and external provider delivery; accept authenticated operator approval/replay policies; establish
+dynamic receipt/notification retention policy; and expand recovery coverage
+for other handlers and runtime conditions. No MAN-CAP status is implied by the
+disposable implementation checks.

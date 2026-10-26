@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-26",
+  "slice": "typed public location-directory query",
+  "query_id": "public_location_directory",
+  "implementation": [
+    "services/analytics/queries.py",
+    "services/analytics/backend.py",
+    "services/core/adapters/postgres_analytics.py",
+    "services/gateway/locations.py"
+  ],
+  "contract": {
+    "list_scope": "explicit public context with no location selector",
+    "detail_scope": "explicit public context with the same exact location in request and context",
+    "source": "v_public_farm_summary",
+    "selected_fields": ["location_id", "location_name", "country", "region", "status"],
+    "list_limit": 100,
+    "sort": ["location_name", "location_id"],
+    "transactions": "read-only; five-second statement timeout; two-second lock timeout",
+    "caller_sql": false
+  },
+  "compatibility": {
+    "legacy_routes": "unchanged envelopes and 400/404 behavior",
+    "versioned_routes": "unchanged response models and envelopes",
+    "public_metric_summary_query": "unchanged"
+  },
+  "verification": {
+    "focused_tests": 13,
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed",
+    "database_or_provider_used": false
+  },
+  "candidate_or_legacy_modified": false,
+  "migration_required": false,
+  "capability_classifications": {
+    "baseline_retained": 24,
+    "deployed": 7,
+    "prepared": 36,
+    "rows": 67
+  },
+  "checklist": {
+    "complete": 1228,
+    "open": 25,
+    "total": 1253
+  }
+}

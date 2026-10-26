@@ -2,14 +2,21 @@
 
 `services/core/runtime.py` supervises existing CLI processes rather than embedding
 blocking worker loops in the ASGI event loop. It launches the API and, with
-`--with-workers`, the enabled PostgreSQL scheduler and event worker. Vendor
-feature switches and domain code remain unchanged. Workers do not run unless
+`--with-workers`, the enabled PostgreSQL scheduler, event dispatcher, and
+notification delivery worker. Event dispatch and outbox delivery use separate
+child processes. `KOKONUT_FEATURE_NOTIFICATION_DELIVERY` controls the delivery
+child; it defaults to the event-bus feature value and can enable delivery when
+event dispatch is disabled. This separates process responsibility only: event
+handlers still use the shared runtime database identity and destination
+configuration when creating durable intents. Vendor feature switches and domain
+code remain
+unchanged. Workers do not run unless
 that command flag is supplied; feature flags alone do not start processes.
 
 The subsequent [standard overlay](standard-profile.md) adds `--workers-only`
 for a separate worker container. Each supervisor lifetime now generates unique
-scheduler/event identities instead of fixed names. Empty worker roles fail
-startup. The running combined candidate predates this source change.
+scheduler/event/notification identities instead of fixed names. Empty worker
+roles fail startup. The running combined candidate predates this source change.
 
 The candidate Dockerfile now uses this entry point. Its Compose app uses an init
 process for orphan reaping and a 40-second shutdown grace period, exceeding the
@@ -34,8 +41,12 @@ Inspect jobs and registered handlers before enabling workers on populated data.
 
 This is Linux/POSIX supervision, not certified Windows support. Liveness remains
 the gateway's `/health`; child existence does not prove worker progress or DB
-readiness. Restart/shutdown/lease-recovery suites and workload parity remain
-pending. Lint, dependency-boundary, and whitespace checks passed. The candidate
+readiness. Four focused tests cover graceful signal handling, process-group
+escalation, an unexpected zero exit, and partial-launch cleanup; one POSIX
+integration case verifies SIGTERM reaches both a child and grandchild process
+([evidence](builds/2026-10-14-recovery/kernel-supervisor-unit-contract.json)).
+Database-outage, lease-recovery, and workload-parity acceptance remain open. Lint,
+dependency-boundary, and whitespace checks passed. The candidate
 has now been rebuilt and started with this entry point. Logs show API, scheduler,
 and event processes launched, scheduler startup completed, and API liveness 200.
 This does not establish job execution or event-delivery parity.

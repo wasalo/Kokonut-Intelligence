@@ -28,18 +28,21 @@ docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile work
 
 | Job | Schedule | Command |
 |---|---|---|
-| Weather ingestion | Every 6 hours | `python3 -m services.ingestion.weather` |
+| Weather ingestion | Every 6 hours | `python3 -m services.ingestion.weather --all-locations` |
 | Market data | Daily 06:00 UTC | `python3 -m services.ingestion.market_data --source world_bank` |
 | EAS indexer | Every 15 minutes | `python3 -m services.ingestion.eas_indexer` |
 | RPC wallet indexer | Every 30 minutes | `python3 -m services.ingestion.rpc_indexer` |
-| Sensor ingester | Every 5 minutes | `python3 -m services.ingestion.sensor_ingester` |
 | Gnosis Chain indexer | Every 2 hours | `python3 -m services.ingestion.gnosis_indexer` |
-| Anomaly detection | Every hour | `python3 -m services.ingestion.anomaly_detector` |
+| Anomaly detection | Every hour | `python3 -m services.ingestion.anomaly_detector --all-locations` |
 | Metrics computation | Every 4 hours | `python3 -m services.metrics --compute --all-locations` |
 | Health check + alerting | Every 5 minutes | `bash scripts/health-alert.sh` |
 | Dashboard dataset refresh | Every 6 hours | `python3 -m services.export.dataset_refresh --all` |
 | Data freshness check | Every hour | `python3 -m services.ingestion.data_freshness --check` |
 | Climate data refresh | Sundays 03:00 UTC | `python3 -m services.ingestion.climate_data --all --location-id ...` |
+
+Sensor ingestion is source-driven and is not a recurring cron job. Use the
+explicit CSV or single-reading CLI, or configure the HTTP/MQTT receiver for a
+real device source. The no-argument `sensor_ingester` command is invalid.
 
 ## Adding New Jobs
 

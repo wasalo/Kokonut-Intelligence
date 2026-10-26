@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 Gnosis indexer CLI entrypoint",
+  "result": "passed",
+  "changes": [
+    "Added a reusable Gnosis indexer parser and callable main(argv=None).",
+    "Standalone and unified block interval/help behavior match.",
+    "Malformed, negative, and reversed block intervals fail before provider/database setup."
+  ],
+  "checks": {
+    "gnosis_pytest": {
+      "command": "python3 -m pytest tests/test_gnosis_indexer_cli.py tests/test_gnosis_indexer_recovery.py tests/test_clickhouse_fallback_error_redaction.py tests/test_ingestion_outbox_producers.py -q",
+      "result": "passed",
+      "passed": 53
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "standalone_unified_help_parity": "passed"
+  },
+  "external_access": {
+    "chain_provider": false,
+    "database": false,
+    "candidate": false,
+    "legacy_service": false
+  },
+  "limitations": [
+    "Indexer execution was stubbed or invalid ranges were rejected before it.",
+    "Does not establish populated chain lineage, reorg handling, or live recovery."
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-10-21",
+  "capability": "CAP-066",
+  "change": "Correlate statically known SQL and parameter variants by conditional branch before reporting location-scope evidence.",
+  "regressions": [
+    "A location predicate in one branch is not paired with a location bind from another branch.",
+    "A predicate present only in the no-location branch does not count as farm scope.",
+    "The matching location SQL and parameter branch remains classified as conditionally scoped."
+  ],
+  "focused_tests": {
+    "commands": [
+      "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_inventory.py tests/test_migration.py -q",
+      "python3 -m pytest tests/test_stakeholder_foundation.py -k 'location_landscape_uses or network_landscape_retains' -q"
+    ],
+    "result": "52 passed; 9 deselected"
+  },
+  "checks": {
+    "ruff": "passed",
+    "report_generator_query_scope_inventory": "current",
+    "report_generator_helper_scope_inventory": "current",
+    "report_generator_source_inventory": "current",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "candidate_or_legacy_database_touched": false,
+    "database_or_migration_used": false
+  },
+  "inventory_summary": {
+    "registered_report_types": 94,
+    "direct_query_sites": 176,
+    "query_sites_with_bound_location_scope_signal": 126,
+    "conditional_scope_query_sites": 1,
+    "unresolved_query_sites": 0
+  },
+  "limitations": [
+    "The AST inventory is a source-review signal, not an authorization or tenant-isolation proof.",
+    "Dynamic SQL, helper behavior, query semantics, and runtime data remain outside this check.",
+    "Populated report-output parity and MAN-CAP-066 owner acceptance remain open."
+  ]
+}

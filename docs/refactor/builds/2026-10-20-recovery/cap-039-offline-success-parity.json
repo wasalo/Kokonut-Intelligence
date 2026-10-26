@@ -1,0 +1,373 @@
+{
+  "capability": "CAP-039",
+  "check": "offline-success-output-parity",
+  "date": "2026-10-20",
+  "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py tests/test_mobile_media_cleanup.py tests/test_mobile_media_reconcile.py tests/test_operator_cli_revocation_audit.py tests/test_operator_cli_identity_provision.py tests/test_operator_cli_identity_lifecycle.py -q",
+  "result": "passed",
+  "summary": {
+    "tests_passed": 157,
+    "new_success_path_cases": 45,
+    "database_backed_or_aggregate_service_stubbed_cases": 33,
+    "mutation_paths_with_fake_connections": 5,
+    "native_groups_compared": ["kernel", "dao", "treasury"],
+    "database_or_provider_calls": 0,
+    "failure_path_regressions": 7
+  },
+  "environment": {
+    "sops_identity": "intentionally unavailable",
+    "postgresql_url": "closed loopback port",
+    "provider_credentials": "not accessed"
+  },
+  "groups": [
+    {
+      "name": "agents",
+      "arguments": ["list"],
+      "dependencies": ["local task catalogue"],
+      "output": "newline-delimited task keys"
+    },
+    {
+      "name": "ingestion",
+      "arguments": ["--list"],
+      "dependencies": ["local static registry"],
+      "output": "sorted tool names and descriptions"
+    },
+    {
+      "name": "mobile-forms",
+      "arguments": ["validate", "--manifest", "synthetic temporary JSON file"],
+      "dependencies": ["local file", "local schema validation"],
+      "output": "JSON manifest summary with database_write=false"
+    },
+    {
+      "name": "mobile-forms",
+      "arguments": ["preview", "--manifest", "synthetic temporary JSON file"],
+      "dependencies": ["local file", "local schema validation"],
+      "output": "JSON revision comparison with publication=not applied"
+    },
+    {
+      "name": "audit-spool",
+      "arguments": ["status", "--path", "missing temporary path"],
+      "dependencies": ["local filesystem", "SQLite only if journal exists"],
+      "output": "JSON capacity summary without event contents",
+      "side_effect": "missing journal remains absent"
+    },
+    {
+      "name": "systems",
+      "arguments": ["--list-modules"],
+      "dependencies": ["local Python module registry"],
+      "output": "sorted systems module names and descriptions"
+    },
+    {
+      "name": "capability-map",
+      "arguments": ["list", "--status", "active"],
+      "dependencies": ["PostgreSQL read via capability-map service function; stubbed in this check"],
+      "output": "JSON capability rows",
+      "database_behavior": "The parser, service call arguments, unified forwarding, and JSON rendering were exercised; the query function was replaced with a synthetic result."
+    },
+    {
+      "name": "stakeholders",
+      "arguments": ["list", "--party-type", "organization"],
+      "dependencies": ["PostgreSQL read via stakeholder service; connection and query stubbed in this check"],
+      "output": "JSON party rows",
+      "database_behavior": "The parser, connection lifecycle, service call arguments, unified forwarding, and JSON rendering were exercised; no database was contacted."
+    },
+    {
+      "name": "strategy-map",
+      "arguments": ["list", "--perspective", "financial"],
+      "dependencies": ["PostgreSQL read via strategy-map service; stubbed in this check"],
+      "output": "JSON strategy rows"
+    },
+    {
+      "name": "value-stream-defs",
+      "arguments": ["list", "--stakeholder", "farmer"],
+      "dependencies": ["PostgreSQL read via value-stream service; stubbed in this check"],
+      "output": "JSON value-stream rows"
+    },
+    {
+      "name": "vision-mission",
+      "arguments": ["current", "--entity-type", "organization"],
+      "dependencies": ["PostgreSQL read via vision/mission service; stubbed in this check"],
+      "output": "JSON current statement rows"
+    },
+    {
+      "name": "technology-roadmap",
+      "arguments": ["list", "--entity-type", "location"],
+      "dependencies": ["PostgreSQL read via roadmap service; stubbed in this check"],
+      "output": "JSON roadmap rows"
+    },
+    {
+      "name": "consent",
+      "arguments": ["list", "--party-id", "synthetic-party", "--status", "active"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed in this check"],
+      "output": "JSON effective consent rows"
+    },
+    {
+      "name": "coordination",
+      "arguments": ["list", "--status", "approved", "--type", "alliance"],
+      "dependencies": ["PostgreSQL read via coordination service; stubbed in this check"],
+      "output": "JSON alliance rows"
+    },
+    {
+      "name": "governance-proposals",
+      "arguments": ["list", "--circle-id", "synthetic-circle", "--status", "submitted"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed in this check"],
+      "output": "JSON proposal lineage rows",
+      "database_behavior": "CLI connection is closed after both successful and failed service calls."
+    },
+    {
+      "name": "stakeholder-decisions",
+      "arguments": ["list", "--status", "approved", "--scope-id", "synthetic-scope"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed in this check"],
+      "output": "JSON decision lineage rows"
+    },
+    {
+      "name": "stakeholder-engagement",
+      "arguments": ["list-plans", "--stakeholder-party-id", "synthetic-party", "--status", "active"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed in this check"],
+      "output": "JSON engagement plan rows"
+    },
+    {
+      "name": "governance",
+      "arguments": ["circle-list", "--status", "active", "--scope-type", "location"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON governance circle rows",
+      "database_behavior": "Standalone and unified filters/output match; owned fake connections close after success and failure."
+    },
+    {
+      "name": "governance-links",
+      "arguments": ["list", "--source-circle-id", "synthetic-source", "--status", "active"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON cross-circle link rows",
+      "database_behavior": "Standalone and unified filters/output match; owned fake connections close after success and failure."
+    },
+    {
+      "name": "governance-tactical",
+      "arguments": ["session-list", "--circle-id", "synthetic-circle", "--status", "active"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON tactical session rows",
+      "database_behavior": "Standalone and unified filters/output match; owned fake connections close after success and failure."
+    },
+    {
+      "name": "governance-tensions",
+      "arguments": ["list", "--circle-id", "synthetic-circle", "--status", "submitted", "--overdue-only"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON tension health rows",
+      "database_behavior": "Standalone and unified filters/output match; owned fake connections close after success and failure."
+    },
+    {
+      "name": "stakeholder-grievances",
+      "arguments": ["health", "--status", "submitted", "--overdue-only"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON grievance health rows"
+    },
+    {
+      "name": "stakeholder-identity",
+      "arguments": ["queue"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON identity-resolution queue rows"
+    },
+    {
+      "name": "stakeholder-representation",
+      "arguments": ["distribution-summary", "--scope-type", "location", "--scope-id", "synthetic-location"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON distribution summary rows"
+    },
+    {
+      "name": "stakeholder-trust",
+      "arguments": ["timeline", "synthetic-party"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON trust evidence timeline rows"
+    },
+    {
+      "name": "attestation",
+      "arguments": ["schema", "list"],
+      "dependencies": ["Local schema registry; no database, chain, or signer"],
+      "output": "Formatted registered schema definitions"
+    },
+    {
+      "name": "metrics",
+      "arguments": ["--list", "--json"],
+      "dependencies": ["PostgreSQL read; connection and cursor stubbed"],
+      "output": "JSON metric-definition rows"
+    },
+    {
+      "name": "forecast",
+      "arguments": ["--list"],
+      "dependencies": ["PostgreSQL read; connection and cursor stubbed"],
+      "output": "Formatted scenario catalogue",
+      "database_behavior": "Standalone and unified output match; connection closes after success and query failure."
+    },
+    {
+      "name": "analytics",
+      "arguments": ["--emission-factors"],
+      "dependencies": ["PostgreSQL read through context-managed connection; query stubbed"],
+      "output": "JSON GHG emission-factor rows"
+    },
+    {
+      "name": "crisp",
+      "arguments": ["--weights", "--location-id", "synthetic-location"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON normalized location weights",
+      "database_behavior": "Standalone and unified filters/output match; the owned fake connection closes after success and failure."
+    },
+    {
+      "name": "delphi",
+      "arguments": ["list-studies"],
+      "dependencies": ["PostgreSQL read; connection and cursor stubbed"],
+      "output": "One JSON study row per line",
+      "database_behavior": "Standalone and unified output match; cursor and owned connection close after success and query failure."
+    },
+    {
+      "name": "threatcasting",
+      "arguments": ["list-threats", "--location-id", "synthetic-location", "--type", "climate"],
+      "dependencies": ["PostgreSQL read; connection and cursor stubbed"],
+      "output": "One JSON threat row per line",
+      "database_behavior": "Standalone and unified filters/output match; cursor and owned connection close after success and query failure."
+    },
+    {
+      "name": "export",
+      "arguments": ["--list", "--location-id", "12345678-1234-5678-1234-567812345678"],
+      "dependencies": ["PostgreSQL read through report-snapshot service; query stubbed"],
+      "output": "Formatted report-snapshot table",
+      "database_behavior": "Standalone and unified output match under a synthetic location filter; owned connection closes after success."
+    },
+    {
+      "name": "migration",
+      "arguments": ["validate", "--schemas-only"],
+      "dependencies": ["local schema migration files"],
+      "output": "Validated migration source file count",
+      "database_behavior": "Not applicable; standalone and unified commands validate 515 schema sources without credentials, PostgreSQL, or providers."
+    },
+    {
+      "name": "mobile-tenant-preflight",
+      "arguments": ["--location-id", "12345678-1234-5678-1234-567812345678"],
+      "dependencies": ["read-only PostgreSQL inventory service stubbed at the CLI boundary"],
+      "output": "Aggregate-only JSON inventory",
+      "database_behavior": "Standalone and unified JSON match; the location filter is forwarded and the synthetic report does not emit its UUID. No database is contacted by this CLI parity case."
+    },
+    {
+      "name": "mobile-media-cleanup",
+      "arguments": ["--limit", "17"],
+      "dependencies": ["PostgreSQL eligibility-count query stubbed"],
+      "output": "JSON expiry preview",
+      "database_behavior": "Standalone and unified dry-run output match; the connection closes and object storage is not initialized. No media is deleted."
+    },
+    {
+      "name": "mobile-media-reconcile",
+      "arguments": ["--older-than-hours", "48", "--limit", "9"],
+      "dependencies": ["registered-key query and private object inventory stubbed"],
+      "output": "JSON orphan preview without object keys",
+      "database_behavior": "Standalone and unified dry-run output match; the fake connection closes, object keys remain private, and no deletion occurs."
+    },
+    {
+      "name": "operator",
+      "arguments": ["farm-activity-role", "templates"],
+      "dependencies": ["local role-to-scope registry"],
+      "output": "JSON role-to-scope catalogue",
+      "database_behavior": "Standalone and unified offline output match; no database is opened and no grants are provisioned."
+    },
+    {
+      "name": "operator",
+      "arguments": ["revoke-grant", "--grant-id", "synthetic-uuid", "--revoked-by", "local-admin", "--reason", "operator access ended"],
+      "dependencies": ["PostgreSQL update stubbed with a fake connection"],
+      "output": "JSON revoked-grant receipt with actor and reason",
+      "database_behavior": "Standalone and unified output and audit parameters match; this verifies the CLI contract, not database authorization."
+    },
+    {
+      "name": "operator",
+      "arguments": ["identity", "provision", "--issuer", "https://identity.example.test", "--subject", "subject-123", "--display-name", "Operator One"],
+      "dependencies": ["PostgreSQL insert/update stubbed with a fake connection"],
+      "output": "JSON identity receipt",
+      "database_behavior": "Standalone and unified output match; active identity refresh preserves enabled state, and a separate source regression rejects disabled identity reactivation. This does not test database authorization."
+    },
+    {
+      "name": "operator",
+      "arguments": ["list"],
+      "dependencies": ["five PostgreSQL inventories stubbed with synthetic rows"],
+      "output": "JSON identities, grants, memberships, shares, and tenant transfers",
+      "database_behavior": "Standalone and unified outputs match, all five reads use the managed connection, and no operator-session query is issued. The global list remains a local DBA surface; authorization and privacy policy are not tested."
+    },
+    {
+      "name": "operator",
+      "arguments": ["identity", "disable", "--operator-id", "synthetic-uuid"],
+      "dependencies": ["identity update and session revocation are stubbed with fake connections"],
+      "output": "JSON disabled-identity receipt",
+      "database_behavior": "Standalone and unified output match and both execute the identity disable and active-session revocation in one managed transaction; separate failure injection confirms rollback. Actor/reason audit and database authorization are not tested."
+    }
+  ],
+  "additional_success_paths": [
+    {
+      "command": "export --verify <synthetic-snapshot-hash>",
+      "dependency": "snapshot verification query is stubbed with synthetic output",
+      "standalone_and_unified": "arguments and output match; each opened connection is closed",
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --type farm_summary --location-id <synthetic-location-uuid>",
+      "dependency": "report generator and snapshot persistence are stubbed; CLI read-only transaction wrapper is exercised",
+      "standalone_and_unified": "arguments and output match; calculation is read-only, snapshot persistence follows rollback, and both opened connections close",
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --auto --location-id <synthetic-location-uuid>",
+      "dependency": "one report generator and snapshot store are stubbed; batch run/item SQL uses fake cursors",
+      "standalone_and_unified": "arguments and output match; run/item success transitions, read-only calculation, snapshot ordering, and both connection closures are asserted",
+      "database_or_provider_calls": 0
+    }
+  ],
+  "additional_failure_paths": [
+    {
+      "command": "export --auto --location-id <synthetic-uuid>",
+      "injected_failure": "report_generation_run insert raises before batch processing begins",
+      "standalone": "database connection closed; propagated error contains only the exception class",
+      "unified": "database connection closed; CLI returns status 1 with only the exception class through the shared error wrapper",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --auto --location-id <synthetic-location-uuid>",
+      "injected_failure": "first report generator raises a secret-bearing error and the next report succeeds",
+      "standalone_and_unified": "continue to the second report, persist a partial batch with a class-only failure, return status 1, and close the connection",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --list --location-id <synthetic-uuid>",
+      "injected_failure": "snapshot query raises a synthetic secret-bearing database error",
+      "standalone_and_unified": "database connection closed; both surfaces expose only the exception class",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --verify <synthetic-hash>",
+      "injected_failure": "snapshot verification raises a synthetic secret-bearing database error",
+      "standalone_and_unified": "database connection closed; both surfaces expose only the exception class",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --list",
+      "injected_failure": "connection close raises a synthetic secret-bearing error after the empty result",
+      "standalone_and_unified": "both surfaces expose only the exception class; close is attempted once",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --verify <synthetic-hash>",
+      "injected_failure": "connection close raises a synthetic secret-bearing error after verification",
+      "standalone_and_unified": "both surfaces expose only the exception class; close is attempted once",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --list",
+      "injected_failure": "connection factory raises a synthetic secret-bearing error",
+      "standalone_and_unified": "both surfaces expose only the exception class; no connection object is created",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    }
+  ],
+  "limitations": [
+    "Successful parity is covered for nine offline command invocations, thirty PostgreSQL-backed or aggregate-service-stubbed reads, two synthetic report-generation paths, and three fake-connection operator writes, across all 37 mounted groups.",
+    "Operator identity and global-list privilege boundaries, grant provisioning, membership/share/transfer authorization, real database/provider behavior, and MAN-CAP-039 owner acceptance remain open. Disabled identity reactivation has no CLI path and needs a separately reviewed procedure. Identity disablement does not store an actor or reason."
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "check": "sensor_anomaly_ml_constrained_resource_smoke",
+  "captured_on": "2026-10-26",
+  "runner": "scripts/sensor_anomaly_ml_resource_smoke.py",
+  "workload": {
+    "model": "sklearn.ensemble.IsolationForest",
+    "parameters": {
+      "n_estimators": 16,
+      "max_samples": 256,
+      "random_state": 7,
+      "n_jobs": 1
+    },
+    "synthetic_input": {
+      "rows": 1024,
+      "float64_features": 4
+    },
+    "expected_output": "1024 deterministic labels in {-1, 1}",
+    "package_imports": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "scikit-learn",
+      "prophet",
+      "psycopg2"
+    ]
+  },
+  "container_limits": {
+    "memory_bytes": 1073741824,
+    "cpu_quota": "200000 100000",
+    "cpus": 2,
+    "pids_limit": 128,
+    "network": "none",
+    "root_filesystem_read_only": true,
+    "tmpfs": "/tmp, 128 MiB",
+    "credentials_provided": false,
+    "database_or_provider_calls": false
+  },
+  "amd64": {
+    "status": "passed",
+    "image": "kokonut-kernel-candidate-sensor-anomaly-ml-worker:latest",
+    "image_id": "sha256:e136637d9c5795a90065fac75f992ec4df494f20072b302e7f0bab30f83f4740",
+    "platform": "linux/amd64",
+    "docker_image_size_bytes": 955403883,
+    "reported_architecture": "x86_64",
+    "peak_rss_kib": 192432,
+    "peak_rss_mib_rounded": 188,
+    "elapsed_seconds_in_container": 9.633,
+    "outlier_count": 204
+  },
+  "arm64": {
+    "status": "passed",
+    "image": "kokonut-kernel-candidate-arm64-sensor-anomaly-ml-worker:latest",
+    "image_id": "sha256:3e275008b3d6f1c9b66f9eea925f1b82b89af5f44af8d8104a10df059596f72c",
+    "platform": "linux/arm64",
+    "docker_image_size_bytes": 986984389,
+    "reported_architecture": "aarch64",
+    "execution": "QEMU software emulation",
+    "peak_rss_kib": 334612,
+    "peak_rss_mib_rounded": 327,
+    "elapsed_seconds_in_container": 64.118,
+    "outlier_count": 204
+  },
+  "non_fatal_notices": [
+    "Matplotlib wrote its font cache under /tmp",
+    "Prophet optional Plotly visualization support is unavailable"
+  ],
+  "candidate_or_legacy_touched": false,
+  "compose_services_started_or_restarted": false,
+  "physical_raspberry_pi_tested": false,
+  "interpretation": "Software compatibility/resource smoke only. QEMU elapsed time is not representative of Raspberry Pi hardware.",
+  "runner_sha256": "0457cd7d8a09125d4ba113872ae4e42f50cfc64dd129e9e3eb16e9fabce28aaf"
+}

@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T03:44:24Z",
+  "subject": "Candidate seed discovery and existing mobile-form ledger preflight",
+  "source": {
+    "branch": "feat/mobile-offline-acceptance",
+    "migration_runner_change": "Seed discovery now accepts numeric range prefixes such as 064-068 while schema migrations remain numeric-only.",
+    "focused_migration_tests": "23 passed",
+    "source_validation": "503 migration source files validated: 382 schema migrations and 121 seed files"
+  },
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "plan": {
+      "pending_total": 121,
+      "pending_schemas": 0,
+      "pending_seeds": 121,
+      "applied_schema_migrations": 382,
+      "applied_seed_migrations": 0,
+      "non_applied_ledger_rows": 0,
+      "range_seed_now_discovered": "seed:064-068_impact_network.sql",
+      "mobile_form_seed_status": "seed:140_mobile_forms.sql is pending with no ledger row"
+    },
+    "existing_mobile_form_rows": 5,
+    "existing_mobile_form_versions": 10,
+    "current_form_revisions": "five 1.2.0 active forms; five 1.1.0 retired revisions and five 1.2.0 active revisions",
+    "read_only_query": "The five current forms have 1.2.0 active status and not_required consent classification; no content comparison against all seed SQL columns was performed.",
+    "seed_script_behavior": "scripts/seed.sh applies its curated seed files with psql_exec directly, outside schema_migration tracking.",
+    "candidate_seed_sql_executed": false,
+    "candidate_rows_changed": false
+  },
+  "safety_decision": "Do not run or adopt any seed from this preflight. In particular, 064-068_impact_network.sql contains pilot inserts/upserts and an UPDATE of the seeded Adelphi location owner; 140_mobile_forms.sql intentionally does not rewrite existing governed forms. The present ledger cannot prove which seed content produced the existing rows.",
+  "result": "passed read-only discovery and inventory; seed/data reconciliation remains open"
+}

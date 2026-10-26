@@ -1,0 +1,26 @@
+{
+  "checked_at_utc": "2026-10-16T02:23:53Z",
+  "pull_request": 68,
+  "head_sha": "d37b5868f0428dc856eb62a4a49bd977dda1ba4d",
+  "workflow_run_id": 38839964609,
+  "failed_job_id": 116777549668,
+  "failed_check": "CI / ci",
+  "failure": {
+    "step": "Run the complete CI gate",
+    "reason": "Kernel release-input gate detected a changed Dockerfile.kernel digest.",
+    "expected_sha256": "094ff4de06cd632b836fe7c85cd4f8d43ca938e44e8ba7b9ba29bc4ff87e695e",
+    "actual_sha256": "d336b4a3a82b370c7c4053624cdaed96f49c497a86fcee0b0cd049f5a6d9db58"
+  },
+  "repair": {
+    "file": "config/kernel/release-input-lock.json",
+    "action": "Updated the reviewed Dockerfile.kernel input digest after confirming the only Dockerfile change adds --require-schema to the default and OIDC runtime commands.",
+    "release_input_gate": "passed",
+    "kernel_profile_and_startup_tests": {
+      "command": "python3 -m pytest tests/test_kernel_profile.py tests/test_kernel_schema_startup.py -q",
+      "passed": 14
+    },
+    "diff_check": "passed"
+  },
+  "hosted_reverification": "pending next PR head",
+  "security_check_on_failed_head": "passed"
+}

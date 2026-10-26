@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript sensor anomaly durable-effect receipt SDK parity",
+  "models": [
+    "SensorAnomalyEffect"
+  ],
+  "source_tables": [
+    "schemas/postgres/376_sensor_anomaly_delivery.sql:sensor_anomaly_effect"
+  ],
+  "additive_columns": {
+    "schemas/postgres/406_sensor_anomaly_location_lineage.sql": [
+      "location_id"
+    ]
+  },
+  "schema_guard": {
+    "models": 60,
+    "canonical_columns": 1282,
+    "scalar_types": 1200,
+    "postgis_shapes": 10,
+    "jsonb_shapes": 72,
+    "enum_fields": 21,
+    "check_literal_fields": 40
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q \u2014 66 passed",
+    "javascript": "npm test \u2014 29 passed",
+    "typescript": "npm run build \u2014 passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py \u2014 passed",
+    "ruff": "ruff check sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py \u2014 passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py \u2014 passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py \u2014 66 rows valid",
+    "diff_check": "git diff --check \u2014 passed"
+  },
+  "boundaries": [
+    "The SDK exposes the durable composite-key receipt and exact SQL outcome literals but does not run anomaly detection or mutate worker receipts.",
+    "Checks used local schema source and synthetic fixtures; no database, worker, sensor, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

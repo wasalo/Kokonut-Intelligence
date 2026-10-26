@@ -1,0 +1,19 @@
+{
+  "result": "passed",
+  "migration": "636_location_scoped_delphi_participant_acceptance.sql",
+  "database_target": "new disposable PostgreSQL 16 container with networking disabled",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 636 applies and replays on disposable PostgreSQL 16",
+    "preview exposes only the study title and exact currently approved notice",
+    "acceptance requires explicit true consent and the invite-bound notice digest",
+    "one-time acceptance creates an anonymous panel member with no party reference",
+    "session and CSRF credentials are stored only as digests",
+    "exact acceptance retries are idempotent and changed credentials are rejected",
+    "withdrawal revokes the session and changes consent to withdrawn",
+    "exact withdrawal retry is stable and changed requests or CSRF tokens are rejected",
+    "acceptance and withdrawal histories are append-only and complete",
+    "runtime and Directus cannot directly read or mutate credential and consent ledgers"
+  ],
+  "assertions_passed": 10
+}

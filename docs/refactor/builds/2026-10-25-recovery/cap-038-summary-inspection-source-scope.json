@@ -1,0 +1,24 @@
+{
+  "slice": "CAP-038 AI-summary inspection output source scope",
+  "date": "2026-10-25",
+  "result": "passed",
+  "contract": "Summary list rows name the safe list view and normalized location; digest output names its safe view and normalized summary/location keys while remaining metadata-only.",
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py::test_summary_inspection_list_uses_signed_exact_location_source_reader tests/test_agent_worker_cli.py::test_summary_digest_returns_metadata_only_for_exact_location -q",
+      "result": "2 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "migration_required": false,
+  "database_touched": false,
+  "provider_touched": false,
+  "candidate_or_legacy_touched": false,
+  "limitations": [
+    "Source-scope metadata describes the bounded review query, not content snapshots or operator attribution.",
+    "Live OIDC, provisioned worker credentials/grants, runtime recovery, and MAN-CAP-038 owner acceptance remain open."
+  ]
+}

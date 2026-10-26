@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-16",
+  "scope": "RPC wallet activity, chain status, and ClickHouse outbox transaction atomicity",
+  "command": "python3 -m pytest tests/test_rpc_indexer_recovery.py tests/test_rpc_indexer_contract.py tests/test_ingestion_outbox_producers.py tests/test_scheduled_command_contracts.py -q",
+  "result": "passed",
+  "tests_passed": 133,
+  "checks": [
+    "wallet rows, healthy chain status, outbox intent, and commit use one connection and ordered transaction",
+    "wallet provider failure rolls back only its savepoint; a partial chain failure is persisted as error",
+    "outbox failure rolls back run data and then persists error status on the same connection",
+    "typed outbox failure propagates to the caller"
+  ],
+  "external_boundaries": "All RPC, database, and outbox interactions were mocked. No provider, candidate, legacy database, or live schedule was accessed.",
+  "additional_validation": [
+    "Ruff passed for services/ingestion/rpc_indexer.py and tests/test_rpc_indexer_recovery.py",
+    "Python compilation passed for the changed source and test module"
+  ],
+  "limits": [
+    "does not validate live PostgreSQL transaction behavior",
+    "does not scan historical wallet transactions or establish confirmation depth",
+    "does not implement or validate chain reorganization recovery",
+    "does not establish provider parity or runtime schedule activation"
+  ]
+}

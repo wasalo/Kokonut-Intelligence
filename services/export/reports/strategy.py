@@ -6,6 +6,10 @@ from typing import Any, Optional
 import psycopg2
 import psycopg2.extras
 
+from services.common.errors import safe_exception_class
+
+from .scope import require_network_scope
+
 
 def generate_data_stream_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a summary of data stream activity for a location."""
@@ -124,7 +128,8 @@ def generate_pitch_deck(conn, location_id: str, period_start: str = None, period
 
 def generate_capability_dashboard(conn, location_id=None, period_start=None, period_end=None):
     """Generate a capability map dashboard report."""
-    from ..analytics.capability_map import get_capability_dashboard, get_coverage_analysis
+    require_network_scope("capability_dashboard", location_id)
+    from ...analytics.capability_map import get_capability_dashboard, get_coverage_analysis
 
     dashboard = get_capability_dashboard()
     coverage = get_coverage_analysis()
@@ -144,9 +149,10 @@ def generate_capability_dashboard(conn, location_id=None, period_start=None, per
 
 def generate_strategy_execution(conn, location_id=None, period_start=None, period_end=None):
     """Generate a strategy execution report (Balanced Scorecard and kernel)."""
-    from ..analytics.competitive_report import health as competitive_health
-    from ..analytics.strategy_execution import dashboard
-    from ..analytics.strategy_map import get_perspective_summary
+    require_network_scope("strategy_execution", location_id)
+    from ...analytics.competitive_report import health as competitive_health
+    from ...analytics.strategy_execution import dashboard
+    from ...analytics.strategy_map import get_perspective_summary
 
     execution = dashboard(conn, scope_type="location", scope_id=location_id) if location_id else dashboard(conn)
     perspectives = get_perspective_summary()
@@ -169,7 +175,8 @@ def generate_strategy_execution(conn, location_id=None, period_start=None, perio
 
 def generate_capability_assessment(conn, location_id=None, period_start=None, period_end=None):
     """Generate a capability maturity and coverage assessment."""
-    from ..analytics.capability_map import get_capability_dashboard, get_coverage_analysis
+    require_network_scope("capability_assessment", location_id)
+    from ...analytics.capability_map import get_capability_dashboard, get_coverage_analysis
 
     dashboard = get_capability_dashboard()
     coverage = get_coverage_analysis()
@@ -190,7 +197,8 @@ def generate_capability_assessment(conn, location_id=None, period_start=None, pe
 
 def generate_value_stream_formal(conn, location_id=None, period_start=None, period_end=None):
     """Generate a formal value stream map report."""
-    from ..analytics.value_stream_defs import get_stream_summary
+    require_network_scope("value_stream_formal", location_id)
+    from ...analytics.value_stream_defs import get_stream_summary
 
     streams = get_stream_summary()
     return {
@@ -204,6 +212,7 @@ def generate_value_stream_formal(conn, location_id=None, period_start=None, peri
 
 def generate_technology_roadmap(conn, location_id=None, period_start=None, period_end=None):
     """Generate an executive technology roadmap report."""
+    require_network_scope("technology_roadmap", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_technology_roadmap_overview ORDER BY name")
         roadmaps = [dict(row) for row in cur.fetchall()]
@@ -233,25 +242,34 @@ def generate_technology_roadmap(conn, location_id=None, period_start=None, perio
 
 
 def generate_stakeholder_landscape(conn, location_id=None, period_start=None, period_end=None):
-    """Generate an internal stakeholder landscape report."""
-    query = "SELECT * FROM v_stakeholder_landscape"
-    params = []
+    """Generate a network- or location-scoped stakeholder landscape report."""
     if location_id:
-        query += " WHERE EXISTS (SELECT 1 FROM party_identifier pi WHERE pi.party_id = party_id AND pi.identifier_type = 'location_id' AND pi.identifier_value = %s)"
-        params.append(location_id)
-    query += " ORDER BY advisory_score DESC NULLS LAST, display_name"
+        query = (
+            "SELECT * FROM v_stakeholder_landscape_by_location "
+            "WHERE location_id = %s::uuid "
+            "ORDER BY advisory_score DESC NULLS LAST, display_name"
+        )
+        params = [location_id]
+    else:
+        query = "SELECT * FROM v_stakeholder_landscape ORDER BY advisory_score DESC NULLS LAST, display_name"
+        params = []
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(query, params)
         parties = [dict(row) for row in cur.fetchall()]
+    limitations = [
+        "Salience is advisory and depends on evidence quality and representation coverage.",
+        "Proxy parties represent interests through governed evidence; they do not provide human consent or votes.",
+    ]
+    if location_id:
+        limitations.append(
+            "Location counts include only identifiers, relationships, interests, and salience assessments with explicit location lineage; canonical party identity fields are network-wide."
+        )
     return {
         "report_type": "stakeholder_landscape",
         "location_id": location_id,
         "party_count": len(parties),
         "parties": parties,
-        "limitations": [
-            "Salience is advisory and depends on evidence quality and representation coverage.",
-            "Proxy parties represent interests through governed evidence; they do not provide human consent or votes.",
-        ],
+        "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -315,6 +333,7 @@ def generate_stakeholder_grievance(conn, location_id=None, period_start=None, pe
 
 def generate_stakeholder_representation(conn, location_id=None, period_start=None, period_end=None):
     """Generate privacy-aware stakeholder representation and equity metrics."""
+    require_network_scope("stakeholder_representation", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_public_stakeholder_representation ORDER BY activity_type, activity_id")
         representation = [dict(row) for row in cur.fetchall()]
@@ -362,6 +381,7 @@ def generate_stakeholder_decision_lineage(conn, location_id=None, period_start=N
 
 def generate_stakeholder_ecosystem(conn, location_id=None, period_start=None, period_end=None):
     """Generate the internal stakeholder ecosystem cockpit report."""
+    require_network_scope("stakeholder_ecosystem", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
         cockpit = dict(cur.fetchone())
@@ -388,7 +408,12 @@ def generate_stakeholder_ecosystem(conn, location_id=None, period_start=None, pe
 
 
 def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, period_end=None):
-    """Generate stakeholder outcomes from governed outcomes and architecture links."""
+    """Generate stakeholder outcomes from governed outcomes and architecture links.
+
+    The architecture view is network-wide and has no location lineage. Include
+    it only for an explicitly network-wide report; a location report must not
+    expose another farm's stakeholder relationships.
+    """
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         query = "SELECT * FROM stakeholder_outcome WHERE status IN ('verified', 'published')"
         params = []
@@ -398,24 +423,35 @@ def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, per
         query += " ORDER BY created_at DESC"
         cur.execute(query, params)
         outcomes = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_stakeholder_capability_value_stream ORDER BY entity_type, entity_name, party_name")
-        architecture = [dict(row) for row in cur.fetchall()]
+        architecture = []
+        if not location_id:
+            cur.execute(
+                "SELECT * FROM v_stakeholder_capability_value_stream "
+                "ORDER BY entity_type, entity_name, party_name"
+            )
+            architecture = [dict(row) for row in cur.fetchall()]
+    limitations = [
+        "Only verified or published governed outcomes are included.",
+        "Outcome presence does not establish causal attribution or satisfaction without supporting evidence.",
+    ]
+    if location_id:
+        limitations.append(
+            "Network-wide capability and value-stream links are omitted because their source view has no location lineage."
+        )
     return {
         "report_type": "stakeholder_outcomes",
         "location_id": location_id,
         "outcome_count": len(outcomes),
         "outcomes": outcomes,
         "capability_and_value_stream_links": architecture,
-        "limitations": [
-            "Only verified or published governed outcomes are included.",
-            "Outcome presence does not establish causal attribution or satisfaction without supporting evidence.",
-        ],
+        "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
 def generate_stakeholder_trust(conn, location_id=None, period_start=None, period_end=None):
     """Generate explainable trust profiles, evidence timelines, and disputes."""
+    require_network_scope("stakeholder_trust", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_party_trust_profile ORDER BY open_risk_count DESC, display_name")
         profiles = [dict(row) for row in cur.fetchall()]
@@ -445,6 +481,7 @@ def generate_stakeholder_trust(conn, location_id=None, period_start=None, period
 
 def generate_stakeholder_value_streams(conn, location_id=None, period_start=None, period_end=None):
     """Generate stakeholder-aware capability and value-stream outcomes."""
+    require_network_scope("stakeholder_value_streams", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_stakeholder_capability_value_stream ORDER BY entity_type, entity_name, party_name")
         links = [dict(row) for row in cur.fetchall()]
@@ -475,6 +512,7 @@ def generate_stakeholder_value_streams(conn, location_id=None, period_start=None
 
 def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, period_end=None):
     """Generate a composite internal/public-safe stakeholder cockpit snapshot."""
+    require_network_scope("stakeholder_cockpit", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
         internal = dict(cur.fetchone())
@@ -495,6 +533,7 @@ def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, peri
 
 def generate_coordination_cockpit(conn, location_id=None, period_start=None, period_end=None):
     """Generate internal coordination controls and public-safe alliance output."""
+    require_network_scope("coordination_cockpit", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_coordination_cockpit_internal ORDER BY name")
         internal = [dict(row) for row in cur.fetchall()]
@@ -516,6 +555,7 @@ def generate_coordination_cockpit(conn, location_id=None, period_start=None, per
 
 def generate_governance_coordination_health(conn, location_id=None, period_start=None, period_end=None):
     """Generate internal governance health and public-safe throughput output."""
+    require_network_scope("governance_coordination_health", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_governance_cockpit_internal")
         internal = dict(cur.fetchone())
@@ -788,7 +828,9 @@ def generate_simulation_wargame(
         try:
             result["reserve_clash"] = stress_reserve(conn, location_id)
         except Exception as exc:  # advisory: never fatal
-            result["reserve_clash"] = {"error": str(exc)}
+            result["reserve_clash"] = {
+                "error": f"reserve clash failed ({safe_exception_class(exc)})"
+            }
 
     return result
 

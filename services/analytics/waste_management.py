@@ -6,27 +6,21 @@ Records waste streams, composting operations, recycling activities,
 and pollution incidents. Provides summaries, efficiency metrics, and dashboards.
 
 Usage:
-    python -m services.analytics.waste_management record-waste --location-id UUID --waste-type organic --waste-name "Crop residues" --quantity 50.0 --disposal-method composting
-    python -m services.analytics.waste_management record-composting --location-id UUID --feedstock "Banana stems" --feedstock-kg 100 --method vermicomposting
-    python -m services.analytics.waste_management record-recycling --location-id UUID --material plastic --quantity 15.0 --destination "Recycling center" --revenue 5.00
-    python -m services.analytics.waste_management report-incident --location-id UUID --incident-type chemical_spill --severity high --description "Pesticide container leak" --affected-area "Near stream"
-    python -m services.analytics.waste_management resolve-incident --incident-id UUID --remedial-action "Cleaned and neutralized soil" --resolution-date 2026-07-10
-    python -m services.analytics.waste_management waste-summary --location-id UUID
-    python -m services.analytics.waste_management composting-efficiency --location-id UUID
-    python -m services.analytics.waste_management open-incidents --location-id UUID
+    python -m services.analytics.waste_management record-waste --location-id UUID (retired; use the authenticated Gateway console)
+    python -m services.analytics.waste_management record-composting --location-id UUID (retired; use the authenticated Gateway console)
+    python -m services.analytics.waste_management record-recycling --location-id UUID (retired; use the authenticated Gateway console)
+    python -m services.analytics.waste_management report-incident --location-id UUID (retired; use the authenticated Gateway console)
+    python -m services.analytics.waste_management resolve-incident --incident-id UUID (retired; use the authenticated Gateway console)
+    python -m services.analytics.waste_management waste-summary --location-id UUID (retired; use the authenticated Gateway)
+    python -m services.analytics.waste_management composting-efficiency --location-id UUID (retired; use the authenticated Gateway)
+    python -m services.analytics.waste_management open-incidents --location-id UUID (retired; use authenticated Gateway review)
     python -m services.analytics.waste_management dashboard --location-id UUID
 """
 
 import json
-import uuid
-from datetime import date, datetime, timezone
-from typing import Optional
 
 from services.common.commands import CommandLine
-from ..common.logging import get_logger
-
-logger = get_logger("analytics.waste_management")
-
+from services.common.tenant_context import TenantContextDenied
 
 # ============================================================
 # Waste Stream Recording
@@ -43,37 +37,19 @@ def record_waste(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a waste stream entry."""
-    cur = conn.cursor()
-    waste_id = str(uuid.uuid4())
+    """Reject legacy direct writes that lack authenticated tenant context.
 
-    cur.execute(
-        """
-        INSERT INTO waste_stream_record
-            (id, location_id, waste_type, waste_name, quantity_kg,
-             disposal_method, source, notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'draft')
-        RETURNING id
-        """,
-        (
-            waste_id, location_id, waste_type, waste_name, quantity_kg,
-            disposal_method, source, notes, json.dumps(metadata or {}),
-        ),
+    The location argument is caller-selected and is not authorization. New
+    waste-stream captures must use the Gateway path, which installs signed
+    operator context and checks the current exact-location create grant in
+    PostgreSQL.
+    """
+    del conn, location_id, waste_type, waste_name, quantity_kg, disposal_method
+    del source, notes, metadata
+    raise TenantContextDenied(
+        "Unscoped waste writes are disabled; use the authenticated operator "
+        "Gateway waste-capture workflow"
     )
-    conn.commit()
-    cur.close()
-
-    logger.info("Recorded waste stream %s: %s %s kg via %s", waste_id, waste_type, quantity_kg, disposal_method)
-
-    return {
-        "waste_id": waste_id,
-        "location_id": location_id,
-        "waste_type": waste_type,
-        "waste_name": waste_name,
-        "quantity_kg": quantity_kg,
-        "disposal_method": disposal_method,
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 # ============================================================
@@ -94,44 +70,17 @@ def record_composting(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a composting operation."""
-    cur = conn.cursor()
-    compost_id = str(uuid.uuid4())
+    """Reject legacy direct writes that lack authenticated tenant context.
 
-    output_yield_pct = None
-    if output_kg is not None and feedstock_kg > 0:
-        output_yield_pct = round(output_kg / feedstock_kg * 100, 1)
-
-    cur.execute(
-        """
-        INSERT INTO composting_record
-            (id, location_id, feedstock_type, feedstock_kg, compost_method,
-             duration_days, output_kg, output_yield_pct,
-             temperature_c, ph, moisture_pct, notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'draft')
-        RETURNING id
-        """,
-        (
-            compost_id, location_id, feedstock_type, feedstock_kg, compost_method,
-            duration_days, output_kg, output_yield_pct,
-            temperature_c, ph, moisture_pct, notes, json.dumps(metadata or {}),
-        ),
+    Use the authenticated Gateway composting capture path, which verifies the
+    exact current location grant and records a new batch without quality review.
+    """
+    del conn, location_id, feedstock_type, feedstock_kg, compost_method
+    del duration_days, output_kg, temperature_c, ph, moisture_pct, notes, metadata
+    raise TenantContextDenied(
+        "Unscoped composting writes are disabled; use the authenticated operator "
+        "Gateway composting-capture workflow"
     )
-    conn.commit()
-    cur.close()
-
-    logger.info("Recorded composting %s: %s %s kg via %s", compost_id, feedstock_type, feedstock_kg, compost_method)
-
-    return {
-        "compost_id": compost_id,
-        "location_id": location_id,
-        "feedstock_type": feedstock_type,
-        "feedstock_kg": feedstock_kg,
-        "compost_method": compost_method,
-        "output_kg": output_kg,
-        "output_yield_pct": output_yield_pct,
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 # ============================================================
@@ -148,37 +97,12 @@ def record_recycling(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a recycling activity."""
-    cur = conn.cursor()
-    recycle_id = str(uuid.uuid4())
-
-    cur.execute(
-        """
-        INSERT INTO recycling_record
-            (id, location_id, material_type, quantity_kg, destination,
-             revenue, notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'draft')
-        RETURNING id
-        """,
-        (
-            recycle_id, location_id, material_type, quantity_kg, destination,
-            revenue, notes, json.dumps(metadata or {}),
-        ),
+    """Reject recycling writes that lack authenticated tenant context."""
+    del conn, location_id, material_type, quantity_kg, destination, revenue, notes, metadata
+    raise TenantContextDenied(
+        "Unscoped recycling writes are disabled; use the authenticated operator "
+        "Gateway recycling-capture workflow"
     )
-    conn.commit()
-    cur.close()
-
-    logger.info("Recorded recycling %s: %s %s kg to %s", recycle_id, material_type, quantity_kg, destination)
-
-    return {
-        "recycle_id": recycle_id,
-        "location_id": location_id,
-        "material_type": material_type,
-        "quantity_kg": quantity_kg,
-        "destination": destination,
-        "revenue": revenue,
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 # ============================================================
@@ -195,38 +119,13 @@ def report_incident(
     reported_by: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Report a pollution incident."""
-    cur = conn.cursor()
-    incident_id = str(uuid.uuid4())
-
-    cur.execute(
-        """
-        INSERT INTO pollution_incident
-            (id, location_id, incident_type, severity, description,
-             affected_area, reported_by, status, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, 'open', %s::jsonb)
-        RETURNING id
-        """,
-        (
-            incident_id, location_id, incident_type, severity, description,
-            affected_area, reported_by, json.dumps(metadata or {}),
-        ),
+    """Reject reports that lack authenticated tenant context."""
+    del conn, location_id, incident_type, severity, description, affected_area
+    del reported_by, metadata
+    raise TenantContextDenied(
+        "Unscoped incident reports are disabled; use the authenticated operator "
+        "Gateway incident-capture workflow"
     )
-    conn.commit()
-    cur.close()
-
-    logger.warning("Pollution incident reported %s: %s [%s]", incident_id, incident_type, severity)
-
-    return {
-        "incident_id": incident_id,
-        "location_id": location_id,
-        "incident_type": incident_type,
-        "severity": severity,
-        "description": description,
-        "affected_area": affected_area,
-        "status": "open",
-        "reported_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 def resolve_incident(
@@ -235,40 +134,12 @@ def resolve_incident(
     remedial_action: str,
     resolution_date: str = None,
 ) -> dict:
-    """Mark a pollution incident as resolved."""
-    cur = conn.cursor()
-    res_date = date.fromisoformat(resolution_date) if resolution_date else date.today()
-
-    cur.execute(
-        """
-        UPDATE pollution_incident
-        SET status = 'resolved',
-            remedial_action = %s,
-            resolution_date = %s,
-            resolved_at = NOW()
-        WHERE id = %s
-        RETURNING id, incident_type, severity
-        """,
-        (remedial_action, res_date, incident_id),
+    """Reject resolution writes that lack authenticated review context."""
+    del conn, incident_id, remedial_action, resolution_date
+    raise TenantContextDenied(
+        "Unscoped incident resolution is disabled; use the authenticated operator "
+        "Gateway review workflow"
     )
-    row = cur.fetchone()
-    if not row:
-        cur.close()
-        raise ValueError(f"Incident {incident_id} not found")
-
-    conn.commit()
-    cur.close()
-
-    logger.info("Incident %s resolved: %s", incident_id, remedial_action)
-
-    return {
-        "incident_id": row[0],
-        "incident_type": row[1],
-        "severity": row[2],
-        "status": "resolved",
-        "remedial_action": remedial_action,
-        "resolution_date": res_date.isoformat(),
-    }
 
 
 # ============================================================
@@ -276,64 +147,12 @@ def resolve_incident(
 # ============================================================
 
 def get_waste_summary(conn, location_id: str, days: int = 30) -> dict:
-    """Get waste totals by type and disposal method."""
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT waste_type,
-               SUM(quantity_kg) AS total_kg,
-               COUNT(*) AS record_count
-        FROM waste_stream_record
-        WHERE location_id = %s
-          AND recorded_at >= NOW() - INTERVAL '%s days'
-          AND status IN ('verified', 'published')
-        GROUP BY waste_type
-        ORDER BY total_kg DESC
-        """,
-        (location_id, days),
+    """Reject location-argument-only reads without authenticated tenant context."""
+    del conn, location_id, days
+    raise TenantContextDenied(
+        "Unscoped waste summaries are disabled; use the authenticated operator "
+        "Gateway waste summary"
     )
-    cols = [d[0] for d in cur.description]
-    by_type = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-    cur.execute(
-        """
-        SELECT disposal_method,
-               SUM(quantity_kg) AS total_kg,
-               COUNT(*) AS record_count
-        FROM waste_stream_record
-        WHERE location_id = %s
-          AND recorded_at >= NOW() - INTERVAL '%s days'
-          AND status IN ('verified', 'published')
-        GROUP BY disposal_method
-        ORDER BY total_kg DESC
-        """,
-        (location_id, days),
-    )
-    cols = [d[0] for d in cur.description]
-    by_disposal = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-    cur.execute(
-        """
-        SELECT SUM(quantity_kg), COUNT(*)
-        FROM waste_stream_record
-        WHERE location_id = %s
-          AND recorded_at >= NOW() - INTERVAL '%s days'
-          AND status IN ('verified', 'published')
-        """,
-        (location_id, days),
-    )
-    total_row = cur.fetchone()
-    cur.close()
-
-    return {
-        "location_id": location_id,
-        "period_days": days,
-        "total_waste_kg": float(total_row[0]) if total_row[0] else 0,
-        "total_records": int(total_row[1]) if total_row[1] else 0,
-        "by_type": by_type,
-        "by_disposal_method": by_disposal,
-    }
 
 
 # ============================================================
@@ -341,68 +160,12 @@ def get_waste_summary(conn, location_id: str, days: int = 30) -> dict:
 # ============================================================
 
 def get_composting_efficiency(conn, location_id: str) -> dict:
-    """Get composting yield and quality trends."""
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT compost_method,
-               COUNT(*) AS batches,
-               AVG(output_yield_pct) AS avg_yield_pct,
-               AVG(feedstock_kg) AS avg_feedstock_kg,
-               AVG(output_kg) AS avg_output_kg,
-               AVG(duration_days) AS avg_duration_days
-        FROM composting_record
-        WHERE location_id = %s
-          AND status IN ('verified', 'published')
-          AND output_kg IS NOT NULL
-        GROUP BY compost_method
-        ORDER BY batches DESC
-        """,
-        (location_id,),
+    """Reject location-argument-only reads without authenticated tenant context."""
+    del conn, location_id
+    raise TenantContextDenied(
+        "Unscoped composting summaries are disabled; use the authenticated operator "
+        "Gateway waste summary"
     )
-    cols = [d[0] for d in cur.description]
-    by_method = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-    cur.execute(
-        """
-        SELECT ph, moisture_pct, temperature_c, output_yield_pct,
-               recorded_at
-        FROM composting_record
-        WHERE location_id = %s
-          AND status IN ('verified', 'published')
-        ORDER BY recorded_at DESC LIMIT 10
-        """,
-        (location_id,),
-    )
-    cols = [d[0] for d in cur.description]
-    recent_quality = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-    cur.execute(
-        """
-        SELECT COUNT(*), SUM(feedstock_kg), SUM(output_kg)
-        FROM composting_record
-        WHERE location_id = %s
-          AND status IN ('verified', 'published')
-        """,
-        (location_id,),
-    )
-    total_row = cur.fetchone()
-    cur.close()
-
-    overall_yield_pct = None
-    if total_row[1] and total_row[2] and float(total_row[1]) > 0:
-        overall_yield_pct = round(float(total_row[2]) / float(total_row[1]) * 100, 1)
-
-    return {
-        "location_id": location_id,
-        "total_batches": int(total_row[0]) if total_row[0] else 0,
-        "total_feedstock_kg": float(total_row[1]) if total_row[1] else 0,
-        "total_output_kg": float(total_row[2]) if total_row[2] else 0,
-        "overall_yield_pct": overall_yield_pct,
-        "by_method": by_method,
-        "recent_quality": recent_quality,
-    }
 
 
 # ============================================================
@@ -410,59 +173,11 @@ def get_composting_efficiency(conn, location_id: str) -> dict:
 # ============================================================
 
 def get_open_incidents(conn, location_id: str) -> dict:
-    """Get unresolved pollution incidents."""
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT id, incident_type, severity, description, affected_area,
-               reported_by, created_at
-        FROM pollution_incident
-        WHERE location_id = %s AND status = 'open'
-        ORDER BY
-            CASE severity
-                WHEN 'critical' THEN 1
-                WHEN 'high' THEN 2
-                WHEN 'medium' THEN 3
-                WHEN 'low' THEN 4
-                ELSE 5
-            END,
-            created_at DESC
-        """,
-        (location_id,),
+    """Reject unscoped incident-detail reads before database access."""
+    del conn, location_id
+    raise TenantContextDenied(
+        "Unscoped incident review is disabled; use the authenticated operator Gateway"
     )
-    cols = [d[0] for d in cur.description]
-    open_incidents = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-    cur.execute(
-        """
-        SELECT severity, COUNT(*)
-        FROM pollution_incident
-        WHERE location_id = %s AND status = 'open'
-        GROUP BY severity
-        """,
-        (location_id,),
-    )
-    severity_counts = {row[0]: int(row[1]) for row in cur.fetchall()}
-
-    cur.execute(
-        """
-        SELECT COUNT(*)
-        FROM pollution_incident
-        WHERE location_id = %s AND status = 'resolved'
-        """,
-        (location_id,),
-    )
-    resolved_row = cur.fetchone()
-    cur.close()
-
-    return {
-        "location_id": location_id,
-        "open_count": len(open_incidents),
-        "resolved_count": int(resolved_row[0]) if resolved_row[0] else 0,
-        "severity_breakdown": severity_counts,
-        "incidents": open_incidents,
-    }
 
 
 # ============================================================
@@ -470,48 +185,11 @@ def get_open_incidents(conn, location_id: str) -> dict:
 # ============================================================
 
 def get_waste_dashboard(conn, location_id: str) -> dict:
-    """Dashboard combining waste, composting, and incident data."""
-    waste = get_waste_summary(conn, location_id, days=30)
-    composting = get_composting_efficiency(conn, location_id)
-    incidents = get_open_incidents(conn, location_id)
-
-    total_waste = waste["total_waste_kg"]
-    recycled_kg = sum(
-        d["total_kg"] for d in waste["by_disposal_method"]
-        if d.get("disposal_method") in ("recycling", "recycled")
+    """Reject the legacy mixed-scope dashboard before database access."""
+    del conn, location_id
+    raise TenantContextDenied(
+        "Unscoped waste dashboard is disabled; use the authenticated operator Gateway"
     )
-    composted_kg = sum(
-        d["total_kg"] for d in waste["by_disposal_method"]
-        if d.get("disposal_method") in ("composting", "composted")
-    )
-    landfill_kg = sum(
-        d["total_kg"] for d in waste["by_disposal_method"]
-        if d.get("disposal_method") in ("landfill", "dump")
-    )
-
-    diversion_rate = None
-    if total_waste > 0:
-        diverted = recycled_kg + composted_kg
-        diversion_rate = round(diverted / total_waste * 100, 1)
-
-    return {
-        "location_id": location_id,
-        "waste_summary": waste,
-        "composting_efficiency": composting,
-        "incidents": incidents,
-        "key_metrics": {
-            "total_waste_kg": total_waste,
-            "recycled_kg": recycled_kg,
-            "composted_kg": composted_kg,
-            "landfill_kg": landfill_kg,
-            "diversion_rate_pct": diversion_rate,
-            "composting_batches": composting["total_batches"],
-            "composting_yield_pct": composting["overall_yield_pct"],
-            "open_incidents": incidents["open_count"],
-            "critical_incidents": incidents["severity_breakdown"].get("critical", 0),
-        },
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 # ============================================================
@@ -562,7 +240,7 @@ def _cmd_resolve_incident(db, a):
     )
 
 
-cli.subcommand("record-waste", "Record waste stream") \
+cli.subcommand("record-waste", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--waste-type", required=True, help="organic, plastic, metal, chemical, electronic, other") \
     .add("--waste-name", required=True) \
@@ -571,10 +249,10 @@ cli.subcommand("record-waste", "Record waste stream") \
     .add("--source") \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_waste) \
+    .run(_cmd_record_waste, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_waste_record))
 
-cli.subcommand("record-composting", "Record composting operation") \
+cli.subcommand("record-composting", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--feedstock", required=True, help="Feedstock type description") \
     .add("--feedstock-kg", type=float, required=True) \
@@ -586,10 +264,10 @@ cli.subcommand("record-composting", "Record composting operation") \
     .add("--moisture", type=float, help="Moisture percentage") \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_composting) \
+    .run(_cmd_record_composting, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_composting_record))
 
-cli.subcommand("record-recycling", "Record recycling activity") \
+cli.subcommand("record-recycling", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--material", required=True, help="plastic, glass, metal, paper, organic") \
     .add("--quantity", type=float, required=True, help="Quantity in kg") \
@@ -597,10 +275,10 @@ cli.subcommand("record-recycling", "Record recycling activity") \
     .add("--revenue", type=float) \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_recycling) \
+    .run(_cmd_record_recycling, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_recycling_record))
 
-cli.subcommand("report-incident", "Report pollution incident") \
+cli.subcommand("report-incident", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--incident-type", required=True, help="chemical_spill, water_contamination, soil_contamination, air_pollution, waste_dumping") \
     .add("--severity", required=True, choices=["low", "medium", "high", "critical"]) \
@@ -608,40 +286,40 @@ cli.subcommand("report-incident", "Report pollution incident") \
     .add("--affected-area", required=True) \
     .add("--reported-by") \
     .add("--json", action="store_true") \
-    .run(_cmd_report_incident) \
+    .run(_cmd_report_incident, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_incident))
 
-cli.subcommand("resolve-incident", "Resolve pollution incident") \
+cli.subcommand("resolve-incident", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--incident-id", required=True) \
     .add("--remedial-action", required=True) \
     .add("--resolution-date", help="YYYY-MM-DD") \
     .add("--json", action="store_true") \
-    .run(_cmd_resolve_incident) \
+    .run(_cmd_resolve_incident, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_resolve))
 
-cli.subcommand("waste-summary", "Waste totals by type and disposal") \
+cli.subcommand("waste-summary", "Retired unscoped read; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--days", type=int, default=30) \
     .add("--json", action="store_true") \
-    .run(lambda db, a: get_waste_summary(db, a.location_id, days=a.days)) \
+    .run(lambda db, a: get_waste_summary(db, a.location_id, days=a.days), needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_waste_summary))
 
-cli.subcommand("composting-efficiency", "Composting yield and quality") \
+cli.subcommand("composting-efficiency", "Retired unscoped read; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--json", action="store_true") \
-    .run(lambda db, a: get_composting_efficiency(db, a.location_id)) \
+    .run(lambda db, a: get_composting_efficiency(db, a.location_id), needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_composting_efficiency))
 
-cli.subcommand("open-incidents", "Unresolved pollution incidents") \
+cli.subcommand("open-incidents", "Retired unscoped read; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--json", action="store_true") \
-    .run(lambda db, a: get_open_incidents(db, a.location_id)) \
+    .run(lambda db, a: get_open_incidents(db, a.location_id), needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_open_incidents))
 
-cli.subcommand("dashboard", "Waste management dashboard") \
+cli.subcommand("dashboard", "Retired unscoped dashboard; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--json", action="store_true") \
-    .run(lambda db, a: get_waste_dashboard(db, a.location_id)) \
+    .run(lambda db, a: get_waste_dashboard(db, a.location_id), needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_dashboard))
 
 

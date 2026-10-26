@@ -1,0 +1,107 @@
+{
+  "check": "sensor_anomaly_ml_hash_locked_image_builds",
+  "captured_on": "2026-10-26",
+  "dockerfile": "Dockerfile.kernel",
+  "target": "ml-anomaly",
+  "base_image": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
+  "dependency_input": "requirements/ml-anomaly-runtime.in",
+  "dependency_lock": "requirements/ml-anomaly-runtime.lock",
+  "dependency_lock_sha256": "70fc5fc6c0f4ea896444fe4f55ae6d1ace3d86391daecdcd111db47d87aaa677",
+  "dependency_lock_packages": 24,
+  "lock_generation": {
+    "script": "scripts/compile-ml-anomaly-runtime-lock.sh",
+    "pip_tools": "7.6.2",
+    "hash_scope": "Selected Python 3.11 Linux AMD64 and ARM64 binary wheels",
+    "regeneration_script_smoke": "passed"
+  },
+  "install_policy": {
+    "require_hashes": true,
+    "binary_wheels_only": true,
+    "dependency_resolution_platform": "BUILDPLATFORM",
+    "target_architecture_selection": "TARGETARCH"
+  },
+  "multiarch_release_inventory": {
+    "initial_clean_build": {
+      "status": "rejected_by_release_gate",
+      "index_sha256": "442ad36ce9e06e86149819d6d6c6581acdd7cd0991997794e2c865954370ab10",
+      "reason": "The digest-pinned Python base image includes packaging 26.2; pip inventory selected that inherited dist-info instead of the locked packaging 26.3 wheel."
+    },
+    "post_fix_build": {
+      "status": "passed",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "index_sha256": "f7562aac5eb653f050fe0da754e54f7b88d75a1e9c9935cada45971c43da1d5d",
+      "locked_packages": 24,
+      "matching_total_python_packages": 27,
+      "allowed_unlocked_base_tools": {
+        "pip": "24.0",
+        "setuptools": "79.0.1",
+        "wheel": "0.46.3"
+      },
+      "dependency_layers_reused_from_initial_clean_locked_install": true,
+      "target_images_rebuilt_after_base_metadata_removal": true,
+      "archive_removed_after_verification": true
+    },
+    "hosted_full_uncached_release_gate": "pending"
+  },
+  "amd64": {
+    "status": "passed",
+    "image": "kokonut-ml-anomaly-lock-verify:amd64",
+    "image_id": "sha256:f7224ab04a3a1058587d1c8aef41ef99baa2311b9867395f7ddfc6bfba6a1777",
+    "platform": "linux/amd64",
+    "docker_image_size_bytes": 955409918,
+    "pip_check": "passed",
+    "cli_help": "passed",
+    "network_disabled_read_only_resource_smoke": {
+      "status": "passed",
+      "memory_limit_bytes": 1073741824,
+      "cpu_quota": "200000 100000",
+      "samples": 1024,
+      "feature_count": 4,
+      "outlier_count": 204,
+      "peak_rss_kib": 192664,
+      "elapsed_seconds": 2.615
+    }
+  },
+  "arm64": {
+    "status": "passed",
+    "image": "kokonut-ml-anomaly-lock-verify:arm64",
+    "image_id": "sha256:a9d93a2828bfffa14f12de7f982745555ab32bc3eb1466c126362d61ba7ea42b",
+    "platform": "linux/arm64",
+    "execution_environment": "Docker software emulation (QEMU)",
+    "docker_image_size_bytes": 986988102,
+    "pip_check": "passed",
+    "cli_help": "passed",
+    "network_disabled_read_only_resource_smoke": {
+      "status": "passed",
+      "memory_limit_bytes": 1073741824,
+      "cpu_quota": "200000 100000",
+      "samples": 1024,
+      "feature_count": 4,
+      "outlier_count": 204,
+      "peak_rss_kib": 332860,
+      "elapsed_seconds": 59.414
+    }
+  },
+  "package_versions": {
+    "numpy": "1.26.4",
+    "pandas": "3.0.6",
+    "prophet": "1.5.0",
+    "psycopg2": "2.9.13",
+    "scikit_learn": "1.9.1",
+    "scipy": "1.17.1"
+  },
+  "network_or_database_calls": false,
+  "candidate_or_legacy_touched": false,
+  "compose_services_started": false,
+  "physical_raspberry_pi_tested": false,
+  "temporary_validation_images_removed": true,
+  "repository_checks": {
+    "focused_pytest": "29 passed: ML OCI release gate, lock generator, and Kernel profile contracts",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "shell_syntax": "passed",
+    "dependency_group_alignment": "passed",
+    "capability_matrix": "passed (67 rows)",
+    "release_input_hashes": "passed"
+  }
+}

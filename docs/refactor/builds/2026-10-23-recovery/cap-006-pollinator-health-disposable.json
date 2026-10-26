@@ -1,0 +1,21 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-24T02:36:42.660237+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "migrations": [
+    "155_pollinator_health.sql",
+    "602_pollinator_health_kernel_alignment.sql"
+  ],
+  "migration_602_replayed": true,
+  "assertion_groups_passed": 6,
+  "checks": [
+    "migration 155 and additive 602 apply; migration 602 replays idempotently",
+    "observation writes satisfy required date, pollinator type, method, and lifecycle checks",
+    "summary reads only reviewed observations and isolates location rows",
+    "habitat and pesticide service queries use the actual 155/602 table and column names",
+    "hive inspections append history and update only the matching location-bound hive",
+    "composite foreign key rejects an observation linked to another location's hive"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false
+}

@@ -4,24 +4,36 @@ Handles device auto-registration, health monitoring, and status tracking.
 Works with both MQTT and HTTP sensor ingestion paths.
 
 Usage:
-    python3 -m services.ingestion.device_manager --list
+    python3 -m services.ingestion.device_manager --list --location-id UUID
     python3 -m services.ingestion.device_manager --register --device-id sensor001 --sensor-type air_temperature --location-id UUID
-    python3 -m services.ingestion.device_manager --health --device-id sensor001
+    python3 -m services.ingestion.device_manager --health --device-id sensor001 --location-id UUID
 """
 
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 import psycopg2
 import psycopg2.extras
 
+from services.common.cli import print_json
+
 from ..common.logging import get_logger
 from .base import get_db
-from services.common.cli import print_json
+
 logger = get_logger("ingestion.device_manager")
+
+
+def _canonical_location_id(location_id: str | None) -> str:
+    """Require one location scope before device SQL or CLI database access."""
+    if location_id is None:
+        raise ValueError("device operations require an explicit location UUID")
+    try:
+        return str(UUID(str(location_id)))
+    except (ValueError, AttributeError, TypeError):
+        raise ValueError("location_id must be a UUID") from None
 
 
 def register_device(
@@ -41,62 +53,68 @@ def register_device(
     Returns:
         Device UUID.
     """
+    location_id = _canonical_location_id(location_id)
     cur = conn.cursor()
+    try:
+        # Get sensor type ID.
+        cur.execute("SELECT id FROM sensor_type WHERE name = %s", (sensor_type,))
+        row = cur.fetchone()
+        if not row:
+            raise ValueError(f"Unknown sensor type: {sensor_type}")
+        sensor_type_id = str(row[0])
 
-    # Get sensor type ID
-    cur.execute("SELECT id FROM sensor_type WHERE name = %s", (sensor_type,))
-    row = cur.fetchone()
-    if not row:
-        raise ValueError(f"Unknown sensor type: {sensor_type}")
-    sensor_type_id = str(row[0])
+        cur.execute("""
+            INSERT INTO sensor_device
+                (name, slug, sensor_type_id, location_id, protocol, manufacturer, model, serial_number, status, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active', %s)
+            ON CONFLICT (slug) DO UPDATE SET
+                name = EXCLUDED.name,
+                sensor_type_id = EXCLUDED.sensor_type_id,
+                protocol = EXCLUDED.protocol,
+                manufacturer = EXCLUDED.manufacturer,
+                model = EXCLUDED.model,
+                serial_number = EXCLUDED.serial_number,
+                status = 'active',
+                metadata = EXCLUDED.metadata,
+                updated_at = NOW()
+            WHERE sensor_device.location_id = EXCLUDED.location_id
+            RETURNING id
+        """, (
+            name or f"Sensor {device_id}",
+            device_id,
+            sensor_type_id,
+            location_id,
+            protocol,
+            manufacturer,
+            model,
+            serial_number,
+            json.dumps(metadata or {}),
+        ))
+        inserted = cur.fetchone()
+        if not inserted:
+            raise ValueError("Device slug is already assigned to a different location")
+        device_id_db = str(inserted[0])
 
-    cur.execute("""
-        INSERT INTO sensor_device
-            (name, slug, sensor_type_id, location_id, protocol, manufacturer, model, serial_number, status, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active', %s)
-        ON CONFLICT (slug) DO UPDATE SET
-            name = EXCLUDED.name,
-            sensor_type_id = EXCLUDED.sensor_type_id,
-            location_id = EXCLUDED.location_id,
-            protocol = EXCLUDED.protocol,
-            manufacturer = EXCLUDED.manufacturer,
-            model = EXCLUDED.model,
-            serial_number = EXCLUDED.serial_number,
-            status = 'active',
-            metadata = EXCLUDED.metadata,
-            updated_at = NOW()
-        RETURNING id
-    """, (
-        name or f"Sensor {device_id}",
-        device_id,
-        sensor_type_id,
-        location_id,
-        protocol,
-        manufacturer,
-        model,
-        serial_number,
-        json.dumps(metadata or {}),
-    ))
-    device_id_db = str(cur.fetchone()[0])
-    conn.commit()
-    cur.close()
-
-    # Initialize device health
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO sensor_device_health (device_id, last_seen_at, status)
-        VALUES (%s, NOW(), 'unknown')
-        ON CONFLICT (device_id) DO NOTHING
-    """, (device_id_db,))
-    conn.commit()
-    cur.close()
+        # Keep the device and its initial health row in one transaction.
+        cur.execute("""
+            INSERT INTO sensor_device_health (device_id, last_seen_at, status)
+            VALUES (%s, NOW(), 'unknown')
+            ON CONFLICT (device_id) DO NOTHING
+        """, (device_id_db,))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
 
     logger.info("Registered device: %s (id=%s, type=%s)", device_id, device_id_db[:8], sensor_type)
     return device_id_db
 
 
-def list_devices(conn, location_id: str = None, status: str = None) -> List[Dict[str, Any]]:
-    """List registered sensor devices."""
+def list_devices(conn, location_id: str, status: str = None) -> List[Dict[str, Any]]:
+    """List registered sensor devices for one location."""
+    location_id = _canonical_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     query = """
         SELECT
@@ -114,12 +132,9 @@ def list_devices(conn, location_id: str = None, status: str = None) -> List[Dict
         FROM sensor_device sd
         JOIN sensor_type st ON st.id = sd.sensor_type_id
         LEFT JOIN sensor_device_health sdh ON sdh.device_id = sd.id
-        WHERE 1=1
+        WHERE sd.location_id = %s
     """
-    params = []
-    if location_id:
-        query += " AND sd.location_id = %s"
-        params.append(location_id)
+    params = [location_id]
     if status:
         query += " AND sd.status = %s"
         params.append(status)
@@ -131,8 +146,9 @@ def list_devices(conn, location_id: str = None, status: str = None) -> List[Dict
     return rows
 
 
-def get_device_health(conn, device_id: str) -> Optional[Dict[str, Any]]:
-    """Get device health status."""
+def get_device_health(conn, device_id: str, location_id: str) -> Optional[Dict[str, Any]]:
+    """Get device health status within one location."""
+    location_id = _canonical_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("""
         SELECT
@@ -148,8 +164,9 @@ def get_device_health(conn, device_id: str) -> Optional[Dict[str, Any]]:
         FROM sensor_device sd
         JOIN sensor_type st ON st.id = sd.sensor_type_id
         LEFT JOIN sensor_device_health sdh ON sdh.device_id = sd.id
-        WHERE sd.slug = %s
-    """, (device_id,))
+        WHERE (sd.slug = %s OR sd.id::text = %s)
+          AND sd.location_id = %s
+    """, (device_id, device_id, location_id))
     row = cur.fetchone()
     cur.close()
     return dict(row) if row else None
@@ -162,12 +179,18 @@ def update_health(
     signal_strength_dbm: float = None,
     firmware_version: str = None,
     reading_rate: float = None,
+    *,
+    location_id: str,
 ) -> None:
-    """Update device health metrics."""
+    """Update device health metrics only for a device in one location."""
+    location_id = _canonical_location_id(location_id)
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO sensor_device_health (device_id, last_seen_at, battery_pct, signal_strength_dbm, firmware_version, reading_rate_per_hour, status)
-        VALUES (%s, NOW(), %s, %s, %s, %s, 'online')
+        SELECT sd.id, NOW(), %s, %s, %s, %s, 'online'
+        FROM sensor_device sd
+        WHERE sd.id::text = %s
+          AND sd.location_id = %s
         ON CONFLICT (device_id) DO UPDATE SET
             last_seen_at = NOW(),
             battery_pct = COALESCE(EXCLUDED.battery_pct, sensor_device_health.battery_pct),
@@ -176,16 +199,21 @@ def update_health(
             reading_rate_per_hour = COALESCE(EXCLUDED.reading_rate_per_hour, sensor_device_health.reading_rate_per_hour),
             status = 'online',
             updated_at = NOW()
-    """, (device_id, battery_pct, signal_strength_dbm, firmware_version, reading_rate))
+        RETURNING device_id
+    """, (battery_pct, signal_strength_dbm, firmware_version, reading_rate, device_id, location_id))
+    if cur.fetchone() is None:
+        conn.rollback()
+        cur.close()
+        raise ValueError("Device is not registered in the requested location")
     conn.commit()
     cur.close()
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="IoT device manager")
-    parser.add_argument("--list", action="store_true", help="List all devices")
+    parser.add_argument("--list", action="store_true", help="List devices in one location")
     parser.add_argument("--register", action="store_true", help="Register a new device")
     parser.add_argument("--health", action="store_true", help="Get device health")
     parser.add_argument("--device-id", help="Device slug/ID")
@@ -193,24 +221,44 @@ if __name__ == "__main__":
     parser.add_argument("--location-id", help="Location UUID")
     parser.add_argument("--name", help="Device name")
     parser.add_argument("--protocol", default="mqtt", choices=["mqtt", "http", "csv", "manual"])
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    operations = [args.list, args.register, args.health]
+    if not any(operations):
+        parser.print_help()
+        return
+    if sum(operations) != 1:
+        parser.error("choose exactly one of --list, --register, or --health")
+    try:
+        location_id = _canonical_location_id(args.location_id)
+    except ValueError as exc:
+        parser.error(str(exc))
+    if args.register and not all([args.device_id, args.sensor_type]):
+        parser.error("--register requires --device-id and --sensor-type")
+    if args.health and not args.device_id:
+        parser.error("--health requires --device-id")
 
     conn = get_db()
     try:
         if args.list:
-            devices = list_devices(conn, location_id=args.location_id)
+            devices = list_devices(conn, location_id=location_id)
             print_json(devices)
         elif args.register:
-            if not all([args.device_id, args.sensor_type, args.location_id]):
-                parser.error("--register requires --device-id, --sensor-type, --location-id")
-            device_id = register_device(conn, args.device_id, args.sensor_type, args.location_id, args.name, args.protocol)
+            device_id = register_device(
+                conn,
+                args.device_id,
+                args.sensor_type,
+                location_id,
+                args.name,
+                args.protocol,
+            )
             print(json.dumps({"device_id": device_id, "status": "registered"}))
         elif args.health:
-            if not args.device_id:
-                parser.error("--health requires --device-id")
-            health = get_device_health(conn, args.device_id)
+            health = get_device_health(conn, args.device_id, location_id)
             print_json(health)
-        else:
-            parser.print_help()
     finally:
         conn.close()
+
+
+if __name__ == "__main__":
+    main()

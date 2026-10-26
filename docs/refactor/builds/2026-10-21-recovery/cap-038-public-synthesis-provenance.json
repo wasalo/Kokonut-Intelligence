@@ -1,0 +1,96 @@
+{
+  "capability": "CAP-038",
+  "batch": "location-scoped public synthesis provenance",
+  "date": "2026-10-21",
+  "result": "passed",
+  "agents": [
+    "commons_liberation_synthesis",
+    "gnh_alignment_synthesis",
+    "financial_resilience_synthesis",
+    "open_source_capitalist_synthesis"
+  ],
+  "registered_location_scoped_views": 15,
+  "excluded_global_sources": [
+    "network_scaling_target",
+    "open_source_impact_artifact",
+    "green_paper_publication_review"
+  ],
+  "checks": [
+    {
+      "name": "focused tests",
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py tests/test_regenerative_outcomes.py tests/test_synthesis_source_references.py -q",
+      "result": "passed",
+      "passed": 71
+    },
+    {
+      "name": "Ruff",
+      "command": "ruff check services/agents/base.py services/agents/commons_agent.py services/agents/gnh_agent.py services/agents/resilience_agent.py services/agents/open_source_capitalist_agent.py services/agents/worker_draft.py tests/test_agent_worker_draft.py tests/test_synthesis_source_references.py scripts/check-agent-worker-ai-summary-disposable.py",
+      "result": "passed"
+    },
+    {
+      "name": "Python compilation",
+      "result": "passed"
+    },
+    {
+      "name": "generated inventories and matrix",
+      "result": "passed",
+      "checks": [
+        "runtime SQL inventory",
+        "worker source closure",
+        "worker SQL inventory",
+        "agent write-boundary inventory",
+        "capability matrix: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared"
+      ]
+    },
+    {
+      "name": "migration and authorization acceptance",
+      "command": "python3 scripts/check-agent-worker-ai-summary-disposable.py",
+      "database": "network-disabled disposable PostgreSQL 16 container",
+      "result": "passed",
+      "migrations": [
+        "405_signed_worker_tenant_context.sql",
+        "419_private_worker_context_functions.sql",
+        "521_location_scoped_ai_summary_review.sql",
+        "522_authenticated_ai_summary_drafts.sql",
+        "523_ai_summary_source_references.sql",
+        "524_ai_summary_global_source_references.sql",
+        "529_signed_agent_ai_summary_drafts.sql",
+        "530_signed_agent_ai_summary_source_references.sql",
+        "531_capital_efficiency_synthesis_source_references.sql",
+        "532_registered_agent_source_reference_views.sql",
+        "533_regenerator_synthesis_source_references.sql",
+        "534_public_synthesis_source_reference_views.sql"
+      ],
+      "replayed_migrations": [
+        "530_signed_agent_ai_summary_source_references.sql",
+        "531_capital_efficiency_synthesis_source_references.sql",
+        "532_registered_agent_source_reference_views.sql",
+        "533_regenerator_synthesis_source_references.sql",
+        "534_public_synthesis_source_reference_views.sql"
+      ],
+      "assertions_passed": 16,
+      "candidate_or_legacy_modified": false,
+      "coverage": [
+        "four agent groups round-trip source manifests through signed worker scope",
+        "all 15 views expose only id and location_id to the source-reference drafter",
+        "worker execution has no direct access to underlying source tables",
+        "global catalogues and Green Paper publication status are excluded from location manifests"
+      ]
+    },
+    {
+      "name": "diff whitespace validation",
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "rollout": {
+    "migration_534_applied_to_candidate": false,
+    "worker_credentials_provisioned": false,
+    "candidate_or_legacy_modified": false
+  },
+  "remaining_limits": [
+    "Wellbeing, Feedback, Kokonut Commons, and other synthesis paths still need source-reference review.",
+    "Runtime database least privilege, populated task parity, and MAN-CAP-038 owner acceptance remain open."
+  ],
+  "disposable_evidence": "cap-038-public-synthesis-source-references-disposable.json"
+}

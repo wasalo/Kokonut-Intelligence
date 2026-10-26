@@ -10,8 +10,8 @@
 This policy establishes Kokonut Intelligence's (KI) information security
 management system in support of SOC 2 Type I/II and ISO 27001:2022 readiness.
 It applies to all KI infrastructure, code, and data: the canonical Postgres+
-Directus+ClickHouse stack, the Gateway/GRPC services, CI (OneDev), and the
-staging environment on `cerberus`.
+Directus+ClickHouse stack, the Gateway/GRPC services, GitHub Actions CI, and
+the staging environment on the dedicated self-hosted runner.
 
 Out of scope: Kokonut-Agentic-Marketplace smart-contract logic (separate
 audit lineage) and production hosts not yet provisioned.

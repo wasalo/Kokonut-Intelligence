@@ -155,7 +155,7 @@ Before enabling iframe embedding, review the current Caddy `X-Frame-Options: DEN
 - name and description;
 - `dataset_type`;
 - optional `location_id`;
-- stored `query_sql`;
+- a registered `query_id` selecting a source-controlled query contract;
 - refresh interval and `last_refreshed_at`;
 - governed lifecycle `status`;
 - metadata such as owner, refresh cron, public-safety caveats, and last-refresh details.
@@ -168,6 +168,14 @@ draft -> rejected -> draft
 ```
 
 Dashboard dataset verification requires an analyst, manager, or admin role. Publication requires a manager or admin role. Agents may only create or update safe draft/submitted/rejected states and cannot verify or publish datasets.
+
+The legacy `query_sql` column is retained in PostgreSQL for archived
+compatibility only. The Directus extension rejects attempts to write it and
+omits it from current responses. The SDK retains an optional deprecated field
+for older Directus servers only. New dataset requests use `query_id`; Kernel
+refresh never reads or executes stored SQL. Refresh requires an exact location
+and runs only contracts in the source-controlled registry under the dedicated
+read-only reporting role.
 
 ### Refresh Operations
 

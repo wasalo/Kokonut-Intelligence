@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -107,6 +107,127 @@ def test_credit_batch_manager_list_batches_returns_list():
 
     result = list_batches(conn)
     assert isinstance(result, list)
+
+
+def _batch_create_connection(*rows):
+    conn = MagicMock()
+    conn.text = lambda sql: sql
+    results = []
+    for row in rows:
+        result = MagicMock()
+        result.mappings.return_value.first.return_value = row
+        results.append(result)
+    conn.execute.side_effect = results
+    return conn
+
+
+def test_credit_batch_manager_origin_reference_is_persisted_and_indexed():
+    from services.credit_class.batch_manager import create_batch
+
+    conn = _batch_create_connection(
+        {"id": "class-1"},
+        {"methodology": "IPCC"},
+        {"name": "Adelphi"},
+        {"seq": 1},
+        {"id": "batch-1"},
+        None,
+    )
+
+    result = create_batch(
+        conn,
+        credit_class_id="class-1",
+        location_id="location-1",
+        vintage_year=2026,
+        total_quantity=10,
+        origin_tx_id="0xabc123",
+        origin_tx_source="celo",
+        origin_tx_contract="0xcontract",
+    )
+
+    assert result["origin_tx_id"] == "0xabc123"
+    batch_sql, batch_params = conn.execute.call_args_list[4].args
+    assert "origin_tx_id" in batch_sql
+    assert batch_params["otxid"] == "0xabc123"
+    index_sql, index_params = conn.execute.call_args_list[5].args
+    assert "INSERT INTO origin_tx_index" in index_sql
+    assert index_params == {
+        "ccid": "class-1",
+        "otxid": "0xabc123",
+        "otxsource": "celo",
+        "bid": "batch-1",
+    }
+
+
+@pytest.mark.parametrize(
+    "origin_values",
+    [
+        {"origin_tx_id": "tx-only"},
+        {"origin_tx_source": "celo-only"},
+        {"origin_tx_contract": "contract-only"},
+    ],
+)
+def test_credit_batch_manager_rejects_incomplete_origin_reference_before_database(origin_values):
+    from services.credit_class.batch_manager import create_batch
+
+    conn = MagicMock()
+
+    with pytest.raises(ValueError, match="origin_tx"):
+        create_batch(
+            conn,
+            credit_class_id="class-1",
+            location_id="location-1",
+            vintage_year=2026,
+            total_quantity=10,
+            **origin_values,
+        )
+
+    conn.execute.assert_not_called()
+
+
+def test_credit_batch_manager_requires_transactional_connection_for_origin_index():
+    from services.credit_class.batch_manager import create_batch
+
+    conn = MagicMock()
+    conn.autocommit = True
+
+    with pytest.raises(ValueError, match="transactional connection"):
+        create_batch(
+            conn,
+            credit_class_id="class-1",
+            location_id="location-1",
+            vintage_year=2026,
+            total_quantity=10,
+            origin_tx_id="tx-1",
+            origin_tx_source="celo",
+        )
+
+    conn.execute.assert_not_called()
+
+
+def test_credit_batch_manager_origin_index_conflict_propagates_for_transaction_rollback():
+    from services.credit_class.batch_manager import create_batch
+
+    conn = _batch_create_connection(
+        {"id": "class-1"},
+        {"methodology": "IPCC"},
+        {"name": "Adelphi"},
+        {"seq": 1},
+        {"id": "batch-1"},
+    )
+    results = list(conn.execute.side_effect)
+    results.append(RuntimeError("origin index conflict"))
+    conn.execute.side_effect = results
+
+    with pytest.raises(RuntimeError, match="origin index conflict"):
+        create_batch(
+            conn,
+            credit_class_id="class-1",
+            location_id="location-1",
+            vintage_year=2026,
+            total_quantity=10,
+            origin_tx_id="tx-1",
+            origin_tx_source="celo",
+        )
 
 
 if __name__ == "__main__":

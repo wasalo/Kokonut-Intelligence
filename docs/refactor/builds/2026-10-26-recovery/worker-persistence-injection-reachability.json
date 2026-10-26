@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-26",
+  "change": "Static worker reachability now propagates concrete instance types through exact keyword constructor bindings into statically resolved function parameters.",
+  "scope": {
+    "operation_roots": 41,
+    "source_files": 111,
+    "function_memberships": 918,
+    "direct_call_edges": 1258,
+    "registered_literal_dispatch_edges": 24,
+    "sql_execution_sites": 359,
+    "unique_sql_sites_with_static_operation_path": 284,
+    "sql_sites_without_static_function_match": 75,
+    "previous_unmatched_sql_sites": 82,
+    "resolved_sql_sites": 7
+  },
+  "adapter_paths": [
+    {
+      "worker": "services.ingestion.baal_worker",
+      "adapter": "BaalWorkerPersistence",
+      "processor": "services.ingestion.baal_indexer:run",
+      "sql_sites": [
+        37,
+        49
+      ]
+    },
+    {
+      "worker": "services.ingestion.gnosis_worker",
+      "adapter": "GnosisWorkerPersistence",
+      "processor": "services.ingestion.gnosis_indexer:run",
+      "sql_sites": [
+        45,
+        57,
+        148
+      ]
+    },
+    {
+      "worker": "services.ingestion.freshness_worker",
+      "adapter": "FreshnessPersistence",
+      "processor": "services.ingestion.data_freshness:check_freshness",
+      "sql_sites": [
+        31,
+        36
+      ]
+    }
+  ],
+  "verification": {
+    "focused_tests": "20 passed: tests/test_worker_function_reachability.py, tests/test_worker_sql_reachability.py, tests/test_worker_boundary_preflight.py",
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "worker_source_closure_check": "passed",
+    "worker_function_reachability_check": "passed",
+    "worker_sql_reachability_check": "passed",
+    "worker_boundary_preflight_check": "passed",
+    "worker_sql_inventory_check": "passed",
+    "worker_effect_inventory_check": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "safety_scope": {
+    "database_or_provider_access": false,
+    "candidate_or_legacy_services_touched": false,
+    "does_not_prove": [
+      "runtime authorization",
+      "database grants",
+      "tenant isolation",
+      "RLS",
+      "all callback or dynamic dispatch behavior",
+      "provider or database-side effects"
+    ],
+    "remaining_unmatched_sql_sites": 75
+  },
+  "files": [
+    "scripts/worker_function_reachability.py",
+    "tests/test_worker_function_reachability.py",
+    "tests/test_worker_sql_reachability.py",
+    "docs/refactor/worker-function-reachability.json",
+    "docs/refactor/worker-sql-reachability.json",
+    "docs/refactor/worker-boundary-preflight.json",
+    "docs/refactor/worker-operation-map.md",
+    "docs/refactor/batches.md",
+    "docs/refactor/progress.md"
+  ]
+}

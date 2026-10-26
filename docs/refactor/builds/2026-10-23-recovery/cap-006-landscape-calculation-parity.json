@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-006",
+  "batch": "landscape dashboard calculation parity",
+  "implementation": {
+    "gateway": "services/gateway/landscape_conservation_reads.py",
+    "console": "apps/operator-console/index.html",
+    "contract": "docs/refactor/landscape-pollinator-kernel-read-contract.md",
+    "summary_fields": {
+      "active_habitats": [
+        "zone_count",
+        "total_area_ha",
+        "critical_habitats",
+        "high_value_habitats"
+      ],
+      "active_corridors": [
+        "corridor_count",
+        "healthy_corridors",
+        "total_length_m",
+        "mean_width_m"
+      ],
+      "verified_buffer_checks": [
+        "total_checks",
+        "compliant_checks",
+        "compliance_pct",
+        "erosion_incidents"
+      ],
+      "legacy_connectivity_ratio_pct": "healthy active corridors / active habitat zones; compatibility formula, not a network measure"
+    },
+    "governance": "Buffer aggregates include verified rows only; they are not represented as legal or regulatory compliance."
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_landscape_pollinator_reads.py tests/test_operator_console_landscape_pollinator.py tests/test_landscape_conservation.py tests/test_landscape_reference_location.py tests/test_landscape_reference_preflight.py -q",
+    "result": "54 passed, 8 subtests passed",
+    "ruff": "passed for the changed Gateway and test files",
+    "python_compilation": "passed for changed Python files",
+    "operator_console_node_syntax": "passed as part of focused console test",
+    "runtime_sql_inventory": "regenerated and --check passed",
+    "capability_matrix": "67 rows valid: 26 baseline-retained, 7 deployed, 34 prepared",
+    "diff_check": "git diff --check passed"
+  },
+  "not_performed": [
+    "database access",
+    "migration",
+    "provider access",
+    "candidate or legacy rollout",
+    "Raspberry Pi hardware test"
+  ],
+  "remaining_gates": [
+    "populated archive/reference-fixture output parity",
+    "historic landscape link reconciliation and FK validation",
+    "runtime ACL/RLS",
+    "live ZITADEL/browser acceptance",
+    "MAN-CAP-006"
+  ],
+  "rollback": "Revert application source changes; no persistent database state was written."
+}

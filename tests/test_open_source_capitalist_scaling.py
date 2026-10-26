@@ -12,7 +12,6 @@ from services.export.report_generator import (
     generate_scaling_economics,
 )
 
-
 SCHEMA = Path("schemas/postgres/040_open_source_capitalist_scaling.sql")
 SEED = Path("schemas/seeds/041_open_source_capitalist_scaling.sql")
 PILOT_SEED = Path("schemas/seeds/041_pilot_open_source_capitalist_scaling.sql")
@@ -228,15 +227,16 @@ def test_open_source_capitalist_report_generators_registered() -> None:
 
 def test_open_source_capitalist_report_generators_public_safe() -> None:
     class Cursor:
-        calls = 0
+        def __init__(self, queries):
+            self.queries = queries
 
         def execute(self, query, params=None):
-            self.calls += 1
+            self.queries.append((query, params))
 
         def fetchall(self):
-            if self.calls == 1:
+            if len(self.queries) == 1:
                 return [{"total_launch_cost_usd": 60000, "planned_farm_count": 2, "public_summary": "Economics"}]
-            if self.calls == 2:
+            if len(self.queries) == 2:
                 return [{"capital_required_usd": 120000, "target_farm_count": 4, "public_summary": "Target"}]
             return [{
                 "resolution_status": "open",
@@ -249,20 +249,63 @@ def test_open_source_capitalist_report_generators_public_safe() -> None:
             pass
 
     class Conn:
+        def __init__(self):
+            self.queries = []
+
         def cursor(self, cursor_factory=None):
-            return Cursor()
+            return Cursor(self.queries)
 
     conn = Conn()
     economics = generate_scaling_economics(conn, "a0000000-0000-0000-0000-000000000001")
     assert economics["report_type"] == "scaling_economics"
+    assert economics["scope"] == "location"
     assert economics["planned_farm_count"] == 2
-    assert economics["target_farm_count"] == 4
+    assert economics["target_farm_count"] is None
+    assert economics["total_target_capital_usd"] is None
+    assert economics["network_targets"] == []
+    assert len(conn.queries) == 1
+    assert "WHERE location_id = %s::uuid" in conn.queries[0][0]
+    assert conn.queries[0][1] == ("a0000000-0000-0000-0000-000000000001",)
     assert "not guaranteed ROI" in economics["limitations"][0]
     assert generate_adoption_barriers(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "adoption_barriers"
     assert generate_perpetual_value_stress(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "perpetual_value_stress"
-    open_source = generate_open_source_impact(conn, "a0000000-0000-0000-0000-000000000001")
+    open_source = generate_open_source_impact(conn)
     assert open_source["report_type"] == "open_source_impact"
     assert "Hypercert" in open_source["limitations"][1]
+
+
+def test_scaling_economics_network_scope_includes_network_targets() -> None:
+    class Cursor:
+        def __init__(self, queries):
+            self.queries = queries
+
+        def execute(self, query, params=None):
+            self.queries.append((query, params))
+
+        def fetchall(self):
+            if len(self.queries) == 1:
+                return [{"total_launch_cost_usd": 60000, "planned_farm_count": 2}]
+            return [{"capital_required_usd": 120000, "target_farm_count": 4}]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.queries = []
+
+        def cursor(self, cursor_factory=None):
+            return Cursor(self.queries)
+
+    conn = Conn()
+    report = generate_scaling_economics(conn, "all")
+
+    assert report["scope"] == "network"
+    assert report["location_id"] is None
+    assert report["total_target_capital_usd"] == 120000
+    assert report["target_farm_count"] == 4
+    assert len(conn.queries) == 2
+    assert "v_public_network_scaling_target" in conn.queries[1][0]
 
 
 if __name__ == "__main__":

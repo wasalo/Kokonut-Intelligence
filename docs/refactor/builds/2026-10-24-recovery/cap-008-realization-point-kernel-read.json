@@ -1,0 +1,52 @@
+{
+  "capability": "CAP-008",
+  "batch": "saved simulation point pages",
+  "date": "2026-10-24",
+  "status": "passed",
+  "verification": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_gateway_geostatistics_reads.py tests/test_operator_console_geostatistics.py tests/test_operator_route_policy_inventory.py -q",
+      "result": "39 passed"
+    },
+    "ruff": {
+      "command": "ruff check services/gateway/geostatistics_reads.py services/gateway/geostatistics_routes.py services/gateway/operator_auth.py tests/test_gateway_geostatistics_reads.py tests/test_operator_console_geostatistics.py tests/test_operator_route_policy_inventory.py",
+      "result": "passed"
+    },
+    "python_compilation": {
+      "command": "python3 -m compileall -q services/gateway/geostatistics_reads.py services/gateway/geostatistics_routes.py services/gateway/operator_auth.py",
+      "result": "passed"
+    },
+    "console_javascript": {
+      "command": "Extract last inline script from apps/operator-console/index.html and run node --check",
+      "result": "passed"
+    },
+    "runtime_sql_inventory": {
+      "command": "python3 scripts/runtime_sql_inventory.py --output docs/refactor/runtime-sql-inventory.json && python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "regenerated and current"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; MAN-CAP checks separately gated"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "behavior": [
+    "added a no-store location-scoped realization point route guarded by exact geostatistics:read operator authorization",
+    "sets signed tenant context on the same repeatable-read, read-only transaction before selecting run, counting points, or reading a point page",
+    "qualifies the parent run lookup and each point count/page query by requested location; a foreign or missing run returns the same not-found response",
+    "bounds deterministic point pages to 50 rows and offset 10000 and omits point UUIDs, seeds, variogram IDs, and arbitrary metadata",
+    "exposes only a non-rendered realization request handle in the summary list; console detail renders coordinates and advisory values as text and discards stale responses"
+  ],
+  "database_or_migration_used": false,
+  "candidate_or_legacy_touched": false,
+  "remaining": [
+    "numerical/populated-output parity and scientific review",
+    "live OIDC/browser acceptance",
+    "least-privilege ACL/RLS and audience review",
+    "per-point kriging output parity",
+    "named MAN-CAP-008 acceptance"
+  ]
+}

@@ -9,6 +9,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BASE = "docker-compose.kernel-candidate.yml"
+ARM64 = "docker-compose.kernel-arm64.yml"
+ARM64_STANDARD = "docker-compose.kernel-arm64-standard.yml"
+ARM64_PROXY = "docker-compose.kernel-arm64-proxy.yml"
+ARM64_ZITADEL = "docker-compose.kernel-arm64-zitadel.yml"
+ARM64_GRPC = "docker-compose.kernel-arm64-grpc.yml"
+ARM64_MQTT = "docker-compose.kernel-arm64-mqtt.yml"
+ARM64_HTTP_SENSORS = "docker-compose.kernel-arm64-http-sensors.yml"
+ARM64_DIRECTUS = "docker-compose.kernel-arm64-directus.yml"
+ARM64_ANALYTICS = "docker-compose.kernel-arm64-analytics.yml"
+ARM64_SENSOR_ANOMALY_ML = "docker-compose.kernel-arm64-sensor-anomaly-ml.yml"
 PROFILES = {
     "minimal": [],
     "edge": ["docker-compose.kernel-edge.yml"],
@@ -17,9 +27,13 @@ PROFILES = {
 }
 OPTIONAL = {
     "proxy": "docker-compose.kernel-proxy.yml",
+    "oidc": "docker-compose.kernel-oidc.yml",
     "grpc": "docker-compose.kernel-grpc.yml",
     "mqtt": "docker-compose.kernel-mqtt.yml",
     "http_sensors": "docker-compose.kernel-http-sensors.yml",
+    "directus": "docker-compose.kernel-directus.yml",
+    "zitadel": "docker-compose.kernel-zitadel.yml",
+    "sensor_anomaly_ml": "docker-compose.kernel-sensor-anomaly-ml.yml",
 }
 
 
@@ -34,12 +48,26 @@ def main() -> None:
         parser.add_argument(f"--{name.replace('_', '-')}", dest=name, action="store_true")
     parser.add_argument("--action", choices=["config", "build", "up", "ps"], default="config")
     args = parser.parse_args()
-    if args.target_platform == "linux/arm64":
-        parser.error("ARM64 deployment is blocked: the pinned PostGIS database manifest is AMD64-only")
+    is_arm64 = args.target_platform == "linux/arm64"
+    if is_arm64 and args.profile not in {"minimal", "edge", "standard", "analytics"}:
+        parser.error("ARM64 currently supports only minimal, edge, standard, and analytics profiles")
+    selected_optional = {name for name in OPTIONAL if getattr(args, name)}
+    arm64_verified_optional = {
+        "proxy", "oidc", "zitadel", "grpc", "mqtt", "http_sensors", "directus",
+        "sensor_anomaly_ml",
+    }
+    unverified_arm64_optional = selected_optional - arm64_verified_optional
+    if is_arm64 and unverified_arm64_optional:
+        parser.error(
+            "ARM64 does not verify these optional overlays: "
+            + ", ".join(sorted(unverified_arm64_optional))
+        )
     if args.profile == "scale":
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
+    if args.oidc and not args.proxy and not args.zitadel:
+        parser.error("--oidc requires --proxy so operator session cookies use the HTTPS origin")
 
     files = [BASE]
     if args.separate_workers:
@@ -47,15 +75,41 @@ def main() -> None:
     files.extend(PROFILES[args.profile])
     if args.separate_workers:
         files.append("docker-compose.kernel-standard-analytics.yml")
-    files.extend(path for name, path in OPTIONAL.items() if getattr(args, name))
+    if args.zitadel:
+        # The self-hosted provider needs the HTTPS ingress and the Gateway's
+        # OIDC client settings. Keep all three opt-in while making one flag
+        # produce a complete, ordered stack.
+        selected_optional.update({"proxy", "oidc"})
+    files.extend(path for name, path in OPTIONAL.items() if name in selected_optional)
+    if is_arm64:
+        files.append(ARM64)
+        if args.profile == "standard" or args.separate_workers:
+            files.append(ARM64_STANDARD)
+        if args.profile == "analytics":
+            files.append(ARM64_ANALYTICS)
+        if "proxy" in selected_optional:
+            files.append(ARM64_PROXY)
+        if args.zitadel:
+            files.append(ARM64_ZITADEL)
+        if "grpc" in selected_optional:
+            files.append(ARM64_GRPC)
+        if "mqtt" in selected_optional:
+            files.append(ARM64_MQTT)
+        if "http_sensors" in selected_optional:
+            files.append(ARM64_HTTP_SENSORS)
+        if "directus" in selected_optional:
+            files.append(ARM64_DIRECTUS)
+        if "sensor_anomaly_ml" in selected_optional:
+            files.append(ARM64_SENSOR_ANOMALY_ML)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")
 
     # --env-file prevents Compose implicitly loading a plaintext .env. Export
     # required secrets explicitly before running the printed command.
+    project_name = "kokonut-kernel-candidate-arm64" if is_arm64 else "kokonut-kernel-candidate"
     command = ["docker", "compose", "--project-directory", str(ROOT),
-               "--env-file", "/dev/null", "-p", "kokonut-kernel-candidate"]
+               "--env-file", "/dev/null", "-p", project_name]
     for filename in files:
         command.extend(["-f", str(ROOT / filename)])
     if args.action == "config":

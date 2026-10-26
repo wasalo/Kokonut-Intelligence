@@ -1,0 +1,47 @@
+{
+  "slice": "Current-source ARM64 Kernel application software smoke",
+  "date": "2026-10-26",
+  "source_commit": "403ea03d7faf60f0171e591a5648a0de3af39d08",
+  "source_tree": "clean committed source",
+  "result": "passed",
+  "build": {
+    "command": "docker buildx build --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=false --load --quiet --tag kokonut-kernel-arm64-403ea03:local --file Dockerfile.kernel .",
+    "image_id": "sha256:52160a464ae82a78dbef909e013c45504d486c30c7bdf92f3d6fabc156a2adb7",
+    "image_size_bytes": 547307704,
+    "platform": "linux/arm64"
+  },
+  "runtime_smoke": {
+    "container_architecture": "aarch64",
+    "network": "none",
+    "root_filesystem": "read-only with 64 MiB temporary /tmp",
+    "sdk_mount": "sdk/python read-only",
+    "direct_route_objects": 16,
+    "scheduled_job_specs": 23,
+    "sdk_imports": [
+      "KokonutClient",
+      "KokonutPublicApiClient"
+    ],
+    "worker_imports": [
+      "services.events.dispatch_worker",
+      "services.ingestion.freshness_worker",
+      "services.ingestion.clickhouse_outbox_worker",
+      "services.events.notification_delivery_worker",
+      "services.ingestion.sensor_anomaly_worker",
+      "services.ingestion.sensor_anomaly_scan_worker"
+    ],
+    "database_calls": false,
+    "provider_calls": false,
+    "credentials_or_secrets": false,
+    "published_ports": false
+  },
+  "cleanup": {
+    "runtime_container_removed": true,
+    "temporary_image_removed": true,
+    "candidate_or_legacy_modified": false,
+    "persistent_compose_resources_modified": false
+  },
+  "limitations": [
+    "QEMU software-emulation evidence only; no physical Raspberry Pi, power-loss, thermal, measured performance, or storage-endurance acceptance.",
+    "Gateway creation/import smoke does not exercise authenticated requests, database behavior, or live providers."
+  ]
+}

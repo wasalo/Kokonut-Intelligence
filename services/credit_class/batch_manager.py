@@ -49,8 +49,23 @@ def create_batch(
     evidence_maturity: int = 1,
     metadata: dict = None,
     created_by: str = None,
+    origin_tx_id: str = None,
+    origin_tx_source: str = None,
+    origin_tx_contract: str = None,
 ) -> dict:
-    cc = get_class_with_validation(conn, credit_class_id)
+    origin_tx_id = _optional_origin_value(origin_tx_id, "origin_tx_id", max_length=255)
+    origin_tx_source = _optional_origin_value(origin_tx_source, "origin_tx_source", max_length=100)
+    origin_tx_contract = _optional_origin_value(
+        origin_tx_contract, "origin_tx_contract", max_length=42
+    )
+    if bool(origin_tx_id) != bool(origin_tx_source):
+        raise ValueError("origin_tx_id and origin_tx_source must be provided together")
+    if origin_tx_contract and not origin_tx_id:
+        raise ValueError("origin_tx_contract requires origin_tx_id and origin_tx_source")
+    if origin_tx_id and getattr(conn, "autocommit", False) is True:
+        raise ValueError("Origin transaction indexing requires a transactional connection")
+
+    get_class_with_validation(conn, credit_class_id)
     batch_code = _generate_batch_code(conn, credit_class_id, location_id, vintage_year)
 
     result = conn.execute(
@@ -58,11 +73,11 @@ def create_batch(
             "INSERT INTO credit_batch "
             "(credit_class_id, location_id, batch_code, vintage_year, total_quantity, unit, "
             "monitoring_report_cid, verification_report_cid, evidence_maturity, metadata, "
-            "created_by, updated_by) "
+            "created_by, updated_by, origin_tx_id, origin_tx_source, origin_tx_contract) "
             "VALUES "
             "(:ccid, :lid, :bc, :vy, :tq, :u, "
             ":mrc, :vrc, :em, :metadata, "
-            ":cb, :cb) "
+            ":cb, :cb, :otxid, :otxsource, :otxcontract) "
             "RETURNING id"
         ),
         {
@@ -72,11 +87,44 @@ def create_batch(
             "em": evidence_maturity,
             "metadata": json.dumps(metadata) if metadata else "{}",
             "cb": created_by,
+            "otxid": origin_tx_id,
+            "otxsource": origin_tx_source,
+            "otxcontract": origin_tx_contract,
         },
     )
     record = result.mappings().first()
+    if origin_tx_id:
+        conn.execute(
+            conn.text(
+                "INSERT INTO origin_tx_index "
+                "(credit_class_id, origin_tx_id, origin_tx_source, credit_batch_id) "
+                "VALUES (:ccid, :otxid, :otxsource, :bid)"
+            ),
+            {
+                "ccid": credit_class_id,
+                "otxid": origin_tx_id,
+                "otxsource": origin_tx_source,
+                "bid": record["id"],
+            },
+        )
     logger.info("Created credit_batch %s: %s", record["id"], batch_code)
-    return {"id": str(record["id"]), "batch_code": batch_code}
+    return {
+        "id": str(record["id"]),
+        "batch_code": batch_code,
+        "origin_tx_id": origin_tx_id,
+        "origin_tx_source": origin_tx_source,
+    }
+
+
+def _optional_origin_value(value: str | None, field: str, *, max_length: int) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field} must be a non-empty string when provided")
+    normalized = value.strip()
+    if len(normalized) > max_length:
+        raise ValueError(f"{field} exceeds {max_length} characters")
+    return normalized
 
 
 def issue_batch(conn, batch_id: str, issuer_address: str) -> dict:
@@ -114,8 +162,9 @@ def issue_batch(conn, batch_id: str, issuer_address: str) -> dict:
         from services.credit_class.chain_sync import sync_credits_to_chain
         chain_result = sync_credits_to_chain(conn, batch_id)
     except Exception as e:
-        logger.warning("On-chain sync failed for batch %s (non-blocking): %s", batch_id, e)
-        chain_result = {"error": str(e)}
+        safe_error = f"on-chain sync failed ({type(e).__name__})"
+        logger.warning("On-chain sync failed for batch %s (non-blocking; %s)", batch_id, type(e).__name__)
+        chain_result = {"error": safe_error}
 
     logger.info("Issued credit_batch %s (%s)", batch_id, batch["batch_code"])
     return {"id": batch_id, "batch_code": batch["batch_code"], "status": "published",
@@ -141,10 +190,43 @@ def list_batches(conn, credit_class_id: str = None, location_id: str = None) -> 
         params["lid"] = location_id
     where = "WHERE " + " AND ".join(conditions) if conditions else ""
     result = conn.execute(
-        conn.text(f"SELECT * FROM credit_batch {where} ORDER BY created_at DESC"),
+        conn.text(f"SELECT * FROM credit_batch {where} ORDER BY created_at DESC, id DESC"),
         params,
     )
     return [dict(r) for r in result.mappings()]
+
+
+def list_batches_page(
+    conn,
+    *,
+    limit: int,
+    offset: int,
+    credit_class_id: str = None,
+    location_id: str = None,
+) -> tuple[list[dict], int]:
+    """Fetch a bounded batch page with optional class/location filters."""
+    from services.credit_class.page_queries import fetch_page
+
+    conditions = []
+    params: dict[str, Any] = {}
+    if credit_class_id:
+        conditions.append("credit_class_id = :ccid")
+        params["ccid"] = credit_class_id
+    if location_id:
+        conditions.append("location_id = :lid")
+        params["lid"] = location_id
+    where = "WHERE " + " AND ".join(conditions) if conditions else ""
+    return fetch_page(
+        conn,
+        count_sql=f"SELECT COUNT(*) AS total FROM credit_batch {where}",
+        select_sql=(
+            f"SELECT * FROM credit_batch {where} "
+            "ORDER BY created_at DESC, id DESC LIMIT :_page_limit OFFSET :_page_offset"
+        ),
+        params=params,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def get_batch_balance(conn, batch_id: str) -> dict:
