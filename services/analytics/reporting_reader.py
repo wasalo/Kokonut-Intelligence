@@ -1,7 +1,7 @@
-"""Restricted PostgreSQL reader for optional saved reporting queries.
+"""Restricted PostgreSQL reader for optional registered reporting queries.
 
-Saved SQL is compatibility behavior, not a general application query API. It
-must execute as the dedicated role provisioned by
+Dashboard rows select a reviewed source-controlled query ID, not SQL text. A
+contract executes as the dedicated role provisioned by
 ``services.migration.analytics_role`` and may read only the curated reporting
 views. The ordinary application connection must never be used for the query.
 """
@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import os
 import re
+from dataclasses import dataclass
+from types import MappingProxyType
+from uuid import UUID
 
 import psycopg2
 
@@ -24,6 +27,31 @@ REPORTING_VIEWS = frozenset(
 QUERY_TIMEOUT_MS = 15_000
 LOCK_TIMEOUT_MS = 3_000
 _PLACEHOLDER_SECRET = re.compile(r"^(replace-with|your[_-]|change[_-]me|todo|none|null)", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class ReportingQuery:
+    """A reviewed, fixed SQL query exposed to the saved-dashboard runner."""
+
+    sql: str
+    scope: str = "exact_location"
+
+
+# Dashboard data selects a query contract by stable ID. SQL is source-controlled,
+# its location predicate is fixed, and all report views already apply their own
+# lifecycle/publication policy. Extend this registry only with reviewed output
+# contracts; never derive SQL identifiers or clauses from dashboard rows.
+REPORTING_QUERY_REGISTRY = MappingProxyType({
+    "public_farm_summary_count": ReportingQuery(
+        "SELECT count(*) FROM kokonut_reporting.v_farm_summary WHERE location_id = %s"
+    ),
+    "public_verified_metric_values_count": ReportingQuery(
+        "SELECT count(*) FROM kokonut_reporting.v_verified_metric_values WHERE location_id = %s"
+    ),
+    "public_attestation_summary_count": ReportingQuery(
+        "SELECT count(*) FROM kokonut_reporting.v_attestation_summary WHERE location_id = %s"
+    ),
+})
 
 
 class ReportingReaderPolicyError(RuntimeError):
@@ -185,10 +213,23 @@ def validate_reporting_connection(conn, *, expected_user: str) -> None:
             raise ReportingReaderPolicyError("saved reporting query login can connect to another database")
 
 
-def count_reporting_rows(query_sql: str, *, connection_factory=None) -> int:
-    """Count a saved SELECT under the view-only role without fetching its rows."""
-    if not isinstance(query_sql, str) or not query_sql.strip():
-        raise ValueError("saved reporting query must be non-empty SQL")
+def count_registered_reporting_rows(
+    query_id: str,
+    location_id: str | None,
+    *,
+    connection_factory=None,
+) -> int:
+    """Run one registered report count for exactly one canonical location."""
+    contract = REPORTING_QUERY_REGISTRY.get(query_id) if isinstance(query_id, str) else None
+    if contract is None:
+        raise ValueError("dataset query ID is missing or not registered")
+    if contract.scope != "exact_location" or location_id is None:
+        raise ValueError("registered dataset query requires an exact location")
+    try:
+        parsed_location = location_id if isinstance(location_id, UUID) else UUID(location_id)
+        canonical_location_id = str(parsed_location)
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("registered dataset query requires a valid location ID") from None
 
     factory = connection_factory or open_reporting_connection
     conn = factory()
@@ -203,7 +244,7 @@ def count_reporting_rows(query_sql: str, *, connection_factory=None) -> int:
             cur.execute("SET LOCAL search_path TO kokonut_reporting, pg_catalog")
             cur.execute(f"SET LOCAL statement_timeout = '{QUERY_TIMEOUT_MS}ms'")
             cur.execute(f"SET LOCAL lock_timeout = '{LOCK_TIMEOUT_MS}ms'")
-            cur.execute("SELECT count(*) FROM (\n" + query_sql + "\n) AS kokonut_saved_reporting_query")
+            cur.execute(contract.sql, (canonical_location_id,))
             row_count = cur.fetchone()[0]
         conn.commit()
         return int(row_count)

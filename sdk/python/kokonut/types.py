@@ -893,6 +893,7 @@ class DashboardDataset:
     description: Optional[str] = None
     dataset_type: Optional[str] = None
     location_id: Optional[str] = None
+    query_id: Optional[str] = None
     query_sql: Optional[str] = None
     refresh_interval_minutes: Optional[int] = None
     last_refreshed_at: Optional[str] = None

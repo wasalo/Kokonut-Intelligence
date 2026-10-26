@@ -1214,6 +1214,7 @@ export interface DashboardDataset {
   description?: string | null;
   dataset_type?: string | null;
   location_id?: string | null;
+  query_id?: string | null;
   query_sql?: string | null;
   refresh_interval_minutes?: number | null;
   last_refreshed_at?: string | null;

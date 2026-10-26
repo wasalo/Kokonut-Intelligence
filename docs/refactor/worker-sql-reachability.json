@@ -100,16 +100,16 @@
       "operation_ref": "scheduled_module:services.export.dataset_refresh",
       "statically_reachable_sql_site_count": 14,
       "statically_reachable_sql_site_ids": [
-        "services/analytics/reporting_reader.py:103:8",
-        "services/analytics/reporting_reader.py:130:8",
+        "services/analytics/reporting_reader.py:100:8",
+        "services/analytics/reporting_reader.py:118:8",
+        "services/analytics/reporting_reader.py:131:8",
         "services/analytics/reporting_reader.py:158:8",
-        "services/analytics/reporting_reader.py:174:8",
-        "services/analytics/reporting_reader.py:203:12",
-        "services/analytics/reporting_reader.py:204:12",
-        "services/analytics/reporting_reader.py:205:12",
-        "services/analytics/reporting_reader.py:206:12",
-        "services/analytics/reporting_reader.py:72:8",
-        "services/analytics/reporting_reader.py:90:8",
+        "services/analytics/reporting_reader.py:186:8",
+        "services/analytics/reporting_reader.py:202:8",
+        "services/analytics/reporting_reader.py:244:12",
+        "services/analytics/reporting_reader.py:245:12",
+        "services/analytics/reporting_reader.py:246:12",
+        "services/analytics/reporting_reader.py:247:12",
         "services/export/dataset_refresh.py:44:12",
         "services/export/dataset_refresh.py:49:12",
         "services/export/dataset_refresh.py:64:8",
@@ -3952,9 +3952,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/reporting_reader.py:72:8",
+      "id": "services/analytics/reporting_reader.py:100:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 72,
+      "line": 100,
       "scope": "validate_reporting_connection",
       "method": "execute",
       "expression_kind": "literal",
@@ -3973,9 +3973,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/reporting_reader.py:90:8",
+      "id": "services/analytics/reporting_reader.py:118:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 90,
+      "line": 118,
       "scope": "validate_reporting_connection",
       "method": "execute",
       "expression_kind": "literal",
@@ -3995,32 +3995,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/reporting_reader.py:103:8",
+      "id": "services/analytics/reporting_reader.py:131:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 103,
-      "scope": "validate_reporting_connection",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "pg_class",
-        "pg_depend",
-        "pg_namespace"
-      ],
-      "import_closure_operations": [
-        "scheduled_module:services.export.dataset_refresh"
-      ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.export.dataset_refresh"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
-    },
-    {
-      "id": "services/analytics/reporting_reader.py:130:8",
-      "source": "services/analytics/reporting_reader.py",
-      "line": 130,
+      "line": 131,
       "scope": "validate_reporting_connection",
       "method": "execute",
       "expression_kind": "literal",
@@ -4049,6 +4026,29 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
+        "pg_class",
+        "pg_depend",
+        "pg_namespace"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:186:8",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 186,
+      "scope": "validate_reporting_connection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
         "pg_namespace",
         "pg_proc"
       ],
@@ -4063,9 +4063,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/reporting_reader.py:174:8",
+      "id": "services/analytics/reporting_reader.py:202:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 174,
+      "line": 202,
       "scope": "validate_reporting_connection",
       "method": "execute",
       "expression_kind": "literal",
@@ -4084,10 +4084,10 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/reporting_reader.py:203:12",
+      "id": "services/analytics/reporting_reader.py:244:12",
       "source": "services/analytics/reporting_reader.py",
-      "line": 203,
-      "scope": "count_reporting_rows",
+      "line": 244,
+      "scope": "count_registered_reporting_rows",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SET",
@@ -4103,10 +4103,10 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/reporting_reader.py:204:12",
+      "id": "services/analytics/reporting_reader.py:245:12",
       "source": "services/analytics/reporting_reader.py",
-      "line": 204,
-      "scope": "count_reporting_rows",
+      "line": 245,
+      "scope": "count_registered_reporting_rows",
       "method": "execute",
       "expression_kind": "fstring",
       "statement_kind": "SET",
@@ -4122,10 +4122,10 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/reporting_reader.py:205:12",
+      "id": "services/analytics/reporting_reader.py:246:12",
       "source": "services/analytics/reporting_reader.py",
-      "line": 205,
-      "scope": "count_reporting_rows",
+      "line": 246,
+      "scope": "count_registered_reporting_rows",
       "method": "execute",
       "expression_kind": "fstring",
       "statement_kind": "SET",
@@ -4141,13 +4141,13 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/reporting_reader.py:206:12",
+      "id": "services/analytics/reporting_reader.py:247:12",
       "source": "services/analytics/reporting_reader.py",
-      "line": 206,
-      "scope": "count_reporting_rows",
+      "line": 247,
+      "scope": "count_registered_reporting_rows",
       "method": "execute",
-      "expression_kind": "composed",
-      "statement_kind": "SELECT",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
       "candidate_relations": [],
       "import_closure_operations": [
         "scheduled_module:services.export.dataset_refresh"

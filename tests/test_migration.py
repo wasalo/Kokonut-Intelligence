@@ -42,6 +42,24 @@ def test_clean_bootstrap_declares_locked_directus_role_for_migration_replay():
     assert "rolname = 'kokonut_runtime'" in source
 
 
+def test_dashboard_dataset_query_registry_migration_is_additive_and_replay_safe():
+    migration = (
+        Path(__file__).parents[1]
+        / "schemas"
+        / "postgres"
+        / "651_dashboard_dataset_query_registry.sql"
+    ).read_text()
+
+    assert migration.lstrip().startswith("--")
+    assert migration.count("BEGIN;") == 1
+    assert migration.count("COMMIT;") == 1
+    assert "ADD COLUMN IF NOT EXISTS query_id TEXT" in migration
+    assert "dashboard_dataset_query_id_format" in migration
+    assert "query_id IS NULL OR query_id ~ '^[a-z][a-z0-9_]{0,99}$'" in migration
+    assert "COMMENT ON COLUMN public.dashboard_dataset.query_id" in migration
+    assert "UPDATE public.dashboard_dataset" not in migration
+
+
 def test_schema_migrate_bootstraps_optional_roles_before_applying(monkeypatch, capsys):
     files = [{"id": "schema:475_location_solution_retirement_review.sql", "kind": "schema"}]
     operations = []

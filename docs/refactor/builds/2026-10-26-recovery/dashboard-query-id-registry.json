@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-26",
+  "change": "registered_dashboard_query_ids",
+  "implementation": {
+    "schema_migration": "schemas/postgres/651_dashboard_dataset_query_registry.sql",
+    "migration_sha256": "8164e842564291c0ce8bb7994b2fee100652de3225cce4642a4651f8dbc28484",
+    "query_registry": "services/analytics/reporting_reader.py",
+    "refresh_runner": "services/export/dataset_refresh.py",
+    "forecast_projection": "services/forecast/engine.py",
+    "stable_query_ids": [
+      "public_farm_summary_count",
+      "public_verified_metric_values_count",
+      "public_attestation_summary_count"
+    ],
+    "scope": "valid exact location_id bound to fixed SQL; only row counts returned",
+    "legacy_query_sql_selected_or_executed": false,
+    "existing_query_ids_backfilled": false
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_reporting_reader.py tests/test_dataset_refresh_readonly.py tests/test_migration.py tests/test_sdk.py tests/test_forecast.py tests/test_forecast_error_redaction.py -q",
+      "result": "passed",
+      "tests": 182
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "javascript_sdk_typescript_build": "passed",
+    "sdk_schema_parity": "passed: 109 models, 2,150 columns, 1,987 scalar types, 12 PostGIS types, 147 JSONB shapes, 23 enums, 95 CHECK-literal fields per SDK",
+    "dependency_group_alignment": "passed",
+    "capability_matrix_validation": "passed",
+    "runtime_sql_and_worker_inventories": "regenerated and current",
+    "git_diff_check": "passed",
+    "migration_disposable_postgresql_16": {
+      "network_disabled": true,
+      "storage": "container tmpfs; container removed after checks",
+      "precondition": "minimal synthetic public.dashboard_dataset table with legacy query_sql/location_id fields",
+      "apply": "passed",
+      "replay": "passed",
+      "nullable_legacy_query_id": "accepted",
+      "valid_query_id": "accepted",
+      "malformed_query_id": "rejected by CHECK constraint",
+      "full_schema_replayed": false
+    }
+  },
+  "data_state": {
+    "candidate_database_touched": false,
+    "legacy_database_touched": false,
+    "candidate_containers_touched": false,
+    "seed_rows_changed": false,
+    "provider_calls": false
+  },
+  "remaining_gates": [
+    "dashboard owners must select retained output contracts",
+    "populated semantic reference fixtures and report parity",
+    "durable result materialization",
+    "external dashboard consumer and database-role review",
+    "production credentials, grants, and rollout"
+  ],
+  "rollback": "Revert runner and SDK changes; keep the additive nullable query_id column inert. Existing dashboard rows and stored query_sql are not migrated. Future forecast projections continue to preserve metadata and clear the generated SQL field.",
+  "checklist": {
+    "complete": 1229,
+    "open": 25,
+    "total": 1254,
+    "capability_rows": 67,
+    "classifications": {
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36
+    }
+  }
+}

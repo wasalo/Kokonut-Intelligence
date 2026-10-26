@@ -657,7 +657,7 @@ def _write_dashboard_dataset(
     scenario_id: str, location_id: str,
     outputs: List[Dict[str, Any]], scenario_type: str,
 ) -> None:
-    """Write forecast summary to dashboard_dataset for BI integration."""
+    """Store forecast metadata without creating an executable SQL definition."""
     db = None
     try:
         summary = {}
@@ -673,11 +673,13 @@ def _write_dashboard_dataset(
         with db.cursor() as cur:
             cur.execute("""
                 INSERT INTO dashboard_dataset
-                    (id, name, description, location_id, dataset_type, query_sql, status,
+                    (id, name, description, location_id, dataset_type, query_id, query_sql, status,
                      metadata, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, 'forecast', %s, 'draft', %s::jsonb, NOW(), NOW())
+                VALUES (%s, %s, %s, %s, 'forecast', NULL, NULL, 'draft', %s::jsonb, NOW(), NOW())
                 ON CONFLICT (id) DO UPDATE SET
                     metadata = EXCLUDED.metadata,
+                    query_id = NULL,
+                    query_sql = NULL,
                     status = 'draft',
                     updated_at = NOW()
             """, (
@@ -685,7 +687,6 @@ def _write_dashboard_dataset(
                 f"Forecast Summary — {scenario_type}",
                 f"Forecast output summary for scenario {scenario_id}",
                 location_id,
-                f"SELECT * FROM forecast_output WHERE scenario_id = '{scenario_id}'",
                 json.dumps({
                     "scenario_id": scenario_id,
                     "scenario_type": scenario_type,

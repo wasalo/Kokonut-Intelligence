@@ -1,4 +1,4 @@
-"""Saved dataset SQL stays on the restricted reporting connection."""
+"""Saved dashboard refreshes use only registered, location-bound query IDs."""
 
 from __future__ import annotations
 
@@ -21,13 +21,14 @@ class FakeCursor:
 
     def execute(self, sql: str, params: Any = None) -> None:
         self.conn.statements.append((sql, params))
-        if sql.startswith("SELECT id, name, dataset_type, query_sql"):
+        if sql.startswith("SELECT id, name, dataset_type, query_id"):
             self.result = (
                 {
                     "id": "dataset-1",
                     "name": "Approved fixture",
                     "dataset_type": "reporting",
-                    "query_sql": self.conn.query_sql,
+                    "query_id": self.conn.query_id,
+                    "location_id": self.conn.location_id,
                     "refresh_interval_minutes": 60,
                 }
                 if self.return_dataset
@@ -46,7 +47,9 @@ class FakeCursor:
 
 class FakeApplicationConnection:
     def __init__(self, *, return_dataset=True):
-        self.query_sql = "SELECT * FROM kokonut_reporting.v_farm_summary"
+        self.query_sql = "SELECT 'private legacy SQL' FROM unauthorized_table"
+        self.query_id = "public_farm_summary_count"
+        self.location_id = "d4be5d0d-0b44-4e81-9b69-463bc87a9e11"
         self.return_dataset = return_dataset
         self.statements: list[tuple[str, Any]] = []
         self.commits = 0
@@ -70,38 +73,41 @@ class FakeApplicationConnection:
         self.closed = True
 
 
-def test_refresh_executes_saved_sql_only_through_reporting_reader(monkeypatch):
+def test_refresh_routes_only_registered_query_id_and_exact_location(monkeypatch):
     conn = FakeApplicationConnection()
     monkeypatch.setattr(dataset_refresh, "require_feature", lambda name: None)
-    executed: list[str] = []
+    executed: list[tuple[str, str]] = []
 
-    def reporting_count(query_sql: str) -> int:
-        executed.append(query_sql)
+    def reporting_count(query_id: str, location_id: str) -> int:
+        executed.append((query_id, location_id))
         return 7
 
-    monkeypatch.setattr(dataset_refresh, "count_reporting_rows", reporting_count)
+    monkeypatch.setattr(dataset_refresh, "count_registered_reporting_rows", reporting_count)
 
     result = dataset_refresh.refresh_dataset(conn, "dataset-1")
 
     assert result["status"] == "active"
     assert result["row_count"] == 7
-    assert executed == [conn.query_sql]
+    assert executed == [(conn.query_id, conn.location_id)]
     assert all(conn.query_sql not in sql for sql, _ in conn.statements)
+    assert "query_sql" not in conn.statements[0][0]
     update_sql, update_params = conn.statements[-1]
     assert update_sql.lstrip().startswith("UPDATE dashboard_dataset")
     assert json.loads(update_params[0])["row_count"] == 7
     assert conn.commits == 1
 
 
-def test_refresh_records_sanitized_reader_failure_without_echoing_sql(monkeypatch, capsys):
+def test_refresh_records_sanitized_registry_failure_without_echoing_sql(monkeypatch, capsys):
     conn = FakeApplicationConnection()
     conn.query_sql = "SELECT 'private literal' FROM unauthorized_table"
     monkeypatch.setattr(dataset_refresh, "require_feature", lambda name: None)
 
-    def fail_reader(query_sql: str) -> int:
-        raise RuntimeError(f"failed query: {query_sql}")
+    def fail_reader(query_id: str, location_id: str) -> int:
+        assert query_id == conn.query_id
+        assert location_id == conn.location_id
+        raise RuntimeError(f"failed legacy SQL: {conn.query_sql}")
 
-    monkeypatch.setattr(dataset_refresh, "count_reporting_rows", fail_reader)
+    monkeypatch.setattr(dataset_refresh, "count_registered_reporting_rows", fail_reader)
 
     result = dataset_refresh.refresh_dataset(conn, "dataset-1")
 
@@ -120,7 +126,7 @@ def test_refresh_definition_cursor_closes_when_lookup_fails(monkeypatch, failure
     monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
     monkeypatch.setattr(
         dataset_refresh,
-        "count_reporting_rows",
+        "count_registered_reporting_rows",
         lambda _query: pytest.fail("reporting reader must not run after lookup failure"),
     )
 
@@ -149,8 +155,8 @@ def test_inactive_dataset_is_never_sent_to_reader(monkeypatch):
     monkeypatch.setattr(dataset_refresh, "require_feature", lambda name: None)
     monkeypatch.setattr(
         dataset_refresh,
-        "count_reporting_rows",
-        lambda query_sql: pytest.fail("inactive dataset SQL must not execute"),
+        "count_registered_reporting_rows",
+        lambda *_args: pytest.fail("inactive dataset query must not execute"),
     )
 
     with pytest.raises(ValueError, match="Active dataset"):
@@ -159,10 +165,10 @@ def test_inactive_dataset_is_never_sent_to_reader(monkeypatch):
     assert conn.commits == 0
 
 
-def test_changed_dataset_query_does_not_receive_stale_refresh_metadata(monkeypatch):
+def test_changed_dataset_contract_does_not_receive_stale_refresh_metadata(monkeypatch):
     conn = FakeApplicationConnection()
     monkeypatch.setattr(dataset_refresh, "require_feature", lambda name: None)
-    monkeypatch.setattr(dataset_refresh, "count_reporting_rows", lambda query_sql: 7)
+    monkeypatch.setattr(dataset_refresh, "count_registered_reporting_rows", lambda *_args: 7)
 
     class ConcurrentEditCursor(FakeCursor):
         def execute(self, sql: str, params: Any = None) -> None:
@@ -179,8 +185,9 @@ def test_changed_dataset_query_does_not_receive_stale_refresh_metadata(monkeypat
         dataset_refresh.refresh_dataset(conn, "dataset-1")
 
     update_sql, update_params = conn.statements[-1]
-    assert "query_sql = %s" in update_sql
-    assert update_params[1:] == ("dataset-1", conn.query_sql)
+    assert "query_id IS NOT DISTINCT FROM %s" in update_sql
+    assert "location_id IS NOT DISTINCT FROM %s" in update_sql
+    assert update_params[1:] == ("dataset-1", conn.query_id, conn.location_id)
     assert conn.commits == 0
     assert conn.rollbacks == 1
 
@@ -220,6 +227,8 @@ def test_list_remains_available_when_refresh_feature_is_disabled(monkeypatch, ca
     dataset_refresh.main()
 
     assert "No active datasets found." in capsys.readouterr().out
+    assert "query_id" in conn.statements[0][0]
+    assert "location_id" in conn.statements[0][0]
     assert conn.closed
 
 

@@ -1,3 +1,30 @@
+### Progress addendum — registered dashboard query IDs, 26 October 2026
+
+The optional dashboard refresher now dispatches only a stable `query_id` from a
+source-controlled registry. Migration 651 adds this field as nullable; existing
+rows remain unregistered. Three count-only contracts read the existing public
+farm-summary, verified-metric, and Celo-attestation views, each with a bound
+exact `location_id`. Unknown IDs and absent/invalid locations fail before the
+reporting connection opens. The application refresher no longer selects
+`query_sql`; forecast projection writes preserve their draft result metadata
+and clear the generated SQL field. Dataset inventory now displays both query
+ID and location.
+
+The focused reader/refresh/forecast/migration/SDK selection passes 182 tests;
+Ruff, Python compilation, the JavaScript SDK TypeScript build, dependency
+alignment, generated source/SQL inventories, capability validation, and diff
+checks pass. Migration 651 applied and replayed in a network-disabled
+disposable PostgreSQL 16 database; NULL and a valid ID were accepted, while a
+malformed ID was rejected. The test used a minimal synthetic legacy table and
+did not replay the complete schema. No candidate or legacy database/container
+was touched. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/dashboard-query-id-registry.json`.
+This closes the stored-SQL execution boundary only. Owner-selected dashboard
+semantics, populated fixtures, durable result materialization, external
+consumer roles, and production grants remain open. Checklist: 1,229 complete /
+25 open (1,254 total); classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows.
+
 ### Progress addendum — typed public location-directory query, 26 October 2026
 
 Public Gateway location list/detail reads now call the typed analytics backend

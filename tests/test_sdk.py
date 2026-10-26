@@ -833,6 +833,7 @@ def test_dashboard_dataset_type_keeps_query_definition_separate_from_execution()
     dataset = DashboardDataset(
         id="dataset-1",
         name="Synthetic farm metrics",
+        query_id="public_farm_summary_count",
         query_sql="SELECT 1 AS value",
         refresh_interval_minutes=60,
         status="published",
@@ -840,6 +841,7 @@ def test_dashboard_dataset_type_keeps_query_definition_separate_from_execution()
     )
 
     assert dataset.query_sql == "SELECT 1 AS value"
+    assert dataset.query_id == "public_farm_summary_count"
     assert dataset.status == "published"
     assert dataset.metadata["audience"] == "community"
 

@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 import pytest
 
 from services.analytics import reporting_reader
 from services.analytics.reporting_reader import (
+    REPORTING_QUERY_REGISTRY,
     REPORTING_SCHEMA,
     REPORTING_VIEWS,
     ReportingReaderPolicyError,
-    count_reporting_rows,
+    count_registered_reporting_rows,
     open_reporting_connection,
     validate_reporting_connection,
 )
@@ -43,7 +45,7 @@ class FakeCursor:
             return (self.conn.has_security_definer,)
         if "FROM pg_database" in self.statement:
             return (self.conn.can_connect_other_database,)
-        if "SELECT count(*) FROM (" in self.statement:
+        if "SELECT count(*) FROM kokonut_reporting." in self.statement:
             return (self.conn.result_count,)
         raise AssertionError(f"unexpected fetchone for SQL: {self.statement}")
 
@@ -132,12 +134,24 @@ def test_open_reporting_connection_fails_closed_without_distinct_credentials(
         open_reporting_connection()
 
 
-def test_reader_verification_and_count_use_read_only_curated_view_contract(monkeypatch):
+@pytest.mark.parametrize(
+    ("query_id", "expected_view"),
+    [
+        ("public_farm_summary_count", "v_farm_summary"),
+        ("public_verified_metric_values_count", "v_verified_metric_values"),
+        ("public_attestation_summary_count", "v_attestation_summary"),
+    ],
+)
+def test_reader_runs_registered_query_with_bound_exact_location(
+    monkeypatch, query_id, expected_view
+):
     conn = FakeReportingConnection()
     monkeypatch.setenv("KOKONUT_ANALYTICS_USER", "kokonut_analytics_ro")
+    location_id = "d4be5d0d-0b44-4e81-9b69-463bc87a9e11"
 
-    count = count_reporting_rows(
-        "SELECT location_id FROM kokonut_reporting.v_farm_summary",
+    count = count_registered_reporting_rows(
+        query_id,
+        location_id,
         connection_factory=lambda: conn,
     )
 
@@ -147,12 +161,65 @@ def test_reader_verification_and_count_use_read_only_curated_view_contract(monke
     assert conn.rollbacks == 0
     assert conn.closed
     assert any("SET LOCAL search_path TO kokonut_reporting" in sql for sql, _ in conn.statements)
-    assert any("SELECT count(*) FROM (" in sql for sql, _ in conn.statements)
+    report_query = next(
+        (sql, params) for sql, params in conn.statements
+        if "SELECT count(*) FROM kokonut_reporting." in sql
+    )
+    assert expected_view in report_query[0]
+    assert "WHERE location_id = %s" in report_query[0]
+    assert report_query[1] == (location_id,)
     assert any("WHERE datallowconn" in sql for sql, _ in conn.statements)
     security_definer_check = next(sql for sql, _ in conn.statements if "FROM pg_proc p JOIN pg_namespace" in sql)
     assert "WHERE p.prosecdef" in security_definer_check
     assert "pg_extension" not in security_definer_check
-    assert all(sql != "SELECT location_id FROM kokonut_reporting.v_farm_summary" for sql, _ in conn.statements)
+
+
+@pytest.mark.parametrize(
+    ("query_id", "location_id", "message"),
+    [
+        (None, "d4be5d0d-0b44-4e81-9b69-463bc87a9e11", "missing or not registered"),
+        ("SELECT 1", "d4be5d0d-0b44-4e81-9b69-463bc87a9e11", "missing or not registered"),
+        ("public_farm_summary_count", None, "exact location"),
+        ("public_farm_summary_count", "not-a-uuid", "valid location ID"),
+    ],
+)
+def test_registered_reader_rejects_untrusted_or_unscoped_query_before_connection(
+    query_id, location_id, message
+):
+    with pytest.raises(ValueError, match=message):
+        count_registered_reporting_rows(
+            query_id,
+            location_id,
+            connection_factory=lambda: pytest.fail("invalid query contract must fail before connecting"),
+        )
+
+
+def test_reporting_registry_uses_only_fixed_location_scoped_contracts():
+    assert set(REPORTING_QUERY_REGISTRY) == {
+        "public_farm_summary_count",
+        "public_verified_metric_values_count",
+        "public_attestation_summary_count",
+    }
+    assert all(
+        contract.scope == "exact_location" and "WHERE location_id = %s" in contract.sql
+        for contract in REPORTING_QUERY_REGISTRY.values()
+    )
+
+
+def test_registered_reader_accepts_database_uuid_objects(monkeypatch):
+    conn = FakeReportingConnection()
+    monkeypatch.setenv("KOKONUT_ANALYTICS_USER", "kokonut_analytics_ro")
+    location_id = UUID("d4be5d0d-0b44-4e81-9b69-463bc87a9e11")
+
+    assert count_registered_reporting_rows(
+        "public_farm_summary_count",
+        location_id,
+        connection_factory=lambda: conn,
+    ) == 3
+    assert next(
+        params for sql, params in conn.statements
+        if "SELECT count(*) FROM kokonut_reporting." in sql
+    ) == (str(location_id),)
 
 
 @pytest.mark.parametrize(
@@ -190,12 +257,16 @@ def test_failed_reader_check_rolls_back_and_closes_connection(monkeypatch):
     monkeypatch.setenv("KOKONUT_ANALYTICS_USER", "kokonut_analytics_ro")
 
     with pytest.raises(ReportingReaderPolicyError):
-        count_reporting_rows("SELECT 1", connection_factory=lambda: conn)
+        count_registered_reporting_rows(
+            "public_farm_summary_count",
+            "d4be5d0d-0b44-4e81-9b69-463bc87a9e11",
+            connection_factory=lambda: conn,
+        )
 
     assert conn.commits == 0
     assert conn.rollbacks == 1
     assert conn.closed
-    assert not any("SELECT count(*) FROM (" in sql for sql, _ in conn.statements)
+    assert not any("SELECT count(*) FROM kokonut_reporting." in sql for sql, _ in conn.statements)
 
 
 def test_saved_sql_error_diagnostic_does_not_echo_query_text():

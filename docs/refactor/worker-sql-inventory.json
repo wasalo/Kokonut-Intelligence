@@ -2571,9 +2571,9 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:72:8",
+      "id": "services/analytics/reporting_reader.py:100:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 72,
+      "line": 100,
       "column": 8,
       "scope": "validate_reporting_connection",
       "method": "execute",
@@ -2588,9 +2588,9 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:90:8",
+      "id": "services/analytics/reporting_reader.py:118:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 90,
+      "line": 118,
       "column": 8,
       "scope": "validate_reporting_connection",
       "method": "execute",
@@ -2606,9 +2606,9 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:103:8",
+      "id": "services/analytics/reporting_reader.py:131:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 103,
+      "line": 131,
       "column": 8,
       "scope": "validate_reporting_connection",
       "method": "execute",
@@ -2625,9 +2625,9 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:130:8",
+      "id": "services/analytics/reporting_reader.py:158:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 130,
+      "line": 158,
       "column": 8,
       "scope": "validate_reporting_connection",
       "method": "execute",
@@ -2644,9 +2644,9 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:158:8",
+      "id": "services/analytics/reporting_reader.py:186:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 158,
+      "line": 186,
       "column": 8,
       "scope": "validate_reporting_connection",
       "method": "execute",
@@ -2662,9 +2662,9 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:174:8",
+      "id": "services/analytics/reporting_reader.py:202:8",
       "source": "services/analytics/reporting_reader.py",
-      "line": 174,
+      "line": 202,
       "column": 8,
       "scope": "validate_reporting_connection",
       "method": "execute",
@@ -2679,11 +2679,11 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:203:12",
+      "id": "services/analytics/reporting_reader.py:244:12",
       "source": "services/analytics/reporting_reader.py",
-      "line": 203,
+      "line": 244,
       "column": 12,
-      "scope": "count_reporting_rows",
+      "scope": "count_registered_reporting_rows",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SET",
@@ -2694,11 +2694,11 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:204:12",
+      "id": "services/analytics/reporting_reader.py:245:12",
       "source": "services/analytics/reporting_reader.py",
-      "line": 204,
+      "line": 245,
       "column": 12,
-      "scope": "count_reporting_rows",
+      "scope": "count_registered_reporting_rows",
       "method": "execute",
       "expression_kind": "fstring",
       "statement_kind": "SET",
@@ -2709,11 +2709,11 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:205:12",
+      "id": "services/analytics/reporting_reader.py:246:12",
       "source": "services/analytics/reporting_reader.py",
-      "line": 205,
+      "line": 246,
       "column": 12,
-      "scope": "count_reporting_rows",
+      "scope": "count_registered_reporting_rows",
       "method": "execute",
       "expression_kind": "fstring",
       "statement_kind": "SET",
@@ -2724,14 +2724,14 @@
       ]
     },
     {
-      "id": "services/analytics/reporting_reader.py:206:12",
+      "id": "services/analytics/reporting_reader.py:247:12",
       "source": "services/analytics/reporting_reader.py",
-      "line": 206,
+      "line": 247,
       "column": 12,
-      "scope": "count_reporting_rows",
+      "scope": "count_registered_reporting_rows",
       "method": "execute",
-      "expression_kind": "composed",
-      "statement_kind": "SELECT",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
@@ -5238,7 +5238,7 @@
       "candidate_relations": [
         "dashboard_dataset"
       ],
-      "static_sql_sha256": "dc0c981a92fd55d193ab5599dedf16907ea60baab89fb7b52360545b85019758",
+      "static_sql_sha256": "8227a4284e98b099f0b36cd8bd402f4eb546c88cfeb5655a3b8b5cf4b6f05d16",
       "operation_refs": [
         "scheduled_module:services.export.dataset_refresh"
       ]
@@ -5255,7 +5255,7 @@
       "candidate_relations": [
         "dashboard_dataset"
       ],
-      "static_sql_sha256": "b101b9e5ca82e91faae0a17cc4b36c232ea1b60dd578fc5ffa755937ee1f49de",
+      "static_sql_sha256": "b0e1715ee1e4e13209f6a410d786aed72d280b479326b50ec2273eadfbcb97bc",
       "operation_refs": [
         "scheduled_module:services.export.dataset_refresh"
       ]
@@ -5272,7 +5272,7 @@
       "candidate_relations": [
         "dashboard_dataset"
       ],
-      "static_sql_sha256": "fb0a72d26608f8e04f5cda1ecc3ee1dc517ed9b01492c15a7babe5a279c161b1",
+      "static_sql_sha256": "9d29514c26392ba6c71fc88a26da7e11415c3042e6b3c45661fcc2c17a6d3e60",
       "operation_refs": [
         "scheduled_module:services.export.dataset_refresh"
       ]
@@ -5289,7 +5289,7 @@
       "candidate_relations": [
         "dashboard_dataset"
       ],
-      "static_sql_sha256": "1898963afeec357f2d64b207838f51ed5e42e1945e3ec1f2ace388215b3e7470",
+      "static_sql_sha256": "1e92d2b85656fd1fc212b416fc0062eb5c2623c2acba6a532ae20f3253b8743c",
       "operation_refs": [
         "scheduled_module:services.export.dataset_refresh"
       ]

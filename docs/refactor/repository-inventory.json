@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "76313759bbb4558b2cebf0a71effd5719479654c",
+  "baseline_commit": "d4ea6cc3ddc4ea04de09f117e78d764fabfe33fe",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3621,7 +3621,8 @@
       "schemas/postgres/647_isolated_notification_delivery_worker.sql",
       "schemas/postgres/648_isolated_event_dispatch_worker.sql",
       "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql",
-      "schemas/postgres/650_signed_sensor_anomaly_ml_source.sql"
+      "schemas/postgres/650_signed_sensor_anomaly_ml_source.sql",
+      "schemas/postgres/651_dashboard_dataset_query_registry.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -4075,6 +4076,7 @@
         "tests/test_farmer_identity.py",
         "tests/test_financial_sustainability.py",
         "tests/test_gap_closures.py",
+        "tests/test_gateway_public_locations.py",
         "tests/test_gateway_public_metrics.py",
         "tests/test_geostatistics.py",
         "tests/test_governance_integration.py",
@@ -4103,6 +4105,7 @@
         "tests/test_pitch.py",
         "tests/test_pollinator_health.py",
         "tests/test_portfolio.py",
+        "tests/test_postgres_analytics.py",
         "tests/test_precision_irrigation.py",
         "tests/test_predictive_bpm.py",
         "tests/test_prescription.py",
@@ -4483,6 +4486,7 @@
         "tests/test_kernel_runtime_supervisor.py",
         "tests/test_kernel_schema_startup.py",
         "tests/test_mqtt_subscriber_error_redaction.py",
+        "tests/test_postgres_analytics.py",
         "tests/test_prefect_runtime_acceptance.py",
         "tests/test_prefect_scoped_location_fanout.py",
         "tests/test_prefect_workflow.py",
@@ -5414,6 +5418,7 @@
         "services/ingestion/rpc_indexer.py",
         "services/ingestion/rpc_provider.py",
         "services/ingestion/rpc_worker.py",
+        "services/ingestion/sensor_anomaly_ml_cli.py",
         "services/ingestion/sensor_anomaly_ml_worker.py",
         "services/ingestion/sensor_anomaly_scan_worker.py",
         "services/ingestion/sensor_anomaly_worker.py",
@@ -5569,6 +5574,7 @@
         "tests/test_rpc_worker.py",
         "tests/test_runtime_import_regressions.py",
         "tests/test_sandop.py",
+        "tests/test_sensor_anomaly_ml_cli.py",
         "tests/test_sensor_anomaly_ml_worker.py",
         "tests/test_sensor_anomaly_scan_worker.py",
         "tests/test_sensor_driver_schedule.py",
@@ -6775,6 +6781,7 @@
     "tests/test_iri_cli_offline.py",
     "tests/test_iri_public_projection.py",
     "tests/test_iri_synchronization.py",
+    "tests/test_kernel_ml_release_gate.py",
     "tests/test_kernel_profile.py",
     "tests/test_kernel_restore_role_prerequisites.py",
     "tests/test_kernel_runtime_supervisor.py",
@@ -6809,6 +6816,7 @@
     "tests/test_migration.py",
     "tests/test_ml_anomaly.py",
     "tests/test_ml_anomaly_error_redaction.py",
+    "tests/test_ml_anomaly_lock_generator.py",
     "tests/test_ml_anomaly_scope.py",
     "tests/test_ml_model_loading_security.py",
     "tests/test_ml_retraining.py",
@@ -6909,6 +6917,7 @@
     "tests/test_pollinator_health.py",
     "tests/test_polymorphic_references.py",
     "tests/test_portfolio.py",
+    "tests/test_postgres_analytics.py",
     "tests/test_postgres_readiness_contract.py",
     "tests/test_precision_irrigation.py",
     "tests/test_prediction_calibration.py",
@@ -7005,6 +7014,7 @@
     "tests/test_security_hardening.py",
     "tests/test_security_interceptor.py",
     "tests/test_seed_idempotency.py",
+    "tests/test_sensor_anomaly_ml_cli.py",
     "tests/test_sensor_anomaly_ml_worker.py",
     "tests/test_sensor_anomaly_scan_worker.py",
     "tests/test_sensor_driver_schedule.py",

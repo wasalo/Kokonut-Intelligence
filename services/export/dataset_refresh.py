@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Dataset Refresh Engine — Execute stored dashboard_dataset queries
+Dataset Refresh Engine — Execute registered dashboard_dataset queries
 
-Reads dashboard_dataset rows with embedded SQL queries, executes them
-against PostgreSQL, and updates the last_refreshed_at timestamp.
+Reads stable query IDs and exact-location scope from dashboard_dataset,
+executes reviewed source-controlled SQL contracts, and updates refresh metadata.
 
 Usage:
     python3 -m services.export.dataset_refresh
@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from services.analytics.reporting_reader import count_reporting_rows, safe_query_error
+from services.analytics.reporting_reader import count_registered_reporting_rows, safe_query_error
 from services.core.features import require_feature
 
 
@@ -42,12 +42,12 @@ def list_datasets(conn, dataset_id: str = None):
     try:
         if dataset_id:
             cur.execute(
-                "SELECT id, name, dataset_type, status, refresh_interval_minutes, last_refreshed_at, created_at FROM dashboard_dataset WHERE id = %s",
+                "SELECT id, name, dataset_type, query_id, location_id, status, refresh_interval_minutes, last_refreshed_at, created_at FROM dashboard_dataset WHERE id = %s",
                 (dataset_id,),
             )
         else:
             cur.execute(
-                "SELECT id, name, dataset_type, status, refresh_interval_minutes, last_refreshed_at, created_at FROM dashboard_dataset WHERE status = 'active' ORDER BY name"
+                "SELECT id, name, dataset_type, query_id, location_id, status, refresh_interval_minutes, last_refreshed_at, created_at FROM dashboard_dataset WHERE status = 'active' ORDER BY name"
             )
         return [dict(r) for r in cur.fetchall()]
     finally:
@@ -55,14 +55,14 @@ def list_datasets(conn, dataset_id: str = None):
 
 
 def refresh_dataset(conn, dataset_id: str) -> dict:
-    """Run an active saved query as the reporting role; update metadata as app."""
+    """Run an active registered query as the reporting role; update metadata as app."""
     require_feature("legacy_dataset_sql")
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
         # Fetch dataset definition
         cur.execute(
-            "SELECT id, name, dataset_type, query_sql, refresh_interval_minutes "
+            "SELECT id, name, dataset_type, query_id, location_id, refresh_interval_minutes "
             "FROM dashboard_dataset WHERE id = %s AND status = 'active'",
             (dataset_id,),
         )
@@ -73,15 +73,15 @@ def refresh_dataset(conn, dataset_id: str) -> dict:
     if not dataset:
         raise ValueError(f"Active dataset {dataset_id} not found")
 
-    query_sql = dataset["query_sql"]
-    if not query_sql:
-        raise ValueError(f"Dataset {dataset['name']} has no query_sql defined")
+    query_id = dataset.get("query_id")
+    location_id = dataset.get("location_id")
 
     start_time = datetime.now(timezone.utc)
     try:
         # Query execution uses a separate, credential- and ACL-verified
-        # connection. The application connection never executes saved SQL.
-        row_count = count_reporting_rows(query_sql)
+        # connection. Only a source-controlled query ID and its exact location
+        # reach the reader; legacy query_sql text is never selected or executed.
+        row_count = count_registered_reporting_rows(query_id, location_id)
         status = "active"
         error_message = None
     except Exception as exc:
@@ -105,7 +105,9 @@ def refresh_dataset(conn, dataset_id: str) -> dict:
                     '{last_refresh}',
                     %s::jsonb
                 )
-            WHERE id = %s AND status = 'active' AND query_sql = %s
+            WHERE id = %s AND status = 'active'
+              AND query_id IS NOT DISTINCT FROM %s
+              AND location_id IS NOT DISTINCT FROM %s
             """,
             (
                 json.dumps(
@@ -118,7 +120,8 @@ def refresh_dataset(conn, dataset_id: str) -> dict:
                     }
                 ),
                 dataset_id,
-                query_sql,
+                query_id,
+                location_id,
             ),
         )
         if cur.rowcount != 1:
@@ -170,13 +173,18 @@ def main():
             if not datasets:
                 print("No active datasets found.")
             else:
-                print(f"{'ID':<38} {'Name':<30} {'Type':<15} {'Status':<10} {'Interval':<10} {'Last Refreshed'}")
+                print(
+                    f"{'ID':<38} {'Name':<30} {'Type':<15} {'Query ID':<42} "
+                    f"{'Location':<38} {'Status':<10} {'Interval':<10} {'Last Refreshed'}"
+                )
                 print("-" * 140)
                 for d in datasets:
                     interval = f"{d['refresh_interval_minutes']}min" if d["refresh_interval_minutes"] else "manual"
                     last = str(d["last_refreshed_at"] or "never")[:19]
                     print(
-                        f"{str(d['id']):<38} {d['name']:<30} {d['dataset_type'] or '':<15} {d['status']:<10} {interval:<10} {last}"
+                        f"{str(d['id']):<38} {d['name']:<30} {d['dataset_type'] or '':<15} "
+                        f"{d['query_id'] or '':<42} {str(d['location_id'] or ''):<38} "
+                        f"{d['status']:<10} {interval:<10} {last}"
                     )
         except Exception as exc:
             safe_error = _dataset_failure_summary(exc, operation="inventory")
