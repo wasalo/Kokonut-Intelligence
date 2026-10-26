@@ -1,3 +1,17 @@
+### Progress addendum — typed public location-directory query, 26 October 2026
+
+Public Gateway location list/detail reads now call the typed analytics backend
+with `PUBLIC_LOCATION_DIRECTORY`. The PostgreSQL adapter preserves the fixed
+`v_public_farm_summary` projection, optional exact-location bind, deterministic
+sort, 100-row bound, read-only transaction, and existing statement/lock
+timeouts. The previous `PUBLIC_METRIC_SUMMARY` query is unchanged. Thirteen
+focused adapter and route tests pass; Ruff, Python compilation, and
+`git diff --check` pass. Tests use fake connections only; no database, provider,
+candidate, or legacy service was accessed. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/typed-public-location-directory-query.json`.
+Checklist: 1,228 complete / 25 open (1,253 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — Directus retirement-certificate read scope, 26 October 2026
 
 The location-scoped Directus adapter now includes `retirement_certificate` as

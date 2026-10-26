@@ -8,6 +8,12 @@ import pytest
 pytest.importorskip("fastapi")
 from starlette.testclient import TestClient  # noqa: E402
 
+from services.analytics.queries import (  # noqa: E402
+    AnalyticsContext,
+    PublicLocationDirectoryRequest,
+    PublicLocationSummary,
+    QueryId,
+)
 from services.common.http import http  # noqa: E402
 from services.gateway import locations  # noqa: E402
 from services.gateway.app import create_app  # noqa: E402
@@ -73,3 +79,20 @@ def test_legacy_location_detail_rejects_invalid_uuid_before_projection(client, m
 
     assert response.status_code == 400
     native_read.assert_not_called()
+
+
+def test_public_location_service_uses_typed_analytics_query(monkeypatch):
+    backend = Mock()
+    backend.execute.return_value = (
+        PublicLocationSummary(LOCATION_ID, "Reference Farm", "DO", "North", "active"),
+    )
+    monkeypatch.setattr(locations, "get_analytics_backend", lambda **_kwargs: backend)
+
+    result = locations.public_locations(LOCATION_ID)
+
+    assert result == [PUBLIC_LOCATION]
+    backend.execute.assert_called_once_with(
+        QueryId.PUBLIC_LOCATION_DIRECTORY,
+        PublicLocationDirectoryRequest(LOCATION_ID),
+        AnalyticsContext(location_id=LOCATION_ID, public=True),
+    )

@@ -3463,3 +3463,19 @@ behavior, certificate verification parity, and RLS remain open. Checklist:
 1,227 complete / 25 open (1,252 total); capability classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/directus-retirement-certificate-readonly.json`.
+
+### 26 October 2026 — typed public location-directory query
+
+The Gateway's public location list and detail routes now use
+`QueryId.PUBLIC_LOCATION_DIRECTORY` through the analytics backend. A typed
+request carries either no location for the public directory or one exact
+location for detail; the PostgreSQL adapter selects only the existing public
+summary fields from `v_public_farm_summary`, preserves deterministic ordering
+and the 100-row list cap, and runs under the same read-only transaction and
+statement/lock timeouts as before. The `PUBLIC_METRIC_SUMMARY` query and API
+envelopes are unchanged. Thirteen focused adapter/route tests pass with Ruff,
+Python compilation, and diff checks. Fake connections only; no database,
+provider, candidate, or legacy service was used. Checklist: 1,228 complete / 25
+open (1,253 total); capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/typed-public-location-directory-query.json`.
