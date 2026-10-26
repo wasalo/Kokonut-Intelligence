@@ -31,24 +31,9 @@
   },
   "sql_reachability": {
     "execution_site_count": 473,
-    "sites_with_static_operation_path": 395,
-    "sites_without_static_function_match": 78,
+    "sites_with_static_operation_path": 398,
+    "sites_without_static_function_match": 75,
     "site_refs_for_review": [
-      {
-        "site": "services/agents/ai_summary.py:178:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 8
-      },
-      {
-        "site": "services/agents/ai_summary.py:197:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 8
-      },
-      {
-        "site": "services/agents/ai_summary.py:207:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 8
-      },
       {
         "site": "services/analytics/carbon_balance.py:297:4",
         "review_status": "function_not_reached_by_any_static_worker_root",

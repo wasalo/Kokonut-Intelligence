@@ -68,6 +68,9 @@ def test_worker_function_graph_covers_allowlisted_entrypoints_and_edges():
                 "literal_function_registry",
                 "literal_code_allowlisted_sensor_driver_registry",
                 "literal_registered_synthesis_agent_registry",
+                "default_deterministic_summary_builder",
+                "literal_deterministic_summary_registry",
+                "literal_deterministic_summary_registry_iteration",
             }
 
     event_roots = {
@@ -123,6 +126,49 @@ def test_graph_tracks_instance_methods_and_literal_metric_registry_dispatch():
         "first_time_through_yield_pct",
         "rework_rate_pct",
     }
+
+
+def test_agent_worker_traces_default_deterministic_summary_registry():
+    inventory = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+    operation = next(
+        item
+        for item in inventory["operations"]
+        if item["kind"] == "isolated_worker"
+        and item["name"] == "services.agents.worker_cli"
+    )
+    edges = operation["dynamic_dispatch_edges"]
+    default_edges = [
+        edge
+        for edge in edges
+        if edge["dispatch"] == "default_deterministic_summary_builder"
+    ]
+    generator_edges = [
+        edge
+        for edge in edges
+        if edge["dispatch"] == "literal_deterministic_summary_registry"
+    ]
+    combined_edges = [
+        edge
+        for edge in edges
+        if edge["dispatch"] == "literal_deterministic_summary_registry_iteration"
+    ]
+
+    assert len(default_edges) == 1
+    assert default_edges[0]["callee"] == "services.agents.ai_summary:build_summary"
+    expected_generators = {
+        "operations": "services.agents.ai_summary:generate_operations_summary",
+        "financial": "services.agents.ai_summary:generate_financial_summary",
+        "environmental": "services.agents.ai_summary:generate_environmental_summary",
+        "combined": "services.agents.ai_summary:generate_combined",
+    }
+    assert {edge["registry_key"]: edge["callee"] for edge in generator_edges} == expected_generators
+    assert {edge["registry_key"] for edge in combined_edges} == {
+        "operations",
+        "financial",
+        "environmental",
+    }
+    functions = {function["key"] for function in operation["reachable_functions"]}
+    assert set(expected_generators.values()) <= functions
 
 
 def test_graph_traces_code_allowlisted_scheduled_sensor_driver_methods():

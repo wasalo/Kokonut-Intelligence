@@ -6,10 +6,10 @@
     "operation_roots": 49,
     "source_files": 138,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 1142,
-    "direct_call_edges": 1614,
+    "function_memberships": 1151,
+    "direct_call_edges": 1635,
     "callback_edges": 0,
-    "dynamic_dispatch_edges": 48
+    "dynamic_dispatch_edges": 56
   },
   "operations": [
     {
@@ -14543,6 +14543,78 @@
       ],
       "reachable_functions": [
         {
+          "key": "services.agents.ai_summary:_check_registry_backed",
+          "module": "services.agents.ai_summary",
+          "qualname": "_check_registry_backed",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 213
+        },
+        {
+          "key": "services.agents.ai_summary:_collect_source_references",
+          "module": "services.agents.ai_summary",
+          "qualname": "_collect_source_references",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 104
+        },
+        {
+          "key": "services.agents.ai_summary:_fetchall",
+          "module": "services.agents.ai_summary",
+          "qualname": "_fetchall",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 203
+        },
+        {
+          "key": "services.agents.ai_summary:_fetchone",
+          "module": "services.agents.ai_summary",
+          "qualname": "_fetchone",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 190
+        },
+        {
+          "key": "services.agents.ai_summary:build_summary",
+          "module": "services.agents.ai_summary",
+          "qualname": "build_summary",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 565
+        },
+        {
+          "key": "services.agents.ai_summary:generate_combined",
+          "module": "services.agents.ai_summary",
+          "qualname": "generate_combined",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 458
+        },
+        {
+          "key": "services.agents.ai_summary:generate_environmental_summary",
+          "module": "services.agents.ai_summary",
+          "qualname": "generate_environmental_summary",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 387
+        },
+        {
+          "key": "services.agents.ai_summary:generate_financial_summary",
+          "module": "services.agents.ai_summary",
+          "qualname": "generate_financial_summary",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 298
+        },
+        {
+          "key": "services.agents.ai_summary:generate_operations_summary",
+          "module": "services.agents.ai_summary",
+          "qualname": "generate_operations_summary",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 229
+        },
+        {
           "key": "services.agents.ai_summary:validate_source_reference_coverage",
           "module": "services.agents.ai_summary",
           "qualname": "validate_source_reference_coverage",
@@ -15336,6 +15408,132 @@
         }
       ],
       "direct_call_edges": [
+        {
+          "caller": "services.agents.ai_summary:_check_registry_backed",
+          "callee": "services.agents.ai_summary:_fetchone",
+          "source": "services/agents/ai_summary.py",
+          "line": 215
+        },
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.ai_summary:_check_registry_backed",
+          "source": "services/agents/ai_summary.py",
+          "line": 577
+        },
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.ai_summary:validate_source_reference_coverage",
+          "source": "services/agents/ai_summary.py",
+          "line": 587
+        },
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/ai_summary.py",
+          "line": 574
+        },
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.tasks:validate_output",
+          "source": "services/agents/ai_summary.py",
+          "line": 588
+        },
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/ai_summary.py",
+          "line": 567
+        },
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.tasks:validate_task_inputs",
+          "source": "services/agents/ai_summary.py",
+          "line": 568
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_environmental_summary",
+          "callee": "services.agents.ai_summary:_collect_source_references",
+          "source": "services/agents/ai_summary.py",
+          "line": 416
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_environmental_summary",
+          "callee": "services.agents.ai_summary:_fetchone",
+          "source": "services/agents/ai_summary.py",
+          "line": 389
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_environmental_summary",
+          "callee": "services.agents.ai_summary:_fetchone",
+          "source": "services/agents/ai_summary.py",
+          "line": 395
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_environmental_summary",
+          "callee": "services.agents.ai_summary:_fetchone",
+          "source": "services/agents/ai_summary.py",
+          "line": 401
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_environmental_summary",
+          "callee": "services.agents.ai_summary:_fetchone",
+          "source": "services/agents/ai_summary.py",
+          "line": 408
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_financial_summary",
+          "callee": "services.agents.ai_summary:_collect_source_references",
+          "source": "services/agents/ai_summary.py",
+          "line": 324
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_financial_summary",
+          "callee": "services.agents.ai_summary:_fetchall",
+          "source": "services/agents/ai_summary.py",
+          "line": 300
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_financial_summary",
+          "callee": "services.agents.ai_summary:_fetchall",
+          "source": "services/agents/ai_summary.py",
+          "line": 310
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_financial_summary",
+          "callee": "services.agents.ai_summary:_fetchone",
+          "source": "services/agents/ai_summary.py",
+          "line": 318
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_operations_summary",
+          "callee": "services.agents.ai_summary:_collect_source_references",
+          "source": "services/agents/ai_summary.py",
+          "line": 257
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_operations_summary",
+          "callee": "services.agents.ai_summary:_fetchall",
+          "source": "services/agents/ai_summary.py",
+          "line": 250
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_operations_summary",
+          "callee": "services.agents.ai_summary:_fetchone",
+          "source": "services/agents/ai_summary.py",
+          "line": 231
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_operations_summary",
+          "callee": "services.agents.ai_summary:_fetchone",
+          "source": "services/agents/ai_summary.py",
+          "line": 238
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_operations_summary",
+          "callee": "services.agents.ai_summary:_fetchone",
+          "source": "services/agents/ai_summary.py",
+          "line": 245
+        },
         {
           "caller": "services.agents.ai_summary:validate_source_reference_coverage",
           "callee": "services.agents.base:validate_source_tables",
@@ -16258,6 +16456,78 @@
       "callback_edges": [],
       "injected_instance_bindings": [],
       "dynamic_dispatch_edges": [
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.ai_summary:generate_combined",
+          "source": "services/agents/ai_summary.py",
+          "line": 579,
+          "dispatch": "literal_deterministic_summary_registry",
+          "registry": "services.agents.ai_summary.GENERATORS",
+          "registry_key": "combined"
+        },
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.ai_summary:generate_environmental_summary",
+          "source": "services/agents/ai_summary.py",
+          "line": 579,
+          "dispatch": "literal_deterministic_summary_registry",
+          "registry": "services.agents.ai_summary.GENERATORS",
+          "registry_key": "environmental"
+        },
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.ai_summary:generate_financial_summary",
+          "source": "services/agents/ai_summary.py",
+          "line": 579,
+          "dispatch": "literal_deterministic_summary_registry",
+          "registry": "services.agents.ai_summary.GENERATORS",
+          "registry_key": "financial"
+        },
+        {
+          "caller": "services.agents.ai_summary:build_summary",
+          "callee": "services.agents.ai_summary:generate_operations_summary",
+          "source": "services/agents/ai_summary.py",
+          "line": 579,
+          "dispatch": "literal_deterministic_summary_registry",
+          "registry": "services.agents.ai_summary.GENERATORS",
+          "registry_key": "operations"
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_combined",
+          "callee": "services.agents.ai_summary:generate_environmental_summary",
+          "source": "services/agents/ai_summary.py",
+          "line": 467,
+          "dispatch": "literal_deterministic_summary_registry_iteration",
+          "registry": "services.agents.worker_cli.DETERMINISTIC_SUMMARY_TYPES",
+          "registry_key": "environmental"
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_combined",
+          "callee": "services.agents.ai_summary:generate_financial_summary",
+          "source": "services/agents/ai_summary.py",
+          "line": 467,
+          "dispatch": "literal_deterministic_summary_registry_iteration",
+          "registry": "services.agents.worker_cli.DETERMINISTIC_SUMMARY_TYPES",
+          "registry_key": "financial"
+        },
+        {
+          "caller": "services.agents.ai_summary:generate_combined",
+          "callee": "services.agents.ai_summary:generate_operations_summary",
+          "source": "services/agents/ai_summary.py",
+          "line": 467,
+          "dispatch": "literal_deterministic_summary_registry_iteration",
+          "registry": "services.agents.worker_cli.DETERMINISTIC_SUMMARY_TYPES",
+          "registry_key": "operations"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.agents.ai_summary:build_summary",
+          "source": "services/agents/worker_cli.py",
+          "line": 392,
+          "dispatch": "default_deterministic_summary_builder",
+          "registry": "services.agents.worker_cli.run_worker_summary",
+          "registry_key": "build_summary_default"
+        },
         {
           "caller": "services.agents.worker_cli:run_worker_synthesis",
           "callee": "services.agents.base:SynthesisAgent.collect_source_references",

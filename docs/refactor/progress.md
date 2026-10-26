@@ -19292,3 +19292,27 @@ match. The boundary preflight remains `review_required`, and RLS remains
 used. Static reachability does not prove live credentials, grants, ownership,
 tenant isolation, RLS, or runtime side effects. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/signed-agent-source-function-reachability.json`.
+
+### Progress addendum — deterministic summary worker registry reachability, 26 October 2026
+
+The function graph now models the deterministic AI-summary worker's default
+`summary_builder or build_summary` fallback and its exact `GENERATORS` registry.
+The analyzer verifies that the registry keys and order match the deterministic
+worker type allowlist, and that the combined summary calls the operations,
+financial, and environmental generators. Arbitrary test-injected builders are
+not included as trusted production dispatch. This links the shared source
+reference and fetch helpers to the existing worker root and brings three SQL
+sites into static reachability.
+
+The focused function and SQL reachability selection passes 20 tests. All six
+generated inventory checks, Ruff, compilation, capability-matrix validation,
+and diff checks pass. The 49-root graph now has 1,151 function memberships,
+1,635 direct-call edges, and 56 dynamic-dispatch edges. It links 398 of 473 SQL
+sites through 579 operation/site memberships; 75 remain without a static
+function match. The preflight remains `review_required`, and RLS remains
+`not_ready`. Capability classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows. Checklist: 1,218 complete / 25 open
+(1,243 total). No database, provider, candidate, or legacy service was used.
+The source graph does not establish live grants, authorization, RLS, or
+populated-data parity. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/deterministic-summary-worker-registry-reachability.json`.

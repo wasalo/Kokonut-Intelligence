@@ -5,10 +5,10 @@
   "summary": {
     "operation_roots": 49,
     "sql_execution_sites": 473,
-    "statically_reachable_site_memberships": 576,
-    "unique_sites_with_static_operation_path": 395,
-    "sites_without_static_function_match": 78,
-    "unmatched_functions_absent_from_all_worker_graphs": 78,
+    "statically_reachable_site_memberships": 579,
+    "unique_sites_with_static_operation_path": 398,
+    "sites_without_static_function_match": 75,
+    "unmatched_functions_absent_from_all_worker_graphs": 75,
     "sites_reached_by_multiple_operations": 52
   },
   "operations": [
@@ -638,8 +638,11 @@
       "kind": "isolated_worker",
       "name": "services.agents.worker_cli",
       "operation_ref": "isolated_worker:services.agents.worker_cli",
-      "statically_reachable_sql_site_count": 84,
+      "statically_reachable_sql_site_count": 87,
       "statically_reachable_sql_site_ids": [
+        "services/agents/ai_summary.py:178:12",
+        "services/agents/ai_summary.py:197:8",
+        "services/agents/ai_summary.py:207:8",
         "services/agents/base.py:149:12",
         "services/agents/bio_factory_agent.py:25:4",
         "services/agents/bio_factory_agent.py:43:4",
@@ -1000,10 +1003,12 @@
         "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
         "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "isolated_worker:services.agents.worker_cli"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/ai_summary.py:197:8",
@@ -1024,10 +1029,12 @@
         "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
         "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "isolated_worker:services.agents.worker_cli"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/ai_summary.py:207:8",
@@ -1048,10 +1055,12 @@
         "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
         "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "isolated_worker:services.agents.worker_cli"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/base.py:149:12",

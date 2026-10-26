@@ -112,6 +112,14 @@ application-wide RLS or proof for other workers.
   and expose only their bounded projections. They are called in-process by
   first-party agent flows; this inventory does not create or imply a separate
   worker credential, scheduler entry, or process boundary.
+- The deterministic summary worker's default `summary_builder or build_summary`
+  path is represented explicitly, then linked through the literal
+  `GENERATORS` registry for operations, financial, environmental, and combined
+  summaries. The combined path reaches only the three component generators;
+  the worker's validated deterministic-type tuple must stay in the same order
+  as the registry. A test-injected builder remains outside this production
+  dispatch model. This makes its shared signed summary query helpers visible
+  without treating arbitrary callbacks as trusted registry entries.
 - A generated [direct function reachability graph](worker-function-reachability.json)
   starts scheduled operations at calls under each executed `__main__` guard,
   the agent worker at its `main` command, event-dispatch and notification
@@ -130,8 +138,8 @@ application-wide RLS or proof for other workers.
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
   command/request protocol rather than a local function call. Across 49
-  operation roots and 138 source files, entry functions reach 1,142 function
-  memberships through 1,614 direct-call and 48 dynamic-dispatch edges, with no
+  operation roots and 138 source files, entry functions reach 1,151 function
+  memberships through 1,635 direct-call and 56 dynamic-dispatch edges, with no
   unresolved operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
@@ -147,8 +155,8 @@ application-wide RLS or proof for other workers.
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
   joins those 473 sites to the operation graph without including SQL text or
-  values. It links 395 unique sites across 576 operation/site memberships;
-  78 sites have no current static function match, and each belongs to a
+  values. It links 398 unique sites across 579 operation/site memberships;
+  75 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -395,7 +403,7 @@ Keep this review current as the inventory changes. The static call graph
 follows local instance types, explicit metric-registry dispatch, and exact
 keyword-bound class instances passed into statically resolved functions. This
 now traces the injected Baal, Gnosis, and freshness persistence adapters
-through their legacy processing functions; 78 SQL sites still have no direct
+through their legacy processing functions; 75 SQL sites still have no direct
 static function match.
 It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map

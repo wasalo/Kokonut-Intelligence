@@ -959,6 +959,199 @@ def _registered_synthesis_agent_dispatches(
     return edges
 
 
+def _registered_deterministic_summary_dispatches(
+    operation: dict,
+    trees: dict[str, ast.Module],
+    definitions: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+) -> list[dict]:
+    """Trace the worker's default builder and its literal summary generator map."""
+    if operation["name"] != "services.agents.worker_cli":
+        return []
+
+    worker_module = "services.agents.worker_cli"
+    worker_draft_module = "services.agents.worker_draft"
+    summary_module = "services.agents.ai_summary"
+    if not all(module in trees for module in (worker_module, worker_draft_module, summary_module)):
+        raise ValueError("deterministic summary registry modules are absent from the worker source closure")
+
+    expected_types: tuple[str, ...] | None = None
+    for statement in trees[worker_draft_module].body:
+        if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+        if not any(
+            isinstance(target, ast.Name) and target.id == "DETERMINISTIC_SUMMARY_TYPES"
+            for target in targets
+        ):
+            continue
+        value = statement.value
+        if not isinstance(value, (ast.Tuple, ast.List)) or not all(
+            isinstance(item, ast.Constant) and isinstance(item.value, str) for item in value.elts
+        ):
+            raise ValueError("deterministic summary types must remain a literal sequence")
+        expected_types = tuple(item.value for item in value.elts)
+        break
+    if not expected_types:
+        raise ValueError("deterministic summary type allowlist is missing")
+
+    registry: dict[str, str] = {}
+    registry_found = False
+    for statement in trees[summary_module].body:
+        if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+        value = statement.value
+        if value is None:
+            continue
+        if any(isinstance(target, ast.Name) and target.id == "GENERATORS" for target in targets):
+            if not isinstance(value, ast.Dict):
+                raise ValueError("AI summary generator registry must start as a literal dictionary")
+            registry_found = True
+            for key_node, value_node in zip(value.keys, value.values):
+                if (
+                    not isinstance(key_node, ast.Constant)
+                    or not isinstance(key_node.value, str)
+                    or not isinstance(value_node, ast.Name)
+                ):
+                    raise ValueError("AI summary generator registry entries must be literal names")
+                target = _function_key(summary_module, value_node.id)
+                if target not in definitions:
+                    raise ValueError(f"AI summary generator is not a local function: {target}")
+                registry[key_node.value] = target
+            continue
+
+        if not registry_found:
+            continue
+        for target in targets:
+            if not (
+                isinstance(target, ast.Subscript)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "GENERATORS"
+                and isinstance(target.slice, ast.Constant)
+                and isinstance(target.slice.value, str)
+            ):
+                continue
+            if not isinstance(value, ast.Name):
+                raise ValueError("AI summary generator extensions must name a local function")
+            function_key = _function_key(summary_module, value.id)
+            if function_key not in definitions:
+                raise ValueError(f"AI summary generator is not a local function: {function_key}")
+            registry[target.slice.value] = function_key
+
+    if not registry_found or tuple(registry) != expected_types:
+        raise ValueError("AI summary generator registry must match deterministic worker types in order")
+
+    caller_key = f"{worker_module}:run_worker_summary"
+    caller = definitions.get(caller_key)
+    build_summary_key = contexts[worker_module].symbol_aliases.get("build_summary")
+    if caller is None or build_summary_key not in definitions:
+        raise ValueError("deterministic summary worker must use the imported build_summary default")
+
+    has_default_builder = any(
+        isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "generate" for target in node.targets)
+        and isinstance(node.value, ast.BoolOp)
+        and isinstance(node.value.op, ast.Or)
+        and any(isinstance(value, ast.Name) and value.id == "build_summary" for value in node.value.values)
+        for node in ast.walk(caller["node"])
+    )
+    calls_default_builder = any(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "generate"
+        for node in ast.walk(caller["node"])
+    )
+    if not has_default_builder or not calls_default_builder:
+        raise ValueError("deterministic summary default-builder dispatch changed; review its static edge")
+
+    build_caller = definitions[build_summary_key]
+    registry_dispatches = [
+        node
+        for node in ast.walk(build_caller["node"])
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Subscript)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "GENERATORS"
+        and isinstance(node.func.slice, ast.Name)
+        and node.func.slice.id == "summary_type"
+    ]
+    if len(registry_dispatches) != 1:
+        raise ValueError("AI summary builder must keep one exact GENERATORS[summary_type] dispatch")
+
+    combined_key = registry["combined"]
+    combined = definitions[combined_key]
+    iterates_registry = any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "items"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "GENERATORS"
+        for node in ast.walk(combined["node"])
+    )
+    calls_generator = any(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "gen_func"
+        for node in ast.walk(combined["node"])
+    )
+    skips_combined = any(
+        isinstance(node, ast.Compare)
+        and isinstance(node.left, ast.Name)
+        and node.left.id == "summary_type"
+        and any(isinstance(item, ast.Constant) and item.value == "combined" for item in node.comparators)
+        for node in ast.walk(combined["node"])
+    )
+    if not (iterates_registry and calls_generator and skips_combined):
+        raise ValueError("combined AI summary must call each non-combined literal generator")
+
+    edges = [
+        {
+            "caller": caller_key,
+            "callee": build_summary_key,
+            "source": caller["source"],
+            "line": next(
+                node.lineno
+                for node in ast.walk(caller["node"])
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "generate"
+            ),
+            "dispatch": "default_deterministic_summary_builder",
+            "registry": "services.agents.worker_cli.run_worker_summary",
+            "registry_key": "build_summary_default",
+        }
+    ]
+    dispatch_line = registry_dispatches[0].lineno
+    edges.extend(
+        {
+            "caller": build_summary_key,
+            "callee": target,
+            "source": build_caller["source"],
+            "line": dispatch_line,
+            "dispatch": "literal_deterministic_summary_registry",
+            "registry": "services.agents.ai_summary.GENERATORS",
+            "registry_key": summary_type,
+        }
+        for summary_type, target in registry.items()
+    )
+    combined_call_line = next(
+        node.lineno
+        for node in ast.walk(combined["node"])
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "gen_func"
+    )
+    edges.extend(
+        {
+            "caller": combined_key,
+            "callee": target,
+            "source": combined["source"],
+            "line": combined_call_line,
+            "dispatch": "literal_deterministic_summary_registry_iteration",
+            "registry": "services.agents.worker_cli.DETERMINISTIC_SUMMARY_TYPES",
+            "registry_key": summary_type,
+        }
+        for summary_type, target in registry.items()
+        if summary_type != "combined"
+    )
+    return edges
+
+
 def _dynamic_registry_source_files(operation: dict) -> list[str]:
     """Include the literal scheduled-driver targets in the worker's source graph."""
     if operation["name"] != "services.ingestion.sensor_worker":
@@ -999,6 +1192,9 @@ def _operation_graph(operation: dict) -> dict:
     )
     registered_edges.extend(
         _registered_synthesis_agent_dispatches(operation, trees, definitions, classes, contexts)
+    )
+    registered_edges.extend(
+        _registered_deterministic_summary_dispatches(operation, trees, definitions, contexts)
     )
     registered_by_caller: dict[str, list[dict]] = defaultdict(list)
     for edge in registered_edges:

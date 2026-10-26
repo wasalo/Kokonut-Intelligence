@@ -141,3 +141,18 @@ def test_signed_agent_source_helpers_are_traced_as_function_roots():
         set(site["statically_reachable_operations"]) & expected_operations
         for site in matched
     )
+
+
+def test_deterministic_summary_sql_helpers_follow_the_default_builder_registry():
+    report = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+    operation_ref = "isolated_worker:services.agents.worker_cli"
+    expected_scopes = {"_collect_source_references", "_fetchone", "_fetchall"}
+    sites = [
+        site
+        for site in report["execution_sites"]
+        if site["source"] == "services/agents/ai_summary.py"
+        and site["scope"] in expected_scopes
+    ]
+
+    assert {site["scope"] for site in sites} == expected_scopes
+    assert all(operation_ref in site["statically_reachable_operations"] for site in sites)
