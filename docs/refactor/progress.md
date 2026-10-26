@@ -19316,3 +19316,24 @@ deployed, and 36 prepared across 67 rows. Checklist: 1,218 complete / 25 open
 The source graph does not establish live grants, authorization, RLS, or
 populated-data parity. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/deterministic-summary-worker-registry-reachability.json`.
+
+### Progress addendum — dynamic retention scope predicates, 26 October 2026
+
+The generic retention sweeper now supports configured direct-column scopes for
+location, jurisdiction, and purpose. Each is an exact equality using a bound
+parameter; policy input cannot select SQL identifiers. If a configured scope
+column is absent from the target table, the sweep records a skip before it
+counts or updates candidate rows. The implementation does not infer
+jurisdiction from country text, choose a legal duration, or guess parent-table
+relationships. The scope contract documents where domain-specific adapters are
+still required.
+
+The focused data-governance and retention-gate selection passes 60 tests and 63
+subtests. Ruff, compilation, capability-matrix validation, and diff checks pass.
+No policy row was created, no enforcement action was run, and no database was
+accessed. The retention-period owner gate remains open: USA/DR policies still
+need reviewed categories, purposes, durations, and accountable approvals, and
+archive-specific workflows remain separate. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows. Checklist:
+1,219 complete / 25 open (1,244 total). Evidence:
+`docs/refactor/builds/2026-10-26-recovery/dynamic-retention-scope-resolver.json`.

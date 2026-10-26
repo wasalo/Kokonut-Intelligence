@@ -791,7 +791,7 @@ class TestRetentionSweep(unittest.TestCase):
                 date(2026, 10, 15), "owner-1",
             ),
         ]
-        cursor.fetchone.side_effect = [(0,), (True,), (1, 1), (3,)]
+        cursor.fetchone.side_effect = [(0,), (True,), (1, 1, 0, 0, 0), (3,)]
 
         result = enforce_retention_policies(conn, "operator-1", dry_run=True)
 
@@ -831,25 +831,59 @@ class TestRetentionSweep(unittest.TestCase):
         self.assertTrue(any("data_retention_enforcement_log" in call.args[0] for call in cursor.execute.call_args_list))
 
     @patch.dict(os.environ, {"KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT": "true"})
-    def test_sweep_skips_jurisdiction_or_purpose_scope_without_resolver(self):
+    def test_scoped_dry_run_filters_direct_location_jurisdiction_and_purpose_columns(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        location_id = "a0000000-0000-0000-0000-000000000412"
+        cursor.fetchall.return_value = [
+            (
+                "pol-002", "soil", "soil_sample", location_id, "us", "research",
+                42, "soft_delete", False, True, "active", "reviewer-1",
+                date(2026, 10, 15), "owner-1",
+            ),
+        ]
+        cursor.fetchone.side_effect = [(0,), (True,), (1, 1, 1, 1, 1), (4,)]
+
+        result = enforce_retention_policies(conn, "operator-1", dry_run=True)
+
+        self.assertEqual(result["policies"][0]["status"], "dry_run")
+        self.assertEqual(result["policies"][0]["candidates"], 4)
+        target_queries = [
+            call for call in cursor.execute.call_args_list
+            if 'SELECT COUNT(*) FROM "soil_sample"' in call.args[0]
+        ]
+        self.assertEqual(len(target_queries), 1)
+        self.assertEqual(
+            target_queries[0].args[1],
+            [42, "soil_sample", location_id, "us", "research"],
+        )
+        self.assertIn('"location_id" = %s', target_queries[0].args[0])
+        self.assertIn('"jurisdiction_code" = %s', target_queries[0].args[0])
+        self.assertIn('"purpose_code" = %s', target_queries[0].args[0])
+
+    def test_scoped_retention_skips_before_candidate_query_when_scope_column_missing(self):
         conn = MagicMock()
         cursor = MagicMock()
         conn.cursor.return_value = cursor
         cursor.fetchall.return_value = [
             (
-                "pol-002", "soil", "soil_sample", None, "us", "research",
+                "pol-003", "soil", "soil_sample", None, "us", "research",
                 42, "soft_delete", False, True, "active", "reviewer-1",
                 date(2026, 10, 15), "owner-1",
             ),
         ]
+        cursor.fetchone.side_effect = [(0,), (True,), (1, 1, 0, 0, 1)]
 
-        result = enforce_retention_policies(conn, "operator-1")
+        result = enforce_retention_policies(conn, "operator-1", dry_run=True)
 
-        self.assertEqual(result["policies"][0]["status"], "skipped")
-        self.assertIn("requires a configured scope resolver", result["policies"][0]["error"])
+        policy = result["policies"][0]
+        self.assertEqual(policy["status"], "skipped")
+        self.assertEqual(policy["candidates"], 0)
+        self.assertIn("target table's jurisdiction_code column", policy["error"])
         self.assertFalse(
             any(
-                "FROM data_retention_policy overlap" in call.args[0]
+                'SELECT COUNT(*) FROM "soil_sample"' in call.args[0]
                 for call in cursor.execute.call_args_list
             )
         )

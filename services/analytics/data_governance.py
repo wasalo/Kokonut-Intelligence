@@ -85,6 +85,42 @@ def _normalize_retention_scope_code(value: str | None, field_name: str) -> str |
     return normalized
 
 
+def _retention_scope_filters(
+    *,
+    available_columns: set[str],
+    location_id: str | None,
+    jurisdiction_code: str | None,
+    purpose_code: str | None,
+) -> tuple[tuple[str, ...], tuple[object, ...], str | None]:
+    """Build exact-column filters for configured scopes; never infer a scope.
+
+    Jurisdiction and purpose are owner-defined codes. They are enforceable by
+    the generic sweeper only when the target row itself exposes the matching
+    code column; location ownership is likewise matched through a direct
+    ``location_id`` column. Domain-specific joins need a separate reviewed
+    adapter rather than a guessed relationship.
+    """
+    filters: list[str] = []
+    parameters: list[object] = []
+    for column, value, scope_name in (
+        ("location_id", location_id, "location"),
+        ("jurisdiction_code", jurisdiction_code, "jurisdiction"),
+        ("purpose_code", purpose_code, "purpose"),
+    ):
+        if value is None:
+            continue
+        if column not in available_columns:
+            return (
+                (),
+                (),
+                f"configured {scope_name} scope requires the target table's {column} column",
+            )
+        # Column names come only from this fixed mapping, never policy input.
+        filters.append(f'"{column}" = %s')
+        parameters.append(value)
+    return tuple(filters), tuple(parameters), None
+
+
 def _normalize_retention_audit_text(
     value: str, field_name: str, *, max_length: int | None = None,
 ) -> str:
@@ -1372,9 +1408,6 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
             elif entity_type in _ARCHIVE_REQUIRED_RETENTION_ENTITIES:
                 status = "skipped"
                 error = _ARCHIVE_REQUIRED_RETENTION_ENTITIES[entity_type]
-            elif jurisdiction_code is not None or purpose_code is not None:
-                status = "skipped"
-                error = "jurisdiction or purpose scope requires a configured scope resolver"
             elif entity_type == "platform_event":
                 status = "skipped"
                 error = "platform_event requires the hold-aware event cleanup workflow"
@@ -1456,7 +1489,10 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
                     # Only tables with the standard governance columns are executable.
                     cur.execute("""
                         SELECT COUNT(*) FILTER (WHERE column_name = 'created_at'),
-                               COUNT(*) FILTER (WHERE column_name = 'id' AND data_type = 'uuid')
+                               COUNT(*) FILTER (WHERE column_name = 'id' AND data_type = 'uuid'),
+                               COUNT(*) FILTER (WHERE column_name = 'location_id'),
+                               COUNT(*) FILTER (WHERE column_name = 'jurisdiction_code'),
+                               COUNT(*) FILTER (WHERE column_name = 'purpose_code')
                         FROM information_schema.columns
                         WHERE table_schema = 'public' AND table_name = %s
                     """, (entity_type,))
@@ -1466,36 +1502,53 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
                     if not has_created_at or not has_id:
                         status, error = "error", "entity table lacks created_at or a UUID id required for legal-hold checks"
                     else:
+                        available_columns = {"created_at", "id"}
+                        available_columns.update(
+                            column
+                            for index, column in enumerate(
+                                ("location_id", "jurisdiction_code", "purpose_code"),
+                                start=2,
+                            )
+                            if column_counts[index] == 1
+                        )
+                        scope_filters, scope_parameters, scope_error = _retention_scope_filters(
+                            available_columns=available_columns,
+                            location_id=str(location_id) if location_id else None,
+                            jurisdiction_code=jurisdiction_code,
+                            purpose_code=purpose_code,
+                        )
+                        if scope_error:
+                            status, error = "skipped", scope_error
                         # entity_type is interpolated as a SQL identifier; allow only
                         # snake_case table names to prevent identifier injection.
-                        if not re.match(r"^[a-z_]+$", entity_type or ""):
+                        if not scope_error and not re.match(r"^[a-z_]+$", entity_type or ""):
                             status, error = "error", "invalid entity_type"
-                            continue
-                        quoted = '"' + entity_type.replace('"', '""') + '"'
-                        where = "created_at < NOW() - make_interval(days => %s)"
-                        params = [days]
-                        where += " AND NOT EXISTS (SELECT 1 FROM data_retention_legal_hold hold WHERE hold.entity_type = %s AND hold.entity_id = {entity}.id AND hold.released_at IS NULL)".format(entity=quoted)
-                        params.append(entity_type)
-                        if location_id:
-                            where += " AND location_id = %s"
-                            params.append(location_id)
-                        cur.execute(f"SELECT COUNT(*) FROM {quoted} WHERE {where}", params)
-                        candidates = cur.fetchone()[0]
-                        if not dry_run and method == "soft_delete":
-                            cur.execute("""
-                                SELECT EXISTS (SELECT 1 FROM information_schema.columns
-                                WHERE table_schema = 'public' AND table_name = %s AND column_name = 'deleted_at')
-                            """, (entity_type,))
-                            if cur.fetchone()[0]:
-                                cur.execute(f"UPDATE {quoted} SET deleted_at = NOW() WHERE {where} AND deleted_at IS NULL", params)
-                                affected = cur.rowcount
-                                status = "completed"
+                        elif not scope_error:
+                            quoted = '"' + entity_type.replace('"', '""') + '"'
+                            where = "created_at < NOW() - make_interval(days => %s)"
+                            params = [days]
+                            where += " AND NOT EXISTS (SELECT 1 FROM data_retention_legal_hold hold WHERE hold.entity_type = %s AND hold.entity_id = {entity}.id AND hold.released_at IS NULL)".format(entity=quoted)
+                            params.append(entity_type)
+                            if scope_filters:
+                                where += " AND " + " AND ".join(scope_filters)
+                                params.extend(scope_parameters)
+                            cur.execute(f"SELECT COUNT(*) FROM {quoted} WHERE {where}", params)
+                            candidates = cur.fetchone()[0]
+                            if not dry_run and method == "soft_delete":
+                                cur.execute("""
+                                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                                    WHERE table_schema = 'public' AND table_name = %s AND column_name = 'deleted_at')
+                                """, (entity_type,))
+                                if cur.fetchone()[0]:
+                                    cur.execute(f"UPDATE {quoted} SET deleted_at = NOW() WHERE {where} AND deleted_at IS NULL", params)
+                                    affected = cur.rowcount
+                                    status = "completed"
+                                else:
+                                    status, error = "error", "soft_delete requires deleted_at"
                             else:
-                                status, error = "error", "soft_delete requires deleted_at"
-                        else:
-                            status = "dry_run" if dry_run else "error"
-                            if not dry_run:
-                                error = f"unsupported executable deletion method: {method}"
+                                status = "dry_run" if dry_run else "error"
+                                if not dry_run:
+                                    error = f"unsupported executable deletion method: {method}"
             cur.execute("""
                 INSERT INTO data_retention_enforcement_log
                     (policy_id, actor, dry_run, status, candidates, affected, error)

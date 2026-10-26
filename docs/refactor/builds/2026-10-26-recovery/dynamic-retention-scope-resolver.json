@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-26",
+  "scope": "Generic retention sweeper now supports exact direct-column scope predicates for configured location, jurisdiction, and purpose values. It does not choose policy periods or infer domain relationships.",
+  "implementation": {
+    "scopes": {
+      "location_id": "Exact location_id equality",
+      "jurisdiction_code": "Exact normalized jurisdiction_code equality",
+      "purpose_code": "Exact normalized purpose_code equality"
+    },
+    "missing_scope_column": "Policy is recorded as skipped before the target table candidate query.",
+    "sql_identifiers": "Fixed code-owned column mapping; all scope values are bound parameters.",
+    "retention_period_defaults": "None added; configured values remain operator-owned policy data.",
+    "destructive_gate": "Unchanged; explicit enforcement feature gate, approved metadata, positive window, and exact legal-hold checks remain required."
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_data_governance.py tests/test_data_retention_gate.py -q",
+    "result": "60 passed, 63 subtests passed",
+    "ruff": "passed",
+    "compileall": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; named MAN-CAP checks separately gated",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "Scoped policies require the target table itself to expose the direct scope column. No country-name translation or parent-table join is inferred.",
+    "Domain-specific archived records still require their dedicated archive/disposition workflows.",
+    "No retention period, policy row, or enforcement action was created or applied."
+  ],
+  "environment_touched": {
+    "database": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  }
+}
