@@ -1,6 +1,6 @@
 # Native reporting and projection parity inventory
 
-**Review date:** 15 October 2026
+**Review date:** 26 October 2026
 **Status:** source inventory complete; domain, dashboard, and runtime parity remain open.
 
 ## Scope and decision
@@ -56,6 +56,14 @@ owner of calculations, authorization, lifecycle, or evidence.
 | Legacy dashboard datasets | [`dataset_refresh.py`](../../services/export/dataset_refresh.py), [`dashboard_dataset` schema](../../schemas/postgres/007_modeled_outputs.sql), [`651_dashboard_dataset_query_registry.sql`](../../schemas/postgres/651_dashboard_dataset_query_registry.sql), [`017_dashboard_datasets.sql`](../../schemas/seeds/017_dashboard_datasets.sql) | Rows retain `query_sql` for compatibility and now have a nullable stable `query_id`. The source-controlled reader registry currently contains three fixed row-count contracts over the curated farm-summary, published verified-metric, and Celo-attestation views; each requires a valid exact `location_id`. The seed defines five example datasets with hard-coded pilot UUIDs and `published` status. `--all` inventories rows with `status = 'active'`. | Stored SQL is no longer selected or executed. `KOKONUT_FEATURE_LEGACY_DATASET_SQL` remains default `false`; when explicitly enabled, refresh dispatches only a registered query ID to the separately verified `kokonut_analytics_ro` login, binds the row's exact location, and returns only a count. Bulk refresh skips unsupported IDs and missing/invalid locations without opening the reporting connection or writing refresh-failure metadata; single-row refresh rejects that configuration before writing metadata. The reader retains its read-only transaction, 15-second statement and 3-second lock timeouts, and exact view-role ACL. Forecast summaries remain in metadata and their prior generated SQL text is cleared. No seeded query has been owner-mapped or accepted, and existing records are not backfilled. Durable result materialization, report measures and output parity, owner review, external consumers, and runtime grants remain open. |
 | Evidence graph projection | [`services/graph_projection/query.py`](../../services/graph_projection/query.py), [`graph projection README`](../../services/graph_projection/README.md), [`evidence_lineage.py`](../../services/graph_projection/evidence_lineage.py) | A separate bounded lineage graph read with fixed edge types, active generation, public/internal audience, optional location filter, depth cap 5, node cap 500, and statement timeout. | This is evidence navigation, not a report/dashboard engine. Its own projection freshness, completeness, and domain lineage gates remain independent. |
 | ClickHouse rollups | [`analytics-read-views-v2.md`](analytics-read-views-v2.md), [`sensor-projection.md`](sensor-projection.md), [`financial_events` outbox migration](../../schemas/postgres/434_financial_events_clickhouse_outbox.sql) | Optional analytical event-store rollups and corrected read views have separate source and consumer contracts. `sales_event` and `expense_event` inserts now enqueue the legacy create-time financial mirror transactionally for optional ClickHouse delivery. | The financial outbox does not cover source updates/deletes or historical backfill. Known multi-block aggregate defects, report-owner decisions, populated reference outputs, and unverified saved-query adoption mean ClickHouse parity/scale gates remain open. Do not count ordinary PostgreSQL views or graph projections as ClickHouse parity. |
+
+The Directus OpenAPI create/update schemas now accept `query_id` and omit
+`query_sql`; the response schema retains the old field only as deprecated,
+read-only compatibility data. A Directus extension hook rejects writes that
+include `query_sql`. Python and TypeScript SDK documentation and the
+export/partner guides follow the same contract. This is source evidence, not
+proof that a deployed Directus role masks the field on reads. Focused checks are recorded in
+[`dashboard-openapi-query-id-contract.json`](builds/2026-10-26-recovery/dashboard-openapi-query-id-contract.json).
 
 All 94 report calculations run with a session-level read-only default, and the
 CLI ends calculation before writing a draft snapshot. A disposable PostgreSQL

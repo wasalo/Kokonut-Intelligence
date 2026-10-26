@@ -374,9 +374,14 @@ content hashing and import logging; it uses separate spatial logs rather than
 
 ### Dataset Refresh
 
-`services/export/dataset_refresh.py` executes stored `dashboard_dataset.query_sql`
-statements and updates dataset metadata. It is not a file export and does not
-create `export_log` rows.
+`services/export/dataset_refresh.py` resolves each dataset's stable `query_id`
+against a source-controlled reporting registry, requires its exact
+`location_id`, executes the fixed contract with the dedicated read-only
+reporting role, and updates refresh metadata. Stored legacy `query_sql` is not
+selected or executed. Unsupported query IDs and missing or malformed locations
+are rejected before reporting access; bulk refresh skips those rows. Refresh is
+feature-gated and is not a file export, so it does not create `export_log`
+rows.
 
 ```bash
 python3 -m services.export.dataset_refresh --all

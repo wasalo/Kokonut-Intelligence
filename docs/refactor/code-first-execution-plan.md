@@ -3482,3 +3482,21 @@ provider, candidate, or legacy service was used. Checklist: 1,228 complete / 25
 open (1,253 total); capability classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/typed-public-location-directory-query.json`.
+
+### 26 October 2026 — dashboard OpenAPI query-ID contract
+
+The Directus OpenAPI now describes `query_id` as the only writable refresh
+selector. `query_sql` remains deprecated and read-only on the response model
+for archived-record compatibility, and an extension hook rejects create/update
+payloads that try to write it. Python and TypeScript SDK documentation,
+the export guide, and partner dashboard guide now explain that Kernel refresh
+uses registered source-controlled contracts with exact location scope. The
+focused OpenAPI, SDK, reporting-reader, and dataset-refresh selection passes
+139 tests; all 103 Directus hook tests, the extension build/typecheck, Ruff,
+Python compilation, OpenAPI YAML parsing, and diff checks pass.
+No database, provider, candidate, or legacy service was used. This does not
+prove deployed Directus field permissions, external consumer authorization,
+owner-selected outputs, or populated semantic parity. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/dashboard-openapi-query-id-contract.json`.
+Checklist: 1,231 complete / 25 open (1,256 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

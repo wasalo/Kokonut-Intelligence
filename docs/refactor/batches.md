@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (26 October 2026):** 1,230 checklist items complete and 25
-open (1,255 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (26 October 2026):** 1,231 checklist items complete and 25
+open (1,256 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -3102,6 +3102,7 @@ reporting views.
   - [x] Keep the runtime SQL inventory current as service code changes. The current generated inventory records 3,978 execution sites across 823 source files, 315 worker-linked sites, and 1,046 regex-derived relation candidates. Static relation/function analysis is incomplete by design and does not prove least privilege ([inventory](runtime-sql-inventory.json); [refresh evidence](builds/2026-10-17-recovery/worker-sql-inventory-refresh.json)).
   - [x] Require explicit scope for `--auto` generation across the 94-type report registry, reject contradictory report/scope flags, and allow snapshot verification without a generation type. Eleven focused CLI checks and Ruff pass without database/provider access ([implementation](../../services/export/report_generator.py); [tests](../../tests/test_report_generator_cli.py); [evidence](builds/2026-10-15-recovery/report-generator-cli-scope.json)). Follow-up preflight rejects unsupported multi-location/all-location combinations, ambiguous listing, malformed UUIDs, duplicate canonical UUID scope, and malformed/reversed dates before PostgreSQL opens; 40 focused CLI, error-redaction, and read-only checks pass ([evidence](builds/2026-10-19-recovery/report-generator-location-scope-preflight.json)). Populated report parity, report ownership, and external consumer authorization remain open.
   - [x] Route legacy public location list/detail through the bounded native projection in every profile, preserve their historical wrapper and 400/404 behavior, and remove the unauthenticated Directus proxy. Three focused HTTP checks pass, including with Directus enabled ([implementation](../../services/gateway/router.py); [tests](../../tests/test_gateway_public_locations.py); [evidence](builds/2026-10-15-recovery/legacy-public-location-native-route.json)). Directus administrative role/field/row/hook parity remains open.
+  - [x] Align the Directus OpenAPI and SDK contract with registered query IDs: create/update accept `query_id`, and the extension rejects attempts to write legacy `query_sql` while retaining it for archived reads. The focused OpenAPI/SDK/reader/refresher selection passes 139 tests; all 103 Directus hook tests and the extension build/typecheck pass; Ruff, Python compilation, OpenAPI YAML parsing, and diff checks pass ([tests](../../tests/test_reporting_openapi.py); [evidence](builds/2026-10-26-recovery/dashboard-openapi-query-id-contract.json)). Deployed Directus role/field masking and populated report parity remain open.
 - [x] Source-audit and gate canonical Field Collector use after capture:
   migration 386 adds a current source/form/consent eligibility function and
   blocks ineligible draft edits and forward lifecycle transitions. Reports,

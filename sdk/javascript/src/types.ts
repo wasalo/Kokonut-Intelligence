@@ -1207,7 +1207,7 @@ export interface ForecastOutput {
   created_by?: string | null;
 }
 
-/** Stored dashboard dataset definition; query text is not executed here. */
+/** Stored dashboard dataset definition. Refresh uses the registered query ID. */
 export interface DashboardDataset {
   id: string;
   name: string;
@@ -1215,6 +1215,7 @@ export interface DashboardDataset {
   dataset_type?: string | null;
   location_id?: string | null;
   query_id?: string | null;
+  /** @deprecated Archived compatibility field; never executed by the Kernel. */
   query_sql?: string | null;
   refresh_interval_minutes?: number | null;
   last_refreshed_at?: string | null;

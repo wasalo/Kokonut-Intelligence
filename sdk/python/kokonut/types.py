@@ -886,7 +886,7 @@ class ForecastOutput:
 
 @dataclass
 class DashboardDataset:
-    """Stored dashboard dataset definition; query text is not executed here."""
+    """Stored dataset definition; refresh is selected by registered ``query_id``."""
 
     id: str
     name: str
@@ -894,6 +894,7 @@ class DashboardDataset:
     dataset_type: Optional[str] = None
     location_id: Optional[str] = None
     query_id: Optional[str] = None
+    # Archived compatibility only; Kernel refresh never executes stored SQL.
     query_sql: Optional[str] = None
     refresh_interval_minutes: Optional[int] = None
     last_refreshed_at: Optional[str] = None

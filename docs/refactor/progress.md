@@ -19551,3 +19551,21 @@ remain open. Capability classifications remain 24 baseline-retained, 7
 deployed, and 36 prepared across 67 rows. Checklist: 1,225 complete / 25 open
 (1,250 total). Evidence:
 `docs/refactor/builds/2026-10-26-recovery/directus-schedules-default-off.json`.
+### Progress addendum — dashboard OpenAPI query-ID contract, 26 October 2026
+
+The Directus OpenAPI now describes `query_id` as the dashboard refresh
+selection. Create/update schemas no longer accept arbitrary stored SQL;
+`query_sql` remains in the read model as deprecated, read-only legacy data.
+The Directus extension also rejects create/update payloads that include
+`query_sql`, even if a caller bypasses the OpenAPI contract.
+Python and TypeScript SDK docs and the export/partner guides now state that the
+Kernel executes only source-controlled, exact-location query contracts.
+
+The OpenAPI, SDK, reader, and refresher selection passes 139 tests. Ruff,
+Python compilation, OpenAPI 3.0.3 YAML parsing, and diff checks pass. No
+database, provider, candidate, or legacy service was used. Effective deployed
+Directus field permissions and populated/external dashboard parity remain
+open. All 103 hook tests and the extension build/typecheck also pass. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/dashboard-openapi-query-id-contract.json`.
+Checklist: 1,231 complete / 25 open (1,256 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

@@ -40,6 +40,41 @@ describe('Directus hook event registration', () => {
     }
   });
 
+  it('rejects legacy dashboard SQL writes while allowing registered query IDs', () => {
+    const filters = new Map<string, Array<(...args: any[]) => any>>();
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: (event: string, callback: (...args: any[]) => any) => {
+          const callbacks = filters.get(event) ?? [];
+          callbacks.push(callback);
+          filters.set(event, callbacks);
+        },
+        action: () => undefined,
+        schedule: () => undefined,
+      },
+      { database: () => undefined, env: {} },
+    );
+
+    for (const operation of ['create', 'update']) {
+      const hook = filters.get(`dashboard_dataset.items.${operation}`)?.[0];
+      expect(hook).toBeDefined();
+      let thrown: unknown;
+      try {
+        hook!({ query_id: 'public_farm_summary_count', query_sql: null });
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toMatchObject({
+        code: 'INVALID_PAYLOAD',
+        status: 400,
+        message: 'dashboard_dataset.query_sql is read-only; use query_id',
+      });
+      const payload = { query_id: 'public_farm_summary_count' };
+      expect(hook!(payload)).toBe(payload);
+    }
+  });
+
   it('fails closed when tenant item hooks lack the request transaction database', async () => {
     const globalDatabase = vi.fn();
     const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();

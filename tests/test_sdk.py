@@ -827,7 +827,7 @@ def test_ai_summary_type_preserves_lineage_and_review_as_distinct_fields():
     assert summary.created_by_worker_id == "worker-1"
 
 
-def test_dashboard_dataset_type_keeps_query_definition_separate_from_execution():
+def test_dashboard_dataset_type_uses_registered_query_and_preserves_legacy_sql():
     from kokonut import DashboardDataset
 
     dataset = DashboardDataset(
@@ -840,8 +840,10 @@ def test_dashboard_dataset_type_keeps_query_definition_separate_from_execution()
         metadata={"audience": "community"},
     )
 
-    assert dataset.query_sql == "SELECT 1 AS value"
     assert dataset.query_id == "public_farm_summary_count"
+    # The SDK keeps the archived field representable, but execution is
+    # selected by query_id and the Kernel never runs this SQL text.
+    assert dataset.query_sql == "SELECT 1 AS value"
     assert dataset.status == "published"
     assert dataset.metadata["audience"] == "community"
 

@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-26",
+  "scope": "Align Directus OpenAPI, SDK model documentation, and export guides with registered dashboard query IDs.",
+  "focused_test_command": "python3 -m pytest tests/test_reporting_openapi.py tests/test_sdk.py tests/test_dataset_refresh_readonly.py tests/test_reporting_reader.py -q",
+  "focused_tests_passed": 139,
+  "directus_hook_tests_command": "npm test -- --run (extensions/kokonut-hooks)",
+  "directus_hook_tests_passed": 103,
+  "directus_extension_build_and_typecheck": "passed",
+  "javascript_sdk_typescript_build": "passed",
+  "capability_matrix_validation": "passed (67 rows)",
+  "directus_write_rejection": "INVALID_PAYLOAD / HTTP 400 for query_sql presence, including null, on create and update",
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "openapi_yaml_parse": "passed (OpenAPI 3.0.3)",
+  "git_diff_check": "passed",
+  "database_provider_or_candidate_access": false,
+  "directus_runtime_access": false,
+  "contract": {
+    "write_selection": "query_id only",
+    "legacy_query_sql": "deprecated, read-only compatibility field; never executed by Kernel refresh"
+  },
+  "remaining_gates": [
+    "Effective deployed Directus field and role permissions",
+    "Owner-selected dashboard contracts and populated semantic fixtures",
+    "External/operator-edited consumer authorization and least-privilege database boundaries"
+  ]
+}

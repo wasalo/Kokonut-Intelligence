@@ -1,4 +1,5 @@
 import { defineHook } from '@directus/extensions-sdk';
+import { createError } from '@directus/errors';
 import { calculateNoi, batchCalculateNoi, storeNoiSnapshot, setDb } from './metrics-calculator.js';
 import {
   handleWorkflowTransition,
@@ -59,6 +60,12 @@ import {
   TENANT_SCOPED_COLLECTIONS,
 } from './directus-authorization.js';
 import { z } from 'zod';
+
+const InvalidDashboardQueryPayload = createError<{ message: string }>(
+  'INVALID_PAYLOAD',
+  ({ message }) => message,
+  400,
+);
 import {
   validateAgentTaskCreate,
   validateAgentTaskUpdate,
@@ -125,6 +132,19 @@ function isExplicitlyEnabled(value: unknown): boolean {
 
 export default defineHook(({ filter, action, schedule }, { database, env }) => {
   setDb(database);
+
+  // Archived dataset SQL is retained only for old records. Reject attempts to
+  // create or rewrite it even when callers bypass the published OpenAPI spec.
+  const rejectDashboardQuerySqlWrite = (payload: Record<string, any>) => {
+    if (Object.prototype.hasOwnProperty.call(payload, 'query_sql')) {
+      throw new InvalidDashboardQueryPayload({
+        message: 'dashboard_dataset.query_sql is read-only; use query_id',
+      });
+    }
+    return payload;
+  };
+  filter('dashboard_dataset.items.create', rejectDashboardQuerySqlWrite);
+  filter('dashboard_dataset.items.update', rejectDashboardQuerySqlWrite);
 
   for (const collection of TENANT_SCOPED_COLLECTIONS) {
     filter(`${collection}.items.query`, async (
