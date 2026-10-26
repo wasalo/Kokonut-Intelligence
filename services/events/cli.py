@@ -47,13 +47,19 @@ def cmd_process(args):
 
 
 def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
-                isolated_notification_delivery: bool = False):
+                isolated_notification_delivery: bool = False,
+                isolated_event_dispatch: bool = False):
     if args.poll_interval <= 0:
         raise ValueError("poll_interval must be positive")
 
     from services.core.features import is_enabled
 
     process_events = process_events and is_enabled("event_bus")
+    isolated_event_dispatch = (
+        isolated_event_dispatch
+        and process_events
+        and is_enabled("isolated_event_dispatch")
+    )
     deliver_notifications = deliver_notifications and is_enabled("notification_delivery")
     isolated_notification_delivery = (
         isolated_notification_delivery
@@ -73,10 +79,17 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
             notifications = {"claimed": 0}
             try:
                 if process_events:
-                    from services.events.backend import get_event_store
+                    if isolated_event_dispatch:
+                        from services.events.dispatch_worker import run_once
 
-                    bus = get_event_store(lease_seconds=args.lease_seconds, connect_timeout=5)
-                    result = bus.process_pending(args.batch_size, args.worker_id)
+                        result = run_once(
+                            args.worker_id, args.batch_size, args.lease_seconds
+                        )
+                    else:
+                        from services.events.backend import get_event_store
+
+                        bus = get_event_store(lease_seconds=args.lease_seconds, connect_timeout=5)
+                        result = bus.process_pending(args.batch_size, args.worker_id)
                 if deliver_notifications:
                     if isolated_notification_delivery:
                         from services.events.notification_delivery_worker import run_once
@@ -130,6 +143,16 @@ def cmd_worker(args):
 def cmd_event_worker(args):
     """Continuously dispatch durable domain events without sending notifications."""
     return _run_worker(args, process_events=True, deliver_notifications=False)
+
+
+def cmd_isolated_event_worker(args):
+    """Dispatch global events through the dedicated bounded database identity."""
+    return _run_worker(
+        args,
+        process_events=True,
+        deliver_notifications=False,
+        isolated_event_dispatch=True,
+    )
 
 
 def cmd_notification_worker(args):
@@ -338,6 +361,8 @@ def main():
                        help="Compatibility mode: dispatch events and deliver notifications")
     group.add_argument("--event-worker", action="store_true",
                        help="Continuously dispatch events without delivering notifications")
+    group.add_argument("--isolated-event-worker", action="store_true",
+                       help="Dispatch events using the dedicated bounded database identity")
     group.add_argument("--notification-worker", action="store_true",
                        help="Continuously deliver notifications without dispatching events")
     group.add_argument("--isolated-notification-worker", action="store_true",
@@ -399,6 +424,8 @@ def main():
         rc = cmd_worker(args)
     elif args.event_worker:
         rc = cmd_event_worker(args)
+    elif args.isolated_event_worker:
+        rc = cmd_isolated_event_worker(args)
     elif args.notification_worker:
         rc = cmd_notification_worker(args)
     elif args.isolated_notification_worker:

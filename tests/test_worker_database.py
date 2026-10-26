@@ -180,6 +180,42 @@ def test_notification_delivery_requires_its_dedicated_dsn_without_shared_fallbac
     connect.assert_not_called()
 
 
+def test_event_dispatch_verifies_its_dedicated_database_login(monkeypatch):
+    connection, _cursor = _connection("kokonut_event_dispatch_login")
+    connect = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+
+    result = worker_database.get_worker_db(
+        "event_dispatch",
+        environ={
+            "KOKONUT_EVENT_DISPATCH_DATABASE_URL": "postgresql://event-dispatch",
+            "PG_USER": "kokonut_runtime",
+            "PG_PASSWORD": "shared-secret-is-not-used",
+        },
+    )
+
+    assert result is connection
+    connect.assert_called_once()
+    assert connect.call_args.args == ("postgresql://event-dispatch",)
+    connection.rollback.assert_called_once_with()
+
+
+def test_event_dispatch_requires_its_dedicated_dsn_without_shared_fallback(monkeypatch):
+    connect = MagicMock()
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+
+    with pytest.raises(
+        worker_database.WorkerDatabaseConfigurationError,
+        match="KOKONUT_EVENT_DISPATCH_DATABASE_URL is required",
+    ):
+        worker_database.get_worker_db(
+            "event_dispatch",
+            environ={"PG_USER": "kokonut_runtime", "PG_PASSWORD": "shared"},
+        )
+
+    connect.assert_not_called()
+
+
 @pytest.mark.parametrize("worker_key", ["", "Sensor", "sensor-anomaly", "../events"])
 def test_invalid_worker_key_is_rejected_before_connection(worker_key, monkeypatch):
     connect = MagicMock()

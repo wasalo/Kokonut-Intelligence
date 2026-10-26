@@ -1,7 +1,8 @@
 # Worker overlay — legacy ingestion, event dispatch, and notification delivery
 # Usage: docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d kokonut-worker
-# To run only event dispatch or notification delivery, target `event-worker` or
-# `notification-worker` explicitly with `--profile worker`.
+# To run legacy event dispatch or notification delivery, target `event-worker`
+# or `notification-worker` with `--profile worker`. Dedicated bounded workers
+# are opt-in through the `event-isolated` and `notification-isolated` profiles.
 #
 # The worker container connects to the databases network to reach PostgreSQL and ClickHouse.
 # It does not expose any ports — all communication is internal.
@@ -697,6 +698,50 @@ services:
           memory: 512M
     profiles:
       - worker
+
+  event-dispatch-kernel-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: ["python3", "-m", "services.events", "--isolated-event-worker", "--worker-id", "event-kernel-worker"]
+    user: appuser
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_ISOLATED_WORKER_KEY: event_dispatch
+      KOKONUT_FEATURE_EVENT_BUS: ${KOKONUT_FEATURE_EVENT_BUS:-true}
+      KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH: ${KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH:-true}
+      KOKONUT_EVENT_DISPATCH_DATABASE_URL: ${KOKONUT_EVENT_DISPATCH_DATABASE_URL:-}
+      KOKONUT_SENSOR_ANOMALY_DATABASE_URL: ${KOKONUT_SENSOR_ANOMALY_DATABASE_URL:-}
+      KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL: ${KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL:-}
+      KOKONUT_CACHE_INVALIDATION_DATABASE_URL: ${KOKONUT_CACHE_INVALIDATION_DATABASE_URL:-}
+      KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL: ${KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL:-}
+      KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL: ${KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL:-}
+      KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION: ${KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION:-false}
+      KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE: ${KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE:-false}
+      DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    profiles:
+      - event-isolated
 
   notification-worker:
     build:

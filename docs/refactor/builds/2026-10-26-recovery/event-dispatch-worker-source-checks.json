@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-26",
+  "scope": "Migration 648 isolated global EventBus dispatcher source, CLI, environment, Compose, runtime-role, and generated worker inventory acceptance.",
+  "pytest": {
+    "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest -q tests/test_event_dispatch_worker.py tests/test_event_worker_recovery.py tests/test_worker_environment.py tests/test_worker_database.py tests/test_core_features.py tests/test_kernel_runtime_supervisor.py tests/test_runtime_role_boundary.py tests/test_migration.py tests/test_worker_operation_map.py tests/test_worker_source_closure.py tests/test_worker_function_reachability.py tests/test_worker_sql_inventory.py tests/test_worker_sql_reachability.py tests/test_worker_boundary_preflight.py",
+    "tests_passed": 262,
+    "subtests_passed": 4,
+    "result": "passed"
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "worker_source_closure_roots": 40,
+    "worker_source_files": 107,
+    "function_graph_memberships": 848,
+    "sql_execution_sites": 358,
+    "sql_sites_with_static_operation_path": 276,
+    "worker_effect_candidate_sites": 69,
+    "runtime_sql_execution_sites": 4922,
+    "worker_boundary_preflight": "passed; live database grants and ownership remain unassessed",
+    "compose_legacy_event_isolated_profile": "passed with synthetic interpolation values",
+    "compose_kernel_candidate_overlays": "passed with synthetic interpolation values",
+    "git_diff_check": "passed"
+  },
+  "migration": {
+    "file": "schemas/postgres/648_isolated_event_dispatch_worker.sql",
+    "sha256": "563798bc60adf358e110bb9ff6a5353b3e4966ea5fd08e4dd08d2d0224f83303",
+    "native_postgresql_16": "passed",
+    "arm64_qemu_postgresql_16": "passed"
+  },
+  "isolation": "No candidate or legacy database, worker credential, event handler process, external provider, or network was used. No live worker profile or feature flag was activated. ARM64/QEMU is software portability evidence only, not physical Raspberry Pi, power-loss, endurance, or sustained-load acceptance."
+}

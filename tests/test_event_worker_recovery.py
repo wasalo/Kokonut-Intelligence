@@ -6,7 +6,12 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
 from services.events import cli as events_cli
-from services.events.cli import cmd_event_worker, cmd_notification_worker, cmd_worker
+from services.events.cli import (
+    cmd_event_worker,
+    cmd_isolated_event_worker,
+    cmd_notification_worker,
+    cmd_worker,
+)
 
 
 def _args():
@@ -23,6 +28,7 @@ class EventWorkerRecoveryTests(TestCase):
         for flag, command in (
             ("--worker", events_cli.cmd_worker),
             ("--event-worker", events_cli.cmd_event_worker),
+            ("--isolated-event-worker", events_cli.cmd_isolated_event_worker),
             ("--notification-worker", events_cli.cmd_notification_worker),
         ):
             with self.subTest(flag=flag):
@@ -56,6 +62,23 @@ class EventWorkerRecoveryTests(TestCase):
         bus.process_pending.assert_called_once_with(10, "event-worker-test")
         bus.close.assert_called_once()
         get_connection.assert_not_called()
+
+    def test_isolated_event_worker_uses_only_dispatch_worker_entrypoint(self):
+        feature_states = {"event_bus": True, "isolated_event_dispatch": True,
+                          "notification_delivery": False}
+        with (
+            patch("services.core.features.is_enabled", side_effect=feature_states.get),
+            patch(
+                "services.events.dispatch_worker.run_once",
+                return_value={"processed": 0, "failed": 0},
+            ) as run_once,
+            patch("services.events.backend.get_event_store") as get_event_store,
+            patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+        ):
+            self.assertEqual(cmd_isolated_event_worker(_args()), 0)
+
+        run_once.assert_called_once_with("event-worker-test", 10, 30)
+        get_event_store.assert_not_called()
 
     def test_notification_worker_does_not_open_event_store(self):
         connection = object()

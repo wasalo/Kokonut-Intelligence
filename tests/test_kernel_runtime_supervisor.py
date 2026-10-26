@@ -136,6 +136,11 @@ def test_commands_start_event_and_notification_workers_independently(monkeypatch
     assert [name for name, _ in children] == ["api", "events"]
     assert children[1][1][3] == "--event-worker"
 
+    enabled["isolated_event_dispatch"] = True
+    children = runtime.commands(8099, with_workers=True)
+    assert [name for name, _ in children] == ["api", "events"]
+    assert children[1][1][3] == "--isolated-event-worker"
+
     enabled.update(event_bus=False, notification_delivery=True)
     children = runtime.commands(8099, with_workers=True)
 
@@ -152,6 +157,38 @@ def test_commands_omit_both_workers_when_features_are_disabled(monkeypatch):
     assert runtime.commands(8099, with_workers=False) == [
         ("api", [sys.executable, "-m", "services.gateway.cli", "--serve", "--port", "8099"])
     ]
+
+
+def test_supervisor_marks_isolated_event_worker_and_keeps_exact_handler_secrets(monkeypatch):
+    processes = iter((_Process(121), _Process(122)))
+    spawned = []
+    environment_options = []
+    _install_signal_fakes(monkeypatch, stop_on_sleep=True)
+    monkeypatch.setattr(
+        runtime,
+        "commands",
+        lambda *_args, **_kwargs: [("api", ["api"]), ("events", ["isolated-events", "--isolated-event-worker"])],
+    )
+    def filtered_environment(**kwargs):
+        environment_options.append(kwargs)
+        return {"ISOLATED": kwargs.get("isolated_worker_key", "")}
+
+    monkeypatch.setattr(runtime, "worker_subprocess_environment", filtered_environment)
+    monkeypatch.setattr(
+        runtime.subprocess,
+        "Popen",
+        lambda argv, **kwargs: spawned.append((argv, kwargs)) or next(processes),
+    )
+    monkeypatch.setattr(runtime.os, "killpg", lambda *_args: None)
+
+    assert runtime.run(with_workers=True) == 0
+
+    event_kwargs = environment_options[1]
+    assert event_kwargs["isolated_worker_key"] == "event_dispatch"
+    assert event_kwargs["allowed_worker_keys"] == (
+        "event_dispatch", *EVENT_HANDLER_WORKER_KEYS
+    )
+    assert spawned[1][1]["env"] == {"ISOLATED": "event_dispatch"}
 
 
 def test_unexpected_zero_exit_fails_supervisor_and_stops_siblings(monkeypatch):

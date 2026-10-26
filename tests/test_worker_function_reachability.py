@@ -19,6 +19,7 @@ from scripts.worker_function_reachability import (
 from services.security.execution_allowlist import (
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
+    ISOLATED_WORKER_MODULES,
 )
 
 INVENTORY_PATH = ROOT / "docs" / "refactor" / "worker-function-reachability.json"
@@ -32,9 +33,11 @@ def test_saved_worker_function_graph_matches_current_sources():
 
 def test_worker_function_graph_covers_allowlisted_entrypoints_and_edges():
     inventory = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
-    expected_names = set(ALLOWED_SCHEDULED_MODULES) | {
-        f"{module}.{function}" for module, function in ALLOWED_EVENT_HANDLERS
-    }
+    expected_names = (
+        set(ALLOWED_SCHEDULED_MODULES)
+        | set(ISOLATED_WORKER_MODULES)
+        | {f"{module}.{function}" for module, function in ALLOWED_EVENT_HANDLERS}
+    )
     operations = inventory["operations"]
 
     assert {operation["name"] for operation in operations} == expected_names

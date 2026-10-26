@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 39,
-    "source_files": 106,
-    "execution_sites": 357,
+    "operation_roots": 40,
+    "source_files": 107,
+    "execution_sites": 358,
     "static_literal_sites": 310,
-    "composed_or_variable_sites": 47
+    "composed_or_variable_sites": 48
   },
   "execution_sites": [
     {
@@ -844,6 +844,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -896,6 +897,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -948,6 +950,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -1206,9 +1209,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:140:12",
+      "id": "services/common/worker_database.py:141:12",
       "source": "services/common/worker_database.py",
-      "line": 140,
+      "line": 141,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -1224,6 +1227,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -1749,6 +1753,7 @@
       "static_sql_sha256": "122a432ebb5b4f543cd1860accc3f910870cdae3a074a5b1b7e30e230fa33ff7",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1774,6 +1779,7 @@
       "static_sql_sha256": "c919984a6503eef68e1c686f0bc2c391a3de11359e6b99e5de7afbbfe2e95857",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1798,6 +1804,7 @@
       "static_sql_sha256": "be6c98445b0b18dac8dbd4efde09a0986ada03ad1b93402f1f80de0b5a83f240",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1821,6 +1828,7 @@
       "static_sql_sha256": "32b2517b034c78356cd848dd4a5c4eb43f4c9891ea1b3893a207ffe87c8b66eb",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1845,6 +1853,7 @@
       "static_sql_sha256": "815dd01475f74ae3eea32efa30273249bf9039f3d787d6079fbed6ca4107472d",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1868,6 +1877,7 @@
       "static_sql_sha256": "96672bd85e9e07f3c8f102d43a51bcf5478651c2077251b9327d431c3a48d170",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1891,6 +1901,7 @@
       "static_sql_sha256": "c68e1fbd88e2dadea4ba59cba5e0840c3d8ef0388137114529d98b11cc362c88",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1914,6 +1925,7 @@
       "static_sql_sha256": "7ced102a46d1a25ea4fa6d21807df97fa18de02557dc5fb825e2b8cc32881c96",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1937,6 +1949,7 @@
       "static_sql_sha256": "c7008c7558eba43a16e728fabeb208e2f5d64630d39494343b706bd154b77534",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1962,6 +1975,7 @@
       "static_sql_sha256": "0d0ea69d0e5466e12ebea5fd31402530861ff7a0a51708eea2ca8ddcc1924cd8",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -1989,6 +2003,7 @@
       "static_sql_sha256": "e504051d9a236f40808030d3261499b1c083f0c7b47fbda12a297b072ecc27de",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2012,6 +2027,7 @@
       "static_sql_sha256": "908d6329ad0f1b6d056e375830494124a99c0b52db7986fb544b286e1345270b",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2035,6 +2051,7 @@
       "static_sql_sha256": "14f51a9bb4c1509094b25a0b180a066359c7132dd7e0ec926a383f4f40400e76",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2056,6 +2073,7 @@
       "static_sql_sha256": "a5fd8d7d91677a54eabbf356a1656d590d9d391d3137e1b420988faabb527802",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2079,6 +2097,7 @@
       "static_sql_sha256": "78ac1d3cecbdb8e5eb189c273be9fe18bb766fad99140bd9e73136f517106f4e",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2106,6 +2125,7 @@
       "static_sql_sha256": "48aa0f1a2f220ca1387a7baafec204a26b97d3218b7f880e4e8334c0253a5084",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2129,6 +2149,7 @@
       "static_sql_sha256": "2d8ba37546412a7eb5809484ef9f3dc2987a77af29570c514f7cf0bf47b08cd8",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2152,6 +2173,7 @@
       "static_sql_sha256": "b2908e848d8d246b25e48166ede02e64bcf7bc44395a9901dc83862ebbf023d2",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2161,9 +2183,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:193:12",
+      "id": "services/events/cli.py:216:12",
       "source": "services/events/cli.py",
-      "line": 193,
+      "line": 216,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -2178,9 +2200,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:222:12",
+      "id": "services/events/cli.py:245:12",
       "source": "services/events/cli.py",
-      "line": 222,
+      "line": 245,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
@@ -2191,6 +2213,22 @@
       ],
       "static_sql_sha256": "1f21abe9ee59b9499d6a934d589c431e62837ba9d7e721dcbe313bd90acd86be",
       "operation_refs": [
+        "scheduled_module:services.events"
+      ]
+    },
+    {
+      "id": "services/events/dispatch_worker.py:34:16",
+      "source": "services/events/dispatch_worker.py",
+      "line": 34,
+      "column": 16,
+      "scope": "IsolatedEventBus._function",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events"
       ]
     },

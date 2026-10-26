@@ -110,7 +110,10 @@ def test_unknown_sql_sites_include_generic_adapters_and_reviewed_dispatch_paths(
         ("services/common/database.py", 77),
         ("services/common/database.py", 80),
         ("services/common/database.py", 142),
+        ("services/events/dispatch_worker.py", 34),
         ("services/ingestion/baal_worker.py", 37),
+        ("services/ingestion/freshness_worker.py", 31),
+        ("services/ingestion/freshness_worker.py", 36),
         ("services/ingestion/gnosis_worker.py", 45),
     ]
 
@@ -328,8 +331,10 @@ def test_dynamic_sql_review_categories_remain_explicit():
         "services/ingestion/ml_anomaly_detector.py": 1,
         "services/ingestion/remote_sensing_fetcher.py": 1,
         "services/ingestion/sensor_anomaly_worker.py": 2,
+        "services/events/dispatch_worker.py": 1,
         "services/ingestion/baal_worker.py": 1,
         "services/ingestion/gnosis_worker.py": 1,
+        "services/ingestion/freshness_worker.py": 2,
         "services/drivers/registry.py": 1,
         "services/metrics/cli.py": 1,
         "services/metrics/calculators/allocated_shared_cost.py": 1,

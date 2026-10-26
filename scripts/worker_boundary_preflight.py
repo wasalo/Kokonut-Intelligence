@@ -105,7 +105,7 @@ def build_preflight() -> dict:
             "passed": source_coverage_passes,
         },
         "worker_identity": {
-            "database_identity": "shared_configured_runtime_identity",
+            "database_identity": "source_policy_varies_live_configuration_not_assessed",
             "signed_tenant_context_established_by_dispatch": False,
             "unbound_operation_root_count": len(expected_operations),
             "status": "not_tenant_bound",

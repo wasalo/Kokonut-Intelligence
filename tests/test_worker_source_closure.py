@@ -8,6 +8,7 @@ from scripts.worker_source_closure import ROOT, _serialize, build_inventory
 from services.security.execution_allowlist import (
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
+    ISOLATED_WORKER_MODULES,
 )
 
 INVENTORY_PATH = ROOT / "docs" / "refactor" / "worker-source-closure.json"
@@ -23,11 +24,17 @@ def test_worker_source_closure_covers_all_allowlisted_entrypoints():
     inventory = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
     operations = inventory["operations"]
     scheduled = {item["name"] for item in operations if item["kind"] == "scheduled_module"}
+    isolated = {item["name"] for item in operations if item["kind"] == "isolated_worker"}
     handlers = {item["name"] for item in operations if item["kind"] == "event_handler"}
 
     assert scheduled == ALLOWED_SCHEDULED_MODULES
+    assert isolated == ISOLATED_WORKER_MODULES
     assert handlers == {f"{module}.{function}" for module, function in ALLOWED_EVENT_HANDLERS}
-    assert len(operations) == len(ALLOWED_SCHEDULED_MODULES) + len(ALLOWED_EVENT_HANDLERS)
+    assert len(operations) == (
+        len(ALLOWED_SCHEDULED_MODULES)
+        + len(ISOLATED_WORKER_MODULES)
+        + len(ALLOWED_EVENT_HANDLERS)
+    )
 
 
 def test_worker_import_closures_resolve_source_edges_and_surface_dynamic_dispatch():

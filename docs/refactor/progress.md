@@ -18920,3 +18920,37 @@ remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 ## Isolated notification delivery worker — 25 October 2026
 
 Migration 647 and a default-off dedicated worker isolate durable outbox claims and provider delivery from the EventBus shared database identity. The bounded SQL functions execute under a no-login owner, work with forced RLS, create and fence attempt receipts, and preserve the existing operator replay/disposition path. The focused selection passes 359 tests; Ruff, compilation, dependency/provider boundaries, and refreshed source/function/SQL/effect/preflight inventories pass (39 roots, zero unresolved entrypoints). Disposable PostgreSQL 16 acceptance passes actual-login read/write/sequence denial, function ACL, lease fencing, retry/dead-letter, bounded expiry recovery, rollback, and migration replay on native x86_64 and Docker ARM64/QEMU (`aarch64`). This is software portability evidence only; physical Raspberry Pi, power-loss, endurance, and sustained-load acceptance remain open. No candidate/legacy database, credential, or live provider was used. The opt-in Compose profile remains inactive pending the dedicated DSN/secret and separate rollout approval. Evidence: `docs/refactor/builds/2026-10-25-recovery/notification-delivery-worker-source-checks.json`, `docs/refactor/builds/2026-10-25-recovery/notification-delivery-worker-disposable.json`, and `docs/refactor/builds/2026-10-25-recovery/notification-delivery-worker-arm64-disposable.json`.
+
+## Isolated global EventBus dispatcher — 26 October 2026
+
+Migration 648 gives the global event queue a dedicated no-login function owner,
+an opt-in worker login, and seven bounded operations. Event claims use bounded
+priority ordering and a fresh lease token; handler begin/finish, completion,
+retry, and dead-letter all revalidate the live owner/token/lease. The dedicated
+login has no direct event-table privileges and remains compatible with forced
+RLS. Publication still participates in the producer's transaction, while
+registered handlers continue in subprocesses with source-mapped credentials.
+Statistics, cleanup, replay, and disposition remain reviewed operator paths.
+
+The focused dispatcher, worker identity/environment, runtime role, migration,
+and generated inventory selection passes 262 tests and 4 subtests. The database
+blocks premature completion while enabled handler receipts are unfinished and
+blocks retry until a failed handler receipt exists. Ruff, Python compilation,
+Compose validation with synthetic interpolation values, regenerated source,
+function, SQL, effect, runtime-SQL, and boundary inventories, capability
+matrix validation, and `git diff --check` pass. Network-disabled PostgreSQL 16
+applies/replays migration 648 and verifies exact function ACLs, direct-access
+denial, forced-RLS compatibility, claim bounds/order, handler binding,
+success/error receipts, dead-letter, rollback, expired-lease reclaim, and
+stale-token fencing on native x86_64 and ARM64/QEMU (`aarch64`). This is
+software portability evidence only; there is no physical Raspberry Pi,
+power-loss, endurance, or sustained-load claim.
+
+The candidate and legacy databases, handler processes, credentials, and
+external providers were not used. The feature and `event-isolated` profile
+remain off until a dedicated DSN/credential is provisioned and the legacy
+dispatcher is stopped for a reviewed handoff. Rollback by disabling the flag
+and profile and restoring the legacy dispatcher; keep the additive migration
+and event receipts. Evidence: `docs/refactor/builds/2026-10-26-recovery/event-dispatch-worker-source-checks.json`,
+`docs/refactor/builds/2026-10-26-recovery/event-dispatch-worker-disposable.json`,
+and `docs/refactor/builds/2026-10-26-recovery/event-dispatch-worker-arm64-disposable.json`.

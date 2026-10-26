@@ -392,7 +392,7 @@ def build_effect_inventory() -> dict:
     return {
         "version": 1,
         "generated_by": "scripts/worker_effect_inventory.py",
-        "reviewed": "2026-10-25",
+        "reviewed": "2026-10-26",
         "scope": (
             "High-confidence direct call patterns found inside the current static worker function-reachability graph. "
             "The operation graph conservatively includes some CLI branches that runtime command contracts reject. "

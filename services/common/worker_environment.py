@@ -131,6 +131,7 @@ def worker_subprocess_environment(
     *,
     allowed_worker_keys: Sequence[str] = (),
     isolated_database_credentials: bool = False,
+    isolated_worker_key: str | None = None,
     environ: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     """Copy the environment while allowing only explicitly named worker secrets.
@@ -140,10 +141,11 @@ def worker_subprocess_environment(
     ``KOKONUT_<WORKER>_WORKER_CREDENTIAL`` are removed unless that worker key
     is explicitly allowed for the child. An empty allowlist is appropriate for
     APIs, scheduled commands, event handlers, and other general subprocesses.
-    Isolated worker commands require one exact worker key, remove all shared
-    PostgreSQL connection settings, and receive an internal marker that lets
-    import-time legacy helpers stay inert while the canonical shared connector
-    fails closed.
+    Isolated worker commands remove all shared PostgreSQL connection settings
+    and receive an internal marker that lets import-time legacy helpers stay
+    inert while the canonical shared connector fails closed. A dispatcher may
+    carry its own key plus the exact child-handler keys it needs; the marker
+    still identifies its single database identity.
     """
     if isinstance(allowed_worker_keys, (str, bytes)):
         raise ValueError("worker keys must be provided as a sequence")
@@ -158,19 +160,33 @@ def worker_subprocess_environment(
         normalized_keys.append(key.lower())
     if isolated_database_credentials and len(set(normalized_keys)) != 1:
         raise ValueError("isolated database workers require exactly one allowed worker key")
+    if isolated_worker_key is not None:
+        if not isinstance(isolated_worker_key, str) or not _ISOLATED_WORKER_KEY.fullmatch(
+            isolated_worker_key
+        ):
+            raise ValueError("isolated_worker_key must be a lowercase worker identifier")
+        if isolated_database_credentials:
+            raise ValueError("use either isolated_database_credentials or isolated_worker_key")
+        if isolated_worker_key not in normalized_keys:
+            raise ValueError("isolated worker key must be present in the allowed worker keys")
+
+    isolated = isolated_database_credentials or isolated_worker_key is not None
+    marker = isolated_worker_key
+    if isolated_database_credentials:
+        marker = normalized_keys[0]
 
     source = os.environ if environ is None else environ
     child_environment: dict[str, str] = {}
     for name, value in source.items():
         if name == ISOLATED_WORKER_KEY_ENV:
             continue
-        if isolated_database_credentials and name in _SHARED_DATABASE_ENV:
+        if isolated and name in _SHARED_DATABASE_ENV:
             continue
-        if isolated_database_credentials and name in _GLOBAL_PROVIDER_SECRETS:
+        if isolated and name in _GLOBAL_PROVIDER_SECRETS:
             continue
         match = _WORKER_SECRET_ENV.fullmatch(name)
         if match is None or match.group(1) in allowed:
             child_environment[name] = value
-    if isolated_database_credentials:
-        child_environment[ISOLATED_WORKER_KEY_ENV] = normalized_keys[0]
+    if isolated and marker is not None:
+        child_environment[ISOLATED_WORKER_KEY_ENV] = marker
     return child_environment

@@ -36,6 +36,7 @@ _WORKER_LOGINS = {
     "agent_holistic_wellbeing_source": "kokonut_agent_holistic_wellbeing_login",
     "notification_enqueue": "kokonut_notification_enqueue_login",
     "notification_delivery": "kokonut_notification_delivery_login",
+    "event_dispatch": "kokonut_event_dispatch_login",
     "market_data": "kokonut_market_data_login",
     "eas_indexer": "kokonut_eas_indexer_login",
     "rpc_indexer": "kokonut_rpc_indexer_login",
@@ -102,8 +103,8 @@ def get_worker_db(
     For example, ``get_worker_db("sensor_anomaly")`` reads only
     ``KOKONUT_SENSOR_ANOMALY_DATABASE_URL`` and verifies the shared tenant
     worker login. Each agent source key verifies its task-specific read-only
-    login, while ``notification_enqueue`` and ``notification_delivery`` verify
-    their separate logins.
+    login, while notification enqueue/delivery and event dispatch verify their
+    separate logins.
     Neither path consults ``PG_USER``, ``PG_PASSWORD``, ``POSTGRES_PASSWORD``,
     or the shared application's connection factory. The DSN value is not
     included in errors or logs.

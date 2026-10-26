@@ -329,7 +329,6 @@ def test_isolated_worker_marker_is_generated_and_source_marker_never_passes_thro
         "KOKONUT_WEATHER_DATABASE_URL": "postgresql://worker",
         "PG_PASSWORD": "shared-secret",
     }
-
     assert worker_subprocess_environment(
         allowed_worker_keys=("weather",),
         isolated_database_credentials=True,
@@ -338,6 +337,45 @@ def test_isolated_worker_marker_is_generated_and_source_marker_never_passes_thro
         "KOKONUT_WEATHER_DATABASE_URL": "postgresql://worker",
         ISOLATED_WORKER_KEY_ENV: "weather",
     }
+
+
+def test_isolated_event_dispatcher_keeps_only_its_database_and_registered_handler_keys():
+    source = {
+        ISOLATED_WORKER_KEY_ENV: "untrusted",
+        "PG_PASSWORD": "shared-secret",
+        "DATABASE_URL": "postgresql://shared",
+        "GNOSIS_RPC_URL": "https://provider-secret",
+        "KOKONUT_EVENT_DISPATCH_DATABASE_URL": "postgresql://event-dispatch",
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://anomaly",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "anomaly-secret",
+        "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache",
+        "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://enqueue",
+        "KOKONUT_UNMAPPED_DATABASE_URL": "postgresql://unmapped",
+        "DIRECTUS_ADMIN_TOKEN": "handler-provider-setting",
+    }
+
+    assert worker_subprocess_environment(
+        allowed_worker_keys=("event_dispatch", "sensor_anomaly", "cache_invalidation", "notification_enqueue"),
+        isolated_worker_key="event_dispatch",
+        environ=source,
+    ) == {
+        ISOLATED_WORKER_KEY_ENV: "event_dispatch",
+        "KOKONUT_EVENT_DISPATCH_DATABASE_URL": "postgresql://event-dispatch",
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://anomaly",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "anomaly-secret",
+        "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache",
+        "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://enqueue",
+        "DIRECTUS_ADMIN_TOKEN": "handler-provider-setting",
+    }
+
+
+def test_explicit_isolated_worker_marker_requires_a_matching_allowed_key():
+    with pytest.raises(ValueError, match="present in the allowed worker keys"):
+        worker_subprocess_environment(
+            allowed_worker_keys=("sensor_anomaly",),
+            isolated_worker_key="event_dispatch",
+            environ={},
+        )
 
 
 @pytest.mark.parametrize("keys", [(), ("weather", "sensor_ingestion")])

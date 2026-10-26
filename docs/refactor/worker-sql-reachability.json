@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 39,
-    "sql_execution_sites": 357,
-    "statically_reachable_site_memberships": 392,
-    "unique_sites_with_static_operation_path": 275,
+    "operation_roots": 40,
+    "sql_execution_sites": 358,
+    "statically_reachable_site_memberships": 394,
+    "unique_sites_with_static_operation_path": 276,
     "sites_without_static_function_match": 82,
     "unmatched_functions_absent_from_all_worker_graphs": 82,
     "sites_reached_by_multiple_operations": 43
@@ -36,7 +36,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12"
+        "services/common/worker_database.py:141:12"
       ]
     },
     {
@@ -45,7 +45,7 @@
       "operation_ref": "scheduled_module:services.events",
       "statically_reachable_sql_site_count": 47,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/events/bus.py:107:12",
         "services/events/bus.py:157:12",
         "services/events/bus.py:176:16",
@@ -63,8 +63,8 @@
         "services/events/bus.py:421:16",
         "services/events/bus.py:450:16",
         "services/events/bus.py:458:16",
-        "services/events/cli.py:193:12",
-        "services/events/cli.py:222:12",
+        "services/events/cli.py:216:12",
+        "services/events/cli.py:245:12",
         "services/events/fork_detector.py:133:12",
         "services/events/fork_detector.py:36:8",
         "services/events/fork_detector.py:59:8",
@@ -179,7 +179,7 @@
       "operation_ref": "scheduled_module:services.ingestion.baal_worker",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/baal_indexer.py:64:8",
         "services/ingestion/baal_indexer.py:75:8",
         "services/ingestion/baal_indexer.py:88:8",
@@ -200,7 +200,7 @@
       "operation_ref": "scheduled_module:services.ingestion.clickhouse_outbox_worker",
       "statically_reachable_sql_site_count": 3,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/clickhouse_outbox_worker.py:21:12",
         "services/ingestion/clickhouse_outbox_worker.py:36:12"
       ]
@@ -227,7 +227,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/climate_worker.py:51:12",
         "services/ingestion/climate_worker.py:90:12"
       ]
@@ -286,7 +286,7 @@
       "operation_ref": "scheduled_module:services.ingestion.eas_worker",
       "statically_reachable_sql_site_count": 8,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/eas_worker.py:137:20",
         "services/ingestion/eas_worker.py:159:12",
         "services/ingestion/eas_worker.py:187:12",
@@ -302,7 +302,7 @@
       "operation_ref": "scheduled_module:services.ingestion.freshness_worker",
       "statically_reachable_sql_site_count": 16,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/data_freshness.py:103:8",
         "services/ingestion/data_freshness.py:169:8",
         "services/ingestion/data_freshness.py:184:8",
@@ -345,7 +345,7 @@
       "operation_ref": "scheduled_module:services.ingestion.gnosis_worker",
       "statically_reachable_sql_site_count": 12,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/base.py:207:12",
         "services/ingestion/clickhouse_outbox.py:125:12",
         "services/ingestion/gnosis_indexer.py:121:8",
@@ -378,7 +378,7 @@
       "operation_ref": "scheduled_module:services.ingestion.market_data_worker",
       "statically_reachable_sql_site_count": 2,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/market_data_worker.py:55:12"
       ]
     },
@@ -413,7 +413,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/remote_sensing_worker.py:160:12",
         "services/ingestion/remote_sensing_worker.py:53:12"
       ]
@@ -443,7 +443,7 @@
       "operation_ref": "scheduled_module:services.ingestion.rpc_worker",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/rpc_worker.py:108:12",
         "services/ingestion/rpc_worker.py:142:12",
         "services/ingestion/rpc_worker.py:171:12",
@@ -485,7 +485,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/sensor_worker.py:240:12",
         "services/ingestion/sensor_worker.py:271:12",
         "services/ingestion/sensor_worker.py:48:12",
@@ -539,7 +539,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/weather_forecast_worker.py:44:12",
         "services/ingestion/weather_forecast_worker.py:85:12"
       ]
@@ -553,7 +553,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/weather_worker.py:113:12",
         "services/ingestion/weather_worker.py:68:12"
       ]
@@ -604,8 +604,18 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/metrics/noi_snapshot_worker.py:29:12"
+      ]
+    },
+    {
+      "kind": "isolated_worker",
+      "name": "services.events.dispatch_worker",
+      "operation_ref": "isolated_worker:services.events.dispatch_worker",
+      "statically_reachable_sql_site_count": 2,
+      "statically_reachable_sql_site_ids": [
+        "services/common/worker_database.py:141:12",
+        "services/events/dispatch_worker.py:34:16"
       ]
     },
     {
@@ -614,7 +624,7 @@
       "operation_ref": "isolated_worker:services.events.notification_delivery_worker",
       "statically_reachable_sql_site_count": 3,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/events/notification_delivery_worker.py:31:12",
         "services/events/notification_delivery_worker.py:49:12"
       ]
@@ -630,7 +640,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12"
+        "services/common/worker_database.py:141:12"
       ]
     },
     {
@@ -644,7 +654,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12"
+        "services/common/worker_database.py:141:12"
       ]
     },
     {
@@ -658,7 +668,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12"
+        "services/common/worker_database.py:141:12"
       ]
     },
     {
@@ -672,7 +682,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12"
+        "services/common/worker_database.py:141:12"
       ]
     },
     {
@@ -681,7 +691,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_alert_notification",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/events/notification_outbox.py:210:12",
         "services/events/notification_outbox.py:225:12",
         "services/events/notification_outbox.py:245:16",
@@ -694,7 +704,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_stale_data",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/events/notification_outbox.py:210:12",
         "services/events/notification_outbox.py:225:12",
         "services/events/notification_outbox.py:245:16",
@@ -710,7 +720,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:140:12",
+        "services/common/worker_database.py:141:12",
         "services/ingestion/sensor_anomaly_worker.py:110:8",
         "services/ingestion/sensor_anomaly_worker.py:117:8"
       ]
@@ -1687,6 +1697,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -1741,6 +1752,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -1795,6 +1807,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -2112,9 +2125,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/common/worker_database.py:140:12",
+      "id": "services/common/worker_database.py:141:12",
       "source": "services/common/worker_database.py",
-      "line": 140,
+      "line": 141,
       "scope": "get_worker_db",
       "method": "execute",
       "expression_kind": "literal",
@@ -2128,6 +2141,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -2154,6 +2168,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -2743,6 +2758,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2772,6 +2788,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2800,6 +2817,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2827,6 +2845,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2855,6 +2874,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2882,6 +2902,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2909,6 +2930,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2936,6 +2958,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2963,6 +2986,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -2992,6 +3016,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3023,6 +3048,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3050,6 +3076,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3077,6 +3104,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3102,6 +3130,7 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3129,6 +3158,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3160,6 +3190,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3187,6 +3218,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3214,6 +3246,7 @@
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
@@ -3229,9 +3262,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:193:12",
+      "id": "services/events/cli.py:216:12",
       "source": "services/events/cli.py",
-      "line": 193,
+      "line": 216,
       "scope": "cmd_list_handlers",
       "method": "execute",
       "expression_kind": "literal",
@@ -3250,9 +3283,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:222:12",
+      "id": "services/events/cli.py:245:12",
       "source": "services/events/cli.py",
-      "line": 222,
+      "line": 245,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -3265,6 +3298,26 @@
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/events/dispatch_worker.py:34:16",
+      "source": "services/events/dispatch_worker.py",
+      "line": 34,
+      "scope": "IsolatedEventBus._function",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "isolated_worker:services.events.dispatch_worker",
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "isolated_worker:services.events.dispatch_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,

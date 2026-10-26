@@ -100,6 +100,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "core",
         "description": "Reactive event bus",
     },
+    "isolated_event_dispatch": {
+        "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated login and bounded functions for global event dispatch",
+    },
     "notification_delivery": {
         "enabled": os.getenv(
             "KOKONUT_FEATURE_NOTIFICATION_DELIVERY",

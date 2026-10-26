@@ -105,6 +105,10 @@ def test_legacy_dataset_sql_is_disabled_by_default_and_can_be_selected():
     assert enabled.legacy_dataset_sql is True
 
 
+def test_isolated_event_dispatch_is_default_off():
+    assert FEATURES["isolated_event_dispatch"]["enabled"] is False
+
+
 def test_dataset_refresh_checks_legacy_sql_gate_before_database_access(monkeypatch):
     """A disabled compatibility path must not fetch or execute stored SQL."""
     from services.export.dataset_refresh import refresh_dataset

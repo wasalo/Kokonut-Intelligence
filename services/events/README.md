@@ -101,6 +101,7 @@ establish signed worker context. Events without a location remain unassigned.
 
 ```bash
 python3 -m services.events --event-worker --worker-id event-worker
+python3 -m services.events --isolated-event-worker --worker-id event-kernel-worker
 python3 -m services.events --notification-worker --worker-id notification-worker
 python3 -m services.events --notification-process --batch-size 50
 python3 -m services.events --notification-stats
