@@ -399,15 +399,21 @@ describe('Directus hook event registration', () => {
     expect(globalDatabase).not.toHaveBeenCalled();
   });
 
-  it('records tenant lifecycle audit through the request transaction and omits the global post-write action', async () => {
+  it('records tenant lifecycle and metric-proposal audit through the request transaction', async () => {
     const globalDatabase = vi.fn();
     const writes: Array<{ table: string; row: Record<string, unknown> }> = [];
-    const requestDatabase = vi.fn((table: string) => ({
-      where: () => ({ first: async () => ({ status: 'submitted' }) }),
-      insert: async (row: Record<string, unknown>) => {
+    const requestDatabase = vi.fn((table: string) => {
+      const builder = {
+        where: () => builder,
+        first: async () => table === 'metric_proposal'
+          ? { status: 'proposed', proposal_date: '2020-01-01' }
+          : { status: 'submitted' },
+        insert: async (row: Record<string, unknown>) => {
         writes.push({ table, row });
-      },
-    }));
+        },
+      };
+      return builder;
+    });
     const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();
     const actions = new Set<string>();
 
@@ -430,23 +436,42 @@ describe('Directus hook event registration', () => {
       { keys: ['activity-1'], accountability: { admin: true, user: 'operator-1' } },
       { database: requestDatabase },
     )).resolves.toBe(payload);
+    const proposalPayload = { status: 'discussed' };
+    await expect(filters.get('metric_proposal.items.update')?.at(-1)?.(
+      proposalPayload,
+      { keys: ['proposal-1'], accountability: { admin: true, user: 'operator-1' } },
+      { database: requestDatabase },
+    )).resolves.toBe(proposalPayload);
 
-    expect(writes).toEqual([{
-      table: 'workflow_history',
-      row: {
-        collection: 'farm_activity',
-        record_id: 'activity-1',
-        from_status: 'submitted',
-        to_status: 'verified',
-        changed_by: 'operator-1',
-        notes: null,
-        rejection_reason: null,
+    expect(writes).toEqual([
+      {
+        table: 'workflow_history',
+        row: {
+          collection: 'farm_activity',
+          record_id: 'activity-1',
+          from_status: 'submitted',
+          to_status: 'verified',
+          changed_by: 'operator-1',
+          notes: null,
+          rejection_reason: null,
+        },
       },
-    }]);
+      {
+        table: 'workflow_history',
+        row: {
+          collection: 'metric_proposal',
+          record_id: 'proposal-1',
+          to_status: 'discussed',
+          changed_by: 'operator-1',
+          notes: null,
+        },
+      },
+    ]);
     expect(requestDatabase).toHaveBeenCalledWith('farm_activity');
+    expect(requestDatabase).toHaveBeenCalledWith('metric_proposal');
     expect(requestDatabase).toHaveBeenCalledWith('workflow_history');
     expect(actions.has('farm_activity.items.update')).toBe(false);
-    expect(actions.has('metric_proposal.items.update')).toBe(true);
+    expect(actions.has('metric_proposal.items.update')).toBe(false);
     expect(globalDatabase).not.toHaveBeenCalled();
   });
 

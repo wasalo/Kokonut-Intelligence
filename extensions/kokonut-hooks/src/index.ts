@@ -30,7 +30,6 @@ import {
 } from './feedback.js';
 import {
   handleMetricProposalUpdate,
-  logMetricProposalTransition,
 } from './metric-proposal.js';
 import {
   normalizeImpactClaimPayload,
@@ -608,7 +607,8 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    return await handleMetricProposalUpdate(payload, meta, resolveHookDatabase('metric_proposal', context, database));
+    const requestDatabase = resolveHookDatabase('metric_proposal', context, database);
+    return await handleMetricProposalUpdate(payload, meta, requestDatabase, true);
   });
 
   filter('impact_claim.items.create', (payload: Record<string, any>) => {
@@ -726,19 +726,6 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       }
     });
   }
-
-  action('metric_proposal.items.update', async (meta: Record<string, any>) => {
-    const recordId = meta.keys?.[0] ?? meta.keys?.id;
-    const status = meta?.payload?.status;
-    if (!recordId || !status) return;
-    await logMetricProposalTransition(
-      database,
-      recordId,
-      status,
-      getUserId(meta),
-      meta?.payload?.discussion_notes ? JSON.stringify(meta.payload.discussion_notes) : undefined
-    );
-  });
 
   action('harvest_event.items.create', async (meta: Record<string, any>) => {
     const payload = meta.payload || meta;

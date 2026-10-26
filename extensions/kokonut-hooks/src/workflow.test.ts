@@ -216,6 +216,52 @@ describe('metric proposal workflow', () => {
 
     expect(payload.reviewed_by).toBe(staffId);
   });
+
+  it('writes metric-proposal transition history through the request database before returning', async () => {
+    const writes: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const db = (table: string) => ({
+      where: () => ({
+        first: async () => ({ status: 'proposed', proposal_date: '2020-01-01' }),
+      }),
+      insert: async (row: Record<string, unknown>) => {
+        writes.push({ table, row });
+      },
+    });
+    const payload = { status: 'discussed', discussion_notes: [{ text: 'Reviewed' }] };
+
+    await expect(handleMetricProposalUpdate(
+      payload,
+      { keys: ['proposal-1'], accountability: { user: 'operator-1' } },
+      db,
+      true,
+    )).resolves.toBe(payload);
+
+    expect(writes).toEqual([{
+      table: 'workflow_history',
+      row: {
+        collection: 'metric_proposal',
+        record_id: 'proposal-1',
+        to_status: 'discussed',
+        changed_by: 'operator-1',
+        notes: '[{"text":"Reviewed"}]',
+      },
+    }]);
+  });
+
+  it('fails the metric-proposal update when request-transaction history insertion fails', async () => {
+    const db = (table: string) => ({
+      where: () => ({
+        first: async () => ({ status: 'proposed', proposal_date: '2020-01-01' }),
+      }),
+      insert: async () => {
+        if (table === 'workflow_history') throw new Error('private database detail');
+      },
+    });
+
+    await expect(handleMetricProposalUpdate(
+      { status: 'discussed' }, { keys: ['proposal-2'] }, db, true,
+    )).rejects.toThrow('Unable to record workflow transition for metric_proposal');
+  });
 });
 
 describe('impact claim workflow', () => {

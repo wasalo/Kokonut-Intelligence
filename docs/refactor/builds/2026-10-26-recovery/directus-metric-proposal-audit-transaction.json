@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-26",
+  "change": "Directus metric-proposal workflow history now uses its request database",
+  "scope": [
+    "write metric-proposal transition history after validation and before the Directus item update",
+    "omit the extension-global post-write metric-proposal history action",
+    "retain existing metric-proposal transition validation and discussion-note projection"
+  ],
+  "verification": {
+    "command": "cd extensions/kokonut-hooks && npm test",
+    "result": "passed",
+    "test_files": 7,
+    "tests": 98,
+    "build_command": "cd extensions/kokonut-hooks && npm run build",
+    "build_result": "passed",
+    "typescript": "passed"
+  },
+  "database_or_runtime_accessed": false,
+  "candidate_or_legacy_modified": false,
+  "external_provider_contacted": false,
+  "limitations": [
+    "Source and unit evidence only; pinned Directus request-transaction semantics still require runtime acceptance.",
+    "This does not establish Directus role/field/relation/hook parity or populated metric-proposal parity."
+  ],
+  "rollback": "Revert the hook change to restore post-write audit behavior; no schema change or migration is required."
+}

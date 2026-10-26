@@ -3386,3 +3386,20 @@ database was used. The source tests do not verify the pinned Directus version's
 transaction lifecycle; that runtime acceptance and full Directus role/field/
 relation/hook parity remain open. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/directus-tenant-lifecycle-audit-transaction.json`.
+
+### 26 October 2026 — Directus metric-proposal audit transaction
+
+The specialized `metric_proposal.items.update` filter now resolves the
+request-bound database once and passes it into the metric-proposal validator.
+For an actual status transition, the validator inserts `workflow_history`
+through that same database after transition validation and before returning
+the update payload. The prior extension-global post-write action was removed.
+Same-status updates remain no-ops for audit purposes; transition checks and
+discussion notes remain unchanged. Audit failures are bounded and abort the
+filter.
+
+The full extension suite passes 98 tests; `npm run build` passes the Directus
+extension bundle and TypeScript check. No runtime or database was used. The
+source tests do not validate pinned Directus transaction semantics or
+populated-data parity. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-metric-proposal-audit-transaction.json`.

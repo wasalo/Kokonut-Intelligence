@@ -19400,3 +19400,19 @@ not establish pinned-runtime transaction semantics or full Directus parity.
 Capability classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows. Checklist: 1,222 complete / 25 open (1,247 total).
 Evidence: `docs/refactor/builds/2026-10-26-recovery/directus-tenant-lifecycle-audit-transaction.json`.
+
+### Progress addendum — metric-proposal audit transaction, 26 October 2026
+
+The specialized metric-proposal status hook now inserts its workflow-history
+record through the Directus request database after transition validation and
+before the item update. It records only real status transitions; a failed audit
+insert fails the update with a bounded message. The extension-global
+post-write metric-proposal logger has been removed, while the separate
+transition rules and discussion-note field remain intact.
+
+The full extension suite passes 98 tests; the extension bundle and TypeScript
+check pass. No Directus runtime or database was used. Pinned-runtime
+transaction behavior and populated metric-proposal parity remain open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows. Checklist: 1,223 complete / 25 open (1,248 total).
+Evidence: `docs/refactor/builds/2026-10-26-recovery/directus-metric-proposal-audit-transaction.json`.
