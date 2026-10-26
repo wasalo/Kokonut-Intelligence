@@ -58,11 +58,12 @@ owner of calculations, authorization, lifecycle, or evidence.
 | ClickHouse rollups | [`analytics-read-views-v2.md`](analytics-read-views-v2.md), [`sensor-projection.md`](sensor-projection.md), [`financial_events` outbox migration](../../schemas/postgres/434_financial_events_clickhouse_outbox.sql) | Optional analytical event-store rollups and corrected read views have separate source and consumer contracts. `sales_event` and `expense_event` inserts now enqueue the legacy create-time financial mirror transactionally for optional ClickHouse delivery. | The financial outbox does not cover source updates/deletes or historical backfill. Known multi-block aggregate defects, report-owner decisions, populated reference outputs, and unverified saved-query adoption mean ClickHouse parity/scale gates remain open. Do not count ordinary PostgreSQL views or graph projections as ClickHouse parity. |
 
 The Directus OpenAPI create/update schemas now accept `query_id` and omit
-`query_sql`; the response schema retains the old field only as deprecated,
-read-only compatibility data. A Directus extension hook rejects writes that
-include `query_sql`. Python and TypeScript SDK documentation and the
-export/partner guides follow the same contract. This is source evidence, not
-proof that a deployed Directus role masks the field on reads. Focused checks are recorded in
+`query_sql`; the response schema also omits it. A Directus extension hook
+rejects writes that include the field and strips it from authorized item/page
+responses, while preserving archived database values. Python and TypeScript
+SDK documentation keeps an optional deprecated property only for older
+Directus servers. This is source evidence, not proof of deployed role
+permissions or pinned-version behavior. Focused checks are recorded in
 [`dashboard-openapi-query-id-contract.json`](builds/2026-10-26-recovery/dashboard-openapi-query-id-contract.json).
 
 All 94 report calculations run with a session-level read-only default, and the

@@ -75,6 +75,72 @@ describe('Directus hook event registration', () => {
     }
   });
 
+  it('redacts legacy dashboard SQL after tenant read authorization', async () => {
+    const filters = new Map<string, Array<(...args: any[]) => any>>();
+    const datasetId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const locationId = '11111111-1111-4111-8111-111111111111';
+    const operatorId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const userId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const dataset = {
+      id: datasetId,
+      location_id: locationId,
+      query_id: 'public_farm_summary_count',
+      query_sql: 'SELECT private_schema.sensitive_rows',
+    };
+    const database = vi.fn((table: string) => {
+      const rows = table === 'public.operator_scope_grant as grant_row'
+        ? [{ location_id: locationId }]
+        : table === 'public.dashboard_dataset'
+          ? [{ id: datasetId, location_id: locationId }]
+          : [];
+      const first = table === 'public.directus_users'
+        ? { external_identifier: 'external-subject' }
+        : table === 'public.operator_identity'
+          ? { id: operatorId }
+          : undefined;
+      const builder: Record<string, any> = {
+        select: () => builder,
+        distinct: () => builder,
+        where: () => builder,
+        whereNull: () => builder,
+        whereNotNull: () => builder,
+        whereRaw: () => builder,
+        whereIn: () => builder,
+        first: async () => first,
+        then: (resolve: (value: unknown) => unknown, reject: (error: unknown) => unknown) => (
+          Promise.resolve(rows).then(resolve, reject)
+        ),
+      };
+      return builder;
+    });
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: (event: string, callback: (...args: any[]) => any) => {
+          const callbacks = filters.get(event) ?? [];
+          callbacks.push(callback);
+          filters.set(event, callbacks);
+        },
+        action: () => undefined,
+        schedule: () => undefined,
+      },
+      { database, env: { KOKONUT_OPERATOR_OIDC_ISSUER: 'https://identity.example.test' } },
+    );
+
+    const readFilter = filters.get('dashboard_dataset.items.read')?.[0];
+    const result = await readFilter!([dataset], {}, {
+      accountability: { user: userId },
+      database,
+    });
+
+    expect(result).toEqual([{
+      id: datasetId,
+      location_id: locationId,
+      query_id: 'public_farm_summary_count',
+    }]);
+    expect(dataset.query_sql).toBe('SELECT private_schema.sensitive_rows');
+  });
+
   it('fails closed when tenant item hooks lack the request transaction database', async () => {
     const globalDatabase = vi.fn();
     const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();

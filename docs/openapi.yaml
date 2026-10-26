@@ -13323,8 +13323,8 @@ components:
       type: object
       description: >-
         Governed dashboard dataset. Kernel refresh accepts only a registered
-        query_id and exact location scope. Legacy query_sql is archived
-        compatibility data and is never executed.
+        query_id and exact location scope. Legacy query_sql remains archived
+        in PostgreSQL, is omitted from Directus responses, and is never executed.
       properties:
         id:
           type: string
@@ -13348,12 +13348,6 @@ components:
           type: string
           nullable: true
           description: Stable identifier for a source-controlled reporting query contract.
-        query_sql:
-          type: string
-          nullable: true
-          deprecated: true
-          readOnly: true
-          description: Archived legacy SQL retained for compatibility; not executable by Kernel refresh.
         refresh_interval_minutes:
           type: integer
         last_refreshed_at:

@@ -3500,3 +3500,19 @@ owner-selected outputs, or populated semantic parity. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/dashboard-openapi-query-id-contract.json`.
 Checklist: 1,231 complete / 25 open (1,256 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### 26 October 2026 — dashboard query SQL response redaction
+
+The location-authorized Directus `dashboard_dataset.items.read` filter now
+removes archived `query_sql` from single-item and page responses without
+mutating the source objects or database rows. The OpenAPI response schema omits
+the property; the SDK retains an optional deprecated field solely to model
+older Directus servers. The create/update hook rejects SQL writes with a
+400 `INVALID_PAYLOAD`. The 106-test Directus extension suite and 94 OpenAPI/SDK
+tests pass; extension and SDK builds, Ruff, Python compilation, OpenAPI parsing,
+matrix validation, and diff checks pass. No database or live Directus runtime
+was used. Deployed role/field permissions and pinned-version acceptance remain
+open. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/dashboard-query-sql-read-redaction.json`.
+Checklist: 1,232 complete / 25 open (1,257 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

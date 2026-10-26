@@ -1,5 +1,6 @@
 import { defineHook } from '@directus/extensions-sdk';
 import { createError } from '@directus/errors';
+import { omitLegacyDashboardQuerySql } from './dashboard-datasets.js';
 import { calculateNoi, batchCalculateNoi, storeNoiSnapshot, setDb } from './metrics-calculator.js';
 import {
   handleWorkflowTransition,
@@ -167,13 +168,16 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       _meta: Record<string, any>,
       context: Record<string, any>,
     ) => {
-      return await authorizeDirectusReadResult(
+      const authorizedItems = await authorizeDirectusReadResult(
         createDirectusTenantStore(requireDirectusRequestDatabase(context?.database)),
         context?.accountability,
         env.KOKONUT_OPERATOR_OIDC_ISSUER,
         collection,
         items,
       );
+      return collection === 'dashboard_dataset'
+        ? omitLegacyDashboardQuerySql(authorizedItems)
+        : authorizedItems;
     });
 
     filter(`${collection}.items.create`, async (

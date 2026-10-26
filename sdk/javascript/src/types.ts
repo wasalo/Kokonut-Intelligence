@@ -1215,7 +1215,7 @@ export interface DashboardDataset {
   dataset_type?: string | null;
   location_id?: string | null;
   query_id?: string | null;
-  /** @deprecated Archived compatibility field; never executed by the Kernel. */
+  /** @deprecated Older Directus servers may return this archived field; current hooks redact it and the Kernel never executes it. */
   query_sql?: string | null;
   refresh_interval_minutes?: number | null;
   last_refreshed_at?: string | null;

@@ -169,10 +169,13 @@ draft -> rejected -> draft
 
 Dashboard dataset verification requires an analyst, manager, or admin role. Publication requires a manager or admin role. Agents may only create or update safe draft/submitted/rejected states and cannot verify or publish datasets.
 
-The legacy `query_sql` column is retained for archived compatibility only. New
-dataset requests use `query_id`; Kernel refresh never reads or executes stored
-SQL. Refresh requires an exact location and runs only contracts in the
-source-controlled registry under the dedicated read-only reporting role.
+The legacy `query_sql` column is retained in PostgreSQL for archived
+compatibility only. The Directus extension rejects attempts to write it and
+omits it from current responses. The SDK retains an optional deprecated field
+for older Directus servers only. New dataset requests use `query_id`; Kernel
+refresh never reads or executes stored SQL. Refresh requires an exact location
+and runs only contracts in the source-controlled registry under the dedicated
+read-only reporting role.
 
 ### Refresh Operations
 

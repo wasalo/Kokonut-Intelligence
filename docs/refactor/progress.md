@@ -19569,3 +19569,22 @@ open. All 103 hook tests and the extension build/typecheck also pass. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/dashboard-openapi-query-id-contract.json`.
 Checklist: 1,231 complete / 25 open (1,256 total); classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — dashboard query SQL response redaction, 26 October 2026
+
+The Directus `dashboard_dataset.items.read` filter now removes archived
+`query_sql` from both item and page responses after tenant authorization. It
+clones returned objects so the response filter does not mutate shared source
+records; database values remain intact. The OpenAPI response schema no longer
+advertises the field. The SDK keeps it as a deprecated optional compatibility
+property for older Directus servers. Create/update attempts containing the
+field continue to fail with `INVALID_PAYLOAD`.
+
+Three redaction/authorization tests pass within the 106-test Directus extension suite, plus 94
+OpenAPI/SDK tests. The Directus extension and JavaScript SDK builds, Ruff,
+Python compilation, OpenAPI parsing, matrix validation, and diff checks pass.
+No database or live Directus runtime was used. Effective field/role
+permissions and pinned-version behavior remain open. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/dashboard-query-sql-read-redaction.json`.
+Checklist: 1,232 complete / 25 open (1,257 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

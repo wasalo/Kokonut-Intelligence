@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-26",
+  "scope": "Keep archived dashboard query SQL in PostgreSQL while omitting it from current Directus API responses.",
+  "directus_hook_test_command": "npm test -- --run (extensions/kokonut-hooks)",
+  "directus_hook_tests_passed": 106,
+  "python_contract_test_command": "python3 -m pytest tests/test_reporting_openapi.py tests/test_sdk.py -q",
+  "python_contract_tests_passed": 94,
+  "directus_extension_build_and_typecheck": "passed",
+  "javascript_sdk_typescript_build": "passed",
+  "ruff_and_python_compilation": "passed",
+  "openapi_yaml_parse": "passed (OpenAPI 3.0.3; DashboardDataset response omits query_sql)",
+  "capability_matrix_validation": "passed (67 rows)",
+  "git_diff_check": "passed",
+  "database_provider_candidate_or_live_directus_access": false,
+  "behavior": {
+    "read": "Items and pages omit query_sql without mutating source objects",
+    "create_update": "Presence of query_sql is rejected with INVALID_PAYLOAD / HTTP 400",
+    "storage": "Existing archived database values are preserved"
+  },
+  "remaining_gates": [
+    "Effective deployed Directus field and role permissions for all fields",
+    "Pinned-version runtime acceptance",
+    "Populated dashboard parity and external consumer authorization"
+  ]
+}

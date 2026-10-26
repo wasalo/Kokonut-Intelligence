@@ -16,9 +16,8 @@ def test_dashboard_dataset_openapi_uses_registered_query_ids_only_for_writes():
     update = schemas["DashboardDatasetUpdate"]["properties"]
 
     assert dataset["query_id"]["type"] == "string"
-    assert dataset["query_sql"]["deprecated"] is True
-    assert dataset["query_sql"]["readOnly"] is True
-    assert "never executed" in schemas["DashboardDataset"]["description"]
+    assert "query_sql" not in dataset
+    assert "omitted from Directus responses" in schemas["DashboardDataset"]["description"]
     assert "query_id" in create
     assert "query_id" in update
     assert "query_sql" not in create
