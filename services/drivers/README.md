@@ -22,9 +22,10 @@ map. A PostgreSQL `driver_registry.module_path` value cannot select Python code.
 Third-party adapters remain supported through the `kokonut.drivers` Python
 entry-point group: install the adapter package into the runtime image, then
 register its entry-point name in `driver_registry`. The persisted `module_path`
-and `class_name` must match that installed entry point, and the loaded class
-must implement the `DataSourceDriver` contract. For example, a package can
-declare:
+and `class_name` must match that installed entry point; registration checks
+this metadata before writing and does not import plugin code. Loading then
+checks that the class implements the `DataSourceDriver` contract. For example,
+a package can declare:
 
 ```toml
 [project.entry-points."kokonut.drivers"]

@@ -18761,12 +18761,13 @@ executable policy. All nine seeded built-ins resolve through the immutable
 `BUILTIN_DRIVER_TARGETS` source map and their database identities must match.
 Third-party adapters remain extensible through an installed
 `kokonut.drivers` Python entry point; the stored module/class pair must match
-that code-owned entry point, the class must satisfy the adapter contract, and
-the metadata transaction is closed before plugin import. Registering a new
-driver clears any cached class for that name. Tests verify seed/allowlist parity,
-all nine built-in implementations, mismatch rejection before import, exact
-third-party resolution, and cache invalidation. The focused registry and
-scheduled-sensor suite passes 58 tests; Ruff, compilation, provider and
+that code-owned entry point, and registration rejects absent or mismatched
+entry points before database access without importing plugin code. The class
+must satisfy the adapter contract, and the metadata transaction ends before
+plugin import. Registering a new driver clears any cached class for that name.
+Tests verify seed/allowlist parity, all nine built-in implementations, mismatch
+rejection before import/database access, exact third-party resolution, and
+cache invalidation. The focused registry and scheduled-sensor suite passes 61 tests; Ruff, compilation, provider and
 dependency checks, all worker/runtime inventory checks, and capability
 validation pass. Installed third-party packages remain trusted, unsandboxed
 code; production plugin installation, provider behavior, persisted schedules,

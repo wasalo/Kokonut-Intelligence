@@ -85,6 +85,30 @@ SCHEDULED_SENSOR_DRIVER_TARGETS = MappingProxyType(
 )
 
 
+def _validate_driver_registration_target(
+    driver_name: str,
+    module_path: str,
+    class_name: str,
+    driver_type: str,
+) -> None:
+    """Reject registry metadata that has no matching code-owned target."""
+    builtin_target = BUILTIN_DRIVER_TARGETS.get(driver_name)
+    if builtin_target is not None:
+        if builtin_target != (module_path, class_name, driver_type):
+            raise ValueError("registered built-in driver identity does not match its source target")
+        return
+
+    candidates = metadata.entry_points(
+        group=DRIVER_PLUGIN_ENTRY_POINT_GROUP,
+        name=driver_name,
+    )
+    if len(candidates) != 1:
+        raise ValueError("driver is not a unique installed kokonut.drivers entry point")
+    entry_point = candidates[0]
+    if (entry_point.module, entry_point.attr) != (module_path, class_name):
+        raise ValueError("registered driver identity does not match its installed entry point")
+
+
 def _load_driver_class(
     driver_name: str,
     module_path: str,
@@ -150,6 +174,9 @@ class DriverRegistry:
         """Register a new driver in the database. Returns the driver ID."""
         import json
 
+        _validate_driver_registration_target(
+            driver_name, module_path, class_name, driver_type,
+        )
         conn = self._get_conn()
         try:
             with conn.cursor() as cur:

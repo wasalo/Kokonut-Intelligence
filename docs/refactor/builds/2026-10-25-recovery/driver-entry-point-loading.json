@@ -6,13 +6,15 @@
     "builtin_targets_match_seed": true,
     "builtin_class_contracts_verified": 9,
     "third_party_entry_point_group": "kokonut.drivers",
+    "registration_rejects_uninstalled_or_mismatched_targets_before_database_access": true,
+    "plugin_registration_imports_plugin_code": false,
     "database_module_path_selects_import": false,
     "database_metadata_transaction_closed_before_import": true,
     "driver_registration_invalidates_class_cache": true
   },
   "focused_tests": {
     "command": "python3 -m pytest tests/test_driver_registry.py tests/test_sensor_driver_schedule.py -q",
-    "passed": 58
+    "passed": 61
   },
   "checks": {
     "ruff": "passed",

@@ -127,13 +127,78 @@ class TestDriverRegistry:
 
         registry = DriverRegistry(conn=mock_conn)
         driver_id = registry.register(
-            driver_name="test_driver",
+            driver_name="sensor_csv",
             driver_version="1.0.0",
             driver_type="sensor",
             module_path="services.ingestion.drivers.sensor_csv",
             class_name="Driver",
         )
         assert driver_id is not None
+
+    def test_register_builtin_driver_rejects_database_selected_import_before_cursor(self):
+        from services.drivers.registry import DriverRegistry
+
+        mock_conn = MagicMock()
+        registry = DriverRegistry(conn=mock_conn)
+
+        with pytest.raises(ValueError, match="does not match its source target"):
+            registry.register(
+                driver_name="sensor_csv",
+                driver_version="1.0.0",
+                driver_type="sensor",
+                module_path="attacker.module",
+            )
+
+        mock_conn.cursor.assert_not_called()
+
+    def test_register_plugin_requires_exact_installed_entrypoint_without_import(self, monkeypatch):
+        from types import SimpleNamespace
+
+        from services.drivers.registry import DriverRegistry
+
+        entry_point = SimpleNamespace(
+            module="third_party.weather",
+            attr="Driver",
+            load=MagicMock(),
+        )
+        entry_points = MagicMock(return_value=[entry_point])
+        monkeypatch.setattr("services.drivers.registry.metadata.entry_points", entry_points)
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (str(uuid.uuid4()),)
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        result = DriverRegistry(conn=mock_conn).register(
+            driver_name="third_party_weather",
+            driver_version="1.0.0",
+            driver_type="weather",
+            module_path="third_party.weather",
+            class_name="Driver",
+        )
+
+        assert result is not None
+        entry_point.load.assert_not_called()
+        mock_conn.cursor.assert_called_once()
+
+    def test_register_uninstalled_plugin_fails_before_database_access(self, monkeypatch):
+        from services.drivers.registry import DriverRegistry
+
+        monkeypatch.setattr(
+            "services.drivers.registry.metadata.entry_points",
+            MagicMock(return_value=[]),
+        )
+        mock_conn = MagicMock()
+
+        with pytest.raises(ValueError, match="unique installed kokonut.drivers entry point"):
+            DriverRegistry(conn=mock_conn).register(
+                driver_name="third_party_weather",
+                driver_version="1.0.0",
+                driver_type="weather",
+                module_path="third_party.weather",
+            )
+
+        mock_conn.cursor.assert_not_called()
 
     def test_builtin_driver_targets_match_seed_registry(self):
         import re
@@ -396,16 +461,15 @@ class TestDriverRegistry:
         mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
         mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
         registry = DriverRegistry(conn=mock_conn)
-        registry._cache["test_driver"] = object()
-
+        registry._cache["sensor_csv"] = object()
         registry.register(
-            driver_name="test_driver",
+            driver_name="sensor_csv",
             driver_version="1.0.0",
-            driver_type="weather",
-            module_path="test.weather",
+            driver_type="sensor",
+            module_path="services.ingestion.drivers.sensor_csv",
         )
 
-        assert "test_driver" not in registry._cache
+        assert "sensor_csv" not in registry._cache
 
     def test_external_driver_requires_one_entry_point_before_loading(self, monkeypatch):
         from services.drivers.registry import DriverRegistry

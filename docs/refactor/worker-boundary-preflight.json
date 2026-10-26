@@ -297,37 +297,37 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/drivers/registry.py:156:16",
+        "site": "services/drivers/registry.py:183:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:206:16",
+        "site": "services/drivers/registry.py:233:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:247:20",
+        "site": "services/drivers/registry.py:274:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:258:20",
+        "site": "services/drivers/registry.py:285:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:300:16",
+        "site": "services/drivers/registry.py:327:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:423:16",
+        "site": "services/drivers/registry.py:450:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:432:16",
+        "site": "services/drivers/registry.py:459:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
