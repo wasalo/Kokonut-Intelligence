@@ -278,6 +278,60 @@ def test_scoped_baseline_check_filters_baselines_before_database_access():
     db.close.assert_called_once()
 
 
+def test_all_location_baseline_alerts_keep_each_baselines_location_context():
+    from services.ingestion import anomaly_detector
+
+    location_a = "a0000000-0000-0000-0000-000000000001"
+    location_b = "a0000000-0000-0000-0000-000000000002"
+    sensor_a = "a0000000-0000-0000-0000-000000000011"
+    sensor_b = "a0000000-0000-0000-0000-000000000012"
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    cursor.fetchall.side_effect = [
+        [
+            ("baseline-a", location_a, None, "soil_moisture", 100, "%", 12),
+            ("baseline-b", location_b, None, "soil_moisture", 100, "%", 12),
+        ],
+        [("reading-a", sensor_a, 200, None)],
+        [("reading-b", sensor_b, 200, None)],
+    ]
+    cursor.fetchone.side_effect = [
+        (sensor_a,), ("rule-a",),
+        (sensor_b,), ("rule-b",),
+    ]
+    event_bus = MagicMock()
+
+    with (
+        patch.object(anomaly_detector, "get_db", return_value=db),
+        patch.object(anomaly_detector, "check_cooldown", return_value=False) as cooldown,
+        patch.object(anomaly_detector, "create_alert", side_effect=["alert-a", "alert-b"]) as create,
+        patch.object(
+            anomaly_detector,
+            "get_sensor_device_info",
+            side_effect=[{"location_id": location_a}, {"location_id": location_b}],
+        ),
+        patch.object(anomaly_detector, "send_notifications"),
+        patch.object(anomaly_detector, "_get_event_bus", return_value=event_bus),
+    ):
+        anomaly_detector.run_baseline_check()
+
+    assert [call.kwargs["location_id"] for call in cooldown.call_args_list] == [
+        location_a, location_b,
+    ]
+    assert [call.kwargs["location_id"] for call in create.call_args_list] == [
+        location_a, location_b,
+    ]
+    device_queries = [call for call in cursor.execute.call_args_list if "FROM sensor_device" in call.args[0]]
+    assert [call.args[1] for call in device_queries] == [
+        (sensor_a, location_a), (sensor_b, location_b),
+    ]
+    published_locations = [
+        call.args[1]["location_id"] for call in event_bus.publish.call_args_list
+    ]
+    assert published_locations == [location_a, location_b]
+    db.close.assert_called_once_with()
+
+
 class _AnomalyWorkerCursor:
     def __init__(self, connection):
         self.connection = connection

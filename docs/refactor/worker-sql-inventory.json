@@ -3424,7 +3424,7 @@
       "candidate_relations": [
         "sensor_reading"
       ],
-      "static_sql_sha256": "f92a0cf31355bd139afcb3a12c6f2923336d1462a2be27414b8c829e8862be28",
+      "static_sql_sha256": "18d4d39942d7725066e22896873a9b4f757f3b3d5d0e15267db8fc47b760d286",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
@@ -3442,16 +3442,16 @@
       "candidate_relations": [
         "sensor_device"
       ],
-      "static_sql_sha256": "c9c5d3dfac271f4b9333b00c8a79ef63a0c92c3548895952e010c2d577026342",
+      "static_sql_sha256": "5a8843a946589f446e5dc862e65e9511864b83e9658a6f0f910af7b79625fe52",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:1074:20",
+      "id": "services/ingestion/anomaly_detector.py:1080:20",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 1074,
+      "line": 1080,
       "column": 20,
       "scope": "run_baseline_check",
       "method": "execute",
@@ -3468,9 +3468,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:1146:12",
+      "id": "services/ingestion/anomaly_detector.py:1153:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 1146,
+      "line": 1153,
       "column": 12,
       "scope": "list_rules",
       "method": "execute",

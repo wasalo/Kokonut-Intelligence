@@ -1023,7 +1023,7 @@ def run_baseline_check(location_id: str | None = None):
         DEVIATION_THRESHOLD = 0.30  # 30% deviation triggers alert
 
         for baseline in baselines:
-            location_id = str(baseline[1])
+            baseline_location_id = str(baseline[1])
             metric_name = baseline[3]
             baseline_value = float(baseline[4])
             unit = baseline[5]
@@ -1036,12 +1036,12 @@ def run_baseline_check(location_id: str | None = None):
                     """
                     SELECT sr.id, sr.sensor_id, sr.value, sr.created_at
                     FROM sensor_reading sr
-                    WHERE sr.sensor_type = %s AND sr.location_id = %s
+                    WHERE sr.sensor_type = %s AND sr.location_id = %s::uuid
                       AND sr.created_at >= NOW() - INTERVAL '24 hours'
                     ORDER BY sr.created_at DESC
                     LIMIT 10
                     """,
-                    (metric_name, location_id),
+                    (metric_name, baseline_location_id),
                 )
                 recent_readings = cur.fetchall()
 
@@ -1057,7 +1057,13 @@ def run_baseline_check(location_id: str | None = None):
                 direction = "above" if avg_value > baseline_value else "below"
 
                 with db.cursor() as cur:
-                    cur.execute("SELECT id FROM sensor_device WHERE id::text = %s", (sensor_id,))
+                    cur.execute(
+                        """
+                        SELECT id FROM sensor_device
+                        WHERE id = %s::uuid AND location_id = %s::uuid
+                        """,
+                        (sensor_id, baseline_location_id),
+                    )
                     row = cur.fetchone()
                     sensor_device_id = str(row[0]) if row else None
 
@@ -1089,14 +1095,15 @@ def run_baseline_check(location_id: str | None = None):
                 rule_id = str(rule_row[0])
 
                 if check_cooldown(
-                    db, rule_id, sensor_device_id, 120, location_id=requested_location_id
+                    db, rule_id, sensor_device_id, 120,
+                    location_id=baseline_location_id,
                 ):
                     continue
 
                 alert_id = create_alert(
                     db, sensor_device_id, rule_id, sensor_id,
                     "warning", message, avg_value, baseline_value,
-                    location_id=requested_location_id,
+                    location_id=baseline_location_id,
                 )
 
                 device_info = get_sensor_device_info(db, sensor_device_id)
@@ -1123,7 +1130,7 @@ def run_baseline_check(location_id: str | None = None):
                         "reading_value": avg_value,
                         "threshold_value": baseline_value,
                         "message": message,
-                        "location_id": location_id,
+                        "location_id": baseline_location_id,
                     },
                     source_table="sensor_alert",
                     source_id=alert_id,

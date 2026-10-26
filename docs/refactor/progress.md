@@ -1,3 +1,15 @@
+### Progress addendum — baseline anomaly location propagation, 26 October 2026
+
+An explicit all-location baseline scan now carries each row's canonical farm
+location into device lookup, cooldown, alert creation, and the emitted
+`sensor_alert` event. A two-farm mocked regression verifies the paths stay
+separate; the 45-test anomaly/CLI selection passes with Ruff and compilation
+([evidence](builds/2026-10-26-recovery/baseline-anomaly-location-scope.json)).
+No database or notification provider was contacted. The baseline and ML
+commands still use the legacy shared database identity, so this closes source
+scope propagation only; signed worker isolation remains open. Checklist:
+1,206 complete / 25 open (1,231 total).
+
 ### Progress addendum — multi-location ML anomaly scope, 26 October 2026
 
 The legacy ML anomaly check now selects the source `location_id`, groups

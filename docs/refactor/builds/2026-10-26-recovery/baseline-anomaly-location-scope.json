@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "scope": "All-location environmental-baseline alert location propagation",
+  "result": "passed",
+  "source_files": [
+    "services/ingestion/anomaly_detector.py",
+    "tests/test_anomaly_detector.py"
+  ],
+  "focused_command": "python3 -m pytest tests/test_anomaly_detector.py tests/test_anomaly_detector_cli_scope.py tests/test_ml_anomaly_scope.py -q",
+  "focused_tests": {
+    "passed": 45,
+    "failed": 0
+  },
+  "checks": [
+    "each baseline row's location scopes recent reading and sensor-device lookups",
+    "all-location cooldown and alert creation receive the baseline row's location",
+    "emitted sensor-alert events retain the originating baseline location",
+    "Ruff and Python compilation pass",
+    "regenerated worker and runtime inventories pass current-source checks",
+    "capability matrix validates 67 rows",
+    "git diff --check passes"
+  ],
+  "database_calls": "mocked only",
+  "providers_contacted": false,
+  "candidate_or_legacy_database_access": false,
+  "worker_identity_or_rls_proven": false,
+  "populated_output_parity_proven": false,
+  "limitations": [
+    "Baseline and ML CLI paths still use the legacy shared database identity; signed worker isolation remains open.",
+    "No populated farm data or live notification destination was used."
+  ]
+}
