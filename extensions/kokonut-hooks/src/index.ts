@@ -91,6 +91,18 @@ function parseOrThrow(validate: (p: Record<string, any>) => Record<string, any>,
   }
 }
 
+/** Tenant-scoped hook queries must use Directus's request transaction. */
+export function resolveHookDatabase(
+  collection: string,
+  context: Record<string, any> | null | undefined,
+  extensionDatabase: any,
+): any {
+  if ((TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) {
+    return requireDirectusRequestDatabase(context?.database);
+  }
+  return context?.database || extensionDatabase;
+}
+
 /** Collections with only workflow enforcement (no create-time validation). */
 const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
   (c) =>
@@ -267,7 +279,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       meta: Record<string, any>,
       context: Record<string, any>,
     ) => {
-      return await applyWorkflow(collection, payload, meta, context?.database || database);
+      return await applyWorkflow(collection, payload, meta, resolveHookDatabase(collection, context, database));
     });
   }
 
@@ -285,7 +297,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       meta: Record<string, any>,
       context: Record<string, any>,
     ) => {
-      return await applyWorkflow(collection, payload, meta, context?.database || database);
+      return await applyWorkflow(collection, payload, meta, resolveHookDatabase(collection, context, database));
     });
   }
 
@@ -339,7 +351,9 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       }
     }
 
-    return await applyWorkflow('expense_event', validated, meta, context?.database || database);
+    return await applyWorkflow(
+      'expense_event', validated, meta, resolveHookDatabase('expense_event', context, database),
+    );
   });
 
   filter('sales_event.items.create', (payload: Record<string, any>) => {
@@ -381,7 +395,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    const requestDatabase = context?.database || database;
+    const requestDatabase = resolveHookDatabase('sales_event', context, database);
     const validated = parseOrThrow(validateSalesEventUpdate, payload);
     const recordId = meta.keys?.[0];
     if (recordId && (validated.total_amount !== undefined || validated.return_amount !== undefined || validated.discount_amount !== undefined)) {
@@ -440,7 +454,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    return await applyWorkflow('harvest_event', payload, meta, context?.database || database);
+    return await applyWorkflow('harvest_event', payload, meta, resolveHookDatabase('harvest_event', context, database));
   });
 
   filter('farm_activity.items.create', (payload: Record<string, any>) => {
@@ -463,7 +477,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    return await applyWorkflow('farm_activity', payload, meta, context?.database || database);
+    return await applyWorkflow('farm_activity', payload, meta, resolveHookDatabase('farm_activity', context, database));
   });
 
   filter('loss_event.items.create', (payload: Record<string, any>) => {
@@ -489,7 +503,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    return await applyWorkflow('loss_event', payload, meta, context?.database || database);
+    return await applyWorkflow('loss_event', payload, meta, resolveHookDatabase('loss_event', context, database));
   });
 
   filter('labor_event.items.create', (payload: Record<string, any>) => {
@@ -512,7 +526,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    return await applyWorkflow('labor_event', payload, meta, context?.database || database);
+    return await applyWorkflow('labor_event', payload, meta, resolveHookDatabase('labor_event', context, database));
   });
 
   filter('field_note.items.create', (payload: Record<string, any>) => {
@@ -540,7 +554,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    return await applyWorkflow('field_note', payload, meta, context?.database || database);
+    return await applyWorkflow('field_note', payload, meta, resolveHookDatabase('field_note', context, database));
   });
 
   filter('stakeholder_feedback.items.create', (payload: Record<string, any>) => {
@@ -554,7 +568,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    const requestDatabase = context?.database || database;
+    const requestDatabase = resolveHookDatabase('stakeholder_feedback', context, database);
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
     const current = recordId
       ? await requestDatabase('stakeholder_feedback').where('id', recordId).first()
@@ -569,7 +583,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    return await handleMetricProposalUpdate(payload, meta, context?.database || database);
+    return await handleMetricProposalUpdate(payload, meta, resolveHookDatabase('metric_proposal', context, database));
   });
 
   filter('impact_claim.items.create', (payload: Record<string, any>) => {
@@ -583,7 +597,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    const requestDatabase = context?.database || database;
+    const requestDatabase = resolveHookDatabase('impact_claim', context, database);
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
     const current = recordId
       ? await requestDatabase('impact_claim').where('id', recordId).first()
@@ -600,7 +614,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     context: Record<string, any>,
   ) => {
     const validated = parseOrThrow(validateAgentTaskCreate, payload);
-    const roles = await resolveUserRoles(context?.database || database, meta);
+    const roles = await resolveUserRoles(resolveHookDatabase('agent_task', context, database), meta);
     return enforceAgentTaskSafety(validated, roles);
   });
   filter('agent_task.items.update', async (
@@ -609,7 +623,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     context: Record<string, any>,
   ) => {
     const validated = parseOrThrow(validateAgentTaskUpdate, payload);
-    const roles = await resolveUserRoles(context?.database || database, meta);
+    const roles = await resolveUserRoles(resolveHookDatabase('agent_task', context, database), meta);
     return enforceAgentTaskSafety(validated, roles);
   });
   filter('ai_summary.items.create', async (
@@ -618,7 +632,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     context: Record<string, any>,
   ) => {
     const validated = parseOrThrow(validateAiSummaryCreate, payload);
-    const roles = await resolveUserRoles(context?.database || database, meta);
+    const roles = await resolveUserRoles(resolveHookDatabase('ai_summary', context, database), meta);
     return enforceAiSummarySafety(validated, roles);
   });
   filter('ai_summary.items.update', async (
@@ -627,7 +641,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     context: Record<string, any>,
   ) => {
     const validated = parseOrThrow(validateAiSummaryUpdate, payload);
-    const requestDatabase = context?.database || database;
+    const requestDatabase = resolveHookDatabase('ai_summary', context, database);
     const roles = await resolveUserRoles(requestDatabase, meta);
     enforceAiSummarySafety(validated, roles);
     return await applyWorkflow('ai_summary', validated, meta, requestDatabase);
@@ -643,7 +657,9 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     context: Record<string, any>,
   ) => {
     const validated = parseOrThrow(validateRevenueEventUpdate, payload);
-    return await applyWorkflow('revenue_event', validated, meta, context?.database || database);
+    return await applyWorkflow(
+      'revenue_event', validated, meta, resolveHookDatabase('revenue_event', context, database),
+    );
   });
 
   for (const collection of STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS) {
@@ -652,7 +668,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       meta: Record<string, any>,
       context: Record<string, any>,
     ) => {
-      const roles = await resolveUserRoles(context?.database || database, meta);
+      const roles = await resolveUserRoles(resolveHookDatabase(collection, context, database), meta);
       return enforceStakeholderGovernanceSafety(collection, payload, roles);
     });
     filter(`${collection}.items.update`, async (
@@ -660,7 +676,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       meta: Record<string, any>,
       context: Record<string, any>,
     ) => {
-      const roles = await resolveUserRoles(context?.database || database, meta);
+      const roles = await resolveUserRoles(resolveHookDatabase(collection, context, database), meta);
       return enforceStakeholderGovernanceSafety(collection, payload, roles);
     });
   }

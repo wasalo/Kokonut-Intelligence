@@ -3344,3 +3344,17 @@ was used. Evidence: `docs/refactor/builds/2026-10-22-recovery/cap-038-agent-sour
 ### 23 October 2026 — CAP-038 task-specific source identities
 
 Migration 580 and the worker profiles isolate EBF, CIDS, and Delphi source reads behind separate credentials and reader roles, each with an explicit projection allowlist. Migration 581 adds a distinct AI-summary inspection login and digest-only view, so inspection cannot read the deterministic worker's operational projections or return summary content to Python. The focused worker/database/profile/migration selection passes 128 tests; Ruff, compilation, Compose parsing, and refreshed inventories pass. Migration 581's disposable PostgreSQL 16 chain passes 42 grouped assertions natively and under ARM64/QEMU. Candidate and legacy are untouched; no credentials or location grants have been provisioned. Exact location grants, populated parity, live OIDC/provider checks, wider ACL/RLS, production recovery, Raspberry Pi hardware, and MAN-CAP-038 acceptance remain open.
+
+### 26 October 2026 — Directus tenant update transaction boundary
+
+All downstream lifecycle/business update filters for the eleven tenant-scoped
+Directus collections now use the request database selected by
+`resolveHookDatabase()`. Tenant hooks reject missing and malformed request
+handles with a generic 403 even when called independently; the extension-global
+handle remains only for non-tenant collections. The 21-test focused selection
+and the 93-test full extension suite pass, as do the extension bundler and
+TypeScript check. No database or Directus runtime was accessed. Source evidence
+and limitations are in
+`builds/2026-10-26-recovery/directus-tenant-update-transaction-boundary.json`.
+Broader permission, field, relation, hook, schedule, and pinned-runtime parity
+remain open.

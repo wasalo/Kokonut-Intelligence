@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import registerHook from './index.js';
+import registerHook, { resolveHookDatabase } from './index.js';
 
 describe('Directus hook event registration', () => {
   it('uses collection-qualified Directus item event names', () => {
@@ -70,6 +70,61 @@ describe('Directus hook event registration', () => {
         .rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
     }
     expect(globalDatabase).not.toHaveBeenCalled();
+  });
+
+  it('keeps tenant lifecycle and business filters on the request database', async () => {
+    const globalDatabase = vi.fn();
+    const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();
+    const userId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const tenantCollections = [
+      'farm_activity',
+      'harvest_event',
+      'expense_event',
+      'sales_event',
+      'loss_event',
+      'labor_event',
+      'field_note',
+      'revenue_event',
+      'stakeholder_feedback',
+      'metric_proposal',
+      'mrv_claim',
+    ];
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: (event: string, callback: (...args: any[]) => Promise<any>) => {
+          const callbacks = filters.get(event) ?? [];
+          callbacks.push(callback);
+          filters.set(event, callbacks);
+        },
+        action: () => undefined,
+        schedule: () => undefined,
+      },
+      { database: globalDatabase, env: { KOKONUT_OPERATOR_OIDC_ISSUER: 'https://identity.example.test' } },
+    );
+
+    for (const collection of tenantCollections) {
+      const hooks = filters.get(`${collection}.items.update`);
+      expect(hooks?.length, `${collection} update hooks`).toBeGreaterThanOrEqual(2);
+      for (const hook of hooks!.slice(1)) {
+        await expect(hook({}, { keys: [] }, { accountability: { user: userId } }))
+          .rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+      }
+    }
+    expect(globalDatabase).not.toHaveBeenCalled();
+  });
+
+  it('preserves request database selection and non-tenant extension fallback', () => {
+    const requestDatabase = vi.fn();
+    const extensionDatabase = vi.fn();
+
+    expect(resolveHookDatabase('farm_activity', { database: requestDatabase }, extensionDatabase))
+      .toBe(requestDatabase);
+    expect(() => resolveHookDatabase('farm_activity', {}, extensionDatabase))
+      .toThrowError(/Directus tenant access denied/);
+    expect(() => resolveHookDatabase('farm_activity', { database: {} }, extensionDatabase))
+      .toThrowError(/Directus tenant access denied/);
+    expect(resolveHookDatabase('agent_task', {}, extensionDatabase)).toBe(extensionDatabase);
   });
 
   it('binds feedback-review creation and reviewer validation to the request transaction', async () => {

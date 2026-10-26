@@ -48,6 +48,15 @@ build/type check pass. This is a source boundary check; it does not certify
 transaction behavior across every event in the pinned runtime. Evidence:
 [request transaction boundary](builds/2026-10-26-recovery/directus-request-transaction-boundary.json).
 
+The same strict request-database resolver now covers every downstream
+lifecycle/business update filter on those tenant-scoped collections, including
+collections with more than one update callback. Missing/malformed request
+context is rejected even if a later callback is invoked directly; non-tenant
+hooks preserve the extension-global fallback. The 93-test extension suite,
+bundler, and TypeScript check pass. This remains source/unit evidence, not
+pinned-runtime confirmation. Evidence: [tenant update transaction boundary]
+(builds/2026-10-26-recovery/directus-tenant-update-transaction-boundary.json).
+
 All registered update filters now choose `context.database` when Directus
 provides it and pass that handle to pre-write role, existing-row,
 tenant-reference, and workflow checks. Sales recomputation also reads through

@@ -1,3 +1,17 @@
+### Progress addendum — Directus tenant update transaction boundary, 26 October 2026
+
+Downstream lifecycle and business filters for all eleven tenant-scoped Directus
+collections now resolve the request database through a shared helper. This
+prevents independently invoked update filters from falling back to the
+extension-global database; missing or malformed request handles return the
+same generic 403. Non-tenant hooks retain the existing extension database
+fallback. The focused tenant authorization/lifecycle selection passes 21
+tests, and the full extension suite passes 93. The Directus bundle and
+TypeScript check pass. No database or Directus runtime was used. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-tenant-update-transaction-boundary.json`.
+Checklist: 1,212 complete / 25 open (1,237 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — Directus tenant request-transaction fail-closed boundary, 26 October 2026
 
 The organization/location-scoped Directus hooks now require the request's Knex
