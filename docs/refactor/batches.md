@@ -19,10 +19,28 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,197 checklist items complete and 25
-open (1,222 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,198 checklist items complete and 25
+open (1,223 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### ClickHouse outbox projection boundary — 25 October 2026
+
+- [x] Restrict the optional ClickHouse sink to six source-owned projection
+  targets and schema-approved columns. Projections must contain unique columns,
+  required identity fields, and non-empty rows with matching widths. Malformed
+  or unknown projections are dead-lettered with a fixed reason before any
+  ClickHouse connection opens; valid rows keep their lease fence, exponential
+  retry, and deterministic deduplication token. A schema regression checks the
+  contract against the repository's ClickHouse DDL and migration 006; 38
+  focused outbox tests, Ruff, compilation, and diff checks pass
+  ([implementation](../services/ingestion/clickhouse_outbox.py);
+  [tests](../tests/test_clickhouse_outbox.py);
+  [evidence](builds/2026-10-25-recovery/clickhouse-outbox-projection-contract.json)).
+  No migration or service/database was used. Rollback is a source revert; no
+  data state changed. ClickHouse remains optional, and production delivery,
+  populated parity, and CAP acceptance remain open. Checklist: 1,198 complete /
+  25 open (1,223 total); capability classifications remain unchanged.
 
 ### Global freshness worker ARM64 software acceptance — 25 October 2026
 

@@ -1,3 +1,18 @@
+### Progress addendum — ClickHouse outbox projection boundary, 25 October 2026
+
+The durable ClickHouse sink now validates each claimed payload against six
+repository-owned target tables and schema-approved columns. Unique columns,
+required identity fields, non-empty row arrays, and matching widths are
+required. Unsupported payloads receive a fixed permanent dead-letter reason
+without opening ClickHouse; valid projections keep lease fencing, bounded
+retry, and insert deduplication. The 38-test outbox suite includes schema
+column parity with all ClickHouse DDL and migration 006; Ruff, Python
+compilation, and diff checks pass. No database, ClickHouse provider, candidate,
+or legacy stack was accessed. Evidence:
+[projection contract](builds/2026-10-25-recovery/clickhouse-outbox-projection-contract.json).
+Checklist: 1,198 complete / 25 open (1,223 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — ARM64 freshness-worker software acceptance, 25 October 2026
 
 The network-disabled PostgreSQL 16 disposable acceptance now passes on Docker

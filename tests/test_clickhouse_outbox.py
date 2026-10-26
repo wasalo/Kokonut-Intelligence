@@ -1,4 +1,6 @@
+import re
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -16,8 +18,14 @@ def _row(row_id: str, attempt_count: int = 1) -> dict:
         "lease_token": f"lease-{row_id}",
         "event_key": f"event:{row_id}",
         "target_table": "sensor_readings",
-        "columns": ["sensor_id", "value"],
-        "rows": [["sensor-1", 24.5]],
+        "columns": ["timestamp", "sensor_id", "sensor_type", "location_id", "value"],
+        "rows": [[
+            "2026-10-25T12:00:00Z",
+            "sensor-1",
+            "soil_moisture",
+            "11111111-1111-4111-8111-111111111111",
+            24.5,
+        ]],
     }
 
 
@@ -53,7 +61,29 @@ def test_finish_uses_the_computed_delay_and_commits_outcome():
     statement, params = cursor.execute.call_args.args
     assert "(%s * INTERVAL '1 second')" in statement
     assert "INTERVAL '1 minute'" not in statement
-    assert params[3] == 480
+    assert "WHEN %s THEN 'dead_letter'" in statement
+    assert params[4] == 480
+    conn.commit.assert_called_once()
+
+
+def test_finish_can_permanently_dead_letter_invalid_projection():
+    conn = MagicMock()
+    cursor = conn.cursor.return_value.__enter__.return_value
+    cursor.rowcount = 1
+
+    assert clickhouse_outbox._finish(
+        conn,
+        "outbox-id",
+        "worker-1",
+        "lease-token",
+        success=False,
+        error="projection contract rejected",
+        permanent_failure=True,
+    )
+
+    statement, params = cursor.execute.call_args.args
+    assert "WHEN %s THEN 'dead_letter'" in statement
+    assert params[1] is True
     conn.commit.assert_called_once()
 
 
@@ -184,6 +214,92 @@ def test_missing_client_after_enabled_provider_records_setup_failure(monkeypatch
 
     assert result == {"claimed": 1, "delivered": 0, "failed": 1}
     assert finished == [("one", False, "client setup failed: RuntimeError", 60)]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("target_table", "users"),
+        ("columns", ["timestamp", "sensor_id", "location_id", "value", "private_column"]),
+        ("columns", ["timestamp", "sensor_id", "location_id", "value", "value"]),
+        ("columns", ["timestamp", "sensor_id", "value"]),
+        ("rows", [["only-one-value"]]),
+    ],
+)
+def test_invalid_projection_is_dead_lettered_without_opening_clickhouse(
+    monkeypatch, field, value
+):
+    _enable_clickhouse(monkeypatch)
+    row = _row("invalid")
+    row[field] = value
+    finished = []
+    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: [row])
+    monkeypatch.setattr(
+        clickhouse_outbox,
+        "get_clickhouse",
+        lambda: pytest.fail("invalid projections must not open ClickHouse"),
+    )
+    monkeypatch.setattr(
+        clickhouse_outbox,
+        "_finish",
+        lambda _conn, row_id, worker, token, **kwargs: finished.append(
+            (row_id, worker, token, kwargs)
+        ) or True,
+    )
+
+    result = deliver_batch(object(), "worker-invalid")
+
+    assert result == {"claimed": 1, "delivered": 0, "failed": 1}
+    assert finished[0][:3] == ("invalid", "worker-invalid", "lease-invalid")
+    assert finished[0][3]["permanent_failure"] is True
+    assert finished[0][3]["error"] == "projection contract rejected"
+
+
+@pytest.mark.parametrize(
+    ("target", "columns"),
+    [
+        ("attestation_events", ["timestamp", "attestation_uid", "chain", "subject_type"]),
+        ("dlego_events", ["timestamp", "protocol_id", "chain", "action_type"]),
+        ("remote_sensing_events", ["timestamp", "observation_id", "location_id", "source"]),
+        ("sensor_readings", ["timestamp", "sensor_id", "location_id", "value"]),
+        ("wallet_events", ["timestamp", "wallet_address", "chain", "tx_hash", "event_type"]),
+        ("weather_events", ["timestamp", "location_id", "source"]),
+    ],
+)
+def test_projection_contract_accepts_each_repository_target(target, columns):
+    clickhouse_outbox._validate_outbox_projection(
+        {"target_table": target, "columns": columns, "rows": [[None] * len(columns)]}
+    )
+
+
+def test_projection_contract_columns_exist_in_clickhouse_schema():
+    schema_root = Path(__file__).resolve().parents[1] / "schemas" / "clickhouse"
+    schema_sql = "\n".join(path.read_text(encoding="utf-8") for path in schema_root.glob("*.sql"))
+    actual_columns: dict[str, set[str]] = {}
+
+    for match in re.finditer(
+        r"CREATE TABLE IF NOT EXISTS\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\)\s*ENGINE",
+        schema_sql,
+        flags=re.IGNORECASE | re.DOTALL,
+    ):
+        table, definition = match.groups()
+        actual_columns.setdefault(table, set()).update(
+            column_match.group(1)
+            for line in definition.splitlines()
+            if (column_match := re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*)\s+", line))
+        )
+
+    for match in re.finditer(
+        r"ALTER TABLE\s+([A-Za-z_][A-Za-z0-9_]*)\s+ADD COLUMN IF NOT EXISTS\s+([A-Za-z_][A-Za-z0-9_]*)",
+        schema_sql,
+        flags=re.IGNORECASE,
+    ):
+        table, column = match.groups()
+        actual_columns.setdefault(table, set()).add(column)
+
+    for table, columns in clickhouse_outbox._PROJECTION_COLUMNS.items():
+        assert table in actual_columns
+        assert columns <= actual_columns[table], (table, sorted(columns - actual_columns[table]))
 
 
 def test_setup_outcome_database_failure_propagates_without_retrying_finish(monkeypatch):

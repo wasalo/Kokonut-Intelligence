@@ -23,6 +23,47 @@ LEASE_SECONDS = 300
 RETRY_BASE_SECONDS = 60
 RETRY_MAX_SECONDS = 3600
 
+_PROJECTION_COLUMNS = {
+    "attestation_events": frozenset({
+        "timestamp", "attestation_uid", "schema_uid", "chain", "attester",
+        "recipient", "subject_type", "status", "revoked", "metadata",
+    }),
+    "dlego_events": frozenset({
+        "timestamp", "wallet_id", "protocol_id", "location_id", "action_type",
+        "amount", "token", "chain", "tx_hash", "metadata",
+    }),
+    "remote_sensing_events": frozenset({
+        "timestamp", "observation_id", "location_id", "plot_id", "source",
+        "ndvi", "ndre", "evi", "savi", "canopy_cover_pct", "canopy_height_m",
+        "ndwi", "cloud_cover_pct", "metadata", "msavi", "satvi", "bsi",
+        "nbr2", "ndti", "lswi", "brightness_index", "tc_brightness",
+        "tc_greenness", "tc_wetness", "band_blue", "band_green", "band_red",
+        "band_nir", "band_swir1", "band_swir2", "source_system",
+    }),
+    "sensor_readings": frozenset({
+        "timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
+        "value", "unit", "quality", "metadata",
+    }),
+    "wallet_events": frozenset({
+        "timestamp", "wallet_address", "chain", "tx_hash", "block_number",
+        "event_type", "from_address", "to_address", "contract_address", "value",
+        "token", "token_amount", "gas_used", "status", "metadata",
+    }),
+    "weather_events": frozenset({
+        "timestamp", "location_id", "source", "temperature_c",
+        "precipitation_mm", "humidity_pct", "wind_speed_kmh",
+        "solar_radiation_wm2", "cloud_cover_pct", "metadata",
+    }),
+}
+_REQUIRED_PROJECTION_COLUMNS = {
+    "attestation_events": frozenset({"timestamp", "attestation_uid", "chain", "subject_type"}),
+    "dlego_events": frozenset({"timestamp", "protocol_id", "chain", "action_type"}),
+    "remote_sensing_events": frozenset({"timestamp", "observation_id", "location_id", "source"}),
+    "sensor_readings": frozenset({"timestamp", "sensor_id", "location_id", "value"}),
+    "wallet_events": frozenset({"timestamp", "wallet_address", "chain", "tx_hash", "event_type"}),
+    "weather_events": frozenset({"timestamp", "location_id", "source"}),
+}
+
 
 class OutboxEnqueueError(RuntimeError):
     """A canonical source write could not be paired with its projection."""
@@ -34,6 +75,37 @@ def _retry_delay_seconds(attempt_count: int) -> int:
         raise ValueError("Outbox attempt count must be an integer")
     exponent = min(max(attempt_count - 1, 0), 6)
     return min(RETRY_MAX_SECONDS, RETRY_BASE_SECONDS * (2**exponent))
+
+
+def _validate_outbox_projection(row: dict[str, Any]) -> None:
+    """Reject outbox payloads outside the repository-owned ClickHouse schema."""
+    if not isinstance(row, dict):
+        raise ValueError("projection row must be an object")
+    table = row.get("target_table")
+    allowed_columns = _PROJECTION_COLUMNS.get(table) if isinstance(table, str) else None
+    if allowed_columns is None:
+        raise ValueError("projection target is not allowlisted")
+
+    columns = row.get("columns")
+    if (
+        not isinstance(columns, list)
+        or not columns
+        or any(not isinstance(column, str) for column in columns)
+    ):
+        raise ValueError("projection columns must be a non-empty string list")
+    _validate_ch_identifiers(table, columns)
+    if len(columns) != len(set(columns)):
+        raise ValueError("projection columns must be unique")
+    if not set(columns).issubset(allowed_columns):
+        raise ValueError("projection columns are not allowed for this target")
+    if not _REQUIRED_PROJECTION_COLUMNS[table].issubset(columns):
+        raise ValueError("projection omits required identity columns")
+
+    values = row.get("rows")
+    if not isinstance(values, list) or not values:
+        raise ValueError("projection must contain at least one row")
+    if any(not isinstance(item, list) or len(item) != len(columns) for item in values):
+        raise ValueError("projection row width differs from columns")
 
 
 def enqueue(
@@ -135,12 +207,14 @@ def _finish(
     success: bool,
     error: str | None = None,
     retry_delay_seconds: int = RETRY_BASE_SECONDS,
+    permanent_failure: bool = False,
 ) -> bool:
     with conn.cursor() as cur:
         cur.execute(
             """
             UPDATE clickhouse_outbox
             SET status = CASE WHEN %s THEN 'succeeded'
+                              WHEN %s THEN 'dead_letter'
                               WHEN attempt_count >= %s THEN 'dead_letter'
                               ELSE 'retryable' END,
                 available_at = CASE WHEN %s THEN available_at
@@ -152,7 +226,7 @@ def _finish(
               AND lease_owner = %s AND lease_token = %s
               AND lease_expires_at > NOW()
             """,
-            (success, MAX_ATTEMPTS, success, retry_delay_seconds, success, error,
+            (success, permanent_failure, MAX_ATTEMPTS, success, retry_delay_seconds, success, error,
              row_id, worker_id, lease_token),
         )
         changed = cur.rowcount == 1
@@ -171,6 +245,28 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
     rows = claim_batch(conn, worker_id, limit)
     if not rows:
         return {"claimed": 0, "delivered": 0, "failed": 0}
+    valid_rows = []
+    invalid_count = 0
+    for row in rows:
+        try:
+            _validate_outbox_projection(row)
+        except (TypeError, ValueError):
+            logger.warning("ClickHouse outbox projection rejected (contract validation)")
+            _finish(
+                conn,
+                str(row["id"]),
+                worker_id,
+                str(row["lease_token"]),
+                success=False,
+                error="projection contract rejected",
+                permanent_failure=True,
+            )
+            invalid_count += 1
+        else:
+            valid_rows.append(row)
+    if not valid_rows:
+        return {"claimed": len(rows), "delivered": 0, "failed": invalid_count}
+
     delivered = failed = 0
     client = None
     try:
@@ -180,12 +276,12 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
                 raise RuntimeError("ClickHouse client unavailable")
         except Exception as exc:
             logger.warning("ClickHouse client setup failed (%s)", type(exc).__name__)
-            for row in rows:
+            for row in valid_rows:
                 _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]),
                         success=False, error=f"client setup failed: {type(exc).__name__}",
                         retry_delay_seconds=_retry_delay_seconds(row.get("attempt_count", 1)))
-            return {"claimed": len(rows), "delivered": 0, "failed": len(rows)}
-        for row in rows:
+            return {"claimed": len(rows), "delivered": 0, "failed": invalid_count + len(valid_rows)}
+        for row in valid_rows:
             error = None
             inserted = False
             try:
@@ -225,7 +321,7 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
     finally:
         if client is not None and hasattr(client, "close"):
             client.close()
-    return {"claimed": len(rows), "delivered": delivered, "failed": failed}
+    return {"claimed": len(rows), "delivered": delivered, "failed": invalid_count + failed}
 
 
 def reconcile_pending(conn, limit: int = 1000) -> dict[str, int]:
