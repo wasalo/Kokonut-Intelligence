@@ -39,6 +39,26 @@ def started_schema_migrations(output: str) -> list[str]:
     ]
 
 
+def failed_batch_progress(
+    output: str, *, already_applied: int, total: int
+) -> dict[str, object] | None:
+    """Summarize the last started migration and completed prefix after batch failure."""
+    started = started_schema_migrations(output)
+    if not started:
+        return None
+
+    applied = already_applied + max(0, len(started) - 1)
+    result: dict[str, object] = {
+        "schema_files_applied": applied,
+        "schema_files_pending": max(0, total - applied - 1),
+        "schema_files_failed": 1,
+        "failed_migration": started[-1],
+    }
+    if len(started) > 1:
+        result["latest_applied_migration"] = started[-2]
+    return result
+
+
 def safe_error_summary(output: str) -> str | None:
     """Keep only bounded PostgreSQL diagnostic lines in replay evidence."""
     lines = [
@@ -234,12 +254,28 @@ def main() -> int:
         evidence["schema_files_pending"] = len(ids) - split_at
         evidence["latest_applied_migration"] = ids[split_at - 1]
 
-        for migration_id in ids[split_at:]:
-            stage = f"migration_{migration_id.split(':', 1)[1]}"
-            run(migration_command(project, database, [migration_id]), env=env)
-            evidence["schema_files_applied"] = int(evidence["schema_files_applied"]) + 1
-            evidence["schema_files_pending"] = int(evidence["schema_files_pending"]) - 1
-            evidence["latest_applied_migration"] = migration_id
+        remaining_migrations = ids[split_at:]
+        stage = "schemas_after_signed_source_reader"
+        try:
+            run(
+                migration_command(project, database, remaining_migrations),
+                env=env,
+                capture=True,
+            )
+        except ReplayCommandFailure as exc:
+            progress = failed_batch_progress(
+                exc.stderr + "\n" + exc.stdout,
+                already_applied=split_at,
+                total=len(ids),
+            )
+            if progress is not None:
+                evidence.update(progress)
+                failed_migration = str(progress["failed_migration"])
+                stage = f"migration_{failed_migration.split(':', 1)[1]}"
+            raise
+        evidence["schema_files_applied"] = len(ids)
+        evidence["schema_files_pending"] = 0
+        evidence["latest_applied_migration"] = ids[-1]
 
         stage = "schema_verification"
         query = (

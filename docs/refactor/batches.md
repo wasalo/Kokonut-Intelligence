@@ -1,6 +1,6 @@
 # Kernel execution checklist
 
-Updated: 25 October 2026. Current architecture focus is Phase 8 acceptance;
+Updated: 26 October 2026. Current architecture focus is Phase 8 acceptance;
 batch numbers group work across phases and do not replace the phase gates.
 
 ## Working agreement
@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,199 checklist items complete and 25
-open (1,224 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (26 October 2026):** 1,202 checklist items complete and 25
+open (1,227 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1875,6 +1875,7 @@ these new tags are build candidates only.
 - [x] Reserve mutation headroom atomically across 16 local worker processes sharing the SQLite spool, reap an abandoned reservation after forced process exit, and verify ASGI success/error release ordering ([evidence](builds/2026-10-11-recovery/gateway-audit-spool-admission.json)).
 - [x] Activate the candidate edge local-media provider and verify a synthetic encrypted object survives an app restart with authenticated plaintext digest, private permissions, zero upload rows, and no database/Metabase recreation ([evidence](builds/2026-10-12-recovery/field-collector-candidate-edge-media-activation.json)).
 - [x] Add config-only Compose contracts for minimal, edge, standard, analytics, portability, and optional provider profiles; verify resource/media/provider boundaries and only select ARM64 overlays with supporting image evidence. Twenty-five focused Compose/planner checks pass; gRPC/MQTT profile resolution and ZITADEL composition are covered without starting services. This does not certify profile runtime or Raspberry Pi hardware ([ARM64 transport evidence](builds/2026-10-16-recovery/kernel-arm64-transport-smokes.json)).
+- [x] Batch the ARM64 schema replay runner's migrations after migration 541 into one ordered CLI invocation instead of a separate Docker/CLI process per migration. Failure parsing preserves the failed migration, prior applied count, and remaining count. Eight focused runner tests pass with Ruff, compilation, and diff checks. This improves replay efficiency only; a full-catalog replay on the current source and physical Raspberry Pi/power acceptance remain open.
 - [ ] Exercise physical-device/power failure. The code-only portability assessment now includes pushed source head `2b877bae`; physical Raspberry Pi, power-loss, thermal, measured-resource, and storage-endurance acceptance remains unavailable:
   - The default Kernel image built with the pinned runtime lock for `linux/arm64`; a network-disabled, read-only container reported `aarch64`, created the Gateway with 347 recursively registered route templates across four included router groups, imported both Python SDK clients and the worker CLI/Delphi facilitator modules, and loaded all 18 JobSpecs ([current-source app smoke](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-9385eeb9.json)).
   - The pushed `2b877bae` Kernel image also built for `linux/arm64`; a network-disabled, read-only `aarch64` container imported all nine source-owned built-in driver targets and validated their adapter contracts. The temporary image was removed; no database, provider, candidate, legacy, or persistent Compose resource was accessed ([current-source driver smoke](builds/2026-10-25-recovery/arm64-kernel-driver-import-smoke-2b877bae.json)).

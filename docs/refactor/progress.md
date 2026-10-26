@@ -1,3 +1,16 @@
+### Progress addendum — ARM64 schema replay batching, 26 October 2026
+
+The full-schema ARM64 replay runner now submits migrations after the
+signed-source-reader checkpoint as one ordered migration batch, avoiding one
+Docker/CLI startup per remaining migration. Failure output still identifies
+the failed migration and preserves the preceding applied/pending counts. Eight
+focused runner tests pass with Ruff, compilation, and diff checks. A current
+full-catalog QEMU run was stopped before completion due to its long runtime;
+it reported no migration error, and its disposable container/volume were
+removed. This does not claim a full replay on current source or physical
+Raspberry Pi acceptance. Checklist: 1,202 complete / 25 open (1,227 total);
+capability classifications remain unchanged.
+
 ### Progress addendum — isolated ClickHouse outbox delivery, 25 October 2026
 
 Migration 646 adds an opt-in, dedicated `clickhouse_outbox` login with only
