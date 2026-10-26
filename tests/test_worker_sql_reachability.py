@@ -156,3 +156,25 @@ def test_deterministic_summary_sql_helpers_follow_the_default_builder_registry()
 
     assert {site["scope"] for site in sites} == expected_scopes
     assert all(operation_ref in site["statically_reachable_operations"] for site in sites)
+
+
+def test_clickhouse_outbox_compatibility_sql_follows_exact_callback_edges():
+    report = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+    operation_ref = "scheduled_module:services.ingestion.clickhouse_outbox"
+    expected_scopes = {
+        "_recover_expired",
+        "claim_batch",
+        "_finish",
+        "reconcile_pending",
+        "_operator_transition",
+        "list_dead_letters",
+    }
+    sites = [
+        site
+        for site in report["execution_sites"]
+        if site["source"] == "services/ingestion/clickhouse_outbox.py"
+        and site["scope"] in expected_scopes
+    ]
+
+    assert {site["scope"] for site in sites} == expected_scopes
+    assert all(operation_ref in site["statically_reachable_operations"] for site in sites)

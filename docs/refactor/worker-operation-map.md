@@ -138,9 +138,11 @@ application-wide RLS or proof for other workers.
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
   command/request protocol rather than a local function call. Across 49
-  operation roots and 138 source files, entry functions reach 1,151 function
-  memberships through 1,635 direct-call and 56 dynamic-dispatch edges, with no
-  unresolved operation roots. This remains a conservative source map: callbacks and
+  operation roots and 138 source files, entry functions reach 1,172 function
+  memberships through 1,658 direct-call, two exact callback, and 56
+  dynamic-dispatch edges, with no unresolved operation roots. The callback
+  model includes both the CLI wrapper and the compatibility outbox's bounded
+  completion callback. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
@@ -155,8 +157,8 @@ application-wide RLS or proof for other workers.
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
   joins those 473 sites to the operation graph without including SQL text or
-  values. It links 398 unique sites across 579 operation/site memberships;
-  75 sites have no current static function match, and each belongs to a
+  values. It links 404 unique sites across 585 operation/site memberships;
+  69 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -403,8 +405,13 @@ Keep this review current as the inventory changes. The static call graph
 follows local instance types, explicit metric-registry dispatch, and exact
 keyword-bound class instances passed into statically resolved functions. This
 now traces the injected Baal, Gnosis, and freshness persistence adapters
-through their legacy processing functions; 75 SQL sites still have no direct
-static function match.
+through their legacy processing functions. The scheduled ClickHouse outbox
+compatibility route now follows its nested `command` callback and the
+`deliver_claimed_batch` completion callback into `_finish`; its six direct SQL
+sites are visible in that operation path. This is source tracing only: the
+compatibility route still uses its legacy shared application identity, while
+the separate isolated worker uses the dedicated bounded-function identity. 69
+SQL sites still have no direct static function match.
 It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map
 also does not prove that external Prefect/host schedules are inactive or that

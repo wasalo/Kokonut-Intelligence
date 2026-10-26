@@ -1,14 +1,14 @@
 {
   "version": 1,
   "generated_by": "scripts/worker_function_reachability.py",
-  "scope": "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator, scheduled-driver, and registered-synthesis-agent dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
+  "scope": "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run and ClickHouse outbox completion callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator, scheduled-driver, and registered-synthesis-agent dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 49,
     "source_files": 138,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 1151,
-    "direct_call_edges": 1635,
-    "callback_edges": 0,
+    "function_memberships": 1172,
+    "direct_call_edges": 1658,
+    "callback_edges": 2,
     "dynamic_dispatch_edges": 56
   },
   "operations": [
@@ -4155,6 +4155,22 @@
       ],
       "reachable_functions": [
         {
+          "key": "services.common.cli:get_connection",
+          "module": "services.common.cli",
+          "qualname": "get_connection",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 53
+        },
+        {
+          "key": "services.common.cli:print_json",
+          "module": "services.common.cli",
+          "qualname": "print_json",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 73
+        },
+        {
           "key": "services.common.cli:run",
           "module": "services.common.cli",
           "qualname": "run",
@@ -4163,23 +4179,328 @@
           "line": 78
         },
         {
+          "key": "services.common.database:get_connection",
+          "module": "services.common.database",
+          "qualname": "get_connection",
+          "class_scope": null,
+          "source": "services/common/database.py",
+          "line": 179
+        },
+        {
+          "key": "services.core.adapters.clickhouse:create_client",
+          "module": "services.core.adapters.clickhouse",
+          "qualname": "create_client",
+          "class_scope": null,
+          "source": "services/core/adapters/clickhouse.py",
+          "line": 8
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
+        },
+        {
+          "key": "services.ingestion.base:_validate_ch_identifiers",
+          "module": "services.ingestion.base",
+          "qualname": "_validate_ch_identifiers",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 69
+        },
+        {
+          "key": "services.ingestion.base:get_clickhouse",
+          "module": "services.ingestion.base",
+          "qualname": "get_clickhouse",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 62
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:_finish",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "_finish",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 201
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:_operator_transition",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "_operator_transition",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 364
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:_recover_expired",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "_recover_expired",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 159
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:_retry_delay_seconds",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "_retry_delay_seconds",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 72
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:_validate_outbox_projection",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "_validate_outbox_projection",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 80
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:claim_batch",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "claim_batch",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 174
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:command",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "command",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 438
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:deliver_batch",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "deliver_batch",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 327
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:deliver_batch.finish",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "deliver_batch.finish",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 337
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:deliver_claimed_batch",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "deliver_claimed_batch",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 237
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:dispose_dead_letter",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "dispose_dead_letter",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 410
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:list_dead_letters",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "list_dead_letters",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 417
+        },
+        {
           "key": "services.ingestion.clickhouse_outbox:main",
           "module": "services.ingestion.clickhouse_outbox",
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/clickhouse_outbox.py",
           "line": 459
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:reconcile_pending",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "reconcile_pending",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 349
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:replay_dead_letter",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "replay_dead_letter",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 405
         }
       ],
       "direct_call_edges": [
+        {
+          "caller": "services.common.cli:get_connection",
+          "callee": "services.common.database:get_connection",
+          "source": "services/common/cli.py",
+          "line": 61
+        },
+        {
+          "caller": "services.core.adapters.clickhouse:create_client",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/core/adapters/clickhouse.py",
+          "line": 16
+        },
+        {
+          "caller": "services.ingestion.base:get_clickhouse",
+          "callee": "services.core.adapters.clickhouse:create_client",
+          "source": "services/ingestion/base.py",
+          "line": 66
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:_validate_outbox_projection",
+          "callee": "services.ingestion.base:_validate_ch_identifiers",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 96
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:claim_batch",
+          "callee": "services.ingestion.clickhouse_outbox:_recover_expired",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 177
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:command",
+          "callee": "services.common.cli:get_connection",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 441
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:command",
+          "callee": "services.common.cli:print_json",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 452
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:command",
+          "callee": "services.ingestion.clickhouse_outbox:deliver_batch",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 451
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:command",
+          "callee": "services.ingestion.clickhouse_outbox:dispose_dead_letter",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 445
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:command",
+          "callee": "services.ingestion.clickhouse_outbox:list_dead_letters",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 447
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:command",
+          "callee": "services.ingestion.clickhouse_outbox:reconcile_pending",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 449
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:command",
+          "callee": "services.ingestion.clickhouse_outbox:replay_dead_letter",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 443
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_batch",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 331
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_batch",
+          "callee": "services.ingestion.clickhouse_outbox:claim_batch",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 335
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_batch",
+          "callee": "services.ingestion.clickhouse_outbox:deliver_claimed_batch",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 346
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_batch.finish",
+          "callee": "services.ingestion.clickhouse_outbox:_finish",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 338
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_claimed_batch",
+          "callee": "services.ingestion.base:_validate_ch_identifiers",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 285
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_claimed_batch",
+          "callee": "services.ingestion.base:get_clickhouse",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 268
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_claimed_batch",
+          "callee": "services.ingestion.clickhouse_outbox:_retry_delay_seconds",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 278
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_claimed_batch",
+          "callee": "services.ingestion.clickhouse_outbox:_retry_delay_seconds",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 315
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_claimed_batch",
+          "callee": "services.ingestion.clickhouse_outbox:_validate_outbox_projection",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 249
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:dispose_dead_letter",
+          "callee": "services.ingestion.clickhouse_outbox:_operator_transition",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 414
+        },
         {
           "caller": "services.ingestion.clickhouse_outbox:main",
           "callee": "services.common.cli:run",
           "source": "services/ingestion/clickhouse_outbox.py",
           "line": 474
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:replay_dead_letter",
+          "callee": "services.ingestion.clickhouse_outbox:_operator_transition",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 407
         }
       ],
-      "callback_edges": [],
+      "callback_edges": [
+        {
+          "caller": "services.ingestion.clickhouse_outbox:deliver_batch",
+          "callee": "services.ingestion.clickhouse_outbox:deliver_batch.finish",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 346,
+          "dispatch": "clickhouse_outbox_finish_callback"
+        },
+        {
+          "caller": "services.ingestion.clickhouse_outbox:main",
+          "callee": "services.ingestion.clickhouse_outbox:command",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 474,
+          "dispatch": "services_common_cli_run_callback"
+        }
+      ],
       "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },

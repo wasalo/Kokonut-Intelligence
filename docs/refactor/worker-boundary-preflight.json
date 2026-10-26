@@ -31,8 +31,8 @@
   },
   "sql_reachability": {
     "execution_site_count": 473,
-    "sites_with_static_operation_path": 398,
-    "sites_without_static_function_match": 75,
+    "sites_with_static_operation_path": 404,
+    "sites_without_static_function_match": 69,
     "site_refs_for_review": [
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -348,36 +348,6 @@
         "site": "services/governance/baal.py:207:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
-      },
-      {
-        "site": "services/ingestion/clickhouse_outbox.py:161:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 13
-      },
-      {
-        "site": "services/ingestion/clickhouse_outbox.py:179:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 13
-      },
-      {
-        "site": "services/ingestion/clickhouse_outbox.py:213:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 13
-      },
-      {
-        "site": "services/ingestion/clickhouse_outbox.py:352:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 13
-      },
-      {
-        "site": "services/ingestion/clickhouse_outbox.py:373:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 13
-      },
-      {
-        "site": "services/ingestion/clickhouse_outbox.py:420:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 13
       },
       {
         "site": "services/ingestion/data_freshness.py:114:8",

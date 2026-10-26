@@ -5,10 +5,10 @@
   "summary": {
     "operation_roots": 49,
     "sql_execution_sites": 473,
-    "statically_reachable_site_memberships": 579,
-    "unique_sites_with_static_operation_path": 398,
-    "sites_without_static_function_match": 75,
-    "unmatched_functions_absent_from_all_worker_graphs": 75,
+    "statically_reachable_site_memberships": 585,
+    "unique_sites_with_static_operation_path": 404,
+    "sites_without_static_function_match": 69,
+    "unmatched_functions_absent_from_all_worker_graphs": 69,
     "sites_reached_by_multiple_operations": 52
   },
   "operations": [
@@ -198,8 +198,15 @@
       "kind": "scheduled_module",
       "name": "services.ingestion.clickhouse_outbox",
       "operation_ref": "scheduled_module:services.ingestion.clickhouse_outbox",
-      "statically_reachable_sql_site_count": 0,
-      "statically_reachable_sql_site_ids": []
+      "statically_reachable_sql_site_count": 6,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/clickhouse_outbox.py:161:8",
+        "services/ingestion/clickhouse_outbox.py:179:8",
+        "services/ingestion/clickhouse_outbox.py:213:8",
+        "services/ingestion/clickhouse_outbox.py:352:8",
+        "services/ingestion/clickhouse_outbox.py:373:12",
+        "services/ingestion/clickhouse_outbox.py:420:8"
+      ]
     },
     {
       "kind": "scheduled_module",
@@ -8060,10 +8067,12 @@
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:179:8",
@@ -8093,10 +8102,12 @@
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:213:8",
@@ -8124,10 +8135,12 @@
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:352:8",
@@ -8155,10 +8168,12 @@
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:373:12",
@@ -8189,10 +8204,12 @@
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:420:8",
@@ -8220,10 +8237,12 @@
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/clickhouse_outbox_worker.py:21:12",

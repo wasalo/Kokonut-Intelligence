@@ -72,6 +72,16 @@ def test_worker_function_graph_covers_allowlisted_entrypoints_and_edges():
                 "literal_deterministic_summary_registry",
                 "literal_deterministic_summary_registry_iteration",
             }
+        for edge in operation["callback_edges"]:
+            assert edge["caller"] in functions
+            assert edge["callee"] in functions
+            assert edge["source"] in sources
+            assert edge["line"] > 0
+            assert edge["dispatch"] in {
+                "services_common_cli_run_callback",
+                "clickhouse_outbox_finish_callback",
+                "multiprocessing_process_target",
+            }
 
     event_roots = {
         root["function"]
@@ -317,6 +327,48 @@ def test_graph_follows_shared_cli_run_callback_to_the_actual_command_body():
     assert "services.analytics.carbon_credit_adjustment_check:main" in functions
     assert "services.analytics.carbon_credits:check_adjustments" in functions
     assert "services.credit_class.chain_sync:retire_onchain" not in functions
+
+
+def test_graph_traces_nested_shared_cli_run_callback_for_scheduled_outbox():
+    inventory = build_inventory()
+    operation = next(
+        item
+        for item in inventory["operations"]
+        if item["kind"] == "scheduled_module"
+        and item["name"] == "services.ingestion.clickhouse_outbox"
+    )
+    functions = {function["key"] for function in operation["reachable_functions"]}
+    callback_edges = [
+        edge
+        for edge in operation["callback_edges"]
+        if edge["dispatch"] in {
+            "services_common_cli_run_callback",
+            "clickhouse_outbox_finish_callback",
+        }
+    ]
+
+    assert {
+        (edge["caller"], edge["callee"], edge["dispatch"], edge["source"])
+        for edge in callback_edges
+    } == {
+        (
+            "services.ingestion.clickhouse_outbox:main",
+            "services.ingestion.clickhouse_outbox:command",
+            "services_common_cli_run_callback",
+            "services/ingestion/clickhouse_outbox.py",
+        ),
+        (
+            "services.ingestion.clickhouse_outbox:deliver_batch",
+            "services.ingestion.clickhouse_outbox:deliver_batch.finish",
+            "clickhouse_outbox_finish_callback",
+            "services/ingestion/clickhouse_outbox.py",
+        ),
+    }
+    assert all(edge["line"] > 0 for edge in callback_edges)
+    assert "services.ingestion.clickhouse_outbox:command" in functions
+    assert "services.ingestion.clickhouse_outbox:claim_batch" in functions
+    assert "services.ingestion.clickhouse_outbox:reconcile_pending" in functions
+    assert "services.ingestion.clickhouse_outbox:_finish" in functions
 
 
 def test_direct_call_resolution_handles_module_and_symbol_aliases():

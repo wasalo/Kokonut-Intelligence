@@ -19,10 +19,32 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (26 October 2026):** 1,213 checklist items complete and 25
-open (1,238 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (26 October 2026):** 1,220 checklist items complete and 25
+open (1,245 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### Scheduled ClickHouse outbox callback reachability — 26 October 2026
+
+- [x] Trace the legacy scheduled outbox command through its exact nested CLI
+  callback and its lease-completion callback. The static graph now reaches
+  `main → command → deliver_batch → deliver_batch.finish → _finish`; the
+  six SQL sites in the compatibility path are linked to its scheduled
+  operation. The focused function/SQL reachability selection passes 22 tests;
+  generated inventories, Ruff, compilation, capability validation, and diff
+  checks pass. The graph now covers 49 roots, 1,172 function memberships,
+  1,658 direct-call edges, two callback edges, and 56 literal dispatch edges.
+  It links 404 of 473 SQL sites across 585 operation/site memberships; 69
+  remain without a static match. This only improves static traceability: the
+  compatibility command retains its shared runtime identity and does not gain
+  authorization, least-privilege, RLS, or runtime recovery evidence. The
+  dedicated default-off worker remains separate. No database, provider,
+  candidate, or legacy service was used. Rollback is a source/inventory revert
+  ([map](worker-operation-map.md); [function graph](worker-function-reachability.json);
+  [SQL reachability](worker-sql-reachability.json);
+  [evidence](builds/2026-10-26-recovery/common-cli-command-callback-reachability.json)).
+  Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+  prepared across 67 rows. Checklist: 1,220 complete / 25 open (1,245 total).
 
 ### Isolated one-shot ML anomaly source reader — 26 October 2026
 

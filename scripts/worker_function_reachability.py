@@ -473,6 +473,56 @@ class _CallVisitor(ast.NodeVisitor):
                     "line": node.lineno,
                 }
             )
+            callback = None
+            callback_dispatch = None
+            if target == "services.common.cli:run" and node.args:
+                callback = node.args[0]
+                callback_dispatch = "services_common_cli_run_callback"
+            elif target == "services.ingestion.clickhouse_outbox:deliver_claimed_batch":
+                parameters = [
+                    argument.arg
+                    for argument in [
+                        *self.definitions[target]["node"].args.posonlyargs,
+                        *self.definitions[target]["node"].args.args,
+                    ]
+                ]
+                if "finish" in parameters:
+                    finish_index = parameters.index("finish")
+                    if len(node.args) > finish_index:
+                        callback = node.args[finish_index]
+                    else:
+                        callback = next(
+                            (keyword.value for keyword in node.keywords if keyword.arg == "finish"),
+                            None,
+                        )
+                    callback_dispatch = "clickhouse_outbox_finish_callback"
+            if isinstance(callback, (ast.Name, ast.Attribute)):
+                callback_call = ast.Call(func=callback, args=[], keywords=[])
+                callback_targets = _resolve_call_targets(
+                    self.function,
+                    callback_call,
+                    self.definitions,
+                    self.classes,
+                    self.contexts,
+                    self.instance_types,
+                )
+                if not callback_targets and isinstance(callback, ast.Name):
+                    nested_target = _function_key(
+                        self.function["module"],
+                        f"{self.function['qualname']}.{callback.id}",
+                    )
+                    if nested_target in self.definitions:
+                        callback_targets = [nested_target]
+                for callback_target in callback_targets:
+                    self.callback_edges.append(
+                        {
+                            "caller": self.function["key"],
+                            "callee": callback_target,
+                            "source": self.function["source"],
+                            "line": node.lineno,
+                            "dispatch": callback_dispatch,
+                        }
+                    )
             if target not in self.definitions:
                 continue
             target_node = self.definitions[target]["node"]
@@ -1321,7 +1371,7 @@ def build_inventory() -> dict:
         "version": 1,
         "generated_by": "scripts/worker_function_reachability.py",
         "scope": (
-            "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator, scheduled-driver, and registered-synthesis-agent dispatches from allowlisted operation "
+            "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run and ClickHouse outbox completion callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator, scheduled-driver, and registered-synthesis-agent dispatches from allowlisted operation "
             "entry functions within their local services.* import closures. Instance method calls are included only when local type "
             "inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on "
             "unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy "

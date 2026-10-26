@@ -19337,3 +19337,29 @@ archive-specific workflows remain separate. Capability classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows. Checklist:
 1,219 complete / 25 open (1,244 total). Evidence:
 `docs/refactor/builds/2026-10-26-recovery/dynamic-retention-scope-resolver.json`.
+
+### Progress addendum — scheduled ClickHouse outbox callback reachability, 26 October 2026
+
+The static call graph now follows the scheduled compatibility outbox path
+through the shared CLI wrapper's nested `command` callback and the
+`deliver_claimed_batch` completion callback. It reaches the nested
+`deliver_batch.finish` function and `_finish`, so all six SQL sites in that
+module's scheduled compatibility path are linked to the `clickhouse_outbox`
+operation. This is analyzer-only work; runtime control flow and database
+identity are unchanged. The compatibility CLI still uses the legacy shared
+application identity. The isolated default-off worker remains a separate
+bounded-function path.
+
+The focused function and SQL reachability selection passes 22 tests. The
+generated worker source, function, SQL, effect, and boundary inventories,
+Ruff, compilation, capability-matrix validation, and diff checks pass. The
+49-root graph contains 1,172 function memberships, 1,658 direct-call edges,
+two callback edges, and 56 literal dispatch edges. It links 404 of 473 SQL
+sites across 585 operation/site memberships; 69 remain without a static
+function match. The boundary preflight remains `review_required`, and RLS
+remains `not_ready`. Capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. Checklist: 1,220 complete / 25
+open (1,245 total). No database, provider, candidate, or legacy service was
+used. The analyzer does not establish live grants, authorization, RLS, runtime
+schedule state, or effects. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/common-cli-command-callback-reachability.json`.
