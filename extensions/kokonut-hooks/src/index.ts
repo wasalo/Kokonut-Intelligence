@@ -1,6 +1,9 @@
 import { defineHook } from '@directus/extensions-sdk';
 import { createError } from '@directus/errors';
-import { omitLegacyDashboardQuerySql } from './dashboard-datasets.js';
+import {
+  denyLegacyDashboardSqlQueryAccess,
+  omitLegacyDashboardQuerySql,
+} from './dashboard-datasets.js';
 import { calculateNoi, batchCalculateNoi, storeNoiSnapshot, setDb } from './metrics-calculator.js';
 import {
   handleWorkflowTransition,
@@ -154,6 +157,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       context: Record<string, any>,
     ) => {
       const requestDatabase = requireDirectusRequestDatabase(context?.database);
+      if (collection === 'dashboard_dataset') denyLegacyDashboardSqlQueryAccess(query);
       return await authorizeDirectusRead(
         createDirectusTenantStore(requestDatabase),
         context?.accountability,

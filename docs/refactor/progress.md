@@ -1,3 +1,23 @@
+### Progress addendum — dashboard SQL query side-channel guard, 26 October 2026
+
+The optional Directus dashboard API now rejects explicit projections,
+filters, sorting, grouping, and aggregates that reference archived
+`dashboard_dataset.query_sql`. It also denies broad collection search while
+the legacy SQL field remains stored, because Directus search cannot exclude
+that field at the hook boundary. Denials use a generic 403 before a collection
+data query. Ordinary metadata operations and wildcard/default projections
+remain available; the separate response hook removes the SQL field from the
+returned object. Stored legacy values are unchanged.
+
+The full Directus hook suite passes 117 tests, and the extension bundle and
+TypeScript check pass. Capability-matrix validation and `git diff --check`
+pass. No database or live Directus runtime was used. Effective deployed field
+permissions, pinned-version behavior, and populated dashboard parity remain
+open. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/dashboard-query-sql-query-oracle.json`.
+Checklist: 1,232 complete / 25 open (1,257 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — unsupported dashboard refresh preflight, 26 October 2026
 
 Bulk dashboard refresh still inventories all active rows, but it now validates

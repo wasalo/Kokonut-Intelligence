@@ -1,3 +1,18 @@
+### Dashboard SQL query-side-channel guard — 26 October 2026
+
+The optional Directus `dashboard_dataset` query hook now denies explicit
+`query_sql` projections and query operators that reference the archived SQL:
+filters, sort, group, and aggregate. Broad Directus search is also denied while
+the legacy column exists, since that operation cannot be restricted to the
+safe metadata fields in the hook. Rejections return a generic 403 before the
+collection data query. Metadata reads and wildcard/default projections remain
+available; the read-result filter removes `query_sql` from returned objects.
+Stored SQL remains untouched. The 117-test Directus hook suite and extension
+build/typecheck pass; capability validation and diff checks pass. This is source
+evidence only; effective field permissions, pinned-runtime behavior, external
+consumers, and populated output parity remain open. Evidence:
+[query-side-channel checks](builds/2026-10-26-recovery/dashboard-query-sql-query-oracle.json).
+
 ### Progress addendum — CAP-006 waste-summary database reader boundary, 24 October 2026
 
 Migration 618 moves the Gateway's verified waste, composting, and recycling

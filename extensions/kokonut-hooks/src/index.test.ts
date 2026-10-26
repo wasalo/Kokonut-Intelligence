@@ -75,6 +75,39 @@ describe('Directus hook event registration', () => {
     }
   });
 
+  it('blocks dashboard query side channels before querying Directus data', async () => {
+    const filters = new Map<string, Array<(...args: any[]) => any>>();
+    const database = vi.fn();
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: (event: string, callback: (...args: any[]) => any) => {
+          const callbacks = filters.get(event) ?? [];
+          callbacks.push(callback);
+          filters.set(event, callbacks);
+        },
+        action: () => undefined,
+        schedule: () => undefined,
+      },
+      { database, env: {} },
+    );
+
+    const queryHook = filters.get('dashboard_dataset.items.query')?.[0];
+    expect(queryHook).toBeDefined();
+    for (const query of [
+      { fields: ['id', 'query_sql'] },
+      { filter: { query_sql: { _contains: 'secret' } } },
+      { sort: ['query_sql'] },
+      { search: 'private_schema' },
+    ]) {
+      await expect(queryHook!(query, {}, { database })).rejects.toMatchObject({
+        code: 'FORBIDDEN',
+        status: 403,
+      });
+    }
+    expect(database).not.toHaveBeenCalled();
+  });
+
   it('redacts legacy dashboard SQL after tenant read authorization', async () => {
     const filters = new Map<string, Array<(...args: any[]) => any>>();
     const datasetId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';

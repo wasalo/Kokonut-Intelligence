@@ -1,5 +1,44 @@
 import { describe, expect, it } from 'vitest';
-import { omitLegacyDashboardQuerySql } from './dashboard-datasets.js';
+import {
+  denyLegacyDashboardSqlQueryAccess,
+  omitLegacyDashboardQuerySql,
+} from './dashboard-datasets.js';
+
+describe('Directus dashboard dataset query fields', () => {
+  it.each([
+    ['explicit fields', { fields: ['id', 'query_sql'] }],
+    ['aliased fields', { fields: ['archived_sql:query_sql'] }],
+    ['filter', { filter: { query_sql: { _contains: 'private' } } }],
+    ['nested filter', { filter: { _or: [{ query_sql: { _contains: 'private' } }] } }],
+    ['qualified filter', { filter: { 'dashboard_dataset.query_sql': { _contains: 'private' } } }],
+    ['sort', { sort: ['-query_sql'] }],
+    ['grouping', { groupBy: ['query_sql'] }],
+    ['aggregate', { aggregate: { countDistinct: ['query_sql'] } }],
+    ['broad search', { search: 'private_schema' }],
+  ])('denies %s access to archived SQL', (_caseName, query) => {
+    let thrown: unknown;
+    try {
+      denyLegacyDashboardSqlQueryAccess(query);
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toMatchObject({
+      code: 'FORBIDDEN',
+      status: 403,
+      message: 'Directus tenant access denied',
+    });
+  });
+
+  it('keeps ordinary metadata queries and wildcard reads available for response redaction', () => {
+    expect(() => denyLegacyDashboardSqlQueryAccess({
+      fields: ['id', 'name', 'query_id'],
+      filter: { status: { _eq: 'published' } },
+      sort: ['name'],
+    })).not.toThrow();
+    expect(() => denyLegacyDashboardSqlQueryAccess({ fields: ['*'] })).not.toThrow();
+    expect(() => denyLegacyDashboardSqlQueryAccess({})).not.toThrow();
+  });
+});
 
 describe('Directus dashboard dataset response fields', () => {
   it('omits archived SQL from item and page responses without mutating source records', () => {
