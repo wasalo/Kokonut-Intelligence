@@ -3430,3 +3430,21 @@ Compose compatibility test passes all three tests. No schedule/runtime was
 started; active schedule ownership, credentials, overlap, and output parity
 remain open. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/directus-schedules-default-off.json`.
+
+### 26 October 2026 — Directus location-scoped lifecycle collection expansion
+
+The fail-closed operator/grant hook now covers twenty Directus collections
+with a direct location column, up from eleven. Nine new scopes cover forecast
+scenarios, report snapshots, dashboard datasets, farm registry records,
+inventory events, maintenance events, stakeholder outcomes, credit batches,
+and credit-class enrollments. The scenario parent and maintenance asset
+references are checked against the same location; existing reference checks
+cover the other known tenant relations. Impact claims, MRV events, retirement
+certificates, and Data Stream posts remain excluded until their polymorphic or
+child references have explicit contracts. The 101-test extension suite passes,
+as do the extension bundle and TypeScript check. No database or Directus
+runtime was used. This does not establish effective API permissions, pinned
+runtime behavior, live identity/grants, or RLS. Checklist: 1,226 complete / 25
+open (1,251 total); capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-location-lifecycle-scope.json`.

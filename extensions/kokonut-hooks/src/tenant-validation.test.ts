@@ -155,6 +155,38 @@ describe('tenant reference validation', () => {
     )).resolves.toBe(payload);
   });
 
+  it('validates scenario parents and infrastructure assets against the same location', async () => {
+    const scenario = makeReferenceDatabase(locationId);
+    const scenarioPayload = { location_id: locationId, parent_scenario_id: plotId };
+    await expect(validateTenantReferences(
+      scenario.database,
+      'forecast_scenario',
+      scenarioPayload,
+    )).resolves.toBe(scenarioPayload);
+    expect(scenario.database).toHaveBeenCalledWith('forecast_scenario');
+
+    await expect(validateTenantReferences(
+      makeReferenceDatabase(otherLocationId).database,
+      'forecast_scenario',
+      scenarioPayload,
+    )).rejects.toThrow('parent_scenario_id belongs to a different location');
+
+    const asset = makeReferenceDatabase(locationId);
+    const maintenancePayload = { location_id: locationId, infrastructure_asset_id: farmId };
+    await expect(validateTenantReferences(
+      asset.database,
+      'maintenance_event',
+      maintenancePayload,
+    )).resolves.toBe(maintenancePayload);
+    expect(asset.database).toHaveBeenCalledWith('infrastructure_asset');
+
+    await expect(validateTenantReferences(
+      makeReferenceDatabase(otherLocationId).database,
+      'maintenance_event',
+      maintenancePayload,
+    )).rejects.toThrow('infrastructure_asset_id belongs to a different location');
+  });
+
   it('rejects cross-location references on update when the payload omits location_id', async () => {
     const { database } = makeReferenceDatabase(otherLocationId);
 

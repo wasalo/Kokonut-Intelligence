@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import registerHook, { resolveHookDatabase } from './index.js';
 import { consumePendingTransition } from './workflow.js';
+import { TENANT_SCOPED_COLLECTIONS } from './directus-authorization.js';
 
 describe('Directus hook event registration', () => {
   it('uses collection-qualified Directus item event names', () => {
@@ -31,6 +32,12 @@ describe('Directus hook event registration', () => {
     expect(events).toContain('revenue_event.items.update');
     expect(events).toContain('revenue_event.items.delete');
     expect(events).toContain('stakeholder_feedback_review.items.create');
+    for (const collection of TENANT_SCOPED_COLLECTIONS) {
+      for (const operation of ['query', 'read', 'create', 'update', 'delete']) {
+        expect(events, `${collection} ${operation} authorization hook`)
+          .toContain(`${collection}.items.${operation}`);
+      }
+    }
   });
 
   it('fails closed when tenant item hooks lack the request transaction database', async () => {
@@ -77,19 +84,7 @@ describe('Directus hook event registration', () => {
     const globalDatabase = vi.fn();
     const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();
     const userId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
-    const tenantCollections = [
-      'farm_activity',
-      'harvest_event',
-      'expense_event',
-      'sales_event',
-      'loss_event',
-      'labor_event',
-      'field_note',
-      'revenue_event',
-      'stakeholder_feedback',
-      'metric_proposal',
-      'mrv_claim',
-    ];
+    const tenantCollections = TENANT_SCOPED_COLLECTIONS;
 
     (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
       {

@@ -44,6 +44,12 @@ const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
   staff_id: lookupStaffAtLocation,
   reviewed_by: lookupStaffAtLocation,
   reviewer_id: lookupStaffAtLocation,
+  parent_scenario_id: (database, referenceId) => database('forecast_scenario')
+    .where('id', referenceId)
+    .first('location_id'),
+  infrastructure_asset_id: (database, referenceId) => database('infrastructure_asset')
+    .where('id', referenceId)
+    .first('location_id'),
 };
 
 const InvalidTenantPayloadError = createError<{ message: string }>(

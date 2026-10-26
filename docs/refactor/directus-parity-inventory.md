@@ -1,8 +1,9 @@
 # Directus parity inventory
 
-**Review date:** 25 October 2026
-**Status:** source inventory, the fail-closed tenant authorization adapter,
-and an organization/location permission seed repair are implemented. Pinned
+**Review date:** 26 October 2026
+**Status:** source inventory, the fail-closed 20-collection tenant
+authorization adapter, and an organization/location permission seed repair
+are implemented. Pinned
 Directus 12.1.1 acceptance confirms grant-scoped Field Note reads, but the
 unlicensed API hides the Field Worker's custom `farm_activity` permission rows;
 the owner selected Gateway operations with Directus optional. The curated
@@ -21,6 +22,20 @@ parity remain open.
 
 Scoped Directus create and update filters validate known references against tenant location. Plot location is resolved through `plot.farm_id` to `farm.location_id` because the plot table has no location column; writable `stakeholder_feedback.farm_id` references use the same farm location. `labor_event.staff_id` and `metric_proposal.reviewed_by` resolve only through direct same-location staff assignment or a `farm_staff_member` edge whose farm belongs to that location. Crop-cycle and harvest references use their direct location columns. For updates, the hook uses authorized target rows and the request database context, and each reference must match every target row. The complete hook suite passes 84 tests, the extension build/type check and 10 Python tenant/compatibility checks pass, and no live Directus run was performed ([evidence](builds/2026-10-25-recovery/directus-reference-location-resolution.json)). Directus `stakeholder_feedback_review` creates now resolve `feedback_id` to the parent location on the request transaction and require the exact child `create` grant there; optional reviewers are location-qualified. Its reads, updates, and deletes remain outside this slice because the managed permission currently grants create only. The writable `mrv_claim.source_record_ids` UUID array remains polymorphic without a source-table discriminator and still needs an explicit source contract. Broader collection, field, relation, hook, schedule, and runtime parity remain open.
 
+The source adapter now applies the same exact resource/action/location grant checks
+to twenty tenant-scoped collections. Nine direct-location lifecycle collections
+were added after confirming their source schema and reviewing their direct
+references: forecast scenarios, report snapshots, dashboard datasets, farm
+registry records, inventory events, maintenance events, stakeholder outcomes,
+credit batches, and credit-class enrollments. Scenario parent links and
+maintenance infrastructure assets are validated against the same location;
+existing farm, plot, crop-cycle, harvest, and staff checks cover the other
+known tenant references. Impact claims, MRV events, retirement certificates,
+and Data Stream posts remain outside this expansion because their polymorphic
+or child references need separate contracts. The full extension suite passes
+101 tests and the bundle/TypeScript check passes. No Directus runtime, database,
+candidate, or legacy service was accessed ([evidence](builds/2026-10-26-recovery/directus-location-lifecycle-scope.json)).
+
 The schema has no explicit authenticated-operator-to-`staff` mapping. The
 existing `operator_governance_party_binding` links an operator to a canonical
 network party; it does not identify a `staff` row. Therefore Directus user UUIDs
@@ -37,7 +52,7 @@ impact-claim, feedback-review attribution, and request-database use, passes with
 and TypeScript check. A reviewed operator-to-staff binding contract remains
 open.
 
-All eleven organization/location-scoped request hook families and the
+All twenty organization/location-scoped request hook families and the
 feedback-review parent-create hook now require Directus's per-request database
 handle. If it is missing or malformed, the hook returns the same generic 403
 used for denied tenant access; it never falls back to the extension-global
@@ -179,8 +194,8 @@ Directus surface has been replaced.
 | --- | --- | --- | --- |
 | API roles and CRUD rules | [`config/directus/permissions.sql`](../../config/directus/permissions.sql) | Staff policies define other collection actions, writable fields, and business filters. `farm_activity` is intentionally omitted from all nine repository-managed policies; the seed deletes stale managed rows. The Gateway has explicit operator-grant templates for the native Field Collector workflow and a separate `/operator/api/farm-activity-records` contract for non-Field-Collector reads, drafts, and human lifecycle operations. | Fresh pinned-runtime seed apply/replay under `kokonut_directus_runtime` passes and leaves zero managed `farm_activity` rules while retaining other role permissions. Migration 404 is source/disposable-DB verified, not candidate deployed. Historical rows without Gateway audit provenance fail closed for lifecycle transitions. Other collections/fields, field privacy, expanded relations, and retained hook effects remain open. |
 | Database identity | [`optional-database-roles.md`](optional-database-roles.md) | The Directus service can bootstrap with an owner-backed one-shot operation and run under a non-owner DML role. The runtime role is separate from the native API and analytics roles. | Directus API enforcement under that runtime identity; the role alone does not enforce collection, field, or tenant policy. |
-| Lifecycle and accountability hooks | [`extensions/kokonut-hooks/src/workflow.ts`](../../extensions/kokonut-hooks/src/workflow.ts), [`index.ts`](../../extensions/kokonut-hooks/src/index.ts), [`roles.ts`](../../extensions/kokonut-hooks/src/roles.ts) | Thirty-five collections use the shared lifecycle transition map. Hook code resolves role slugs from server accountability, validates selected payloads and tenant references, records transitions, applies domain calculations, and defines two scheduled jobs. The eleven scoped collections also use the fail-closed operator mapping/grant adapter described below; create and update payloads validate known farm, plot-through-farm, crop-cycle, harvest, and location-qualified staff references using the request database context. | Hook-by-hook parity against native service paths, execution/retry behavior under the deployed Directus image, and authenticated before/after database evidence. |
-| Tenant and Field Collector gates | Permission SQL plus [`directus-authorization.ts`](../../extensions/kokonut-hooks/src/directus-authorization.ts) and [`tests/test_directus_tenant_permissions.py`](../../tests/test_directus_tenant_permissions.py) | The hook maps the authenticated Directus user’s `external_identifier` to an enabled Kokonut operator by exact configured OIDC issuer and subject. For eleven location-scoped collections, including `revenue_event`, it adds a grant-derived location predicate before reads and checks all create/update/delete targets using the request transaction. It now rejects `deep` query objects and nested/wildcard relation fields until each related collection has an explicit scope contract. Field Collector-origin farm-activity reads remain excluded from Directus. | Pinned-image behavior under `kokonut_directus_runtime`, role/field parity, effective denial of nested relations, bulk-query cases, live issuer/identity/grants, revocation/transfer concurrency, and confirmation every Field Collector path stays on Gateway. This hook check is not PostgreSQL RLS or a signed tenant-context boundary. |
+| Lifecycle and accountability hooks | [`extensions/kokonut-hooks/src/workflow.ts`](../../extensions/kokonut-hooks/src/workflow.ts), [`index.ts`](../../extensions/kokonut-hooks/src/index.ts), [`roles.ts`](../../extensions/kokonut-hooks/src/roles.ts) | Thirty-five collections use the shared lifecycle transition map. Hook code resolves role slugs from server accountability, validates selected payloads and tenant references, records transitions, applies domain calculations, and defines two scheduled jobs. Twenty scoped collections also use the fail-closed operator mapping/grant adapter described below; create and update payloads validate known farm, plot-through-farm, crop-cycle, harvest, staff, scenario-parent, and infrastructure-asset references using the request database context. | Hook-by-hook parity against native service paths, execution/retry behavior under the deployed Directus image, and authenticated before/after database evidence. |
+| Tenant and Field Collector gates | Permission SQL plus [`directus-authorization.ts`](../../extensions/kokonut-hooks/src/directus-authorization.ts) and [`tests/test_directus_tenant_permissions.py`](../../tests/test_directus_tenant_permissions.py) | The hook maps the authenticated Directus user’s `external_identifier` to an enabled Kokonut operator by exact configured OIDC issuer and subject. For twenty location-scoped collections, including `revenue_event`, it adds a grant-derived location predicate before reads and checks all create/update/delete targets using the request transaction. It rejects `deep` query objects and nested/wildcard relation fields until each related collection has an explicit scope contract. Field Collector-origin farm-activity reads remain excluded from Directus. | Pinned-image behavior under `kokonut_directus_runtime`, role/field parity, effective denial of nested relations, bulk-query cases, live issuer/identity/grants, revocation/transfer concurrency, and confirmation every Field Collector path stays on Gateway. This hook check is not PostgreSQL RLS or a signed tenant-context boundary. |
 | Schema metadata | [`tests/test_directus_metadata.py`](../../tests/test_directus_metadata.py) and [`schemas/directus/snapshots/schema_latest.json`](../../schemas/directus/snapshots/schema_latest.json) | The checker compares snapshot sort fields and physical field metadata, and can query the local Compose database when it is running. | Permission parity, API response shape, current runtime identity, or whether the optional Directus profile is deployed. |
 | Native replacement surface | [`services/gateway/router.py`](../../services/gateway/router.py), [`services/gateway/operator_auth.py`](../../services/gateway/operator_auth.py), [`services/gateway/farm_activity_roles.py`](../../services/gateway/farm_activity_roles.py), and the [Gateway farm-activity contract](gateway-farm-activity-operations.md) | Native routes cover a bounded public read surface and selected authenticated reviewer, Field Collector, and farm-activity operations. Farm-activity templates expand into explicit tenant-qualified grants; Analyst reads are verified/published-only. Migration 404 adds a separate append-only operator event ledger for non-Field-Collector operations. | This is scoped support for the native Field Collector workflow and non-Field-Collector `farm_activity` records, not every Directus collection/field/relation, administrative UI, hook side effects, or schedules. Migration rollout and historical-row reconciliation are open. |
 
@@ -199,7 +214,7 @@ Gateway ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-
 The source hook now resolves `directus_users.external_identifier` as the OIDC
 subject and requires an exact `KOKONUT_OPERATOR_OIDC_ISSUER` match to an enabled
 `operator_identity`; Directus receives the same issuer setting as the Gateway.
-For each of the eleven location-scoped collections, it adds
+For each of the twenty location-scoped collections, it adds
 the active organization-qualified `operator_scope_grant_allows` locations to
 the `items.query` filter and checks returned `items.read` IDs against their
 stored locations, even when the caller did not request the `location_id` field;
@@ -243,7 +258,7 @@ subject to each collection's policy and cannot be created by this hook.
 
 The SQL still grants `fields = '*'` on many read rules, so a row predicate does
 not establish field privacy. The Auditor policy deliberately has unfiltered
-reads for collections beyond the eleven-collection tenant-hook list,
+reads for collections beyond the twenty-collection tenant-hook list,
 including reporting and governance records. Confirm that this global forensic
 scope is intended before replacing it with tenant-scoped native routes; do not
 silently narrow it or call it equivalent to the native operator grants.

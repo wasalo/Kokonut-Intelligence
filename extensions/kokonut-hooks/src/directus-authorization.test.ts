@@ -6,6 +6,7 @@ import {
   authorizeDirectusReadResult,
   authorizeDirectusRows,
   createDirectusTenantStore,
+  TENANT_SCOPED_COLLECTIONS,
   type DirectusTenantStore,
 } from './directus-authorization.js';
 
@@ -36,6 +37,62 @@ function makeStore(overrides: Partial<DirectusTenantStore> = {}) {
 }
 
 describe('Directus tenant authorization', () => {
+  it('requires exact location grants for every reviewed tenant-scoped collection', async () => {
+    expect(TENANT_SCOPED_COLLECTIONS).toEqual([
+      'farm_activity',
+      'harvest_event',
+      'expense_event',
+      'sales_event',
+      'loss_event',
+      'labor_event',
+      'field_note',
+      'forecast_scenario',
+      'report_snapshot',
+      'dashboard_dataset',
+      'farm_registry_record',
+      'inventory_event',
+      'maintenance_event',
+      'revenue_event',
+      'stakeholder_outcome',
+      'stakeholder_feedback',
+      'credit_batch',
+      'project_credit_class_enrollment',
+      'metric_proposal',
+      'mrv_claim',
+    ]);
+
+    const store = makeStore();
+    for (const collection of TENANT_SCOPED_COLLECTIONS) {
+      await expect(authorizeDirectusRead(
+        store, accountability, issuer, collection, {},
+      )).resolves.toMatchObject({
+        filter: { location_id: { _in: [locationA] } },
+      });
+      await authorizeDirectusCreate(
+        store, accountability, issuer, collection, { location_id: locationA },
+      );
+      await authorizeDirectusRows(
+        store, accountability, issuer, collection, 'update', [rowA], {},
+      );
+      await authorizeDirectusRows(
+        store, accountability, issuer, collection, 'delete', [rowA],
+      );
+      expect(store.authorizedLocations).toHaveBeenCalledWith(operatorId, collection, 'read');
+      expect(store.canAccessLocation).toHaveBeenCalledWith(
+        operatorId, collection, 'create', locationA,
+      );
+      expect(store.canAccessLocation).toHaveBeenCalledWith(
+        operatorId, collection, 'update', locationA,
+      );
+      expect(store.canAccessLocation).toHaveBeenCalledWith(
+        operatorId, collection, 'delete', locationA,
+      );
+    }
+    expect(store.authorizedLocations).toHaveBeenCalledTimes(TENANT_SCOPED_COLLECTIONS.length);
+    expect(store.canAccessLocation).toHaveBeenCalledTimes(TENANT_SCOPED_COLLECTIONS.length * 3);
+    expect(store.loadRows).toHaveBeenCalledTimes(TENANT_SCOPED_COLLECTIONS.length * 2);
+  });
+
   it('maps active Directus OIDC subjects by exact issuer and excludes legacy null-tenant grants', async () => {
     const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
     const database = (table: string) => {
