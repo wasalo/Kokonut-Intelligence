@@ -16,14 +16,15 @@ The legacy ML anomaly check now selects the source `location_id`, groups
 time-series/model work by location and sensor type, and loads/trains separate
 models for each location. Anomaly deduplication includes location, so equal
 timestamps from different farms remain distinct. An explicit sensor selector
-now filters the Prophet source query and skips the inherently multi-sensor
-Isolation Forest pass. Invalid sensor UUIDs fail before database access. The
-47-test focused ML/anomaly/CLI/runtime selection passes with Ruff and
+now filters both Prophet training and prediction reads, bypasses the
+location/type cache for a sensor-specific model, and skips the inherently
+multi-sensor Isolation Forest pass. Invalid sensor UUIDs fail before database
+access. The 48-test focused ML/anomaly/CLI/runtime selection passes with Ruff and
 compilation; database calls were mocked ([evidence](builds/2026-10-26-recovery/ml-anomaly-location-scope.json)). This repairs scope and all-location
 behavior only: baseline and ML still use the legacy
 shared database path, and signed-worker isolation remains open. No database,
-provider, candidate, or legacy stack was accessed. Checklist: 1,205 complete /
-25 open (1,230 total); capability classifications are unchanged.
+provider, candidate, or legacy stack was accessed. Checklist: 1,206 complete /
+25 open (1,231 total); capability classifications are unchanged.
 
 ### Progress addendum — signed scheduled sensor-anomaly replay inventory, 26 October 2026
 

@@ -286,6 +286,7 @@ def fit_prophet(
     location_id: str,
     sensor_type: str,
     lookback_days: int = 90,
+    sensor_id: str | None = None,
 ) -> Optional[Any]:
     """Fit a Prophet model for a sensor type at a location.
 
@@ -294,7 +295,9 @@ def fit_prophet(
     if not _ensure_deps() or _prophet is None:
         return None
 
-    df = _query_sensor_timeseries(conn, location_id, sensor_type, lookback_days)
+    df = _query_sensor_timeseries(
+        conn, location_id, sensor_type, lookback_days, sensor_id=sensor_id
+    )
     if len(df) < 100:  # Need at least ~4 days hourly
         logger.info("Insufficient data for Prophet (%d points, need 100+)", len(df))
         return None
@@ -528,11 +531,19 @@ def run_ml_check(
 
         if len(df) < 100:
             continue
-        model = _load_models_for_location(
-            sensor_location_id, models_by_location
-        ).get("prophet", {}).get(sensor_type)
+        model = None
+        if sensor_id is None:
+            model = _load_models_for_location(
+                sensor_location_id, models_by_location
+            ).get("prophet", {}).get(sensor_type)
         if not model:
-            model = fit_prophet(conn, sensor_location_id, sensor_type, lookback_days=90)
+            model = fit_prophet(
+                conn,
+                sensor_location_id,
+                sensor_type,
+                lookback_days=90,
+                sensor_id=sensor_id,
+            )
         if model:
             anomalies = predict_anomalies_prophet(model, df, sensor_type)
             for anomaly in anomalies:

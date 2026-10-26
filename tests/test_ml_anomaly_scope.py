@@ -91,12 +91,14 @@ def test_sensor_specific_ml_check_filters_source_and_skips_multivariate_scan(mon
     monkeypatch.setattr(ml_anomaly_detector, "_query_sensor_timeseries", time_series_queries)
     multivariate_query = MagicMock()
     monkeypatch.setattr(ml_anomaly_detector, "_query_all_sensors_timeseries", multivariate_query)
+    load_models = MagicMock(return_value={"prophet": {}, "iforest": object()})
     monkeypatch.setattr(
         ml_anomaly_detector,
         "load_models",
-        lambda *_args, **_kwargs: {"prophet": {}, "iforest": object()},
+        load_models,
     )
-    monkeypatch.setattr(ml_anomaly_detector, "fit_prophet", lambda *_args, **_kwargs: None)
+    fit_prophet = MagicMock(return_value=None)
+    monkeypatch.setattr(ml_anomaly_detector, "fit_prophet", fit_prophet)
 
     result = ml_anomaly_detector.run_ml_check(
         connection, location_id=LOCATION_A, sensor_id=SENSOR_A
@@ -109,6 +111,14 @@ def test_sensor_specific_ml_check_filters_source_and_skips_multivariate_scan(mon
     assert "sr.sensor_id" in cursor.execute.call_args.args[0]
     assert cursor.execute.call_args.args[1] == (LOCATION_A, LOCATION_A, SENSOR_A, SENSOR_A)
     multivariate_query.assert_not_called()
+    load_models.assert_not_called()
+    fit_prophet.assert_called_once_with(
+        connection,
+        LOCATION_A,
+        "soil_moisture",
+        lookback_days=90,
+        sensor_id=SENSOR_A,
+    )
 
 
 def test_ml_anomaly_query_accepts_optional_sensor_filter(monkeypatch):
@@ -127,4 +137,30 @@ def test_ml_anomaly_query_accepts_optional_sensor_filter(monkeypatch):
     assert "sensor_id = %s::uuid" in cursor.execute.call_args.args[0]
     assert cursor.execute.call_args.args[1] == (
         LOCATION_A, "soil_moisture", SENSOR_A, SENSOR_A, 90
+    )
+
+
+def test_prophet_training_keeps_explicit_sensor_filter(monkeypatch):
+    connection = MagicMock()
+    frame = MagicMock()
+    frame.__len__.return_value = 100
+    query = MagicMock(return_value=frame)
+    model = MagicMock()
+    prophet = MagicMock(return_value=model)
+    monkeypatch.setattr(ml_anomaly_detector, "_ensure_deps", lambda: True)
+    monkeypatch.setattr(ml_anomaly_detector, "_query_sensor_timeseries", query)
+    monkeypatch.setattr(ml_anomaly_detector, "_build_prophet_features", lambda *_args: object())
+    monkeypatch.setattr(ml_anomaly_detector, "_prophet", prophet)
+
+    result = ml_anomaly_detector.fit_prophet(
+        connection, LOCATION_A, "soil_moisture", sensor_id=SENSOR_A
+    )
+
+    assert result is model
+    query.assert_called_once_with(
+        connection,
+        LOCATION_A,
+        "soil_moisture",
+        90,
+        sensor_id=SENSOR_A,
     )
