@@ -9,7 +9,7 @@
   ],
   "focused_command": "python3 -m pytest tests/test_ml_anomaly_scope.py tests/test_ml_anomaly.py tests/test_anomaly_detector_cli_scope.py tests/test_runtime_import_regressions.py -q",
   "focused_tests": {
-    "passed": 48,
+    "passed": 49,
     "failed": 0
   },
   "inventory_regression_command": "python3 -m pytest tests/test_runtime_sql_inventory.py tests/test_worker_sql_inventory.py -q",
@@ -23,6 +23,7 @@
     "same-time anomaly results from separate locations remain distinct",
     "explicit sensor selection binds training and prediction reads, bypasses the incompatible location/type cache, and skips multivariate scoring",
     "malformed ML sensor UUID is rejected before database access",
+    "sensor-specific persisted training is rejected before database access because the cache is location/type-scoped",
     "runtime SQL and worker SQL saved inventory regressions pass",
     "worker source closure, function reachability, SQL reachability, boundary, effect, job-contract, and runtime SQL inventories regenerate and pass current-source checks",
     "Kernel requirement groups and optional provider import boundaries pass",

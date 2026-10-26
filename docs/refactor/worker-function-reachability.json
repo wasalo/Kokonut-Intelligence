@@ -2210,7 +2210,7 @@
         {
           "function": "services.ingestion.anomaly_detector:main",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1245
+          "line": 1247
         }
       ],
       "reachable_functions": [
@@ -2716,13 +2716,13 @@
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1227
+          "line": 1229
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1232
+          "line": 1234
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
@@ -2740,25 +2740,25 @@
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.ingestion.anomaly_detector:run_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1241
+          "line": 1243
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1223
+          "line": 1225
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1226
+          "line": 1228
         },
         {
           "caller": "services.ingestion.anomaly_detector:main",
           "callee": "services.ingestion.ml_anomaly_detector:save_models",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1231
+          "line": 1233
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",

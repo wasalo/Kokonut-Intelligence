@@ -19,7 +19,9 @@ timestamps from different farms remain distinct. An explicit sensor selector
 now filters both Prophet training and prediction reads, bypasses the
 location/type cache for a sensor-specific model, and skips the inherently
 multi-sensor Isolation Forest pass. Invalid sensor UUIDs fail before database
-access. The 48-test focused ML/anomaly/CLI/runtime selection passes with Ruff and
+access. Persisted sensor-specific training is rejected before database access
+because the model cache is location/type-scoped. The 49-test focused
+ML/anomaly/CLI/runtime selection passes with Ruff and
 compilation; database calls were mocked ([evidence](builds/2026-10-26-recovery/ml-anomaly-location-scope.json)). This repairs scope and all-location
 behavior only: baseline and ML still use the legacy
 shared database path, and signed-worker isolation remains open. No database,

@@ -119,6 +119,19 @@ def test_ml_training_rejects_missing_or_aggregate_scope_before_database_access(a
     get_db.assert_not_called()
 
 
+def test_ml_training_rejects_sensor_selector_before_database_access():
+    with (
+        patch("services.ingestion.base.get_db") as get_db,
+        pytest.raises(SystemExit) as exc,
+    ):
+        anomaly_detector.main(
+            ["--ml-train", "--location-id", LOCATION_ID, "--sensor", "a0000000-0000-0000-0000-000000000011"]
+        )
+
+    assert exc.value.code == 2
+    get_db.assert_not_called()
+
+
 def test_ml_training_forwards_one_canonical_location():
     connection = MagicMock()
     with (

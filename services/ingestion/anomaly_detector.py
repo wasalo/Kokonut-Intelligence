@@ -1209,6 +1209,8 @@ def main(argv: list[str] | None = None) -> None:
     elif args.ml_check or args.ml_train:
         if args.ml_train and (args.location_id is None or args.all_locations):
             parser.error("--ml-train requires --location-id and cannot use --all-locations")
+        if args.ml_train and args.sensor is not None:
+            parser.error("--ml-train saves location/type models and does not accept --sensor")
         if args.ml_check and args.location_id is None and not args.all_locations:
             parser.error("--ml-check requires --location-id or --all-locations")
         if args.ml_check and args.sensor is not None:
