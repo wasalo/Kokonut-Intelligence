@@ -176,6 +176,8 @@ def test_anomaly_handler_records_database_effects_without_claiming_mqtt_delivery
 
 def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     scheduled = {entry["module"]: entry for entry in _load_map()["scheduled_modules"]}
+    freshness_legacy = scheduled["services.ingestion.data_freshness"]
+    freshness = scheduled["services.ingestion.freshness_worker"]
     metrics = scheduled["services.metrics"]
     noi_snapshot = scheduled["services.metrics.noi_snapshot_worker"]
     events = scheduled["services.events"]
@@ -192,6 +194,16 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     rpc_worker = scheduled["services.ingestion.rpc_worker"]
     legacy_sensor = scheduled["services.ingestion.sensor_ingester"]
     sensor = scheduled["services.ingestion.sensor_worker"]
+
+    assert freshness["worker_key"] == "freshness"
+    assert "no farm tenant context" in freshness["scope"]
+    assert "global" in freshness["scope"]
+    assert "public.data_freshness_config" in freshness["reads"]
+    assert "public.weather_observation" in freshness["reads"]
+    assert "public.data_freshness_alert_history" in freshness["writes"]
+    assert "public.platform_event" in freshness["writes"]
+    assert "default-off" in freshness["retry_boundary"]
+    assert "default-off" in freshness_legacy["scope"]
 
     assert "public.noi_snapshot" not in metrics["writes"]
     assert "public.v_crop_cycle_noi" not in metrics["reads"]

@@ -4,18 +4,18 @@
   "scope": "Static source preflight only. It does not connect to a database or inspect live role grants, applied migrations, enabled schedules, tenant ownership, or external dispatchers.",
   "status": "review_required",
   "operation_coverage": {
-    "scheduled_allowlist_count": 29,
+    "scheduled_allowlist_count": 30,
     "event_handler_allowlist_count": 7,
-    "expected_operation_count": 36,
-    "source_closure_operation_count": 36,
-    "function_graph_operation_count": 36,
+    "expected_operation_count": 37,
+    "source_closure_operation_count": 37,
+    "function_graph_operation_count": 37,
     "missing_source_closure_operations": [],
     "missing_function_graph_operations": [],
     "unresolved_function_roots": 0,
     "passed": true
   },
   "source_closure": {
-    "source_file_count": 103,
+    "source_file_count": 104,
     "unresolved_local_module_count": 0,
     "dynamic_import_site_count": 3,
     "passed": true
@@ -23,13 +23,13 @@
   "worker_identity": {
     "database_identity": "shared_configured_runtime_identity",
     "signed_tenant_context_established_by_dispatch": false,
-    "unbound_operation_root_count": 36,
+    "unbound_operation_root_count": 37,
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 351,
+    "execution_site_count": 353,
     "sites_with_static_operation_path": 271,
-    "sites_without_static_function_match": 80,
+    "sites_without_static_function_match": 82,
     "site_refs_for_review": [
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -174,17 +174,17 @@
       {
         "site": "services/common/database.py:142:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 36
+        "import_closure_operation_count": 37
       },
       {
         "site": "services/common/database.py:77:15",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 36
+        "import_closure_operation_count": 37
       },
       {
         "site": "services/common/database.py:80:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 36
+        "import_closure_operation_count": 37
       },
       {
         "site": "services/common/tenant_context.py:191:8",
@@ -388,6 +388,16 @@
       },
       {
         "site": "services/ingestion/data_freshness.py:114:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/ingestion/freshness_worker.py:31:12",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/ingestion/freshness_worker.py:36:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },

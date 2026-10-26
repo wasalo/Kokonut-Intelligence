@@ -345,13 +345,19 @@ def _publish_alert_event(
     )
 
 
-def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
+def check_freshness(
+    conn, source: Optional[str] = None, *, persistence=None
+) -> Dict[str, Any]:
     """Check freshness for all configured sources (or a specific one).
 
     Returns:
         Dict with summary of check results.
     """
-    configs = _query_freshness_configs(conn, source)
+    configs = (
+        persistence.list_configs(source)
+        if persistence is not None
+        else _query_freshness_configs(conn, source)
+    )
     results = []
 
     for config in configs:
@@ -359,7 +365,14 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
         stale_threshold = config["stale_threshold_minutes"]
         critical_threshold = config["critical_threshold_minutes"]
         scoped = bool(config["location_scoped"])
-        scope_ids = _location_ids(conn) if scoped else [None]
+        if scoped:
+            scope_ids = (
+                persistence.list_location_ids()
+                if persistence is not None
+                else _location_ids(conn)
+            )
+        else:
+            scope_ids = [None]
         for location_id in scope_ids:
             last_data_at = None
             gap_minutes = None
@@ -373,7 +386,11 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                 save_cur.close()
             try:
                 _validate_thresholds(stale_threshold, critical_threshold)
-                last_data_at = _query_latest_data_at(conn, source_system, scoped, location_id)
+                last_data_at = (
+                    persistence.latest_data_at(source_system, scoped, location_id)
+                    if persistence is not None
+                    else _query_latest_data_at(conn, source_system, scoped, location_id)
+                )
                 if last_data_at:
                     if last_data_at.tzinfo is None:
                         last_data_at = last_data_at.replace(tzinfo=timezone.utc)
@@ -397,19 +414,23 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
             alert_sent = False
             alert_channel = None
             try:
-                check_id = _insert_check_result(
-                    conn,
-                    str(config["id"]),
-                    source_system,
-                    location_id,
-                    last_data_at,
-                    gap_minutes,
-                    status,
-                    alert_sent,
-                    alert_channel,
-                    metadata,
+                check_id = (
+                    persistence.insert_check(
+                        str(config["id"]), source_system, location_id, last_data_at,
+                        gap_minutes, status, alert_sent, alert_channel, metadata,
+                    )
+                    if persistence is not None
+                    else _insert_check_result(
+                        conn, str(config["id"]), source_system, location_id,
+                        last_data_at, gap_minutes, status, alert_sent,
+                        alert_channel, metadata,
+                    )
                 )
-                state = _alert_state(conn, source_system, location_id)
+                state = (
+                    persistence.lock_alert_state(source_system, location_id)
+                    if persistence is not None
+                    else _alert_state(conn, source_system, location_id)
+                )
                 previous_status = state["current_status"]
                 last_event_at = state.get("last_event_at")
                 if last_event_at and last_event_at.tzinfo is None:
@@ -428,48 +449,53 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                 alert_sent = False
                 alert_channel = None
                 if event_type:
-                    alert_id = _persist_alert_event(
-                        conn,
-                        state,
-                        check_id,
-                        source_system,
-                        location_id,
-                        event_type,
-                        previous_status,
-                        status,
-                        gap_minutes,
-                        now,
+                    alert_id = (
+                        persistence.persist_alert_event(
+                            state, check_id, source_system, location_id, event_type,
+                            previous_status, status, gap_minutes, now,
+                        )
+                        if persistence is not None
+                        else _persist_alert_event(
+                            conn, state, check_id, source_system, location_id,
+                            event_type, previous_status, status, gap_minutes, now,
+                        )
                     )
-                    _publish_alert_event(
-                        conn,
-                        alert_id,
-                        source_system,
-                        status,
-                        gap_minutes,
-                        last_data_at,
-                        event_type,
-                        location_id,
-                    )
+                    if persistence is not None:
+                        persistence.enqueue_alert_event(
+                            alert_id, source_system, status, gap_minutes,
+                            last_data_at, event_type, location_id,
+                        )
+                    else:
+                        _publish_alert_event(
+                            conn, alert_id, source_system, status, gap_minutes,
+                            last_data_at, event_type, location_id,
+                        )
                     # The durable event is committed here; provider delivery is
                     # asynchronous and is tracked by notification_outbox.
                     alert_channel = "event_bus"
                 elif status != "error":
-                    update_cur = conn.cursor()
+                    if persistence is not None:
+                        persistence.update_alert_state(state["id"], status, now)
+                    else:
+                        update_cur = conn.cursor()
+                        try:
+                            update_cur.execute(
+                                "UPDATE data_freshness_alert_state SET current_status = %s, updated_at = %s WHERE id = %s",
+                                (status, now, state["id"]),
+                            )
+                        finally:
+                            update_cur.close()
+                if persistence is not None:
+                    persistence.update_check_alert(check_id, alert_sent, alert_channel)
+                else:
+                    update_check_cur = conn.cursor()
                     try:
-                        update_cur.execute(
-                            "UPDATE data_freshness_alert_state SET current_status = %s, updated_at = %s WHERE id = %s",
-                            (status, now, state["id"]),
+                        update_check_cur.execute(
+                            "UPDATE data_freshness_check SET alert_sent = %s, alert_channel = %s WHERE id = %s",
+                            (alert_sent, alert_channel, check_id),
                         )
                     finally:
-                        update_cur.close()
-                update_check_cur = conn.cursor()
-                try:
-                    update_check_cur.execute(
-                        "UPDATE data_freshness_check SET alert_sent = %s, alert_channel = %s WHERE id = %s",
-                        (alert_sent, alert_channel, check_id),
-                    )
-                finally:
-                    update_check_cur.close()
+                        update_check_cur.close()
                 release_cur = conn.cursor()
                 try:
                     release_cur.execute(f"RELEASE SAVEPOINT {savepoint}")

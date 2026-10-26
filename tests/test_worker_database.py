@@ -632,6 +632,31 @@ def test_unexpected_database_login_closes_connection_without_exposing_dsn(monkey
     connection.close.assert_called_once_with()
 
 
+def test_freshness_worker_requires_its_dedicated_database_login(monkeypatch):
+    connection, cursor = _connection("kokonut_freshness_login")
+    connect = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+    dsn = "postgresql://kokonut_freshness_login:secret@database/kokonut_intelligence"
+
+    result = worker_database.get_worker_db(
+        "freshness",
+        environ={
+            "KOKONUT_FRESHNESS_DATABASE_URL": dsn,
+            "PG_USER": "kokonut_runtime",
+            "PG_PASSWORD": "shared-secret",
+        },
+    )
+
+    assert result is connection
+    connect.assert_called_once_with(
+        dsn,
+        connect_timeout=8,
+        application_name="kokonut-worker-freshness",
+    )
+    cursor.execute.assert_called_once_with("SELECT current_user")
+    connection.rollback.assert_called_once_with()
+
+
 def test_autocommit_worker_connection_is_closed_and_rejected(monkeypatch):
     connection, _ = _connection("kokonut_worker_login", autocommit=True)
     monkeypatch.setattr(worker_database.psycopg2, "connect", MagicMock(return_value=connection))

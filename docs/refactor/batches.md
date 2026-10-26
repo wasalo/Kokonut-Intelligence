@@ -19,10 +19,37 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,186 checklist items complete and 25
-open (1,211 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,196 checklist items complete and 25
+open (1,221 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### Isolated global data-freshness worker — 25 October 2026
+
+- [x] Add a default-off scheduled freshness worker with a dedicated database
+  identity and bounded migration 645 functions. The global control-plane sweep
+  reads timestamps only, and location-scoped sources remain constrained to
+  their requested location; it does not claim farm tenant context. The legacy
+  CLI remains available; the Prefect `run_job` adapter uses it while the feature
+  is disabled. New native Kernel plans remain review-only and target the
+  isolated worker. The command-contract and operation-map focused selection
+  passes 322 tests, and the migration catalog regression passes 36; Ruff,
+  compilation,
+  worker/runtime inventory freshness, Compose profile parsing, and capability
+  validation pass. A network-disabled
+  PostgreSQL 16 disposable check applies and replays migration 645 with forced
+  RLS enabled, then checks global/location reads, atomic check/state/history/
+  event writes, rollback on rejected enqueue, exact bounded function access,
+  and direct table/sequence denial ([worker](../services/ingestion/freshness_worker.py);
+  [migration](../schemas/postgres/645_isolated_data_freshness_worker.sql);
+  [tests](../tests/test_freshness_worker.py);
+  [runner](../scripts/check-freshness-worker-disposable.py);
+  [evidence](builds/2026-10-25-recovery/freshness-worker-disposable.json)).
+  Rollback is to keep the feature disabled and use the existing legacy path;
+  do not edit or remove an applied migration. Candidate rollout and credential
+  provisioning were not performed. Live alert delivery, retention ownership,
+  persisted schedule reconciliation, and CAP-047 owner acceptance remain open.
+  Checklist: 1,196 complete / 25 open (1,221 total).
 
 ### Directus actor and staff attribution boundary — 25 October 2026
 

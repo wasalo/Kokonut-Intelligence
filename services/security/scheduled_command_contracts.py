@@ -108,6 +108,10 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--check": None,
         "--source": "identifier",
     },
+    "services.ingestion.freshness_worker": {
+        "--check": None,
+        "--source": "identifier",
+    },
     "services.export.dataset_refresh": {
         "--dataset-id": "uuid",
         "--all": None,

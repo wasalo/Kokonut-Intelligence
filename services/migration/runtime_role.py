@@ -88,6 +88,17 @@ _BAAL_INDEXER_FUNCTIONS = (
     "kokonut_security.store_baal_governance_event(jsonb)",
     "kokonut_security.update_baal_indexer_status(bigint,text,text)",
 )
+_FRESHNESS_WORKER_FUNCTIONS = (
+    "kokonut_security.list_freshness_configs(text)",
+    "kokonut_security.list_freshness_locations()",
+    "kokonut_security.read_freshness_data_at(text,boolean,uuid)",
+    "kokonut_security.create_freshness_check(uuid,text,uuid,timestamptz,integer,text,boolean,text,jsonb)",
+    "kokonut_security.get_freshness_alert_state(text,uuid)",
+    "kokonut_security.record_freshness_alert_event(uuid,uuid,text,uuid,text,text,text,integer,timestamptz)",
+    "kokonut_security.update_freshness_alert_state(uuid,text,timestamptz)",
+    "kokonut_security.update_freshness_check_alert(uuid,boolean,text)",
+    "kokonut_security.enqueue_freshness_event(uuid,jsonb,text)",
+)
 _SENSOR_INGESTION_FUNCTIONS = (
     "kokonut_security.resolve_sensor_driver_instance(uuid,uuid)",
     "kokonut_security.read_sensor_driver_catalog(uuid)",
@@ -141,6 +152,7 @@ _SECURITY_DEFINER_OWNERS = (
     *((function, "kokonut_rpc_indexer_owner") for function in _RPC_INDEXER_FUNCTIONS),
     *((function, "kokonut_gnosis_indexer_owner") for function in _GNOSIS_INDEXER_FUNCTIONS),
     *((function, "kokonut_baal_indexer_owner") for function in _BAAL_INDEXER_FUNCTIONS),
+    *((function, "kokonut_freshness_owner") for function in _FRESHNESS_WORKER_FUNCTIONS),
     *(
         (function, "kokonut_sensor_ingestion_owner")
         for function in _SENSOR_INGESTION_FUNCTIONS
@@ -167,6 +179,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     *_RPC_INDEXER_FUNCTIONS,
     *_GNOSIS_INDEXER_FUNCTIONS,
     *_BAAL_INDEXER_FUNCTIONS,
+    *_FRESHNESS_WORKER_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
     *_REMOTE_SENSING_FUNCTIONS,
 )
@@ -1018,6 +1031,8 @@ def provision_runtime_role(
     gnosis_indexer_password: str | None = None,
     baal_indexer_user: str | None = None,
     baal_indexer_password: str | None = None,
+    freshness_user: str | None = None,
+    freshness_password: str | None = None,
     sensor_ingestion_user: str | None = None,
     sensor_ingestion_password: str | None = None,
     remote_sensing_user: str | None = None,
@@ -1061,6 +1076,8 @@ def provision_runtime_role(
         raise ValueError("Gnosis-indexer user and password must be provided together")
     if (baal_indexer_user is None) != (baal_indexer_password is None):
         raise ValueError("Baal-indexer user and password must be provided together")
+    if (freshness_user is None) != (freshness_password is None):
+        raise ValueError("freshness worker user and password must be provided together")
     if (sensor_ingestion_user is None) != (sensor_ingestion_password is None):
         raise ValueError("sensor-ingestion user and password must be provided together")
     if (remote_sensing_user is None) != (remote_sensing_password is None):
@@ -1095,6 +1112,11 @@ def provision_runtime_role(
         if baal_indexer_user is not None
         else None
     )
+    freshness_ident = (
+        _role_identifier(freshness_user, "freshness_user")
+        if freshness_user is not None
+        else None
+    )
     sensor_ingestion_ident = (
         _role_identifier(sensor_ingestion_user, "sensor_ingestion_user")
         if sensor_ingestion_user is not None
@@ -1118,6 +1140,8 @@ def provision_runtime_role(
         role_names.append(gnosis_indexer_user)
     if baal_indexer_user is not None:
         role_names.append(baal_indexer_user)
+    if freshness_user is not None:
+        role_names.append(freshness_user)
     if sensor_ingestion_user is not None:
         role_names.append(sensor_ingestion_user)
     if remote_sensing_user is not None:
@@ -1134,13 +1158,15 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the Gnosis-indexer function owner")
     if "kokonut_baal_indexer_owner" in role_names:
         raise ValueError("application logins must differ from the Baal-indexer function owner")
+    if "kokonut_freshness_owner" in role_names:
+        raise ValueError("application logins must differ from the freshness function owner")
     if "kokonut_sensor_ingestion_owner" in role_names:
         raise ValueError("application logins must differ from the sensor-ingestion function owner")
     if "kokonut_remote_sensing_owner" in role_names:
         raise ValueError("application logins must differ from the remote-sensing function owner")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, sensor-ingestion, and remote-sensing roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, sensor-ingestion, and remote-sensing roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1160,6 +1186,8 @@ def provision_runtime_role(
         credential_pairs.append(("gnosis_indexer_password", gnosis_indexer_password))
     if baal_indexer_password is not None:
         credential_pairs.append(("baal_indexer_password", baal_indexer_password))
+    if freshness_password is not None:
+        credential_pairs.append(("freshness_password", freshness_password))
     if sensor_ingestion_password is not None:
         credential_pairs.append(("sensor_ingestion_password", sensor_ingestion_password))
     if remote_sensing_password is not None:
@@ -1180,6 +1208,8 @@ def provision_runtime_role(
         passwords.append(gnosis_indexer_password)
     if baal_indexer_password is not None:
         passwords.append(baal_indexer_password)
+    if freshness_password is not None:
+        passwords.append(freshness_password)
     if sensor_ingestion_password is not None:
         passwords.append(sensor_ingestion_password)
     if remote_sensing_password is not None:
@@ -1194,6 +1224,7 @@ def provision_runtime_role(
     rpc_indexer_database_access: dict[str, bool] = {}
     gnosis_indexer_database_access: dict[str, bool] = {}
     baal_indexer_database_access: dict[str, bool] = {}
+    freshness_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
     remote_sensing_database_access: dict[str, bool] = {}
     conn.autocommit = True
@@ -1296,6 +1327,18 @@ def provision_runtime_role(
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
                     "migration 644 Baal-indexer functions must be applied before "
+                    "provisioning its dedicated login"
+                )
+        if freshness_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "to_regprocedure(%s)" for _ in _FRESHNESS_WORKER_FUNCTIONS
+                ),
+                _FRESHNESS_WORKER_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 645 freshness-worker functions must be applied before "
                     "provisioning its dedicated login"
                 )
         if sensor_ingestion_user is not None:
@@ -1613,6 +1656,50 @@ def provision_runtime_role(
                         sql.SQL(function), baal_indexer_ident
                     )
                 )
+        if freshness_user is not None:
+            assert freshness_ident is not None and freshness_password is not None
+            _ensure_login_role(
+                cur,
+                name=freshness_user,
+                identifier=freshness_ident,
+                password=freshness_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=freshness_user,
+                identifier=freshness_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), freshness_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), freshness_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(freshness_ident)
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    freshness_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    freshness_ident
+                )
+            )
+            for function in _FRESHNESS_WORKER_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), freshness_ident
+                    )
+                )
         if sensor_ingestion_user is not None:
             assert sensor_ingestion_ident is not None and sensor_ingestion_password is not None
             _ensure_login_role(
@@ -1737,6 +1824,8 @@ def provision_runtime_role(
             protected_login_idents.append(gnosis_indexer_ident)
         if baal_indexer_ident is not None:
             protected_login_idents.append(baal_indexer_ident)
+        if freshness_ident is not None:
+            protected_login_idents.append(freshness_ident)
         if sensor_ingestion_ident is not None:
             protected_login_idents.append(sensor_ingestion_ident)
         if remote_sensing_ident is not None:
@@ -2173,6 +2262,8 @@ def provision_runtime_role(
         checked_login_names = [runtime_user, operator_auth_user]
         if notification_enqueue_user is not None:
             checked_login_names.append(notification_enqueue_user)
+        if freshness_user is not None:
+            checked_login_names.append(freshness_user)
         for role_name in checked_login_names:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -2638,6 +2729,14 @@ def provision_runtime_role(
                 "Baal-indexer",
                 runtime_user,
             )
+        if freshness_user is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                freshness_user,
+                _FRESHNESS_WORKER_FUNCTIONS,
+                "freshness worker",
+                runtime_user,
+            )
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
@@ -2791,6 +2890,24 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "Baal-indexer login must connect only to its configured database"
                 )
+        if freshness_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (freshness_user,),
+            )
+            freshness_database_access = {
+                name: allowed for name, allowed in cur.fetchall()
+            }
+            if any(
+                allowed != (name == database)
+                for name, allowed in freshness_database_access.items()
+            ):
+                raise RuntimeError(
+                    "freshness-worker login must connect only to its configured database"
+                )
         if sensor_ingestion_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -2825,6 +2942,7 @@ def provision_runtime_role(
         "rpc_indexer_user": rpc_indexer_user,
         "gnosis_indexer_user": gnosis_indexer_user,
         "baal_indexer_user": baal_indexer_user,
+        "freshness_user": freshness_user,
         "sensor_ingestion_user": sensor_ingestion_user,
         "remote_sensing_user": remote_sensing_user,
         "public_connect_revoked_from": sorted(database_names),
@@ -2835,6 +2953,7 @@ def provision_runtime_role(
         "rpc_indexer_connect_grants": rpc_indexer_database_access,
         "gnosis_indexer_connect_grants": gnosis_indexer_database_access,
         "baal_indexer_connect_grants": baal_indexer_database_access,
+        "freshness_worker_connect_grants": freshness_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "remote_sensing_connect_grants": remote_sensing_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
@@ -2908,6 +3027,10 @@ def main() -> int:
         "KOKONUT_BAAL_INDEXER_USER", "kokonut_baal_indexer_login"
     )
     baal_indexer_password = os.environ.get("KOKONUT_BAAL_INDEXER_PASSWORD", "")
+    freshness_user = os.environ.get(
+        "KOKONUT_FRESHNESS_USER", "kokonut_freshness_login"
+    )
+    freshness_password = os.environ.get("KOKONUT_FRESHNESS_PASSWORD", "")
     sensor_ingestion_user = os.environ.get(
         "KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login"
     )
@@ -2963,6 +3086,8 @@ def main() -> int:
             baal_indexer_password=(
                 baal_indexer_password if baal_indexer_password else None
             ),
+            freshness_user=freshness_user if freshness_password else None,
+            freshness_password=freshness_password if freshness_password else None,
             sensor_ingestion_user=(
                 sensor_ingestion_user if sensor_ingestion_password else None
             ),

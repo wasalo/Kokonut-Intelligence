@@ -42,6 +42,7 @@ _SCHEDULED_MODULE_WORKERS = {
     "services.ingestion.rpc_worker": "rpc_indexer",
     "services.ingestion.gnosis_worker": "gnosis_indexer",
     "services.ingestion.baal_worker": "baal_indexer",
+    "services.ingestion.freshness_worker": "freshness",
     "services.ingestion.sensor_worker": "sensor_ingestion",
     "services.ingestion.remote_sensing_worker": "remote_sensing",
 }

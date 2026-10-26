@@ -11,18 +11,21 @@ notification enqueue remain opt-in. Migrations 418–419 and the runtime-role
 bootstrap enforce the mobile/worker ACL boundary. Default-off dedicated worker
 paths cover sensor anomaly, cache invalidation, notification enqueue, NOI
 snapshots, current weather, forecasts, climate, CSV sensor ingestion, remote
-sensing, market data, EAS, RPC, Gnosis Moloch, and Baal governance. The global
+sensing, market data, EAS, RPC, Gnosis Moloch, Baal governance, and data
+freshness. The global
 Baal indexer has migration 644's execute-only database contract and a
 worker-specific HTTPS endpoint; migration 644 has disposable PostgreSQL
-acceptance but is not rolled out to the candidate. The legacy manual CLI
-remains available. Credentials and grants for live isolated workers remain
-unprovisioned. Candidate migration state is recorded in per-rollout evidence;
-earlier documentation that cited migration 433 is a historical checkpoint,
-not the current schema ledger. See the
+acceptance but is not rolled out to the candidate. Migration 645 adds the
+default-off global freshness worker with a dedicated identity and bounded
+functions; its disposable PostgreSQL acceptance passes, but it is not rolled
+out to the candidate. The legacy manual CLI remains available. Credentials
+and grants for live isolated workers remain unprovisioned. Candidate migration
+state is recorded in per-rollout evidence; earlier documentation that cited
+migration 433 is a historical checkpoint, not the current schema ledger. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 29 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
+the exact 30 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -67,8 +70,8 @@ application-wide RLS or proof for other workers.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  29 scheduled modules and seven allowlisted handler pairs. It covers 105
-  distinct local source files across 36 operation roots, with no unresolved
+  30 scheduled modules and seven allowlisted handler pairs. It covers 104
+  distinct local source files across 37 operation roots, with no unresolved
   local modules and three distinct dynamic import sites. These include the
   EventBus handler runner, the general driver registry, and the code-allowlisted
   scheduled sensor-driver loader. EventBus dispatch is constrained by
@@ -98,26 +101,26 @@ application-wide RLS or proof for other workers.
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 36
-  operation roots and 105 source files, entry functions reach 774 function
-  memberships through 1,050 direct-call and 24 dynamic-dispatch edges, with no unresolved
+  command/request protocol rather than a local function call. Across 37
+  operation roots and 106 source files, entry functions reach 793 function
+  memberships through 1,068 direct-call and 24 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 351
-  Python `.execute` sites in those 103 statically imported files. It fingerprints 306 literal
-  statements and flags 45 composed/variable statements. Candidate relation tokens are
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 353
+  Python `.execute` sites in 104 statically imported files. It fingerprints 306 literal
+  statements and flags 47 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
   `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 351 sites to the operation graph without including SQL text or
-  values. It links 271 unique sites across 367 operation/site memberships;
-  80 sites have no current static function match, and each belongs to a
+  joins those 353 sites to the operation graph without including SQL text or
+  values. It links 271 unique sites across 383 operation/site memberships;
+  82 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -125,11 +128,12 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 36 operation roots and local imports, reports that the scheduler
+  confirms all 37 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
   RLS blocked. The anomaly, optional cache, NOI snapshot, current-weather,
   weather-forecast, climate, sensor-ingestion, and remote-sensing integrations establish
-  context within exact worker paths. It
+  context within exact worker paths. Global freshness, RPC, EAS, and chain-indexer
+  workers intentionally do not establish farm tenant context. It
   explicitly leaves live grants, migration state, active schedules, and owner
   mappings `not_assessed`; it never connects to PostgreSQL. Use
   `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
@@ -140,7 +144,7 @@ application-wide RLS or proof for other workers.
   finds 69 unique candidate sites across 92 operation/site memberships: HTTP
   (12 unique / 22 memberships), email delivery (3 / 6), process (1), EVM RPC
   (9 / 13), EVM client setup (6 / 10), filesystem (37 / 38), and dynamic import
-  (1 / 2), across 36 operation roots. Filesystem matching includes path
+  (1 / 2), across 37 operation roots. Filesystem matching includes path
   resolution/directory checks, descriptor opens, metadata checks, and cleanup;
   the scheduled CSV driver's constrained openat walk is visible in the
   sensor-worker trace. These are review candidates,
@@ -172,8 +176,8 @@ This does not sandbox installed packages, inspect their dependencies, or prove
 that a driver is safe to install. `DriverRegistry.load` is not statically
 reachable from the allowlisted scheduled sensor operation; that worker
 continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
-- Source-pattern review covers all 45 composed/variable statements found by the
-  generated SQL inventory across 36 operation roots. The original 30-site
+- Source-pattern review covers all 47 composed/variable statements found by the
+  generated SQL inventory across 37 operation roots. The original 30-site
   review found that 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds
@@ -196,9 +200,12 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
   against registry drift by `tests/test_worker_operation_map.py`. Its
   per-calculator direct SQL reads, composed calculator calls, and the consent
   eligibility function's referenced relations are recorded; they still do not
-  establish least-privilege grants or tenant context. The freshness operation
-  also maps all seven fixed source-table identifiers to required reads, with a
-  regression test tying that list to the code map.
+  establish least-privilege grants or tenant context. The legacy freshness
+  operation maps all seven fixed source-table identifiers to required reads,
+  with a regression test tying that list to the code map. The isolated path
+  replaces direct reads and writes with migration 645 functions and a dedicated
+  global control-plane identity; it reads bounded timestamps for both global
+  and explicitly location-scoped sources without establishing farm context.
 - Migration 417 gives the two global notification handlers a bounded enqueue
   function. It verifies the dedicated login, source event ID/type, optional
   location lineage, supported channels and destination, payload size, and
@@ -243,8 +250,8 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
   delete operation. These commands now fail the Kernel argument contract. The
   legacy seed remains excluded from normal Kernel bootstrap.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
-  compares all 18 shared job templates with the Kernel module allowlist and
-  command validation. Five no-input defaults pass and thirteen jobs require
+  compares all 22 shared job templates with the 30-module Kernel allowlist and
+  command validation. Nine no-input defaults pass and thirteen jobs require
   validated runtime inputs; EAS and RPC each require one supported chain.
   Scheduled sensor ingestion requires one
   `--location-id` and one `--driver-instance-id`; the registry accepts only an
@@ -306,7 +313,7 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
 
 This map, import closure, SQL inventories, effect candidates, job-template
 comparison, and argument schemas are not an ACL, tenant policy, or complete
-dynamic call graph. Source-pattern review now covers all 45 composed/variable
+dynamic call graph. Source-pattern review now covers all 47 composed/variable
 SQL sites: the prior 36-site review, the remote-sensing update builder, signed
 context cleanup, the anomaly worker's query helpers, shared database helper
 calls, the NOI reconciliation's fixed location-filter fragment with a bound

@@ -1,3 +1,31 @@
+### Progress addendum — isolated global data-freshness worker, 25 October 2026
+
+Migration 645 and a default-off `services.ingestion.freshness_worker` now
+separate scheduled freshness checks from the legacy shared-database entrypoint.
+Nine bounded functions expose active source configuration, explicitly scoped
+location IDs, last-seen timestamps, check creation, alert state/history, and
+durable event enqueue. The worker has a dedicated global control-plane login;
+it reads only bounded timestamps and does not establish farm tenant context.
+Location-scoped source queries require the requested location. `freshness` is
+the isolated JobSpec, with an explicit `freshness_legacy` compatibility job.
+The Prefect `run_job` adapter uses the legacy module while the feature is off;
+new native Kernel plans remain review-only and target the isolated worker.
+Focused worker, scheduler, command-contract, operation-map, and runtime-role
+tests pass (322), and the migration catalog regression passes 36; Ruff,
+compilation, and Compose profile parsing pass. Network-disabled disposable
+PostgreSQL 16 applies/replays migration 645 under forced RLS and checks bounded source reads,
+atomic check/state/history/event writes, rollback after enqueue denial, exact
+function access, and direct relation/sequence denial
+([worker](../services/ingestion/freshness_worker.py);
+[migration](../schemas/postgres/645_isolated_data_freshness_worker.sql);
+[evidence](builds/2026-10-25-recovery/freshness-worker-disposable.json)). Worker
+inventories and the operation map were regenerated. No candidate or legacy
+database, provider, or live schedule was used; credentials are unprovisioned.
+CAP-047 remains prepared pending live alert routing, retention/owner decisions,
+schedule reconciliation, runtime recovery, and owner acceptance. Checklist:
+1,196 complete / 25 open; capability classifications remain 24 baseline-
+retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — CIDS property-to-source-view provenance, 25 October 2026
 
 The CIDS exporter now attaches `kokonut:propertySourceViews` to every graph

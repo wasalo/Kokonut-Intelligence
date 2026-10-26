@@ -338,6 +338,52 @@ def test_baal_indexer_provisioning_requires_paired_credentials_and_distinct_owne
         )
 
 
+def test_freshness_worker_has_an_execute_only_role_contract():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/645_isolated_data_freshness_worker.sql").read_text()
+    runtime_source = (root / "services/migration/runtime_role.py").read_text()
+
+    assert len(runtime_role._FRESHNESS_WORKER_FUNCTIONS) == 9
+    assert set(runtime_role._FRESHNESS_WORKER_FUNCTIONS) <= set(
+        runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    )
+    assert all(
+        (function, "kokonut_freshness_owner")
+        in runtime_role._SECURITY_DEFINER_OWNERS
+        for function in runtime_role._FRESHNESS_WORKER_FUNCTIONS
+    )
+    assert "session_user <> 'kokonut_freshness_login'" in migration
+    assert "FROM PUBLIC" in migration
+    assert "TO kokonut_freshness_login" in migration
+    assert "migration 645 freshness-worker functions" in runtime_source
+    assert "freshness-worker login must connect only to its configured database" in runtime_source
+
+
+def test_freshness_worker_provisioning_requires_paired_credentials_and_distinct_owner():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(ValueError, match="freshness worker user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            freshness_user="kokonut_freshness_login",
+        )
+    with pytest.raises(ValueError, match="differ from the freshness function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            freshness_user="kokonut_freshness_owner",
+            freshness_password="f" * 32,
+        )
+
+
 def test_global_indexer_logins_receive_only_configured_database_connect_grants():
     source = (
         Path(__file__).resolve().parents[1]

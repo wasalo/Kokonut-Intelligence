@@ -131,7 +131,14 @@ JOBS = MappingProxyType(
             "Anomaly detection",
             required_inputs=("location_id",),
         ),
-        "freshness": JobSpec("services.ingestion.data_freshness", ("--check",), 120, 2, 120, "Freshness check"),
+        "freshness": JobSpec(
+            "services.ingestion.freshness_worker", ("--check",), 120, 2, 120,
+            "Freshness check",
+        ),
+        "freshness_legacy": JobSpec(
+            "services.ingestion.data_freshness", ("--check",), 120, 2, 120,
+            "Freshness check (legacy compatibility)",
+        ),
         "metrics": JobSpec(
             "services.metrics",
             ("--compute", "--all"),
@@ -304,6 +311,9 @@ def run_job(
         spec = JOBS[job_id]
     if job_id == "baal" and not is_enabled("isolated_baal_indexer_worker"):
         job_id = "baal_legacy"
+        spec = JOBS[job_id]
+    if job_id == "freshness" and not is_enabled("isolated_freshness_worker"):
+        job_id = "freshness_legacy"
         spec = JOBS[job_id]
     return _run_job_spec(
         job_id,

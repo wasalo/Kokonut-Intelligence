@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 36,
-    "source_files": 103,
-    "execution_sites": 351,
+    "operation_roots": 37,
+    "source_files": 104,
+    "execution_sites": 353,
     "static_literal_sites": 306,
-    "composed_or_variable_sites": 45
+    "composed_or_variable_sites": 47
   },
   "execution_sites": [
     {
@@ -857,6 +857,7 @@
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.eas_worker",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
@@ -907,6 +908,7 @@
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.eas_worker",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
@@ -957,6 +959,7 @@
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.eas_worker",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
@@ -1200,9 +1203,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:136:12",
+      "id": "services/common/worker_database.py:137:12",
       "source": "services/common/worker_database.py",
-      "line": 136,
+      "line": 137,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -1223,6 +1226,7 @@
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.eas_worker",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -1742,6 +1746,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1766,6 +1771,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1789,6 +1795,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1811,6 +1818,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1834,6 +1842,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1856,6 +1865,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1878,6 +1888,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1900,6 +1911,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1922,6 +1934,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1946,6 +1959,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1972,6 +1986,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1994,6 +2009,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -2016,6 +2032,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -2036,6 +2053,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -2058,6 +2076,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -2084,6 +2103,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -2106,6 +2126,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -2128,6 +2149,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -3445,6 +3467,7 @@
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
@@ -3485,6 +3508,7 @@
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
@@ -3524,6 +3548,7 @@
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
         "scheduled_module:services.ingestion.market_data",
@@ -3880,7 +3905,8 @@
       ],
       "static_sql_sha256": "4c102ca184fdc3f91ab311d7c0a7f6e794a0050c635ea894b776b5b122b41d0d",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -3897,7 +3923,8 @@
       ],
       "static_sql_sha256": "a60141a27af0b3d82c47c1442bae7a6d17b60366a56cd092c0c0e85e5341deea",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -3914,7 +3941,8 @@
       ],
       "static_sql_sha256": "16067c6a8e72e9f58a55dc71095bb225962fae7b462889f42a2f368efbc69aad",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -3929,7 +3957,8 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -3946,7 +3975,8 @@
       ],
       "static_sql_sha256": "1e36f1b98634ec21c2e04a36523cd88fbaeca0e699b70cf5e3c5ec79ad9d8365",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -3963,7 +3993,8 @@
       ],
       "static_sql_sha256": "5088eab90b442512646fb02d7cdd6c2662878b76ab3bed7e924e9e609cfe88b1",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -3980,7 +4011,8 @@
       ],
       "static_sql_sha256": "cf3222c061761d02867a703984c56ca3cbcf8d54b6750666d9094867beae4830",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -3997,7 +4029,8 @@
       ],
       "static_sql_sha256": "5088eab90b442512646fb02d7cdd6c2662878b76ab3bed7e924e9e609cfe88b1",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -4014,7 +4047,8 @@
       ],
       "static_sql_sha256": "32a454b3e88fadc77c096ddd3802845025dee37ed799f701c755377f6d4c2ad8",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -4031,7 +4065,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -4048,13 +4083,14 @@
       ],
       "static_sql_sha256": "6a8f6f56f051d88e46dd8e668827010ef6bcbf38b42ed72ee126b816ac731635",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:371:16",
+      "id": "services/ingestion/data_freshness.py:384:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 371,
+      "line": 384,
       "column": 16,
       "scope": "check_freshness",
       "method": "execute",
@@ -4063,13 +4099,14 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:385:20",
+      "id": "services/ingestion/data_freshness.py:402:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 385,
+      "line": 402,
       "column": 20,
       "scope": "check_freshness",
       "method": "execute",
@@ -4078,14 +4115,15 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:459:24",
+      "id": "services/ingestion/data_freshness.py:482:28",
       "source": "services/ingestion/data_freshness.py",
-      "line": 459,
-      "column": 24,
+      "line": 482,
+      "column": 28,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -4095,14 +4133,15 @@
       ],
       "static_sql_sha256": "2fb045ba4e5bf1ffcf500a744326fc3e459bba935517b42698b17c9f0abde3fb",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:467:20",
+      "id": "services/ingestion/data_freshness.py:493:24",
       "source": "services/ingestion/data_freshness.py",
-      "line": 467,
-      "column": 20,
+      "line": 493,
+      "column": 24,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -4112,13 +4151,14 @@
       ],
       "static_sql_sha256": "274891bf49ba6fe3a392465fb6bf0c63fe285b104af31bc562e14055560cd293",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:475:20",
+      "id": "services/ingestion/data_freshness.py:501:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 475,
+      "line": 501,
       "column": 20,
       "scope": "check_freshness",
       "method": "execute",
@@ -4127,13 +4167,14 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:526:8",
+      "id": "services/ingestion/data_freshness.py:552:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 526,
+      "line": 552,
       "column": 8,
       "scope": "get_freshness_summary",
       "method": "execute",
@@ -4144,7 +4185,8 @@
       ],
       "static_sql_sha256": "5cf5e69cad7d4c732757fbf3ec9e0c2fd5befa70c62234dff2e16d4c8caa4875",
       "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {
@@ -4463,6 +4505,36 @@
       "static_sql_sha256": "2c1eddbec459da277ca64aaf7037e2ffb675b2f421fe012b86256b92ba2bf9de",
       "operation_refs": [
         "scheduled_module:services.ingestion.eas_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/freshness_worker.py:31:12",
+      "source": "services/ingestion/freshness_worker.py",
+      "line": 31,
+      "column": 12,
+      "scope": "FreshnessPersistence._rows",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "scheduled_module:services.ingestion.freshness_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/freshness_worker.py:36:12",
+      "source": "services/ingestion/freshness_worker.py",
+      "line": 36,
+      "column": 12,
+      "scope": "FreshnessPersistence._one",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "scheduled_module:services.ingestion.freshness_worker"
       ]
     },
     {

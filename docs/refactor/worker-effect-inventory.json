@@ -4,7 +4,7 @@
   "reviewed": "2026-10-25",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
-    "operation_roots": 36,
+    "operation_roots": 37,
     "candidate_effect_sites": 69,
     "operation_site_memberships": 92,
     "unique_sites_by_category": {
@@ -448,6 +448,12 @@
       "category_counts": {
         "http": 1
       }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.freshness_worker",
+      "candidate_effect_sites": [],
+      "category_counts": {}
     },
     {
       "kind": "scheduled_module",

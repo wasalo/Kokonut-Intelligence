@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_job_contract_inventory.py",
   "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. Modeled required inputs use synthetic schema fixtures only. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
   "summary": {
-    "catalog_jobs": 21,
-    "allowlisted_modules": 29,
+    "catalog_jobs": 22,
+    "allowlisted_modules": 30,
     "outcomes": {
-      "default_arguments_accepted": 8,
+      "default_arguments_accepted": 9,
       "required_runtime_inputs_validated": 13
     }
   },
@@ -95,6 +95,15 @@
     },
     {
       "job": "freshness",
+      "module": "services.ingestion.freshness_worker",
+      "worker_key": "freshness",
+      "argument_count": 1,
+      "required_inputs": [],
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "freshness_legacy",
       "module": "services.ingestion.data_freshness",
       "worker_key": null,
       "argument_count": 1,

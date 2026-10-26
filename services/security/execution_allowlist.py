@@ -39,6 +39,7 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         "services.ingestion.gnosis_worker",
         "services.ingestion.baal_indexer",
         "services.ingestion.baal_worker",
+        "services.ingestion.freshness_worker",
         "services.ingestion.anomaly_detector",
         "services.metrics",
         "services.metrics.noi_snapshot_worker",

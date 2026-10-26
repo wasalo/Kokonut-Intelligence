@@ -2397,7 +2397,7 @@
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 564,
+          "line": 590,
           "target": "services.ingestion.base",
           "kind": "from"
         }
@@ -2748,6 +2748,257 @@
       ],
       "unresolved_local_modules": [],
       "dynamic_import_sites": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.freshness_worker",
+      "root_modules": [
+        "services.ingestion.freshness_worker"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.http",
+        "services.common.logging",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.adapters.clickhouse",
+        "services.core.features",
+        "services.core.providers",
+        "services.events.bus",
+        "services.events.retention",
+        "services.ingestion.base",
+        "services.ingestion.config",
+        "services.ingestion.data_freshness",
+        "services.ingestion.freshness_worker",
+        "services.security.execution_allowlist"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/events/bus.py",
+        "services/events/retention.py",
+        "services/ingestion/base.py",
+        "services/ingestion/config.py",
+        "services/ingestion/data_freshness.py",
+        "services/ingestion/freshness_worker.py",
+        "services/security/execution_allowlist.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/adapters/clickhouse.py",
+          "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 13,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 14,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 15,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 19,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 63,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 371,
+          "target": "services.events.retention",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 20,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 22,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 23,
+          "target": "services.ingestion.config",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 57,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 64,
+          "target": "services.core.adapters.clickhouse",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/config.py",
+          "line": 9,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/data_freshness.py",
+          "line": 21,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/data_freshness.py",
+          "line": 23,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/data_freshness.py",
+          "line": 314,
+          "target": "services.events.bus",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/data_freshness.py",
+          "line": 590,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 17,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 18,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 19,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 20,
+          "target": "services.ingestion.data_freshness",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/events/bus.py",
+          "line": 46,
+          "kind": "dynamic module expression"
+        }
+      ]
     },
     {
       "kind": "scheduled_module",
