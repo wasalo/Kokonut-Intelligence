@@ -44,7 +44,9 @@ def test_worker_map_entries_have_effect_retry_and_existing_source_evidence():
     for entry in inventory["event_handlers"]:
         assert required | {"event_type", "function"} <= entry.keys()
     for entry in inventory["isolated_workers"]:
-        assert required | {"worker_key"} <= entry.keys()
+        assert required <= entry.keys()
+        assert {"worker_key", "worker_keys"} & entry.keys()
+        assert entry.get("worker_key") or entry.get("worker_keys")
 
     for entry in (
         *inventory["scheduled_modules"],
@@ -84,6 +86,30 @@ def test_signed_worker_routing_is_limited_to_integrated_handler_pairs():
         ("services.cache.events", "handle_sensor_reading"): ("cache_invalidation",),
         ("services.cache.events", "handle_harvest_recorded"): ("cache_invalidation",),
     }
+
+
+def test_agent_worker_contract_lists_task_specific_identities_and_receipt_gate():
+    inventory = _load_map()
+    entry = next(item for item in inventory["isolated_workers"] if item["module"] == "services.agents.worker_cli")
+
+    assert entry["worker_keys"] == [
+        "agent_bio_factory_source",
+        "agent_capital_efficiency_source",
+        "agent_commons_liberation_source",
+        "agent_ecological_modeling_source",
+        "agent_feedback_source",
+        "agent_financial_resilience_source",
+        "agent_gnh_alignment_source",
+        "agent_holistic_wellbeing_source",
+        "agent_kokonut_commons_source",
+        "agent_open_source_capitalist_source",
+        "agent_organic_readiness_source",
+        "agent_regenerator_source",
+        "agent_summary_deterministic_source",
+    ]
+    assert "matching database-registered operator receipt" in entry["scope"]
+    assert "does not prove the external caller is authenticated" in entry["scope"]
+    assert "no shared application database fallback" in entry["retry_boundary"]
 
 
 def test_effect_inventory_traces_current_event_runner_and_worker_secret_filter():

@@ -3,13 +3,1466 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 41,
-    "source_files": 109,
-    "execution_sites": 359,
-    "static_literal_sites": 308,
-    "composed_or_variable_sites": 51
+    "operation_roots": 42,
+    "source_files": 136,
+    "execution_sites": 473,
+    "static_literal_sites": 386,
+    "composed_or_variable_sites": 87
   },
   "execution_sites": [
+    {
+      "id": "services/agents/ai_summary.py:178:12",
+      "source": "services/agents/ai_summary.py",
+      "line": 178,
+      "column": 12,
+      "scope": "_collect_source_references",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/ai_summary.py:197:8",
+      "source": "services/agents/ai_summary.py",
+      "line": 197,
+      "column": 8,
+      "scope": "_fetchone",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ],
+      "statement_variants": [
+        {
+          "operation": "_check_registry_backed@215",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "farm_registry_record"
+          ],
+          "static_sql_sha256": "e18cba65ed0a31d5eb90216e8e1e4a7a6c7dd4821454874a78d45c6b68d6671b"
+        },
+        {
+          "operation": "generate_environmental_summary@389",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "soil_carbon_measurement"
+          ],
+          "static_sql_sha256": "7db691c4479784db9a1883d2399bb3d746b4675f3001d5b41407b33a8c515bf1"
+        },
+        {
+          "operation": "generate_environmental_summary@395",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "species_observation"
+          ],
+          "static_sql_sha256": "1a14f29666c8f1722d1fab51d939ca297d9e9ab8b6978cdb687a985d44616dde"
+        },
+        {
+          "operation": "generate_environmental_summary@401",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "remote_sensing_observation"
+          ],
+          "static_sql_sha256": "ff3e1b1cfa372aafbbfe4a5463ce94f7d002825d64723eb3f7c273efdc176b4d"
+        },
+        {
+          "operation": "generate_environmental_summary@408",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "weather_observation"
+          ],
+          "static_sql_sha256": "0701aebc299dabfa81558a7f1b5dc4883f9683c4e0b2c201d112524125e5110d"
+        },
+        {
+          "operation": "generate_financial_summary@318",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "noi_snapshot"
+          ],
+          "static_sql_sha256": "034f4e499ca616889a25093117ace5477d24b6224e6023d020bb44d62daea994"
+        },
+        {
+          "operation": "generate_operations_summary@231",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "harvest_event"
+          ],
+          "static_sql_sha256": "076114a49289dac651adc2bde34dc319f5bc9f9edf9efffad58d9ca74a2601f1"
+        },
+        {
+          "operation": "generate_operations_summary@238",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "sales_event"
+          ],
+          "static_sql_sha256": "034f6960d47d4c58c381c49791eda42bcf87f9d4f0973ebee1eee1455639db3b"
+        },
+        {
+          "operation": "generate_operations_summary@245",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "crop_cycle"
+          ],
+          "static_sql_sha256": "9ac36de351a3a9596bed79c53c4f1c05dda2a2a08a028eb6a3fd795380822a34"
+        }
+      ]
+    },
+    {
+      "id": "services/agents/ai_summary.py:207:8",
+      "source": "services/agents/ai_summary.py",
+      "line": 207,
+      "column": 8,
+      "scope": "_fetchall",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ],
+      "statement_variants": [
+        {
+          "operation": "generate_financial_summary@300",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "crop",
+            "crop_cycle",
+            "sales_event"
+          ],
+          "static_sql_sha256": "2f5480246bedf44382a62f7dc780643097694cfebc6643a5585188f489c6a9a7"
+        },
+        {
+          "operation": "generate_financial_summary@310",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "expense_category",
+            "expense_event"
+          ],
+          "static_sql_sha256": "5042af2a03fe6b0dc1831db65b65883f0e7493049630dcffa0f6c080fb6a6cdd"
+        },
+        {
+          "operation": "generate_operations_summary@250",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "sensor_reading"
+          ],
+          "static_sql_sha256": "150e31d97d2bfbd9aeb4cd87b9f2d6c2eecd32aaf4feb063cdf653ad72cb6374"
+        }
+      ]
+    },
+    {
+      "id": "services/agents/base.py:149:12",
+      "source": "services/agents/base.py",
+      "line": 149,
+      "column": 12,
+      "scope": "SynthesisAgent.collect_source_references",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/bio_factory_agent.py:25:4",
+      "source": "services/agents/bio_factory_agent.py",
+      "line": 25,
+      "column": 4,
+      "scope": "_synthesize_batches",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_bio_factory_batch_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/bio_factory_agent.py:43:4",
+      "source": "services/agents/bio_factory_agent.py",
+      "line": 43,
+      "column": 4,
+      "scope": "_synthesize_provenance",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_bio_input_provenance_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/bio_factory_agent.py:61:4",
+      "source": "services/agents/bio_factory_agent.py",
+      "line": 61,
+      "column": 4,
+      "scope": "_synthesize_recipes",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_bio_recipe_library_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/bio_factory_agent.py:79:4",
+      "source": "services/agents/bio_factory_agent.py",
+      "line": 79,
+      "column": 4,
+      "scope": "_synthesize_quality",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_bio_factory_quality_test_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/bio_factory_agent.py:95:4",
+      "source": "services/agents/bio_factory_agent.py",
+      "line": 95,
+      "column": 4,
+      "scope": "_synthesize_regional",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_bio_regional_input_summary"
+      ],
+      "static_sql_sha256": "d3e6cf98b95b3eb019903e29b72952cd3d5a34b3bc538de25a447a767987ec59",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/capital_efficiency_agent.py:29:4",
+      "source": "services/agents/capital_efficiency_agent.py",
+      "line": 29,
+      "column": 4,
+      "scope": "synthesize_capital_efficiency",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_capital_efficiency_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/capital_efficiency_agent.py:44:4",
+      "source": "services/agents/capital_efficiency_agent.py",
+      "line": 44,
+      "column": 4,
+      "scope": "synthesize_capital_efficiency",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_regenerative_efficiency_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/capital_efficiency_agent.py:59:4",
+      "source": "services/agents/capital_efficiency_agent.py",
+      "line": 59,
+      "column": 4,
+      "scope": "synthesize_capital_efficiency",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_governance_throughput_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/capital_efficiency_agent.py:73:4",
+      "source": "services/agents/capital_efficiency_agent.py",
+      "line": 73,
+      "column": 4,
+      "scope": "synthesize_capital_efficiency",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_capital_provider_utility_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/commons_agent.py:29:4",
+      "source": "services/agents/commons_agent.py",
+      "line": 29,
+      "column": 4,
+      "scope": "synthesize_commons",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_time_liberation_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/commons_agent.py:44:4",
+      "source": "services/agents/commons_agent.py",
+      "line": 44,
+      "column": 4,
+      "scope": "synthesize_commons",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_capital_alignment_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/commons_agent.py:59:4",
+      "source": "services/agents/commons_agent.py",
+      "line": 59,
+      "column": 4,
+      "scope": "synthesize_commons",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_governance_inclusion_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/commons_agent.py:75:4",
+      "source": "services/agents/commons_agent.py",
+      "line": 75,
+      "column": 4,
+      "scope": "synthesize_commons",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_land_stewardship_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/ebf_evidence_gap_agent.py:22:8",
+      "source": "services/agents/ebf_evidence_gap_agent.py",
+      "line": 22,
+      "column": 8,
+      "scope": "analyze_evidence_gaps",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_ebf_evidence_gap_summary"
+      ],
+      "static_sql_sha256": "f08ee4e375c23ae970305ed4e2aec843219887589f9aa84f21197ffb7ac51772",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/ecological_modeling_agent.py:47:8",
+      "source": "services/agents/ecological_modeling_agent.py",
+      "line": 47,
+      "column": 8,
+      "scope": "synthesize_ecological_modeling",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/feedback_agent.py:21:4",
+      "source": "services/agents/feedback_agent.py",
+      "line": 21,
+      "column": 4,
+      "scope": "synthesize_feedback",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_stakeholder_feedback_summary"
+      ],
+      "static_sql_sha256": "a5ad4607397c5de8d6b72d62965ddee2b5fa771a6bd8000b6ada34dd4d98087a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/gnh_agent.py:29:4",
+      "source": "services/agents/gnh_agent.py",
+      "line": 29,
+      "column": 4,
+      "scope": "synthesize_gnh",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_gnh_alignment_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/gnh_agent.py:43:4",
+      "source": "services/agents/gnh_agent.py",
+      "line": 43,
+      "column": 4,
+      "scope": "synthesize_gnh",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_cultural_preservation_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/gnh_agent.py:58:4",
+      "source": "services/agents/gnh_agent.py",
+      "line": 58,
+      "column": 4,
+      "scope": "synthesize_gnh",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_renewable_energy_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/gnh_agent.py:74:4",
+      "source": "services/agents/gnh_agent.py",
+      "line": 74,
+      "column": 4,
+      "scope": "synthesize_gnh",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_vulnerable_access_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/gnh_agent.py:89:4",
+      "source": "services/agents/gnh_agent.py",
+      "line": 89,
+      "column": 4,
+      "scope": "synthesize_gnh",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_foundational_wellbeing_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/kokonut_commons_agent.py:19:8",
+      "source": "services/agents/kokonut_commons_agent.py",
+      "line": 19,
+      "column": 8,
+      "scope": "_fetch",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/kokonut_commons_agent.py:25:8",
+      "source": "services/agents/kokonut_commons_agent.py",
+      "line": 25,
+      "column": 8,
+      "scope": "_fetch",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/open_source_capitalist_agent.py:29:4",
+      "source": "services/agents/open_source_capitalist_agent.py",
+      "line": 29,
+      "column": 4,
+      "scope": "synthesize_open_source_capitalist",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_farm_launch_unit_economics"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/open_source_capitalist_agent.py:46:4",
+      "source": "services/agents/open_source_capitalist_agent.py",
+      "line": 46,
+      "column": 4,
+      "scope": "synthesize_open_source_capitalist",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_network_scaling_target"
+      ],
+      "static_sql_sha256": "4b515f60e33041b81355364d3fdfbfb0b15c26f6647913487342370c9ccafe76",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/open_source_capitalist_agent.py:61:4",
+      "source": "services/agents/open_source_capitalist_agent.py",
+      "line": 61,
+      "column": 4,
+      "scope": "synthesize_open_source_capitalist",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_adoption_barrier_assessment"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/open_source_capitalist_agent.py:76:4",
+      "source": "services/agents/open_source_capitalist_agent.py",
+      "line": 76,
+      "column": 4,
+      "scope": "synthesize_open_source_capitalist",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_perpetual_value_stress_test"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/open_source_capitalist_agent.py:92:4",
+      "source": "services/agents/open_source_capitalist_agent.py",
+      "line": 92,
+      "column": 4,
+      "scope": "synthesize_open_source_capitalist",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_open_source_impact_artifact"
+      ],
+      "static_sql_sha256": "c3cf80cb74d14ecb980fb5082fe005f98d997ad9b27726ee1291b81261c237fa",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/organic_readiness_agent.py:39:8",
+      "source": "services/agents/organic_readiness_agent.py",
+      "line": 39,
+      "column": 8,
+      "scope": "synthesize_organic_readiness",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/regenerator_agent.py:29:4",
+      "source": "services/agents/regenerator_agent.py",
+      "line": 29,
+      "column": 4,
+      "scope": "synthesize_regenerator",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_regenerative_outcome_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/regenerator_agent.py:45:4",
+      "source": "services/agents/regenerator_agent.py",
+      "line": 45,
+      "column": 4,
+      "scope": "synthesize_regenerator",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_community_governance_mechanism"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/regenerator_agent.py:60:4",
+      "source": "services/agents/regenerator_agent.py",
+      "line": 60,
+      "column": 4,
+      "scope": "synthesize_regenerator",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_replication_readiness_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/regenerator_agent.py:76:4",
+      "source": "services/agents/regenerator_agent.py",
+      "line": 76,
+      "column": 4,
+      "scope": "synthesize_regenerator",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_adaptive_stewardship_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/resilience_agent.py:29:4",
+      "source": "services/agents/resilience_agent.py",
+      "line": 29,
+      "column": 4,
+      "scope": "synthesize_resilience",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_financial_sustainability_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/resilience_agent.py:44:4",
+      "source": "services/agents/resilience_agent.py",
+      "line": 44,
+      "column": 4,
+      "scope": "synthesize_resilience",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_risk_mitigation_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/resilience_agent.py:59:4",
+      "source": "services/agents/resilience_agent.py",
+      "line": 59,
+      "column": 4,
+      "scope": "synthesize_resilience",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_scaling_roadmap_summary"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/resilience_agent.py:73:4",
+      "source": "services/agents/resilience_agent.py",
+      "line": 73,
+      "column": 4,
+      "scope": "synthesize_resilience",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_green_paper_publication_status"
+      ],
+      "static_sql_sha256": "8820abb686edfcd462b03adbbfe7f2eecb88a5007487843a1b98d8108eb7d654",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/wellbeing_agent.py:22:4",
+      "source": "services/agents/wellbeing_agent.py",
+      "line": 22,
+      "column": 4,
+      "scope": "synthesize_wellbeing",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_cultural_context_summary"
+      ],
+      "static_sql_sha256": "8920840d504ed0fdac65912c0dd7897082f93d93ad8404a78c077a2fb13f0b08",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/wellbeing_agent.py:34:4",
+      "source": "services/agents/wellbeing_agent.py",
+      "line": 34,
+      "column": 4,
+      "scope": "synthesize_wellbeing",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_wellbeing_metric_summary"
+      ],
+      "static_sql_sha256": "708b2b726c1e58e8abb32815f0857fe85ceef6acefb67f9f2b5e25022e5ba2ea",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/wellbeing_agent.py:47:4",
+      "source": "services/agents/wellbeing_agent.py",
+      "line": 47,
+      "column": 4,
+      "scope": "synthesize_wellbeing",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.v_public_participatory_governance_summary"
+      ],
+      "static_sql_sha256": "7e4c5cf5e85391b7c9969a7769e331327c843ccf816f4500e548b5c5a331aedf",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:245:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 245,
+      "column": 12,
+      "scope": "run_worker_synthesis",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:252:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 252,
+      "column": 12,
+      "scope": "run_worker_synthesis",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:253:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 253,
+      "column": 12,
+      "scope": "run_worker_synthesis",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:254:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 254,
+      "column": 12,
+      "scope": "run_worker_synthesis",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:379:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 379,
+      "column": 12,
+      "scope": "run_worker_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:386:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 386,
+      "column": 12,
+      "scope": "run_worker_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "ffcf244d60a726a746d790d90ef79c7e8e6b71f4f1bd010b033dba6107f50572",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:389:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 389,
+      "column": 12,
+      "scope": "run_worker_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:390:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 390,
+      "column": 12,
+      "scope": "run_worker_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:391:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 391,
+      "column": 12,
+      "scope": "run_worker_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:452:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 452,
+      "column": 12,
+      "scope": "_run_worker_summary_inspection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:459:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 459,
+      "column": 12,
+      "scope": "_run_worker_summary_inspection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "0b9f3e0ac44d0a830dfd8c889bbd5cbb470e379284cc8890fdbd13b910d498a3",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:462:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 462,
+      "column": 12,
+      "scope": "_run_worker_summary_inspection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:463:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 463,
+      "column": 12,
+      "scope": "_run_worker_summary_inspection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:464:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 464,
+      "column": 12,
+      "scope": "_run_worker_summary_inspection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:467:16",
+      "source": "services/agents/worker_cli.py",
+      "line": 467,
+      "column": 16,
+      "scope": "_run_worker_summary_inspection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.ai_summary_list"
+      ],
+      "static_sql_sha256": "e96d3914458b348ae5e1b0af614d1c0ac208527223c3c6e7c0741269c0eb2880",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:496:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 496,
+      "column": 12,
+      "scope": "_run_worker_summary_inspection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.ai_summary_digest"
+      ],
+      "static_sql_sha256": "691e86a254d11dc300e87ce1530dc2cf99d93a3eaa81fa859ede9c75c6f9c8f7",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:621:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 621,
+      "column": 12,
+      "scope": "run_worker_ebf_evidence_gap",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:630:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 630,
+      "column": 12,
+      "scope": "run_worker_ebf_evidence_gap",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "0015c017b9f276c2aa6972c82d1551bc9d7132b21e6a5a0371ce5599a95a6802",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:631:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 631,
+      "column": 12,
+      "scope": "run_worker_ebf_evidence_gap",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:632:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 632,
+      "column": 12,
+      "scope": "run_worker_ebf_evidence_gap",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:633:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 633,
+      "column": 12,
+      "scope": "run_worker_ebf_evidence_gap",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:682:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 682,
+      "column": 12,
+      "scope": "run_worker_cids_export",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:691:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 691,
+      "column": 12,
+      "scope": "run_worker_cids_export",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "489a94a76e8a218d83746cbaad8049c168289dbfc2c9a99a464441760d0aa2b0",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:692:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 692,
+      "column": 12,
+      "scope": "run_worker_cids_export",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:693:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 693,
+      "column": 12,
+      "scope": "run_worker_cids_export",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:694:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 694,
+      "column": 12,
+      "scope": "run_worker_cids_export",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:751:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 751,
+      "column": 12,
+      "scope": "run_worker_delphi_facilitation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:760:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 760,
+      "column": 12,
+      "scope": "run_worker_delphi_facilitation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "94d7b90f6c9c65e3d8a27b35884990f774c1aa20bfba84c596310dcee1c726be",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:761:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 761,
+      "column": 12,
+      "scope": "run_worker_delphi_facilitation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:762:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 762,
+      "column": 12,
+      "scope": "run_worker_delphi_facilitation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:763:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 763,
+      "column": 12,
+      "scope": "run_worker_delphi_facilitation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:765:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 765,
+      "column": 12,
+      "scope": "run_worker_delphi_facilitation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_agent_source.delphi_live_summary"
+      ],
+      "static_sql_sha256": "23937633b29287aa350baa435687f377836b8cb37c766e6c2493da0d94947bd7",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_draft.py:285:8",
+      "source": "services/agents/worker_draft.py",
+      "line": 285,
+      "column": 8,
+      "scope": "_set_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_draft.py:286:8",
+      "source": "services/agents/worker_draft.py",
+      "line": 286,
+      "column": 8,
+      "scope": "_set_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_draft.py:318:8",
+      "source": "services/agents/worker_draft.py",
+      "line": 318,
+      "column": 8,
+      "scope": "_verify_operator_task_request",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.verify_current_ai_summary_operator_task_request"
+      ],
+      "static_sql_sha256": "d076f5a3a02cadfed67d7da47665bc07a099c86cf872a99bea0de530a82f575c",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_draft.py:351:8",
+      "source": "services/agents/worker_draft.py",
+      "line": 351,
+      "column": 8,
+      "scope": "_read_source_references",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "8cb0fd813c6c9aa76fcf01fa4b8a16342004c9448c03932288b8d6eab6fdb875",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_draft.py:391:12",
+      "source": "services/agents/worker_draft.py",
+      "line": 391,
+      "column": 12,
+      "scope": "get_worker_ai_summary_draft",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.get_location_ai_summary_worker_result"
+      ],
+      "static_sql_sha256": "83bdbff358f7b85cc3e04fa70a2e30b738249e4e5f3095c3bd863aa2892b2d0c",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_draft.py:457:16",
+      "source": "services/agents/worker_draft.py",
+      "line": 457,
+      "column": 16,
+      "scope": "create_worker_ai_summary_draft",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.create_location_ai_summary_worker_draft_with_result"
+      ],
+      "static_sql_sha256": "4913726d4b65d0ec8d05c27ec94efaff86406df08a2ffc7f113ee8d5cc414bc4",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_draft.py:473:16",
+      "source": "services/agents/worker_draft.py",
+      "line": 473,
+      "column": 16,
+      "scope": "create_worker_ai_summary_draft",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.create_location_ai_summary_worker_draft"
+      ],
+      "static_sql_sha256": "cc678152c2a7ebda5d785d93e58d0a76dcc4722ddd9f20f66205ad1fb73a8904",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/agents/worker_draft.py:492:16",
+      "source": "services/agents/worker_draft.py",
+      "line": 492,
+      "column": 16,
+      "scope": "create_worker_ai_summary_draft",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "d80c8365f38774b7af452b55f766318a0b9a19c4d538742cb24b82979ed40016",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
     {
       "id": "services/analytics/carbon_balance.py:42:4",
       "source": "services/analytics/carbon_balance.py",
@@ -479,6 +1932,330 @@
       ]
     },
     {
+      "id": "services/analytics/ecological_modeling.py:16:4",
+      "source": "services/analytics/ecological_modeling.py",
+      "line": 16,
+      "column": 4,
+      "scope": "compute_trophic_balance",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "ecological_interaction"
+      ],
+      "static_sql_sha256": "128255d3d43e13974558bc41ea2dd23f04ad2142ef57cade5ce0a8c3ec98e53a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/ecological_modeling.py:52:4",
+      "source": "services/analytics/ecological_modeling.py",
+      "line": 52,
+      "column": 4,
+      "scope": "compute_energy_flow_efficiency",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "energy_flow_measurement"
+      ],
+      "static_sql_sha256": "7bd6836cf5a8da5bdce4775a203c190b3fb0aeeca4fd59de890537a2bb8f29d4",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/ecological_modeling.py:92:4",
+      "source": "services/analytics/ecological_modeling.py",
+      "line": 92,
+      "column": 4,
+      "scope": "compute_population_stability",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "population_dynamics_record"
+      ],
+      "static_sql_sha256": "d06f99f5c9908011726924aac3406ec8784d82a78a4b1fd2d741e8ba63a0bec1",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/ecological_modeling.py:145:4",
+      "source": "services/analytics/ecological_modeling.py",
+      "line": 145,
+      "column": 4,
+      "scope": "trophic_pyramid_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "population_dynamics_record"
+      ],
+      "static_sql_sha256": "cd20c7652be5bf1f42190965ba7169291c13fd2b08ee23a3a5377060bf40c713",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/ecological_modeling_v2.py:15:4",
+      "source": "services/analytics/ecological_modeling_v2.py",
+      "line": 15,
+      "column": 4,
+      "scope": "compute_soil_input_retention",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "soil_input_application"
+      ],
+      "static_sql_sha256": "70609491377c3ca7df49323081b25dd467bc0651739978fb482922c4a2a126b3",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/ecological_modeling_v2.py:58:4",
+      "source": "services/analytics/ecological_modeling_v2.py",
+      "line": 58,
+      "column": 4,
+      "scope": "compute_pest_trends",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "pest_observation"
+      ],
+      "static_sql_sha256": "13245a8afa9d05d06f9839c4a5420822536bb4bfa0359103325e56ace82920ff",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/ecological_modeling_v2.py:114:4",
+      "source": "services/analytics/ecological_modeling_v2.py",
+      "line": 114,
+      "column": 4,
+      "scope": "compute_biocontrol_effectiveness",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "biocontrol_release"
+      ],
+      "static_sql_sha256": "3821ab1e6894a878bab0b9d5e14d5843086f68e1dce7e6c90171f05d35afc16a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/ecological_modeling_v2.py:166:4",
+      "source": "services/analytics/ecological_modeling_v2.py",
+      "line": 166,
+      "column": 4,
+      "scope": "compute_resource_efficiency",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "resource_consumption"
+      ],
+      "static_sql_sha256": "6867f0c9d0f6dd89bb7b5490f4a75c431b3563939cbe5847beaddb302d343926",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/ecological_modeling_v2.py:181:4",
+      "source": "services/analytics/ecological_modeling_v2.py",
+      "line": 181,
+      "column": 4,
+      "scope": "compute_resource_efficiency",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "ecological_harvest_event",
+        "location"
+      ],
+      "static_sql_sha256": "73b2154c4a2f426edf5b8f29b4ae398af9d5c59e9f543872404aa40f758144f9",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/ecological_modeling_v2.py:223:4",
+      "source": "services/analytics/ecological_modeling_v2.py",
+      "line": 223,
+      "column": 4,
+      "scope": "compute_conservation_status_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "ecological_species_observation"
+      ],
+      "static_sql_sha256": "98740a944e9fd0cad5f2afb9ee0f01e770417f1f41e273ae115149f9af12f2ae",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/livestock_feed.py:15:4",
+      "source": "services/analytics/livestock_feed.py",
+      "line": 15,
+      "column": 4,
+      "scope": "compute_feed_intake_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "feed_intake_record",
+        "livestock_group"
+      ],
+      "static_sql_sha256": "52f715896247347a592641b7046e8342aea02ad15ae4a1b412a18ca0c938e88f",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/livestock_feed.py:66:4",
+      "source": "services/analytics/livestock_feed.py",
+      "line": 66,
+      "column": 4,
+      "scope": "compute_feed_conversion_ratio",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "feed_intake_record",
+        "livestock_group"
+      ],
+      "static_sql_sha256": "6f3cb6bcf4f36b618b2a90faca0f1b44118cb1609db2ac58163b32aed7b48f84",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/organic_certification.py:21:4",
+      "source": "services/analytics/organic_certification.py",
+      "line": 21,
+      "column": 4,
+      "scope": "compute_organic_readiness_score",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "organic_readiness_assessment"
+      ],
+      "static_sql_sha256": "62693cda433da3439065f5781f22bcab7dfae4b3667959bbf3d44fa3451a04b9",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/organic_certification.py:69:4",
+      "source": "services/analytics/organic_certification.py",
+      "line": 69,
+      "column": 4,
+      "scope": "compute_transition_progress",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "organic_transition_plan"
+      ],
+      "static_sql_sha256": "d7388d3c58085c1bae38cb67783015a816031326ab882f83a656536748c1e9e9",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/organic_certification.py:125:4",
+      "source": "services/analytics/organic_certification.py",
+      "line": 125,
+      "column": 4,
+      "scope": "compute_input_compliance_pct",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "organic_input_audit"
+      ],
+      "static_sql_sha256": "febda951a0b3492638c11d011719e3a5f0f9a37b6313c19e386073cb7b7f5ec7",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/organic_certification.py:170:4",
+      "source": "services/analytics/organic_certification.py",
+      "line": 170,
+      "column": 4,
+      "scope": "compute_buffer_adequacy",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "buffer_zone"
+      ],
+      "static_sql_sha256": "96c6a99a29860ff81bbb97109b7cd9fe8a802d57f06f10b538379b5d78372367",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/organic_certification.py:227:4",
+      "source": "services/analytics/organic_certification.py",
+      "line": 227,
+      "column": 4,
+      "scope": "compute_harvest_segregation_score",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "harvest_handling_record"
+      ],
+      "static_sql_sha256": "cd8663190c7bb88500c734d1ed3274fcd363fe71a66dce936ab5a9961b554669",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/organic_certification.py:295:8",
+      "source": "services/analytics/organic_certification.py",
+      "line": 295,
+      "column": 8,
+      "scope": "compute_record_completeness",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/organic_certification.py:322:4",
+      "source": "services/analytics/organic_certification.py",
+      "line": 322,
+      "column": 4,
+      "scope": "compute_prohibited_substance_clearance",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "prohibited_substance_record"
+      ],
+      "static_sql_sha256": "5fdd09f5e93d6c2b1b6c50bb785bf9672b89bb47293e29fce05e4a7cb8410b6d",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
       "id": "services/analytics/reporting_reader.py:72:8",
       "source": "services/analytics/reporting_reader.py",
       "line": 72,
@@ -644,6 +2421,74 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "scheduled_module:services.export.dataset_refresh"
+      ]
+    },
+    {
+      "id": "services/analytics/reward_calibration.py:15:4",
+      "source": "services/analytics/reward_calibration.py",
+      "line": 15,
+      "column": 4,
+      "scope": "compute_reward_calibration",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "token_reward_distribution"
+      ],
+      "static_sql_sha256": "fd4e8dcb6f3e2e3047a06d33c9062db415c951fc84eb800290005531e34570e7",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/reward_calibration.py:69:4",
+      "source": "services/analytics/reward_calibration.py",
+      "line": 69,
+      "column": 4,
+      "scope": "compute_reward_metric_correlation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "token_reward_distribution"
+      ],
+      "static_sql_sha256": "d92e19bb7c2d35b67af0372c415b7f96d323228f18e5524e977811e75f470ec8",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/reward_calibration.py:107:4",
+      "source": "services/analytics/reward_calibration.py",
+      "line": 107,
+      "column": 4,
+      "scope": "compute_reward_calibration_model",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "reward_calibration_model"
+      ],
+      "static_sql_sha256": "b43d25bf33ab99e1b27a32931855079a0c0fc1061c26b31248247dbf13654287",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/analytics/reward_calibration.py:180:4",
+      "source": "services/analytics/reward_calibration.py",
+      "line": 180,
+      "column": 4,
+      "scope": "detect_overjustification_risk",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "token_reward_distribution"
+      ],
+      "static_sql_sha256": "a909cc6df1645d8b7b2f7330a57f11bf5081526a3faabfb23ec7515e179ddcd0",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
       ]
     },
     {
@@ -844,6 +2689,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
@@ -898,6 +2744,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
@@ -952,6 +2799,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
@@ -1004,6 +2852,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
@@ -1032,6 +2881,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
@@ -1060,6 +2910,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
@@ -1088,6 +2939,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
@@ -1118,6 +2970,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
@@ -1148,6 +3001,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
@@ -1178,6 +3032,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
@@ -1208,6 +3063,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
@@ -1238,6 +3094,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
@@ -7242,6 +9099,132 @@
       "static_sql_sha256": "d910e5b803f7264f071247d7a499a6ac67c14fd37511e45c63a7806b168adbb4",
       "operation_refs": [
         "scheduled_module:services.metrics.noi_snapshot_worker"
+      ]
+    },
+    {
+      "id": "services/registry/cids_export.py:122:12",
+      "source": "services/registry/cids_export.py",
+      "line": 122,
+      "column": 12,
+      "scope": "_fetch_scoped_cids_source",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/registry/cids_export.py:146:8",
+      "source": "services/registry/cids_export.py",
+      "line": 146,
+      "column": 8,
+      "scope": "fetch_cids_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "farm",
+        "farm_registry_record",
+        "location"
+      ],
+      "static_sql_sha256": "f715371f7070aa0c9b0d9604dcfdd336dcb84bdd194a4b3af2b0788bcf18b014",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/registry/cids_export.py:167:8",
+      "source": "services/registry/cids_export.py",
+      "line": 167,
+      "column": 8,
+      "scope": "fetch_cids_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "evidence_maturity_level",
+        "stakeholder_outcome"
+      ],
+      "static_sql_sha256": "a2f98f3ad0551023053b1c4e2dd0302b0c4b8c7ea6e615530ac229e953fca80a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/registry/cids_export.py:179:8",
+      "source": "services/registry/cids_export.py",
+      "line": 179,
+      "column": 8,
+      "scope": "fetch_cids_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "farm_impact_mapping",
+        "form_of_capital",
+        "pillar_of_value",
+        "sdg"
+      ],
+      "static_sql_sha256": "653f55b4f0779aaba4b91907777bee494a7a0b8fecced2dfd71631e4265fbd94",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/registry/cids_export.py:193:8",
+      "source": "services/registry/cids_export.py",
+      "line": 193,
+      "column": 8,
+      "scope": "fetch_cids_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "metric_definition",
+        "metric_value"
+      ],
+      "static_sql_sha256": "b5f234d5e686442b204daa422939c7eb44673864ac269a1b2a5fd233db7cdeda",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/registry/cids_export.py:209:8",
+      "source": "services/registry/cids_export.py",
+      "line": 209,
+      "column": 8,
+      "scope": "fetch_cids_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "evidence_maturity_level",
+        "stakeholder_feedback"
+      ],
+      "static_sql_sha256": "7a92624d91cd588131834bdfe4b9b37d1ec83fb5c258e3a50657ecfe76d071fd",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
+      ]
+    },
+    {
+      "id": "services/registry/cids_export.py:226:8",
+      "source": "services/registry/cids_export.py",
+      "line": 226,
+      "column": 8,
+      "scope": "fetch_cids_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "evidence_maturity_level",
+        "impact_claim"
+      ],
+      "static_sql_sha256": "358adf6243e5494230ec443d0f118c8392efaddd07fcc6c19ea1383381fa3164",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli"
       ]
     }
   ]

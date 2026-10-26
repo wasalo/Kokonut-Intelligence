@@ -68,3 +68,27 @@ def test_package_worker_entrypoints_include_the_executed_main_module():
         if item["kind"] == "scheduled_module" and item["name"] == "services.metrics"
     )
     assert "services/metrics/__main__.py" in metrics["source_files"]
+
+
+def test_agent_worker_closure_contains_exact_registered_synthesis_modules():
+    inventory = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+    operation = next(
+        item
+        for item in inventory["operations"]
+        if item["kind"] == "isolated_worker"
+        and item["name"] == "services.agents.worker_cli"
+    )
+    targets = operation["registered_agent_targets"]
+
+    assert len(targets) == 12
+    assert len({target["task_key"] for target in targets}) == 12
+    assert all(target["module"].replace(".", "/") + ".py" in operation["source_files"] for target in targets)
+    target_modules = {target["module"] for target in targets}
+    registry_edges = [
+        edge
+        for edge in operation["local_import_edges"]
+        if edge["source"] == "services/agents/worker_cli.py"
+        and edge["target"] in target_modules
+    ]
+    assert len(registry_edges) == 12
+    assert {edge["kind"] for edge in registry_edges} == {"registered-agent"}

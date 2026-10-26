@@ -1,15 +1,15 @@
 {
   "version": 1,
   "generated_by": "scripts/worker_function_reachability.py",
-  "scope": "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
+  "scope": "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator, scheduled-driver, and registered-synthesis-agent dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 41,
-    "source_files": 111,
+    "operation_roots": 42,
+    "source_files": 138,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 918,
-    "direct_call_edges": 1258,
+    "function_memberships": 1017,
+    "direct_call_edges": 1411,
     "callback_edges": 0,
-    "dynamic_dispatch_edges": 24
+    "dynamic_dispatch_edges": 48
   },
   "operations": [
     {
@@ -14491,6 +14491,1990 @@
       "callback_edges": [],
       "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "isolated_worker",
+      "name": "services.agents.worker_cli",
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/bio_factory_agent.py",
+        "services/agents/capital_efficiency_agent.py",
+        "services/agents/commons_agent.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/ecological_modeling_agent.py",
+        "services/agents/feedback_agent.py",
+        "services/agents/gnh_agent.py",
+        "services/agents/kokonut_commons_agent.py",
+        "services/agents/logging.py",
+        "services/agents/open_source_capitalist_agent.py",
+        "services/agents/organic_readiness_agent.py",
+        "services/agents/regenerator_agent.py",
+        "services/agents/resilience_agent.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/wellbeing_agent.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/analytics/ecological_modeling.py",
+        "services/analytics/ecological_modeling_v2.py",
+        "services/analytics/livestock_feed.py",
+        "services/analytics/organic_certification.py",
+        "services/analytics/reward_calibration.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.agents.worker_cli:main",
+          "source": "services/agents/worker_cli.py",
+          "line": 796
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.agents.ai_summary:validate_source_reference_coverage",
+          "module": "services.agents.ai_summary",
+          "qualname": "validate_source_reference_coverage",
+          "class_scope": null,
+          "source": "services/agents/ai_summary.py",
+          "line": 76
+        },
+        {
+          "key": "services.agents.base:SynthesisAgent._build_source_reference_query",
+          "module": "services.agents.base",
+          "qualname": "SynthesisAgent._build_source_reference_query",
+          "class_scope": "SynthesisAgent",
+          "source": "services/agents/base.py",
+          "line": 181
+        },
+        {
+          "key": "services.agents.base:SynthesisAgent.collect_source_references",
+          "module": "services.agents.base",
+          "qualname": "SynthesisAgent.collect_source_references",
+          "class_scope": "SynthesisAgent",
+          "source": "services/agents/base.py",
+          "line": 98
+        },
+        {
+          "key": "services.agents.base:require_synthesis_location_id",
+          "module": "services.agents.base",
+          "qualname": "require_synthesis_location_id",
+          "class_scope": null,
+          "source": "services/agents/base.py",
+          "line": 30
+        },
+        {
+          "key": "services.agents.base:validate_source_tables",
+          "module": "services.agents.base",
+          "qualname": "validate_source_tables",
+          "class_scope": null,
+          "source": "services/agents/base.py",
+          "line": 41
+        },
+        {
+          "key": "services.agents.bio_factory_agent:BioFactorySynthesisAgent.synthesize",
+          "module": "services.agents.bio_factory_agent",
+          "qualname": "BioFactorySynthesisAgent.synthesize",
+          "class_scope": "BioFactorySynthesisAgent",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 241
+        },
+        {
+          "key": "services.agents.bio_factory_agent:_location_filter",
+          "module": "services.agents.bio_factory_agent",
+          "qualname": "_location_filter",
+          "class_scope": null,
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.bio_factory_agent:_synthesize_batches",
+          "module": "services.agents.bio_factory_agent",
+          "qualname": "_synthesize_batches",
+          "class_scope": null,
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 23
+        },
+        {
+          "key": "services.agents.bio_factory_agent:_synthesize_provenance",
+          "module": "services.agents.bio_factory_agent",
+          "qualname": "_synthesize_provenance",
+          "class_scope": null,
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 41
+        },
+        {
+          "key": "services.agents.bio_factory_agent:_synthesize_quality",
+          "module": "services.agents.bio_factory_agent",
+          "qualname": "_synthesize_quality",
+          "class_scope": null,
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 77
+        },
+        {
+          "key": "services.agents.bio_factory_agent:_synthesize_recipes",
+          "module": "services.agents.bio_factory_agent",
+          "qualname": "_synthesize_recipes",
+          "class_scope": null,
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 59
+        },
+        {
+          "key": "services.agents.bio_factory_agent:_synthesize_regional",
+          "module": "services.agents.bio_factory_agent",
+          "qualname": "_synthesize_regional",
+          "class_scope": null,
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 94
+        },
+        {
+          "key": "services.agents.bio_factory_agent:synthesize_bio_factory",
+          "module": "services.agents.bio_factory_agent",
+          "qualname": "synthesize_bio_factory",
+          "class_scope": null,
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 107
+        },
+        {
+          "key": "services.agents.capital_efficiency_agent:CapitalEfficiencySynthesisAgent.synthesize",
+          "module": "services.agents.capital_efficiency_agent",
+          "qualname": "CapitalEfficiencySynthesisAgent.synthesize",
+          "class_scope": "CapitalEfficiencySynthesisAgent",
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 165
+        },
+        {
+          "key": "services.agents.capital_efficiency_agent:_location_filter",
+          "module": "services.agents.capital_efficiency_agent",
+          "qualname": "_location_filter",
+          "class_scope": null,
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.capital_efficiency_agent:synthesize_capital_efficiency",
+          "module": "services.agents.capital_efficiency_agent",
+          "qualname": "synthesize_capital_efficiency",
+          "class_scope": null,
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 23
+        },
+        {
+          "key": "services.agents.commons_agent:CommonsSynthesisAgent.synthesize",
+          "module": "services.agents.commons_agent",
+          "qualname": "CommonsSynthesisAgent.synthesize",
+          "class_scope": "CommonsSynthesisAgent",
+          "source": "services/agents/commons_agent.py",
+          "line": 136
+        },
+        {
+          "key": "services.agents.commons_agent:_location_filter",
+          "module": "services.agents.commons_agent",
+          "qualname": "_location_filter",
+          "class_scope": null,
+          "source": "services/agents/commons_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.commons_agent:synthesize_commons",
+          "module": "services.agents.commons_agent",
+          "qualname": "synthesize_commons",
+          "class_scope": null,
+          "source": "services/agents/commons_agent.py",
+          "line": 23
+        },
+        {
+          "key": "services.agents.ecological_modeling_agent:EcologicalModelingSynthesisAgent.synthesize",
+          "module": "services.agents.ecological_modeling_agent",
+          "qualname": "EcologicalModelingSynthesisAgent.synthesize",
+          "class_scope": "EcologicalModelingSynthesisAgent",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 130
+        },
+        {
+          "key": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "module": "services.agents.ecological_modeling_agent",
+          "qualname": "synthesize_ecological_modeling",
+          "class_scope": null,
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 41
+        },
+        {
+          "key": "services.agents.feedback_agent:FeedbackSynthesisAgent.synthesize",
+          "module": "services.agents.feedback_agent",
+          "qualname": "FeedbackSynthesisAgent.synthesize",
+          "class_scope": "FeedbackSynthesisAgent",
+          "source": "services/agents/feedback_agent.py",
+          "line": 93
+        },
+        {
+          "key": "services.agents.feedback_agent:synthesize_feedback",
+          "module": "services.agents.feedback_agent",
+          "qualname": "synthesize_feedback",
+          "class_scope": null,
+          "source": "services/agents/feedback_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.gnh_agent:GnhSynthesisAgent.synthesize",
+          "module": "services.agents.gnh_agent",
+          "qualname": "GnhSynthesisAgent.synthesize",
+          "class_scope": "GnhSynthesisAgent",
+          "source": "services/agents/gnh_agent.py",
+          "line": 155
+        },
+        {
+          "key": "services.agents.gnh_agent:_location_filter",
+          "module": "services.agents.gnh_agent",
+          "qualname": "_location_filter",
+          "class_scope": null,
+          "source": "services/agents/gnh_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.gnh_agent:synthesize_gnh",
+          "module": "services.agents.gnh_agent",
+          "qualname": "synthesize_gnh",
+          "class_scope": null,
+          "source": "services/agents/gnh_agent.py",
+          "line": 23
+        },
+        {
+          "key": "services.agents.kokonut_commons_agent:KokonutCommonsSynthesisAgent.synthesize",
+          "module": "services.agents.kokonut_commons_agent",
+          "qualname": "KokonutCommonsSynthesisAgent.synthesize",
+          "class_scope": "KokonutCommonsSynthesisAgent",
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 87
+        },
+        {
+          "key": "services.agents.kokonut_commons_agent:_fetch",
+          "module": "services.agents.kokonut_commons_agent",
+          "qualname": "_fetch",
+          "class_scope": null,
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.kokonut_commons_agent:synthesize_kokonut_commons",
+          "module": "services.agents.kokonut_commons_agent",
+          "qualname": "synthesize_kokonut_commons",
+          "class_scope": null,
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 29
+        },
+        {
+          "key": "services.agents.open_source_capitalist_agent:OpenSourceCapitalistSynthesisAgent.synthesize",
+          "module": "services.agents.open_source_capitalist_agent",
+          "qualname": "OpenSourceCapitalistSynthesisAgent.synthesize",
+          "class_scope": "OpenSourceCapitalistSynthesisAgent",
+          "source": "services/agents/open_source_capitalist_agent.py",
+          "line": 168
+        },
+        {
+          "key": "services.agents.open_source_capitalist_agent:_location_filter",
+          "module": "services.agents.open_source_capitalist_agent",
+          "qualname": "_location_filter",
+          "class_scope": null,
+          "source": "services/agents/open_source_capitalist_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.open_source_capitalist_agent:synthesize_open_source_capitalist",
+          "module": "services.agents.open_source_capitalist_agent",
+          "qualname": "synthesize_open_source_capitalist",
+          "class_scope": null,
+          "source": "services/agents/open_source_capitalist_agent.py",
+          "line": 23
+        },
+        {
+          "key": "services.agents.organic_readiness_agent:OrganicReadinessSynthesisAgent.synthesize",
+          "module": "services.agents.organic_readiness_agent",
+          "qualname": "OrganicReadinessSynthesisAgent.synthesize",
+          "class_scope": "OrganicReadinessSynthesisAgent",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 122
+        },
+        {
+          "key": "services.agents.organic_readiness_agent:_determine_readiness_status",
+          "module": "services.agents.organic_readiness_agent",
+          "qualname": "_determine_readiness_status",
+          "class_scope": null,
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 129
+        },
+        {
+          "key": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "module": "services.agents.organic_readiness_agent",
+          "qualname": "synthesize_organic_readiness",
+          "class_scope": null,
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 32
+        },
+        {
+          "key": "services.agents.regenerator_agent:RegeneratorSynthesisAgent.synthesize",
+          "module": "services.agents.regenerator_agent",
+          "qualname": "RegeneratorSynthesisAgent.synthesize",
+          "class_scope": "RegeneratorSynthesisAgent",
+          "source": "services/agents/regenerator_agent.py",
+          "line": 165
+        },
+        {
+          "key": "services.agents.regenerator_agent:_location_filter",
+          "module": "services.agents.regenerator_agent",
+          "qualname": "_location_filter",
+          "class_scope": null,
+          "source": "services/agents/regenerator_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.regenerator_agent:synthesize_regenerator",
+          "module": "services.agents.regenerator_agent",
+          "qualname": "synthesize_regenerator",
+          "class_scope": null,
+          "source": "services/agents/regenerator_agent.py",
+          "line": 23
+        },
+        {
+          "key": "services.agents.resilience_agent:ResilienceSynthesisAgent.synthesize",
+          "module": "services.agents.resilience_agent",
+          "qualname": "ResilienceSynthesisAgent.synthesize",
+          "class_scope": "ResilienceSynthesisAgent",
+          "source": "services/agents/resilience_agent.py",
+          "line": 136
+        },
+        {
+          "key": "services.agents.resilience_agent:_location_filter",
+          "module": "services.agents.resilience_agent",
+          "qualname": "_location_filter",
+          "class_scope": null,
+          "source": "services/agents/resilience_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.resilience_agent:synthesize_resilience",
+          "module": "services.agents.resilience_agent",
+          "qualname": "synthesize_resilience",
+          "class_scope": null,
+          "source": "services/agents/resilience_agent.py",
+          "line": 23
+        },
+        {
+          "key": "services.agents.safety:assert_agent_action_allowed",
+          "module": "services.agents.safety",
+          "qualname": "assert_agent_action_allowed",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 355
+        },
+        {
+          "key": "services.agents.safety:assess_agent_action",
+          "module": "services.agents.safety",
+          "qualname": "assess_agent_action",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 283
+        },
+        {
+          "key": "services.agents.tasks:_task_definition",
+          "module": "services.agents.tasks",
+          "qualname": "_task_definition",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 369
+        },
+        {
+          "key": "services.agents.tasks:_validate_declared_fields",
+          "module": "services.agents.tasks",
+          "qualname": "_validate_declared_fields",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 464
+        },
+        {
+          "key": "services.agents.tasks:cids_artifact_sha256",
+          "module": "services.agents.tasks",
+          "qualname": "cids_artifact_sha256",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 30
+        },
+        {
+          "key": "services.agents.tasks:get_task",
+          "module": "services.agents.tasks",
+          "qualname": "get_task",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 437
+        },
+        {
+          "key": "services.agents.tasks:output_schema",
+          "module": "services.agents.tasks",
+          "qualname": "output_schema",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 443
+        },
+        {
+          "key": "services.agents.tasks:validate_output",
+          "module": "services.agents.tasks",
+          "qualname": "validate_output",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 517
+        },
+        {
+          "key": "services.agents.tasks:validate_task_capabilities",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_capabilities",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 375
+        },
+        {
+          "key": "services.agents.tasks:validate_task_inputs",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_inputs",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 510
+        },
+        {
+          "key": "services.agents.wellbeing_agent:WellbeingSynthesisAgent.synthesize",
+          "module": "services.agents.wellbeing_agent",
+          "qualname": "WellbeingSynthesisAgent.synthesize",
+          "class_scope": "WellbeingSynthesisAgent",
+          "source": "services/agents/wellbeing_agent.py",
+          "line": 127
+        },
+        {
+          "key": "services.agents.wellbeing_agent:synthesize_wellbeing",
+          "module": "services.agents.wellbeing_agent",
+          "qualname": "synthesize_wellbeing",
+          "class_scope": null,
+          "source": "services/agents/wellbeing_agent.py",
+          "line": 18
+        },
+        {
+          "key": "services.agents.worker_cli:main",
+          "module": "services.agents.worker_cli",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 796
+        },
+        {
+          "key": "services.agents.worker_cli:resolve_synthesis_agent",
+          "module": "services.agents.worker_cli",
+          "qualname": "resolve_synthesis_agent",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 109
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_summary",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_summary",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 308
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_synthesis",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_synthesis",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 121
+        },
+        {
+          "key": "services.agents.worker_draft:_read_row",
+          "module": "services.agents.worker_draft",
+          "qualname": "_read_row",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 329
+        },
+        {
+          "key": "services.agents.worker_draft:_read_source_references",
+          "module": "services.agents.worker_draft",
+          "qualname": "_read_source_references",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 347
+        },
+        {
+          "key": "services.agents.worker_draft:_resolve_worker_key",
+          "module": "services.agents.worker_draft",
+          "qualname": "_resolve_worker_key",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 292
+        },
+        {
+          "key": "services.agents.worker_draft:_serialize_worker_result",
+          "module": "services.agents.worker_draft",
+          "qualname": "_serialize_worker_result",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 245
+        },
+        {
+          "key": "services.agents.worker_draft:_set_context",
+          "module": "services.agents.worker_draft",
+          "qualname": "_set_context",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 278
+        },
+        {
+          "key": "services.agents.worker_draft:_uuid",
+          "module": "services.agents.worker_draft",
+          "qualname": "_uuid",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 141
+        },
+        {
+          "key": "services.agents.worker_draft:_validate_payload",
+          "module": "services.agents.worker_draft",
+          "qualname": "_validate_payload",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 212
+        },
+        {
+          "key": "services.agents.worker_draft:_validate_source_references",
+          "module": "services.agents.worker_draft",
+          "qualname": "_validate_source_references",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 148
+        },
+        {
+          "key": "services.agents.worker_draft:_validate_task_summary_type",
+          "module": "services.agents.worker_draft",
+          "qualname": "_validate_task_summary_type",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 302
+        },
+        {
+          "key": "services.agents.worker_draft:_verify_operator_task_request",
+          "module": "services.agents.worker_draft",
+          "qualname": "_verify_operator_task_request",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 309
+        },
+        {
+          "key": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "module": "services.agents.worker_draft",
+          "qualname": "create_worker_ai_summary_draft",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 414
+        },
+        {
+          "key": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "module": "services.agents.worker_draft",
+          "qualname": "get_worker_ai_summary_draft",
+          "class_scope": null,
+          "source": "services/agents/worker_draft.py",
+          "line": 361
+        },
+        {
+          "key": "services.analytics.ecological_modeling:compute_energy_flow_efficiency",
+          "module": "services.analytics.ecological_modeling",
+          "qualname": "compute_energy_flow_efficiency",
+          "class_scope": null,
+          "source": "services/analytics/ecological_modeling.py",
+          "line": 49
+        },
+        {
+          "key": "services.analytics.ecological_modeling:compute_population_stability",
+          "module": "services.analytics.ecological_modeling",
+          "qualname": "compute_population_stability",
+          "class_scope": null,
+          "source": "services/analytics/ecological_modeling.py",
+          "line": 89
+        },
+        {
+          "key": "services.analytics.ecological_modeling:compute_trophic_balance",
+          "module": "services.analytics.ecological_modeling",
+          "qualname": "compute_trophic_balance",
+          "class_scope": null,
+          "source": "services/analytics/ecological_modeling.py",
+          "line": 13
+        },
+        {
+          "key": "services.analytics.ecological_modeling:trophic_pyramid_summary",
+          "module": "services.analytics.ecological_modeling",
+          "qualname": "trophic_pyramid_summary",
+          "class_scope": null,
+          "source": "services/analytics/ecological_modeling.py",
+          "line": 142
+        },
+        {
+          "key": "services.analytics.ecological_modeling_v2:compute_biocontrol_effectiveness",
+          "module": "services.analytics.ecological_modeling_v2",
+          "qualname": "compute_biocontrol_effectiveness",
+          "class_scope": null,
+          "source": "services/analytics/ecological_modeling_v2.py",
+          "line": 111
+        },
+        {
+          "key": "services.analytics.ecological_modeling_v2:compute_conservation_status_summary",
+          "module": "services.analytics.ecological_modeling_v2",
+          "qualname": "compute_conservation_status_summary",
+          "class_scope": null,
+          "source": "services/analytics/ecological_modeling_v2.py",
+          "line": 220
+        },
+        {
+          "key": "services.analytics.ecological_modeling_v2:compute_pest_trends",
+          "module": "services.analytics.ecological_modeling_v2",
+          "qualname": "compute_pest_trends",
+          "class_scope": null,
+          "source": "services/analytics/ecological_modeling_v2.py",
+          "line": 55
+        },
+        {
+          "key": "services.analytics.ecological_modeling_v2:compute_resource_efficiency",
+          "module": "services.analytics.ecological_modeling_v2",
+          "qualname": "compute_resource_efficiency",
+          "class_scope": null,
+          "source": "services/analytics/ecological_modeling_v2.py",
+          "line": 163
+        },
+        {
+          "key": "services.analytics.ecological_modeling_v2:compute_soil_input_retention",
+          "module": "services.analytics.ecological_modeling_v2",
+          "qualname": "compute_soil_input_retention",
+          "class_scope": null,
+          "source": "services/analytics/ecological_modeling_v2.py",
+          "line": 12
+        },
+        {
+          "key": "services.analytics.livestock_feed:compute_feed_conversion_ratio",
+          "module": "services.analytics.livestock_feed",
+          "qualname": "compute_feed_conversion_ratio",
+          "class_scope": null,
+          "source": "services/analytics/livestock_feed.py",
+          "line": 63
+        },
+        {
+          "key": "services.analytics.livestock_feed:compute_feed_intake_summary",
+          "module": "services.analytics.livestock_feed",
+          "qualname": "compute_feed_intake_summary",
+          "class_scope": null,
+          "source": "services/analytics/livestock_feed.py",
+          "line": 12
+        },
+        {
+          "key": "services.analytics.organic_certification:compute_buffer_adequacy",
+          "module": "services.analytics.organic_certification",
+          "qualname": "compute_buffer_adequacy",
+          "class_scope": null,
+          "source": "services/analytics/organic_certification.py",
+          "line": 164
+        },
+        {
+          "key": "services.analytics.organic_certification:compute_harvest_segregation_score",
+          "module": "services.analytics.organic_certification",
+          "qualname": "compute_harvest_segregation_score",
+          "class_scope": null,
+          "source": "services/analytics/organic_certification.py",
+          "line": 224
+        },
+        {
+          "key": "services.analytics.organic_certification:compute_input_compliance_pct",
+          "module": "services.analytics.organic_certification",
+          "qualname": "compute_input_compliance_pct",
+          "class_scope": null,
+          "source": "services/analytics/organic_certification.py",
+          "line": 119
+        },
+        {
+          "key": "services.analytics.organic_certification:compute_organic_readiness_score",
+          "module": "services.analytics.organic_certification",
+          "qualname": "compute_organic_readiness_score",
+          "class_scope": null,
+          "source": "services/analytics/organic_certification.py",
+          "line": 12
+        },
+        {
+          "key": "services.analytics.organic_certification:compute_prohibited_substance_clearance",
+          "module": "services.analytics.organic_certification",
+          "qualname": "compute_prohibited_substance_clearance",
+          "class_scope": null,
+          "source": "services/analytics/organic_certification.py",
+          "line": 319
+        },
+        {
+          "key": "services.analytics.organic_certification:compute_record_completeness",
+          "module": "services.analytics.organic_certification",
+          "qualname": "compute_record_completeness",
+          "class_scope": null,
+          "source": "services/analytics/organic_certification.py",
+          "line": 273
+        },
+        {
+          "key": "services.analytics.organic_certification:compute_transition_progress",
+          "module": "services.analytics.organic_certification",
+          "qualname": "compute_transition_progress",
+          "class_scope": null,
+          "source": "services/analytics/organic_certification.py",
+          "line": 63
+        },
+        {
+          "key": "services.analytics.reward_calibration:compute_reward_calibration",
+          "module": "services.analytics.reward_calibration",
+          "qualname": "compute_reward_calibration",
+          "class_scope": null,
+          "source": "services/analytics/reward_calibration.py",
+          "line": 12
+        },
+        {
+          "key": "services.analytics.reward_calibration:compute_reward_calibration_model",
+          "module": "services.analytics.reward_calibration",
+          "qualname": "compute_reward_calibration_model",
+          "class_scope": null,
+          "source": "services/analytics/reward_calibration.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.errors:safe_exception_class",
+          "module": "services.common.errors",
+          "qualname": "safe_exception_class",
+          "class_scope": null,
+          "source": "services/common/errors.py",
+          "line": 4
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:_set_worker_context",
+          "module": "services.common.tenant_context",
+          "qualname": "_set_worker_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 222
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 198
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_summary_draft_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_summary_draft_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 170
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_summary_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 148
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 60
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 96
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.agents.ai_summary:validate_source_reference_coverage",
+          "callee": "services.agents.base:validate_source_tables",
+          "source": "services/agents/ai_summary.py",
+          "line": 86
+        },
+        {
+          "caller": "services.agents.base:SynthesisAgent.collect_source_references",
+          "callee": "services.agents.base:SynthesisAgent._build_source_reference_query",
+          "source": "services/agents/base.py",
+          "line": 142
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:BioFactorySynthesisAgent.synthesize",
+          "callee": "services.agents.bio_factory_agent:synthesize_bio_factory",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 242
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:_synthesize_batches",
+          "callee": "services.agents.bio_factory_agent:_location_filter",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 24
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:_synthesize_provenance",
+          "callee": "services.agents.bio_factory_agent:_location_filter",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 42
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:_synthesize_quality",
+          "callee": "services.agents.bio_factory_agent:_location_filter",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 78
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:_synthesize_recipes",
+          "callee": "services.agents.bio_factory_agent:_location_filter",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 60
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:synthesize_bio_factory",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 109
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:synthesize_bio_factory",
+          "callee": "services.agents.bio_factory_agent:_synthesize_batches",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 111
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:synthesize_bio_factory",
+          "callee": "services.agents.bio_factory_agent:_synthesize_provenance",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 112
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:synthesize_bio_factory",
+          "callee": "services.agents.bio_factory_agent:_synthesize_quality",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 114
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:synthesize_bio_factory",
+          "callee": "services.agents.bio_factory_agent:_synthesize_recipes",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 113
+        },
+        {
+          "caller": "services.agents.bio_factory_agent:synthesize_bio_factory",
+          "callee": "services.agents.bio_factory_agent:_synthesize_regional",
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 115
+        },
+        {
+          "caller": "services.agents.capital_efficiency_agent:CapitalEfficiencySynthesisAgent.synthesize",
+          "callee": "services.agents.capital_efficiency_agent:synthesize_capital_efficiency",
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 166
+        },
+        {
+          "caller": "services.agents.capital_efficiency_agent:synthesize_capital_efficiency",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 25
+        },
+        {
+          "caller": "services.agents.capital_efficiency_agent:synthesize_capital_efficiency",
+          "callee": "services.agents.capital_efficiency_agent:_location_filter",
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 28
+        },
+        {
+          "caller": "services.agents.capital_efficiency_agent:synthesize_capital_efficiency",
+          "callee": "services.agents.capital_efficiency_agent:_location_filter",
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 43
+        },
+        {
+          "caller": "services.agents.capital_efficiency_agent:synthesize_capital_efficiency",
+          "callee": "services.agents.capital_efficiency_agent:_location_filter",
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 58
+        },
+        {
+          "caller": "services.agents.capital_efficiency_agent:synthesize_capital_efficiency",
+          "callee": "services.agents.capital_efficiency_agent:_location_filter",
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 72
+        },
+        {
+          "caller": "services.agents.commons_agent:CommonsSynthesisAgent.synthesize",
+          "callee": "services.agents.commons_agent:synthesize_commons",
+          "source": "services/agents/commons_agent.py",
+          "line": 137
+        },
+        {
+          "caller": "services.agents.commons_agent:synthesize_commons",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/commons_agent.py",
+          "line": 25
+        },
+        {
+          "caller": "services.agents.commons_agent:synthesize_commons",
+          "callee": "services.agents.commons_agent:_location_filter",
+          "source": "services/agents/commons_agent.py",
+          "line": 28
+        },
+        {
+          "caller": "services.agents.commons_agent:synthesize_commons",
+          "callee": "services.agents.commons_agent:_location_filter",
+          "source": "services/agents/commons_agent.py",
+          "line": 43
+        },
+        {
+          "caller": "services.agents.commons_agent:synthesize_commons",
+          "callee": "services.agents.commons_agent:_location_filter",
+          "source": "services/agents/commons_agent.py",
+          "line": 58
+        },
+        {
+          "caller": "services.agents.commons_agent:synthesize_commons",
+          "callee": "services.agents.commons_agent:_location_filter",
+          "source": "services/agents/commons_agent.py",
+          "line": 74
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:EcologicalModelingSynthesisAgent.synthesize",
+          "callee": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 131
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 43
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.ecological_modeling:compute_energy_flow_efficiency",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 50
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.ecological_modeling:compute_population_stability",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 51
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.ecological_modeling:compute_trophic_balance",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 49
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.ecological_modeling:trophic_pyramid_summary",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 52
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.ecological_modeling_v2:compute_biocontrol_effectiveness",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 55
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.ecological_modeling_v2:compute_conservation_status_summary",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 57
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.ecological_modeling_v2:compute_pest_trends",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 54
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.ecological_modeling_v2:compute_resource_efficiency",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 56
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.ecological_modeling_v2:compute_soil_input_retention",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 53
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.livestock_feed:compute_feed_conversion_ratio",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 59
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.livestock_feed:compute_feed_intake_summary",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 58
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.reward_calibration:compute_reward_calibration",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 60
+        },
+        {
+          "caller": "services.agents.ecological_modeling_agent:synthesize_ecological_modeling",
+          "callee": "services.analytics.reward_calibration:compute_reward_calibration_model",
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 61
+        },
+        {
+          "caller": "services.agents.feedback_agent:FeedbackSynthesisAgent.synthesize",
+          "callee": "services.agents.feedback_agent:synthesize_feedback",
+          "source": "services/agents/feedback_agent.py",
+          "line": 94
+        },
+        {
+          "caller": "services.agents.feedback_agent:synthesize_feedback",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/feedback_agent.py",
+          "line": 19
+        },
+        {
+          "caller": "services.agents.gnh_agent:GnhSynthesisAgent.synthesize",
+          "callee": "services.agents.gnh_agent:synthesize_gnh",
+          "source": "services/agents/gnh_agent.py",
+          "line": 156
+        },
+        {
+          "caller": "services.agents.gnh_agent:synthesize_gnh",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/gnh_agent.py",
+          "line": 25
+        },
+        {
+          "caller": "services.agents.gnh_agent:synthesize_gnh",
+          "callee": "services.agents.gnh_agent:_location_filter",
+          "source": "services/agents/gnh_agent.py",
+          "line": 28
+        },
+        {
+          "caller": "services.agents.gnh_agent:synthesize_gnh",
+          "callee": "services.agents.gnh_agent:_location_filter",
+          "source": "services/agents/gnh_agent.py",
+          "line": 42
+        },
+        {
+          "caller": "services.agents.gnh_agent:synthesize_gnh",
+          "callee": "services.agents.gnh_agent:_location_filter",
+          "source": "services/agents/gnh_agent.py",
+          "line": 57
+        },
+        {
+          "caller": "services.agents.gnh_agent:synthesize_gnh",
+          "callee": "services.agents.gnh_agent:_location_filter",
+          "source": "services/agents/gnh_agent.py",
+          "line": 73
+        },
+        {
+          "caller": "services.agents.gnh_agent:synthesize_gnh",
+          "callee": "services.agents.gnh_agent:_location_filter",
+          "source": "services/agents/gnh_agent.py",
+          "line": 88
+        },
+        {
+          "caller": "services.agents.kokonut_commons_agent:KokonutCommonsSynthesisAgent.synthesize",
+          "callee": "services.agents.kokonut_commons_agent:synthesize_kokonut_commons",
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 88
+        },
+        {
+          "caller": "services.agents.kokonut_commons_agent:synthesize_kokonut_commons",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 30
+        },
+        {
+          "caller": "services.agents.kokonut_commons_agent:synthesize_kokonut_commons",
+          "callee": "services.agents.kokonut_commons_agent:_fetch",
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 32
+        },
+        {
+          "caller": "services.agents.kokonut_commons_agent:synthesize_kokonut_commons",
+          "callee": "services.agents.kokonut_commons_agent:_fetch",
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 33
+        },
+        {
+          "caller": "services.agents.kokonut_commons_agent:synthesize_kokonut_commons",
+          "callee": "services.agents.kokonut_commons_agent:_fetch",
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 34
+        },
+        {
+          "caller": "services.agents.kokonut_commons_agent:synthesize_kokonut_commons",
+          "callee": "services.agents.kokonut_commons_agent:_fetch",
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 35
+        },
+        {
+          "caller": "services.agents.kokonut_commons_agent:synthesize_kokonut_commons",
+          "callee": "services.agents.kokonut_commons_agent:_fetch",
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 36
+        },
+        {
+          "caller": "services.agents.open_source_capitalist_agent:OpenSourceCapitalistSynthesisAgent.synthesize",
+          "callee": "services.agents.open_source_capitalist_agent:synthesize_open_source_capitalist",
+          "source": "services/agents/open_source_capitalist_agent.py",
+          "line": 169
+        },
+        {
+          "caller": "services.agents.open_source_capitalist_agent:synthesize_open_source_capitalist",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/open_source_capitalist_agent.py",
+          "line": 25
+        },
+        {
+          "caller": "services.agents.open_source_capitalist_agent:synthesize_open_source_capitalist",
+          "callee": "services.agents.open_source_capitalist_agent:_location_filter",
+          "source": "services/agents/open_source_capitalist_agent.py",
+          "line": 28
+        },
+        {
+          "caller": "services.agents.open_source_capitalist_agent:synthesize_open_source_capitalist",
+          "callee": "services.agents.open_source_capitalist_agent:_location_filter",
+          "source": "services/agents/open_source_capitalist_agent.py",
+          "line": 60
+        },
+        {
+          "caller": "services.agents.open_source_capitalist_agent:synthesize_open_source_capitalist",
+          "callee": "services.agents.open_source_capitalist_agent:_location_filter",
+          "source": "services/agents/open_source_capitalist_agent.py",
+          "line": 75
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:OrganicReadinessSynthesisAgent.synthesize",
+          "callee": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 123
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 34
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "callee": "services.agents.organic_readiness_agent:_determine_readiness_status",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 71
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "callee": "services.analytics.organic_certification:compute_buffer_adequacy",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 44
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "callee": "services.analytics.organic_certification:compute_harvest_segregation_score",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 45
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "callee": "services.analytics.organic_certification:compute_input_compliance_pct",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 43
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "callee": "services.analytics.organic_certification:compute_organic_readiness_score",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 41
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "callee": "services.analytics.organic_certification:compute_prohibited_substance_clearance",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 47
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "callee": "services.analytics.organic_certification:compute_record_completeness",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 46
+        },
+        {
+          "caller": "services.agents.organic_readiness_agent:synthesize_organic_readiness",
+          "callee": "services.analytics.organic_certification:compute_transition_progress",
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 42
+        },
+        {
+          "caller": "services.agents.regenerator_agent:RegeneratorSynthesisAgent.synthesize",
+          "callee": "services.agents.regenerator_agent:synthesize_regenerator",
+          "source": "services/agents/regenerator_agent.py",
+          "line": 166
+        },
+        {
+          "caller": "services.agents.regenerator_agent:synthesize_regenerator",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/regenerator_agent.py",
+          "line": 25
+        },
+        {
+          "caller": "services.agents.regenerator_agent:synthesize_regenerator",
+          "callee": "services.agents.regenerator_agent:_location_filter",
+          "source": "services/agents/regenerator_agent.py",
+          "line": 28
+        },
+        {
+          "caller": "services.agents.regenerator_agent:synthesize_regenerator",
+          "callee": "services.agents.regenerator_agent:_location_filter",
+          "source": "services/agents/regenerator_agent.py",
+          "line": 44
+        },
+        {
+          "caller": "services.agents.regenerator_agent:synthesize_regenerator",
+          "callee": "services.agents.regenerator_agent:_location_filter",
+          "source": "services/agents/regenerator_agent.py",
+          "line": 59
+        },
+        {
+          "caller": "services.agents.regenerator_agent:synthesize_regenerator",
+          "callee": "services.agents.regenerator_agent:_location_filter",
+          "source": "services/agents/regenerator_agent.py",
+          "line": 75
+        },
+        {
+          "caller": "services.agents.resilience_agent:ResilienceSynthesisAgent.synthesize",
+          "callee": "services.agents.resilience_agent:synthesize_resilience",
+          "source": "services/agents/resilience_agent.py",
+          "line": 137
+        },
+        {
+          "caller": "services.agents.resilience_agent:synthesize_resilience",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/resilience_agent.py",
+          "line": 25
+        },
+        {
+          "caller": "services.agents.resilience_agent:synthesize_resilience",
+          "callee": "services.agents.resilience_agent:_location_filter",
+          "source": "services/agents/resilience_agent.py",
+          "line": 28
+        },
+        {
+          "caller": "services.agents.resilience_agent:synthesize_resilience",
+          "callee": "services.agents.resilience_agent:_location_filter",
+          "source": "services/agents/resilience_agent.py",
+          "line": 43
+        },
+        {
+          "caller": "services.agents.resilience_agent:synthesize_resilience",
+          "callee": "services.agents.resilience_agent:_location_filter",
+          "source": "services/agents/resilience_agent.py",
+          "line": 58
+        },
+        {
+          "caller": "services.agents.safety:assert_agent_action_allowed",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/safety.py",
+          "line": 357
+        },
+        {
+          "caller": "services.agents.tasks:get_task",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 440
+        },
+        {
+          "caller": "services.agents.tasks:get_task",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/tasks.py",
+          "line": 439
+        },
+        {
+          "caller": "services.agents.tasks:output_schema",
+          "callee": "services.agents.tasks:get_task",
+          "source": "services/agents/tasks.py",
+          "line": 445
+        },
+        {
+          "caller": "services.agents.tasks:validate_output",
+          "callee": "services.agents.tasks:_validate_declared_fields",
+          "source": "services/agents/tasks.py",
+          "line": 519
+        },
+        {
+          "caller": "services.agents.tasks:validate_output",
+          "callee": "services.agents.tasks:cids_artifact_sha256",
+          "source": "services/agents/tasks.py",
+          "line": 691
+        },
+        {
+          "caller": "services.agents.tasks:validate_output",
+          "callee": "services.agents.tasks:output_schema",
+          "source": "services/agents/tasks.py",
+          "line": 520
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/tasks.py",
+          "line": 425
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 377
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_inputs",
+          "callee": "services.agents.tasks:_validate_declared_fields",
+          "source": "services/agents/tasks.py",
+          "line": 512
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_inputs",
+          "callee": "services.agents.tasks:get_task",
+          "source": "services/agents/tasks.py",
+          "line": 513
+        },
+        {
+          "caller": "services.agents.wellbeing_agent:WellbeingSynthesisAgent.synthesize",
+          "callee": "services.agents.wellbeing_agent:synthesize_wellbeing",
+          "source": "services/agents/wellbeing_agent.py",
+          "line": 128
+        },
+        {
+          "caller": "services.agents.wellbeing_agent:synthesize_wellbeing",
+          "callee": "services.agents.base:require_synthesis_location_id",
+          "source": "services/agents/wellbeing_agent.py",
+          "line": 20
+        },
+        {
+          "caller": "services.agents.worker_cli:main",
+          "callee": "services.agents.worker_cli:resolve_synthesis_agent",
+          "source": "services/agents/worker_cli.py",
+          "line": 864
+        },
+        {
+          "caller": "services.agents.worker_cli:main",
+          "callee": "services.agents.worker_cli:run_worker_summary",
+          "source": "services/agents/worker_cli.py",
+          "line": 874
+        },
+        {
+          "caller": "services.agents.worker_cli:main",
+          "callee": "services.agents.worker_cli:run_worker_synthesis",
+          "source": "services/agents/worker_cli.py",
+          "line": 866
+        },
+        {
+          "caller": "services.agents.worker_cli:main",
+          "callee": "services.common.errors:safe_exception_class",
+          "source": "services/agents/worker_cli.py",
+          "line": 893
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.agents.ai_summary:validate_source_reference_coverage",
+          "source": "services/agents/worker_cli.py",
+          "line": 399
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 357
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 359
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/worker_cli.py",
+          "line": 350
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.agents.tasks:validate_task_inputs",
+          "source": "services/agents/worker_cli.py",
+          "line": 351
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "source": "services/agents/worker_cli.py",
+          "line": 417
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "source": "services/agents/worker_cli.py",
+          "line": 361
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "source": "services/agents/worker_cli.py",
+          "line": 380
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_cli.py",
+          "line": 375
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_cli.py",
+          "line": 373
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:validate_source_tables",
+          "source": "services/agents/worker_cli.py",
+          "line": 195
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 207
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 209
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.tasks:validate_output",
+          "source": "services/agents/worker_cli.py",
+          "line": 264
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/worker_cli.py",
+          "line": 189
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.tasks:validate_task_inputs",
+          "source": "services/agents/worker_cli.py",
+          "line": 190
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.worker_cli:resolve_synthesis_agent",
+          "source": "services/agents/worker_cli.py",
+          "line": 164
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "source": "services/agents/worker_cli.py",
+          "line": 291
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "source": "services/agents/worker_cli.py",
+          "line": 219
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "source": "services/agents/worker_cli.py",
+          "line": 246
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_cli.py",
+          "line": 238
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_cli.py",
+          "line": 240
+        },
+        {
+          "caller": "services.agents.worker_draft:_set_context",
+          "callee": "services.common.tenant_context:set_agent_summary_draft_tenant_context",
+          "source": "services/agents/worker_draft.py",
+          "line": 287
+        },
+        {
+          "caller": "services.agents.worker_draft:_validate_payload",
+          "callee": "services.agents.worker_draft:_validate_source_references",
+          "source": "services/agents/worker_draft.py",
+          "line": 239
+        },
+        {
+          "caller": "services.agents.worker_draft:_validate_source_references",
+          "callee": "services.agents.worker_draft:_uuid",
+          "source": "services/agents/worker_draft.py",
+          "line": 182
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_read_row",
+          "source": "services/agents/worker_draft.py",
+          "line": 481
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_read_source_references",
+          "source": "services/agents/worker_draft.py",
+          "line": 504
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_resolve_worker_key",
+          "source": "services/agents/worker_draft.py",
+          "line": 439
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_serialize_worker_result",
+          "source": "services/agents/worker_draft.py",
+          "line": 438
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_set_context",
+          "source": "services/agents/worker_draft.py",
+          "line": 444
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_uuid",
+          "source": "services/agents/worker_draft.py",
+          "line": 429
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_uuid",
+          "source": "services/agents/worker_draft.py",
+          "line": 430
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_validate_payload",
+          "source": "services/agents/worker_draft.py",
+          "line": 437
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_validate_task_summary_type",
+          "source": "services/agents/worker_draft.py",
+          "line": 440
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_verify_operator_task_request",
+          "source": "services/agents/worker_draft.py",
+          "line": 449
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_draft.py",
+          "line": 441
+        },
+        {
+          "caller": "services.agents.worker_draft:create_worker_ai_summary_draft",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_draft.py",
+          "line": 442
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_read_row",
+          "source": "services/agents/worker_draft.py",
+          "line": 397
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_read_source_references",
+          "source": "services/agents/worker_draft.py",
+          "line": 399
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_resolve_worker_key",
+          "source": "services/agents/worker_draft.py",
+          "line": 374
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_set_context",
+          "source": "services/agents/worker_draft.py",
+          "line": 379
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_uuid",
+          "source": "services/agents/worker_draft.py",
+          "line": 370
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_uuid",
+          "source": "services/agents/worker_draft.py",
+          "line": 371
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_validate_task_summary_type",
+          "source": "services/agents/worker_draft.py",
+          "line": 375
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.agents.worker_draft:_verify_operator_task_request",
+          "source": "services/agents/worker_draft.py",
+          "line": 384
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_draft.py",
+          "line": 376
+        },
+        {
+          "caller": "services.agents.worker_draft:get_worker_ai_summary_draft",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_draft.py",
+          "line": 377
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 245
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 236
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_source_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 212
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_summary_draft_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 182
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "callee": "services.common.tenant_context:set_agent_source_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 161
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 77
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 118
+        }
+      ],
+      "callback_edges": [],
+      "injected_instance_bindings": [],
+      "dynamic_dispatch_edges": [
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "bio_factory_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "capital_efficiency_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "commons_liberation_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "ecological_modeling_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "feedback_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "financial_resilience_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "gnh_alignment_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "holistic_wellbeing_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "kokonut_commons_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "open_source_capitalist_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "organic_readiness_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.base:SynthesisAgent.collect_source_references",
+          "source": "services/agents/worker_cli.py",
+          "line": 256,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "regenerator_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.bio_factory_agent:BioFactorySynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "bio_factory_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.capital_efficiency_agent:CapitalEfficiencySynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "capital_efficiency_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.commons_agent:CommonsSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "commons_liberation_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.ecological_modeling_agent:EcologicalModelingSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "ecological_modeling_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.feedback_agent:FeedbackSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "feedback_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.gnh_agent:GnhSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "gnh_alignment_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.kokonut_commons_agent:KokonutCommonsSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "kokonut_commons_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.open_source_capitalist_agent:OpenSourceCapitalistSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "open_source_capitalist_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.organic_readiness_agent:OrganicReadinessSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "organic_readiness_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.regenerator_agent:RegeneratorSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "regenerator_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.resilience_agent:ResilienceSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "financial_resilience_synthesis"
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_synthesis",
+          "callee": "services.agents.wellbeing_agent:WellbeingSynthesisAgent.synthesize",
+          "source": "services/agents/worker_cli.py",
+          "line": 255,
+          "dispatch": "literal_registered_synthesis_agent_registry",
+          "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+          "registry_key": "holistic_wellbeing_synthesis"
+        }
+      ]
     },
     {
       "kind": "isolated_worker",

@@ -116,6 +116,55 @@ def _scan_source(path: Path) -> tuple[list[tuple[int, str, str]], list[dict[str,
     return sorted(imports), [{"line": line, "kind": kind} for line, kind in sorted(dynamic_sites)]
 
 
+def _registered_agent_task_targets() -> list[dict[str, str | int]]:
+    """Read the source-owned synthesis-task registry used by the agent worker."""
+    path = ROOT / "services/agents/worker_cli.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for statement in tree.body:
+        if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+        if not any(isinstance(target, ast.Name) and target.id == "_SYNTHESIS_WORKERS" for target in targets):
+            continue
+        value = statement.value
+        if not (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Name)
+            and value.func.id == "MappingProxyType"
+            and len(value.args) == 1
+            and not value.keywords
+            and isinstance(value.args[0], ast.Dict)
+        ):
+            raise ValueError("agent synthesis registry must remain a literal immutable mapping")
+        registry = value.args[0]
+        result = []
+        for key, spec in zip(registry.keys, registry.values):
+            if (
+                not isinstance(key, ast.Constant)
+                or not isinstance(key.value, str)
+                or not isinstance(spec, ast.Call)
+                or not isinstance(spec.func, ast.Name)
+                or spec.func.id != "SynthesisWorkerSpec"
+                or len(spec.args) != 3
+                or not isinstance(spec.args[0], ast.Constant)
+                or not isinstance(spec.args[0].value, str)
+                or not all(isinstance(arg, ast.Constant) and isinstance(arg.value, str) for arg in spec.args)
+                or spec.keywords
+            ):
+                raise ValueError("agent synthesis registry entries must have literal task and worker metadata")
+            result.append(
+                {
+                    "task_key": key.value,
+                    "module": spec.args[0].value,
+                    "line": key.lineno,
+                }
+            )
+        if not result or len({entry["task_key"] for entry in result}) != len(result):
+            raise ValueError("agent synthesis registry must contain unique literal task keys")
+        return result
+    raise ValueError("agent synthesis registry is missing")
+
+
 def _operation(kind: str, name: str, root_modules: list[str]) -> dict:
     pending = deque(root_modules)
     visited_modules: set[str] = set()
@@ -123,6 +172,7 @@ def _operation(kind: str, name: str, root_modules: list[str]) -> dict:
     edges: set[tuple[str, int, str, str]] = set()
     dynamic_sites: set[tuple[str, int, str]] = set()
     unresolved_modules: set[str] = set()
+    registered_agent_targets = []
 
     while pending:
         module = pending.popleft()
@@ -149,7 +199,23 @@ def _operation(kind: str, name: str, root_modules: list[str]) -> dict:
                 if resolved_target not in visited_modules:
                     pending.append(resolved_target)
 
-    return {
+            if (
+                kind == "isolated_worker"
+                and name == "services.agents.worker_cli"
+                and module == name
+            ):
+                for target in _registered_agent_task_targets():
+                    module = str(target["module"])
+                    target_paths = _module_paths(module)
+                    if not target_paths:
+                        raise ValueError(f"registered agent task module does not exist: {module}")
+                    resolved_target = _module_for_path(target_paths[0])
+                    edges.add((source, int(target["line"]), resolved_target, "registered-agent"))
+                    registered_agent_targets.append(dict(target))
+                    if resolved_target not in visited_modules:
+                        pending.append(resolved_target)
+
+    operation = {
         "kind": kind,
         "name": name,
         "root_modules": sorted(set(root_modules)),
@@ -164,6 +230,11 @@ def _operation(kind: str, name: str, root_modules: list[str]) -> dict:
             {"source": source, "line": line, "kind": site_kind} for source, line, site_kind in sorted(dynamic_sites)
         ],
     }
+    if registered_agent_targets:
+        operation["registered_agent_targets"] = sorted(
+            registered_agent_targets, key=lambda target: (target["task_key"], target["module"])
+        )
+    return operation
 
 
 def build_inventory() -> dict:

@@ -19241,3 +19241,30 @@ deployed, and 36 prepared across 67 rows. Checklist: 1,215 complete / 25 open
 This static graph is a review aid and does not prove authorization, tenant
 context, runtime grants, RLS, or effects. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/worker-persistence-injection-reachability.json`.
+
+### Progress addendum — registered synthesis-agent worker reachability, 26 October 2026
+
+The isolated worker inventory now includes `services.agents.worker_cli`, a
+one-shot synthesis and deterministic-summary CLI. The source closure resolves
+its 12 literal `_SYNTHESIS_WORKERS` targets and exact source modules. The
+function graph adds 24 registry-keyed edges from `run_worker_synthesis` to
+each task's synthesis and provenance methods. The operation map records the
+task-specific signed source readers, optional receipt-gated draft persistence,
+and the fact that this CLI root alone does not prove its caller authenticated.
+
+The six focused source, function, SQL, preflight, and operation-map test files
+pass 60 tests. Ruff, Python compilation, all generated worker inventory checks,
+capability-matrix validation, and diff checks pass. The graph now covers 42
+operation roots, 138 function-graph source files, 1,017 function memberships,
+1,411 direct-call edges, and 48 dynamic-dispatch edges. The SQL inventory
+contains 473 execution sites; 109 lack a static function match. A source-level
+review records the patterns for 36 newly exposed non-literal sites (34 in
+agent modules and two imported modules) in
+`docs/refactor/worker-sql-source-pattern-review.json`. The fragments are
+source-owned and bind data values, but this review does not approve ACLs or
+verify live grants. Capability status is unchanged at 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows. The checklist
+is 1,216 complete / 25 open (1,241 total). No database, provider, candidate,
+or legacy service was used. This static reachability work does not prove live
+authentication, grants, tenant isolation, RLS, or database/provider effects.
+Evidence: `docs/refactor/builds/2026-10-26-recovery/registered-agent-worker-reachability.json`.

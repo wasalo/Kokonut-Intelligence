@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-26",
+  "change": "Register the one-shot synthesis-agent CLI as an isolated worker root and trace its fixed task registry through the exact agent source methods.",
+  "agent_worker": {
+    "module": "services.agents.worker_cli",
+    "task_registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+    "registered_synthesis_tasks": 12,
+    "source_files_in_closure": 37,
+    "reachable_functions": 99,
+    "direct_call_edges": 153,
+    "registry_dispatch_edges": 24,
+    "dispatch_methods": [
+      "synthesize",
+      "collect_source_references"
+    ],
+    "worker_keys": [
+      "agent_bio_factory_source",
+      "agent_capital_efficiency_source",
+      "agent_commons_liberation_source",
+      "agent_ecological_modeling_source",
+      "agent_feedback_source",
+      "agent_financial_resilience_source",
+      "agent_gnh_alignment_source",
+      "agent_holistic_wellbeing_source",
+      "agent_kokonut_commons_source",
+      "agent_open_source_capitalist_source",
+      "agent_organic_readiness_source",
+      "agent_regenerator_source",
+      "agent_summary_deterministic_source"
+    ]
+  },
+  "inventory_scope": {
+    "operation_roots": 42,
+    "source_closure_files": 136,
+    "function_graph_source_files": 138,
+    "function_memberships": 1017,
+    "direct_call_edges": 1411,
+    "dynamic_dispatch_edges": 48,
+    "sql_execution_sites": 473,
+    "literal_sql_sites": 386,
+    "composed_or_variable_sql_sites": 87,
+    "sql_sites_with_static_operation_path": 364,
+    "sql_sites_without_static_function_match": 109,
+    "new_nonliteral_sql_sites_source_pattern_reviewed": 36,
+    "effect_candidate_sites": 70,
+    "effect_operation_site_memberships": 98
+  },
+  "verification": {
+    "focused_tests": "60 passed: tests/test_worker_source_closure.py, tests/test_worker_function_reachability.py, tests/test_worker_sql_inventory.py, tests/test_worker_sql_reachability.py, tests/test_worker_boundary_preflight.py, tests/test_worker_operation_map.py",
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "worker_source_closure_check": "passed",
+    "worker_function_reachability_check": "passed",
+    "worker_sql_inventory_check": "passed",
+    "worker_sql_reachability_check": "passed",
+    "worker_effect_inventory_check": "passed",
+    "worker_boundary_preflight_check": "passed",
+    "worker_sql_source_pattern_review": "passed: 36 newly exposed non-literal call sites categorized; no ACL approval implied",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "review_limits": {
+    "new_nonliteral_sql_sites_pending_source_pattern_review": 0,
+    "new_synthesis_composed_or_variable_sql_sites_reviewed": 36,
+    "database_or_provider_access": false,
+    "candidate_or_legacy_services_touched": false,
+    "does_not_prove": [
+      "runtime caller authentication",
+      "database grants or least privilege",
+      "tenant isolation or RLS",
+      "database-side effects",
+      "external provider behavior"
+    ]
+  },
+  "files": [
+    "services/security/execution_allowlist.py",
+    "scripts/worker_source_closure.py",
+    "scripts/worker_function_reachability.py",
+    "tests/test_worker_source_closure.py",
+    "tests/test_worker_function_reachability.py",
+    "tests/test_worker_sql_inventory.py",
+    "tests/test_worker_boundary_preflight.py",
+    "tests/test_worker_operation_map.py",
+    "docs/refactor/worker-operation-map.json",
+    "docs/refactor/worker-operation-map.md",
+    "docs/refactor/worker-source-closure.json",
+    "docs/refactor/worker-function-reachability.json",
+    "docs/refactor/worker-sql-inventory.json",
+    "docs/refactor/worker-sql-reachability.json",
+    "docs/refactor/worker-effect-inventory.json",
+    "docs/refactor/worker-boundary-preflight.json",
+    "docs/refactor/worker-sql-source-pattern-review.json",
+    "docs/refactor/batches.md",
+    "docs/refactor/progress.md"
+  ]
+}

@@ -19,11 +19,13 @@ ALLOWED_EVENT_HANDLERS = frozenset(
 # without adding them to the persisted scheduler allowlist.
 ISOLATED_WORKER_MODULES = frozenset(
     {
+        "services.agents.worker_cli",
         "services.events.dispatch_worker",
         "services.events.notification_delivery_worker",
     }
 )
 ISOLATED_WORKER_ENTRYPOINTS = {
+    "services.agents.worker_cli": "main",
     "services.events.dispatch_worker": "run_once",
     "services.events.notification_delivery_worker": "run_once",
 }

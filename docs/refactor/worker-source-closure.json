@@ -7180,6 +7180,697 @@
     },
     {
       "kind": "isolated_worker",
+      "name": "services.agents.worker_cli",
+      "root_modules": [
+        "services.agents.worker_cli"
+      ],
+      "modules": [
+        "services.agents.ai_summary",
+        "services.agents.base",
+        "services.agents.bio_factory_agent",
+        "services.agents.capital_efficiency_agent",
+        "services.agents.commons_agent",
+        "services.agents.ebf_evidence_gap_agent",
+        "services.agents.ecological_modeling_agent",
+        "services.agents.feedback_agent",
+        "services.agents.gnh_agent",
+        "services.agents.kokonut_commons_agent",
+        "services.agents.logging",
+        "services.agents.open_source_capitalist_agent",
+        "services.agents.organic_readiness_agent",
+        "services.agents.regenerator_agent",
+        "services.agents.resilience_agent",
+        "services.agents.safety",
+        "services.agents.tasks",
+        "services.agents.wellbeing_agent",
+        "services.agents.worker_cli",
+        "services.agents.worker_draft",
+        "services.analytics.ecological_modeling",
+        "services.analytics.ecological_modeling_v2",
+        "services.analytics.livestock_feed",
+        "services.analytics.organic_certification",
+        "services.analytics.reward_calibration",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.providers",
+        "services.registry.cids_contract",
+        "services.registry.cids_export"
+      ],
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/bio_factory_agent.py",
+        "services/agents/capital_efficiency_agent.py",
+        "services/agents/commons_agent.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/ecological_modeling_agent.py",
+        "services/agents/feedback_agent.py",
+        "services/agents/gnh_agent.py",
+        "services/agents/kokonut_commons_agent.py",
+        "services/agents/logging.py",
+        "services/agents/open_source_capitalist_agent.py",
+        "services/agents/organic_readiness_agent.py",
+        "services/agents/regenerator_agent.py",
+        "services/agents/resilience_agent.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/wellbeing_agent.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/analytics/ecological_modeling.py",
+        "services/analytics/ecological_modeling_v2.py",
+        "services/analytics/livestock_feed.py",
+        "services/analytics/organic_certification.py",
+        "services/analytics/reward_calibration.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 24,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 25,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 26,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 31,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 539,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 546,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 553,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 560,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 610,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 632,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 19,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 23,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 272,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/bio_factory_agent.py",
+          "line": 10,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/capital_efficiency_agent.py",
+          "line": 10,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/commons_agent.py",
+          "line": 10,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 14,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 50,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 8,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 9,
+          "target": "services.analytics.ecological_modeling",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 15,
+          "target": "services.analytics.ecological_modeling_v2",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 22,
+          "target": "services.analytics.livestock_feed",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 26,
+          "target": "services.analytics.reward_calibration",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ecological_modeling_agent.py",
+          "line": 30,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/feedback_agent.py",
+          "line": 10,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/gnh_agent.py",
+          "line": 10,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/kokonut_commons_agent.py",
+          "line": 10,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/open_source_capitalist_agent.py",
+          "line": 10,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 8,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 12,
+          "target": "services.analytics.organic_certification",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/organic_readiness_agent.py",
+          "line": 21,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/regenerator_agent.py",
+          "line": 10,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/resilience_agent.py",
+          "line": 10,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/safety.py",
+          "line": 374,
+          "target": "services.agents.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 16,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 411,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/wellbeing_agent.py",
+          "line": 11,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 16,
+          "target": "services.agents.ai_summary",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 17,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 23,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 24,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 25,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 29,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 46,
+          "target": "services.agents.bio_factory_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 51,
+          "target": "services.agents.capital_efficiency_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 56,
+          "target": "services.agents.commons_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 61,
+          "target": "services.agents.ecological_modeling_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 66,
+          "target": "services.agents.feedback_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 71,
+          "target": "services.agents.resilience_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 76,
+          "target": "services.agents.gnh_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 81,
+          "target": "services.agents.wellbeing_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 86,
+          "target": "services.agents.kokonut_commons_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 91,
+          "target": "services.agents.open_source_capitalist_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 96,
+          "target": "services.agents.organic_readiness_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 101,
+          "target": "services.agents.regenerator_agent",
+          "kind": "registered-agent"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 141,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 142,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 143,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 347,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 348,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 443,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 444,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 594,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 595,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 634,
+          "target": "services.agents.ebf_evidence_gap_agent",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 659,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 660,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 695,
+          "target": "services.registry.cids_export",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 727,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 728,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 16,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 19,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/ecological_modeling.py",
+          "line": 8,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/ecological_modeling_v2.py",
+          "line": 7,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/livestock_feed.py",
+          "line": 7,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/organic_certification.py",
+          "line": 7,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/reward_calibration.py",
+          "line": 7,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 18,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 878,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 114,
+          "kind": "dynamic module expression"
+        }
+      ],
+      "registered_agent_targets": [
+        {
+          "task_key": "bio_factory_synthesis",
+          "module": "services.agents.bio_factory_agent",
+          "line": 46
+        },
+        {
+          "task_key": "capital_efficiency_synthesis",
+          "module": "services.agents.capital_efficiency_agent",
+          "line": 51
+        },
+        {
+          "task_key": "commons_liberation_synthesis",
+          "module": "services.agents.commons_agent",
+          "line": 56
+        },
+        {
+          "task_key": "ecological_modeling_synthesis",
+          "module": "services.agents.ecological_modeling_agent",
+          "line": 61
+        },
+        {
+          "task_key": "feedback_synthesis",
+          "module": "services.agents.feedback_agent",
+          "line": 66
+        },
+        {
+          "task_key": "financial_resilience_synthesis",
+          "module": "services.agents.resilience_agent",
+          "line": 71
+        },
+        {
+          "task_key": "gnh_alignment_synthesis",
+          "module": "services.agents.gnh_agent",
+          "line": 76
+        },
+        {
+          "task_key": "holistic_wellbeing_synthesis",
+          "module": "services.agents.wellbeing_agent",
+          "line": 81
+        },
+        {
+          "task_key": "kokonut_commons_synthesis",
+          "module": "services.agents.kokonut_commons_agent",
+          "line": 86
+        },
+        {
+          "task_key": "open_source_capitalist_synthesis",
+          "module": "services.agents.open_source_capitalist_agent",
+          "line": 91
+        },
+        {
+          "task_key": "organic_readiness_synthesis",
+          "module": "services.agents.organic_readiness_agent",
+          "line": 96
+        },
+        {
+          "task_key": "regenerator_synthesis",
+          "module": "services.agents.regenerator_agent",
+          "line": 101
+        }
+      ]
+    },
+    {
+      "kind": "isolated_worker",
       "name": "services.events.dispatch_worker",
       "root_modules": [
         "services.events.dispatch_worker"

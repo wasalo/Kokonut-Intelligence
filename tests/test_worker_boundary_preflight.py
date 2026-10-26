@@ -43,12 +43,14 @@ def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(repo
     )
     assert "services.events.notification_delivery_worker" in ISOLATED_WORKER_MODULES
     assert "services.events.notification_delivery_worker" not in ALLOWED_SCHEDULED_MODULES
+    assert "services.agents.worker_cli" in ISOLATED_WORKER_MODULES
+    assert "services.agents.worker_cli" not in ALLOWED_SCHEDULED_MODULES
     assert set(ISOLATED_WORKER_ENTRYPOINTS) == set(ISOLATED_WORKER_MODULES)
     assert coverage["missing_source_closure_operations"] == []
     assert coverage["missing_function_graph_operations"] == []
     assert coverage["unresolved_function_roots"] == 0
     assert coverage["passed"] is True
-    assert report["source_closure"]["dynamic_import_site_count"] == 3
+    assert report["source_closure"]["dynamic_import_site_count"] == 4
     assert report["source_closure"]["passed"] is True
     assert report["worker_identity"]["signed_tenant_context_established_by_dispatch"] is False
     assert report["worker_identity"]["unbound_operation_root_count"] == coverage["expected_operation_count"]

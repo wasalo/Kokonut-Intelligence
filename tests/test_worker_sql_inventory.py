@@ -20,6 +20,7 @@ from scripts.worker_sql_inventory import (
 )
 
 INVENTORY_PATH = ROOT / "docs" / "refactor" / "worker-sql-inventory.json"
+SOURCE_PATTERN_REVIEW_PATH = ROOT / "docs" / "refactor" / "worker-sql-source-pattern-review.json"
 
 
 def _load_inventory() -> dict:
@@ -105,14 +106,54 @@ def test_static_sqlalchemy_text_and_psycopg_sql_wrappers_are_unwrapped():
     )
 
 
-def test_unknown_sql_sites_are_the_three_generic_database_adapters():
+def test_unclassified_sql_sites_are_explicitly_enumerated_for_follow_up():
     unknown = [site for site in _load_inventory()["execution_sites"] if site["statement_kind"] == "UNKNOWN"]
 
     assert [(site["source"], site["line"]) for site in unknown] == [
+        ("services/agents/base.py", 149),
+        ("services/analytics/organic_certification.py", 295),
         ("services/common/database.py", 77),
         ("services/common/database.py", 80),
         ("services/common/database.py", 142),
+        ("services/registry/cids_export.py", 122),
     ]
+
+
+def test_new_agent_worker_sql_patterns_are_reviewed_without_promoting_unknowns():
+    inventory = _load_inventory()
+    review = json.loads(SOURCE_PATTERN_REVIEW_PATH.read_text(encoding="utf-8"))
+    reviewed_sites = [
+        (group, site_id)
+        for group in review["reviewed_patterns"]
+        for site_id in group["sites"]
+    ]
+    inventory_by_id = {site["id"]: site for site in inventory["execution_sites"]}
+    agent_nonliteral_ids = {
+        site["id"]
+        for site in inventory["execution_sites"]
+        if site["source"].startswith("services/agents/")
+        and site["expression_kind"] != "literal"
+    }
+    imported_nonliteral_ids = {
+        "services/analytics/organic_certification.py:295:8",
+        "services/registry/cids_export.py:122:12",
+    }
+    reviewed_ids = {site_id for _, site_id in reviewed_sites}
+
+    assert len(reviewed_sites) == 36
+    assert len(reviewed_ids) == 36
+    assert reviewed_ids == agent_nonliteral_ids | imported_nonliteral_ids
+    assert sum(group["site_count"] for group in review["reviewed_patterns"]) == 36
+    assert review["result"]["approved_as_acl_input"] is False
+    assert all(inventory_by_id[site_id]["expression_kind"] == group["expression_kind"] for group, site_id in reviewed_sites)
+    assert all(
+        inventory_by_id[site_id]["statement_kind"] == "UNKNOWN"
+        for site_id in (
+            "services/agents/base.py:149:12",
+            "services/analytics/organic_certification.py:295:8",
+            "services/registry/cids_export.py:122:12",
+        )
+    )
 
 
 def test_gee_climate_inventory_records_its_four_literal_caller_templates():
@@ -398,12 +439,25 @@ def test_dynamic_sql_review_categories_remain_explicit():
         by_source.setdefault(site["source"], []).append(site)
 
     assert {source: len(sites) for source, sites in by_source.items()} == {
+        "services/agents/ai_summary.py": 3,
+        "services/agents/base.py": 1,
+        "services/agents/bio_factory_agent.py": 4,
+        "services/agents/capital_efficiency_agent.py": 4,
+        "services/agents/commons_agent.py": 4,
+        "services/agents/gnh_agent.py": 5,
+        "services/agents/kokonut_commons_agent.py": 2,
+        "services/agents/open_source_capitalist_agent.py": 3,
+        "services/agents/regenerator_agent.py": 4,
+        "services/agents/resilience_agent.py": 3,
+        "services/agents/worker_cli.py": 1,
         "services/analytics/carbon_balance.py": 3,
         "services/analytics/carbon_credits.py": 3,
         "services/analytics/reporting_reader.py": 3,
         "services/cache/cache.py": 1,
         "services/common/database.py": 3,
         "services/common/tenant_context.py": 1,
+        "services/analytics/organic_certification.py": 1,
+        "services/registry/cids_export.py": 1,
         "services/events/fork_detector.py": 1,
         "services/events/insight_transfer.py": 2,
         "services/ingestion/data_freshness.py": 5,

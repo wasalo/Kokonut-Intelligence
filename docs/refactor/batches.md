@@ -4537,7 +4537,6 @@ The AST scope inventory now follows a location-filtered parent row into child re
   and 36 prepared across 67 rows. Checklist: 1,214 complete / 25 open
   (1,239 total).
 
-
 - [x] Trace explicitly injected worker persistence adapters through their
   processing functions. The static function graph now propagates a concrete
   class type only when a statically resolved call passes a known class
@@ -4554,3 +4553,5 @@ The AST scope inventory now follows a location-filtered parent row into child re
   [evidence](builds/2026-10-26-recovery/worker-persistence-injection-reachability.json)).
   Capability classifications remain 24 baseline-retained, 7 deployed, and 36
   prepared across 67 rows. Checklist: 1,215 complete / 25 open (1,240 total).
+
+- [x] Trace the registered synthesis-agent worker entrypoint through its exact task registry. The isolated worker allowlist now includes `services.agents.worker_cli`; source closure resolves all 12 literal `_SYNTHESIS_WORKERS` targets, and the function graph records 24 registry-keyed edges to each agent's `synthesize` and `collect_source_references` methods. The worker map records the 12 dedicated source identities, deterministic summary task, signed location reads, optional receipt-gated draft persistence, and the direct-CLI caller boundary. The focused source/function/SQL/preflight/operation-map selection passes 60 tests; Ruff, Python compilation, all generated worker inventory checks, capability-matrix validation, and `git diff --check` pass. The refreshed graph covers 42 roots, 138 function-graph source files, 1,017 function memberships, 1,411 direct edges, and 48 dynamic dispatch edges. The SQL inventory includes 473 execution sites (386 literal, 87 composed/variable), of which 109 lack a static function match. Source-pattern review covers the 36 newly exposed non-literal sites (34 agent-module sites, two imported-module sites); the inventory retains its conservative classifications and the review does not approve ACLs or live grants ([SQL pattern review](worker-sql-source-pattern-review.json)). Static reachability does not prove live authorization, grants, tenant isolation, or runtime effects. No database, provider, candidate, or legacy service was used ([operation map](worker-operation-map.md); [source closure](worker-source-closure.json); [function graph](worker-function-reachability.json); [SQL inventory](worker-sql-inventory.json); [SQL reachability](worker-sql-reachability.json); [effects](worker-effect-inventory.json); [evidence](builds/2026-10-26-recovery/registered-agent-worker-reachability.json)). Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows. Checklist: 1,216 complete / 25 open (1,241 total).

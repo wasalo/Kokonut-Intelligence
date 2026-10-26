@@ -876,6 +876,77 @@ def _scheduled_sensor_driver_dispatches(
     return edges
 
 
+def _registered_synthesis_agent_dispatches(
+    operation: dict,
+    trees: dict[str, ast.Module],
+    definitions: dict[str, dict],
+    classes: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+) -> list[dict]:
+    """Link the worker's literal task registry to each agent's source methods."""
+    if operation["name"] != "services.agents.worker_cli":
+        return []
+
+    caller_key = "services.agents.worker_cli:run_worker_synthesis"
+    caller = definitions.get(caller_key)
+    if caller is None:
+        return []
+
+    method_calls: dict[str, int] = {}
+    pending = list(caller["node"].body)
+    while pending:
+        node = pending.pop()
+        if _nested_function_node(node, caller["node"]):
+            continue
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if isinstance(node.func.value, ast.Name) and node.func.value.id == "agent":
+                if node.func.attr in {"synthesize", "collect_source_references"}:
+                    method_calls[node.func.attr] = node.lineno
+        pending.extend(ast.iter_child_nodes(node))
+
+    if set(method_calls) != {"synthesize", "collect_source_references"}:
+        raise ValueError("registered synthesis worker method calls changed; review its dynamic dispatch")
+
+    edges = []
+    for registered in worker_source_closure._registered_agent_task_targets():
+        module = str(registered["module"])
+        module_tree = trees.get(module)
+        if module_tree is None:
+            raise ValueError(f"registered synthesis agent is absent from the source closure: {module}")
+        agent_expression = next(
+            (
+                node.value
+                for node in module_tree.body
+                if isinstance(node, ast.Assign)
+                and any(isinstance(target, ast.Name) and target.id == "agent" for target in node.targets)
+            ),
+            None,
+        )
+        if not isinstance(agent_expression, ast.Call):
+            raise ValueError(f"registered synthesis module must instantiate its literal agent: {module}")
+        synthetic_function = {"module": module, "qualname": ""}
+        class_key = _resolve_class_target(synthetic_function, agent_expression, classes, contexts)
+        if class_key is None:
+            raise ValueError(f"registered synthesis agent class is not statically resolvable: {module}")
+
+        for method_name, line in sorted(method_calls.items()):
+            callee = _class_method_target(class_key, method_name, classes, definitions, contexts)
+            if callee is None:
+                raise ValueError(f"registered synthesis agent has no resolvable {method_name}: {class_key}")
+            edges.append(
+                {
+                    "caller": caller_key,
+                    "callee": callee,
+                    "source": caller["source"],
+                    "line": line,
+                    "dispatch": "literal_registered_synthesis_agent_registry",
+                    "registry": "services.agents.worker_cli._SYNTHESIS_WORKERS",
+                    "registry_key": str(registered["task_key"]),
+                }
+            )
+    return edges
+
+
 def _dynamic_registry_source_files(operation: dict) -> list[str]:
     """Include the literal scheduled-driver targets in the worker's source graph."""
     if operation["name"] != "services.ingestion.sensor_worker":
@@ -913,6 +984,9 @@ def _operation_graph(operation: dict) -> dict:
     registered_edges = _registered_metric_calculators(modules_by_source, trees, contexts, definitions)
     registered_edges.extend(
         _scheduled_sensor_driver_dispatches(operation, definitions, classes, contexts)
+    )
+    registered_edges.extend(
+        _registered_synthesis_agent_dispatches(operation, trees, definitions, classes, contexts)
     )
     registered_by_caller: dict[str, list[dict]] = defaultdict(list)
     for edge in registered_edges:
@@ -1039,7 +1113,7 @@ def build_inventory() -> dict:
         "version": 1,
         "generated_by": "scripts/worker_function_reachability.py",
         "scope": (
-            "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation "
+            "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator, scheduled-driver, and registered-synthesis-agent dispatches from allowlisted operation "
             "entry functions within their local services.* import closures. Instance method calls are included only when local type "
             "inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on "
             "unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy "

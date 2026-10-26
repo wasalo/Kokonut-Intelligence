@@ -65,6 +65,7 @@ def test_worker_function_graph_covers_allowlisted_entrypoints_and_edges():
             assert edge["dispatch"] in {
                 "literal_function_registry",
                 "literal_code_allowlisted_sensor_driver_registry",
+                "literal_registered_synthesis_agent_registry",
             }
 
     event_roots = {
@@ -191,6 +192,62 @@ def test_graph_traces_explicit_worker_persistence_constructor_injection():
             and binding["instance_class"] == adapter_class
             for binding in operation["injected_instance_bindings"]
         )
+
+
+def test_graph_traces_registered_synthesis_agent_methods_from_literal_task_registry():
+    inventory = json.loads(_serialize(build_inventory()))
+    operation = next(
+        item
+        for item in inventory["operations"]
+        if item["kind"] == "isolated_worker"
+        and item["name"] == "services.agents.worker_cli"
+    )
+    functions = {function["key"] for function in operation["reachable_functions"]}
+    dispatches = [
+        edge
+        for edge in operation["dynamic_dispatch_edges"]
+        if edge["dispatch"] == "literal_registered_synthesis_agent_registry"
+    ]
+    registered_keys = {
+        "bio_factory_synthesis",
+        "capital_efficiency_synthesis",
+        "commons_liberation_synthesis",
+        "ecological_modeling_synthesis",
+        "feedback_synthesis",
+        "financial_resilience_synthesis",
+        "gnh_alignment_synthesis",
+        "holistic_wellbeing_synthesis",
+        "kokonut_commons_synthesis",
+        "open_source_capitalist_synthesis",
+        "organic_readiness_synthesis",
+        "regenerator_synthesis",
+    }
+
+    assert operation["entry_functions"][0]["function"] == "services.agents.worker_cli:main"
+    assert {edge["registry_key"] for edge in dispatches} == registered_keys
+    assert len(dispatches) == 2 * len(registered_keys)
+    assert {edge["callee"].rsplit(".", 1)[-1] for edge in dispatches} == {
+        "synthesize",
+        "collect_source_references",
+    }
+    assert "services.agents.worker_draft:create_worker_ai_summary_draft" in functions
+    assert all(
+        module.replace(".", "/") + ".py" in operation["source_files"]
+        for module in {
+            "services.agents.bio_factory_agent",
+            "services.agents.capital_efficiency_agent",
+            "services.agents.commons_agent",
+            "services.agents.ecological_modeling_agent",
+            "services.agents.feedback_agent",
+            "services.agents.resilience_agent",
+            "services.agents.gnh_agent",
+            "services.agents.wellbeing_agent",
+            "services.agents.kokonut_commons_agent",
+            "services.agents.open_source_capitalist_agent",
+            "services.agents.organic_readiness_agent",
+            "services.agents.regenerator_agent",
+        }
+    )
 
 
 def test_graph_follows_shared_cli_run_callback_to_the_actual_command_body():

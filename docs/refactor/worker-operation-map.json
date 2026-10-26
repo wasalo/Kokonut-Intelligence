@@ -1546,6 +1546,56 @@
         "tests/test_notification_delivery_worker.py",
         "tests/test_worker_database.py"
       ]
+    },
+    {
+      "module": "services.agents.worker_cli",
+      "worker_keys": [
+        "agent_bio_factory_source",
+        "agent_capital_efficiency_source",
+        "agent_commons_liberation_source",
+        "agent_ecological_modeling_source",
+        "agent_feedback_source",
+        "agent_financial_resilience_source",
+        "agent_gnh_alignment_source",
+        "agent_holistic_wellbeing_source",
+        "agent_kokonut_commons_source",
+        "agent_open_source_capitalist_source",
+        "agent_organic_readiness_source",
+        "agent_regenerator_source",
+        "agent_summary_deterministic_source"
+      ],
+      "scope": "One-shot location-scoped worker CLI. It accepts either a registered synthesis task from the immutable _SYNTHESIS_WORKERS map or a fixed deterministic summary type; every source read uses that task's dedicated signed reader and exact location. Draft persistence is optional and requires a Gateway-issued request ID with a matching database-registered operator receipt. This entry documents the CLI execution path; it does not prove the external caller is authenticated.",
+      "reads": [
+        "Task-specific kokonut_agent_source views",
+        "Task-specific bounded AI-summary worker source-reference functions"
+      ],
+      "writes": [
+        "Bounded location AI-summary draft and immutable request-receipt functions when --persist-draft is selected"
+      ],
+      "external_effects": [],
+      "idempotency": "Read-only executions do not write. Draft persistence uses a normalized request UUID, performs receipt lookup before synthesis, and delegates retry/content matching to the bounded database functions.",
+      "retry_boundary": "Source reads use a repeatable-read, read-only transaction after signed exact-location context. Draft creation uses the matching task identity and database receipt; invalid UUIDs, task keys, source metadata, location mismatches, and missing Gateway receipts fail closed. There is no shared application database fallback. Direct CLI access remains an operator-controlled process boundary.",
+      "sources": [
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/agents/base.py",
+        "services/agents/tasks.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/security/execution_allowlist.py",
+        "services/agents/bio_factory_agent.py",
+        "services/agents/capital_efficiency_agent.py",
+        "services/agents/commons_agent.py",
+        "services/agents/ecological_modeling_agent.py",
+        "services/agents/feedback_agent.py",
+        "services/agents/resilience_agent.py",
+        "services/agents/gnh_agent.py",
+        "services/agents/wellbeing_agent.py",
+        "services/agents/kokonut_commons_agent.py",
+        "services/agents/open_source_capitalist_agent.py",
+        "services/agents/organic_readiness_agent.py",
+        "services/agents/regenerator_agent.py"
+      ]
     }
   ]
 }
