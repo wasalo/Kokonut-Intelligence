@@ -70,3 +70,9 @@ including tenant-qualified grants, lifecycle validation, and the append-only
 actor ledger. Reapplying `permissions.sql` removes stale farm-activity rules
 from the repository-managed policies. Do not re-add these permissions to make
 the unlicensed Directus API expose that collection.
+
+The Auditor's `dashboard_dataset` read permission uses an explicit metadata
+field allowlist and excludes archived `query_sql`. Reapplying the seed repairs
+the wildcard rule and preserves non-wildcard operator-edited field lists. The
+hook also rejects query operators that reference the archived SQL and redacts
+it from responses; custom permission policies still need review.

@@ -52,9 +52,15 @@ and denies broad collection search while the legacy column remains stored;
 each denial is a generic 403 before a collection data query. Normal metadata
 queries and wildcard/default projections remain available, with the separate
 read-result hook removing `query_sql` from returned objects. The full extension
-suite passes 117 tests with the extension build/typecheck; no database or live
-Directus runtime was used. Effective deployed field permissions and pinned
-runtime behavior remain open ([evidence](builds/2026-10-26-recovery/dashboard-query-sql-query-oracle.json)).
+suite passes 117 tests with the extension build/typecheck. The Auditor seed now
+uses an explicit dashboard field list that omits `query_sql`; an idempotent
+repair changes only the repository's former wildcard rule and leaves custom
+field lists intact. A pinned Directus 12.1.1 disposable replay verifies the
+explicit list and repairs a synthetic pre-existing wildcard; no candidate or
+legacy database is used ([query-hook evidence](builds/2026-10-26-recovery/dashboard-query-sql-query-oracle.json);
+[field-permission evidence](builds/2026-10-26-recovery/directus-dashboard-field-allowlist-disposable.json)).
+Operator-created policies and custom field lists, populated dashboard parity,
+and external consumer authorization remain open.
 
 The schema has no explicit authenticated-operator-to-`staff` mapping. The
 existing `operator_governance_party_binding` links an operator to a canonical
@@ -150,21 +156,25 @@ or permission parity.
 The curated permission seed now has a repeatable source inventory at
 [`builds/2026-10-20-recovery/directus-permission-source-inventory.json`](builds/2026-10-20-recovery/directus-permission-source-inventory.json),
 generated and freshness-checked by `scripts/directus_permission_inventory.py`.
-It finds 175 literal permission insert declarations: 125 use `fields = '*'`
-and 50 name explicit fields. The Auditor policy accounts for 28 wildcard
-declarations; Field Worker stakeholder-feedback read is one concrete example.
+The current source inventory finds 175 literal permission insert declarations:
+124 use `fields = '*'` and 51 name explicit fields. The Auditor policy accounts
+for 27 wildcard declarations; Field Worker stakeholder-feedback read is one
+concrete example.
 No `farm_activity` permission insert is present in the seed, consistent with
-the Gateway-only decision. The inventory also records four literal
+the Gateway-only decision. The inventory also records five literal
 `UPDATE directus_permissions` and one `DELETE` statement, including the managed
-`farm_activity` cleanup. It inventories source declarations and mutations only. It does not compute the effective result of conditional inserts, later
+`farm_activity` cleanup and dashboard field-list repair. It inventories source
+declarations and mutations only. It does not compute the effective result of conditional inserts, later
 updates/deletes, built-in or operator-created policies, or a running Directus
 database, and it does not itself authorize narrowing any role's access.
 
 A separate pinned-runtime acceptance now captures the effective rows produced by
 the seed in a fresh disposable profile. The nine repository-managed policies
-produce 175 rows (125 wildcard-field, 50 explicit-field); no managed
-`farm_activity` rows remain, and seed replay preserves the complete normalized
-snapshot (SHA-256 `93eec38af045957bb9087c2cfa5549226cb51f3555e1822350c59548989f7877`).
+produce 175 rows (124 wildcard-field, 51 explicit-field); the Auditor
+`dashboard_dataset:read` permission uses the explicit safe field list without
+`query_sql`. Reapplying the seed also repairs a synthetic prior wildcard and
+preserves the complete normalized snapshot; no managed `farm_activity` rows
+remain.
 The profile starts healthy and authenticates a synthetic owner under the
 dedicated `kokonut_directus_runtime` database identity. This closes the gap
 between literal source declarations and effective stored rows for one clean

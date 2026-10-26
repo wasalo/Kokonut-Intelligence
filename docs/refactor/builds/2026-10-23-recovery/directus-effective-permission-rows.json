@@ -10,7 +10,7 @@
     "No candidate or legacy database, provider credentials, or business records were used."
   ],
   "permission_seed": "config/directus/permissions.sql",
-  "permission_seed_sha256": "7b0c7eb631047f30a3d802d44e7fea40f492e38301a2bcce88736087c075e096",
+  "permission_seed_sha256": "54b7f4e3be15f6d5f4e083a35bd1edb94ada47fc003382c2abb7e4d24c448e0b",
   "permissions": [
     {
       "action": "create",
@@ -1001,7 +1001,7 @@
     {
       "action": "read",
       "collection": "dashboard_dataset",
-      "fields": "*",
+      "fields": "id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,last_refreshed_at,status,metadata,created_at,updated_at,updated_by",
       "policy": "Auditor Policy",
       "roles": [
         "Auditor"
@@ -2095,7 +2095,7 @@
   "result": "passed",
   "runtime": "Directus 12.1.1",
   "summary": {
-    "explicit_field_rows": 50,
+    "explicit_field_rows": 51,
     "permission_rows": 175,
     "rows_by_collection_action": {
       "agent_action_log:create": 2,
@@ -2170,7 +2170,7 @@
       "Manager Policy": 19,
       "Supervisor Policy": 15
     },
-    "snapshot_sha256": "93eec38af045957bb9087c2cfa5549226cb51f3555e1822350c59548989f7877",
-    "wildcard_field_rows": 125
+    "snapshot_sha256": "ec0f6b4cb5f7c7cc219c9a75af8f9d59791ea6be27c12bc796d9411df7afc034",
+    "wildcard_field_rows": 124
   }
 }

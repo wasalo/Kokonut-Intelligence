@@ -443,7 +443,7 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
         ('expense_category', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('attestation_record', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('mrv_claim', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
-        ('dashboard_dataset', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('dashboard_dataset', 'read', '{}', '{}', 'id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,last_refreshed_at,status,metadata,created_at,updated_at,updated_by', 'b1000000-0000-0000-0000-000000000009'),
         ('report_snapshot', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('forecast_scenario', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('forecast_output', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
@@ -458,6 +458,17 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
         ('capital_source', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009');
 END IF;
 END $$;
+
+-- Stored legacy SQL remains available to the controlled migration/refresh
+-- paths, but must never be an Auditor API field even if the hook is disabled.
+-- Repair the repository's former wildcard while preserving custom explicit
+-- field lists.
+UPDATE directus_permissions
+   SET fields = 'id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,last_refreshed_at,status,metadata,created_at,updated_at,updated_by'
+ WHERE policy = 'b1000000-0000-0000-0000-000000000009'
+   AND collection = 'dashboard_dataset'
+   AND action = 'read'
+   AND fields = '*';
 
 -- ============================================================
 -- 10. AGENT ROLES — Scoped roles for AI agent access

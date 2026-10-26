@@ -1,3 +1,18 @@
+### Directus dashboard field allowlist — 26 October 2026
+
+The managed Auditor `dashboard_dataset:read` permission now uses the exact
+metadata allowlist
+`id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,last_refreshed_at,status,metadata,created_at,updated_at,updated_by`.
+It excludes archived `query_sql`. The repeatable seed repairs an existing
+wildcard rule and preserves non-wildcard operator-edited field lists. The
+pinned Directus 12.1.1 disposable profile confirms all 175 managed permission
+rows, applies and replays the seed, replaces a synthetic legacy wildcard, and
+keeps the same normalized permission snapshot. The six-test source/effective
+permission selection, Ruff, compilation, inventory freshness, matrix, and diff
+checks pass. This does not test a populated dashboard endpoint or policies
+created outside the repository. Evidence:
+[disposable field-allowlist check](builds/2026-10-26-recovery/directus-dashboard-field-allowlist-disposable.json).
+
 ### Dashboard SQL query-side-channel guard — 26 October 2026
 
 The optional Directus `dashboard_dataset` query hook now denies explicit

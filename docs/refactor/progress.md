@@ -1,3 +1,24 @@
+### Progress addendum — Directus dashboard field allowlist, 26 October 2026
+
+The repository-managed Auditor policy now reads the dashboard metadata fields
+through an explicit allowlist that excludes the archived `query_sql` field.
+The seed repairs the previous wildcard and preserves non-wildcard explicit
+field lists. The isolated Directus 12.1.1 acceptance applied and replayed all
+175 permission rows, changed a synthetic former wildcard back to the explicit
+field list, and reproduced the normalized permission snapshot. The profile
+used a fresh isolated database under `kokonut_directus_runtime` and removed
+its Compose project and volume afterward; candidate and legacy databases were
+untouched.
+
+Six source inventory/effective permission tests pass; Ruff, Python compilation,
+the generated permission inventory check, capability-matrix validation, and
+`git diff --check` pass. The evidence confirms effective stored policy for a
+fresh managed profile. Populated dashboard API behavior and operator-created
+or custom field permissions remain open. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-dashboard-field-allowlist-disposable.json`.
+Checklist: 1,232 complete / 25 open (1,257 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — dashboard SQL query side-channel guard, 26 October 2026
 
 The optional Directus dashboard API now rejects explicit projections,

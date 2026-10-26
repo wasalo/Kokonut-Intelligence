@@ -28,8 +28,13 @@ ROOT = Path(__file__).resolve().parents[1]
 PROJECT = f"kokonut-directus-profile-check-{uuid.uuid4().hex[:10]}"
 EVIDENCE = ROOT / "docs/refactor/builds/2026-10-23-recovery/directus-effective-permissions.json"
 SNAPSHOT_EVIDENCE = ROOT / "docs/refactor/builds/2026-10-23-recovery/directus-effective-permission-rows.json"
+DASHBOARD_EVIDENCE = ROOT / "docs/refactor/builds/2026-10-26-recovery/directus-dashboard-field-allowlist-disposable.json"
 PERMISSION_SEED = ROOT / "config/directus/permissions.sql"
 EXPECTED_PERMISSION_ROWS = 175
+EXPECTED_DASHBOARD_AUDITOR_FIELDS = (
+    "id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,"
+    "last_refreshed_at,status,metadata,created_at,updated_at,updated_by"
+)
 
 
 def free_loopback_port() -> int:
@@ -373,8 +378,48 @@ def main() -> int:
             raise RuntimeError(
                 "fresh Directus seed effective row count differs from its curated source inventory"
             )
+        dashboard_permissions = [
+            row for row in first_permission_rows
+            if row.get("collection") == "dashboard_dataset"
+            and row.get("action") == "read"
+        ]
+        if (
+            len(dashboard_permissions) != 1
+            or dashboard_permissions[0].get("policy") != "Auditor Policy"
+            or dashboard_permissions[0].get("fields") != EXPECTED_DASHBOARD_AUDITOR_FIELDS
+            or "query_sql" in str(dashboard_permissions[0].get("fields"))
+        ):
+            raise RuntimeError(
+                "Directus dashboard read permission must explicitly exclude archived query_sql"
+            )
         if any(row.get("collection") == "farm_activity" for row in first_permission_rows):
             raise RuntimeError("managed farm_activity permissions remain after the fresh seed")
+        legacy_wildcard = run(
+            [
+                *compose,
+                "exec",
+                "-T",
+                "database",
+                "psql",
+                "-X",
+                "-q",
+                "-t",
+                "-A",
+                "-U",
+                "kokonut",
+                "-d",
+                "kokonut_intelligence",
+                "-c",
+                "UPDATE public.directus_permissions SET fields = '*' "
+                "WHERE policy = 'b1000000-0000-0000-0000-000000000009' "
+                "AND collection = 'dashboard_dataset' AND action = 'read' "
+                "RETURNING fields",
+            ],
+            env=env,
+        )
+        require_success(legacy_wildcard, "legacy dashboard permission fixture", env)
+        if legacy_wildcard.stdout.strip() != "*":
+            raise RuntimeError("failed to establish the legacy dashboard wildcard fixture")
         seed_replay = run(permission_seed_command, env=env, input_text=permission_seed)
         require_success(seed_replay, "Directus permission seed replay", env)
         replay_counts = permission_counts()
@@ -643,6 +688,7 @@ def main() -> int:
                     "repository_managed_farm_activity_permissions": first_counts[0],
                     "other_curated_permissions": first_counts[1],
                     **summarize_permission_snapshot(first_permission_rows),
+                    "legacy_dashboard_wildcard_repaired": True,
                     "replay_snapshot_unchanged": True,
                 },
                 "loopback_only": True,
@@ -683,6 +729,31 @@ def main() -> int:
                 encoding="utf-8",
             )
             EVIDENCE.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            dashboard_evidence = {
+                "date": datetime.now(timezone.utc).date().isoformat(),
+                "result": "passed",
+                "runtime": "Directus 12.1.1",
+                "database": "fresh isolated Kernel PostgreSQL volume",
+                "database_identity": "kokonut_directus_runtime",
+                "candidate_or_legacy_database_used": False,
+                "permission_seed_applied_and_replayed": True,
+                "legacy_dashboard_wildcard_repaired": True,
+                "replay_snapshot_unchanged": True,
+                "permission": next(
+                    row for row in first_permission_rows
+                    if row.get("policy") == "Auditor Policy"
+                    and row.get("collection") == "dashboard_dataset"
+                    and row.get("action") == "read"
+                ),
+                "limitations": [
+                    "Fresh repository-managed policy fixture only; custom/operator-edited policies are excluded.",
+                    "No populated dashboard records or external consumers were used.",
+                ],
+            }
+            DASHBOARD_EVIDENCE.write_text(
+                json.dumps(dashboard_evidence, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
 
     if evidence["status"] == "passed":
         print(json.dumps(evidence, indent=2, sort_keys=True))
