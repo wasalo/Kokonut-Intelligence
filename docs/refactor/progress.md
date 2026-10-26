@@ -18788,3 +18788,10 @@ image was removed. No database, provider, candidate, legacy service, or
 persistent Compose resource was accessed. This is software portability
 evidence only; physical Raspberry Pi, power-loss, thermal, resource, and
 storage-endurance acceptance remain open ([evidence](builds/2026-10-25-recovery/arm64-kernel-driver-import-smoke-2b877bae.json)).
+
+
+## Driver instance configuration preflight — 25 October 2026
+
+Driver instance creation now requires a JSON-object configuration and calls the selected registered adapter's `validate_config` before opening the insert transaction. Validator failures are logged by exception class and returned as a generic invalid-config error, preventing plugin exception messages from leaking through the CLI. The persistence transaction rechecks that the driver is enabled and takes a `FOR SHARE` lock on its registry row before inserting; concurrent disable/update must wait until the instance transaction ends.
+
+Six focused regressions cover valid configuration, invalid/non-object configuration before persistence, sanitized validator errors, disabled-driver rejection, and the enabled-row lock. `python3 -m pytest tests/test_driver_registry.py tests/test_sensor_driver_schedule.py -q` passes 66 tests; Ruff, compilation, and `git diff --check` pass. Checks use mocks only. Third-party package code still runs in-process by design and is not sandboxed; PostgreSQL lock behavior requires disposable database acceptance. No database, provider, candidate, legacy service, or persistent Compose resource was used ([implementation](../../services/drivers/registry.py); [tests](../../tests/test_driver_registry.py); [evidence](../builds/2026-10-25-recovery/driver-instance-config-preflight.json)). Checklist: 1,192 complete / 25 open (1,217 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

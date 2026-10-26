@@ -444,16 +444,44 @@ class DriverRegistry:
         """Create a new driver instance. Returns the instance ID."""
         import json
 
+        if not isinstance(config, dict):
+            raise ValueError("driver config must be a JSON object")
+        try:
+            config_json = json.dumps(config, allow_nan=False)
+            if json.loads(config_json) != config:
+                raise ValueError("driver config is not a JSON-native object")
+        except (TypeError, ValueError):
+            raise ValueError("driver config must contain only JSON values") from None
+
+        # Validate before opening the persistence transaction. Loading resolves
+        # only a source-owned built-in or the exact installed entry point.
+        driver_class = self.load(driver_name)
+        try:
+            driver = driver_class(config=config)
+            if driver.validate_config(config) is not True:
+                raise ValueError("driver config validation returned false")
+        except Exception as exc:
+            logger.warning(
+                "Rejected driver config for %s (%s)",
+                driver_name,
+                safe_exception_class(exc),
+            )
+            raise ValueError("driver config is invalid") from None
+
         conn = self._get_conn()
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT id FROM driver_registry WHERE driver_name = %s",
+                    """
+                    SELECT id FROM driver_registry
+                    WHERE driver_name = %s AND is_enabled = TRUE
+                    FOR SHARE
+                    """,
                     (driver_name,),
                 )
                 row = cur.fetchone()
                 if not row:
-                    raise ValueError(f"Driver not found: {driver_name}")
+                    raise ValueError(f"Driver not found or disabled: {driver_name}")
                 driver_id = row[0]
 
                 cur.execute(
@@ -462,7 +490,7 @@ class DriverRegistry:
                     VALUES (%s, %s, %s, %s)
                     RETURNING id
                     """,
-                    (driver_id, instance_name, json.dumps(config), location_id),
+                    (driver_id, instance_name, config_json, location_id),
                 )
                 inst_row = cur.fetchone()
                 instance_id = str(inst_row[0]) if inst_row else None

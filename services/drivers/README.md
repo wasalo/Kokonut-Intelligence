@@ -32,6 +32,13 @@ a package can declare:
 weather_example = "weather_example.driver:Driver"
 ```
 
+Installing an instance requires the registered driver to be enabled and its
+`validate_config` method to accept a JSON-object configuration. Invalid or
+non-JSON configuration fails before persistence; the database rechecks and
+locks the enabled driver row while inserting the instance. Validation runs
+inside the application process, so installed third-party packages remain
+trusted executable code rather than sandboxed plugins.
+
 Package installation is the trust boundary for third-party code. Database
 registration alone never imports a module. Scheduled sensor execution remains
 narrower: it accepts only targets explicitly listed in

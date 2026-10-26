@@ -265,12 +265,18 @@ class TestDriverRegistry:
         assert len(instances) == 1
         assert instances[0]["instance_name"] == "adelphi_weather"
 
-    def test_create_instance(self):
+    def test_create_instance_validates_config_and_locks_enabled_driver(self):
         from services.drivers.registry import DriverRegistry
+
+        class ValidDriver:
+            def __init__(self, config):
+                self.config = config
+
+            def validate_config(self, config):
+                return config == {"file_path": "sensors.csv"}
 
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
-        # First call: get driver_id. Second call: insert instance.
         mock_cursor.fetchone.side_effect = [
             (str(uuid.uuid4()),),
             (str(uuid.uuid4()),),
@@ -279,12 +285,112 @@ class TestDriverRegistry:
         mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
         registry = DriverRegistry(conn=mock_conn)
+        registry.load = MagicMock(return_value=ValidDriver)
         instance_id = registry.create_instance(
-            driver_name="weather_openweathermap",
+            driver_name="sensor_csv",
             instance_name="test_instance",
-            config={"test": True},
+            config={"file_path": "sensors.csv"},
         )
+
         assert instance_id is not None
+        registry.load.assert_called_once_with("sensor_csv")
+        assert "is_enabled = TRUE" in mock_cursor.execute.call_args_list[0].args[0]
+        assert "FOR SHARE" in mock_cursor.execute.call_args_list[0].args[0]
+        assert mock_cursor.execute.call_args_list[1].args[1][2] == '{"file_path": "sensors.csv"}'
+
+    def test_create_instance_rejects_invalid_config_before_database_access(self):
+        from services.drivers.registry import DriverRegistry
+
+        class InvalidDriver:
+            def __init__(self, config):
+                pass
+
+            def validate_config(self, config):
+                raise RuntimeError("provider secret=do-not-leak")
+
+        mock_conn = MagicMock()
+        registry = DriverRegistry(conn=mock_conn)
+        registry.load = MagicMock(return_value=InvalidDriver)
+
+        with pytest.raises(ValueError, match="driver config is invalid") as error:
+            registry.create_instance("sensor_csv", "test_instance", {"file_path": "x.csv"})
+
+        assert "do-not-leak" not in str(error.value)
+        mock_conn.cursor.assert_not_called()
+
+    def test_create_instance_rejects_false_config_validation_before_insert(self):
+        from services.drivers.registry import DriverRegistry
+
+        class InvalidDriver:
+            def __init__(self, config):
+                pass
+
+            def validate_config(self, config):
+                return False
+
+        mock_conn = MagicMock()
+        registry = DriverRegistry(conn=mock_conn)
+        registry.load = MagicMock(return_value=InvalidDriver)
+
+        with pytest.raises(ValueError, match="driver config is invalid"):
+            registry.create_instance("sensor_csv", "test_instance", {"file_path": ""})
+
+        mock_conn.cursor.assert_not_called()
+
+    def test_create_instance_rejects_non_object_config_before_driver_or_database(self):
+        from services.drivers.registry import DriverRegistry
+
+        mock_conn = MagicMock()
+        registry = DriverRegistry(conn=mock_conn)
+        registry.load = MagicMock()
+
+        with pytest.raises(ValueError, match="JSON object"):
+            registry.create_instance("sensor_csv", "test_instance", ["invalid"])
+
+        registry.load.assert_not_called()
+        mock_conn.cursor.assert_not_called()
+
+    def test_create_instance_rejects_non_json_values_before_driver_or_database(self):
+        from services.drivers.registry import DriverRegistry
+
+        mock_conn = MagicMock()
+        registry = DriverRegistry(conn=mock_conn)
+        registry.load = MagicMock()
+
+        for config in (
+            {"not_json": object()},
+            {"not_native_json": ("tuple",)},
+            {1: "non-string JSON object key"},
+        ):
+            with pytest.raises(ValueError, match="only JSON values"):
+                registry.create_instance("sensor_csv", "test_instance", config)
+
+        registry.load.assert_not_called()
+        mock_conn.cursor.assert_not_called()
+
+    def test_create_instance_rejects_disabled_driver_without_insert(self):
+        from services.drivers.registry import DriverRegistry
+
+        class ValidDriver:
+            def __init__(self, config):
+                pass
+
+            def validate_config(self, config):
+                return True
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = None
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        registry = DriverRegistry(conn=mock_conn)
+        registry.load = MagicMock(return_value=ValidDriver)
+
+        with pytest.raises(ValueError, match="disabled"):
+            registry.create_instance("sensor_csv", "test_instance", {})
+
+        assert mock_cursor.execute.call_count == 1
+        mock_conn.rollback.assert_called_once()
 
     def test_create_instance_unknown_driver(self):
         from services.drivers.registry import DriverRegistry
