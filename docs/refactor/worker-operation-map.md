@@ -8,17 +8,17 @@ Python adapter are implemented. Source integration now exists for the sensor
 anomaly handler, all four registered cache invalidation handlers, and the two
 global notification enqueue handlers. Signed cache invalidation and isolated
 notification enqueue remain opt-in. Migrations 418–419 and the runtime-role
-bootstrap enforce the mobile/worker ACL boundary. Default-off signed workers now
-cover NOI snapshot, current weather, five-day forecasts, climate summaries,
-CSV sensor ingestion, remote sensing, and EAS indexing through migrations
-425–433. The global market-data worker
-has its own isolated login/function boundary in migration 430. Forced-RLS
-disposable PostgreSQL 16 acceptance includes the sensor and remote-sensing
-workers. The Baal governance indexer now has migration 644's execute-only
-database contract, with a separate login and worker-specific HTTPS endpoint;
-it is default-off and keeps the manual CLI available. Production credentials
-remain open; migration 433 is applied on the local candidate, while all
-isolated worker features remain default-off. See the
+bootstrap enforce the mobile/worker ACL boundary. Default-off dedicated worker
+paths cover sensor anomaly, cache invalidation, notification enqueue, NOI
+snapshots, current weather, forecasts, climate, CSV sensor ingestion, remote
+sensing, market data, EAS, RPC, Gnosis Moloch, and Baal governance. The global
+Baal indexer has migration 644's execute-only database contract and a
+worker-specific HTTPS endpoint; migration 644 has disposable PostgreSQL
+acceptance but is not rolled out to the candidate. The legacy manual CLI
+remains available. Credentials and grants for live isolated workers remain
+unprovisioned. Candidate migration state is recorded in per-rollout evidence;
+earlier documentation that cited migration 433 is a historical checkpoint,
+not the current schema ledger. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers

@@ -1,6 +1,6 @@
 # Field Collector tenant and RLS call-site audit
 
-Updated: 17 October 2026 (static SQL and worker inventories refreshed)
+Updated: 25 October 2026 (current source inventories refreshed)
 
 ## Finding
 
@@ -16,21 +16,21 @@ the signature instead of trusting caller-set labels. Network-isolated
 PostgreSQL 16 acceptance applied and replayed migrations 391–396, forced RLS
 in disposable databases, and passed mobile credential/context, operator
 owner/share, Gateway credential, denial, lock, cleanup, and role-boundary
-checks. Migrations 392–433 have now been applied to the local candidate after
-checkpoint and isolated restore rehearsals. The ordered migration plan reports
-424 applied schema entries through migration 433 and zero pending; the candidate
-app health route returns 200 and the anonymous protected route returns 401.
-No migration enables application-table RLS, which remains disabled. The current
-generated SQL inventory records 4,006 execution sites across 826 service source
-files, with 322 sites linked to 31 worker operation roots across 93 source files.
-The worker graph records 639 function memberships, 875 direct-call edges,
-and 20 dynamic-dispatch edges; its SQL report records 321 operation/site
-memberships on static paths, 249 unique sites with a static operation path, and
-73 sites without a static function match. These generated counts are source
-navigation aids, not an authorization allowlist or proof of tenant isolation
-([inventory](runtime-sql-inventory.json);
-[latest worker evidence](builds/2026-10-17-recovery/ci-431-worker-inventory-fix.json);
-[runtime inventory evidence](builds/2026-10-17-recovery/worker-inventory-refresh-current.json)). Migration 395 removes runtime-role access to
+checks. Earlier candidate rollouts applied mobile and runtime-boundary
+migrations after encrypted checkpoints and isolated restore rehearsals; rollout
+state is tracked per migration in the batch evidence. Migration 644 is
+disposable-acceptance only and has not been rolled out to the candidate. No
+migration enables application-table RLS, which remains disabled. The current
+whole-service SQL inventory records 4,884 execution sites across 962 service
+source files. The worker source closure covers 36 operation roots and 105
+source files; the function graph records 774 function memberships, 1,050
+direct-call edges, and 24 dynamic-dispatch edges. The worker SQL inventory
+contains 351 sites, with 367 operation/site memberships on static paths, 271
+unique sites with a static operation path, and 80 without a static function
+match. These generated counts are source-navigation aids, not an authorization
+allowlist or proof of tenant isolation ([runtime SQL inventory](runtime-sql-inventory.json);
+[worker map](worker-operation-map.md);
+[Baal disposable evidence](builds/2026-10-25-recovery/baal-indexer-worker-disposable.json)). Migration 395 removes runtime-role access to
 `operator_session` and gives OIDC a separate auth login for bounded session
 functions. Runtime provisioning
 now limits `mobile_device` and `mobile_device_enrollment` to explicit column
@@ -46,8 +46,10 @@ report-review, Field Collector review, Data Stream create, and non-Field-Collect
 farm-activity operations now have source-level transaction-context contracts.
 Migration 404 is applied on the candidate; broad runtime DML and application
 RLS remain separate open gates.
-Other Gateway paths, the preflight CLI, and worker jobs still need explicit
-database access designs. The optional Kernel Directus profile
+Many Gateway and maintenance paths, plus scheduler/EventBus control-plane
+operations and remaining worker jobs, still need explicit database access
+designs. Several source-mapped workers now have dedicated database contracts;
+the complete current worker map is linked above. The optional Kernel Directus profile
 now has a dedicated DML-only `kokonut_directus_runtime` identity. Fresh-volume
 Compose acceptance verified owner bootstrap, health, synthetic admin login,
 runtime database identity, and cleanup; it does not establish Directus
@@ -102,7 +104,7 @@ See PostgreSQL’s
 [custom options](https://www.postgresql.org/docs/current/runtime-config-custom.html)
 and [configuration-setting functions](https://www.postgresql.org/docs/current/config-setting.html).
 
-## Worker execution and database identity trace — 17 October 2026
+## Worker execution and database identity trace — 25 October 2026
 
 The supported execution allowlist is a code-execution boundary only. A mapped
 worker subprocess can receive its dedicated identity, and individual worker
@@ -131,11 +133,15 @@ bind every scheduled module or event handler to a database role or tenant.
   paths. The Kernel scheduler and EventBus control plane still use the shared
   runtime identity. Exact mapped children receive only their named worker
   identities; unmapped legacy handlers retain their current environment.
-- Dedicated default-off integrations now exist for sensor anomaly, optional
-  cache invalidation, notification enqueue, weather, weather forecast, NOI
-  snapshot, market data, climate, sensor ingestion, and remote sensing. Their
-  credentials/grants are not provisioned for live use, and their feature gates
-  remain disabled until rollout and owner/provider prerequisites are satisfied.
+- Default-off dedicated integrations now exist for sensor anomaly, optional
+  cache invalidation, notification enqueue, current weather, weather forecast,
+  NOI snapshot, market data, climate, sensor ingestion, remote sensing, EAS,
+  RPC, Gnosis Moloch, and Baal governance indexing. Their live credentials and
+  grants are not provisioned, and their feature gates remain disabled until
+  rollout and provider/schedule prerequisites are satisfied. Baal state is
+  network-wide DAO data, so migration 644 uses a fixed Gnosis-chain contract
+  without claiming farm-tenant context; its login can execute only the bounded
+  cursor, protocol/wallet lookup, event, and status functions.
 - The four cache invalidation handlers now require and canonicalize a valid
   location UUID before selecting the cache adapter. Missing/malformed scope
   fails before provider construction, preventing an event from becoming an
@@ -147,28 +153,31 @@ bind every scheduled module or event handler to a database role or tenant.
   415–416 are applied on the candidate, but the feature remains off and no
   credential/grant is provisioned.
 
-The [worker operation map](worker-operation-map.md) now covers all 24
+The [worker operation map](worker-operation-map.md) covers all 29
 allowlisted scheduled modules and seven event-handler pairs, including their
 source-visible data objects, source scope, external effects, and replay notes.
 `tests/test_worker_operation_map.py` ensures the inventory matches both
-executable allowlists and every entry has source references. The refreshed
-graph covers 31 operation roots across 93 source files, with 639 function
-memberships, 875 direct-call edges, and 20 dynamic-dispatch edges. Its SQL map
-has 322 sites; 249 unique sites have static operation paths and 73 lack a
-resolved function path. The boundary preflight remains `review_required`, with
-identity/RLS readiness not established. These are source-navigation aids, not
-an authorization inventory or grant list. Transitive effects and database-stored
-command arguments still require review. The
-new module-specific command schemas bound supported scheduler argv before
-activation and dispatch, but do not establish tenant scope or worker grants;
-the map must not be used as a worker grant list.
+executable allowlists and every entry has source references. The current graph
+covers 36 operation roots across 105 source files, with 774 function
+memberships, 1,050 direct-call edges, and 24 dynamic-dispatch edges. Its SQL
+map has 351 sites; 271 unique sites have static operation paths and 80 lack a
+resolved function path. The JobSpec inventory covers 21 jobs: eight
+no-input command templates and thirteen jobs whose modeled runtime inputs
+validate against their command contracts. The boundary preflight remains
+`review_required`, with identity/RLS readiness not established. These are
+source-navigation aids, not an authorization inventory or grant list.
+Transitive effects, dynamic/provider callbacks, database-stored command
+arguments, and persisted task state still require review. Module-specific
+command schemas bound supported scheduler argv before activation and dispatch,
+but do not establish tenant scope or worker grants; the map must not be used
+as a worker grant list.
 
 Therefore, the current allowlists protect against arbitrary module/function
 dispatch but do not make worker SQL safe under application RLS. Do not assign a
 single inferred tenant to a cross-location batch job, and do not enable RLS or
-remove runtime grants on this evidence. The current source-level effect inventory now
-records 36 candidate process, filesystem, HTTP, email, EVM, and dynamic-import
-sites across 46 operation/site memberships and 31 roots
+remove runtime grants on this evidence. The current source-level effect
+inventory records 69 candidate process, filesystem, HTTP, email, EVM, and
+dynamic-import sites across 92 operation/site memberships and 36 roots
 ([inventory](worker-effect-inventory.json)).
 It can overcount mutually exclusive CLI branches in other workers and miss
 effects behind callbacks or provider adapters. The scheduled credit adjustment
