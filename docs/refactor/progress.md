@@ -1,3 +1,18 @@
+### Progress addendum — isolated EventBus disabled-mode boundary, 26 October 2026
+
+The explicit `--isolated-event-worker` command now exits before database
+access when its isolated feature is disabled. Previously, the command could
+fall through to the legacy dispatcher and use the shared database connector
+when `event_bus` was enabled but `isolated_event_dispatch` was false. Focused
+regressions cover that combination and the inverse combination, with both the
+shared and isolated connectors asserted unused. The EventBus recovery/dispatch
+selection passes 23 tests and 6 subtests; Ruff, compilation, and diff checks
+pass. No database or provider was used. The separately selected legacy
+`--event-worker` remains available. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/event-dispatch-disabled-fail-closed.json`.
+Checklist: 1,210 complete / 25 open (1,235 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — isolated EventBus dispatcher reconnect acceptance, 26 October 2026
 
 The migration-648 isolated EventBus dispatcher now has bounded live-process

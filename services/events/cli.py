@@ -54,12 +54,16 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
 
     from services.core.features import is_enabled
 
+    isolated_event_dispatch_requested = isolated_event_dispatch
     process_events = process_events and is_enabled("event_bus")
     isolated_event_dispatch = (
         isolated_event_dispatch
         and process_events
         and is_enabled("isolated_event_dispatch")
     )
+    if isolated_event_dispatch_requested and not isolated_event_dispatch:
+        logger.info("Isolated EventBus worker is disabled by feature configuration")
+        return 0
     deliver_notifications = deliver_notifications and is_enabled("notification_delivery")
     isolated_notification_delivery = (
         isolated_notification_delivery

@@ -1,0 +1,28 @@
+{
+  "candidate_or_legacy_modified": false,
+  "checks": {
+    "event_bus_disabled_while_isolated_flag_enabled_exits_before_database_access": true,
+    "isolated_dispatch_disabled_while_event_bus_enabled_exits_before_database_access": true,
+    "isolated_dispatch_entrypoint_not_called_when_disabled": true,
+    "legacy_shared_event_store_not_called_when_isolated_command_disabled": true,
+    "shared_database_connector_not_called_when_isolated_command_disabled": true
+  },
+  "command": "python3 -m pytest tests/test_event_worker_recovery.py tests/test_event_dispatch_worker.py -q",
+  "database_or_provider_accessed": false,
+  "limitations": [
+    "Unit/source behavior only; this does not provision or roll out a worker credential, database login, or feature flag."
+  ],
+  "result": "passed",
+  "run_date_utc": "2026-10-26",
+  "scope": "Fail-closed behavior for explicitly selected isolated EventBus worker when disabled",
+  "source_sha256": {
+    "services/events/cli.py": "e62da2bf7781bf85775de95358b50c15f1da12e0fb55e25b1961e614c6f24a37",
+    "tests/test_event_worker_recovery.py": "5648ac10d3198b842e21aefb7cdaa804af35ac4a88b358c5f15b8a7266cb9bce"
+  },
+  "static_checks": {
+    "git_diff_check": "passed",
+    "python_compile": "passed",
+    "ruff": "passed"
+  },
+  "test_result": "23 passed, 6 subtests passed"
+}

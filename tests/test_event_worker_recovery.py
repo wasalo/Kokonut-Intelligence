@@ -80,6 +80,24 @@ class EventWorkerRecoveryTests(TestCase):
         run_once.assert_called_once_with("event-worker-test", 10, 30)
         get_event_store.assert_not_called()
 
+    def test_isolated_event_worker_feature_off_does_not_fall_back_to_shared_database(self):
+        for feature_states in (
+            {"event_bus": True, "isolated_event_dispatch": False},
+            {"event_bus": False, "isolated_event_dispatch": True},
+        ):
+            with self.subTest(features=feature_states):
+                with (
+                    patch("services.core.features.is_enabled", side_effect=feature_states.get),
+                    patch("services.events.dispatch_worker.run_once") as run_once,
+                    patch("services.events.backend.get_event_store") as get_event_store,
+                    patch("services.common.database.get_connection") as get_connection,
+                ):
+                    self.assertEqual(cmd_isolated_event_worker(_args()), 0)
+
+                run_once.assert_not_called()
+                get_event_store.assert_not_called()
+                get_connection.assert_not_called()
+
     def test_notification_worker_does_not_open_event_store(self):
         connection = object()
 
