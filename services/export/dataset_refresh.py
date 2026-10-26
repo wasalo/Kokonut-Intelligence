@@ -18,7 +18,11 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from services.analytics.reporting_reader import count_registered_reporting_rows, safe_query_error
+from services.analytics.reporting_reader import (
+    count_registered_reporting_rows,
+    resolve_registered_reporting_query,
+    safe_query_error,
+)
 from services.core.features import require_feature
 
 
@@ -75,6 +79,9 @@ def refresh_dataset(conn, dataset_id: str) -> dict:
 
     query_id = dataset.get("query_id")
     location_id = dataset.get("location_id")
+    # Configuration errors are rejected before either opening the reporting
+    # connection or writing a misleading refresh-failure record.
+    resolve_registered_reporting_query(query_id, location_id)
 
     start_time = datetime.now(timezone.utc)
     try:
@@ -216,7 +223,8 @@ def main():
 
     if args.all:
         try:
-            # Refresh all active datasets
+            # Inventory all active datasets, but execute only contracts that
+            # have a registered ID and a valid exact-location scope.
             try:
                 datasets = list_datasets(conn)
             except Exception as exc:
@@ -227,10 +235,28 @@ def main():
                 print("No active datasets found.")
                 return
 
-            print(f"Refreshing {len(datasets)} datasets...")
+            eligible_datasets = []
+            skipped = 0
+            for dataset in datasets:
+                try:
+                    resolve_registered_reporting_query(
+                        dataset.get("query_id"), dataset.get("location_id")
+                    )
+                except ValueError:
+                    skipped += 1
+                else:
+                    eligible_datasets.append(dataset)
+
+            if skipped:
+                print(f"  - Skipped {skipped} active dataset(s) without a registered exact-location query")
+            if not eligible_datasets:
+                print("No registered datasets are eligible for refresh.")
+                return
+
+            print(f"Refreshing {len(eligible_datasets)} datasets...")
             success = 0
             failed = 0
-            for d in datasets:
+            for d in eligible_datasets:
                 try:
                     result = refresh_dataset(conn, str(d["id"]))
                     status_icon = "✓" if result["status"] == "active" else "✗"
@@ -244,7 +270,7 @@ def main():
                     print(f"  ✗ {_dataset_failure_summary(exc)}")
                     failed += 1
 
-            print(f"\nDone: {success} refreshed, {failed} failed")
+            print(f"\nDone: {success} refreshed, {failed} failed, {skipped} skipped")
         finally:
             conn.close()
         return

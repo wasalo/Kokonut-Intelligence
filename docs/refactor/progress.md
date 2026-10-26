@@ -1,3 +1,21 @@
+### Progress addendum — unsupported dashboard refresh preflight, 26 October 2026
+
+Bulk dashboard refresh still inventories all active rows, but it now validates
+each row's registered query ID and exact location before dispatch. Rows with
+missing or unknown IDs, or missing/invalid location scope, are counted as
+skipped without opening the reporting reader or writing misleading
+`last_refresh` failure metadata. Explicit refresh of one unsupported row fails
+before that write as well. Valid registered rows continue through the existing
+verified reader and per-row refresh behavior.
+
+The focused reporting-reader, dataset-refresh, and scheduler-contract selection
+passes 198 tests; Ruff, Python compilation, static inventories,
+capability-matrix validation, and diff checks pass. No database, provider,
+candidate, or legacy service was used. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/dashboard-query-refresh-preflight.json`.
+Checklist: 1,230 complete / 25 open (1,255 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — registered dashboard query IDs, 26 October 2026
 
 The optional dashboard refresher now dispatches only a stable `query_id` from a

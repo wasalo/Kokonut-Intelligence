@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-26",
+  "change": "dashboard_query_refresh_preflight",
+  "behavior": {
+    "bulk_refresh": "Preflight each active row. Refresh registered IDs with valid exact-location scope; skip all other rows without opening the reporting reader or writing refresh metadata.",
+    "single_dataset_refresh": "Reject missing/unregistered query IDs or invalid/missing exact location before reporting-reader connection and metadata writes.",
+    "unsupported_reasons": [
+      "query ID missing",
+      "query ID not in the source-controlled registry",
+      "location ID missing",
+      "location ID malformed"
+    ],
+    "supported_query_contracts": "Unchanged; migration 651 and the source registry from commit 686fbc47 remain in place."
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_reporting_reader.py tests/test_dataset_refresh_readonly.py tests/test_scheduled_command_contracts.py -q",
+      "result": "passed",
+      "tests": 198
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "generated_inventories": "regenerated; runtime SQL, worker source/function/SQL/effect/preflight checks pass",
+    "capability_matrix_validation": "passed",
+    "dependency_group_alignment": "passed",
+    "git_diff_check": "passed"
+  },
+  "data_state": {
+    "migration_added": false,
+    "database_touched": false,
+    "candidate_database_touched": false,
+    "legacy_database_touched": false,
+    "provider_calls": false
+  },
+  "rollback": "Revert the refresh preflight/skip code and focused checks; keep the migration-651 query_id column and registered-query implementation from commit 686fbc47.",
+  "checklist": {
+    "complete": 1230,
+    "open": 25,
+    "total": 1255,
+    "capability_rows": 67,
+    "classifications": {
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36
+    }
+  }
+}

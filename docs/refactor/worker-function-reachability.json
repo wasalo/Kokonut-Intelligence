@@ -6,8 +6,8 @@
     "operation_roots": 49,
     "source_files": 138,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 1172,
-    "direct_call_edges": 1658,
+    "function_memberships": 1173,
+    "direct_call_edges": 1661,
     "callback_edges": 2,
     "dynamic_dispatch_edges": 56
   },
@@ -1986,7 +1986,7 @@
         {
           "function": "services.export.dataset_refresh:main",
           "source": "services/export/dataset_refresh.py",
-          "line": 253
+          "line": 279
         }
       ],
       "reachable_functions": [
@@ -1994,6 +1994,14 @@
           "key": "services.analytics.reporting_reader:count_registered_reporting_rows",
           "module": "services.analytics.reporting_reader",
           "qualname": "count_registered_reporting_rows",
+          "class_scope": null,
+          "source": "services/analytics/reporting_reader.py",
+          "line": 234
+        },
+        {
+          "key": "services.analytics.reporting_reader:resolve_registered_reporting_query",
+          "module": "services.analytics.reporting_reader",
+          "qualname": "resolve_registered_reporting_query",
           "class_scope": null,
           "source": "services/analytics/reporting_reader.py",
           "line": 216
@@ -2004,7 +2012,7 @@
           "qualname": "safe_query_error",
           "class_scope": null,
           "source": "services/analytics/reporting_reader.py",
-          "line": 258
+          "line": 267
         },
         {
           "key": "services.analytics.reporting_reader:validate_reporting_connection",
@@ -2044,7 +2052,7 @@
           "qualname": "_dataset_failure_summary",
           "class_scope": null,
           "source": "services/export/dataset_refresh.py",
-          "line": 25
+          "line": 29
         },
         {
           "key": "services.export.dataset_refresh:get_pg",
@@ -2052,7 +2060,7 @@
           "qualname": "get_pg",
           "class_scope": null,
           "source": "services/export/dataset_refresh.py",
-          "line": 33
+          "line": 37
         },
         {
           "key": "services.export.dataset_refresh:list_datasets",
@@ -2060,7 +2068,7 @@
           "qualname": "list_datasets",
           "class_scope": null,
           "source": "services/export/dataset_refresh.py",
-          "line": 39
+          "line": 43
         },
         {
           "key": "services.export.dataset_refresh:main",
@@ -2068,7 +2076,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/export/dataset_refresh.py",
-          "line": 146
+          "line": 153
         },
         {
           "key": "services.export.dataset_refresh:refresh_dataset",
@@ -2076,15 +2084,21 @@
           "qualname": "refresh_dataset",
           "class_scope": null,
           "source": "services/export/dataset_refresh.py",
-          "line": 57
+          "line": 61
         }
       ],
       "direct_call_edges": [
         {
           "caller": "services.analytics.reporting_reader:count_registered_reporting_rows",
+          "callee": "services.analytics.reporting_reader:resolve_registered_reporting_query",
+          "source": "services/analytics/reporting_reader.py",
+          "line": 241
+        },
+        {
+          "caller": "services.analytics.reporting_reader:count_registered_reporting_rows",
           "callee": "services.analytics.reporting_reader:validate_reporting_connection",
           "source": "services/analytics/reporting_reader.py",
-          "line": 242
+          "line": 251
         },
         {
           "caller": "services.core.features:require_feature",
@@ -2096,71 +2110,83 @@
           "caller": "services.export.dataset_refresh:get_pg",
           "callee": "services.common.database:get_db",
           "source": "services/export/dataset_refresh.py",
-          "line": 36
+          "line": 40
+        },
+        {
+          "caller": "services.export.dataset_refresh:main",
+          "callee": "services.analytics.reporting_reader:resolve_registered_reporting_query",
+          "source": "services/export/dataset_refresh.py",
+          "line": 242
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.core.features:require_feature",
           "source": "services/export/dataset_refresh.py",
-          "line": 162
+          "line": 169
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:_dataset_failure_summary",
           "source": "services/export/dataset_refresh.py",
-          "line": 190
+          "line": 197
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:_dataset_failure_summary",
           "source": "services/export/dataset_refresh.py",
-          "line": 210
+          "line": 217
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:_dataset_failure_summary",
           "source": "services/export/dataset_refresh.py",
-          "line": 223
+          "line": 231
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:_dataset_failure_summary",
           "source": "services/export/dataset_refresh.py",
-          "line": 244
+          "line": 270
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:get_pg",
           "source": "services/export/dataset_refresh.py",
-          "line": 168
+          "line": 175
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:list_datasets",
           "source": "services/export/dataset_refresh.py",
-          "line": 172
+          "line": 179
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:list_datasets",
           "source": "services/export/dataset_refresh.py",
-          "line": 221
+          "line": 229
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:refresh_dataset",
           "source": "services/export/dataset_refresh.py",
-          "line": 201
+          "line": 208
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:refresh_dataset",
           "source": "services/export/dataset_refresh.py",
-          "line": 235
+          "line": 261
         },
         {
           "caller": "services.export.dataset_refresh:refresh_dataset",
           "callee": "services.analytics.reporting_reader:count_registered_reporting_rows",
+          "source": "services/export/dataset_refresh.py",
+          "line": 91
+        },
+        {
+          "caller": "services.export.dataset_refresh:refresh_dataset",
+          "callee": "services.analytics.reporting_reader:resolve_registered_reporting_query",
           "source": "services/export/dataset_refresh.py",
           "line": 84
         },
@@ -2168,13 +2194,13 @@
           "caller": "services.export.dataset_refresh:refresh_dataset",
           "callee": "services.analytics.reporting_reader:safe_query_error",
           "source": "services/export/dataset_refresh.py",
-          "line": 90
+          "line": 97
         },
         {
           "caller": "services.export.dataset_refresh:refresh_dataset",
           "callee": "services.core.features:require_feature",
           "source": "services/export/dataset_refresh.py",
-          "line": 59
+          "line": 63
         }
       ],
       "callback_edges": [],

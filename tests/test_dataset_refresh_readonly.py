@@ -165,6 +165,24 @@ def test_inactive_dataset_is_never_sent_to_reader(monkeypatch):
     assert conn.commits == 0
 
 
+def test_unregistered_dataset_is_rejected_before_reporting_or_refresh_metadata(monkeypatch):
+    conn = FakeApplicationConnection()
+    conn.query_id = None
+    monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
+    monkeypatch.setattr(
+        dataset_refresh,
+        "count_registered_reporting_rows",
+        lambda *_args: pytest.fail("unregistered dataset must not open the reporting reader"),
+    )
+
+    with pytest.raises(ValueError, match="missing or not registered"):
+        dataset_refresh.refresh_dataset(conn, "dataset-1")
+
+    assert not any(sql.lstrip().startswith("UPDATE dashboard_dataset") for sql, _ in conn.statements)
+    assert conn.commits == 0
+    assert conn.rollbacks == 0
+
+
 def test_changed_dataset_contract_does_not_receive_stale_refresh_metadata(monkeypatch):
     conn = FakeApplicationConnection()
     monkeypatch.setattr(dataset_refresh, "require_feature", lambda name: None)
@@ -324,7 +342,12 @@ def test_dataset_refresh_all_redacts_outer_exception_and_dataset_name(
     monkeypatch.setattr(
         dataset_refresh,
         "list_datasets",
-        lambda _conn: [{"id": "dataset-1", "name": "Confidential dashboard name"}],
+        lambda _conn: [{
+            "id": "dataset-1",
+            "name": "Confidential dashboard name",
+            "query_id": "public_farm_summary_count",
+            "location_id": "d4be5d0d-0b44-4e81-9b69-463bc87a9e11",
+        }],
     )
     monkeypatch.setattr(
         dataset_refresh,
@@ -339,6 +362,79 @@ def test_dataset_refresh_all_redacts_outer_exception_and_dataset_name(
     assert "Confidential dashboard name" not in output
     assert secret not in output
     assert "1 failed" in output
+    assert conn.closed
+
+
+def test_dataset_refresh_all_skips_unsupported_contracts_without_writes(
+    monkeypatch, capsys
+):
+    conn = FakeApplicationConnection()
+    datasets = [
+        {"id": "legacy-null", "name": "Legacy SQL", "query_id": None, "location_id": conn.location_id},
+        {
+            "id": "unknown-query",
+            "name": "Unknown registry entry",
+            "query_id": "unreviewed_query",
+            "location_id": conn.location_id,
+        },
+        {
+            "id": "unscoped-query",
+            "name": "Missing location",
+            "query_id": "public_farm_summary_count",
+            "location_id": None,
+        },
+    ]
+    monkeypatch.setattr(sys, "argv", ["dataset_refresh", "--all"])
+    monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
+    monkeypatch.setattr(dataset_refresh, "get_pg", lambda: conn)
+    monkeypatch.setattr(dataset_refresh, "list_datasets", lambda _conn: datasets)
+    monkeypatch.setattr(
+        dataset_refresh,
+        "refresh_dataset",
+        lambda *_args: pytest.fail("unsupported dataset must not be refreshed"),
+    )
+
+    dataset_refresh.main()
+
+    output = capsys.readouterr().out
+    assert "Skipped 3 active dataset(s)" in output
+    assert "No registered datasets are eligible for refresh." in output
+    assert "Legacy SQL" not in output
+    assert not conn.statements
+    assert conn.commits == 0
+    assert conn.closed
+
+
+def test_dataset_refresh_all_refreshes_registered_rows_and_reports_skips(
+    monkeypatch, capsys
+):
+    conn = FakeApplicationConnection()
+    datasets = [
+        {"id": "legacy-null", "query_id": None, "location_id": conn.location_id},
+        {
+            "id": "registered",
+            "query_id": "public_farm_summary_count",
+            "location_id": conn.location_id,
+        },
+    ]
+    calls = []
+    monkeypatch.setattr(sys, "argv", ["dataset_refresh", "--all"])
+    monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
+    monkeypatch.setattr(dataset_refresh, "get_pg", lambda: conn)
+    monkeypatch.setattr(dataset_refresh, "list_datasets", lambda _conn: datasets)
+    monkeypatch.setattr(
+        dataset_refresh,
+        "refresh_dataset",
+        lambda _conn, dataset_id: calls.append(dataset_id) or {
+            "status": "active", "name": "Registered", "row_count": 2, "duration_ms": 1,
+        },
+    )
+
+    dataset_refresh.main()
+
+    output = capsys.readouterr().out
+    assert calls == ["registered"]
+    assert "1 refreshed, 0 failed, 1 skipped" in output
     assert conn.closed
 
 
@@ -377,7 +473,12 @@ def test_reported_dataset_query_error_is_not_echoed(monkeypatch, capsys, argumen
     monkeypatch.setattr(
         dataset_refresh,
         "list_datasets",
-        lambda *_args: [{"id": "dataset-1", "name": "Fixture dataset"}],
+        lambda *_args: [{
+            "id": "dataset-1",
+            "name": "Fixture dataset",
+            "query_id": "public_farm_summary_count",
+            "location_id": "d4be5d0d-0b44-4e81-9b69-463bc87a9e11",
+        }],
     )
     monkeypatch.setattr(
         dataset_refresh,

@@ -213,13 +213,11 @@ def validate_reporting_connection(conn, *, expected_user: str) -> None:
             raise ReportingReaderPolicyError("saved reporting query login can connect to another database")
 
 
-def count_registered_reporting_rows(
+def resolve_registered_reporting_query(
     query_id: str,
     location_id: str | None,
-    *,
-    connection_factory=None,
-) -> int:
-    """Run one registered report count for exactly one canonical location."""
+) -> tuple[ReportingQuery, str]:
+    """Validate a stable query ID and canonical exact-location scope without I/O."""
     contract = REPORTING_QUERY_REGISTRY.get(query_id) if isinstance(query_id, str) else None
     if contract is None:
         raise ValueError("dataset query ID is missing or not registered")
@@ -230,6 +228,17 @@ def count_registered_reporting_rows(
         canonical_location_id = str(parsed_location)
     except (TypeError, ValueError, AttributeError):
         raise ValueError("registered dataset query requires a valid location ID") from None
+    return contract, canonical_location_id
+
+
+def count_registered_reporting_rows(
+    query_id: str,
+    location_id: str | None,
+    *,
+    connection_factory=None,
+) -> int:
+    """Run one registered report count for exactly one canonical location."""
+    contract, canonical_location_id = resolve_registered_reporting_query(query_id, location_id)
 
     factory = connection_factory or open_reporting_connection
     conn = factory()

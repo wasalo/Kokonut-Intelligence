@@ -263,14 +263,17 @@ evidence, inventory, and progress records. Checklist: 1,098 complete / 25 open
 The legacy dataset-refresh command rejects `--all` with `--list` or
 `--dataset-id` before feature checks or PostgreSQL access. Cursor and
 application-connection cleanup now covers failed list and bulk inventory
-queries. Eighteen module tests and five scheduler/feature contract checks
-pass, along with Ruff, compilation, six static inventory checks, capability
-validation, and diff checks. Stored-SQL refresh remains disabled by default;
-no database/provider or candidate/legacy stack was used. No schema migration is
-needed. Remaining report work includes query-ID policy, location parameter and
-tenant scope, and retained dashboard/populated parity. Rollback is a source,
-test, evidence, and inventory revert. Checklist: 1,097 complete / 25 open
-(1,122 total) ([evidence](builds/2026-10-24-recovery/cap-039-dataset-refresh-cli-cleanup.json)).
+queries. Bulk refresh inventories active rows but skips any row without a
+registered query ID and valid exact location before invoking refresh; an
+explicit single-row attempt rejects the same configuration before writing
+failure metadata. The combined reader, refresher, and scheduler contract
+selection passes 198 tests, with Ruff, compilation, static inventories,
+capability validation, and diff checks passing. Stored-query refresh remains
+disabled by default; no database/provider or candidate/legacy stack was used.
+Owner-selected queries, report measures, and populated dashboard parity remain
+open. Rollback reverts this CLI preflight while retaining migration 651 and the
+source registry. Checklist: 1,230 complete / 25 open (1,255 total)
+([evidence](builds/2026-10-26-recovery/dashboard-query-refresh-preflight.json)).
 
 ### Progress addendum — CAP-008 configurable conditional-simulation mode count, 24 October 2026
 
