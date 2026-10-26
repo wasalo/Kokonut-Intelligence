@@ -8122,6 +8122,2659 @@
       "dynamic_import_sites": []
     },
     {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_cids_export",
+      "root_modules": [
+        "services.agents.worker_cli"
+      ],
+      "modules": [
+        "services.agents.ai_summary",
+        "services.agents.base",
+        "services.agents.ebf_evidence_gap_agent",
+        "services.agents.logging",
+        "services.agents.safety",
+        "services.agents.tasks",
+        "services.agents.worker_cli",
+        "services.agents.worker_draft",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.providers",
+        "services.registry.cids_contract",
+        "services.registry.cids_export"
+      ],
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 24,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 25,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 26,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 31,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 539,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 546,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 553,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 560,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 610,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 632,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 19,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 23,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 272,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 14,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 50,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/safety.py",
+          "line": 374,
+          "target": "services.agents.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 16,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 411,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 16,
+          "target": "services.agents.ai_summary",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 17,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 23,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 24,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 25,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 29,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 141,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 142,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 143,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 347,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 348,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 443,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 444,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 594,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 595,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 634,
+          "target": "services.agents.ebf_evidence_gap_agent",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 659,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 660,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 695,
+          "target": "services.registry.cids_export",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 727,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 728,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 16,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 19,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 18,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 878,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 114,
+          "kind": "dynamic module expression"
+        }
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_delphi_facilitation",
+      "root_modules": [
+        "services.agents.worker_cli"
+      ],
+      "modules": [
+        "services.agents.ai_summary",
+        "services.agents.base",
+        "services.agents.ebf_evidence_gap_agent",
+        "services.agents.logging",
+        "services.agents.safety",
+        "services.agents.tasks",
+        "services.agents.worker_cli",
+        "services.agents.worker_draft",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.providers",
+        "services.registry.cids_contract",
+        "services.registry.cids_export"
+      ],
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 24,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 25,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 26,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 31,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 539,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 546,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 553,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 560,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 610,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 632,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 19,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 23,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 272,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 14,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 50,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/safety.py",
+          "line": 374,
+          "target": "services.agents.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 16,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 411,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 16,
+          "target": "services.agents.ai_summary",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 17,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 23,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 24,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 25,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 29,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 141,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 142,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 143,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 347,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 348,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 443,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 444,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 594,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 595,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 634,
+          "target": "services.agents.ebf_evidence_gap_agent",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 659,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 660,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 695,
+          "target": "services.registry.cids_export",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 727,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 728,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 16,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 19,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 18,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 878,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 114,
+          "kind": "dynamic module expression"
+        }
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_ebf_evidence_gap",
+      "root_modules": [
+        "services.agents.worker_cli"
+      ],
+      "modules": [
+        "services.agents.ai_summary",
+        "services.agents.base",
+        "services.agents.ebf_evidence_gap_agent",
+        "services.agents.logging",
+        "services.agents.safety",
+        "services.agents.tasks",
+        "services.agents.worker_cli",
+        "services.agents.worker_draft",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.providers",
+        "services.registry.cids_contract",
+        "services.registry.cids_export"
+      ],
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 24,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 25,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 26,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 31,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 539,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 546,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 553,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 560,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 610,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 632,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 19,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 23,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 272,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 14,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 50,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/safety.py",
+          "line": 374,
+          "target": "services.agents.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 16,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 411,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 16,
+          "target": "services.agents.ai_summary",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 17,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 23,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 24,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 25,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 29,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 141,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 142,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 143,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 347,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 348,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 443,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 444,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 594,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 595,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 634,
+          "target": "services.agents.ebf_evidence_gap_agent",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 659,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 660,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 695,
+          "target": "services.registry.cids_export",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 727,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 728,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 16,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 19,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 18,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 878,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 114,
+          "kind": "dynamic module expression"
+        }
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_digest",
+      "root_modules": [
+        "services.agents.worker_cli"
+      ],
+      "modules": [
+        "services.agents.ai_summary",
+        "services.agents.base",
+        "services.agents.ebf_evidence_gap_agent",
+        "services.agents.logging",
+        "services.agents.safety",
+        "services.agents.tasks",
+        "services.agents.worker_cli",
+        "services.agents.worker_draft",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.providers",
+        "services.registry.cids_contract",
+        "services.registry.cids_export"
+      ],
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 24,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 25,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 26,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 31,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 539,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 546,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 553,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 560,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 610,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 632,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 19,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 23,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 272,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 14,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 50,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/safety.py",
+          "line": 374,
+          "target": "services.agents.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 16,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 411,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 16,
+          "target": "services.agents.ai_summary",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 17,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 23,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 24,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 25,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 29,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 141,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 142,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 143,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 347,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 348,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 443,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 444,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 594,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 595,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 634,
+          "target": "services.agents.ebf_evidence_gap_agent",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 659,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 660,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 695,
+          "target": "services.registry.cids_export",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 727,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 728,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 16,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 19,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 18,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 878,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 114,
+          "kind": "dynamic module expression"
+        }
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_digest_result",
+      "root_modules": [
+        "services.agents.worker_cli"
+      ],
+      "modules": [
+        "services.agents.ai_summary",
+        "services.agents.base",
+        "services.agents.ebf_evidence_gap_agent",
+        "services.agents.logging",
+        "services.agents.safety",
+        "services.agents.tasks",
+        "services.agents.worker_cli",
+        "services.agents.worker_draft",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.providers",
+        "services.registry.cids_contract",
+        "services.registry.cids_export"
+      ],
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 24,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 25,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 26,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 31,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 539,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 546,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 553,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 560,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 610,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 632,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 19,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 23,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 272,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 14,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 50,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/safety.py",
+          "line": 374,
+          "target": "services.agents.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 16,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 411,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 16,
+          "target": "services.agents.ai_summary",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 17,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 23,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 24,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 25,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 29,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 141,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 142,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 143,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 347,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 348,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 443,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 444,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 594,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 595,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 634,
+          "target": "services.agents.ebf_evidence_gap_agent",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 659,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 660,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 695,
+          "target": "services.registry.cids_export",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 727,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 728,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 16,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 19,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 18,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 878,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 114,
+          "kind": "dynamic module expression"
+        }
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_list",
+      "root_modules": [
+        "services.agents.worker_cli"
+      ],
+      "modules": [
+        "services.agents.ai_summary",
+        "services.agents.base",
+        "services.agents.ebf_evidence_gap_agent",
+        "services.agents.logging",
+        "services.agents.safety",
+        "services.agents.tasks",
+        "services.agents.worker_cli",
+        "services.agents.worker_draft",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.providers",
+        "services.registry.cids_contract",
+        "services.registry.cids_export"
+      ],
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 24,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 25,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 26,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 31,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 539,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 546,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 553,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 560,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 610,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 632,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 19,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 23,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 272,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 14,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 50,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/safety.py",
+          "line": 374,
+          "target": "services.agents.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 16,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 411,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 16,
+          "target": "services.agents.ai_summary",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 17,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 23,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 24,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 25,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 29,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 141,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 142,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 143,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 347,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 348,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 443,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 444,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 594,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 595,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 634,
+          "target": "services.agents.ebf_evidence_gap_agent",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 659,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 660,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 695,
+          "target": "services.registry.cids_export",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 727,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 728,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 16,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 19,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 18,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 878,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 114,
+          "kind": "dynamic module expression"
+        }
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_list_result",
+      "root_modules": [
+        "services.agents.worker_cli"
+      ],
+      "modules": [
+        "services.agents.ai_summary",
+        "services.agents.base",
+        "services.agents.ebf_evidence_gap_agent",
+        "services.agents.logging",
+        "services.agents.safety",
+        "services.agents.tasks",
+        "services.agents.worker_cli",
+        "services.agents.worker_draft",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.providers",
+        "services.registry.cids_contract",
+        "services.registry.cids_export"
+      ],
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 24,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 25,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 26,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 31,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 539,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 546,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 553,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 560,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 610,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ai_summary.py",
+          "line": 632,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 19,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 23,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/base.py",
+          "line": 272,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 14,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 50,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/safety.py",
+          "line": 374,
+          "target": "services.agents.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 16,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/tasks.py",
+          "line": 411,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 16,
+          "target": "services.agents.ai_summary",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 17,
+          "target": "services.agents.worker_draft",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 23,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 24,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 25,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 29,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 141,
+          "target": "services.agents.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 142,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 143,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 347,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 348,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 443,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 444,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 594,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 595,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 634,
+          "target": "services.agents.ebf_evidence_gap_agent",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 659,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 660,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 695,
+          "target": "services.registry.cids_export",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 727,
+          "target": "services.agents.safety",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 728,
+          "target": "services.agents.tasks",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 16,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/agents/worker_draft.py",
+          "line": 19,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 18,
+          "target": "services.registry.cids_contract",
+          "kind": "from"
+        },
+        {
+          "source": "services/registry/cids_export.py",
+          "line": 878,
+          "target": "services.agents.worker_cli",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/agents/worker_cli.py",
+          "line": 114,
+          "kind": "dynamic module expression"
+        }
+      ]
+    },
+    {
       "kind": "event_handler",
       "name": "services.cache.events.handle_crisp_scored",
       "root_modules": [

@@ -26,7 +26,9 @@ migration 433 is a historical checkpoint, not the current schema ledger. See the
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
 the exact 32 modules in `ALLOWED_SCHEDULED_MODULES`, three isolated worker
-entrypoints, and all seven pairs in `ALLOWED_EVENT_HANDLERS`. Notification
+entrypoints, seven in-process signed source-reader functions, and all seven
+pairs in `ALLOWED_EVENT_HANDLERS`. The signed source-reader functions are
+function-level roots, not new OS processes or scheduler entries. Notification
 delivery and the agent worker CLI remain outside the scheduler allowlist. The
 agent worker lists its 12 synthesis-task identities plus the deterministic
 summary identity separately; it does not collapse those credentials into a
@@ -74,8 +76,9 @@ application-wide RLS or proof for other workers.
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from the 32
   scheduled modules, the event-dispatch, notification-delivery, and agent
-  worker entrypoints, and seven allowlisted handler pairs. It covers 136
-  distinct local source files across 42 operation roots, with no unresolved
+  worker entrypoints, seven signed source-reader function roots, and seven
+  allowlisted handler pairs. It covers 136 distinct local source files across
+  49 operation roots, with no unresolved
   local modules and 4 recorded dynamic-import sites. The agent worker's twelve
   synthesis modules are resolved through its literal immutable task registry.
   Other dynamic sites include the
@@ -102,6 +105,13 @@ application-wide RLS or proof for other workers.
   `collect_source_references`. This records source code reachability, not the
   authentication of a process that invokes the CLI; the request-receipt gate
   remains the write authorization boundary.
+- Seven exact agent source-reader functions are separately rooted in the static
+  graph: four summary list/digest readers plus EBF evidence-gap, CIDS export,
+  and Delphi facilitation readers. They establish their signed, location-scoped
+  read context inside the function, validate the relevant location/object IDs,
+  and expose only their bounded projections. They are called in-process by
+  first-party agent flows; this inventory does not create or imply a separate
+  worker credential, scheduler entry, or process boundary.
 - A generated [direct function reachability graph](worker-function-reachability.json)
   starts scheduled operations at calls under each executed `__main__` guard,
   the agent worker at its `main` command, event-dispatch and notification
@@ -119,9 +129,9 @@ application-wide RLS or proof for other workers.
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 42
-  operation roots and 138 source files, entry functions reach 1,017 function
-  memberships through 1,411 direct-call and 48 dynamic-dispatch edges, with no
+  command/request protocol rather than a local function call. Across 49
+  operation roots and 138 source files, entry functions reach 1,142 function
+  memberships through 1,614 direct-call and 48 dynamic-dispatch edges, with no
   unresolved operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
@@ -137,8 +147,8 @@ application-wide RLS or proof for other workers.
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
   joins those 473 sites to the operation graph without including SQL text or
-  values. It links 364 unique sites across 496 operation/site memberships;
-  109 sites have no current static function match, and each belongs to a
+  values. It links 395 unique sites across 576 operation/site memberships;
+  78 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -146,9 +156,10 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 42 operation roots and local imports, reports that the scheduler
+  confirms all 49 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
-  RLS blocked. Its database-identity summary now records that source policy
+  RLS blocked. The seven signed source-reader function roots establish context
+  within their own calls, not at dispatch. Its database-identity summary now records that source policy
   varies by operation and live provisioning is not assessed. The anomaly, optional cache, NOI snapshot, current-weather,
   weather-forecast, climate, sensor-ingestion, and remote-sensing integrations establish
   context within exact worker paths. Global freshness, RPC, EAS, and chain-indexer
@@ -163,7 +174,7 @@ application-wide RLS or proof for other workers.
   finds 70 unique candidate sites across 98 operation/site memberships: HTTP
   (12 unique / 24 memberships), email delivery (3 / 9), process (1), EVM RPC
   (9 / 13), EVM client setup (6 / 10), filesystem (37 / 38), and dynamic import
-  (2 / 3), across 42 operation roots. Filesystem matching includes path
+  (2 / 3), across 49 operation roots. Filesystem matching includes path
   resolution/directory checks, descriptor opens, metadata checks, and cleanup;
   the scheduled CSV driver's constrained openat walk is visible in the
   sensor-worker trace. These are review candidates,
@@ -198,7 +209,7 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
 - The earlier source-pattern review covered 48 composed/variable statements
   and the isolated dispatcher's parameterized call to seven fixed,
   source-owned migration functions. With the agent task modules included, the
-  generated SQL inventory now reports 87 composed/variable sites across 42
+  generated SQL inventory now reports 87 composed/variable sites across 49
   operation roots. The 36 new non-literal sites exposed by the added worker
   closure (34 in agent modules and two imported modules) have a source-pattern
   review in [worker-sql-source-pattern-review.json](worker-sql-source-pattern-review.json).
@@ -384,7 +395,7 @@ Keep this review current as the inventory changes. The static call graph
 follows local instance types, explicit metric-registry dispatch, and exact
 keyword-bound class instances passed into statically resolved functions. This
 now traces the injected Baal, Gnosis, and freshness persistence adapters
-through their legacy processing functions; 75 SQL sites still have no direct
+through their legacy processing functions; 78 SQL sites still have no direct
 static function match.
 It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map

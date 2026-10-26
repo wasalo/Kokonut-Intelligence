@@ -23,6 +23,7 @@ from services.security.execution_allowlist import (  # noqa: E402
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
     ISOLATED_WORKER_MODULES,
+    SIGNED_SOURCE_FUNCTIONS,
 )
 
 
@@ -243,6 +244,10 @@ def build_inventory() -> dict:
         operations.append(_operation("scheduled_module", module, [module]))
     for module in sorted(ISOLATED_WORKER_MODULES):
         operations.append(_operation("isolated_worker", module, [module]))
+    for module, function in sorted(SIGNED_SOURCE_FUNCTIONS):
+        operations.append(
+            _operation("signed_source_function", f"{module}.{function}", [module])
+        )
     for module, function in sorted(ALLOWED_EVENT_HANDLERS):
         operations.append(_operation("event_handler", f"{module}.{function}", [module]))
 

@@ -13,6 +13,7 @@ from services.security.execution_allowlist import (
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
     ISOLATED_WORKER_MODULES,
+    SIGNED_SOURCE_FUNCTIONS,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +31,10 @@ def test_worker_map_exactly_covers_scheduled_and_event_allowlists():
     assert {entry["module"] for entry in inventory["scheduled_modules"]} == ALLOWED_SCHEDULED_MODULES
     assert {(entry["module"], entry["function"]) for entry in inventory["event_handlers"]} == ALLOWED_EVENT_HANDLERS
     assert {entry["module"] for entry in inventory["isolated_workers"]} == ISOLATED_WORKER_MODULES
+    assert {
+        (entry["module"], entry["function"])
+        for entry in inventory["signed_source_functions"]
+    } == SIGNED_SOURCE_FUNCTIONS
     assert len(inventory["scheduled_modules"]) == len(ALLOWED_SCHEDULED_MODULES)
     assert len(inventory["isolated_workers"]) == len(ISOLATED_WORKER_MODULES)
     assert len(inventory["event_handlers"]) == len(ALLOWED_EVENT_HANDLERS)
@@ -47,10 +52,17 @@ def test_worker_map_entries_have_effect_retry_and_existing_source_evidence():
         assert required <= entry.keys()
         assert {"worker_key", "worker_keys"} & entry.keys()
         assert entry.get("worker_key") or entry.get("worker_keys")
+    for entry in inventory["signed_source_functions"]:
+        assert required | {"module", "function", "worker_key"} <= entry.keys()
+        assert entry["writes"] == []
+        assert entry["external_effects"] == []
+        assert entry["idempotency"].strip()
+        assert entry["retry_boundary"].strip()
 
     for entry in (
         *inventory["scheduled_modules"],
         *inventory["isolated_workers"],
+        *inventory["signed_source_functions"],
         *inventory["event_handlers"],
     ):
         assert entry["scope"].strip()

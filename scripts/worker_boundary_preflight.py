@@ -23,6 +23,7 @@ from services.security.execution_allowlist import (  # noqa: E402
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
     ISOLATED_WORKER_MODULES,
+    SIGNED_SOURCE_FUNCTIONS,
 )
 
 
@@ -39,6 +40,10 @@ def build_preflight() -> dict:
     expected_operations = {
         *(f"scheduled_module:{module}" for module in ALLOWED_SCHEDULED_MODULES),
         *(f"isolated_worker:{module}" for module in ISOLATED_WORKER_MODULES),
+        *(
+            f"signed_source_function:{module}.{function}"
+            for module, function in SIGNED_SOURCE_FUNCTIONS
+        ),
         *(f"event_handler:{module}.{function}" for module, function in ALLOWED_EVENT_HANDLERS),
     }
     function_operations = {_operation_ref(operation): operation for operation in function_graph["operations"]}
@@ -87,6 +92,7 @@ def build_preflight() -> dict:
         "operation_coverage": {
             "scheduled_allowlist_count": len(ALLOWED_SCHEDULED_MODULES),
             "isolated_worker_root_count": len(ISOLATED_WORKER_MODULES),
+            "signed_source_function_count": len(SIGNED_SOURCE_FUNCTIONS),
             "event_handler_allowlist_count": len(ALLOWED_EVENT_HANDLERS),
             "expected_operation_count": len(expected_operations),
             "source_closure_operation_count": len(closure_operations),
@@ -107,7 +113,8 @@ def build_preflight() -> dict:
         "worker_identity": {
             "database_identity": "source_policy_varies_live_configuration_not_assessed",
             "signed_tenant_context_established_by_dispatch": False,
-            "unbound_operation_root_count": len(expected_operations),
+            "unbound_operation_root_count": len(expected_operations) - len(SIGNED_SOURCE_FUNCTIONS),
+            "signed_source_function_roots_establish_context_in_function": len(SIGNED_SOURCE_FUNCTIONS),
             "status": "not_tenant_bound",
         },
         "sql_reachability": {

@@ -9,6 +9,7 @@ from services.security.execution_allowlist import (
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
     ISOLATED_WORKER_MODULES,
+    SIGNED_SOURCE_FUNCTIONS,
 )
 
 INVENTORY_PATH = ROOT / "docs" / "refactor" / "worker-source-closure.json"
@@ -26,13 +27,18 @@ def test_worker_source_closure_covers_all_allowlisted_entrypoints():
     scheduled = {item["name"] for item in operations if item["kind"] == "scheduled_module"}
     isolated = {item["name"] for item in operations if item["kind"] == "isolated_worker"}
     handlers = {item["name"] for item in operations if item["kind"] == "event_handler"}
+    signed_functions = {
+        item["name"] for item in operations if item["kind"] == "signed_source_function"
+    }
 
     assert scheduled == ALLOWED_SCHEDULED_MODULES
     assert isolated == ISOLATED_WORKER_MODULES
     assert handlers == {f"{module}.{function}" for module, function in ALLOWED_EVENT_HANDLERS}
+    assert signed_functions == {f"{module}.{function}" for module, function in SIGNED_SOURCE_FUNCTIONS}
     assert len(operations) == (
         len(ALLOWED_SCHEDULED_MODULES)
         + len(ISOLATED_WORKER_MODULES)
+        + len(SIGNED_SOURCE_FUNCTIONS)
         + len(ALLOWED_EVENT_HANDLERS)
     )
 

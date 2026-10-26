@@ -19268,3 +19268,27 @@ is 1,216 complete / 25 open (1,241 total). No database, provider, candidate,
 or legacy service was used. This static reachability work does not prove live
 authentication, grants, tenant isolation, RLS, or database/provider effects.
 Evidence: `docs/refactor/builds/2026-10-26-recovery/registered-agent-worker-reachability.json`.
+
+### Progress addendum — signed agent source-reader function reachability, 26 October 2026
+
+The static worker inventories now treat seven existing signed, read-only source
+functions as exact function-level roots: four AI-summary list/digest readers,
+the EBF evidence-gap reader, CIDS export, and Delphi facilitation. Each helper
+establishes its signed location context inside the function. These roots do not
+represent new OS workers or scheduler entries. The worker operation map records
+their bounded reads, empty write/effect sets, idempotency, retry boundaries,
+and source files.
+
+The focused source/function/SQL/preflight/operation-map selection passes 61
+tests. All six generated inventory checks, Ruff, compilation, capability-matrix
+validation, and diff checks pass. The current graph covers 49 roots, 138
+function-graph files, 1,142 function memberships, 1,614 direct-call edges, and
+48 dynamic-dispatch edges. It links 395 of 473 SQL sites through 576
+operation/site memberships; 78 sites remain without a static worker-function
+match. The boundary preflight remains `review_required`, and RLS remains
+`not_ready`. Capability classifications are unchanged at 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. The checklist is 1,217 complete /
+25 open (1,242 total). No database, provider, candidate, or legacy service was
+used. Static reachability does not prove live credentials, grants, ownership,
+tenant isolation, RLS, or runtime side effects. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/signed-agent-source-function-reachability.json`.

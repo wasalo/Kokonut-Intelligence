@@ -30,6 +30,21 @@ ISOLATED_WORKER_ENTRYPOINTS = {
     "services.events.notification_delivery_worker": "run_once",
 }
 
+# Exact in-process functions used by Gateway and first-party agents to perform
+# signed, read-only source access. They are function roots, not separate OS
+# worker processes or scheduler entries.
+SIGNED_SOURCE_FUNCTIONS = frozenset(
+    {
+        ("services.agents.worker_cli", "run_worker_summary_list"),
+        ("services.agents.worker_cli", "run_worker_summary_list_result"),
+        ("services.agents.worker_cli", "run_worker_summary_digest"),
+        ("services.agents.worker_cli", "run_worker_summary_digest_result"),
+        ("services.agents.worker_cli", "run_worker_ebf_evidence_gap"),
+        ("services.agents.worker_cli", "run_worker_cids_export"),
+        ("services.agents.worker_cli", "run_worker_delphi_facilitation"),
+    }
+)
+
 ALLOWED_SCHEDULED_MODULES = frozenset(
     {
         "services.analytics.carbon_credit_adjustment_check",

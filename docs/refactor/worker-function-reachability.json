@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator, scheduled-driver, and registered-synthesis-agent dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 42,
+    "operation_roots": 49,
     "source_files": 138,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 1017,
-    "direct_call_edges": 1411,
+    "function_memberships": 1142,
+    "direct_call_edges": 1614,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 48
   },
@@ -16977,6 +16977,2504 @@
           "callee": "services.events.notification_outbox:_deliver",
           "source": "services/events/notification_outbox.py",
           "line": 550
+        }
+      ],
+      "callback_edges": [],
+      "injected_instance_bindings": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_cids_export",
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.agents.worker_cli:run_worker_cids_export",
+          "source": "services/agents/worker_cli.py",
+          "line": 657
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.agents.safety:assert_agent_action_allowed",
+          "module": "services.agents.safety",
+          "qualname": "assert_agent_action_allowed",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 355
+        },
+        {
+          "key": "services.agents.safety:assess_agent_action",
+          "module": "services.agents.safety",
+          "qualname": "assess_agent_action",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 283
+        },
+        {
+          "key": "services.agents.tasks:_task_definition",
+          "module": "services.agents.tasks",
+          "qualname": "_task_definition",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 369
+        },
+        {
+          "key": "services.agents.tasks:_validate_declared_fields",
+          "module": "services.agents.tasks",
+          "qualname": "_validate_declared_fields",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 464
+        },
+        {
+          "key": "services.agents.tasks:cids_artifact_sha256",
+          "module": "services.agents.tasks",
+          "qualname": "cids_artifact_sha256",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 30
+        },
+        {
+          "key": "services.agents.tasks:get_task",
+          "module": "services.agents.tasks",
+          "qualname": "get_task",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 437
+        },
+        {
+          "key": "services.agents.tasks:output_schema",
+          "module": "services.agents.tasks",
+          "qualname": "output_schema",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 443
+        },
+        {
+          "key": "services.agents.tasks:validate_output",
+          "module": "services.agents.tasks",
+          "qualname": "validate_output",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 517
+        },
+        {
+          "key": "services.agents.tasks:validate_task_capabilities",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_capabilities",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 375
+        },
+        {
+          "key": "services.agents.tasks:validate_task_inputs",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_inputs",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 510
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_cids_export",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_cids_export",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 657
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:_set_worker_context",
+          "module": "services.common.tenant_context",
+          "qualname": "_set_worker_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 222
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 198
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 60
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 96
+        },
+        {
+          "key": "services.registry.cids_export:_cids_node_source_rows",
+          "module": "services.registry.cids_export",
+          "qualname": "_cids_node_source_rows",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 332
+        },
+        {
+          "key": "services.registry.cids_export:_cids_row_references",
+          "module": "services.registry.cids_export",
+          "qualname": "_cids_row_references",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 276
+        },
+        {
+          "key": "services.registry.cids_export:_context",
+          "module": "services.registry.cids_export",
+          "qualname": "_context",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 43
+        },
+        {
+          "key": "services.registry.cids_export:_ebf_pillar_from_metric",
+          "module": "services.registry.cids_export",
+          "qualname": "_ebf_pillar_from_metric",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 75
+        },
+        {
+          "key": "services.registry.cids_export:_fetch_scoped_cids_source",
+          "module": "services.registry.cids_export",
+          "qualname": "_fetch_scoped_cids_source",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 83
+        },
+        {
+          "key": "services.registry.cids_export:_measure",
+          "module": "services.registry.cids_export",
+          "qualname": "_measure",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 47
+        },
+        {
+          "key": "services.registry.cids_export:_slug",
+          "module": "services.registry.cids_export",
+          "qualname": "_slug",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 34
+        },
+        {
+          "key": "services.registry.cids_export:_source_views",
+          "module": "services.registry.cids_export",
+          "qualname": "_source_views",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 252
+        },
+        {
+          "key": "services.registry.cids_export:_strip_none",
+          "module": "services.registry.cids_export",
+          "qualname": "_strip_none",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 835
+        },
+        {
+          "key": "services.registry.cids_export:_unit_uri",
+          "module": "services.registry.cids_export",
+          "qualname": "_unit_uri",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 57
+        },
+        {
+          "key": "services.registry.cids_export:_uri",
+          "module": "services.registry.cids_export",
+          "qualname": "_uri",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 39
+        },
+        {
+          "key": "services.registry.cids_export:_with_source_views",
+          "module": "services.registry.cids_export",
+          "qualname": "_with_source_views",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 493
+        },
+        {
+          "key": "services.registry.cids_export:build_cids_graph",
+          "module": "services.registry.cids_export",
+          "qualname": "build_cids_graph",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 522
+        },
+        {
+          "key": "services.registry.cids_export:build_cids_property_row_lineage",
+          "module": "services.registry.cids_export",
+          "qualname": "build_cids_property_row_lineage",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 450
+        },
+        {
+          "key": "services.registry.cids_export:export_location_with_lineage",
+          "module": "services.registry.cids_export",
+          "qualname": "export_location_with_lineage",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 856
+        },
+        {
+          "key": "services.registry.cids_export:fetch_cids_source",
+          "module": "services.registry.cids_export",
+          "qualname": "fetch_cids_source",
+          "class_scope": null,
+          "source": "services/registry/cids_export.py",
+          "line": 136
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.agents.safety:assert_agent_action_allowed",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/safety.py",
+          "line": 357
+        },
+        {
+          "caller": "services.agents.tasks:get_task",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 440
+        },
+        {
+          "caller": "services.agents.tasks:get_task",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/tasks.py",
+          "line": 439
+        },
+        {
+          "caller": "services.agents.tasks:output_schema",
+          "callee": "services.agents.tasks:get_task",
+          "source": "services/agents/tasks.py",
+          "line": 445
+        },
+        {
+          "caller": "services.agents.tasks:validate_output",
+          "callee": "services.agents.tasks:_validate_declared_fields",
+          "source": "services/agents/tasks.py",
+          "line": 519
+        },
+        {
+          "caller": "services.agents.tasks:validate_output",
+          "callee": "services.agents.tasks:cids_artifact_sha256",
+          "source": "services/agents/tasks.py",
+          "line": 691
+        },
+        {
+          "caller": "services.agents.tasks:validate_output",
+          "callee": "services.agents.tasks:output_schema",
+          "source": "services/agents/tasks.py",
+          "line": 520
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/tasks.py",
+          "line": 425
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 377
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_inputs",
+          "callee": "services.agents.tasks:_validate_declared_fields",
+          "source": "services/agents/tasks.py",
+          "line": 512
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_inputs",
+          "callee": "services.agents.tasks:get_task",
+          "source": "services/agents/tasks.py",
+          "line": 513
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_cids_export",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 676
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_cids_export",
+          "callee": "services.agents.tasks:cids_artifact_sha256",
+          "source": "services/agents/worker_cli.py",
+          "line": 709
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_cids_export",
+          "callee": "services.agents.tasks:validate_output",
+          "source": "services/agents/worker_cli.py",
+          "line": 714
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_cids_export",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/worker_cli.py",
+          "line": 668
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_cids_export",
+          "callee": "services.agents.tasks:validate_task_inputs",
+          "source": "services/agents/worker_cli.py",
+          "line": 669
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_cids_export",
+          "callee": "services.common.tenant_context:set_agent_source_tenant_context",
+          "source": "services/agents/worker_cli.py",
+          "line": 683
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_cids_export",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_cli.py",
+          "line": 678
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_cids_export",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_cli.py",
+          "line": 679
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_cids_export",
+          "callee": "services.registry.cids_export:export_location_with_lineage",
+          "source": "services/agents/worker_cli.py",
+          "line": 697
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 245
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 236
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_source_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 212
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 77
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 118
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_cids_row_references",
+          "source": "services/registry/cids_export.py",
+          "line": 428
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 338
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 375
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 380
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 389
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 404
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 443
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 388
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 396
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 411
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_node_source_rows",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 418
+        },
+        {
+          "caller": "services.registry.cids_export:_cids_row_references",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 292
+        },
+        {
+          "caller": "services.registry.cids_export:_measure",
+          "callee": "services.registry.cids_export:_context",
+          "source": "services/registry/cids_export.py",
+          "line": 48
+        },
+        {
+          "caller": "services.registry.cids_export:_strip_none",
+          "callee": "services.registry.cids_export:_strip_none",
+          "source": "services/registry/cids_export.py",
+          "line": 837
+        },
+        {
+          "caller": "services.registry.cids_export:_strip_none",
+          "callee": "services.registry.cids_export:_strip_none",
+          "source": "services/registry/cids_export.py",
+          "line": 839
+        },
+        {
+          "caller": "services.registry.cids_export:_with_source_views",
+          "callee": "services.registry.cids_export:_context",
+          "source": "services/registry/cids_export.py",
+          "line": 513
+        },
+        {
+          "caller": "services.registry.cids_export:_with_source_views",
+          "callee": "services.registry.cids_export:_strip_none",
+          "source": "services/registry/cids_export.py",
+          "line": 498
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_ebf_pillar_from_metric",
+          "source": "services/registry/cids_export.py",
+          "line": 731
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_measure",
+          "source": "services/registry/cids_export.py",
+          "line": 768
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 527
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 534
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 537
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 545
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 671
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 672
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_slug",
+          "source": "services/registry/cids_export.py",
+          "line": 728
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 528
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 541
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 548
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 549
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 640
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 642
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 643
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 644
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 645
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 814
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 816
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 817
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 818
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 820
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 821
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 822
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 823
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 824
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 825
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 826
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 827
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_unit_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 730
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 529
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 530
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 531
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 534
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 537
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 545
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 671
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 672
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 673
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 728
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 729
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_uri",
+          "source": "services/registry/cids_export.py",
+          "line": 796
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 556
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 583
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 604
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 632
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 654
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 678
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 700
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 734
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 763
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_graph",
+          "callee": "services.registry.cids_export:_with_source_views",
+          "source": "services/registry/cids_export.py",
+          "line": 798
+        },
+        {
+          "caller": "services.registry.cids_export:build_cids_property_row_lineage",
+          "callee": "services.registry.cids_export:_cids_node_source_rows",
+          "source": "services/registry/cids_export.py",
+          "line": 459
+        },
+        {
+          "caller": "services.registry.cids_export:export_location_with_lineage",
+          "callee": "services.registry.cids_export:build_cids_graph",
+          "source": "services/registry/cids_export.py",
+          "line": 861
+        },
+        {
+          "caller": "services.registry.cids_export:export_location_with_lineage",
+          "callee": "services.registry.cids_export:build_cids_property_row_lineage",
+          "source": "services/registry/cids_export.py",
+          "line": 868
+        },
+        {
+          "caller": "services.registry.cids_export:export_location_with_lineage",
+          "callee": "services.registry.cids_export:fetch_cids_source",
+          "source": "services/registry/cids_export.py",
+          "line": 860
+        },
+        {
+          "caller": "services.registry.cids_export:fetch_cids_source",
+          "callee": "services.registry.cids_export:_fetch_scoped_cids_source",
+          "source": "services/registry/cids_export.py",
+          "line": 141
+        }
+      ],
+      "callback_edges": [],
+      "injected_instance_bindings": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_delphi_facilitation",
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.agents.worker_cli:run_worker_delphi_facilitation",
+          "source": "services/agents/worker_cli.py",
+          "line": 725
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.agents.safety:assert_agent_action_allowed",
+          "module": "services.agents.safety",
+          "qualname": "assert_agent_action_allowed",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 355
+        },
+        {
+          "key": "services.agents.safety:assess_agent_action",
+          "module": "services.agents.safety",
+          "qualname": "assess_agent_action",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 283
+        },
+        {
+          "key": "services.agents.tasks:_task_definition",
+          "module": "services.agents.tasks",
+          "qualname": "_task_definition",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 369
+        },
+        {
+          "key": "services.agents.tasks:_validate_declared_fields",
+          "module": "services.agents.tasks",
+          "qualname": "_validate_declared_fields",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 464
+        },
+        {
+          "key": "services.agents.tasks:get_task",
+          "module": "services.agents.tasks",
+          "qualname": "get_task",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 437
+        },
+        {
+          "key": "services.agents.tasks:validate_task_capabilities",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_capabilities",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 375
+        },
+        {
+          "key": "services.agents.tasks:validate_task_inputs",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_inputs",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 510
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_delphi_facilitation",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_delphi_facilitation",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 725
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:_set_worker_context",
+          "module": "services.common.tenant_context",
+          "qualname": "_set_worker_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 222
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 198
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 60
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 96
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.agents.safety:assert_agent_action_allowed",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/safety.py",
+          "line": 357
+        },
+        {
+          "caller": "services.agents.tasks:get_task",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 440
+        },
+        {
+          "caller": "services.agents.tasks:get_task",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/tasks.py",
+          "line": 439
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/tasks.py",
+          "line": 425
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 377
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_inputs",
+          "callee": "services.agents.tasks:_validate_declared_fields",
+          "source": "services/agents/tasks.py",
+          "line": 512
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_inputs",
+          "callee": "services.agents.tasks:get_task",
+          "source": "services/agents/tasks.py",
+          "line": 513
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_delphi_facilitation",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 745
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_delphi_facilitation",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/worker_cli.py",
+          "line": 738
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_delphi_facilitation",
+          "callee": "services.agents.tasks:validate_task_inputs",
+          "source": "services/agents/worker_cli.py",
+          "line": 739
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_delphi_facilitation",
+          "callee": "services.common.tenant_context:set_agent_source_tenant_context",
+          "source": "services/agents/worker_cli.py",
+          "line": 752
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_delphi_facilitation",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_cli.py",
+          "line": 747
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_delphi_facilitation",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_cli.py",
+          "line": 748
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 245
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 236
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_source_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 212
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 77
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 118
+        }
+      ],
+      "callback_edges": [],
+      "injected_instance_bindings": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_ebf_evidence_gap",
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "source": "services/agents/worker_cli.py",
+          "line": 592
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.agents.ebf_evidence_gap_agent:analyze_evidence_gaps",
+          "module": "services.agents.ebf_evidence_gap_agent",
+          "qualname": "analyze_evidence_gaps",
+          "class_scope": null,
+          "source": "services/agents/ebf_evidence_gap_agent.py",
+          "line": 17
+        },
+        {
+          "key": "services.agents.safety:assert_agent_action_allowed",
+          "module": "services.agents.safety",
+          "qualname": "assert_agent_action_allowed",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 355
+        },
+        {
+          "key": "services.agents.safety:assess_agent_action",
+          "module": "services.agents.safety",
+          "qualname": "assess_agent_action",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 283
+        },
+        {
+          "key": "services.agents.tasks:_task_definition",
+          "module": "services.agents.tasks",
+          "qualname": "_task_definition",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 369
+        },
+        {
+          "key": "services.agents.tasks:_validate_declared_fields",
+          "module": "services.agents.tasks",
+          "qualname": "_validate_declared_fields",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 464
+        },
+        {
+          "key": "services.agents.tasks:cids_artifact_sha256",
+          "module": "services.agents.tasks",
+          "qualname": "cids_artifact_sha256",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 30
+        },
+        {
+          "key": "services.agents.tasks:get_task",
+          "module": "services.agents.tasks",
+          "qualname": "get_task",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 437
+        },
+        {
+          "key": "services.agents.tasks:output_schema",
+          "module": "services.agents.tasks",
+          "qualname": "output_schema",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 443
+        },
+        {
+          "key": "services.agents.tasks:validate_output",
+          "module": "services.agents.tasks",
+          "qualname": "validate_output",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 517
+        },
+        {
+          "key": "services.agents.tasks:validate_task_capabilities",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_capabilities",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 375
+        },
+        {
+          "key": "services.agents.tasks:validate_task_inputs",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_inputs",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 510
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_ebf_evidence_gap",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 592
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:_set_worker_context",
+          "module": "services.common.tenant_context",
+          "qualname": "_set_worker_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 222
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 198
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 60
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 96
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.agents.safety:assert_agent_action_allowed",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/safety.py",
+          "line": 357
+        },
+        {
+          "caller": "services.agents.tasks:get_task",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 440
+        },
+        {
+          "caller": "services.agents.tasks:get_task",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/tasks.py",
+          "line": 439
+        },
+        {
+          "caller": "services.agents.tasks:output_schema",
+          "callee": "services.agents.tasks:get_task",
+          "source": "services/agents/tasks.py",
+          "line": 445
+        },
+        {
+          "caller": "services.agents.tasks:validate_output",
+          "callee": "services.agents.tasks:_validate_declared_fields",
+          "source": "services/agents/tasks.py",
+          "line": 519
+        },
+        {
+          "caller": "services.agents.tasks:validate_output",
+          "callee": "services.agents.tasks:cids_artifact_sha256",
+          "source": "services/agents/tasks.py",
+          "line": 691
+        },
+        {
+          "caller": "services.agents.tasks:validate_output",
+          "callee": "services.agents.tasks:output_schema",
+          "source": "services/agents/tasks.py",
+          "line": 520
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/tasks.py",
+          "line": 425
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 377
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_inputs",
+          "callee": "services.agents.tasks:_validate_declared_fields",
+          "source": "services/agents/tasks.py",
+          "line": 512
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_inputs",
+          "callee": "services.agents.tasks:get_task",
+          "source": "services/agents/tasks.py",
+          "line": 513
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "callee": "services.agents.ebf_evidence_gap_agent:analyze_evidence_gaps",
+          "source": "services/agents/worker_cli.py",
+          "line": 636
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 613
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "callee": "services.agents.tasks:validate_output",
+          "source": "services/agents/worker_cli.py",
+          "line": 646
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/worker_cli.py",
+          "line": 606
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "callee": "services.agents.tasks:validate_task_inputs",
+          "source": "services/agents/worker_cli.py",
+          "line": 607
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "callee": "services.common.tenant_context:set_agent_source_tenant_context",
+          "source": "services/agents/worker_cli.py",
+          "line": 622
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_cli.py",
+          "line": 617
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_ebf_evidence_gap",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_cli.py",
+          "line": 618
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 245
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 236
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_source_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 212
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 77
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 118
+        }
+      ],
+      "callback_edges": [],
+      "injected_instance_bindings": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_digest",
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.agents.worker_cli:run_worker_summary_digest",
+          "source": "services/agents/worker_cli.py",
+          "line": 564
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.agents.safety:assert_agent_action_allowed",
+          "module": "services.agents.safety",
+          "qualname": "assert_agent_action_allowed",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 355
+        },
+        {
+          "key": "services.agents.safety:assess_agent_action",
+          "module": "services.agents.safety",
+          "qualname": "assess_agent_action",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 283
+        },
+        {
+          "key": "services.agents.tasks:_task_definition",
+          "module": "services.agents.tasks",
+          "qualname": "_task_definition",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 369
+        },
+        {
+          "key": "services.agents.tasks:validate_task_capabilities",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_capabilities",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 375
+        },
+        {
+          "key": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "module": "services.agents.worker_cli",
+          "qualname": "_run_worker_summary_inspection",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 428
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_summary_digest",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_summary_digest",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 564
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_summary_digest_result",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_summary_digest_result",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 574
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:_set_worker_context",
+          "module": "services.common.tenant_context",
+          "qualname": "_set_worker_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 222
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 198
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_summary_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 148
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 60
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 96
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.agents.safety:assert_agent_action_allowed",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/safety.py",
+          "line": 357
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/tasks.py",
+          "line": 425
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 377
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 447
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/worker_cli.py",
+          "line": 446
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "source": "services/agents/worker_cli.py",
+          "line": 453
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_cli.py",
+          "line": 448
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_cli.py",
+          "line": 449
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary_digest",
+          "callee": "services.agents.worker_cli:run_worker_summary_digest_result",
+          "source": "services/agents/worker_cli.py",
+          "line": 568
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary_digest_result",
+          "callee": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "source": "services/agents/worker_cli.py",
+          "line": 578
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 245
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 236
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_source_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 212
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "callee": "services.common.tenant_context:set_agent_source_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 161
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 77
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 118
+        }
+      ],
+      "callback_edges": [],
+      "injected_instance_bindings": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_digest_result",
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.agents.worker_cli:run_worker_summary_digest_result",
+          "source": "services/agents/worker_cli.py",
+          "line": 574
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.agents.safety:assert_agent_action_allowed",
+          "module": "services.agents.safety",
+          "qualname": "assert_agent_action_allowed",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 355
+        },
+        {
+          "key": "services.agents.safety:assess_agent_action",
+          "module": "services.agents.safety",
+          "qualname": "assess_agent_action",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 283
+        },
+        {
+          "key": "services.agents.tasks:_task_definition",
+          "module": "services.agents.tasks",
+          "qualname": "_task_definition",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 369
+        },
+        {
+          "key": "services.agents.tasks:validate_task_capabilities",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_capabilities",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 375
+        },
+        {
+          "key": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "module": "services.agents.worker_cli",
+          "qualname": "_run_worker_summary_inspection",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 428
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_summary_digest_result",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_summary_digest_result",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 574
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:_set_worker_context",
+          "module": "services.common.tenant_context",
+          "qualname": "_set_worker_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 222
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 198
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_summary_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 148
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 60
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 96
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.agents.safety:assert_agent_action_allowed",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/safety.py",
+          "line": 357
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/tasks.py",
+          "line": 425
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 377
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 447
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/worker_cli.py",
+          "line": 446
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "source": "services/agents/worker_cli.py",
+          "line": 453
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_cli.py",
+          "line": 448
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_cli.py",
+          "line": 449
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary_digest_result",
+          "callee": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "source": "services/agents/worker_cli.py",
+          "line": 578
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 245
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 236
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_source_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 212
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "callee": "services.common.tenant_context:set_agent_source_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 161
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 77
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 118
+        }
+      ],
+      "callback_edges": [],
+      "injected_instance_bindings": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_list",
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.agents.worker_cli:run_worker_summary_list",
+          "source": "services/agents/worker_cli.py",
+          "line": 544
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.agents.safety:assert_agent_action_allowed",
+          "module": "services.agents.safety",
+          "qualname": "assert_agent_action_allowed",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 355
+        },
+        {
+          "key": "services.agents.safety:assess_agent_action",
+          "module": "services.agents.safety",
+          "qualname": "assess_agent_action",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 283
+        },
+        {
+          "key": "services.agents.tasks:_task_definition",
+          "module": "services.agents.tasks",
+          "qualname": "_task_definition",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 369
+        },
+        {
+          "key": "services.agents.tasks:validate_task_capabilities",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_capabilities",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 375
+        },
+        {
+          "key": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "module": "services.agents.worker_cli",
+          "qualname": "_run_worker_summary_inspection",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 428
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_summary_list",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_summary_list",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 544
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:_set_worker_context",
+          "module": "services.common.tenant_context",
+          "qualname": "_set_worker_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 222
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 198
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_summary_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 148
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 60
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 96
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.agents.safety:assert_agent_action_allowed",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/safety.py",
+          "line": 357
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/tasks.py",
+          "line": 425
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 377
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 447
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/worker_cli.py",
+          "line": 446
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "source": "services/agents/worker_cli.py",
+          "line": 453
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_cli.py",
+          "line": 448
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_cli.py",
+          "line": 449
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary_list",
+          "callee": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "source": "services/agents/worker_cli.py",
+          "line": 546
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 245
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 236
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_source_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 212
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "callee": "services.common.tenant_context:set_agent_source_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 161
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 77
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 118
+        }
+      ],
+      "callback_edges": [],
+      "injected_instance_bindings": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_list_result",
+      "source_files": [
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/logging.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/worker_cli.py",
+        "services/agents/worker_draft.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/providers.py",
+        "services/registry/cids_contract.py",
+        "services/registry/cids_export.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.agents.worker_cli:run_worker_summary_list_result",
+          "source": "services/agents/worker_cli.py",
+          "line": 552
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.agents.safety:assert_agent_action_allowed",
+          "module": "services.agents.safety",
+          "qualname": "assert_agent_action_allowed",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 355
+        },
+        {
+          "key": "services.agents.safety:assess_agent_action",
+          "module": "services.agents.safety",
+          "qualname": "assess_agent_action",
+          "class_scope": null,
+          "source": "services/agents/safety.py",
+          "line": 283
+        },
+        {
+          "key": "services.agents.tasks:_task_definition",
+          "module": "services.agents.tasks",
+          "qualname": "_task_definition",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 369
+        },
+        {
+          "key": "services.agents.tasks:validate_task_capabilities",
+          "module": "services.agents.tasks",
+          "qualname": "validate_task_capabilities",
+          "class_scope": null,
+          "source": "services/agents/tasks.py",
+          "line": 375
+        },
+        {
+          "key": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "module": "services.agents.worker_cli",
+          "qualname": "_run_worker_summary_inspection",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 428
+        },
+        {
+          "key": "services.agents.worker_cli:run_worker_summary_list_result",
+          "module": "services.agents.worker_cli",
+          "qualname": "run_worker_summary_list_result",
+          "class_scope": null,
+          "source": "services/agents/worker_cli.py",
+          "line": 552
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:_set_worker_context",
+          "module": "services.common.tenant_context",
+          "qualname": "_set_worker_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 222
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 198
+        },
+        {
+          "key": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_agent_summary_source_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 148
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 60
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 96
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.agents.safety:assert_agent_action_allowed",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/safety.py",
+          "line": 357
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.safety:assess_agent_action",
+          "source": "services/agents/tasks.py",
+          "line": 425
+        },
+        {
+          "caller": "services.agents.tasks:validate_task_capabilities",
+          "callee": "services.agents.tasks:_task_definition",
+          "source": "services/agents/tasks.py",
+          "line": 377
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.agents.safety:assert_agent_action_allowed",
+          "source": "services/agents/worker_cli.py",
+          "line": 447
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.agents.tasks:validate_task_capabilities",
+          "source": "services/agents/worker_cli.py",
+          "line": 446
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "source": "services/agents/worker_cli.py",
+          "line": 453
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/agents/worker_cli.py",
+          "line": 448
+        },
+        {
+          "caller": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/agents/worker_cli.py",
+          "line": 449
+        },
+        {
+          "caller": "services.agents.worker_cli:run_worker_summary_list_result",
+          "callee": "services.agents.worker_cli:_run_worker_summary_inspection",
+          "source": "services/agents/worker_cli.py",
+          "line": 554
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 245
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 236
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_source_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 212
+        },
+        {
+          "caller": "services.common.tenant_context:set_agent_summary_source_tenant_context",
+          "callee": "services.common.tenant_context:set_agent_source_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 161
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 77
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 118
         }
       ],
       "callback_edges": [],

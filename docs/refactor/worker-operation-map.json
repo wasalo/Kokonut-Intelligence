@@ -1597,5 +1597,91 @@
         "services/agents/regenerator_agent.py"
       ]
     }
+  ],
+  "signed_source_functions": [
+    {
+      "module": "services.agents.worker_cli",
+      "function": "run_worker_summary_list",
+      "worker_key": "agent_summary_inspection_source",
+      "scope": "Read up to twenty AI-summary metadata rows for one exact signed location. Content and cross-location summaries are not returned.",
+      "reads": ["kokonut_agent_source.ai_summary_list"],
+      "writes": [],
+      "external_effects": [],
+      "idempotency": "Bounded read-only projection; retries have no writes.",
+      "retry_boundary": "Validates the location UUID before opening the source login, then uses repeatable-read, read-only mode and signed location context.",
+      "sources": ["services/agents/worker_cli.py", "services/agents/ai_summary.py"]
+    },
+    {
+      "module": "services.agents.worker_cli",
+      "function": "run_worker_summary_list_result",
+      "worker_key": "agent_summary_inspection_source",
+      "scope": "Return the same bounded, exact-location AI-summary list with explicit source-view scope, including when there are zero rows.",
+      "reads": ["kokonut_agent_source.ai_summary_list"],
+      "writes": [],
+      "external_effects": [],
+      "idempotency": "Bounded read-only projection; retries have no writes.",
+      "retry_boundary": "Validates the location UUID before opening the source login, then uses repeatable-read, read-only mode and signed location context.",
+      "sources": ["services/agents/worker_cli.py", "services/agents/ai_summary.py"]
+    },
+    {
+      "module": "services.agents.worker_cli",
+      "function": "run_worker_summary_digest",
+      "worker_key": "agent_summary_inspection_source",
+      "scope": "Read digest metadata for one summary ID under one exact signed location; never returns summary content.",
+      "reads": ["kokonut_agent_source.ai_summary_digest"],
+      "writes": [],
+      "external_effects": [],
+      "idempotency": "Bounded read-only projection; retries have no writes.",
+      "retry_boundary": "Validates both UUIDs before opening the source login and requires both summary and location to match the signed context.",
+      "sources": ["services/agents/worker_cli.py", "services/agents/ai_summary.py"]
+    },
+    {
+      "module": "services.agents.worker_cli",
+      "function": "run_worker_summary_digest_result",
+      "worker_key": "agent_summary_inspection_source",
+      "scope": "Return digest metadata and explicit source-view scope for one summary ID and exact signed location, including when no row matches.",
+      "reads": ["kokonut_agent_source.ai_summary_digest"],
+      "writes": [],
+      "external_effects": [],
+      "idempotency": "Bounded read-only projection; retries have no writes.",
+      "retry_boundary": "Validates both UUIDs before opening the source login and requires both summary and location to match the signed context.",
+      "sources": ["services/agents/worker_cli.py", "services/agents/ai_summary.py"]
+    },
+    {
+      "module": "services.agents.worker_cli",
+      "function": "run_worker_ebf_evidence_gap",
+      "worker_key": "agent_ebf_source",
+      "scope": "Read the bounded public-safe EBF evidence-gap projection for one scorecard and its exact signed location.",
+      "reads": ["kokonut_agent_source.v_ebf_evidence_gap_summary"],
+      "writes": [],
+      "external_effects": [],
+      "idempotency": "Read-only synthesis; retries do not mutate scorecard state.",
+      "retry_boundary": "Validates scorecard and location UUIDs, establishes the signed EBF scope, and fails closed on source or output validation errors.",
+      "sources": ["services/agents/worker_cli.py", "services/agents/ebf_evidence_gap_agent.py"]
+    },
+    {
+      "module": "services.agents.worker_cli",
+      "function": "run_worker_cids_export",
+      "worker_key": "agent_cids_source",
+      "scope": "Build a location-scoped CIDS document from the registered source-view set and return per-property provenance and a bound artifact digest; it does not publish or attest.",
+      "reads": ["CIDS_SOURCE_VIEWS through kokonut_agent_source"],
+      "writes": [],
+      "external_effects": [],
+      "idempotency": "Read-only export; repeating the request produces a source-derived artifact without database writes.",
+      "retry_boundary": "Validates the location UUID, establishes signed cids_export/read context, constrains source_schema, and validates output before returning.",
+      "sources": ["services/agents/worker_cli.py", "services/agents/cids_agent.py", "services/registry/cids_export.py"]
+    },
+    {
+      "module": "services.agents.worker_cli",
+      "function": "run_worker_delphi_facilitation",
+      "worker_key": "agent_delphi_source",
+      "scope": "Read the consent-aware live Delphi aggregate for one study and exact signed location; participant identities and raw responses are not returned.",
+      "reads": ["kokonut_agent_source.delphi_live_summary"],
+      "writes": [],
+      "external_effects": [],
+      "idempotency": "Read-only aggregate; retries do not change study, participant, or review state.",
+      "retry_boundary": "Validates study and location UUIDs, establishes signed delphi/read context, and rejects missing or mismatched location rows.",
+      "sources": ["services/agents/worker_cli.py", "services/agents/delphi_facilitator_agent.py"]
+    }
   ]
 }

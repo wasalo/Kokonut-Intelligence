@@ -21,7 +21,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.worker_source_closure as worker_source_closure  # noqa: E402
-from services.security.execution_allowlist import ISOLATED_WORKER_ENTRYPOINTS  # noqa: E402
+from services.security.execution_allowlist import (  # noqa: E402
+    ISOLATED_WORKER_ENTRYPOINTS,
+    SIGNED_SOURCE_FUNCTIONS,
+)
 
 
 def _function_key(module: str, qualname: str) -> str:
@@ -657,6 +660,15 @@ def _operation_roots(
         return (
             [{"function": key, "source": definitions[key]["source"], "line": definitions[key]["line"]}]
             if key in definitions
+            else []
+        )
+
+    if operation["kind"] == "signed_source_function":
+        module, _, function = operation["name"].rpartition(".")
+        key = _function_key(module, function)
+        return (
+            [{"function": key, "source": definitions[key]["source"], "line": definitions[key]["line"]}]
+            if (module, function) in SIGNED_SOURCE_FUNCTIONS and key in definitions
             else []
         )
 

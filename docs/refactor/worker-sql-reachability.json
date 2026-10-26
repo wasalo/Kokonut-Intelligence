@@ -3,13 +3,13 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 42,
+    "operation_roots": 49,
     "sql_execution_sites": 473,
-    "statically_reachable_site_memberships": 496,
-    "unique_sites_with_static_operation_path": 364,
-    "sites_without_static_function_match": 109,
-    "unmatched_functions_absent_from_all_worker_graphs": 109,
-    "sites_reached_by_multiple_operations": 45
+    "statically_reachable_site_memberships": 576,
+    "unique_sites_with_static_operation_path": 395,
+    "sites_without_static_function_match": 78,
+    "unmatched_functions_absent_from_all_worker_graphs": 78,
+    "sites_reached_by_multiple_operations": 52
   },
   "operations": [
     {
@@ -748,6 +748,142 @@
       ]
     },
     {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_cids_export",
+      "operation_ref": "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+      "statically_reachable_sql_site_count": 16,
+      "statically_reachable_sql_site_ids": [
+        "services/agents/worker_cli.py:682:12",
+        "services/agents/worker_cli.py:691:12",
+        "services/agents/worker_cli.py:692:12",
+        "services/agents/worker_cli.py:693:12",
+        "services/agents/worker_cli.py:694:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:254:12",
+        "services/common/tenant_context.py:255:8",
+        "services/common/worker_database.py:142:12",
+        "services/registry/cids_export.py:122:12",
+        "services/registry/cids_export.py:146:8",
+        "services/registry/cids_export.py:167:8",
+        "services/registry/cids_export.py:179:8",
+        "services/registry/cids_export.py:193:8",
+        "services/registry/cids_export.py:209:8",
+        "services/registry/cids_export.py:226:8"
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_delphi_facilitation",
+      "operation_ref": "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+      "statically_reachable_sql_site_count": 10,
+      "statically_reachable_sql_site_ids": [
+        "services/agents/worker_cli.py:751:12",
+        "services/agents/worker_cli.py:760:12",
+        "services/agents/worker_cli.py:761:12",
+        "services/agents/worker_cli.py:762:12",
+        "services/agents/worker_cli.py:763:12",
+        "services/agents/worker_cli.py:765:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:254:12",
+        "services/common/tenant_context.py:255:8",
+        "services/common/worker_database.py:142:12"
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_ebf_evidence_gap",
+      "operation_ref": "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+      "statically_reachable_sql_site_count": 10,
+      "statically_reachable_sql_site_ids": [
+        "services/agents/ebf_evidence_gap_agent.py:22:8",
+        "services/agents/worker_cli.py:621:12",
+        "services/agents/worker_cli.py:630:12",
+        "services/agents/worker_cli.py:631:12",
+        "services/agents/worker_cli.py:632:12",
+        "services/agents/worker_cli.py:633:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:254:12",
+        "services/common/tenant_context.py:255:8",
+        "services/common/worker_database.py:142:12"
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_digest",
+      "operation_ref": "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+      "statically_reachable_sql_site_count": 11,
+      "statically_reachable_sql_site_ids": [
+        "services/agents/worker_cli.py:452:12",
+        "services/agents/worker_cli.py:459:12",
+        "services/agents/worker_cli.py:462:12",
+        "services/agents/worker_cli.py:463:12",
+        "services/agents/worker_cli.py:464:12",
+        "services/agents/worker_cli.py:467:16",
+        "services/agents/worker_cli.py:496:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:254:12",
+        "services/common/tenant_context.py:255:8",
+        "services/common/worker_database.py:142:12"
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_digest_result",
+      "operation_ref": "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+      "statically_reachable_sql_site_count": 11,
+      "statically_reachable_sql_site_ids": [
+        "services/agents/worker_cli.py:452:12",
+        "services/agents/worker_cli.py:459:12",
+        "services/agents/worker_cli.py:462:12",
+        "services/agents/worker_cli.py:463:12",
+        "services/agents/worker_cli.py:464:12",
+        "services/agents/worker_cli.py:467:16",
+        "services/agents/worker_cli.py:496:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:254:12",
+        "services/common/tenant_context.py:255:8",
+        "services/common/worker_database.py:142:12"
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_list",
+      "operation_ref": "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+      "statically_reachable_sql_site_count": 11,
+      "statically_reachable_sql_site_ids": [
+        "services/agents/worker_cli.py:452:12",
+        "services/agents/worker_cli.py:459:12",
+        "services/agents/worker_cli.py:462:12",
+        "services/agents/worker_cli.py:463:12",
+        "services/agents/worker_cli.py:464:12",
+        "services/agents/worker_cli.py:467:16",
+        "services/agents/worker_cli.py:496:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:254:12",
+        "services/common/tenant_context.py:255:8",
+        "services/common/worker_database.py:142:12"
+      ]
+    },
+    {
+      "kind": "signed_source_function",
+      "name": "services.agents.worker_cli.run_worker_summary_list_result",
+      "operation_ref": "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result",
+      "statically_reachable_sql_site_count": 11,
+      "statically_reachable_sql_site_ids": [
+        "services/agents/worker_cli.py:452:12",
+        "services/agents/worker_cli.py:459:12",
+        "services/agents/worker_cli.py:462:12",
+        "services/agents/worker_cli.py:463:12",
+        "services/agents/worker_cli.py:464:12",
+        "services/agents/worker_cli.py:467:16",
+        "services/agents/worker_cli.py:496:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:254:12",
+        "services/common/tenant_context.py:255:8",
+        "services/common/worker_database.py:142:12"
+      ]
+    },
+    {
       "kind": "event_handler",
       "name": "services.cache.events.handle_crisp_scored",
       "operation_ref": "event_handler:services.cache.events.handle_crisp_scored",
@@ -855,7 +991,14 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -872,7 +1015,14 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -889,7 +1039,14 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -906,7 +1063,14 @@
       "statement_kind": "UNKNOWN",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1200,12 +1364,21 @@
         "v_ebf_evidence_gap_summary"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/ecological_modeling_agent.py:47:8",
@@ -1759,7 +1932,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1778,7 +1958,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1797,7 +1984,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1816,7 +2010,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1835,7 +2036,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1854,7 +2062,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1873,7 +2088,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1892,7 +2114,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1911,7 +2140,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -1930,12 +2166,24 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:459:12",
@@ -1947,12 +2195,24 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:462:12",
@@ -1964,12 +2224,24 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:463:12",
@@ -1981,12 +2253,24 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:464:12",
@@ -1998,12 +2282,24 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:467:16",
@@ -2017,12 +2313,24 @@
         "kokonut_agent_source.ai_summary_list"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:496:12",
@@ -2036,12 +2344,24 @@
         "kokonut_agent_source.ai_summary_digest"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:621:12",
@@ -2053,12 +2373,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:630:12",
@@ -2070,12 +2399,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:631:12",
@@ -2087,12 +2425,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:632:12",
@@ -2104,12 +2451,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:633:12",
@@ -2121,12 +2477,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:682:12",
@@ -2138,12 +2503,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:691:12",
@@ -2155,12 +2529,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:692:12",
@@ -2172,12 +2555,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:693:12",
@@ -2189,12 +2581,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:694:12",
@@ -2206,12 +2607,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:751:12",
@@ -2223,12 +2633,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:760:12",
@@ -2240,12 +2659,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:761:12",
@@ -2257,12 +2685,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:762:12",
@@ -2274,12 +2711,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:763:12",
@@ -2291,12 +2737,21 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_cli.py:765:12",
@@ -2310,12 +2765,21 @@
         "kokonut_agent_source.delphi_live_summary"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/agents/worker_draft.py:285:8",
@@ -2327,7 +2791,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -2346,7 +2817,14 @@
       "statement_kind": "SET",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -2367,7 +2845,14 @@
         "kokonut_security.verify_current_ai_summary_operator_task_request"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -2386,7 +2871,14 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -2407,7 +2899,14 @@
         "kokonut_security.get_location_ai_summary_worker_result"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -2428,7 +2927,14 @@
         "kokonut_security.create_location_ai_summary_worker_draft_with_result"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -2449,7 +2955,14 @@
         "kokonut_security.create_location_ai_summary_worker_draft"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -2468,7 +2981,14 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -3960,7 +4480,14 @@
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4017,7 +4544,14 @@
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4074,7 +4608,14 @@
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4105,7 +4646,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
@@ -4122,7 +4670,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -4152,7 +4707,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -4185,7 +4747,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -4218,7 +4787,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
@@ -4235,7 +4811,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -4267,7 +4850,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
@@ -4284,7 +4874,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -4316,7 +4913,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4349,7 +4953,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4382,7 +4993,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4425,7 +5043,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
@@ -4454,7 +5079,14 @@
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
-        "scheduled_module:services.metrics.noi_snapshot_worker"
+        "scheduled_module:services.metrics.noi_snapshot_worker",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -11209,12 +11841,21 @@
       "statement_kind": "UNKNOWN",
       "candidate_relations": [],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/registry/cids_export.py:146:8",
@@ -11230,12 +11871,21 @@
         "location"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/registry/cids_export.py:167:8",
@@ -11250,12 +11900,21 @@
         "stakeholder_outcome"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/registry/cids_export.py:179:8",
@@ -11272,12 +11931,21 @@
         "sdg"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/registry/cids_export.py:193:8",
@@ -11292,12 +11960,21 @@
         "metric_value"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/registry/cids_export.py:209:8",
@@ -11312,12 +11989,21 @@
         "stakeholder_feedback"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/registry/cids_export.py:226:8",
@@ -11332,12 +12018,21 @@
         "impact_claim"
       ],
       "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
       ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
+      "statically_reachable_operations": [
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     }
   ]
 }

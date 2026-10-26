@@ -100,3 +100,44 @@ def test_metric_calculator_sql_sites_follow_the_explicit_registry_edges():
     assert all(
         "scheduled_module:services.metrics" in site["statically_reachable_operations"] for site in calculator_sites
     )
+
+
+def test_signed_agent_source_helpers_are_traced_as_function_roots():
+    report = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+    expected_operations = {
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+    }
+    sources = {
+        "services/agents/worker_cli.py",
+        "services/agents/ai_summary.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/delphi_facilitator_agent.py",
+        "services/registry/cids_export.py",
+    }
+    operations = {operation["operation_ref"] for operation in report["operations"]}
+    matched = [
+        site
+        for site in report["execution_sites"]
+        if site["source"] in sources
+        and site["scope"] in {
+            "_run_worker_summary_inspection",
+            "run_worker_ebf_evidence_gap",
+            "run_worker_cids_export",
+            "run_worker_delphi_facilitation",
+            "analyze_evidence_gaps",
+            "export_location_with_lineage",
+        }
+    ]
+
+    assert expected_operations <= operations
+    assert matched
+    assert all(
+        set(site["statically_reachable_operations"]) & expected_operations
+        for site in matched
+    )

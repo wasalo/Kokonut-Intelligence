@@ -20,6 +20,7 @@ from services.security.execution_allowlist import (
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
     ISOLATED_WORKER_MODULES,
+    SIGNED_SOURCE_FUNCTIONS,
 )
 
 INVENTORY_PATH = ROOT / "docs" / "refactor" / "worker-function-reachability.json"
@@ -36,6 +37,7 @@ def test_worker_function_graph_covers_allowlisted_entrypoints_and_edges():
     expected_names = (
         set(ALLOWED_SCHEDULED_MODULES)
         | set(ISOLATED_WORKER_MODULES)
+        | {f"{module}.{function}" for module, function in SIGNED_SOURCE_FUNCTIONS}
         | {f"{module}.{function}" for module, function in ALLOWED_EVENT_HANDLERS}
     )
     operations = inventory["operations"]
@@ -75,6 +77,13 @@ def test_worker_function_graph_covers_allowlisted_entrypoints_and_edges():
         for root in operation["entry_functions"]
     }
     assert event_roots == {f"{module}:{function}" for module, function in ALLOWED_EVENT_HANDLERS}
+    signed_roots = {
+        root["function"]
+        for operation in operations
+        if operation["kind"] == "signed_source_function"
+        for root in operation["entry_functions"]
+    }
+    assert signed_roots == {f"{module}:{function}" for module, function in SIGNED_SOURCE_FUNCTIONS}
 
 
 def test_graph_tracks_instance_methods_and_literal_metric_registry_dispatch():

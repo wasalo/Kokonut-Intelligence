@@ -6,10 +6,11 @@
   "operation_coverage": {
     "scheduled_allowlist_count": 32,
     "isolated_worker_root_count": 3,
+    "signed_source_function_count": 7,
     "event_handler_allowlist_count": 7,
-    "expected_operation_count": 42,
-    "source_closure_operation_count": 42,
-    "function_graph_operation_count": 42,
+    "expected_operation_count": 49,
+    "source_closure_operation_count": 49,
+    "function_graph_operation_count": 49,
     "missing_source_closure_operations": [],
     "missing_function_graph_operations": [],
     "unresolved_function_roots": 0,
@@ -25,147 +26,28 @@
     "database_identity": "source_policy_varies_live_configuration_not_assessed",
     "signed_tenant_context_established_by_dispatch": false,
     "unbound_operation_root_count": 42,
+    "signed_source_function_roots_establish_context_in_function": 7,
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
     "execution_site_count": 473,
-    "sites_with_static_operation_path": 364,
-    "sites_without_static_function_match": 109,
+    "sites_with_static_operation_path": 395,
+    "sites_without_static_function_match": 78,
     "site_refs_for_review": [
       {
         "site": "services/agents/ai_summary.py:178:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
+        "import_closure_operation_count": 8
       },
       {
         "site": "services/agents/ai_summary.py:197:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
+        "import_closure_operation_count": 8
       },
       {
         "site": "services/agents/ai_summary.py:207:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/ebf_evidence_gap_agent.py:22:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:452:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:459:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:462:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:463:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:464:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:467:16",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:496:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:621:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:630:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:631:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:632:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:633:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:682:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:691:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:692:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:693:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:694:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:751:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:760:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:761:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:762:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:763:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/agents/worker_cli.py:765:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
+        "import_closure_operation_count": 8
       },
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -320,32 +202,32 @@
       {
         "site": "services/common/database.py:142:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 41
+        "import_closure_operation_count": 48
       },
       {
         "site": "services/common/database.py:77:15",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 41
+        "import_closure_operation_count": 48
       },
       {
         "site": "services/common/database.py:80:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 41
+        "import_closure_operation_count": 48
       },
       {
         "site": "services/common/tenant_context.py:309:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 15
+        "import_closure_operation_count": 22
       },
       {
         "site": "services/common/tenant_context.py:389:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 15
+        "import_closure_operation_count": 22
       },
       {
         "site": "services/common/tenant_context.py:455:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 15
+        "import_closure_operation_count": 22
       },
       {
         "site": "services/credit_class/chain_sync.py:182:12",
@@ -541,41 +423,6 @@
         "site": "services/ingestion/weather_forecast.py:271:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
-      },
-      {
-        "site": "services/registry/cids_export.py:122:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/registry/cids_export.py:146:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/registry/cids_export.py:167:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/registry/cids_export.py:179:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/registry/cids_export.py:193:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/registry/cids_export.py:209:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/registry/cids_export.py:226:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
       }
     ],
     "static_effects_complete": false

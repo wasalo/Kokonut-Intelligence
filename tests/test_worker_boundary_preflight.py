@@ -14,6 +14,7 @@ from services.security.execution_allowlist import (
     ALLOWED_SCHEDULED_MODULES,
     ISOLATED_WORKER_ENTRYPOINTS,
     ISOLATED_WORKER_MODULES,
+    SIGNED_SOURCE_FUNCTIONS,
 )
 
 REPORT_PATH = ROOT / "docs" / "refactor" / "worker-boundary-preflight.json"
@@ -36,9 +37,11 @@ def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(repo
     assert coverage["scheduled_allowlist_count"] == len(ALLOWED_SCHEDULED_MODULES)
     assert coverage["isolated_worker_root_count"] == len(ISOLATED_WORKER_MODULES)
     assert coverage["event_handler_allowlist_count"] == len(ALLOWED_EVENT_HANDLERS)
+    assert coverage["signed_source_function_count"] == len(SIGNED_SOURCE_FUNCTIONS)
     assert coverage["expected_operation_count"] == (
         len(ALLOWED_SCHEDULED_MODULES)
         + len(ISOLATED_WORKER_MODULES)
+        + len(SIGNED_SOURCE_FUNCTIONS)
         + len(ALLOWED_EVENT_HANDLERS)
     )
     assert "services.events.notification_delivery_worker" in ISOLATED_WORKER_MODULES
@@ -53,7 +56,12 @@ def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(repo
     assert report["source_closure"]["dynamic_import_site_count"] == 4
     assert report["source_closure"]["passed"] is True
     assert report["worker_identity"]["signed_tenant_context_established_by_dispatch"] is False
-    assert report["worker_identity"]["unbound_operation_root_count"] == coverage["expected_operation_count"]
+    assert report["worker_identity"]["unbound_operation_root_count"] == (
+        coverage["expected_operation_count"] - len(SIGNED_SOURCE_FUNCTIONS)
+    )
+    assert report["worker_identity"]["signed_source_function_roots_establish_context_in_function"] == len(
+        SIGNED_SOURCE_FUNCTIONS
+    )
     assert report["worker_identity"]["status"] == "not_tenant_bound"
     assert report["status"] == "review_required"
     assert any("code-allowlisted scheduled sensor-driver dispatch" in item for item in report["limitations"])
