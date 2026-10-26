@@ -60,7 +60,7 @@ from the preceding images. The root filesystems measured 702 MiB and 736 MiB
 with `du`; these remain substantial opt-in images, not a size claim for the
 default Kernel image. The checks establish software portability only and do not
 verify performance, reliability, thermal behavior, or power-loss handling on a
-physical Raspberry Pi.
+physical Raspberry Pi. A synthetic 1,024-row, four-feature IsolationForest workload also passes under a 1 GiB memory limit and 2-CPU quota; peak process RSS is 188 MiB on AMD64 and 327 MiB on ARM64/QEMU. This is a bounded software smoke, not a hardware performance estimate ([resource evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-resource-smoke.json)).
 
 ## Activation sequence
 

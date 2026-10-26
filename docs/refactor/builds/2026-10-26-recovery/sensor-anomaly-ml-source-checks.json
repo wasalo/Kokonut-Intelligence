@@ -32,5 +32,7 @@
   "slim_image_evidence": "sensor-anomaly-ml-slim-image-builds.json",
   "slim_amd64_smoke": "sensor-anomaly-ml-slim-image-native-smoke.json",
   "slim_arm64_smoke": "sensor-anomaly-ml-slim-image-arm64-smoke.json",
-  "optional_ml_transitive_dependencies_hash_locked": false
+  "optional_ml_transitive_dependencies_hash_locked": false,
+  "constrained_resource_smoke": "passed on AMD64 and ARM64/QEMU at 1 GiB and 2 CPUs",
+  "constrained_resource_smoke_evidence": "sensor-anomaly-ml-slim-image-resource-smoke.json"
 }

@@ -2211,6 +2211,8 @@ worker-before-migration source/runtime path under emulation, not physical Pi,
 24-hour, or provider-outage acceptance
 ([evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json)).
 
+**Constrained optional ML worker smoke (26 October 2026):** the dedicated sensor-anomaly image passes a synthetic 1,024-row, four-feature IsolationForest workload under a 1 GiB memory cap and 2-CPU quota. Peak process RSS is 188 MiB on AMD64 and 327 MiB on ARM64/QEMU. The test verifies the actual cgroup values before importing ML packages, uses no network/database/provider, and mounts its runner read-only. This is software resource evidence; QEMU timing is not a hardware estimate and physical Pi acceptance remains open ([runner](../../scripts/sensor_anomaly_ml_resource_smoke.py); [evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-resource-smoke.json)).
+
 ### Batch G — Reconcile ledgers, then request only owner decisions
 
 Update `batches.md`, `progress.md`, `capability-matrix.md`, the relevant
