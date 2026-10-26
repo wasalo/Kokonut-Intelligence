@@ -3,11 +3,12 @@
 **Signed scheduled sensor-anomaly replay inventory (26 October 2026):** migration 649 exposes a bounded, signed-location inventory of canonical sensor-reading events whose enabled rules lack durable effect receipts. The default-off Kernel JobSpec reuses the existing idempotent event worker; the feature-off compatibility route and manual baseline/ML CLI remain available. Focused worker/scheduler coverage passes 221 tests, and isolated PostgreSQL 16 migration/replay, forced-RLS, location denial, duplicate suppression, and direct-table denial pass ([migration](../schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql); [worker](../services/ingestion/sensor_anomaly_scan_worker.py); [evidence](builds/2026-10-26-recovery/sensor-anomaly-replay-inventory-disposable.json)). No candidate/legacy rollout, provider, worker credential, or schedule activation occurred. This is source and disposable-database acceptance, not populated-data parity; CAP-040 remains partial and MAN-CAP-040/047 remain open. Checklist: 1,204 complete / 25 open (1,229 total); matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 **Current-source ARM64 application smoke (26 October 2026):** local commit
-`b0740b9d` builds the default Kernel image for `linux/arm64`. A no-network,
+`403ea03d` builds the default Kernel image for `linux/arm64`. A no-network,
 read-only QEMU container reports `aarch64`, constructs the Gateway, imports
-both Python SDK clients and four isolated worker modules, and loads all 22
-JobSpecs. The smoke makes no database/provider calls, and its temporary image
-and container are removed ([evidence](builds/2026-10-26-recovery/arm64-kernel-current-source-smoke-b0740b9d.json)).
+both Python SDK clients and six isolated worker modules, including scheduled
+sensor-anomaly replay, and loads all 23 JobSpecs. It observes 16 direct route
+objects, makes no database/provider calls, and receives no credentials; its
+temporary image and container are removed ([evidence](builds/2026-10-26-recovery/arm64-kernel-current-source-smoke-403ea03d.json)).
 This refreshes software portability evidence only; physical Pi and power/resource
 acceptance remain open. Capability classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows.

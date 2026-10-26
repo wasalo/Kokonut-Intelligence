@@ -26,6 +26,19 @@ baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 ### Progress addendum — current-source ARM64 app smoke, 26 October 2026
 
+The Kernel image at local commit `403ea03d` builds for `linux/arm64`. A
+network-disabled, read-only QEMU container reports `aarch64`, creates the
+Gateway, imports both Python SDK clients and six isolated workers including the
+new scheduled sensor-anomaly replay worker, and loads all 23 JobSpecs. It
+observes 16 direct FastAPI route objects and makes no database/provider calls
+or credential access. The temporary image and container were removed. This is
+software-emulation evidence only; physical Raspberry Pi, power-loss, thermal,
+resource-performance, and storage-endurance acceptance remain open
+([evidence](builds/2026-10-26-recovery/arm64-kernel-current-source-smoke-403ea03d.json)).
+Checklist counts are unchanged: 1,204 complete / 25 open.
+
+### Progress addendum — current-source ARM64 app smoke, 26 October 2026
+
 The Kernel image at local commit `b0740b9d` builds for `linux/arm64`. A
 network-disabled, read-only QEMU container reports `aarch64`, creates the
 Gateway, imports both Python SDK clients and the EventBus, freshness,
