@@ -48,6 +48,7 @@ _STR_LOOSE_RE = re.compile(r'^[a-zA-Z0-9_\-\.:/ ]+$')
 
 # Block range per request (Gnosis produces ~5s blocks)
 BLOCK_BATCH = 500
+MAX_BLOCKS_PER_RUN = 10_000
 INDEXER_TYPE = "gnosis_moloch"
 
 # Moloch v2 event topic hashes (keccak256 of event signature)
@@ -558,6 +559,14 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
         raise ValueError("--to-block must be non-negative")
     if from_block is not None and to_block is not None and to_block < from_block:
         raise ValueError("--to-block must be greater than or equal to --from-block")
+    if (
+        from_block is not None
+        and to_block is not None
+        and to_block - from_block + 1 > MAX_BLOCKS_PER_RUN
+    ):
+        raise ValueError(
+            f"Gnosis block interval cannot exceed {MAX_BLOCKS_PER_RUN} blocks per run"
+        )
 
     w3 = get_web3()
     db = get_db()
@@ -595,11 +604,14 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
         elif last_synced is not None:
             start_block = last_synced + 1
         else:
-            # First run — start from a recent block (Gnosis is ~38M blocks as of 2026).
-            start_block = max(0, latest_block - 10000)
+            # First run — include at most the latest MAX_BLOCKS_PER_RUN blocks.
+            start_block = max(0, latest_block - MAX_BLOCKS_PER_RUN + 1)
             logger.info("First run — starting from block %d", start_block)
 
-        end_block = latest_block
+        # Backlogs resume at the next checkpoint on later invocations. The
+        # persisted cursor advances only through committed ranges, so this cap
+        # bounds RPC/DB work without discarding any blocks.
+        end_block = min(latest_block, start_block + MAX_BLOCKS_PER_RUN - 1)
         last_committed_block = (
             start_block - 1
             if from_block is not None

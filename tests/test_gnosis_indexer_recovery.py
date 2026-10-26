@@ -77,10 +77,11 @@ class _ReceiptConnection:
 
 
 class _Eth:
-    def __init__(self, failures=None, logs=None, block_number_error=None):
+    def __init__(self, failures=None, logs=None, block_number_error=None, block_number=20):
         self.failures = failures or {}
         self.logs = logs or []
         self.block_number_error = block_number_error
+        self._block_number = block_number
         self.calls = []
         self.block_number_reads = 0
 
@@ -89,7 +90,7 @@ class _Eth:
         self.block_number_reads += 1
         if self.block_number_error:
             raise self.block_number_error
-        return 20
+        return self._block_number
 
     def get_logs(self, query):
         self.calls.append(query)
@@ -203,6 +204,37 @@ def test_gnosis_commits_each_range_with_its_checkpoint_in_same_connection(monkey
         gnosis_indexer.INDEXER_TYPE,
     )
     assert all(call[1]["db"] is connection for call in status_calls)
+
+
+def test_gnosis_caps_backlog_per_run_without_skipping_uncommitted_blocks(monkeypatch):
+    connection = _Connection(last_synced=9)
+    web3 = _Web3(_Eth(block_number=50_000))
+    status_calls = []
+    requested_ranges = []
+
+    def capture_range(start, end, _batch_size):
+        requested_ranges.append((start, end))
+        return [(start, end)]
+
+    _run_with(monkeypatch, connection, web3, status_calls, [])
+    monkeypatch.setattr(gnosis_indexer, "batch_ranges", capture_range)
+
+    gnosis_indexer.run()
+
+    assert requested_ranges == [(10, 10 + gnosis_indexer.MAX_BLOCKS_PER_RUN - 1)]
+    assert web3.eth.calls == [{
+        "fromBlock": 10,
+        "toBlock": 10 + gnosis_indexer.MAX_BLOCKS_PER_RUN - 1,
+        "address": gnosis_indexer.Web3.to_checksum_address(
+            gnosis_indexer.KOKONUT_MOLOCH_ADDRESSES["token_manager"]
+        ),
+        "topics": [list(gnosis_indexer.EVENT_TOPICS.keys())],
+    }]
+    assert [call[0][2] for call in status_calls] == [
+        10 + gnosis_indexer.MAX_BLOCKS_PER_RUN - 1,
+        10 + gnosis_indexer.MAX_BLOCKS_PER_RUN - 1,
+    ]
+    assert connection.closed
 
 
 def test_gnosis_requires_explicit_checkpoint_for_inherited_shared_cursor(monkeypatch):

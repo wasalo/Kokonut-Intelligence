@@ -49,6 +49,7 @@ def test_non_integer_block_fails_before_indexer_run(monkeypatch, unified: bool) 
     [
         (["--from-block", "-1"], "--from-block must be non-negative"),
         (["--from-block", "10", "--to-block", "9"], "--to-block must be greater than or equal"),
+        (["--from-block", "0", "--to-block", "10000"], "cannot exceed 10000 blocks per run"),
     ],
 )
 @pytest.mark.parametrize("unified", [False, True], ids=["standalone", "unified"])
