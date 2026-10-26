@@ -1,3 +1,17 @@
+### Progress addendum — Directus tenant request-transaction fail-closed boundary, 26 October 2026
+
+The organization/location-scoped Directus hooks now require the request's Knex
+database handle. They no longer fall back to the extension-wide connection
+when that handle is absent, so grant and tenant checks cannot silently run
+outside the API operation's transaction. A missing handle returns a generic
+403 before any database query. Tests cover query/read/create/update/delete and
+feedback-review create; the full hook suite passes 91 tests and seven focused
+Python tenant/fixture checks pass. The Directus extension build and TypeScript
+check pass. No database or Directus service was used. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-request-transaction-boundary.json`.
+Checklist: 1,211 complete / 25 open (1,236 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — isolated EventBus disabled-mode boundary, 26 October 2026
 
 The explicit `--isolated-event-worker` command now exits before database

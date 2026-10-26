@@ -32,6 +32,46 @@ describe('Directus hook event registration', () => {
     expect(events).toContain('stakeholder_feedback_review.items.create');
   });
 
+  it('fails closed when tenant item hooks lack the request transaction database', async () => {
+    const globalDatabase = vi.fn();
+    const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();
+    const userId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const rowId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const locationId = '11111111-1111-4111-8111-111111111111';
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: (event: string, callback: (...args: any[]) => Promise<any>) => {
+          const callbacks = filters.get(event) ?? [];
+          callbacks.push(callback);
+          filters.set(event, callbacks);
+        },
+        action: () => undefined,
+        schedule: () => undefined,
+      },
+      { database: globalDatabase, env: { KOKONUT_OPERATOR_OIDC_ISSUER: 'https://identity.example.test' } },
+    );
+
+    const cases: Array<[string, unknown, Record<string, unknown>]> = [
+      ['farm_activity.items.query', { filter: {} }, {}],
+      ['farm_activity.items.read', [{ id: rowId, location_id: locationId }], {}],
+      ['farm_activity.items.create', { location_id: locationId }, {}],
+      ['farm_activity.items.update', {}, { keys: [rowId] }],
+      ['farm_activity.items.delete', [rowId], {}],
+      ['stakeholder_feedback_review.items.create', { feedback_id: rowId }, {}],
+    ];
+
+    for (const [event, payload, meta] of cases) {
+      const filter = filters.get(event)?.[0];
+      expect(filter).toBeDefined();
+      await expect(Promise.resolve().then(() => filter!(
+        payload, meta, { accountability: { user: userId } },
+      )))
+        .rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    }
+    expect(globalDatabase).not.toHaveBeenCalled();
+  });
+
   it('binds feedback-review creation and reviewer validation to the request transaction', async () => {
     const locationA = '11111111-1111-4111-8111-111111111111';
     const locationB = '22222222-2222-4222-8222-222222222222';

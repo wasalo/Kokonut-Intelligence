@@ -44,6 +44,12 @@ function deny(): Error {
   return new ForbiddenTenantAccessError({ message: 'Directus tenant access denied' });
 }
 
+/** Tenant authorization and the Directus item operation must share one request transaction. */
+export function requireDirectusRequestDatabase(database: unknown): any {
+  if (typeof database !== 'function') throw deny();
+  return database;
+}
+
 function isTenantCollection(collection: string): collection is TenantScopedCollection {
   return (TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection);
 }

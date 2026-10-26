@@ -56,6 +56,7 @@ import {
   authorizeDirectusReadResult,
   authorizeDirectusRows,
   createDirectusTenantStore,
+  requireDirectusRequestDatabase,
   TENANT_SCOPED_COLLECTIONS,
 } from './directus-authorization.js';
 import { z } from 'zod';
@@ -120,7 +121,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       _meta: Record<string, any>,
       context: Record<string, any>,
     ) => {
-      const requestDatabase = context?.database || database;
+      const requestDatabase = requireDirectusRequestDatabase(context?.database);
       return await authorizeDirectusRead(
         createDirectusTenantStore(requestDatabase),
         context?.accountability,
@@ -136,7 +137,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       context: Record<string, any>,
     ) => {
       return await authorizeDirectusReadResult(
-        createDirectusTenantStore(context?.database || database),
+        createDirectusTenantStore(requireDirectusRequestDatabase(context?.database)),
         context?.accountability,
         env.KOKONUT_OPERATOR_OIDC_ISSUER,
         collection,
@@ -149,7 +150,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       _meta: Record<string, any>,
       context: Record<string, any>,
     ) => {
-      const requestDatabase = context?.database || database;
+      const requestDatabase = requireDirectusRequestDatabase(context?.database);
       const tenantStore = createDirectusTenantStore(requestDatabase);
       await authorizeDirectusCreate(
         tenantStore,
@@ -166,7 +167,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       meta: Record<string, any>,
       context: Record<string, any>,
     ) => {
-      const requestDatabase = context?.database || database;
+      const requestDatabase = requireDirectusRequestDatabase(context?.database);
       const authorizedRows = await authorizeDirectusRows(
         createDirectusTenantStore(requestDatabase),
         context?.accountability,
@@ -191,7 +192,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       context: Record<string, any>,
     ) => {
       await authorizeDirectusRows(
-        createDirectusTenantStore(context?.database || database),
+        createDirectusTenantStore(requireDirectusRequestDatabase(context?.database)),
         context?.accountability,
         env.KOKONUT_OPERATOR_OIDC_ISSUER,
         collection,
@@ -209,7 +210,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     _meta: Record<string, any>,
     context: Record<string, any>,
   ) => {
-    const requestDatabase = context?.database || database;
+    const requestDatabase = requireDirectusRequestDatabase(context?.database);
     const locationId = await authorizeDirectusFeedbackReviewCreate(
       createDirectusTenantStore(requestDatabase),
       context?.accountability,

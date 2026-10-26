@@ -37,6 +37,17 @@ impact-claim, feedback-review attribution, and request-database use, passes with
 and TypeScript check. A reviewed operator-to-staff binding contract remains
 open.
 
+All eleven organization/location-scoped request hook families and the
+feedback-review parent-create hook now require Directus's per-request database
+handle. If it is missing or malformed, the hook returns the same generic 403
+used for denied tenant access; it never falls back to the extension-global
+database. Focused tests cover query, read, create, update, delete, and
+feedback-review create with no request handle and prove the global handle is
+unused. The 91-test extension suite, seven Python fixture/source checks, and
+build/type check pass. This is a source boundary check; it does not certify
+transaction behavior across every event in the pinned runtime. Evidence:
+[request transaction boundary](builds/2026-10-26-recovery/directus-request-transaction-boundary.json).
+
 All registered update filters now choose `context.database` when Directus
 provides it and pass that handle to pre-write role, existing-row,
 tenant-reference, and workflow checks. Sales recomputation also reads through
