@@ -1,0 +1,34 @@
+{
+  "result": "failed",
+  "date": "2026-10-26",
+  "source_revision": "71612be1",
+  "working_tree_dirty": false,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "platform": "linux/arm64",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261026-kernel-refactor",
+  "schema_files_expected": 642,
+  "schema_files_applied": 635,
+  "schema_files_pending": 6,
+  "schema_files_failed": 1,
+  "latest_migration": "schema:651_dashboard_dataset_query_registry.sql",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:644_isolated_baal_indexer.sql",
+  "failed_migration": "schema:645_isolated_data_freshness_worker.sql",
+  "failed_stage": "migration_645_isolated_data_freshness_worker.sql",
+  "failure": "ReplayCommandFailure",
+  "migration_diagnostic": "ERROR:  42703: column \"observation_date\" of relation \"price_observation\" does not exist",
+  "elapsed_seconds": 1987.3
+}

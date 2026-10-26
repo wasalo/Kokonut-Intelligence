@@ -168,8 +168,39 @@ See [the inventory report](worker-operation-map.md) and
   software portability evidence, not physical Raspberry Pi, power-loss, or
   sustained performance acceptance. Candidate and legacy databases were not
   touched. Rollback requires no action because this is disposable verification
-  only. Checklist: 1,197 complete / 25 open (1,222 total); capability
-  classifications remain unchanged.
+  only. The original fixture did not match the canonical DATE/nullable-location
+  `price_observation` schema; its ARM64 result is retained as historical
+  evidence but does not prove that schema contract. The corrective acceptance
+  below supersedes it. Checklist at that point: 1,197 complete / 25 open
+  (1,222 total); capability classifications remain unchanged.
+
+### Migration 645 canonical source schema and full ARM64 bootstrap — 26 October 2026
+
+- [x] Correct the pre-rollout migration 645 source contract and validate it
+  against the repository's canonical schemas. `price_observation` uses nullable
+  `location_id` and `price_date DATE`; weather and remote-sensing observation
+  dates are also `DATE`. The migration now grants the actual price columns and
+  converts date-only timestamps to UTC midnight independent of the session
+  timezone. The disposable fixture now includes competing farm dates, a null
+  market location, and a non-UTC timezone. The focused role/freshness selection
+  passes 55 tests; Ruff and diff checks pass. Network-disabled PostgreSQL 16
+  migration replay and exact privilege checks pass on native x86_64 and ARM64
+  (`aarch64`). The full ARM64/QEMU schema bootstrap passes all 642 ordered
+  migrations through 651 with zero pending or failed rows, zero seeds, no farm
+  data, and successful cleanup. The prior 25 October isolated fixture evidence
+  is superseded as canonical-schema proof; the initial full-chain failure is
+  preserved for audit ([migration](../../schemas/postgres/645_isolated_data_freshness_worker.sql);
+  [fixture runner](../../scripts/check-freshness-worker-disposable.py);
+  [native evidence](builds/2026-10-26-recovery/freshness-worker-disposable.json);
+  [ARM64 evidence](builds/2026-10-26-recovery/freshness-worker-arm64-disposable.json);
+  [full-chain pass](builds/2026-10-26-recovery/arm64-qemu-current-schema-refresh-after-645-fix.json);
+  [pre-fix failure](builds/2026-10-26-recovery/arm64-qemu-current-schema-refresh.json)).
+  No candidate/legacy database, production target, seed, or external provider was
+  touched. This is QEMU software portability evidence only; physical Pi,
+  power-loss, and sustained-load acceptance remain open. Rollback before rollout
+  is a source revert; do not edit migration 645 after any environment records it
+  as applied. Checklist: 1,234 complete / 25 open (1,259 total); capability
+  classifications remain 24 baseline-retained, 7 deployed, and 36 prepared.
 
 ### Isolated global data-freshness worker — 25 October 2026
 
@@ -188,10 +219,10 @@ See [the inventory report](worker-operation-map.md) and
   RLS enabled, then checks global/location reads, atomic check/state/history/
   event writes, rollback on rejected enqueue, exact bounded function access,
   and direct table/sequence denial ([worker](../services/ingestion/freshness_worker.py);
-  [migration](../schemas/postgres/645_isolated_data_freshness_worker.sql);
-  [tests](../tests/test_freshness_worker.py);
-  [runner](../scripts/check-freshness-worker-disposable.py);
-  [evidence](builds/2026-10-25-recovery/freshness-worker-disposable.json)).
+  [migration](../../schemas/postgres/645_isolated_data_freshness_worker.sql);
+  [tests](../../tests/test_freshness_worker.py);
+  [runner](../../scripts/check-freshness-worker-disposable.py);
+  [evidence](builds/2026-10-26-recovery/freshness-worker-disposable.json)).
   Rollback is to keep the feature disabled and use the existing legacy path;
   do not edit or remove an applied migration. Candidate rollout and credential
   provisioning were not performed. Live alert delivery, retention ownership,

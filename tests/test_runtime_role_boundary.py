@@ -359,6 +359,22 @@ def test_freshness_worker_has_an_execute_only_role_contract():
     assert "freshness-worker login must connect only to its configured database" in runtime_source
 
 
+def test_freshness_worker_matches_canonical_date_only_source_columns():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/645_isolated_data_freshness_worker.sql").read_text()
+    market_schema = (root / "schemas/postgres/010_market_data.sql").read_text()
+    environment_schema = (root / "schemas/postgres/005_environmental.sql").read_text()
+    marketplace_migration = (root / "schemas/postgres/142_marketplace.sql").read_text()
+
+    assert "price_date DATE NOT NULL" in market_schema
+    assert "ADD COLUMN IF NOT EXISTS location_id UUID REFERENCES location(id)" in marketplace_migration
+    assert "GRANT SELECT (location_id, price_date) ON public.price_observation" in migration
+    assert "max(observation.price_date)::TIMESTAMP AT TIME ZONE 'UTC'" in migration
+    assert "max(observation.observation_date)::TIMESTAMP AT TIME ZONE 'UTC'" in migration
+    assert "observation.observation_date) INTO latest_at" not in migration
+    assert "observation_date DATE NOT NULL" in environment_schema
+
+
 def test_freshness_worker_provisioning_requires_paired_credentials_and_distinct_owner():
     common = {
         "database": "kokonut_intelligence",

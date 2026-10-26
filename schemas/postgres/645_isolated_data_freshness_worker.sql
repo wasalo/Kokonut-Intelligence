@@ -64,7 +64,7 @@ GRANT SELECT (location_id, observation_date) ON public.weather_observation TO ko
 GRANT SELECT (sensor_id, created_at) ON public.sensor_reading TO kokonut_freshness_owner;
 GRANT SELECT (id, location_id) ON public.sensor_device TO kokonut_freshness_owner;
 GRANT SELECT (location_id, observation_date) ON public.remote_sensing_observation TO kokonut_freshness_owner;
-GRANT SELECT (location_id, observation_date) ON public.price_observation TO kokonut_freshness_owner;
+GRANT SELECT (location_id, price_date) ON public.price_observation TO kokonut_freshness_owner;
 GRANT SELECT (attested_at) ON public.attestation_record TO kokonut_freshness_owner;
 GRANT SELECT (block_timestamp) ON public.wallet_activity_event TO kokonut_freshness_owner;
 GRANT SELECT (block_timestamp) ON public.governance_event TO kokonut_freshness_owner;
@@ -181,7 +181,7 @@ BEGIN
     END IF;
 
     IF requested_source = 'weather' THEN
-        SELECT max(observation.observation_date) INTO latest_at
+        SELECT max(observation.observation_date)::TIMESTAMP AT TIME ZONE 'UTC' INTO latest_at
           FROM public.weather_observation AS observation
          WHERE NOT requested_location_scoped OR observation.location_id = requested_location;
     ELSIF requested_source = 'sensors' THEN
@@ -190,11 +190,11 @@ BEGIN
           JOIN public.sensor_device AS device ON device.id = reading.sensor_id
          WHERE NOT requested_location_scoped OR device.location_id = requested_location;
     ELSIF requested_source = 'remote_sensing' THEN
-        SELECT max(observation.observation_date) INTO latest_at
+        SELECT max(observation.observation_date)::TIMESTAMP AT TIME ZONE 'UTC' INTO latest_at
           FROM public.remote_sensing_observation AS observation
          WHERE NOT requested_location_scoped OR observation.location_id = requested_location;
     ELSIF requested_source = 'market_data' THEN
-        SELECT max(observation.observation_date) INTO latest_at
+        SELECT max(observation.price_date)::TIMESTAMP AT TIME ZONE 'UTC' INTO latest_at
           FROM public.price_observation AS observation
          WHERE NOT requested_location_scoped OR observation.location_id = requested_location;
     ELSIF requested_source = 'eas_indexer' THEN

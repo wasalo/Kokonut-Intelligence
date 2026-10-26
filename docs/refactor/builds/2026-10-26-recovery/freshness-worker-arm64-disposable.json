@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-26",
+  "migration": "645_isolated_data_freshness_worker.sql",
+  "migration_sha256": "c130953e5ddc2d1834b2069e9a899135e46969b230af49d954573cd240202db4",
+  "database": "PostgreSQL 16 disposable container; Docker network disabled",
+  "database_image": "postgres:16",
+  "requested_platform": "linux/arm64",
+  "container_architecture": "aarch64",
+  "checks": [
+    "migration 645 applies and replays with forced RLS already enabled",
+    "location-scoped and global source timestamps return bounded values",
+    "DATE-backed weather, remote-sensing, and market reads return UTC midnight under a non-UTC session timezone",
+    "market_data uses the canonical nullable-location/price_date schema and excludes other locations and null scope",
+    "scope mismatch and direct weather/price source-table reads fail closed",
+    "check, state transition, history, and notification event commit together",
+    "a rejected event enqueue rolls back the enclosing check and alert transition",
+    "login has no direct table/sequence/schema-create access and can execute exactly nine bounded SECURITY DEFINER functions",
+    "migration 645 replays after dedicated login provisioning"
+  ],
+  "result": "passed",
+  "isolation": "Synthetic schema and records only; no candidate, legacy, provider, or network access."
+}

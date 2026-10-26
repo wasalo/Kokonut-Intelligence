@@ -14,12 +14,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "schemas/postgres/645_isolated_data_freshness_worker.sql"
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-25-recovery/freshness-worker-disposable.json"
-ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-25-recovery/freshness-worker-arm64-disposable.json"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-26-recovery/freshness-worker-disposable.json"
+ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-26-recovery/freshness-worker-arm64-disposable.json"
 LOCATION_ONE = "11111111-1111-4111-8111-111111111111"
 LOCATION_TWO = "22222222-2222-4222-8222-222222222222"
 WEATHER_CONFIG = "33333333-3333-4333-8333-333333333333"
 GLOBAL_CONFIG = "44444444-4444-4444-8444-444444444444"
+MARKET_CONFIG = "55555555-5555-4555-8555-555555555555"
+REMOTE_CONFIG = "66666666-6666-4666-8666-666666666666"
 
 FIXTURE = f"""
 CREATE TABLE public.location (id UUID PRIMARY KEY);
@@ -32,7 +34,7 @@ CREATE TABLE public.data_freshness_config (
 );
 CREATE TABLE public.weather_observation (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(), location_id UUID NOT NULL,
-    observation_date TIMESTAMPTZ NOT NULL
+    observation_date DATE NOT NULL
 );
 CREATE TABLE public.sensor_reading (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(), sensor_id UUID NOT NULL,
@@ -41,11 +43,11 @@ CREATE TABLE public.sensor_reading (
 CREATE TABLE public.sensor_device (id UUID PRIMARY KEY, location_id UUID NOT NULL);
 CREATE TABLE public.remote_sensing_observation (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(), location_id UUID NOT NULL,
-    observation_date TIMESTAMPTZ NOT NULL
+    observation_date DATE NOT NULL
 );
 CREATE TABLE public.price_observation (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), location_id UUID NOT NULL,
-    observation_date TIMESTAMPTZ NOT NULL
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), location_id UUID,
+    price_date DATE NOT NULL
 );
 CREATE TABLE public.attestation_record (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(), attested_at TIMESTAMPTZ NOT NULL
@@ -91,10 +93,19 @@ INSERT INTO public.data_freshness_config (
     critical_threshold_minutes, location_scoped, is_active
 ) VALUES
     ('{WEATHER_CONFIG}', 'weather', 30, 60, 120, TRUE, TRUE),
-    ('{GLOBAL_CONFIG}', 'eas_indexer', 60, 120, 240, FALSE, TRUE);
+    ('{GLOBAL_CONFIG}', 'eas_indexer', 60, 120, 240, FALSE, TRUE),
+    ('{MARKET_CONFIG}', 'market_data', 60, 120, 240, TRUE, TRUE),
+    ('{REMOTE_CONFIG}', 'remote_sensing', 1440, 2880, 5760, TRUE, TRUE);
 INSERT INTO public.weather_observation (location_id, observation_date) VALUES
-    ('{LOCATION_ONE}', '2026-10-25T00:00:00Z'),
-    ('{LOCATION_TWO}', '2026-10-24T00:00:00Z');
+    ('{LOCATION_ONE}', '2026-10-25'),
+    ('{LOCATION_TWO}', '2026-10-24');
+INSERT INTO public.remote_sensing_observation (location_id, observation_date) VALUES
+    ('{LOCATION_ONE}', '2026-10-25'),
+    ('{LOCATION_TWO}', '2026-10-26');
+INSERT INTO public.price_observation (location_id, price_date) VALUES
+    ('{LOCATION_ONE}', '2026-10-23'),
+    ('{LOCATION_TWO}', '2026-10-25'),
+    (NULL, '2026-10-26');
 INSERT INTO public.attestation_record (attested_at) VALUES ('2026-10-25T01:00:00Z');
 DO $$
 DECLARE relation_name TEXT;
@@ -116,18 +127,29 @@ $$;
 ACCEPTANCE = f"""
 ALTER ROLE kokonut_freshness_login WITH LOGIN PASSWORD 'synthetic-freshness-password';
 SET SESSION AUTHORIZATION kokonut_freshness_login;
+SET TIME ZONE 'Pacific/Honolulu';
 DO $$
-DECLARE observed TIMESTAMPTZ; check_uuid UUID; state_uuid UUID; alert_uuid UUID;
+DECLARE observed TIMESTAMPTZ; weather_at TIMESTAMPTZ;
+        check_uuid UUID; state_uuid UUID; alert_uuid UUID;
         current_state TEXT; configs INTEGER;
 BEGIN
     IF session_user <> 'kokonut_freshness_login' THEN
         RAISE EXCEPTION 'freshness worker session identity was not established';
     END IF;
     SELECT count(*) INTO configs FROM kokonut_security.list_freshness_configs(NULL);
-    IF configs <> 2 THEN RAISE EXCEPTION 'active source configuration list is incomplete'; END IF;
+    IF configs <> 4 THEN RAISE EXCEPTION 'active source configuration list is incomplete'; END IF;
     SELECT kokonut_security.read_freshness_data_at('weather', TRUE, '{LOCATION_ONE}') INTO observed;
     IF observed <> '2026-10-25T00:00:00Z'::timestamptz THEN
-        RAISE EXCEPTION 'location-scoped timestamp read returned the wrong location';
+        RAISE EXCEPTION 'date-only weather read is not location-scoped UTC midnight';
+    END IF;
+    weather_at := observed;
+    SELECT kokonut_security.read_freshness_data_at('market_data', TRUE, '{LOCATION_ONE}') INTO observed;
+    IF observed <> '2026-10-23T00:00:00Z'::timestamptz THEN
+        RAISE EXCEPTION 'market price_date read is not location-scoped UTC midnight';
+    END IF;
+    SELECT kokonut_security.read_freshness_data_at('remote_sensing', TRUE, '{LOCATION_ONE}') INTO observed;
+    IF observed <> '2026-10-25T00:00:00Z'::timestamptz THEN
+        RAISE EXCEPTION 'remote-sensing date read is not location-scoped UTC midnight';
     END IF;
     SELECT kokonut_security.read_freshness_data_at('eas_indexer', FALSE, NULL) INTO observed;
     IF observed <> '2026-10-25T01:00:00Z'::timestamptz THEN
@@ -139,12 +161,17 @@ BEGIN
     EXCEPTION WHEN insufficient_privilege THEN NULL;
     END;
     BEGIN
+        PERFORM 1 FROM public.price_observation;
+        RAISE EXCEPTION 'direct price table read unexpectedly succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+    BEGIN
         PERFORM 1 FROM public.weather_observation;
         RAISE EXCEPTION 'direct source-table read unexpectedly succeeded';
     EXCEPTION WHEN insufficient_privilege THEN NULL;
     END;
     SELECT kokonut_security.create_freshness_check(
-        '{WEATHER_CONFIG}', 'weather', '{LOCATION_ONE}', observed, 61, 'stale',
+        '{WEATHER_CONFIG}', 'weather', '{LOCATION_ONE}', weather_at, 61, 'stale',
         FALSE, NULL, '{{}}'::jsonb
     ) INTO check_uuid;
     SELECT state.id, state.current_status INTO state_uuid, current_state
@@ -354,14 +381,16 @@ def main() -> int:
         docker_sql(docker, container, migration)
         checks.extend([
             "location-scoped and global source timestamps return bounded values",
-            "scope mismatch and direct source-table reads fail closed",
+            "DATE-backed weather, remote-sensing, and market reads return UTC midnight under a non-UTC session timezone",
+            "market_data uses the canonical nullable-location/price_date schema and excludes other locations and null scope",
+            "scope mismatch and direct weather/price source-table reads fail closed",
             "check, state transition, history, and notification event commit together",
             "a rejected event enqueue rolls back the enclosing check and alert transition",
             "login has no direct table/sequence/schema-create access and can execute exactly nine bounded SECURITY DEFINER functions",
             "migration 645 replays after dedicated login provisioning",
         ])
         evidence = {
-            "date": "2026-10-25",
+            "date": "2026-10-26",
             "migration": MIGRATION.name,
             "migration_sha256": hashlib.sha256(migration.encode()).hexdigest(),
             "database": "PostgreSQL 16 disposable container; Docker network disabled",

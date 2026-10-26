@@ -19635,3 +19635,36 @@ Checklist: 1,232 complete / 25 open (1,257 total); classifications remain
 The Directus tenant adapter now covers 22 location-scoped collections. `metric_value` reads require an exact location grant; the response recheck rejects null-location legacy rows, and all mutations are denied before identity or row lookup. The Auditor permission exposes only metric result fields, excluding source-record IDs, arbitrary metadata, reviewer identity, and verification notes.
 
 All 118 Directus hook tests and two permission-source inventory tests pass, along with the extension build/typecheck, Ruff, Python compilation, permission-inventory freshness, capability-matrix validation, and diff checks. A fresh pinned Directus 12.1.1 profile under `kokonut_directus_runtime` applies and replays the seed, confirms the explicit metric field list, repairs a simulated legacy wildcard, preserves the effective permission snapshot, and cleans its project/volume. No populated metric rows, live API row read, candidate, or legacy database was used. The profile checks stored policy, not populated API behavior. Evidence: `docs/refactor/builds/2026-10-26-recovery/directus-metric-value-location-scope.json`. Checklist: 1,233 complete / 25 open (1,258 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — migration 645 canonical schema and ARM64 bootstrap correction, 26 October 2026
+
+The first full ARM64 schema replay exposed that migration 645 queried
+`price_observation.observation_date`, while the canonical table defines
+`price_date DATE`; the earlier disposable fixture had hidden the mismatch by
+inventing the wrong column and a non-null location. Because migration 645 has
+not been rolled out to the candidate or production, it was corrected before
+release. The worker now selects `price_date`, has the precise nullable-location
+grant, and converts DATE-backed weather, remote-sensing, and market-data
+observations to UTC midnight independent of session timezone.
+
+The corrected focused suite passes 55 tests; Ruff and diff checks pass. The
+disposable PostgreSQL 16 acceptance applies/replays migration 645 under forced
+RLS and verifies non-UTC timestamp conversion, exact location filtering for
+market rows including NULL scope exclusion, source-table denial, transaction
+atomicity, and bounded worker grants on both x86_64 and ARM64/aarch64. The full
+network-disabled ARM64/QEMU schema bootstrap now passes all 642 ordered
+migrations through 651, with zero pending/failed migrations, zero seeds, no
+farm data, and successful cleanup. The prior 25 October isolated fixture
+evidence remains archived but is superseded as proof of the canonical
+`price_observation` contract; the pre-fix full-chain failure is retained for
+audit ([migration](../../schemas/postgres/645_isolated_data_freshness_worker.sql);
+[runner](../../scripts/check-freshness-worker-disposable.py);
+[native acceptance](builds/2026-10-26-recovery/freshness-worker-disposable.json);
+[ARM64 acceptance](builds/2026-10-26-recovery/freshness-worker-arm64-disposable.json);
+[full-chain pass](builds/2026-10-26-recovery/arm64-qemu-current-schema-refresh-after-645-fix.json);
+[pre-fix failure](builds/2026-10-26-recovery/arm64-qemu-current-schema-refresh.json)).
+No candidate/legacy database, production target, or external provider was
+touched. This is software portability under QEMU, not physical-device,
+power-loss, or sustained-load acceptance. Checklist: 1,234 complete / 25 open
+(1,259 total); capability classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows.
