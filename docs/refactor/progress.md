@@ -19195,3 +19195,27 @@ and profile and restoring the legacy dispatcher; keep the additive migration
 and event receipts. Evidence: `docs/refactor/builds/2026-10-26-recovery/event-dispatch-worker-source-checks.json`,
 `docs/refactor/builds/2026-10-26-recovery/event-dispatch-worker-disposable.json`,
 and `docs/refactor/builds/2026-10-26-recovery/event-dispatch-worker-arm64-disposable.json`.
+
+### Progress addendum — worker adapter SQL caller inventory, 26 October 2026
+
+The worker SQL scanner now binds positional queries to exact helper signatures
+and follows instance/static helper calls only within the same class. The
+isolated EventBus, Baal, Gnosis, and freshness adapters now expose 32 fixed
+query variants across five execution sites, recorded as operation labels,
+statement kinds, relation candidates, and hashes without query text or runtime
+values. Gnosis event storage no longer interpolates a function name into SQL;
+the three write operations each use a fixed migration-function statement.
+Only the three generic `services/common/database.py` adapter calls remain
+`UNKNOWN` in this worker inventory. A separate worker-closure regression now
+pins the known callers to two literal carbon-balance `SELECT` templates and
+the source-owned location-filter `INSERT` f-string in the manual NOI command.
+The wrappers remain generic and other application callers need broader review;
+this inventory does not establish ACL, tenant-context, or RLS safety.
+
+The focused worker SQL and Gnosis/Baal/freshness/EventBus selection passes 47
+tests. Ruff, compilation, regenerated source/function/SQL/effect/job/runtime
+inventories, capability-matrix validation, and whitespace checks pass. No
+database, provider, candidate, or legacy service was used. Capability status is
+unchanged at 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows;
+the refactor checklist is 1,214 complete / 25 open (1,239 total). Evidence:
+`docs/refactor/builds/2026-10-26-recovery/worker-adapter-sql-variants.json`.

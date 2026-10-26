@@ -9,11 +9,13 @@ import re
 from scripts.worker_source_closure import build_inventory as build_source_closure
 from scripts.worker_sql_inventory import (
     ROOT,
+    _candidate_relations,
     _literal_caller_variants,
     _local_statement_kind,
     _operation_map_variants,
     _query_template,
     _serialize,
+    _statement_kind,
     build_inventory,
 )
 
@@ -103,18 +105,13 @@ def test_static_sqlalchemy_text_and_psycopg_sql_wrappers_are_unwrapped():
     )
 
 
-def test_unknown_sql_sites_include_generic_adapters_and_reviewed_dispatch_paths():
+def test_unknown_sql_sites_are_the_three_generic_database_adapters():
     unknown = [site for site in _load_inventory()["execution_sites"] if site["statement_kind"] == "UNKNOWN"]
 
     assert [(site["source"], site["line"]) for site in unknown] == [
         ("services/common/database.py", 77),
         ("services/common/database.py", 80),
         ("services/common/database.py", 142),
-        ("services/events/dispatch_worker.py", 34),
-        ("services/ingestion/baal_worker.py", 37),
-        ("services/ingestion/freshness_worker.py", 31),
-        ("services/ingestion/freshness_worker.py", 36),
-        ("services/ingestion/gnosis_worker.py", 45),
     ]
 
 
@@ -139,7 +136,7 @@ def test_gee_climate_inventory_records_its_four_literal_caller_templates():
     assert all("sql" not in variant and "query" not in variant for variant in site["statement_variants"])
 
 
-def test_local_caller_sql_resolution_fails_closed_on_dynamic_or_positional_inputs():
+def test_local_caller_sql_resolution_accepts_exact_keyword_and_positional_literals():
     safe_tree = ast.parse(
         'def _persist(sql):\n'
         '    cursor.execute(sql)\n'
@@ -156,17 +153,99 @@ def test_local_caller_sql_resolution_fails_closed_on_dynamic_or_positional_input
     assert {variant["operation"].split("@", 1)[0] for variant in variants} == {"fetch_one", "fetch_two"}
     assert {variant["candidate_relations"][0] for variant in variants} == {"first_table", "second_table"}
 
+    positional_tree = ast.parse(
+        'def _persist(connection, sql):\n'
+        '    cursor.execute(sql)\n'
+        'def fetch_one():\n'
+        '    _persist(connection, "INSERT INTO first_table (value) VALUES (%s)")\n'
+        'def fetch_two():\n'
+        '    _persist(connection, "INSERT INTO second_table (value) VALUES (%s)")\n'
+    )
+    positional_helper = next(
+        node for node in positional_tree.body if isinstance(node, ast.FunctionDef) and node.name == "_persist"
+    )
+    positional_variants = _literal_caller_variants(positional_tree, positional_helper, "sql")
+    assert positional_variants is not None
+    assert {variant["candidate_relations"][0] for variant in positional_variants} == {
+        "first_table", "second_table"
+    }
+
     dynamic_tree = ast.parse(
         'def _persist(sql):\n'
         '    cursor.execute(sql)\n'
         'def fetch_one():\n'
-        '    sql = build_query()\n'
-        '    _persist(sql=sql)\n'
+        '    _persist(build_query())\n'
     )
     dynamic_helper = next(
         node for node in dynamic_tree.body if isinstance(node, ast.FunctionDef) and node.name == "_persist"
     )
     assert _literal_caller_variants(dynamic_tree, dynamic_helper, "sql") is None
+
+    starred_tree = ast.parse(
+        'class Adapter:\n'
+        '    def _persist(self, connection, sql):\n'
+        '        cursor.execute(sql)\n'
+        '    def write(self, *args):\n'
+        '        self._persist(*args)\n'
+    )
+    starred_helper = next(node for node in starred_tree.body[0].body if node.name == "_persist")
+    assert _literal_caller_variants(starred_tree, starred_helper, "sql") is None
+
+
+def test_local_caller_sql_resolution_accounts_for_bound_and_static_methods():
+    instance_tree = ast.parse(
+        'class Adapter:\n'
+        '    def _persist(self, connection, sql):\n'
+        '        cursor.execute(sql)\n'
+        '    def write(self, connection):\n'
+        '        self._persist(connection, "INSERT INTO instance_table (value) VALUES (%s)")\n'
+    )
+    instance_class = instance_tree.body[0]
+    instance_helper = next(node for node in instance_class.body if node.name == "_persist")
+    instance_variants = _literal_caller_variants(instance_tree, instance_helper, "sql")
+    assert instance_variants is not None
+    assert instance_variants[0]["candidate_relations"] == ["instance_table"]
+
+    static_tree = ast.parse(
+        'class Adapter:\n'
+        '    @staticmethod\n'
+        '    def _persist(connection, sql):\n'
+        '        cursor.execute(sql)\n'
+        '    def write(self, connection):\n'
+        '        self._persist(connection, "INSERT INTO static_table (value) VALUES (%s)")\n'
+    )
+    static_class = static_tree.body[0]
+    static_helper = next(node for node in static_class.body if node.name == "_persist")
+    static_variants = _literal_caller_variants(static_tree, static_helper, "sql")
+    assert static_variants is not None
+    assert static_variants[0]["candidate_relations"] == ["static_table"]
+
+
+def test_isolated_worker_adapter_inventory_resolves_bounded_function_variants():
+    inventory = _load_inventory()
+    expected = {
+        ("services/events/dispatch_worker.py", 34): 7,
+        ("services/ingestion/baal_worker.py", 37): 6,
+        ("services/ingestion/freshness_worker.py", 31): 3,
+        ("services/ingestion/freshness_worker.py", 36): 6,
+        ("services/ingestion/gnosis_worker.py", 45): 10,
+    }
+    for key, count in expected.items():
+        site = next(
+            site
+            for site in inventory["execution_sites"]
+            if (site["source"], site["line"]) == key
+        )
+        assert site["statement_kind"] == "SELECT"
+        variants = site["statement_variants"]
+        assert len(variants) == count
+        assert all(variant["statement_kind"] == "SELECT" for variant in variants)
+        assert all(
+            all(relation.startswith("kokonut_security.") for relation in variant["candidate_relations"])
+            for variant in variants
+        )
+        assert all(re.fullmatch(r"[0-9a-f]{64}", variant["static_sql_sha256"]) for variant in variants)
+        assert all("sql" not in variant and "query" not in variant for variant in variants)
 
 
 def test_sensor_anomaly_sql_inventory_records_only_fixed_map_variants():
@@ -329,7 +408,7 @@ def test_dynamic_sql_review_categories_remain_explicit():
         "services/events/insight_transfer.py": 2,
         "services/ingestion/data_freshness.py": 5,
         "services/ingestion/gee_climate.py": 1,
-        "services/ingestion/ml_anomaly_detector.py": 1,
+        "services/ingestion/ml_anomaly_detector.py": 4,
         "services/ingestion/remote_sensing_fetcher.py": 1,
         "services/ingestion/sensor_anomaly_worker.py": 2,
         "services/events/dispatch_worker.py": 1,
@@ -363,6 +442,14 @@ def test_generic_database_sql_wrappers_have_no_unreviewed_worker_callsite():
     sources = {source for operation in closure["operations"] for source in operation["source_files"]}
     query_callers = []
     connection_execute_callers = []
+
+    def query_contract(node):
+        query, expression_kind = _query_template(node)
+        return (
+            expression_kind,
+            _statement_kind(query),
+            _candidate_relations(query),
+        )
 
     for source in sorted(sources):
         path = ROOT / source
@@ -418,7 +505,11 @@ def test_generic_database_sql_wrappers_have_no_unreviewed_worker_callsite():
             if not isinstance(node, ast.Call):
                 continue
             if isinstance(node.func, ast.Name) and node.func.id in imported_query_names:
-                query_callers.append(f"{source}:{node.lineno}")
+                query_argument = node.args[1] if len(node.args) > 1 else next(
+                    (keyword.value for keyword in node.keywords if keyword.arg == "sql"),
+                    ast.Constant(value=""),
+                )
+                query_callers.append((source, node.lineno, *query_contract(query_argument)))
             elif isinstance(node.func, ast.Attribute) and node.func.attr in {"query", "query_one"}:
                 expression = ast.unparse(node.func)
                 prefix, separator, suffix = expression.partition(".")
@@ -428,7 +519,11 @@ def test_generic_database_sql_wrappers_have_no_unreviewed_worker_callsite():
                     "services.common.database.query",
                     "services.common.database.query_one",
                 }:
-                    query_callers.append(f"{source}:{node.lineno}")
+                    query_argument = node.args[1] if len(node.args) > 1 else next(
+                        (keyword.value for keyword in node.keywords if keyword.arg == "sql"),
+                        ast.Constant(value=""),
+                    )
+                    query_callers.append((source, node.lineno, *query_contract(query_argument)))
             if (
                 isinstance(node.func, ast.Attribute)
                 and node.func.attr == "execute"
@@ -436,17 +531,29 @@ def test_generic_database_sql_wrappers_have_no_unreviewed_worker_callsite():
                 and node.func.value.id in connection_names
             ):
                 query_arg = node.args[0] if node.args else None
-                if not isinstance(query_arg, ast.Constant) or not isinstance(query_arg.value, str):
-                    expression_kind = "dynamic"
-                else:
-                    expression_kind = "literal"
-                connection_execute_callers.append((source, node.lineno, expression_kind))
+                expression_kind, statement_kind, relations = query_contract(
+                    query_arg if query_arg is not None else ast.Constant(value="")
+                )
+                connection_execute_callers.append(
+                    (source, node.lineno, expression_kind, statement_kind, relations)
+                )
 
-    # These two helpers live in carbon_balance.py, which is imported by the
-    # carbon-credit scheduler operation. They are retained in the source
-    # closure even though the bounded check path calls compute_carbon_balance
-    # directly; keep the exact callsites visible for future path review.
-    assert query_callers == ["services/analytics/carbon_balance.py:79", "services/analytics/carbon_balance.py:236"]
-    assert [(source, expression_kind) for source, _, expression_kind in connection_execute_callers] == [
-        ("services/metrics/cli.py", "dynamic")
+    # The carbon-balance import closure retains two source-owned SELECT
+    # templates; the manual NOI path uses a source-owned f-string INSERT with
+    # a location fragment selected from fixed literals.
+    assert query_callers == [
+        (
+            "services/analytics/carbon_balance.py", 79, "literal", "SELECT", ["tree_inventory"]
+        ),
+        (
+            "services/analytics/carbon_balance.py", 236, "literal", "SELECT",
+            ["regeneration_principle", "regenerative_practice_checklist"],
+        ),
     ]
+    assert [
+        (source, line, expression_kind, statement_kind)
+        for source, line, expression_kind, statement_kind, _relations in connection_execute_callers
+    ] == [
+        ("services/metrics/cli.py", 79, "fstring", "INSERT")
+    ]
+    assert "noi_snapshot" in connection_execute_callers[0][4]

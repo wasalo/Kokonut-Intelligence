@@ -2195,9 +2195,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:216:12",
+      "id": "services/events/cli.py:220:12",
       "source": "services/events/cli.py",
-      "line": 216,
+      "line": 220,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -2212,9 +2212,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:245:12",
+      "id": "services/events/cli.py:249:12",
       "source": "services/events/cli.py",
-      "line": 245,
+      "line": 249,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
@@ -2236,12 +2236,60 @@
       "scope": "IsolatedEventBus._function",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events"
+      ],
+      "statement_variants": [
+        {
+          "operation": "_claim@44",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.claim_platform_event_batch"
+          ],
+          "static_sql_sha256": "8563e1b1eab119752ce7b867b8277fff80b1b81e5af7ee65c2c2fed7d4675ca7"
+        },
+        {
+          "operation": "_complete@136",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "05976f3e9caa4ffe76ca07f0c73398d76e807e1e3ae5fbeacfd383e74865ff53"
+        },
+        {
+          "operation": "_process_event@119",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "590ec66d67dce2e1d7f2419035e75152c91ce82056064f51ff44a51b6d396485"
+        },
+        {
+          "operation": "_process_event@79",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.list_platform_event_handlers"
+          ],
+          "static_sql_sha256": "3346ba1537a44345e22b308a769aba8205198b29d56bfad580e0770cbb39025d"
+        },
+        {
+          "operation": "_process_event@91",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "1414cc8b7fbaa3097603985cc121640fb342db383e15e83efee80e9786826f29"
+        },
+        {
+          "operation": "_process_event@98",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "8b6b8f739fdb2df62ef5839243c7b9a5e4db69663aa9b2abe340622e0f884858"
+        },
+        {
+          "operation": "_retry_or_dead_letter@143",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "054d224ddb2e1f26c1866c45b5d8f225056f63a015336dc46b18f2ebc4b65f1d"
+        }
       ]
     },
     {
@@ -3548,11 +3596,49 @@
       "scope": "BaalWorkerPersistence._scalar",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
         "scheduled_module:services.ingestion.baal_worker"
+      ],
+      "statement_variants": [
+        {
+          "operation": "acquire_lock@42",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "a2dd27315cb5d125e55c2610c2486a94388e225606133cbf1b0f95697119950d"
+        },
+        {
+          "operation": "release_lock@45",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "6df0cf361ea75e02c79983399d516c7d8ba4afa0b7607b400605bdf76a8d4cf6"
+        },
+        {
+          "operation": "resolve_protocol@53",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "c96c9845a238f2a021d7a7b35307f8722b9da449a43598700724cf65874abc93"
+        },
+        {
+          "operation": "resolve_wallet@59",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "c762f6912121aaaaa4c28fa9e25e4c03a81125110676d98f85467a53a02e112d"
+        },
+        {
+          "operation": "store_governance_event@68",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "0d7597158047308986413a2b6176d939d9bef497bc02cdd9d6b2ee8138d4ab38"
+        },
+        {
+          "operation": "update_status@81",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "8d8e6908997788b1e71e9e4999ef8c48fbfb12563af2d1c0c8ea70f2619987ab"
+        }
       ]
     },
     {
@@ -4685,11 +4771,37 @@
       "scope": "FreshnessPersistence._rows",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
         "scheduled_module:services.ingestion.freshness_worker"
+      ],
+      "statement_variants": [
+        {
+          "operation": "list_configs@43",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.list_freshness_configs"
+          ],
+          "static_sql_sha256": "cd4bb401eeb0e7557b37d1bea0767db004202b59dc0a0e861ab485ecc7fd2f8b"
+        },
+        {
+          "operation": "list_location_ids@50",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.list_freshness_locations"
+          ],
+          "static_sql_sha256": "a6ed3bc7e98e480ac12a78bdc8c70475524b8d0e85d20cf1986df90d0b78565d"
+        },
+        {
+          "operation": "lock_alert_state@82",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.get_freshness_alert_state"
+          ],
+          "static_sql_sha256": "7428d83b5b54c4186c8c6e93e734516fbbd99bc4b04e34bf62832ae533fddc05"
+        }
       ]
     },
     {
@@ -4700,11 +4812,49 @@
       "scope": "FreshnessPersistence._one",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
         "scheduled_module:services.ingestion.freshness_worker"
+      ],
+      "statement_variants": [
+        {
+          "operation": "enqueue_alert_event@141",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "6f8ddecc8b349111bcdb23bfc2c320ace6ffc30ee396f551c4aab9a8f2b71c5e"
+        },
+        {
+          "operation": "insert_check@73",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "c475020cfae8f66badb9d271a71e4e97df6be678b197742b7b066d2a6099534a"
+        },
+        {
+          "operation": "latest_data_at@56",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "a00f2966252cc1137e91a7c1232f4e9f8f29693402c46f5e154ce07899e5081a"
+        },
+        {
+          "operation": "persist_alert_event@102",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "ed4753d2ce3c528586f640eb74769be456d3479a144274527fb8bdc323e6ab59"
+        },
+        {
+          "operation": "update_alert_state@147",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "46cd9c032f14eb865d31ccae2fba3f6fa2c713f744cb1fcf27f92faf9c8aec9b"
+        },
+        {
+          "operation": "update_check_alert@155",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "a2026ccadf7f85fb0e75c753e18c1fa5b103436952913cda4e3c16c18c6678ea"
+        }
       ]
     },
     {
@@ -4967,11 +5117,73 @@
       "scope": "GnosisWorkerPersistence._scalar",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
         "scheduled_module:services.ingestion.gnosis_worker"
+      ],
+      "statement_variants": [
+        {
+          "operation": "acquire_lock@50",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "c27cc01e42ce8fa5e895d9c30562f9addac755e6149e0032c01584b4b50a6159"
+        },
+        {
+          "operation": "claim_event@63",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "6ed70e84c7b79f2dea428f8080291a082ebf9680b3b496c399063b85a2e29231"
+        },
+        {
+          "operation": "enqueue_projection@126",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "97f5c82bc39e2ddd476723fd70030e49982792ea769b88ffb813523ad5a6d19a"
+        },
+        {
+          "operation": "release_lock@53",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "0072ada5418064e6bee66f22cd0ea1352b49b7bcb8a93dfa946855fd13ee660f"
+        },
+        {
+          "operation": "resolve_protocol@87",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "2ccd7489204ae9a293c59002c11eb0feac9b209a651ee764a8f0bb534022daee"
+        },
+        {
+          "operation": "resolve_wallet@73",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "697c95214672bfa42fb06904115a2ab522c8860a123889d9f3f2cb46d4c3aec9"
+        },
+        {
+          "operation": "resolve_wallet_location@79",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "8d1510bc7af3fdcf7eac1023024a966d8f524b5dc1d41c94592a164b0dabfa0b"
+        },
+        {
+          "operation": "store_digital_lego_usage@117",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "cea99b86c20d16fd4bef561788ee3636875054f4ffe6c761c1f09a57d00a60b8"
+        },
+        {
+          "operation": "store_governance_event@94",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "f994364cbe36392d80ea70d75cfcd51c40e8426bedffa5436c535480e27b5e2d"
+        },
+        {
+          "operation": "store_treasury_event@108",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "361f48137717b83bd60436ace105339b8df38d74cdfa08c7fbf86d455c4b926e"
+        }
       ]
     },
     {
@@ -4992,9 +5204,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_worker.py:139:12",
+      "id": "services/ingestion/gnosis_worker.py:148:12",
       "source": "services/ingestion/gnosis_worker.py",
-      "line": 139,
+      "line": 148,
       "column": 12,
       "scope": "GnosisWorkerPersistence.update_status",
       "method": "execute",

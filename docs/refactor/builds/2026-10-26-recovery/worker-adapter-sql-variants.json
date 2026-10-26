@@ -1,0 +1,159 @@
+{
+  "date": "2026-10-26",
+  "objective": "Resolve fixed SQL passed into isolated worker adapter execution helpers without persisting query text or runtime values.",
+  "inventory_summary": {
+    "operation_roots": 41,
+    "source_files": 109,
+    "execution_sites": 359,
+    "static_literal_sites": 308,
+    "composed_or_variable_sites": 51
+  },
+  "resolved_worker_adapter_sites": [
+    {
+      "source": "services/events/dispatch_worker.py",
+      "line": 34,
+      "statement_kind": "SELECT",
+      "variant_count": 7,
+      "operations": [
+        "_claim@44",
+        "_complete@136",
+        "_process_event@119",
+        "_process_event@79",
+        "_process_event@91",
+        "_process_event@98",
+        "_retry_or_dead_letter@143"
+      ]
+    },
+    {
+      "source": "services/ingestion/baal_worker.py",
+      "line": 37,
+      "statement_kind": "SELECT",
+      "variant_count": 6,
+      "operations": [
+        "acquire_lock@42",
+        "release_lock@45",
+        "resolve_protocol@53",
+        "resolve_wallet@59",
+        "store_governance_event@68",
+        "update_status@81"
+      ]
+    },
+    {
+      "source": "services/ingestion/freshness_worker.py",
+      "line": 31,
+      "statement_kind": "SELECT",
+      "variant_count": 3,
+      "operations": [
+        "list_configs@43",
+        "list_location_ids@50",
+        "lock_alert_state@82"
+      ]
+    },
+    {
+      "source": "services/ingestion/freshness_worker.py",
+      "line": 36,
+      "statement_kind": "SELECT",
+      "variant_count": 6,
+      "operations": [
+        "enqueue_alert_event@141",
+        "insert_check@73",
+        "latest_data_at@56",
+        "persist_alert_event@102",
+        "update_alert_state@147",
+        "update_check_alert@155"
+      ]
+    },
+    {
+      "source": "services/ingestion/gnosis_worker.py",
+      "line": 45,
+      "statement_kind": "SELECT",
+      "variant_count": 10,
+      "operations": [
+        "acquire_lock@50",
+        "claim_event@63",
+        "enqueue_projection@126",
+        "release_lock@53",
+        "resolve_protocol@87",
+        "resolve_wallet@73",
+        "resolve_wallet_location@79",
+        "store_digital_lego_usage@117",
+        "store_governance_event@94",
+        "store_treasury_event@108"
+      ]
+    }
+  ],
+  "resolved_variant_count": 32,
+  "remaining_unknown_sites": [
+    {
+      "source": "services/common/database.py",
+      "line": 77,
+      "statement_kind": "UNKNOWN"
+    },
+    {
+      "source": "services/common/database.py",
+      "line": 80,
+      "statement_kind": "UNKNOWN"
+    },
+    {
+      "source": "services/common/database.py",
+      "line": 142,
+      "statement_kind": "UNKNOWN"
+    }
+  ],
+  "gnosis_storage": "Three write paths now use fixed migration-function query literals; dynamic function-name interpolation was removed.",
+  "verification": {
+    "focused_tests": "47 passed: worker SQL inventory, Gnosis, Baal, freshness, and isolated EventBus tests.",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "worker_and_runtime_inventories": "regenerated and all check modes passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "diff_check": "passed"
+  },
+  "environment": "Source-only and mocked checks. No database, provider, candidate, or legacy service was used.",
+  "limits": [
+    "The three generic services/common/database.py execution wrappers remain UNKNOWN.",
+    "The inventory does not prove authorization, tenant context, ACL/RLS behavior, or complete database effects.",
+    "82 SQL sites without a direct static function match remain review items."
+  ],
+  "worker_sql_reachability": {
+    "operation_roots": 41,
+    "sql_execution_sites": 359,
+    "statically_reachable_site_memberships": 405,
+    "unique_sites_with_static_operation_path": 277,
+    "sites_without_static_function_match": 82,
+    "unmatched_functions_absent_from_all_worker_graphs": 82,
+    "sites_reached_by_multiple_operations": 45
+  },
+  "generic_wrapper_worker_caller_audit": {
+    "query_wrapper": [
+      {
+        "source": "services/analytics/carbon_balance.py",
+        "line": 79,
+        "expression_kind": "literal",
+        "statement_kind": "SELECT",
+        "candidate_relations": [
+          "tree_inventory"
+        ]
+      },
+      {
+        "source": "services/analytics/carbon_balance.py",
+        "line": 236,
+        "expression_kind": "literal",
+        "statement_kind": "SELECT",
+        "candidate_relations": [
+          "regeneration_principle",
+          "regenerative_practice_checklist"
+        ]
+      }
+    ],
+    "database_connection_execute": {
+      "source": "services/metrics/cli.py",
+      "line": 79,
+      "expression_kind": "fstring",
+      "statement_kind": "INSERT",
+      "candidate_relation": "noi_snapshot",
+      "scope": "Source-owned location-filter fragment, not a literal SQL callsite."
+    },
+    "limitation": "These are the known callsites in the worker source closure; the generic wrappers remain UNKNOWN and the audit is not a whole-application caller inventory."
+  }
+}

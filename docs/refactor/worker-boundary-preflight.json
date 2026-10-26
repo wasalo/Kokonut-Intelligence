@@ -403,7 +403,7 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/ingestion/gnosis_worker.py:139:12",
+        "site": "services/ingestion/gnosis_worker.py:148:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },

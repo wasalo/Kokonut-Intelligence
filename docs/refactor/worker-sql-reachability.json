@@ -63,8 +63,8 @@
         "services/events/bus.py:421:16",
         "services/events/bus.py:450:16",
         "services/events/bus.py:458:16",
-        "services/events/cli.py:216:12",
-        "services/events/cli.py:245:12",
+        "services/events/cli.py:220:12",
+        "services/events/cli.py:249:12",
         "services/events/fork_detector.py:133:12",
         "services/events/fork_detector.py:36:8",
         "services/events/fork_detector.py:59:8",
@@ -3301,9 +3301,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:216:12",
+      "id": "services/events/cli.py:220:12",
       "source": "services/events/cli.py",
-      "line": 216,
+      "line": 220,
       "scope": "cmd_list_handlers",
       "method": "execute",
       "expression_kind": "literal",
@@ -3322,9 +3322,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:245:12",
+      "id": "services/events/cli.py:249:12",
       "source": "services/events/cli.py",
-      "line": 245,
+      "line": 249,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -3349,7 +3349,7 @@
       "scope": "IsolatedEventBus._function",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
         "isolated_worker:services.events.dispatch_worker",
@@ -4939,7 +4939,7 @@
       "scope": "BaalWorkerPersistence._scalar",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
         "scheduled_module:services.ingestion.baal_worker"
@@ -6325,7 +6325,7 @@
       "scope": "FreshnessPersistence._rows",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
         "scheduled_module:services.ingestion.freshness_worker"
@@ -6342,7 +6342,7 @@
       "scope": "FreshnessPersistence._one",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
         "scheduled_module:services.ingestion.freshness_worker"
@@ -6630,7 +6630,7 @@
       "scope": "GnosisWorkerPersistence._scalar",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
         "scheduled_module:services.ingestion.gnosis_worker"
@@ -6660,9 +6660,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/gnosis_worker.py:139:12",
+      "id": "services/ingestion/gnosis_worker.py:148:12",
       "source": "services/ingestion/gnosis_worker.py",
-      "line": 139,
+      "line": 148,
       "scope": "GnosisWorkerPersistence.update_status",
       "method": "execute",
       "expression_kind": "literal",

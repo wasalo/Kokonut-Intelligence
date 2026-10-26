@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -86,3 +87,29 @@ def test_disabled_isolated_worker_fails_before_opening_database(monkeypatch):
     )
     with pytest.raises(RuntimeError, match="disabled"):
         gnosis_worker.execute()
+
+
+def test_persistence_uses_fixed_migration_function_queries():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = ("synthetic-receipt",)
+    persistence = gnosis_worker.GnosisWorkerPersistence()
+    record = {"event_type": "vote_cast", "metadata": {"source": "synthetic"}}
+
+    assert persistence.store_governance_event(connection, record) == "synthetic-receipt"
+    assert persistence.store_treasury_event(connection, record) == "synthetic-receipt"
+    assert persistence.store_digital_lego_usage(connection, record) == "synthetic-receipt"
+
+    calls = cursor.execute.call_args_list
+    assert [call.args[0] for call in calls] == [
+        "SELECT kokonut_security.store_gnosis_governance_event(%s::jsonb)",
+        "SELECT kokonut_security.store_gnosis_treasury_event(%s::jsonb)",
+        "SELECT kokonut_security.store_gnosis_digital_lego_usage(%s::jsonb)",
+    ]
+    assert json.loads(calls[0].args[1][0]) == record
+    assert json.loads(calls[1].args[1][0]) == {
+        **record,
+        "source": "moloch_dao",
+        "notes": json.dumps(record["metadata"]),
+    }
+    assert json.loads(calls[2].args[1][0]) == record

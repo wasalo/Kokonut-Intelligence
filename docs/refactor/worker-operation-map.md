@@ -335,14 +335,22 @@ literal operation name, and unknown names fail before cursor access. The worker
 and runtime SQL inventories recognize this guarded immutable map and record
 all twelve variants for each of its two execution sites using operation names,
 statement kinds, relation candidates, and hashes only. The three shared
-database-adapter sites remain `UNKNOWN`; their source/caller contracts need
-separate review. The GEE climate persistence helper is resolved from its four
-same-module callers, each of which supplies a literal query template and binds
-values separately. Reviewed application fragments use fixed source-controlled
-SQL and bound values.
+database-adapter sites remain `UNKNOWN`. The worker-closure regression now
+pins their known callers to two literal `SELECT` templates in carbon-balance
+code and one source-owned `INSERT` f-string in the manual NOI command. These
+checks do not cover every application caller or turn the generic wrappers into
+bounded APIs. The isolated EventBus, Baal, Gnosis, and freshness worker
+adapters are now traced through exact same-class caller bindings: 32 literal
+query variants are recorded as statement kinds, relation candidates, and
+hashes, without storing query text or parameter values. Gnosis storage no
+longer interpolates a caller-supplied function name into SQL; each operation
+uses its own literal bounded-function query. The GEE climate persistence helper
+is resolved from its four same-module callers, each of which supplies a literal
+query template and binds values separately. Reviewed application fragments use
+fixed source-controlled SQL and bound values.
 No user-derived identifier interpolation was found in the reviewed call sites.
 Keep this review current as the inventory changes. The static call graph
-follows local instance types and the explicit metric registry, but 75 SQL sites
+follows local instance types and the explicit metric registry, but 82 SQL sites
 still have no direct static function match.
 It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map
@@ -377,7 +385,8 @@ Before worker RLS or runtime-grant reduction:
 The source-closure regression is `tests/test_worker_source_closure.py`, the
 call-graph regression is `tests/test_worker_function_reachability.py`, and
 `tests/test_worker_sql_inventory.py` pins the SQL inventory and current
-generic-wrapper caller contract; the operation-contract tests are in
+generic-wrapper caller contract plus bounded worker-adapter variants; the
+operation-contract tests are in
 `tests/test_worker_operation_map.py`.
 The focused source, scheduler and event checks pass 37 tests; the retained
 [check record](builds/2026-10-14-recovery/worker-operation-map-check.json)

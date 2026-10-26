@@ -291,21 +291,45 @@ def _operation_map_variants(
 def _literal_caller_variants(
     tree: ast.Module, function: ast.FunctionDef | ast.AsyncFunctionDef, name: str
 ) -> list[dict] | None:
-    """Resolve a helper parameter supplied from literal same-module callers.
+    """Resolve a helper query supplied as a literal by same-module callers.
 
-    Every discovered call must pass one statically assigned literal SQL string
-    by keyword. Dynamic values, reassignment, positional calls, and missing
-    local call contracts remain unresolved.
+    Positional calls are accepted only when the helper signature and Python
+    method binding determine the argument exactly. Dynamic values,
+    reassignment, starred arguments, and missing local call contracts remain
+    unresolved. Instance-method calls are followed only within their class.
     """
-    parameters = [*function.args.posonlyargs, *function.args.args, *function.args.kwonlyargs]
-    if not any(parameter.arg == name for parameter in parameters):
+    parameters = [*function.args.posonlyargs, *function.args.args]
+    parameter_index = next(
+        (index for index, parameter in enumerate(parameters) if parameter.arg == name),
+        None,
+    )
+    keyword_only_parameter = any(parameter.arg == name for parameter in function.args.kwonlyargs)
+    if parameter_index is None and not keyword_only_parameter:
         return None
+
+    def enclosing_class(target: ast.FunctionDef | ast.AsyncFunctionDef):
+        return next(
+            (
+                node
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ClassDef) and target in node.body
+            ),
+            None,
+        )
+
+    helper_class = enclosing_class(function)
+    is_staticmethod = helper_class is not None and any(
+        isinstance(decorator, ast.Name) and decorator.id == "staticmethod"
+        or isinstance(decorator, ast.Attribute) and decorator.attr == "staticmethod"
+        for decorator in function.decorator_list
+    )
 
     calls_by_function: list[tuple[ast.FunctionDef | ast.AsyncFunctionDef, ast.Call]] = []
 
     class _DirectCallCollector(ast.NodeVisitor):
-        def __init__(self, callee_name: str):
+        def __init__(self, callee_name: str, receiver_name: str | None):
             self.callee_name = callee_name
+            self.receiver_name = receiver_name
             self.calls: list[ast.Call] = []
 
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -314,12 +338,30 @@ def _literal_caller_variants(
         visit_AsyncFunctionDef = visit_FunctionDef
 
         def visit_Call(self, node: ast.Call) -> None:
-            if isinstance(node.func, ast.Name) and node.func.id == self.callee_name:
+            direct_call = isinstance(node.func, ast.Name) and node.func.id == self.callee_name
+            instance_call = (
+                self.receiver_name is not None
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == self.callee_name
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == self.receiver_name
+            )
+            if direct_call or instance_call:
                 self.calls.append(node)
             self.generic_visit(node)
 
     for caller in (node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))):
-        collector = _DirectCallCollector(function.name)
+        caller_class = enclosing_class(caller)
+        caller_parameters = [*caller.args.posonlyargs, *caller.args.args]
+        receiver_name = None
+        if (
+            helper_class is not None
+            and caller_class is helper_class
+            and caller_parameters
+            and caller_parameters[0].arg in {"self", "cls"}
+        ):
+            receiver_name = caller_parameters[0].arg
+        collector = _DirectCallCollector(function.name, receiver_name)
         for statement in caller.body:
             collector.visit(statement)
         calls_by_function.extend((caller, call) for call in collector.calls)
@@ -330,37 +372,56 @@ def _literal_caller_variants(
     variants = []
     for caller, call in calls_by_function:
         keyword_values = [keyword.value for keyword in call.keywords if keyword.arg == name]
-        if len(keyword_values) != 1 or not isinstance(keyword_values[0], ast.Name):
+        if len(keyword_values) > 1:
             return None
-        local_name = keyword_values[0].id
-        local_values: list[ast.AST] = []
-        pending = list(caller.body)
-        while pending:
-            node = pending.pop()
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
-                continue
-            if isinstance(node, ast.Assign):
-                if any(isinstance(target, ast.Name) and target.id == local_name for target in node.targets):
-                    local_values.append(node.value)
-            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == local_name:
-                if node.value is not None:
-                    local_values.append(node.value)
-            elif isinstance(node, ast.NamedExpr) and isinstance(node.target, ast.Name) and node.target.id == local_name:
-                local_values.append(node.value)
-            elif isinstance(node, (ast.For, ast.AsyncFor)) and _target_binds_name(node.target, local_name):
+        if keyword_values:
+            query_argument = keyword_values[0]
+        else:
+            if parameter_index is None:
                 return None
-            elif isinstance(node, (ast.With, ast.AsyncWith)) and any(
-                item.optional_vars and _target_binds_name(item.optional_vars, local_name) for item in node.items
+            positional_index = parameter_index
+            if isinstance(call.func, ast.Attribute) and not is_staticmethod:
+                positional_index -= 1
+            if positional_index < 0 or any(
+                isinstance(argument, ast.Starred) for argument in call.args[: positional_index + 1]
             ):
                 return None
-            elif isinstance(node, ast.AugAssign) and _target_binds_name(node.target, local_name):
+            if positional_index >= len(call.args):
                 return None
-            elif isinstance(node, ast.ExceptHandler) and node.name == local_name:
+            query_argument = call.args[positional_index]
+
+        if isinstance(query_argument, ast.Name):
+            local_name = query_argument.id
+            local_values: list[ast.AST] = []
+            pending = list(caller.body)
+            while pending:
+                node = pending.pop()
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+                    continue
+                if isinstance(node, ast.Assign):
+                    if any(isinstance(target, ast.Name) and target.id == local_name for target in node.targets):
+                        local_values.append(node.value)
+                elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == local_name:
+                    if node.value is not None:
+                        local_values.append(node.value)
+                elif isinstance(node, ast.NamedExpr) and isinstance(node.target, ast.Name) and node.target.id == local_name:
+                    local_values.append(node.value)
+                elif isinstance(node, (ast.For, ast.AsyncFor)) and _target_binds_name(node.target, local_name):
+                    return None
+                elif isinstance(node, (ast.With, ast.AsyncWith)) and any(
+                    item.optional_vars and _target_binds_name(item.optional_vars, local_name) for item in node.items
+                ):
+                    return None
+                elif isinstance(node, ast.AugAssign) and _target_binds_name(node.target, local_name):
+                    return None
+                elif isinstance(node, ast.ExceptHandler) and node.name == local_name:
+                    return None
+                pending.extend(ast.iter_child_nodes(node))
+            if len(local_values) != 1:
                 return None
-            pending.extend(ast.iter_child_nodes(node))
-        if len(local_values) != 1:
-            return None
-        query, kind = _query_template(local_values[0])
+            query_argument = local_values[0]
+
+        query, kind = _query_template(query_argument)
         if kind != "literal" or not query.strip():
             return None
         normalized = _normalized_query(query)

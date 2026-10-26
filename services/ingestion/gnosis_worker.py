@@ -89,17 +89,14 @@ class GnosisWorkerPersistence:
         )
         return str(result) if result else None
 
-    def _store(self, connection, function_name: str, record: dict):
+    def store_governance_event(self, connection, record: dict):
         encoded = json.dumps(record, default=str, separators=(",", ":"))
         result = self._scalar(
             connection,
-            f"SELECT kokonut_security.{function_name}(%s::jsonb)",
+            "SELECT kokonut_security.store_gnosis_governance_event(%s::jsonb)",
             (encoded,),
         )
         return str(result) if result else None
-
-    def store_governance_event(self, connection, record: dict):
-        return self._store(connection, "store_gnosis_governance_event", record)
 
     def store_treasury_event(self, connection, record: dict):
         bounded_record = {
@@ -107,10 +104,22 @@ class GnosisWorkerPersistence:
             "source": record.get("source", "moloch_dao"),
             "notes": json.dumps(record.get("metadata", {})),
         }
-        return self._store(connection, "store_gnosis_treasury_event", bounded_record)
+        encoded = json.dumps(bounded_record, default=str, separators=(",", ":"))
+        result = self._scalar(
+            connection,
+            "SELECT kokonut_security.store_gnosis_treasury_event(%s::jsonb)",
+            (encoded,),
+        )
+        return str(result) if result else None
 
     def store_digital_lego_usage(self, connection, record: dict):
-        return self._store(connection, "store_gnosis_digital_lego_usage", record)
+        encoded = json.dumps(record, default=str, separators=(",", ":"))
+        result = self._scalar(
+            connection,
+            "SELECT kokonut_security.store_gnosis_digital_lego_usage(%s::jsonb)",
+            (encoded,),
+        )
+        return str(result) if result else None
 
     def enqueue_projection(self, connection, **values) -> str:
         try:
