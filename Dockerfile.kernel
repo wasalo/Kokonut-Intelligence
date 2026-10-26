@@ -105,6 +105,7 @@ ARG TARGETARCH
 WORKDIR /build
 COPY requirements/ml-anomaly.txt ./requirements/ml-anomaly.txt
 COPY requirements/ml-anomaly-runtime.in ./requirements/ml-anomaly-runtime.in
+COPY requirements/ml-anomaly-runtime.lock ./requirements/ml-anomaly-runtime.lock
 RUN set -eu; \
     case "$TARGETARCH" in \
       amd64) set -- --platform=manylinux_2_28_x86_64 --platform=manylinux2014_x86_64 ;; \
@@ -112,9 +113,10 @@ RUN set -eu; \
       *) echo "Unsupported ML worker architecture: $TARGETARCH" >&2; exit 1 ;; \
     esac; \
     python3 -m pip install --disable-pip-version-check --no-cache-dir \
-      --only-binary=:all: --ignore-installed --target=/opt/ml-anomaly-site \
+      --require-hashes --only-binary=:all: --ignore-installed \
+      --target=/opt/ml-anomaly-site \
       "$@" --python-version=3.11 --implementation=cp --abi=cp311 \
-      -r requirements/ml-anomaly-runtime.in
+      -r requirements/ml-anomaly-runtime.lock
 
 # Optional one-shot ML anomaly worker. The default Kernel target stays small;
 # only this explicit profile receives the selected architecture's ML packages.
@@ -122,7 +124,7 @@ FROM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627a
 WORKDIR /app
 RUN useradd -m -u 10001 -s /bin/bash appuser
 COPY --from=ml-anomaly-dependencies /opt/ml-anomaly-site/ /usr/local/lib/python3.11/site-packages/
-COPY requirements/ml-anomaly.txt requirements/ml-anomaly-runtime.in ./requirements/
+COPY requirements/ml-anomaly.txt requirements/ml-anomaly-runtime.in requirements/ml-anomaly-runtime.lock ./requirements/
 COPY services/ ./services/
 COPY schemas/ ./schemas/
 COPY config/ ./config/

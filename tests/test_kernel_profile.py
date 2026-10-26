@@ -201,6 +201,9 @@ def test_sensor_anomaly_ml_is_an_explicit_single_location_worker_profile() -> No
     assert "--platform=$BUILDPLATFORM" in dockerfile
     assert "ARG TARGETARCH" in dockerfile
     assert "--only-binary=:all:" in dockerfile
+    assert "--require-hashes" in dockerfile
+    assert "-r requirements/ml-anomaly-runtime.lock" in dockerfile
+    assert "-r requirements/ml-anomaly-runtime.in" not in dockerfile
     assert "--platform=manylinux_2_28_aarch64" in dockerfile
     assert "--platform=manylinux_2_28_x86_64" in dockerfile
     assert "COPY --from=ml-anomaly-dependencies" in dockerfile
@@ -223,6 +226,11 @@ def test_sensor_anomaly_ml_is_an_explicit_single_location_worker_profile() -> No
     ml_runtime = (ROOT / "requirements/ml-anomaly-runtime.in").read_text()
     assert "-r ml-anomaly.txt" in ml_runtime
     assert "psycopg2-binary>=2.9.12,<3.0.0" in ml_runtime
+
+    ml_lock = (ROOT / "requirements/ml-anomaly-runtime.lock").read_text()
+    assert "# binary wheels selected for Linux AMD64 and ARM64" in ml_lock
+    assert "numpy==1.26.4" in ml_lock
+    assert "--hash=sha256:" in ml_lock
 
     plan = _run_planner("standard", "--sensor-anomaly-ml")
     assert plan.returncode == 0

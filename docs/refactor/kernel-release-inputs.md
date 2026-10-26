@@ -12,11 +12,11 @@ projects, publish images, or touch database volumes.
 
 `config/kernel/release-input-lock.json` pins SHA-256 digests for the application
 and database base manifests, the Kernel Dockerfiles, the direct Python
-requirement manifests and generated locks for the runtime and optional
-ClickHouse profile, the Debian/PGDG apt source definitions, the signed Debian
-HTTP bootstrap source used to install the CA bundle, and the verified PostGIS
-package catalog. The catalog records the exact PostGIS runtime and script
-package versions, the Debian snapshot timestamp, and their verified
+requirement manifests and generated locks for the runtime, optional ClickHouse,
+and optional sensor-anomaly ML profiles, the Debian/PGDG apt source definitions,
+the signed Debian HTTP bootstrap source used to install the CA bundle, and the
+verified PostGIS package catalog. The catalog records the exact PostGIS runtime
+and script package versions, the Debian snapshot timestamp, and their verified
 amd64/arm64 availability.
 
 The gate extracts `python-packages.json` from each default and ClickHouse app
@@ -29,13 +29,20 @@ non-image attestations are skipped. OCI archive digests and platform
 descriptors are reported in the CI log; temporary archives are removed at job
 exit.
 
+The optional `ml-anomaly` target also enforces its own Python 3.11 Linux
+AMD64/ARM64 wheel lock during image construction. Its current locked builds,
+offline imports, `pip check`, CLI, and bounded resource smokes pass locally
+([evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-hash-locked-image-builds.json)).
+The checked-in `scripts/build-kernel-multiarch.sh` does not build that optional
+target, so hosted multi-architecture acceptance for it remains open.
+
 ## Current limits
 
 The source requirement files retain compatibility ranges, while the Kernel
-runtime and optional ClickHouse lockfiles pin resolved versions with artifact
-hashes. The Docker build installs the selected lock with pip hash checking
-enabled. Regenerate locks with the pinned pip-tools version and review package
-changes before updating the release-input manifest. The lock does not pin the
+runtime, optional ClickHouse, and optional ML lockfiles pin resolved versions
+with artifact hashes. The Docker builds install the selected lock with pip hash
+checking enabled. Regenerate locks with the documented tools and review package
+changes before updating the release-input manifest. The locks do not pin the
 Python base image's bundled pip independently from its digest.
 
 PostGIS package resolution now uses a timestamped Debian Bookworm snapshot and
@@ -66,8 +73,8 @@ the released-package archive with exact PostGIS version pins instead.
 
 ## Updating inputs
 
-When a source requirement changes, regenerate both Python locks with
-`pip-tools==7.6.2`, review the resolved versions and hashes, and update each
+When a source requirement changes, regenerate the runtime and ClickHouse Python
+locks with `pip-tools==7.6.2`, review the resolved versions and hashes, and update each
 changed SHA-256 in the release lock in the same change. Keep both architectures
 in the CI build. Do not replace the candidate Compose database image or remove
 the ARM64 profile guard based on build success alone.
@@ -80,6 +87,12 @@ pip-compile --generate-hashes --allow-unsafe --resolver=backtracking --strip-ext
   --constraint requirements/kernel-runtime.lock \
   --output-file requirements/kernel-clickhouse.lock requirements/kernel-clickhouse.in
 ```
+
+Regenerate the optional ML wheel lock from a Python 3.11 network-enabled
+environment using `scripts/compile-ml-anomaly-runtime-lock.sh`. It resolves the
+version pins with pip-tools, downloads only supported AMD64 and ARM64 binary
+wheels, and records their hashes. A digest-pinned Docker invocation is
+documented in [`requirements/README.md`](../../requirements/README.md).
 
 Run the same gate locally with:
 

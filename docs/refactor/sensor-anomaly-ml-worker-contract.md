@@ -44,10 +44,15 @@ optional `ml-anomaly` Dockerfile target installs the five model requirements
 from `requirements/ml-anomaly.txt` (pandas, NumPy, Prophet, scikit-learn, and
 SciPy) plus `psycopg2-binary`, rather than inheriting the full Kernel image or
 unrelated yfinance/gstools packages. The dependency-group checker verifies
-that the model manifest remains an exact subset of `analytics.txt`. Its runtime
-input currently uses compatibility ranges and is not yet hash-locked. A narrow
-CLI validates exactly one location and loads the ML worker only after input
-validation. The `sensor-anomaly-ml` Compose profile is a one-shot worker, uses
+that the model manifest remains an exact subset of `analytics.txt`. The
+compatibility-range input is resolved into
+`requirements/ml-anomaly-runtime.lock`, which pins every package and hashes
+the supported Python 3.11 Linux AMD64 and ARM64 wheels. The ML Docker target
+installs this lock with `--require-hashes` and binary wheels only. Regenerate it
+with `scripts/compile-ml-anomaly-runtime-lock.sh`; the generator resolves
+versions with pip-tools 7.6.2 and hashes only the wheels for those two target
+architectures. A narrow CLI validates exactly one location and loads the ML
+worker only after input validation. The `sensor-anomaly-ml` Compose profile is a one-shot worker, uses
 a separate DSN and credential, and stores model artifacts in a dedicated named
 volume. The Dockerfile resolves architecture-specific binary wheels in a
 `BUILDPLATFORM` stage, then copies them into a standalone Python slim image.
@@ -60,7 +65,7 @@ from the preceding images. The root filesystems measured 702 MiB and 736 MiB
 with `du`; these remain substantial opt-in images, not a size claim for the
 default Kernel image. The checks establish software portability only and do not
 verify performance, reliability, thermal behavior, or power-loss handling on a
-physical Raspberry Pi. A synthetic 1,024-row, four-feature IsolationForest workload also passes under a 1 GiB memory limit and 2-CPU quota; peak process RSS is 188 MiB on AMD64 and 327 MiB on ARM64/QEMU. This is a bounded software smoke, not a hardware performance estimate ([resource evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-resource-smoke.json)).
+physical Raspberry Pi. A synthetic 1,024-row, four-feature IsolationForest workload also passes under a 1 GiB memory limit and 2-CPU quota; the locked-image software smoke uses 188 MiB peak RSS on AMD64 and 325 MiB on ARM64/QEMU. This is not a hardware performance estimate ([locked build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-hash-locked-image-builds.json)).
 
 ## Activation sequence
 

@@ -6,7 +6,7 @@
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
   },
   "sha256_inputs": {
-    "Dockerfile.kernel": "b20083c476af66a0be5a5453da141955c158721c9974dbd3c3783e52f99dfeda",
+    "Dockerfile.kernel": "58e188d4f8b3136541ed83d75451abfcf1844bf814f96b4476c655a0ef030972",
     "Dockerfile.kernel-postgis": "180b813d48759c170cc36a78526c893dc71e51a78c18a75cd101c330a1958d8c",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
@@ -22,7 +22,8 @@
     "config/postgres/kernel-postgis-packages.json": "c436d6268f440f7ac54bf298b65529199680cf48526f0504cb1bceed02bec79c",
     "config/postgres/kernel-apt.sources": "1bc6a4368d8284b4e8a35f24e381449e493eff6f9993869987f5193538f0cd42",
     "config/postgres/kernel-pgdg.pref": "cfb19023faf4c4b54c39f471cc8287a022922f159adbae1a8c4bf26f7077a4ec",
-    "config/postgres/kernel-bootstrap.sources": "a4bf76ae4956dcda020029113fb722f0dd35c9597331554a96f63883dfda1f51"
+    "config/postgres/kernel-bootstrap.sources": "a4bf76ae4956dcda020029113fb722f0dd35c9597331554a96f63883dfda1f51",
+    "requirements/ml-anomaly-runtime.lock": "70fc5fc6c0f4ea896444fe4f55ae6d1ace3d86391daecdcd111db47d87aaa677"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
@@ -34,7 +35,7 @@
   },
   "dependency_lock_status": {
     "python_direct_inputs": "SHA-256-locked source requirement manifests",
-    "python_transitive_dependencies": "hash-locked default and ClickHouse profile closures; optional ML dependencies use bounded compatibility constraints and are not yet hash-locked; pending GitHub multi-architecture acceptance",
+    "python_transitive_dependencies": "Hash-locked default, ClickHouse, and optional ML dependency closures; local AMD64/ARM64 locked image acceptance passed; hosted release CI remains pending.",
     "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; release gate compares complete installed package inventories against exact locked architecture-specific expectations; multi-architecture acceptance pending"
   }
 }

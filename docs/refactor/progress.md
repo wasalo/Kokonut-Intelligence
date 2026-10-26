@@ -7,10 +7,10 @@ imports the ML worker only after validation. AMD64 and ARM64 images build from
 architecture-specific wheels resolved on `BUILDPLATFORM`; network-disabled,
 read-only smokes, `pip check`, CLI help, and worker/model imports pass. Docker
 metadata reports 955 MB (AMD64) and 987 MB (ARM64), reductions of about 20%
-from the preceding images. The optional ML transitive dependency set still uses
-compatibility ranges and is not hash-locked. The 119-test focused selection,
+from the preceding images. The optional ML dependency closure now uses a
+version lock with SHA-256 hashes for supported AMD64/ARM64 wheels. The lock generator and Kernel-profile tests pass (27 total); Ruff, dependency-group alignment, matrix validation, and release-input hashes also pass ([locked build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-hash-locked-image-builds.json)). The 119-test focused selection,
 Ruff, compilation, release-input and dependency checks, worker inventories,
-capability-matrix validation, and AMD64/ARM64 Compose rendering pass. A synthetic 1024-row IsolationForest workload also passes in both images with a 1 GiB memory limit and 2-CPU quota; peak RSS is 188 MiB on AMD64 and 327 MiB on ARM64/QEMU. Evidence:
+capability-matrix validation, and AMD64/ARM64 Compose rendering pass. A synthetic 1024-row IsolationForest workload also passes in both images with a 1 GiB memory limit and 2-CPU quota; peak RSS is 188 MiB on AMD64 and 325 MiB on ARM64/QEMU in the locked-image smoke. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-builds.json`,
 `docs/refactor/builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-native-smoke.json`,
 and `docs/refactor/builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-arm64-smoke.json`.
