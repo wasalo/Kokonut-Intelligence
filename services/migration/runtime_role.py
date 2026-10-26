@@ -1066,6 +1066,8 @@ def provision_runtime_role(
     sensor_ingestion_password: str | None = None,
     remote_sensing_user: str | None = None,
     remote_sensing_password: str | None = None,
+    sensor_anomaly_ml_source_user: str | None = None,
+    sensor_anomaly_ml_source_password: str | None = None,
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
@@ -1091,7 +1093,9 @@ def provision_runtime_role(
     cursor, protocol/wallet lookup, event, and status functions. When
     configured, notification delivery uses only migration 647's bounded claim
     and attempt-completion functions; operator dead-letter actions remain on
-    the separate reviewed operator path.
+    the separate reviewed operator path. The optional sensor-anomaly ML source
+    login can only set signed exact-location context and SET ROLE to its
+    read-only migration-650 source-view reader.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -1120,6 +1124,8 @@ def provision_runtime_role(
         raise ValueError("sensor-ingestion user and password must be provided together")
     if (remote_sensing_user is None) != (remote_sensing_password is None):
         raise ValueError("remote-sensing user and password must be provided together")
+    if (sensor_anomaly_ml_source_user is None) != (sensor_anomaly_ml_source_password is None):
+        raise ValueError("sensor-anomaly ML source user and password must be provided together")
     enqueue_ident = (
         _role_identifier(notification_enqueue_user, "notification_enqueue_user")
         if notification_enqueue_user is not None
@@ -1180,6 +1186,11 @@ def provision_runtime_role(
         if remote_sensing_user is not None
         else None
     )
+    sensor_anomaly_ml_source_ident = (
+        _role_identifier(sensor_anomaly_ml_source_user, "sensor_anomaly_ml_source_user")
+        if sensor_anomaly_ml_source_user is not None
+        else None
+    )
     role_names = [admin_user, runtime_user, operator_auth_user]
     if notification_enqueue_user is not None:
         role_names.append(notification_enqueue_user)
@@ -1205,6 +1216,8 @@ def provision_runtime_role(
         role_names.append(sensor_ingestion_user)
     if remote_sensing_user is not None:
         role_names.append(remote_sensing_user)
+    if sensor_anomaly_ml_source_user is not None:
+        role_names.append(sensor_anomaly_ml_source_user)
     if "kokonut_notification_enqueue_owner" in role_names:
         raise ValueError("application logins must differ from the notification function owner")
     if "kokonut_market_data_owner" in role_names:
@@ -1229,9 +1242,13 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the sensor-ingestion function owner")
     if "kokonut_remote_sensing_owner" in role_names:
         raise ValueError("application logins must differ from the remote-sensing function owner")
+    if "kokonut_sensor_anomaly_ml_source_view_owner" in role_names:
+        raise ValueError("application logins must differ from the sensor-anomaly ML view owner")
+    if "kokonut_sensor_anomaly_ml_reader" in role_names:
+        raise ValueError("application logins must differ from the sensor-anomaly ML reader role")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, sensor-ingestion, and remote-sensing roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, sensor-ingestion, remote-sensing, and sensor-anomaly ML source roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1263,6 +1280,10 @@ def provision_runtime_role(
         credential_pairs.append(("sensor_ingestion_password", sensor_ingestion_password))
     if remote_sensing_password is not None:
         credential_pairs.append(("remote_sensing_password", remote_sensing_password))
+    if sensor_anomaly_ml_source_password is not None:
+        credential_pairs.append((
+            "sensor_anomaly_ml_source_password", sensor_anomaly_ml_source_password
+        ))
     for label, secret in credential_pairs:
         if len(secret) < 24 or _PLACEHOLDER_SECRET.match(secret):
             raise ValueError(f"{label} must be a non-placeholder secret of at least 24 characters")
@@ -1291,6 +1312,8 @@ def provision_runtime_role(
         passwords.append(sensor_ingestion_password)
     if remote_sensing_password is not None:
         passwords.append(remote_sensing_password)
+    if sensor_anomaly_ml_source_password is not None:
+        passwords.append(sensor_anomaly_ml_source_password)
     if len(set(passwords)) != len(passwords):
         raise ValueError("admin and dedicated application-role passwords must be distinct")
     if not database or "\x00" in database:
@@ -1307,6 +1330,7 @@ def provision_runtime_role(
     event_dispatch_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
     remote_sensing_database_access: dict[str, bool] = {}
+    sensor_anomaly_ml_source_database_access: dict[str, bool] = {}
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute(
@@ -1486,6 +1510,22 @@ def provision_runtime_role(
             if cur.fetchone() is None:
                 raise RuntimeError(
                     "migration 405 worker execution role must exist before remote-sensing login provisioning"
+                )
+        if sensor_anomaly_ml_source_user is not None:
+            cur.execute(
+                "SELECT to_regclass(%s), to_regprocedure(%s), "
+                "EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)",
+                (
+                    "kokonut_anomaly_ml_source.sensor_reading",
+                    _WORKER_CONTEXT_FUNCTION,
+                    "kokonut_sensor_anomaly_ml_reader",
+                ),
+            )
+            source_view, worker_context_function, reader_role = cur.fetchone()
+            if source_view is None or worker_context_function is None or not reader_role:
+                raise RuntimeError(
+                    "migration 650 sensor-anomaly ML source view and reader role must be "
+                    "applied before provisioning its dedicated login"
                 )
 
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
@@ -2028,6 +2068,65 @@ def provision_runtime_role(
                     "GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE"
                 ).format(remote_sensing_ident)
             )
+        if sensor_anomaly_ml_source_user is not None:
+            assert (
+                sensor_anomaly_ml_source_ident is not None
+                and sensor_anomaly_ml_source_password is not None
+            )
+            _ensure_login_role(
+                cur,
+                name=sensor_anomaly_ml_source_user,
+                identifier=sensor_anomaly_ml_source_ident,
+                password=sensor_anomaly_ml_source_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=sensor_anomaly_ml_source_user,
+                identifier=sensor_anomaly_ml_source_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), sensor_anomaly_ml_source_ident
+                    )
+                )
+                cur.execute(
+                    sql.SQL(
+                        "REVOKE ALL ON ALL {} IN SCHEMA kokonut_anomaly_ml_source FROM {}"
+                    ).format(sql.SQL(object_kind), sensor_anomaly_ml_source_ident)
+                )
+            for schema in ("public", "kokonut_security", "kokonut_anomaly_ml_source"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), sensor_anomaly_ml_source_ident
+                    )
+                )
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), sensor_anomaly_ml_source_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(
+                    sensor_anomaly_ml_source_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    sensor_anomaly_ml_source_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(_WORKER_CONTEXT_FUNCTION), sensor_anomaly_ml_source_ident
+                )
+            )
+            cur.execute(
+                sql.SQL(
+                    "GRANT kokonut_sensor_anomaly_ml_reader TO {} "
+                    "WITH INHERIT FALSE, SET TRUE"
+                ).format(sensor_anomaly_ml_source_ident)
+            )
         cur.execute(
             sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(runtime_ident)
         )
@@ -2078,6 +2177,8 @@ def provision_runtime_role(
             protected_login_idents.append(sensor_ingestion_ident)
         if remote_sensing_ident is not None:
             protected_login_idents.append(remote_sensing_ident)
+        if sensor_anomaly_ml_source_ident is not None:
+            protected_login_idents.append(sensor_anomaly_ml_source_ident)
         for name in database_names:
             database_ident = sql.Identifier(name)
             cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC").format(database_ident))
@@ -3283,6 +3384,24 @@ def provision_runtime_role(
             remote_sensing_database_access = {name: allowed for name, allowed in cur.fetchall()}
             if any(allowed != (name == database) for name, allowed in remote_sensing_database_access.items()):
                 raise RuntimeError("remote-sensing login must connect only to its configured database")
+        if sensor_anomaly_ml_source_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (sensor_anomaly_ml_source_user,),
+            )
+            sensor_anomaly_ml_source_database_access = {
+                name: allowed for name, allowed in cur.fetchall()
+            }
+            if any(
+                allowed != (name == database)
+                for name, allowed in sensor_anomaly_ml_source_database_access.items()
+            ):
+                raise RuntimeError(
+                    "sensor-anomaly ML source login must connect only to its configured database"
+                )
 
     return {
         "status": "provisioned",
@@ -3301,6 +3420,7 @@ def provision_runtime_role(
         "event_dispatch_user": event_dispatch_user,
         "sensor_ingestion_user": sensor_ingestion_user,
         "remote_sensing_user": remote_sensing_user,
+        "sensor_anomaly_ml_source_user": sensor_anomaly_ml_source_user,
         "public_connect_revoked_from": sorted(database_names),
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
@@ -3315,6 +3435,7 @@ def provision_runtime_role(
         "event_dispatch_worker_connect_grants": event_dispatch_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "remote_sensing_connect_grants": remote_sensing_database_access,
+        "sensor_anomaly_ml_source_connect_grants": sensor_anomaly_ml_source_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
         "runtime_table_privilege_scope": "existing_public_tables_only",
         "runtime_future_object_privileges": [],
@@ -3416,6 +3537,13 @@ def main() -> int:
         "KOKONUT_REMOTE_SENSING_USER", "kokonut_remote_sensing_login"
     )
     remote_sensing_password = os.environ.get("KOKONUT_REMOTE_SENSING_PASSWORD", "")
+    sensor_anomaly_ml_source_user = os.environ.get(
+        "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_USER",
+        "kokonut_sensor_anomaly_ml_source_login",
+    )
+    sensor_anomaly_ml_source_password = os.environ.get(
+        "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_PASSWORD", ""
+    )
     if not admin_password or not runtime_password or not operator_auth_password:
         raise SystemExit(
             "admin, runtime, and operator-auth credentials must be provided through the environment"
@@ -3492,6 +3620,12 @@ def main() -> int:
             remote_sensing_user=(remote_sensing_user if remote_sensing_password else None),
             remote_sensing_password=(
                 remote_sensing_password if remote_sensing_password else None
+            ),
+            sensor_anomaly_ml_source_user=(
+                sensor_anomaly_ml_source_user if sensor_anomaly_ml_source_password else None
+            ),
+            sensor_anomaly_ml_source_password=(
+                sensor_anomaly_ml_source_password if sensor_anomaly_ml_source_password else None
             ),
         )
     finally:

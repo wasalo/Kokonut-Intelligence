@@ -18,6 +18,7 @@ ARM64_MQTT = "docker-compose.kernel-arm64-mqtt.yml"
 ARM64_HTTP_SENSORS = "docker-compose.kernel-arm64-http-sensors.yml"
 ARM64_DIRECTUS = "docker-compose.kernel-arm64-directus.yml"
 ARM64_ANALYTICS = "docker-compose.kernel-arm64-analytics.yml"
+ARM64_SENSOR_ANOMALY_ML = "docker-compose.kernel-arm64-sensor-anomaly-ml.yml"
 PROFILES = {
     "minimal": [],
     "edge": ["docker-compose.kernel-edge.yml"],
@@ -32,6 +33,7 @@ OPTIONAL = {
     "http_sensors": "docker-compose.kernel-http-sensors.yml",
     "directus": "docker-compose.kernel-directus.yml",
     "zitadel": "docker-compose.kernel-zitadel.yml",
+    "sensor_anomaly_ml": "docker-compose.kernel-sensor-anomaly-ml.yml",
 }
 
 
@@ -51,7 +53,8 @@ def main() -> None:
         parser.error("ARM64 currently supports only minimal, edge, standard, and analytics profiles")
     selected_optional = {name for name in OPTIONAL if getattr(args, name)}
     arm64_verified_optional = {
-        "proxy", "oidc", "zitadel", "grpc", "mqtt", "http_sensors", "directus"
+        "proxy", "oidc", "zitadel", "grpc", "mqtt", "http_sensors", "directus",
+        "sensor_anomaly_ml",
     }
     unverified_arm64_optional = selected_optional - arm64_verified_optional
     if is_arm64 and unverified_arm64_optional:
@@ -96,6 +99,8 @@ def main() -> None:
             files.append(ARM64_HTTP_SENSORS)
         if "directus" in selected_optional:
             files.append(ARM64_DIRECTUS)
+        if "sensor_anomaly_ml" in selected_optional:
+            files.append(ARM64_SENSOR_ANOMALY_ML)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")

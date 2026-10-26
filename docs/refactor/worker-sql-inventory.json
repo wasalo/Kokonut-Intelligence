@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
     "operation_roots": 41,
-    "source_files": 108,
-    "execution_sites": 358,
-    "static_literal_sites": 310,
-    "composed_or_variable_sites": 48
+    "source_files": 109,
+    "execution_sites": 359,
+    "static_literal_sites": 308,
+    "composed_or_variable_sites": 51
   },
   "execution_sites": [
     {
@@ -1220,9 +1220,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:141:12",
+      "id": "services/common/worker_database.py:142:12",
       "source": "services/common/worker_database.py",
-      "line": 141,
+      "line": 142,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -5094,45 +5094,41 @@
       ]
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:215:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:220:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 215,
+      "line": 220,
       "column": 4,
       "scope": "_query_sensor_timeseries",
       "method": "execute",
-      "expression_kind": "literal",
+      "expression_kind": "fstring",
       "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_reading"
-      ],
-      "static_sql_sha256": "434ce46ca1afdbf0ee7260dafe26a4fc7901df8552a98b5b63a3629811253d02",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:251:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:261:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 251,
+      "line": 261,
       "column": 4,
       "scope": "_query_all_sensors_timeseries",
       "method": "execute",
-      "expression_kind": "literal",
+      "expression_kind": "fstring",
       "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_reading"
-      ],
-      "static_sql_sha256": "79a3e13cd89fd9b199a9fe542d10f851c1ecb46ffd3fc6258efeb9bc3ea093a5",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:505:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:539:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 505,
+      "line": 539,
       "column": 4,
       "scope": "run_ml_check",
       "method": "execute",
@@ -5146,18 +5142,16 @@
       ]
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:620:8",
+      "id": "services/ingestion/ml_anomaly_detector.py:664:8",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 620,
+      "line": 664,
       "column": 8,
       "scope": "save_models",
       "method": "execute",
-      "expression_kind": "literal",
+      "expression_kind": "fstring",
       "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_reading"
-      ],
-      "static_sql_sha256": "365e9c1aec0808bb6abc5ddaefab734db6b67026f4ca34d54cc23b5b45f9b57c",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
@@ -5613,6 +5607,22 @@
       "static_sql_sha256": "02b26a3fa9e927754ca37454553cb3713343b301b303e7276d183ce32f14e402",
       "operation_refs": [
         "scheduled_module:services.ingestion.rpc_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/sensor_anomaly_ml_worker.py:51:12",
+      "source": "services/ingestion/sensor_anomaly_ml_worker.py",
+      "line": 51,
+      "column": 12,
+      "scope": "run_sensor_anomaly_ml",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "2bc49e9ac764b27ddd2b0f1d4c8f02be4d447d99c4d56e3eabce627558dc2a49",
+      "operation_refs": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {

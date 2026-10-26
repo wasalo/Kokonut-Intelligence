@@ -9,7 +9,10 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("/app"))
-    parser.add_argument("--target", required=True, choices=("kernel", "grpc", "mqtt", "oidc"))
+    parser.add_argument(
+        "--target", required=True,
+        choices=("kernel", "grpc", "mqtt", "oidc", "ml-anomaly"),
+    )
     args = parser.parse_args()
     root = args.root.resolve()
     paths = []

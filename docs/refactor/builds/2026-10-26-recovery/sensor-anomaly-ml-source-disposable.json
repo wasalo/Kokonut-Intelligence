@@ -1,0 +1,27 @@
+{
+  "check": "sensor_anomaly_ml_signed_source_disposable",
+  "postgres_image": "postgres:16",
+  "migration_versions": [
+    405,
+    419,
+    650
+  ],
+  "migration_650_replayed": true,
+  "forced_rls": true,
+  "source_login_authenticated": true,
+  "returned_location_ids": [
+    "a0000000-0000-0000-0000-000000000001"
+  ],
+  "worker_credentials_in_output": false,
+  "candidate_or_legacy_touched": false,
+  "container_removed": true,
+  "checks": [
+    "migrations 405, 419, and 650 apply in order; migration 650 replays",
+    "dedicated source login authenticates without shared PG credentials",
+    "signed context exposes only good-quality readings from exact location A",
+    "signed context and reader role reset at transaction end",
+    "location without a matching worker grant is denied",
+    "source login cannot select public sensor tables directly",
+    "source login cannot bypass its reader role to use the source view"
+  ]
+}

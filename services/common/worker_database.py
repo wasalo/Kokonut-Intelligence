@@ -45,6 +45,7 @@ _WORKER_LOGINS = {
     "freshness": "kokonut_freshness_login",
     "clickhouse_outbox": "kokonut_clickhouse_outbox_login",
     "sensor_ingestion": "kokonut_sensor_ingestion_login",
+    "sensor_anomaly_ml_source": "kokonut_sensor_anomaly_ml_source_login",
     "remote_sensing": "kokonut_remote_sensing_login",
 }
 _DEFAULT_WORKER_LOGIN = "kokonut_worker_login"

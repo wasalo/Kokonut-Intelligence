@@ -1219,6 +1219,24 @@ def main(argv: list[str] | None = None) -> None:
             except (TypeError, ValueError, AttributeError):
                 parser.error("--sensor must be a valid UUID for ML checks")
 
+        from services.core.features import is_enabled
+
+        if is_enabled("isolated_sensor_anomaly_ml_worker"):
+            if args.location_id is None or args.all_locations:
+                parser.error(
+                    "isolated ML analysis requires one --location-id; "
+                    "--all-locations is not available to the source-only worker"
+                )
+            from .sensor_anomaly_ml_worker import run_sensor_anomaly_ml
+
+            result = run_sensor_anomaly_ml(
+                args.location_id,
+                sensor_id=args.sensor,
+                train=args.ml_train,
+            )
+            print_json(result)
+            return
+
         from .base import get_db
         from .ml_anomaly_detector import run_ml_check, save_models
 

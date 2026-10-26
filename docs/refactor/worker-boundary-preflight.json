@@ -16,7 +16,7 @@
     "passed": true
   },
   "source_closure": {
-    "source_file_count": 108,
+    "source_file_count": 109,
     "unresolved_local_module_count": 0,
     "dynamic_import_site_count": 3,
     "passed": true
@@ -28,8 +28,8 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 358,
-    "sites_with_static_operation_path": 276,
+    "execution_site_count": 359,
+    "sites_with_static_operation_path": 277,
     "sites_without_static_function_match": 82,
     "site_refs_for_review": [
       {

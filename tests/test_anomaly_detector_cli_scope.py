@@ -160,6 +160,39 @@ def test_ml_check_rejects_invalid_sensor_uuid_before_database_access():
     get_db.assert_not_called()
 
 
+def test_isolated_ml_check_rejects_aggregate_scope_before_any_database_access():
+    with (
+        patch("services.core.features.is_enabled", return_value=True),
+        patch("services.ingestion.base.get_db") as get_db,
+        patch(
+            "services.ingestion.sensor_anomaly_ml_worker.run_sensor_anomaly_ml"
+        ) as worker,
+        pytest.raises(SystemExit) as exc,
+    ):
+        anomaly_detector.main(["--ml-check", "--all-locations"])
+
+    assert exc.value.code == 2
+    get_db.assert_not_called()
+    worker.assert_not_called()
+
+
+def test_isolated_ml_check_dispatches_without_shared_database_connection():
+    with (
+        patch("services.core.features.is_enabled", return_value=True),
+        patch("services.ingestion.base.get_db") as get_db,
+        patch(
+            "services.ingestion.sensor_anomaly_ml_worker.run_sensor_anomaly_ml",
+            return_value={"status": "success"},
+        ) as worker,
+        patch.object(anomaly_detector, "print_json") as print_json,
+    ):
+        anomaly_detector.main(["--ml-check", "--location-id", LOCATION_ID])
+
+    get_db.assert_not_called()
+    worker.assert_called_once_with(LOCATION_ID, sensor_id=None, train=False)
+    print_json.assert_called_once_with({"status": "success"})
+
+
 def test_rule_listing_remains_an_explicit_global_read():
     with patch.object(anomaly_detector, "list_rules") as list_rules:
         anomaly_detector.main(["--list-rules"])

@@ -1,0 +1,28 @@
+{
+  "check": "sensor_anomaly_ml_source_implementation_checks",
+  "focused_test_command": "python3 -m pytest tests/test_anomaly_detector_cli_scope.py tests/test_sensor_anomaly_ml_worker.py tests/test_ml_anomaly.py tests/test_ml_anomaly_scope.py tests/test_runtime_role_boundary.py tests/test_kernel_profile.py -q",
+  "focused_tests_passed": 114,
+  "ruff": "passed",
+  "python_compileall": "passed",
+  "generated_worker_runtime_inventories": "passed",
+  "dependency_groups": {
+    "status": "passed",
+    "groups": 13,
+    "legacy_requirements": 33,
+    "ml_anomaly_manifest_is_subset": true
+  },
+  "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+  "compose_config": {
+    "linux_amd64": "passed",
+    "linux_arm64": "passed"
+  },
+  "native_ml_image_build": "passed",
+  "native_ml_image_smoke": "sensor-anomaly-ml-image-native-smoke.json",
+  "disposable_postgres_migration_acceptance": "sensor-anomaly-ml-source-disposable.json",
+  "arm64_ml_image_build": "incomplete; pip resolved AArch64 wheels but stalled during emulated installation and was interrupted",
+  "physical_raspberry_pi_access": false,
+  "candidate_or_legacy_touched": false,
+  "migration_650_applied_to_candidate": false,
+  "real_worker_credentials_or_grants_provisioned": false,
+  "live_provider_calls": false
+}

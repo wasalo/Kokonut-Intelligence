@@ -11,7 +11,8 @@ manifest; the Kernel image uses the selected hash-locked closure below.
 | exports.txt | Object storage and spreadsheet support |
 | storage.txt | Authenticated encryption for local private media |
 | clickhouse.txt | Optional ClickHouse client only |
-| analytics.txt | Tabular analytics, forecasting, ML, market data |
+| analytics.txt | Full tabular analytics, forecasting, and market data |
+| ml-anomaly.txt | Small optional dependency subset for sensor-anomaly modeling |
 | geospatial.txt | Earth Engine and GIS file access |
 | oidc.txt | Optional operator OIDC integration |
 | orchestration.txt | Prefect |
@@ -30,8 +31,11 @@ These are dependency candidates, not certified deployment profiles.
 it does not certify all lazily loaded endpoints, jobs, exports, or domain CLIs.
 Media object storage currently requires the exports group. Web3 capability users
 require the Web3 group even when no local blockchain node is deployed.
-Analytics/geospatial include workloads unsuitable for a small edge device and
-will need further splitting before ARM64 resource certification.
+The sensor-anomaly worker installs only `ml-anomaly.txt` (pandas, NumPy,
+Prophet, scikit-learn, and SciPy), rather than pulling unrelated market-data
+and geostatistics packages from the full analytics group. These numerical
+libraries can still be substantial on an edge device; ARM64 software builds do
+not establish runtime resource suitability.
 
 Dependency weight remains unmeasured. The group files preserve compatibility
 ranges, while the Kernel image lockfiles pin the resolved versions and artifact
@@ -46,9 +50,11 @@ Regenerate both Kernel locks with `pip-tools==7.6.2` using the commands in
 The current locks do not pin apt dependencies or the Python base image's bundled
 pip independently from the digest.
 
-`python3 scripts/check-requirement-groups.py` checks that the union of these twelve
-groups exactly matches the legacy constraints, including duplicate counts.
-It runs in the fast-fail CI gate and uses no external packages.
+`python3 scripts/check-requirement-groups.py` checks that the union of the
+dependency groups exactly matches the legacy constraints, including duplicate
+counts. It also verifies that `ml-anomaly.txt` stays an exact subset of
+`analytics.txt` without double-counting it in that union. It runs in the
+fast-fail CI gate and uses no external packages.
 
 Rollback: point the Kernel Dockerfile back to the compatible group manifests;
 legacy images, services, and data remain independent of these locks.

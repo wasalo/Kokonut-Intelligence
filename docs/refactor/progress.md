@@ -1,3 +1,34 @@
+### Progress addendum — isolated manual ML anomaly reader, 26 October 2026
+
+Manual ML anomaly checks and training can now use a default-off, one-location
+Kernel worker with a dedicated database identity. Migration 650 adds a signed
+`sensor_anomaly_ml/analyze` source view restricted to good/estimated readings;
+the login has no direct table access and can select the view only after
+switching to its `SET`-only reader role. The existing CLI routes `--ml-check`
+and `--ml-train` through it when enabled and rejects `--all-locations` before
+connection. The new optional one-shot image/profile leaves analytics
+dependencies out of the default Kernel image. Its `ml-anomaly.txt` manifest
+contains only the five direct model requirements, excluding unrelated yfinance
+and gstools; the profile planner selects an ARM64 overlay.
+
+The focused CLI, worker, model, runtime-role, and profile selection passed 114
+tests. Ruff, compilation, dependency-group alignment, six regenerated
+worker/runtime inventories, and AMD64/ARM64 Compose profile checks pass. The
+native optional image builds, and a network-disabled/read-only smoke imports the
+worker and five required model packages without yfinance/gstools ([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)). The ARM64 ML image build resolved AArch64 wheels but stalled during emulated pip installation and was stopped; ARM64 runtime acceptance remains open.
+Disposable PostgreSQL 16 applied and replayed migrations
+405/419/650 under forced RLS and verified exact-location and quality filtering,
+transaction-context reset and denial, direct-table denial, and the reader-role
+boundary ([source checks](builds/2026-10-26-recovery/sensor-anomaly-ml-source-checks.json); [contract](sensor-anomaly-ml-worker-contract.md); [migration](../../schemas/postgres/650_signed_sensor_anomaly_ml_source.sql);
+[worker](../../services/ingestion/sensor_anomaly_ml_worker.py); [runner](../../scripts/check-sensor-anomaly-ml-source-disposable.py);
+[evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-source-disposable.json)).
+No candidate or legacy database, live provider, real worker credential/grant,
+or model artifact was touched. The profile remains inactive; ARM64 evidence is
+software configuration only, not physical Raspberry Pi acceptance. Rollback
+by disabling the feature/profile or reverting the CLI route; retain additive
+migration state and role history. CAP-040 remains partial and MAN-CAP-040/047
+remain open. Checklist: 1,207 complete / 25 open (1,232 total).
+
 ### Progress addendum — baseline anomaly location propagation, 26 October 2026
 
 An explicit all-location baseline scan now carries each row's canonical farm

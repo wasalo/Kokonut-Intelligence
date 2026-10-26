@@ -636,6 +636,57 @@ def test_remote_sensing_login_uses_only_the_signed_worker_function_boundary():
     assert "runtime role can execute remote-sensing worker functions" in runtime_source
 
 
+def test_sensor_anomaly_ml_source_login_requires_paired_secret_and_distinct_reader_roles():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(
+        ValueError, match="sensor-anomaly ML source user and password must be provided together"
+    ):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            sensor_anomaly_ml_source_user="kokonut_sensor_anomaly_ml_source_login",
+        )
+    with pytest.raises(ValueError, match="differ from the sensor-anomaly ML view owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            sensor_anomaly_ml_source_user="kokonut_sensor_anomaly_ml_source_view_owner",
+            sensor_anomaly_ml_source_password="m" * 32,
+        )
+    with pytest.raises(ValueError, match="differ from the sensor-anomaly ML reader role"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            sensor_anomaly_ml_source_user="kokonut_sensor_anomaly_ml_reader",
+            sensor_anomaly_ml_source_password="m" * 32,
+        )
+
+
+def test_sensor_anomaly_ml_source_role_uses_only_signed_view_access():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/650_signed_sensor_anomaly_ml_source.sql").read_text()
+    runtime_source = (root / "services/migration/runtime_role.py").read_text()
+    worker_source = (root / "services/ingestion/sensor_anomaly_ml_worker.py").read_text()
+
+    assert "GRANT EXECUTE ON FUNCTION kokonut_security.set_worker_tenant_context" in migration
+    assert "CREATE OR REPLACE VIEW kokonut_anomaly_ml_source.sensor_reading" in migration
+    assert "current_worker_scope('sensor_anomaly_ml', 'analyze')" in migration
+    assert "TO kokonut_sensor_anomaly_ml_reader" in migration
+    assert "GRANT kokonut_worker_execution TO kokonut_sensor_anomaly_ml_source_login" not in migration
+    assert "migration 650 sensor-anomaly ML source view and reader role" in runtime_source
+    assert "GRANT kokonut_sensor_anomaly_ml_reader TO {}" in runtime_source
+    assert "SET LOCAL ROLE kokonut_sensor_anomaly_ml_reader" in worker_source
+    assert "from services.ingestion.base import get_db" not in worker_source
+
+
 def test_remote_sensing_password_is_bootstrap_only():
     root = Path(__file__).resolve().parents[1]
     bootstrap = (root / "docker-compose.kernel-runtime-role.yml").read_text()

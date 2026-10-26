@@ -1,4 +1,5 @@
 # Existing version constraints retained from requirements.txt.
+# Full forecasting, advanced analytics, and market-data group for legacy users.
 # numpy remains below 2.0 for the existing prophet constraint.
 pandas>=2.0,<4.0
 numpy>=1.26,<2.0

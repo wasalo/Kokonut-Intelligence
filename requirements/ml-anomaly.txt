@@ -1,0 +1,7 @@
+# Minimal optional dependency subset for the sensor-anomaly model worker.
+# Keep these constraints synchronized with requirements/analytics.txt.
+pandas>=2.0,<4.0
+numpy>=1.26,<2.0
+prophet>=1.3.0,<2.0
+scikit-learn>=1.9,<2.0
+scipy>=1.11,<2.0.0

@@ -19,10 +19,37 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (26 October 2026):** 1,206 checklist items complete and 25
-open (1,231 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (26 October 2026):** 1,207 checklist items complete and 25
+open (1,232 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### Isolated one-shot ML anomaly source reader — 26 October 2026
+
+- [x] Add a default-off location-scoped Kernel path for manual ML anomaly
+  checks/training. Migration 650 adds a signed, quality-filtered source view
+  and separate `SET`-only reader login; the CLI routes only `--ml-check` and
+  `--ml-train` through it, requires exactly one location, and rejects
+  `--all-locations` before database access. A dedicated one-shot Compose
+  profile and optional ML-only image target keep model dependencies out of the
+  default Kernel image; `requirements/ml-anomaly.txt` is a five-package subset
+  that excludes unrelated yfinance/gstools. The 114-test focused selection,
+  Ruff, compilation, six generated worker/runtime inventories, dependency-group
+  alignment, and AMD64/ARM64 Compose config checks pass. The native optional
+  image builds and a no-network/read-only import smoke passes ([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)).
+  The ARM64 ML image build stalled during emulated pip installation and was
+  stopped; AArch64 wheels resolved, but ARM64 image/runtime acceptance remains
+  open. Disposable PostgreSQL 16 applies and replays migrations 405/419/650 and
+  verifies signed exact-location/quality filtering, scope reset/denial, forced
+  RLS, direct table denial, and reader-role switching ([source checks](builds/2026-10-26-recovery/sensor-anomaly-ml-source-checks.json); [contract](sensor-anomaly-ml-worker-contract.md);
+  [migration](../../schemas/postgres/650_signed_sensor_anomaly_ml_source.sql);
+  [worker](../../services/ingestion/sensor_anomaly_ml_worker.py);
+  [evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-source-disposable.json)).
+  The profile is not activated, no candidate/legacy migration or worker grant
+  was provisioned, and no live/populated parity or physical Pi acceptance is
+  claimed. Roll back by disabling the feature/profile or reverting the CLI
+  route; retain the additive migration and role history. CAP-040 remains
+  partial and MAN-CAP-040/047 remain open.
 
 ### Isolated ClickHouse outbox delivery — 25 October 2026
 

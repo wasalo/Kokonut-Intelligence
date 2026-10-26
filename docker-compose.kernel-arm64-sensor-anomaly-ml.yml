@@ -1,0 +1,9 @@
+# ARM64 selection for the optional ML anomaly worker. Build/runtime behavior on
+# physical Raspberry Pi hardware remains unverified; source and profile checks
+# do not claim hardware acceptance.
+services:
+  sensor-anomaly-ml-worker:
+    platform: linux/arm64
+    build:
+      platforms:
+        - linux/arm64

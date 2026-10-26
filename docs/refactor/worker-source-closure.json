@@ -900,6 +900,7 @@
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
         "services.core.adapters.mqtt",
+        "services.core.features",
         "services.core.providers",
         "services.events.bus",
         "services.events.notification_outbox",
@@ -909,6 +910,7 @@
         "services.ingestion.config",
         "services.ingestion.ml_anomaly_detector",
         "services.ingestion.mqtt_actuator",
+        "services.ingestion.sensor_anomaly_ml_worker",
         "services.ingestion.sensor_anomaly_worker",
         "services.security.execution_allowlist"
       ],
@@ -926,6 +928,7 @@
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/adapters/mqtt.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/events/bus.py",
         "services/events/notification_outbox.py",
@@ -935,6 +938,7 @@
         "services/ingestion/config.py",
         "services/ingestion/ml_anomaly_detector.py",
         "services/ingestion/mqtt_actuator.py",
+        "services/ingestion/sensor_anomaly_ml_worker.py",
         "services/ingestion/sensor_anomaly_worker.py",
         "services/security/execution_allowlist.py"
       ],
@@ -1008,6 +1012,12 @@
         {
           "source": "services/core/adapters/mqtt.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -1152,12 +1162,24 @@
         {
           "source": "services/ingestion/anomaly_detector.py",
           "line": 1222,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 1230,
+          "target": "services.ingestion.sensor_anomaly_ml_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 1240,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1223,
+          "line": 1241,
           "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },
@@ -1219,6 +1241,30 @@
           "source": "services/ingestion/mqtt_actuator.py",
           "line": 181,
           "target": "services.core.adapters.mqtt",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
+          "line": 8,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
+          "line": 9,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
+          "line": 10,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
+          "line": 53,
+          "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },
         {
@@ -8350,6 +8396,7 @@
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
         "services.core.adapters.mqtt",
+        "services.core.features",
         "services.core.providers",
         "services.events.bus",
         "services.events.notification_outbox",
@@ -8359,6 +8406,7 @@
         "services.ingestion.config",
         "services.ingestion.ml_anomaly_detector",
         "services.ingestion.mqtt_actuator",
+        "services.ingestion.sensor_anomaly_ml_worker",
         "services.ingestion.sensor_anomaly_worker",
         "services.security.execution_allowlist"
       ],
@@ -8376,6 +8424,7 @@
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/adapters/mqtt.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/events/bus.py",
         "services/events/notification_outbox.py",
@@ -8385,6 +8434,7 @@
         "services/ingestion/config.py",
         "services/ingestion/ml_anomaly_detector.py",
         "services/ingestion/mqtt_actuator.py",
+        "services/ingestion/sensor_anomaly_ml_worker.py",
         "services/ingestion/sensor_anomaly_worker.py",
         "services/security/execution_allowlist.py"
       ],
@@ -8458,6 +8508,12 @@
         {
           "source": "services/core/adapters/mqtt.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -8602,12 +8658,24 @@
         {
           "source": "services/ingestion/anomaly_detector.py",
           "line": 1222,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 1230,
+          "target": "services.ingestion.sensor_anomaly_ml_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 1240,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1223,
+          "line": 1241,
           "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },
@@ -8669,6 +8737,30 @@
           "source": "services/ingestion/mqtt_actuator.py",
           "line": 181,
           "target": "services.core.adapters.mqtt",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
+          "line": 8,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
+          "line": 9,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
+          "line": 10,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
+          "line": 53,
+          "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },
         {

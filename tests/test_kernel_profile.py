@@ -175,6 +175,49 @@ def test_arm64_directus_selects_its_platform_overlay() -> None:
     assert "docker-compose.kernel-arm64-directus.yml" in directus.stdout
 
 
+def test_sensor_anomaly_ml_is_an_explicit_single_location_worker_profile() -> None:
+    compose = yaml.safe_load(
+        (ROOT / "docker-compose.kernel-sensor-anomaly-ml.yml").read_text()
+    )
+    worker = compose["services"]["sensor-anomaly-ml-worker"]
+    assert worker["profiles"] == ["sensor-anomaly-ml"]
+    assert worker["build"]["target"] == "ml-anomaly"
+    assert "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_DATABASE_URL" in worker["environment"]
+    assert "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_WORKER_CREDENTIAL" in worker["environment"]
+    assert "PG_USER" not in worker["environment"]
+    assert "PG_PASSWORD" not in worker["environment"]
+    assert "POSTGRES_PASSWORD" not in worker["environment"]
+
+    ml_requirements = {
+        line.strip()
+        for line in (ROOT / "requirements/ml-anomaly.txt").read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    assert ml_requirements == {
+        "pandas>=2.0,<4.0",
+        "numpy>=1.26,<2.0",
+        "prophet>=1.3.0,<2.0",
+        "scikit-learn>=1.9,<2.0",
+        "scipy>=1.11,<2.0.0",
+    }
+    assert "yfinance>=1.0.0,<2.0.0" not in ml_requirements
+    assert "gstools>=1.6.0,<2.0.0" not in ml_requirements
+
+    plan = _run_planner("standard", "--sensor-anomaly-ml")
+    assert plan.returncode == 0
+    assert "docker-compose.kernel-sensor-anomaly-ml.yml" in plan.stdout
+
+
+def test_arm64_sensor_anomaly_ml_profile_selects_architecture_overlay() -> None:
+    plan = _run_planner(
+        "standard", "--target-platform", "linux/arm64", "--sensor-anomaly-ml"
+    )
+
+    assert plan.returncode == 0
+    assert "docker-compose.kernel-sensor-anomaly-ml.yml" in plan.stdout
+    assert "docker-compose.kernel-arm64-sensor-anomaly-ml.yml" in plan.stdout
+
+
 def test_arm64_analytics_selects_clickhouse_and_worker_platform_overlays() -> None:
     analytics = _run_planner("analytics", "--target-platform", "linux/arm64")
     separate = _run_planner(

@@ -225,6 +225,14 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Replay recent sensor-reading events through the signed location-scoped anomaly worker",
     },
+    "isolated_sensor_anomaly_ml_worker": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_ISOLATED_SENSOR_ANOMALY_ML_WORKER", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated read-only login and signed exact-location source view for ML anomaly analysis",
+    },
     "isolated_clickhouse_outbox_worker": {
         "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_CLICKHOUSE_OUTBOX_WORKER", "false").lower() == "true",
         "critical": False,
