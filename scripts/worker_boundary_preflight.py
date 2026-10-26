@@ -123,7 +123,7 @@ def build_preflight() -> dict:
         },
         "limitations": [
             "A SQL site outside the current worker-root graph is not proven dead or unreachable.",
-            "The EventBus handler dispatch and code-allowlisted scheduled sensor-driver dispatch are represented in source inventories; the legacy data-selected driver loader and other dynamic callbacks remain open.",
+            "The EventBus handler dispatch and code-allowlisted scheduled sensor-driver dispatch are represented in source inventories. Manual driver loading now resolves source-owned built-ins or exact installed kokonut.drivers entry points; installed package code is trusted and is not sandboxed. Other dynamic callbacks remain open.",
             "This static report is not a database ACL, tenant policy, or authorization decision.",
             "No database, migration, or secret was accessed.",
         ],

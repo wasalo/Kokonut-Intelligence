@@ -67,12 +67,15 @@ application-wide RLS or proof for other workers.
   26 scheduled modules and seven allowlisted handler pairs. It covers 97
   distinct local source files across 33 operation roots, with no unresolved
   local modules and three distinct dynamic import sites. These include the
-  EventBus handler runner, the legacy data-selected driver loader, and the
-  code-allowlisted scheduled sensor-driver loader. EventBus dispatch is
-  constrained by `validate_event_handler` and the exact allowlist; the native
-  sensor worker's driver class and methods are linked from the immutable
-  source registry in the function graph. Package `__main__.py` entrypoints are
-  included.
+  EventBus handler runner, the general driver registry, and the code-allowlisted
+  scheduled sensor-driver loader. EventBus dispatch is constrained by
+  `validate_event_handler` and the exact allowlist. The general driver registry
+  resolves nine built-ins from `BUILTIN_DRIVER_TARGETS`; third-party adapters
+  load only through one matching installed `kokonut.drivers` entry point. A
+  persisted module/class pair cannot select an import target. The native sensor
+  worker has the narrower `SCHEDULED_SENSOR_DRIVER_TARGETS` registry, and its
+  driver class/methods are linked from that source map in the function graph.
+  Package `__main__.py` entrypoints are included.
 - Regenerate or verify the source closure with
   `python3 scripts/worker_source_closure.py --output docs/refactor/worker-source-closure.json`
   or `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`.
@@ -156,6 +159,16 @@ application-wide RLS or proof for other workers.
   docs/refactor/worker-effect-inventory.json`. The inventory does not inspect
   provider internals, arbitrary callbacks, database-side effects, or establish
   replay safety, tenant context, or database grants.
+
+The manual driver-loader boundary was hardened after the preceding inventory
+snapshot. Built-in registry rows must exactly match a source-owned target;
+custom code is resolved by installed Python package entry point and the row's
+module/class fields must match that entry point. The loader checks the adapter
+class contract and closes the metadata-read transaction before importing code.
+This does not sandbox installed packages, inspect their dependencies, or prove
+that a driver is safe to install. `DriverRegistry.load` is not statically
+reachable from the allowlisted scheduled sensor operation; that worker
+continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
 - Source-pattern review covers all 43 composed/variable statements found by the
   generated SQL inventory across 33 operation roots. The original 30-site
   review found that 21 use fixed

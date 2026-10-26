@@ -135,6 +135,26 @@ class TestDriverRegistry:
         )
         assert driver_id is not None
 
+    def test_builtin_driver_targets_match_seed_registry(self):
+        import re
+        from pathlib import Path
+
+        from services.drivers.registry import BUILTIN_DRIVER_TARGETS
+
+        seed_path = Path(__file__).parents[1] / "schemas/postgres/119_driver_registry.sql"
+        seed_sql = seed_path.read_text(encoding="utf-8")
+        rows = re.findall(
+            r"^\s*\('([^']+)',\s*'[^']+',\s*'([^']+)',\s*'([^']+)',\s*'([^']+)'",
+            seed_sql,
+            re.MULTILINE,
+        )
+        seeded_targets = {
+            name: (module_path, class_name, driver_type)
+            for name, driver_type, module_path, class_name in rows
+        }
+
+        assert seeded_targets == dict(BUILTIN_DRIVER_TARGETS)
+
     def test_list_drivers(self):
         from services.drivers.registry import DriverRegistry
 
@@ -243,6 +263,171 @@ class TestDriverRegistry:
         assert "RuntimeError" in result["message"]
         assert "driver-secret" not in result["message"]
 
+    def test_builtin_driver_load_uses_source_target_not_database_import_path(self, monkeypatch):
+        from types import SimpleNamespace
+
+        from services.drivers.registry import DriverRegistry
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (
+            "private.module",
+            "Driver",
+            "1.0.0",
+            "weather",
+        )
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        import_module = MagicMock(return_value=SimpleNamespace())
+        monkeypatch.setattr("services.drivers.registry.importlib.import_module", import_module)
+
+        with pytest.raises(ValueError, match="does not match its source target"):
+            DriverRegistry(conn=mock_conn).load("weather_openweathermap")
+
+        import_module.assert_not_called()
+
+    def test_builtin_driver_load_imports_only_the_code_owned_module(self, monkeypatch):
+        from types import SimpleNamespace
+
+        from services.drivers.registry import DriverRegistry
+
+        class BuiltinDriver:
+            name = "weather_openweathermap"
+            driver_type = "weather"
+
+            def validate_config(self, _config): pass
+            def discover(self, _config): pass
+            def fetch(self, _source): pass
+            def transform(self, _raw): pass
+            def health_check(self, _config): return True
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (
+            "services.ingestion.drivers.weather_openweathermap",
+            "Driver",
+            "1.0.0",
+            "weather",
+        )
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        import_module = MagicMock(return_value=SimpleNamespace(Driver=BuiltinDriver))
+        monkeypatch.setattr("services.drivers.registry.importlib.import_module", import_module)
+
+        loaded = DriverRegistry(conn=mock_conn).load("weather_openweathermap")
+
+        assert loaded is BuiltinDriver
+        import_module.assert_called_once_with(
+            "services.ingestion.drivers.weather_openweathermap",
+        )
+
+    def test_external_driver_loads_only_matching_installed_entry_point(self, monkeypatch):
+        from types import SimpleNamespace
+
+        from services.drivers.registry import DriverRegistry
+
+        class PluginDriver:
+            name = "third_party_weather"
+            driver_type = "weather"
+
+            def validate_config(self, _config): pass
+            def discover(self, _config): pass
+            def fetch(self, _source): pass
+            def transform(self, _raw): pass
+            def health_check(self, _config): return True
+
+        entry_point = SimpleNamespace(
+            module="third_party.weather",
+            attr="Driver",
+            load=MagicMock(return_value=PluginDriver),
+        )
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (
+            "third_party.weather",
+            "Driver",
+            "1.0.0",
+            "weather",
+        )
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        entry_point.load = MagicMock(
+            side_effect=lambda: (mock_conn.commit.assert_called_once() or PluginDriver),
+        )
+        entry_points = MagicMock(return_value=[entry_point])
+        monkeypatch.setattr("services.drivers.registry.metadata.entry_points", entry_points)
+
+        loaded = DriverRegistry(conn=mock_conn).load("third_party_weather")
+
+        assert loaded is PluginDriver
+        entry_points.assert_called_once_with(group="kokonut.drivers", name="third_party_weather")
+        entry_point.load.assert_called_once_with()
+
+    def test_external_driver_identity_mismatch_never_loads_entry_point(self, monkeypatch):
+        from services.drivers.registry import DriverRegistry
+
+        entry_point = MagicMock()
+        entry_point.module = "installed.weather"
+        entry_point.attr = "Driver"
+        entry_points = MagicMock(return_value=[entry_point])
+        monkeypatch.setattr("services.drivers.registry.metadata.entry_points", entry_points)
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (
+            "attacker.module",
+            "Driver",
+            "1.0.0",
+            "weather",
+        )
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        with pytest.raises(ValueError, match="does not match its installed entry point"):
+            DriverRegistry(conn=mock_conn).load("third_party_weather")
+
+        entry_point.load.assert_not_called()
+
+    def test_registration_invalidates_cached_driver_class(self):
+        from services.drivers.registry import DriverRegistry
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (str(uuid.uuid4()),)
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+        registry = DriverRegistry(conn=mock_conn)
+        registry._cache["test_driver"] = object()
+
+        registry.register(
+            driver_name="test_driver",
+            driver_version="1.0.0",
+            driver_type="weather",
+            module_path="test.weather",
+        )
+
+        assert "test_driver" not in registry._cache
+
+    def test_external_driver_requires_one_entry_point_before_loading(self, monkeypatch):
+        from services.drivers.registry import DriverRegistry
+
+        entry_points = MagicMock(return_value=[])
+        monkeypatch.setattr("services.drivers.registry.metadata.entry_points", entry_points)
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (
+            "private.module",
+            "Driver",
+            "1.0.0",
+            "weather",
+        )
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        with pytest.raises(ValueError, match="unique installed kokonut.drivers entry point"):
+            DriverRegistry(conn=mock_conn).load("private_driver")
+
+        entry_points.assert_called_once_with(group="kokonut.drivers", name="private_driver")
+
     def test_driver_import_failure_log_redacts_exception_message(
         self, monkeypatch, caplog
     ):
@@ -261,10 +446,18 @@ class TestDriverRegistry:
         mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
         mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
-        def fail_import(_module_path):
-            raise ImportError("provider credential=driver-secret")
+        class FailingEntryPoint:
+            module = "private.module"
+            attr = "Driver"
 
-        monkeypatch.setattr("services.drivers.registry.importlib.import_module", fail_import)
+            @staticmethod
+            def load():
+                raise ImportError("provider credential=driver-secret")
+
+        monkeypatch.setattr(
+            "services.drivers.registry.metadata.entry_points",
+            lambda **_kwargs: [FailingEntryPoint()],
+        )
         caplog.set_level(logging.ERROR, logger="kokonut.drivers.registry")
         result = DriverRegistry(conn=mock_conn).test_driver("private_driver")
 

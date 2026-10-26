@@ -7,6 +7,7 @@ table, enabling runtime plugin loading without modifying core code.
 from __future__ import annotations
 
 import importlib
+from importlib import metadata
 from types import MappingProxyType
 from typing import Any
 
@@ -16,9 +17,63 @@ from services.common.logging import get_logger
 logger = get_logger("drivers.registry")
 
 # Persisted driver_registry.module_path values are data, not executable policy.
-# Scheduled sensor pulls may load only driver targets declared in this source
-# controlled map. Adding another scheduled implementation requires a reviewed
-# code change and tests; manual driver operations retain the general registry.
+# Built-in driver names resolve only to these source-controlled targets.
+BUILTIN_DRIVER_TARGETS = MappingProxyType(
+    {
+        "blockchain_eas": (
+            "services.ingestion.drivers.blockchain_eas",
+            "Driver",
+            "blockchain",
+        ),
+        "blockchain_gnosis": (
+            "services.ingestion.drivers.blockchain_gnosis",
+            "Driver",
+            "blockchain",
+        ),
+        "blockchain_rpc": (
+            "services.ingestion.drivers.blockchain_rpc",
+            "Driver",
+            "blockchain",
+        ),
+        "market_worldbank": (
+            "services.ingestion.drivers.market_worldbank",
+            "Driver",
+            "market",
+        ),
+        "remote_sensing_copernicus": (
+            "services.ingestion.drivers.remote_sensing_copernicus",
+            "Driver",
+            "remote_sensing",
+        ),
+        "remote_sensing_gee": (
+            "services.ingestion.drivers.remote_sensing_gee",
+            "Driver",
+            "remote_sensing",
+        ),
+        "sensor_csv": (
+            "services.ingestion.drivers.sensor_csv",
+            "Driver",
+            "sensor",
+        ),
+        "sensor_mqtt": (
+            "services.ingestion.drivers.sensor_mqtt",
+            "Driver",
+            "sensor",
+        ),
+        "weather_openweathermap": (
+            "services.ingestion.drivers.weather_openweathermap",
+            "Driver",
+            "weather",
+        ),
+    }
+)
+
+# Third-party adapters stay extensible through installed Python packages. The
+# entry point resolves installed code; database rows only confirm its identity.
+DRIVER_PLUGIN_ENTRY_POINT_GROUP = "kokonut.drivers"
+
+# Scheduled sensor pulls have a narrower code-controlled map. Adding another
+# scheduled implementation requires a reviewed source change and tests.
 SCHEDULED_SENSOR_DRIVER_TARGETS = MappingProxyType(
     {
         "sensor_csv": (
@@ -28,6 +83,44 @@ SCHEDULED_SENSOR_DRIVER_TARGETS = MappingProxyType(
         ),
     }
 )
+
+
+def _load_driver_class(
+    driver_name: str,
+    module_path: str,
+    class_name: str,
+    driver_type: str,
+) -> Any:
+    """Resolve built-in or installed entry-point code without data imports."""
+    builtin_target = BUILTIN_DRIVER_TARGETS.get(driver_name)
+    if builtin_target is not None:
+        if builtin_target != (module_path, class_name, driver_type):
+            raise ValueError("registered built-in driver identity does not match its source target")
+        module = importlib.import_module(builtin_target[0])
+        driver_class = getattr(module, builtin_target[1], None)
+    else:
+        candidates = metadata.entry_points(
+            group=DRIVER_PLUGIN_ENTRY_POINT_GROUP,
+            name=driver_name,
+        )
+        if len(candidates) != 1:
+            raise ValueError("driver is not a unique installed kokonut.drivers entry point")
+        entry_point = candidates[0]
+        if (entry_point.module, entry_point.attr) != (module_path, class_name):
+            raise ValueError("registered driver identity does not match its installed entry point")
+        driver_class = entry_point.load()
+
+    required_methods = (
+        "validate_config", "discover", "fetch", "transform", "health_check",
+    )
+    if (
+        not isinstance(driver_class, type)
+        or getattr(driver_class, "name", None) != driver_name
+        or getattr(driver_class, "driver_type", None) != driver_type
+        or any(not callable(getattr(driver_class, name, None)) for name in required_methods)
+    ):
+        raise ValueError("driver implementation does not satisfy the registered adapter contract")
+    return driver_class
 
 
 class DriverRegistry:
@@ -90,6 +183,7 @@ class DriverRegistry:
                 row = cur.fetchone()
                 driver_id = str(row[0]) if row else None
             conn.commit()
+            self._cache.pop(driver_name, None)
             logger.info("Registered driver: %s (id=%s)", driver_name, driver_id)
             return driver_id
         except Exception as exc:
@@ -122,18 +216,21 @@ class DriverRegistry:
                     raise ValueError(f"Driver not found or disabled: {driver_name}")
 
                 module_path, class_name, version, driver_type = row
+            # Finish the metadata read before loading third-party Python code.
+            conn.commit()
         except Exception:
             conn.rollback()
             raise
 
-        # Dynamic import
+        # Database rows select an installed driver name, never an import path.
         try:
-            module = importlib.import_module(module_path)
-            driver_class = getattr(module, class_name)
+            driver_class = _load_driver_class(
+                driver_name, module_path, class_name, driver_type,
+            )
             self._cache[driver_name] = driver_class
-            logger.info("Loaded driver: %s v%s (%s)", driver_name, version, module_path)
+            logger.info("Loaded driver: %s v%s", driver_name, version)
             return driver_class
-        except (ImportError, AttributeError) as exc:
+        except (ImportError, AttributeError, ValueError) as exc:
             logger.error(
                 "Failed to load driver %s (%s)",
                 driver_name,

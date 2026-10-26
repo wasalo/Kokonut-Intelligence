@@ -3891,19 +3891,19 @@
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 13,
+          "line": 14,
           "target": "services.common.errors",
           "kind": "from"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 14,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 42,
+          "line": 135,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4074,12 +4074,12 @@
       "dynamic_import_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 131,
+          "line": 99,
           "kind": "dynamic module expression"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 301,
+          "line": 398,
           "kind": "dynamic module expression"
         },
         {
@@ -4210,19 +4210,19 @@
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 13,
+          "line": 14,
           "target": "services.common.errors",
           "kind": "from"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 14,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 42,
+          "line": 135,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4309,12 +4309,12 @@
       "dynamic_import_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 131,
+          "line": 99,
           "kind": "dynamic module expression"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 301,
+          "line": 398,
           "kind": "dynamic module expression"
         }
       ]

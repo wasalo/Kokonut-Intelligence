@@ -18752,3 +18752,26 @@ candidate, or legacy service was used ([worker map](worker-operation-map.md);
 [evidence](builds/2026-10-25-recovery/scheduled-sensor-driver-static-callgraph.json)).
 Checklist: 1,190 complete / 25 open (1,215 total); classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 capabilities.
+
+## Implementation update — driver registry import boundary (25 October 2026)
+
+The general driver registry no longer treats the database's `module_path` as
+executable policy. All nine seeded built-ins resolve through the immutable
+`BUILTIN_DRIVER_TARGETS` source map and their database identities must match.
+Third-party adapters remain extensible through an installed
+`kokonut.drivers` Python entry point; the stored module/class pair must match
+that code-owned entry point, the class must satisfy the adapter contract, and
+the metadata transaction is closed before plugin import. Registering a new
+driver clears any cached class for that name. Tests verify seed/allowlist parity,
+all nine built-in implementations, mismatch rejection before import, exact
+third-party resolution, and cache invalidation. The focused registry and
+scheduled-sensor suite passes 58 tests; Ruff, compilation, provider and
+dependency checks, all worker/runtime inventory checks, and capability
+validation pass. Installed third-party packages remain trusted, unsandboxed
+code; production plugin installation, provider behavior, persisted schedules,
+database grants, and database effects remain separate gates. No database,
+provider, candidate, or legacy service was used ([implementation](../../services/drivers/registry.py);
+[contract](../../services/drivers/README.md);
+[evidence](builds/2026-10-25-recovery/driver-entry-point-loading.json)).
+Checklist: 1,191 complete / 25 open (1,216 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

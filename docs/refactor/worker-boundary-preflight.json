@@ -297,37 +297,37 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/drivers/registry.py:112:16",
+        "site": "services/drivers/registry.py:156:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:150:20",
+        "site": "services/drivers/registry.py:206:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:161:20",
+        "site": "services/drivers/registry.py:247:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:203:16",
+        "site": "services/drivers/registry.py:258:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:326:16",
+        "site": "services/drivers/registry.py:300:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:335:16",
+        "site": "services/drivers/registry.py:423:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:63:16",
+        "site": "services/drivers/registry.py:432:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
@@ -418,7 +418,7 @@
   },
   "limitations": [
     "A SQL site outside the current worker-root graph is not proven dead or unreachable.",
-    "The EventBus handler dispatch and code-allowlisted scheduled sensor-driver dispatch are represented in source inventories; the legacy data-selected driver loader and other dynamic callbacks remain open.",
+    "The EventBus handler dispatch and code-allowlisted scheduled sensor-driver dispatch are represented in source inventories. Manual driver loading now resolves source-owned built-ins or exact installed kokonut.drivers entry points; installed package code is trusted and is not sandboxed. Other dynamic callbacks remain open.",
     "This static report is not a database ACL, tenant policy, or authorization decision.",
     "No database, migration, or secret was accessed."
   ]

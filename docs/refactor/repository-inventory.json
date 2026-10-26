@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "145dbcaa2c2469fba949ec1ec11f4227d48e0eb3",
+  "baseline_commit": "1fa6cf1d692a011211dd205967ded2be0b4de62e",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -915,49 +915,49 @@
       "source": "services/gateway/ai_summary_review_routes.py"
     },
     {
-      "line": 405,
+      "line": 408,
       "method": "GET",
       "path": "/health",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 419,
+      "line": 422,
       "method": "GET",
       "path": "/",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 429,
+      "line": 432,
       "method": "GET",
       "path": "/mobile",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 436,
+      "line": 439,
       "method": "GET",
       "path": "/mobile/",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 445,
+      "line": 448,
       "method": "GET",
       "path": "/field-collector-vault.js",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 454,
+      "line": 457,
       "method": "GET",
       "path": "/field-collector-service-worker.js",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 463,
+      "line": 466,
       "method": "GET",
       "path": "/mobile/field-collector-vault.js",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 472,
+      "line": 475,
       "method": "GET",
       "path": "/mobile/field-collector-service-worker.js",
       "source": "services/gateway/app.py"
@@ -1053,10 +1053,112 @@
       "source": "services/gateway/crop_simulation_routes.py"
     },
     {
+      "line": 76,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/studies/{study_id}/consent-notices",
+      "source": "services/gateway/delphi_consent_notice_routes.py"
+    },
+    {
+      "line": 125,
+      "method": "GET",
+      "path": "/operator/api/delphi/{location_id}/consent-notices",
+      "source": "services/gateway/delphi_consent_notice_routes.py"
+    },
+    {
+      "line": 153,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/consent-notices/{notice_id}/decision",
+      "source": "services/gateway/delphi_consent_notice_routes.py"
+    },
+    {
       "line": 17,
       "method": "GET",
       "path": "/operator/api/delphi/{location_id}/studies",
       "source": "services/gateway/delphi_consultation_routes.py"
+    },
+    {
+      "line": 51,
+      "method": "GET",
+      "path": "/operator/api/delphi/{location_id}/minority-reports",
+      "source": "services/gateway/delphi_minority_review_routes.py"
+    },
+    {
+      "line": 84,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/minority-reports/{report_id}/decision",
+      "source": "services/gateway/delphi_minority_review_routes.py"
+    },
+    {
+      "line": 82,
+      "method": "GET",
+      "path": "/operator/api/delphi/{location_id}/studies/{study_id}/invites",
+      "source": "services/gateway/delphi_participant_invite_routes.py"
+    },
+    {
+      "line": 117,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/studies/{study_id}/invites",
+      "source": "services/gateway/delphi_participant_invite_routes.py"
+    },
+    {
+      "line": 161,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/invites/{invite_id}/revoke",
+      "source": "services/gateway/delphi_participant_invite_routes.py"
+    },
+    {
+      "line": 49,
+      "method": "GET",
+      "path": "/participation/delphi",
+      "source": "services/gateway/delphi_participant_routes.py"
+    },
+    {
+      "line": 57,
+      "method": "GET",
+      "path": "/participation/delphi/app.js",
+      "source": "services/gateway/delphi_participant_routes.py"
+    },
+    {
+      "line": 65,
+      "method": "GET",
+      "path": "/participation/delphi/styles.css",
+      "source": "services/gateway/delphi_participant_routes.py"
+    },
+    {
+      "line": 124,
+      "method": "POST",
+      "path": "/participation/delphi/preview",
+      "source": "services/gateway/delphi_participant_routes.py"
+    },
+    {
+      "line": 146,
+      "method": "POST",
+      "path": "/participation/delphi/accept",
+      "source": "services/gateway/delphi_participant_routes.py"
+    },
+    {
+      "line": 217,
+      "method": "POST",
+      "path": "/participation/delphi/withdraw",
+      "source": "services/gateway/delphi_participant_routes.py"
+    },
+    {
+      "line": 269,
+      "method": "GET",
+      "path": "/participation/delphi/workspace",
+      "source": "services/gateway/delphi_participant_routes.py"
+    },
+    {
+      "line": 291,
+      "method": "POST",
+      "path": "/participation/delphi/contributions",
+      "source": "services/gateway/delphi_participant_routes.py"
+    },
+    {
+      "line": 350,
+      "method": "POST",
+      "path": "/participation/delphi/minority-reports",
+      "source": "services/gateway/delphi_participant_routes.py"
     },
     {
       "line": 51,
@@ -1081,6 +1183,42 @@
       "method": "POST",
       "path": "/operator/api/delphi/{location_id}/recommendations/{recommendation_id}/decision",
       "source": "services/gateway/delphi_recommendation_review_routes.py"
+    },
+    {
+      "line": 19,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/studies",
+      "source": "services/gateway/delphi_study_draft_routes.py"
+    },
+    {
+      "line": 19,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/studies/{study_id}/items",
+      "source": "services/gateway/delphi_study_item_routes.py"
+    },
+    {
+      "line": 85,
+      "method": "GET",
+      "path": "/operator/api/delphi/{location_id}/studies/{study_id}/open-readiness",
+      "source": "services/gateway/delphi_study_lifecycle_routes.py"
+    },
+    {
+      "line": 130,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/studies/{study_id}/open",
+      "source": "services/gateway/delphi_study_lifecycle_routes.py"
+    },
+    {
+      "line": 134,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/studies/{study_id}/close",
+      "source": "services/gateway/delphi_study_lifecycle_routes.py"
+    },
+    {
+      "line": 138,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/studies/{study_id}/stopping-evaluation",
+      "source": "services/gateway/delphi_study_lifecycle_routes.py"
     },
     {
       "line": 12,
@@ -1659,157 +1797,157 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 3796,
+      "line": 3955,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3811,
+      "line": 3970,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3820,
+      "line": 3979,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3878,
+      "line": 4037,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3906,
+      "line": 4065,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3946,
+      "line": 4105,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3997,
+      "line": 4156,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4037,
+      "line": 4196,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4090,
+      "line": 4249,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4150,
+      "line": 4309,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4205,
+      "line": 4364,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4249,
+      "line": 4408,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4310,
+      "line": 4469,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4393,
+      "line": 4552,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4486,
+      "line": 4645,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4534,
+      "line": 4693,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4586,
+      "line": 4745,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4644,
+      "line": 4803,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4698,
+      "line": 4857,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4787,
+      "line": 4946,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4807,
+      "line": 4966,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4827,
+      "line": 4986,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4863,
+      "line": 5022,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4891,
+      "line": 5050,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4919,
+      "line": 5078,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4962,
+      "line": 5121,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -1905,133 +2043,133 @@
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 142,
+      "line": 152,
       "method": "GET",
       "path": "/locations",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 158,
+      "line": 168,
       "method": "GET",
       "path": "/locations/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 183,
+      "line": 193,
       "method": "GET",
       "path": "/v1/locations",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 202,
+      "line": 212,
       "method": "GET",
       "path": "/v1/locations/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 230,
+      "line": 240,
       "method": "GET",
       "path": "/metrics/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 264,
+      "line": 274,
       "method": "GET",
       "path": "/crisp/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 288,
+      "line": 298,
       "method": "GET",
       "path": "/analytics/{location_id}/summary",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 312,
+      "line": 322,
       "method": "GET",
       "path": "/v1/metrics/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 322,
+      "line": 332,
       "method": "GET",
       "path": "/v1/crisp/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 333,
+      "line": 343,
       "method": "GET",
       "path": "/v1/analytics/{location_id}/summary",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 344,
+      "line": 354,
       "method": "GET",
       "path": "/data-stream/posts",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 379,
+      "line": 389,
       "method": "GET",
       "path": "/data-stream/posts/{post_id}/files",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 404,
+      "line": 414,
       "method": "GET",
       "path": "/data-stream/posts/{post_id}/attestation",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 431,
+      "line": 441,
       "method": "POST",
       "path": "/data-stream/post",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 456,
+      "line": 466,
       "method": "GET",
       "path": "/iri/resolve",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 480,
+      "line": 490,
       "method": "GET",
       "path": "/federation/nodes",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 492,
+      "line": 502,
       "method": "GET",
       "path": "/drivers",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 504,
+      "line": 514,
       "method": "GET",
       "path": "/health/services",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 515,
+      "line": 525,
       "method": "GET",
       "path": "/v1/governance/baal/config",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 529,
+      "line": 539,
       "method": "GET",
       "path": "/v1/governance/baal/proposals",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 547,
+      "line": 557,
       "method": "GET",
       "path": "/v1/governance/baal/proposals/{proposal_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 561,
+      "line": 571,
       "method": "GET",
       "path": "/v1/governance/baal/members/{wallet}",
       "source": "services/gateway/router.py"
@@ -3462,7 +3600,20 @@
       "schemas/postgres/626_location_pollinator_independent_review.sql",
       "schemas/postgres/627_location_pollinator_hive_inspection_review.sql",
       "schemas/postgres/628_authenticated_agent_task_requests.sql",
-      "schemas/postgres/629_location_operating_pilot_learning_plan_activation.sql"
+      "schemas/postgres/629_location_operating_pilot_learning_plan_activation.sql",
+      "schemas/postgres/630_location_scoped_delphi_study_drafts.sql",
+      "schemas/postgres/631_location_scoped_delphi_study_lifecycle.sql",
+      "schemas/postgres/632_location_scoped_delphi_study_items.sql",
+      "schemas/postgres/633_location_delphi_study_open_readiness.sql",
+      "schemas/postgres/634_location_delphi_consent_notice_review.sql",
+      "schemas/postgres/635_location_scoped_delphi_participant_invites.sql",
+      "schemas/postgres/636_location_scoped_delphi_participant_acceptance.sql",
+      "schemas/postgres/637_location_scoped_delphi_participant_workspace.sql",
+      "schemas/postgres/638_location_scoped_delphi_invite_inventory.sql",
+      "schemas/postgres/639_location_scoped_delphi_stopping_evaluation.sql",
+      "schemas/postgres/640_location_scoped_delphi_minority_report_review.sql",
+      "schemas/postgres/641_location_delphi_consent_activity_scopes.sql",
+      "schemas/postgres/642_location_scoped_delphi_minority_report_submission.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -4140,6 +4291,7 @@
         "tests/test_common_env.py",
         "tests/test_common_http.py",
         "tests/test_common_logging.py",
+        "tests/test_delphi.py",
         "tests/test_farm_activity_records.py",
         "tests/test_farm_activity_routes.py",
         "tests/test_gateway_ai_summary_draft.py",
@@ -4158,8 +4310,12 @@
         "tests/test_gateway_credit_custody.py",
         "tests/test_gateway_data_stream.py",
         "tests/test_gateway_delphi_consultation.py",
+        "tests/test_gateway_delphi_minority_review.py",
         "tests/test_gateway_delphi_recommendation_drafts.py",
         "tests/test_gateway_delphi_recommendation_review.py",
+        "tests/test_gateway_delphi_study_drafts.py",
+        "tests/test_gateway_delphi_study_items.py",
+        "tests/test_gateway_delphi_study_lifecycle.py",
         "tests/test_gateway_ecocredits.py",
         "tests/test_gateway_emergency_response.py",
         "tests/test_gateway_extension_learning_reads.py",
@@ -4760,12 +4916,28 @@
         "services/gateway/crop_simulation_routes.py",
         "services/gateway/crop_simulations.py",
         "services/gateway/data_stream.py",
+        "services/gateway/delphi_consent_notice_routes.py",
+        "services/gateway/delphi_consent_notices.py",
         "services/gateway/delphi_consultation.py",
         "services/gateway/delphi_consultation_routes.py",
+        "services/gateway/delphi_minority_review.py",
+        "services/gateway/delphi_minority_review_routes.py",
+        "services/gateway/delphi_participant_acceptance.py",
+        "services/gateway/delphi_participant_invite_routes.py",
+        "services/gateway/delphi_participant_invites.py",
+        "services/gateway/delphi_participant_minority_reports.py",
+        "services/gateway/delphi_participant_routes.py",
+        "services/gateway/delphi_participant_workspace.py",
         "services/gateway/delphi_recommendation_draft_routes.py",
         "services/gateway/delphi_recommendation_drafts.py",
         "services/gateway/delphi_recommendation_review.py",
         "services/gateway/delphi_recommendation_review_routes.py",
+        "services/gateway/delphi_study_draft_routes.py",
+        "services/gateway/delphi_study_drafts.py",
+        "services/gateway/delphi_study_item_routes.py",
+        "services/gateway/delphi_study_items.py",
+        "services/gateway/delphi_study_lifecycle.py",
+        "services/gateway/delphi_study_lifecycle_routes.py",
         "services/gateway/ecocredit_routes.py",
         "services/gateway/ecocredits.py",
         "services/gateway/emergency_response.py",
@@ -4879,9 +5051,18 @@
         "tests/test_gateway_credit_custody.py",
         "tests/test_gateway_crop_simulations.py",
         "tests/test_gateway_data_stream.py",
+        "tests/test_gateway_delphi_consent_notices.py",
         "tests/test_gateway_delphi_consultation.py",
+        "tests/test_gateway_delphi_minority_review.py",
+        "tests/test_gateway_delphi_participant_acceptance.py",
+        "tests/test_gateway_delphi_participant_invites.py",
+        "tests/test_gateway_delphi_participant_minority_reports.py",
+        "tests/test_gateway_delphi_participant_workspace.py",
         "tests/test_gateway_delphi_recommendation_drafts.py",
         "tests/test_gateway_delphi_recommendation_review.py",
+        "tests/test_gateway_delphi_study_drafts.py",
+        "tests/test_gateway_delphi_study_items.py",
+        "tests/test_gateway_delphi_study_lifecycle.py",
         "tests/test_gateway_ecocredits.py",
         "tests/test_gateway_emergency_response.py",
         "tests/test_gateway_energy_monitoring.py",
@@ -5731,6 +5912,7 @@
       "modules": [
         "services/registry/__init__.py",
         "services/registry/__main__.py",
+        "services/registry/cids_contract.py",
         "services/registry/cids_export.py",
         "services/registry/common_schema.py"
       ],
@@ -6276,6 +6458,7 @@
     "tests/test_dataset_refresh_readonly.py",
     "tests/test_decision_policy.py",
     "tests/test_delphi.py",
+    "tests/test_delphi_participant_image_bundle.py",
     "tests/test_demand_analysis.py",
     "tests/test_device_manager.py",
     "tests/test_device_manager_cli_contract.py",
@@ -6376,9 +6559,18 @@
     "tests/test_gateway_credit_custody.py",
     "tests/test_gateway_crop_simulations.py",
     "tests/test_gateway_data_stream.py",
+    "tests/test_gateway_delphi_consent_notices.py",
     "tests/test_gateway_delphi_consultation.py",
+    "tests/test_gateway_delphi_minority_review.py",
+    "tests/test_gateway_delphi_participant_acceptance.py",
+    "tests/test_gateway_delphi_participant_invites.py",
+    "tests/test_gateway_delphi_participant_minority_reports.py",
+    "tests/test_gateway_delphi_participant_workspace.py",
     "tests/test_gateway_delphi_recommendation_drafts.py",
     "tests/test_gateway_delphi_recommendation_review.py",
+    "tests/test_gateway_delphi_study_drafts.py",
+    "tests/test_gateway_delphi_study_items.py",
+    "tests/test_gateway_delphi_study_lifecycle.py",
     "tests/test_gateway_ecocredits.py",
     "tests/test_gateway_emergency_response.py",
     "tests/test_gateway_energy_monitoring.py",
@@ -6605,8 +6797,13 @@
     "tests/test_operator_console_cooperative_management.py",
     "tests/test_operator_console_coordination.py",
     "tests/test_operator_console_crop_simulations.py",
+    "tests/test_operator_console_delphi_consent_notices.py",
+    "tests/test_operator_console_delphi_participant_invites.py",
     "tests/test_operator_console_delphi_recommendation_drafts.py",
     "tests/test_operator_console_delphi_recommendation_review.py",
+    "tests/test_operator_console_delphi_study_drafts.py",
+    "tests/test_operator_console_delphi_study_items.py",
+    "tests/test_operator_console_delphi_study_lifecycle.py",
     "tests/test_operator_console_energy_monitoring.py",
     "tests/test_operator_console_extension_learning.py",
     "tests/test_operator_console_farm_activity.py",

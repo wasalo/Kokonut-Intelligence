@@ -7478,7 +7478,7 @@
           "qualname": "DriverRegistry._get_conn",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 40
+          "line": 133
         },
         {
           "key": "services.drivers.registry:DriverRegistry.get_schedulable_instance",
@@ -7486,7 +7486,7 @@
           "qualname": "DriverRegistry.get_schedulable_instance",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 236
+          "line": 333
         },
         {
           "key": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
@@ -7494,7 +7494,7 @@
           "qualname": "DriverRegistry.load_schedulable_sensor_driver",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 289
+          "line": 386
         },
         {
           "key": "services.drivers.registry:DriverRegistry.update_instance_status",
@@ -7502,7 +7502,7 @@
           "qualname": "DriverRegistry.update_instance_status",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 357
+          "line": 454
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -7748,25 +7748,25 @@
           "caller": "services.drivers.registry:DriverRegistry._get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/drivers/registry.py",
-          "line": 43
+          "line": 136
         },
         {
           "caller": "services.drivers.registry:DriverRegistry.get_schedulable_instance",
           "callee": "services.drivers.registry:DriverRegistry._get_conn",
           "source": "services/drivers/registry.py",
-          "line": 242
+          "line": 339
         },
         {
           "caller": "services.drivers.registry:DriverRegistry.update_instance_status",
           "callee": "services.common.errors:safe_exception_class",
           "source": "services/drivers/registry.py",
-          "line": 412
+          "line": 509
         },
         {
           "caller": "services.drivers.registry:DriverRegistry.update_instance_status",
           "callee": "services.drivers.registry:DriverRegistry._get_conn",
           "source": "services/drivers/registry.py",
-          "line": 367
+          "line": 464
         },
         {
           "caller": "services.ingestion.base:get_clickhouse",
@@ -8442,7 +8442,7 @@
           "qualname": "DriverRegistry.load_schedulable_sensor_driver",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 289
+          "line": 386
         },
         {
           "key": "services.ingestion.base:hash_payload",

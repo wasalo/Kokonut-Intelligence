@@ -650,7 +650,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 301,
+          "line": 398,
           "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
           "category": "dynamic_import",
           "call": "importlib.import_module"
@@ -682,7 +682,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 301,
+          "line": 398,
           "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
           "category": "dynamic_import",
           "call": "importlib.import_module"
