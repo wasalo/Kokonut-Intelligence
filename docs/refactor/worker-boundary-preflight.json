@@ -29,8 +29,8 @@
   },
   "sql_reachability": {
     "execution_site_count": 359,
-    "sites_with_static_operation_path": 277,
-    "sites_without_static_function_match": 82,
+    "sites_with_static_operation_path": 284,
+    "sites_without_static_function_match": 75,
     "site_refs_for_review": [
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -348,16 +348,6 @@
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/ingestion/baal_worker.py:37:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/ingestion/baal_worker.py:49:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
         "site": "services/ingestion/clickhouse_outbox.py:161:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 13
@@ -391,31 +381,6 @@
         "site": "services/ingestion/data_freshness.py:114:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
-      },
-      {
-        "site": "services/ingestion/freshness_worker.py:31:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/ingestion/freshness_worker.py:36:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/ingestion/gnosis_worker.py:148:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/ingestion/gnosis_worker.py:45:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/ingestion/gnosis_worker.py:57:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
       },
       {
         "site": "services/ingestion/mqtt_actuator.py:148:4",

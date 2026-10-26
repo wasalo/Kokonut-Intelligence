@@ -305,6 +305,7 @@ def _infer_instance_types(
     definitions: dict[str, dict],
     classes: dict[str, dict],
     contexts: dict[str, _ImportContextVisitor],
+    injected_instance_types: dict[str, set[str]] | None = None,
 ) -> dict[str, set[str]]:
     function_node = function["node"]
     local_types: dict[str, set[str]] = {}
@@ -314,6 +315,8 @@ def _infer_instance_types(
         targets = _annotation_class_targets(argument.annotation, function, classes, contexts)
         if targets:
             local_types[argument.arg] = targets
+    for name, targets in (injected_instance_types or {}).items():
+        local_types.setdefault(name, set()).update(targets)
 
     assignments: dict[str, list[ast.AST]] = defaultdict(list)
     pending = list(function_node.body)
@@ -429,14 +432,18 @@ class _CallVisitor(ast.NodeVisitor):
         definitions: dict[str, dict],
         classes: dict[str, dict],
         contexts: dict[str, _ImportContextVisitor],
+        injected_instance_types: dict[str, set[str]] | None = None,
     ):
         self.function = function
         self.definitions = definitions
         self.classes = classes
         self.contexts = contexts
-        self.instance_types = _infer_instance_types(function, definitions, classes, contexts)
+        self.instance_types = _infer_instance_types(
+            function, definitions, classes, contexts, injected_instance_types
+        )
         self.edges: list[dict] = []
         self.callback_edges: list[dict] = []
+        self.parameter_bindings: list[dict] = []
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         if node is self.function["node"]:
@@ -463,6 +470,39 @@ class _CallVisitor(ast.NodeVisitor):
                     "line": node.lineno,
                 }
             )
+            if target not in self.definitions:
+                continue
+            target_node = self.definitions[target]["node"]
+            target_parameters = {
+                argument.arg
+                for argument in [
+                    *target_node.args.posonlyargs,
+                    *target_node.args.args,
+                    *target_node.args.kwonlyargs,
+                ]
+            }
+            for keyword in node.keywords:
+                if keyword.arg not in target_parameters:
+                    continue
+                class_targets = _expression_class_targets(
+                    keyword.value,
+                    self.function,
+                    self.definitions,
+                    self.classes,
+                    self.contexts,
+                    self.instance_types,
+                )
+                for class_target in sorted(class_targets):
+                    self.parameter_bindings.append(
+                        {
+                            "caller": self.function["key"],
+                            "callee": target,
+                            "parameter": keyword.arg,
+                            "instance_class": class_target,
+                            "source": self.function["source"],
+                            "line": node.lineno,
+                        }
+                    )
         process_target = next(
             (
                 keyword.value
@@ -879,22 +919,46 @@ def _operation_graph(operation: dict) -> dict:
         registered_by_caller[edge["caller"]].append(edge)
     queue = deque(root["function"] for root in roots)
     visited: set[str] = set()
+    processed_injection_types: dict[str, tuple] = {}
+    injected_types: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
     edges = set()
     callback_edges = set()
+    injected_bindings = set()
     reached_registered_edges = set()
     while queue:
         key = queue.popleft()
-        if key in visited or key not in definitions:
+        if key not in definitions:
             continue
+        injection_signature = tuple(
+            (name, tuple(sorted(targets)))
+            for name, targets in sorted(injected_types.get(key, {}).items())
+        )
+        if processed_injection_types.get(key) == injection_signature:
+            continue
+        processed_injection_types[key] = injection_signature
         visited.add(key)
         function = definitions[key]
-        visitor = _CallVisitor(function, definitions, classes, contexts)
+        visitor = _CallVisitor(function, definitions, classes, contexts, injected_types.get(key))
         visitor.visit(function["node"])
         for edge in visitor.edges:
             edge_key = (edge["caller"], edge["callee"], edge["source"], edge["line"])
             edges.add(edge_key)
             if edge["callee"] not in visited:
                 queue.append(edge["callee"])
+        for binding in visitor.parameter_bindings:
+            binding_key = (
+                binding["caller"],
+                binding["callee"],
+                binding["parameter"],
+                binding["instance_class"],
+                binding["source"],
+                binding["line"],
+            )
+            injected_bindings.add(binding_key)
+            target_types = injected_types[binding["callee"]][binding["parameter"]]
+            if binding["instance_class"] not in target_types:
+                target_types.add(binding["instance_class"])
+                queue.append(binding["callee"])
         for edge in visitor.callback_edges:
             edge_key = (edge["caller"], edge["callee"], edge["source"], edge["line"], edge["dispatch"])
             callback_edges.add(edge_key)
@@ -940,6 +1004,17 @@ def _operation_graph(operation: dict) -> dict:
         }
         for caller, callee, source, line, dispatch in sorted(callback_edges)
     ]
+    ordered_injected_bindings = [
+        {
+            "caller": caller,
+            "callee": callee,
+            "parameter": parameter,
+            "instance_class": instance_class,
+            "source": source,
+            "line": line,
+        }
+        for caller, callee, parameter, instance_class, source, line in sorted(injected_bindings)
+    ]
     ordered_functions = [
         {key: value for key, value in definitions[function].items() if key != "node"} for function in sorted(visited)
     ]
@@ -951,6 +1026,7 @@ def _operation_graph(operation: dict) -> dict:
         "reachable_functions": ordered_functions,
         "direct_call_edges": ordered_edges,
         "callback_edges": ordered_callback_edges,
+        "injected_instance_bindings": ordered_injected_bindings,
         "dynamic_dispatch_edges": ordered_registered_edges,
     }
 
@@ -963,7 +1039,7 @@ def build_inventory() -> dict:
         "version": 1,
         "generated_by": "scripts/worker_function_reachability.py",
         "scope": (
-            "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation "
+            "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation "
             "entry functions within their local services.* import closures. Instance method calls are included only when local type "
             "inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on "
             "unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy "

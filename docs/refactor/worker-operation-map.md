@@ -350,8 +350,11 @@ query template and binds values separately. Reviewed application fragments use
 fixed source-controlled SQL and bound values.
 No user-derived identifier interpolation was found in the reviewed call sites.
 Keep this review current as the inventory changes. The static call graph
-follows local instance types and the explicit metric registry, but 82 SQL sites
-still have no direct static function match.
+follows local instance types, explicit metric-registry dispatch, and exact
+keyword-bound class instances passed into statically resolved functions. This
+now traces the injected Baal, Gnosis, and freshness persistence adapters
+through their legacy processing functions; 75 SQL sites still have no direct
+static function match.
 It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map
 also does not prove that external Prefect/host schedules are inactive or that

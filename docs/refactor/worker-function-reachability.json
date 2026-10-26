@@ -1,13 +1,13 @@
 {
   "version": 1,
   "generated_by": "scripts/worker_function_reachability.py",
-  "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
+  "scope": "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 41,
     "source_files": 111,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 886,
-    "direct_call_edges": 1204,
+    "function_memberships": 918,
+    "direct_call_edges": 1258,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 24
   },
@@ -146,6 +146,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -342,6 +343,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -1964,6 +1966,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -2175,6 +2178,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -3294,6 +3298,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -3566,6 +3571,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -3704,6 +3710,70 @@
           "line": 217
         },
         {
+          "key": "services.ingestion.baal_worker:BaalWorkerPersistence._scalar",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "BaalWorkerPersistence._scalar",
+          "class_scope": "BaalWorkerPersistence",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 35
+        },
+        {
+          "key": "services.ingestion.baal_worker:BaalWorkerPersistence.acquire_lock",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "BaalWorkerPersistence.acquire_lock",
+          "class_scope": "BaalWorkerPersistence",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 41
+        },
+        {
+          "key": "services.ingestion.baal_worker:BaalWorkerPersistence.read_cursor",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "BaalWorkerPersistence.read_cursor",
+          "class_scope": "BaalWorkerPersistence",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 47
+        },
+        {
+          "key": "services.ingestion.baal_worker:BaalWorkerPersistence.release_lock",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "BaalWorkerPersistence.release_lock",
+          "class_scope": "BaalWorkerPersistence",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 44
+        },
+        {
+          "key": "services.ingestion.baal_worker:BaalWorkerPersistence.resolve_protocol",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "BaalWorkerPersistence.resolve_protocol",
+          "class_scope": "BaalWorkerPersistence",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 52
+        },
+        {
+          "key": "services.ingestion.baal_worker:BaalWorkerPersistence.resolve_wallet",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "BaalWorkerPersistence.resolve_wallet",
+          "class_scope": "BaalWorkerPersistence",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 58
+        },
+        {
+          "key": "services.ingestion.baal_worker:BaalWorkerPersistence.store_governance_event",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "BaalWorkerPersistence.store_governance_event",
+          "class_scope": "BaalWorkerPersistence",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 66
+        },
+        {
+          "key": "services.ingestion.baal_worker:BaalWorkerPersistence.update_status",
+          "module": "services.ingestion.baal_worker",
+          "qualname": "BaalWorkerPersistence.update_status",
+          "class_scope": "BaalWorkerPersistence",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 74
+        },
+        {
           "key": "services.ingestion.baal_worker:_rpc_endpoint",
           "module": "services.ingestion.baal_worker",
           "qualname": "_rpc_endpoint",
@@ -3794,10 +3864,34 @@
           "line": 183
         },
         {
+          "caller": "services.ingestion.baal_indexer:_get_protocol_id",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence.resolve_protocol",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 62
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:_update_status",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence.update_status",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 205
+        },
+        {
           "caller": "services.ingestion.baal_indexer:_update_status",
           "callee": "services.ingestion.base:update_indexer_status",
           "source": "services/ingestion/baal_indexer.py",
           "line": 207
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:_wallet_id",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence.resolve_wallet",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 73
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:insert_governance_event",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence.store_governance_event",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 85
         },
         {
           "caller": "services.ingestion.baal_indexer:run",
@@ -3849,6 +3943,24 @@
         },
         {
           "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence.acquire_lock",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 252
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence.read_cursor",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 255
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence.release_lock",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 321
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
           "callee": "services.ingestion.base:batch_ranges",
           "source": "services/ingestion/baal_indexer.py",
           "line": 263
@@ -3858,6 +3970,42 @@
           "callee": "services.ingestion.base:get_last_synced_block",
           "source": "services/ingestion/baal_indexer.py",
           "line": 243
+        },
+        {
+          "caller": "services.ingestion.baal_worker:BaalWorkerPersistence.acquire_lock",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence._scalar",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 42
+        },
+        {
+          "caller": "services.ingestion.baal_worker:BaalWorkerPersistence.release_lock",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence._scalar",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 45
+        },
+        {
+          "caller": "services.ingestion.baal_worker:BaalWorkerPersistence.resolve_protocol",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence._scalar",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 53
+        },
+        {
+          "caller": "services.ingestion.baal_worker:BaalWorkerPersistence.resolve_wallet",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence._scalar",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 59
+        },
+        {
+          "caller": "services.ingestion.baal_worker:BaalWorkerPersistence.store_governance_event",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence._scalar",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 68
+        },
+        {
+          "caller": "services.ingestion.baal_worker:BaalWorkerPersistence.update_status",
+          "callee": "services.ingestion.baal_worker:BaalWorkerPersistence._scalar",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 81
         },
         {
           "caller": "services.ingestion.baal_worker:execute",
@@ -3921,6 +4069,64 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_get_protocol_id",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.baal_worker:BaalWorkerPersistence",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 262
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_update_status",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.baal_worker:BaalWorkerPersistence",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 284
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_update_status",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.baal_worker:BaalWorkerPersistence",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 293
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_update_status",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.baal_worker:BaalWorkerPersistence",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 305
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:_wallet_id",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.baal_worker:BaalWorkerPersistence",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 279
+        },
+        {
+          "caller": "services.ingestion.baal_indexer:run",
+          "callee": "services.ingestion.baal_indexer:insert_governance_event",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.baal_worker:BaalWorkerPersistence",
+          "source": "services/ingestion/baal_indexer.py",
+          "line": 282
+        },
+        {
+          "caller": "services.ingestion.baal_worker:execute",
+          "callee": "services.ingestion.baal_indexer:run",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.baal_worker:BaalWorkerPersistence",
+          "source": "services/ingestion/baal_worker.py",
+          "line": 93
+        }
+      ],
       "dynamic_dispatch_edges": []
     },
     {
@@ -3974,6 +4180,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -4244,6 +4451,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -4830,6 +5038,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -5121,6 +5330,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -5408,6 +5618,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -5705,6 +5916,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -5894,6 +6106,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -6065,6 +6278,94 @@
           "line": 348
         },
         {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence._one",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence._one",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 34
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence._rows",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence._rows",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 29
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence.enqueue_alert_event",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence.enqueue_alert_event",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 110
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence.insert_check",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence.insert_check",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 61
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence.latest_data_at",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence.latest_data_at",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 53
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence.list_configs",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence.list_configs",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 42
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence.list_location_ids",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence.list_location_ids",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 47
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence.lock_alert_state",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence.lock_alert_state",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 81
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence.persist_alert_event",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence.persist_alert_event",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 90
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence.update_alert_state",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence.update_alert_state",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 146
+        },
+        {
+          "key": "services.ingestion.freshness_worker:FreshnessPersistence.update_check_alert",
+          "module": "services.ingestion.freshness_worker",
+          "qualname": "FreshnessPersistence.update_check_alert",
+          "class_scope": "FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 152
+        },
+        {
           "key": "services.ingestion.freshness_worker:main",
           "module": "services.ingestion.freshness_worker",
           "qualname": "main",
@@ -6161,6 +6462,114 @@
           "line": 388
         },
         {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence.enqueue_alert_event",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 464
+        },
+        {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence.insert_check",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 418
+        },
+        {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence.latest_data_at",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 390
+        },
+        {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence.list_configs",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 357
+        },
+        {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence.list_location_ids",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 370
+        },
+        {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence.lock_alert_state",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 430
+        },
+        {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence.persist_alert_event",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 453
+        },
+        {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence.update_alert_state",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 478
+        },
+        {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence.update_check_alert",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 489
+        },
+        {
+          "caller": "services.ingestion.freshness_worker:FreshnessPersistence.enqueue_alert_event",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence._one",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 141
+        },
+        {
+          "caller": "services.ingestion.freshness_worker:FreshnessPersistence.insert_check",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence._one",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 73
+        },
+        {
+          "caller": "services.ingestion.freshness_worker:FreshnessPersistence.latest_data_at",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence._one",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 56
+        },
+        {
+          "caller": "services.ingestion.freshness_worker:FreshnessPersistence.list_configs",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence._rows",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 43
+        },
+        {
+          "caller": "services.ingestion.freshness_worker:FreshnessPersistence.list_location_ids",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence._rows",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 50
+        },
+        {
+          "caller": "services.ingestion.freshness_worker:FreshnessPersistence.lock_alert_state",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence._rows",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 82
+        },
+        {
+          "caller": "services.ingestion.freshness_worker:FreshnessPersistence.persist_alert_event",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence._one",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 102
+        },
+        {
+          "caller": "services.ingestion.freshness_worker:FreshnessPersistence.update_alert_state",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence._one",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 147
+        },
+        {
+          "caller": "services.ingestion.freshness_worker:FreshnessPersistence.update_check_alert",
+          "callee": "services.ingestion.freshness_worker:FreshnessPersistence._one",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 155
+        },
+        {
           "caller": "services.ingestion.freshness_worker:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/freshness_worker.py",
@@ -6192,6 +6601,16 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [
+        {
+          "caller": "services.ingestion.freshness_worker:run",
+          "callee": "services.ingestion.data_freshness:check_freshness",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.freshness_worker:FreshnessPersistence",
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 166
+        }
+      ],
       "dynamic_dispatch_edges": []
     },
     {
@@ -6746,6 +7165,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -7035,6 +7455,110 @@
           "line": 619
         },
         {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence._scalar",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 43
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.acquire_lock",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.acquire_lock",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 49
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.claim_event",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.claim_event",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 60
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.enqueue_projection",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.enqueue_projection",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 124
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.read_cursor",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.read_cursor",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 55
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.release_lock",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.release_lock",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 52
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.resolve_protocol",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.resolve_protocol",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 86
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.resolve_wallet",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.resolve_wallet",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 70
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.resolve_wallet_location",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.resolve_wallet_location",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 78
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.store_digital_lego_usage",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.store_digital_lego_usage",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 115
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.store_governance_event",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.store_governance_event",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 92
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.store_treasury_event",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.store_treasury_event",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 101
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.update_status",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "GnosisWorkerPersistence.update_status",
+          "class_scope": "GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 144
+        },
+        {
           "key": "services.ingestion.gnosis_worker:_rpc_endpoint",
           "module": "services.ingestion.gnosis_worker",
           "qualname": "_rpc_endpoint",
@@ -7099,6 +7623,12 @@
           "line": 604
         },
         {
+          "caller": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.update_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 614
+        },
+        {
           "caller": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
           "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
           "source": "services/ingestion/gnosis_indexer.py",
@@ -7111,6 +7641,18 @@
           "line": 106
         },
         {
+          "caller": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.claim_event",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 116
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:get_location_from_wallet",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.resolve_wallet_location",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 423
+        },
+        {
           "caller": "services.ingestion.gnosis_indexer:get_moloch_contract",
           "callee": "services.ingestion.gnosis_indexer:load_abi",
           "source": "services/ingestion/gnosis_indexer.py",
@@ -7121,6 +7663,12 @@
           "callee": "services.ingestion.gnosis_indexer:load_abi",
           "source": "services/ingestion/gnosis_indexer.py",
           "line": 184
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:get_wallet_id",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.resolve_wallet",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 198
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
@@ -7159,6 +7707,12 @@
           "line": 542
         },
         {
+          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.enqueue_projection",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 569
+        },
+        {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/gnosis_indexer.py",
@@ -7195,10 +7749,34 @@
           "line": 485
         },
         {
+          "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.enqueue_projection",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 507
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_dlego_usage",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.store_digital_lego_usage",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 436
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_governance_event",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.store_governance_event",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 211
+        },
+        {
           "caller": "services.ingestion.gnosis_indexer:insert_treasury_event",
           "callee": "services.ingestion.base:now_utc",
           "source": "services/ingestion/gnosis_indexer.py",
           "line": 260
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_treasury_event",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.store_treasury_event",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 245
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
@@ -7345,6 +7923,90 @@
           "line": 772
         },
         {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.acquire_lock",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 650
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.read_cursor",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 653
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.release_lock",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 902
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.resolve_protocol",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 822
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.acquire_lock",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 50
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.claim_event",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 63
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.enqueue_projection",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 126
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.release_lock",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 53
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.resolve_protocol",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 87
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.resolve_wallet",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 73
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.resolve_wallet_location",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 79
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.store_digital_lego_usage",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 117
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.store_governance_event",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 94
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:GnosisWorkerPersistence.store_treasury_event",
+          "callee": "services.ingestion.gnosis_worker:GnosisWorkerPersistence._scalar",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 108
+        },
+        {
           "caller": "services.ingestion.gnosis_worker:execute",
           "callee": "services.common.worker_database:get_worker_db",
           "source": "services/ingestion/gnosis_worker.py",
@@ -7388,6 +8050,144 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 701
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 852
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 866
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 890
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 747
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 778
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 832
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_wallet_id",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 806
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 773
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 827
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 795
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 849
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_usage",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 794
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_usage",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 848
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_governance_event",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 826
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_treasury_event",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 772
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:execute",
+          "callee": "services.ingestion.gnosis_indexer:run",
+          "parameter": "persistence",
+          "instance_class": "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 159
+        }
+      ],
       "dynamic_dispatch_edges": []
     },
     {
@@ -7678,6 +8478,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -7879,6 +8680,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -8525,6 +9327,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -8998,6 +9801,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -9363,6 +10167,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -9659,6 +10464,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -10167,6 +10973,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -11054,6 +11861,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -11518,6 +12326,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": [
         {
           "caller": "services.ingestion.sensor_worker:_prepare_records",
@@ -11837,6 +12646,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -12147,6 +12957,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -12466,6 +13277,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -12799,6 +13611,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -13298,6 +14111,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": [
         {
           "caller": "services.metrics.engine:compute_metric",
@@ -13675,6 +14489,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -13931,6 +14746,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -14180,6 +14996,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -14451,6 +15268,16 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [
+        {
+          "caller": "services.cache.events:handle_crisp_scored",
+          "callee": "services.cache.events:_invalidate_event_cache",
+          "parameter": "cache_backend",
+          "instance_class": "services.cache.ports:ComputationCacheBackend",
+          "source": "services/cache/events.py",
+          "line": 133
+        }
+      ],
       "dynamic_dispatch_edges": []
     },
     {
@@ -14722,6 +15549,16 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [
+        {
+          "caller": "services.cache.events:handle_harvest_recorded",
+          "callee": "services.cache.events:_invalidate_event_cache",
+          "parameter": "cache_backend",
+          "instance_class": "services.cache.ports:ComputationCacheBackend",
+          "source": "services/cache/events.py",
+          "line": 169
+        }
+      ],
       "dynamic_dispatch_edges": []
     },
     {
@@ -14993,6 +15830,16 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [
+        {
+          "caller": "services.cache.events:handle_metric_computed",
+          "callee": "services.cache.events:_invalidate_event_cache",
+          "parameter": "cache_backend",
+          "instance_class": "services.cache.ports:ComputationCacheBackend",
+          "source": "services/cache/events.py",
+          "line": 115
+        }
+      ],
       "dynamic_dispatch_edges": []
     },
     {
@@ -15264,6 +16111,16 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [
+        {
+          "caller": "services.cache.events:handle_sensor_reading",
+          "callee": "services.cache.events:_invalidate_event_cache",
+          "parameter": "cache_backend",
+          "instance_class": "services.cache.ports:ComputationCacheBackend",
+          "source": "services/cache/events.py",
+          "line": 151
+        }
+      ],
       "dynamic_dispatch_edges": []
     },
     {
@@ -15441,6 +16298,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -15632,6 +16490,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -16009,6 +16868,7 @@
         }
       ],
       "callback_edges": [],
+      "injected_instance_bindings": [],
       "dynamic_dispatch_edges": []
     }
   ]

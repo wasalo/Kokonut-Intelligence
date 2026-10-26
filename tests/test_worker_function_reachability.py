@@ -148,6 +148,51 @@ def test_graph_traces_code_allowlisted_scheduled_sensor_driver_methods():
     assert all(edge["caller"] == "services.ingestion.sensor_worker:_prepare_records" for edge in dispatches)
 
 
+def test_graph_traces_explicit_worker_persistence_constructor_injection():
+    inventory = json.loads(_serialize(build_inventory()))
+    by_name = {operation["name"]: operation for operation in inventory["operations"]}
+    cases = {
+        "services.ingestion.baal_worker": (
+            "services.ingestion.baal_indexer:run",
+            "services.ingestion.baal_worker:BaalWorkerPersistence",
+            {
+                "_scalar", "acquire_lock", "release_lock", "read_cursor", "resolve_protocol",
+                "resolve_wallet", "store_governance_event", "update_status",
+            },
+        ),
+        "services.ingestion.gnosis_worker": (
+            "services.ingestion.gnosis_indexer:run",
+            "services.ingestion.gnosis_worker:GnosisWorkerPersistence",
+            {
+                "_scalar", "acquire_lock", "release_lock", "read_cursor", "claim_event",
+                "resolve_wallet", "resolve_wallet_location", "resolve_protocol",
+                "store_governance_event", "store_treasury_event", "store_digital_lego_usage",
+                "enqueue_projection", "update_status",
+            },
+        ),
+        "services.ingestion.freshness_worker": (
+            "services.ingestion.data_freshness:check_freshness",
+            "services.ingestion.freshness_worker:FreshnessPersistence",
+            {
+                "_rows", "_one", "list_configs", "list_location_ids", "latest_data_at",
+                "insert_check", "lock_alert_state", "persist_alert_event", "enqueue_alert_event",
+                "update_alert_state", "update_check_alert",
+            },
+        ),
+    }
+
+    for operation_name, (processor, adapter_class, expected_methods) in cases.items():
+        operation = by_name[operation_name]
+        function_keys = {function["key"] for function in operation["reachable_functions"]}
+        assert {f"{adapter_class}.{method}" for method in expected_methods} <= function_keys
+        assert any(
+            binding["callee"] == processor
+            and binding["parameter"] == "persistence"
+            and binding["instance_class"] == adapter_class
+            for binding in operation["injected_instance_bindings"]
+        )
+
+
 def test_graph_follows_shared_cli_run_callback_to_the_actual_command_body():
     inventory = build_inventory()
     operation = next(

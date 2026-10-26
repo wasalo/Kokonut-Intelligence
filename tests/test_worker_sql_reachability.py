@@ -74,6 +74,22 @@ def test_unmatched_sites_are_not_labeled_unreachable():
     assert report["summary"]["unmatched_functions_absent_from_all_worker_graphs"] == len(unmatched)
 
 
+def test_isolated_worker_persistence_sql_is_reached_through_explicit_injection():
+    report = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+    adapter_sources = {
+        "services/ingestion/baal_worker.py",
+        "services/ingestion/gnosis_worker.py",
+        "services/ingestion/freshness_worker.py",
+    }
+    unmatched_adapters = [
+        site
+        for site in report["execution_sites"]
+        if site["source"] in adapter_sources and not site["statically_reachable_operations"]
+    ]
+
+    assert unmatched_adapters == []
+
+
 def test_metric_calculator_sql_sites_follow_the_explicit_registry_edges():
     report = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
     calculator_sites = [

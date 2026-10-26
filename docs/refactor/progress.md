@@ -19219,3 +19219,25 @@ database, provider, candidate, or legacy service was used. Capability status is
 unchanged at 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows;
 the refactor checklist is 1,214 complete / 25 open (1,239 total). Evidence:
 `docs/refactor/builds/2026-10-26-recovery/worker-adapter-sql-variants.json`.
+
+
+### Progress addendum — injected worker persistence reachability, 26 October 2026
+
+The static worker function graph now carries concrete instance types through
+explicit keyword constructor injection into statically resolved functions.
+That makes the adapter methods visible when Baal, Gnosis, and data-freshness
+workers pass their persistence adapters into existing processing functions.
+Seven SQL execution sites in those adapters now have a static operation path;
+the total without one decreased from 82 to 75. The generated graph contains 41
+operation roots, 918 function memberships, 1,258 direct-call edges, and 24
+registered literal dispatch edges.
+
+The focused reachability and boundary-preflight selection passes 20 tests.
+Ruff, Python compilation, generated source/function/SQL/preflight inventories,
+worker SQL and effect inventories, capability-matrix validation, and
+`git diff --check` pass. The capability matrix remains 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows. Checklist: 1,215 complete / 25 open
+(1,240 total). No database, provider, candidate, or legacy service was used.
+This static graph is a review aid and does not prove authorization, tenant
+context, runtime grants, RLS, or effects. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/worker-persistence-injection-reachability.json`.

@@ -4536,3 +4536,21 @@ The AST scope inventory now follows a location-filtered parent row into child re
   used. Capability classifications remain 24 baseline-retained, 7 deployed,
   and 36 prepared across 67 rows. Checklist: 1,214 complete / 25 open
   (1,239 total).
+
+
+- [x] Trace explicitly injected worker persistence adapters through their
+  processing functions. The static function graph now propagates a concrete
+  class type only when a statically resolved call passes a known class
+  constructor to a matching keyword parameter. This connects seven previously
+  unmatched SQL sites in Baal, Gnosis, and freshness adapters and includes the
+  corresponding adapter methods in each worker operation graph. The focused
+  function/SQL/preflight selection passes 20 tests; regenerated inventory
+  checks, Ruff, compilation, capability validation, and diff checks pass. This
+  source graph is not evidence of runtime authorization, grants, tenant
+  isolation, or RLS; 75 SQL sites remain without a static function match. No
+  database, provider, candidate, or legacy service was used ([map](worker-operation-map.md);
+  [graph](worker-function-reachability.json);
+  [SQL inventory](worker-sql-reachability.json);
+  [evidence](builds/2026-10-26-recovery/worker-persistence-injection-reachability.json)).
+  Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+  prepared across 67 rows. Checklist: 1,215 complete / 25 open (1,240 total).
