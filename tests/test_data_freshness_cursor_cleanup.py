@@ -78,14 +78,14 @@ def _raise_and_assert_closed(operation, specs):
             id="location-list-fetch",
         ),
         pytest.param(
-            lambda conn: data_freshness._query_latest_ingestion(conn, "weather"),
+            lambda conn: data_freshness._query_latest_data_at(conn, "weather", False),
             [{"execute_fail_at": 1}],
-            id="latest-ingestion-execute",
+            id="latest-data-execute",
         ),
         pytest.param(
-            lambda conn: data_freshness._query_latest_ingestion(conn, "weather"),
+            lambda conn: data_freshness._query_latest_data_at(conn, "weather", False),
             [{"fetchone_fails": True}],
-            id="latest-ingestion-fetch",
+            id="latest-data-fetch",
         ),
         pytest.param(
             lambda conn: data_freshness._alert_state(conn, "weather", None),

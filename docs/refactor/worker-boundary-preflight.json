@@ -30,9 +30,9 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 473,
+    "execution_site_count": 471,
     "sites_with_static_operation_path": 404,
-    "sites_without_static_function_match": 69,
+    "sites_without_static_function_match": 67,
     "site_refs_for_review": [
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -350,17 +350,7 @@
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/ingestion/data_freshness.py:114:8",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 2
-      },
-      {
         "site": "services/ingestion/mqtt_actuator.py:148:4",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 2
-      },
-      {
-        "site": "services/ingestion/remote_sensing_fetcher.py:117:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },

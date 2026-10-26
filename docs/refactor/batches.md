@@ -19,10 +19,30 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (26 October 2026):** 1,220 checklist items complete and 25
-open (1,245 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (26 October 2026):** 1,221 checklist items complete and 25
+open (1,246 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### Retire superseded private SQL readers — 26 October 2026
+
+- [x] Remove two private database helpers with no production callers:
+  `data_freshness._query_latest_ingestion` and
+  `remote_sensing_fetcher._query_active_jobs`. Freshness continues through its
+  current source-table reader, and remote-sensing job execution continues
+  through the location-scoped lease claim. Updated cursor-failure and scheduler
+  scope regressions to exercise those retained paths. The 13-module focused
+  selection passes 157 tests; worker and runtime SQL inventories, Ruff,
+  compilation, capability validation, and diff checks pass. The SQL inventory
+  now contains 471 sites, with 404 linked to worker operations and 67 without
+  a static match. No migration, database, provider, candidate, or legacy
+  service was used. Rollback is a source/test/inventory revert. This retires
+  only helpers with no production callsites; it does not claim other unmatched
+  sites are dead code ([freshness](../../services/ingestion/data_freshness.py);
+  [remote sensing](../../services/ingestion/remote_sensing_fetcher.py);
+  [evidence](builds/2026-10-26-recovery/retired-private-sql-readers.json)).
+  Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+  prepared across 67 rows. Checklist: 1,221 complete / 25 open (1,246 total).
 
 ### Scheduled ClickHouse outbox callback reachability — 26 October 2026
 

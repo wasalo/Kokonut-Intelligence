@@ -109,24 +109,6 @@ def _fallback_provider(provider: str, job: Dict[str, Any]) -> Optional[str]:
     return fallback if fallback in PROVIDERS and fallback != provider else None
 
 
-def _query_active_jobs(conn, location_id: str) -> List[Dict[str, Any]]:
-    """Query active remote sensing jobs due for one location."""
-    location_id = _canonical_location_id(location_id)
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
-        cur.execute("""
-            SELECT * FROM remote_sensing_job
-            WHERE status = 'active'
-            AND location_id = %s
-            AND (next_run_at IS NULL OR next_run_at <= NOW())
-            AND (lease_expires_at IS NULL OR lease_expires_at <= NOW())
-            ORDER BY next_run_at NULLS FIRST
-        """, (location_id,))
-        return [dict(r) for r in cur.fetchall()]
-    finally:
-        cur.close()
-
-
 def _claim_due_jobs(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """Claim one due job for a required location, keeping leases bounded."""
     location_id = _canonical_location_id(location_id)

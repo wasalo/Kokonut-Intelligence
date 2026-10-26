@@ -107,20 +107,6 @@ def _query_latest_data_at(
         cur.close()
 
 
-def _query_latest_ingestion(conn, source_system: str) -> Optional[datetime]:
-    """Get the most recent ingestion log entry for a source."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
-        cur.execute(
-            "SELECT MAX(created_at) AS last_at FROM ingestion_log WHERE source_system = %s AND status = 'success'",
-            (source_system,),
-        )
-        row = cur.fetchone()
-        return row["last_at"] if row and row["last_at"] else None
-    finally:
-        cur.close()
-
-
 def _determine_status(
     gap_minutes: Optional[int],
     stale_threshold: int,

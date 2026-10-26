@@ -147,18 +147,18 @@ application-wide RLS or proof for other workers.
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 473
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 471
   Python `.execute` sites in 136 statically imported files. It fingerprints
-  386 literal statements and flags 87 composed/variable statements. Candidate
+  384 literal statements and flags 87 composed/variable statements. Candidate
   relation tokens are extracted for review, but the scanner is regex-based and
   records no query text or values. Use
   `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 473 sites to the operation graph without including SQL text or
+  joins those 471 sites to the operation graph without including SQL text or
   values. It links 404 unique sites across 585 operation/site memberships;
-  69 sites have no current static function match, and each belongs to a
+  67 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -410,8 +410,13 @@ compatibility route now follows its nested `command` callback and the
 `deliver_claimed_batch` completion callback into `_finish`; its six direct SQL
 sites are visible in that operation path. This is source tracing only: the
 compatibility route still uses its legacy shared application identity, while
-the separate isolated worker uses the dedicated bounded-function identity. 69
-SQL sites still have no direct static function match.
+the separate isolated worker uses the dedicated bounded-function identity. At
+that callback-tracing snapshot, 69 SQL sites had no direct static function
+match. The unused private `_query_latest_ingestion` and `_query_active_jobs`
+helpers have since been removed after repository-wide caller searches;
+freshness continues through `_query_latest_data_at`, and remote-sensing
+execution uses the location-scoped lease claim. The refreshed inventory has
+67 unmatched sites.
 It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map
 also does not prove that external Prefect/host schedules are inactive or that

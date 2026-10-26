@@ -37,19 +37,25 @@ class _Connection:
     def cursor(self, **_kwargs):
         return self.cursor_instance
 
+    def commit(self):
+        pass
+
+    def rollback(self):
+        pass
+
 
 @pytest.mark.parametrize(
     ("operation", "fail_at"),
     [
         pytest.param(
-            lambda conn: remote_sensing_fetcher._query_active_jobs(conn, LOCATION_ID),
+            lambda conn: remote_sensing_fetcher._claim_due_jobs(conn, LOCATION_ID),
             "execute",
-            id="active-jobs-execute",
+            id="claim-due-jobs-execute",
         ),
         pytest.param(
-            lambda conn: remote_sensing_fetcher._query_active_jobs(conn, LOCATION_ID),
+            lambda conn: remote_sensing_fetcher._claim_due_jobs(conn, LOCATION_ID),
             "fetchall",
-            id="active-jobs-fetch",
+            id="claim-due-jobs-fetch",
         ),
         pytest.param(
             lambda conn: remote_sensing_fetcher._query_job(

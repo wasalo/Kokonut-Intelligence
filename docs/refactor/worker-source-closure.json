@@ -2704,13 +2704,13 @@
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 314,
+          "line": 300,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 590,
+          "line": 576,
           "target": "services.ingestion.base",
           "kind": "from"
         }
@@ -3269,13 +3269,13 @@
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 314,
+          "line": 300,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 590,
+          "line": 576,
           "target": "services.ingestion.base",
           "kind": "from"
         },
@@ -4320,13 +4320,13 @@
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 354,
+          "line": 336,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 358,
+          "line": 340,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         }
@@ -4583,13 +4583,13 @@
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 354,
+          "line": 336,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 358,
+          "line": 340,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         },

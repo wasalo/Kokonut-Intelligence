@@ -4,11 +4,11 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 49,
-    "sql_execution_sites": 473,
+    "sql_execution_sites": 471,
     "statically_reachable_site_memberships": 585,
     "unique_sites_with_static_operation_path": 404,
-    "sites_without_static_function_match": 69,
-    "unmatched_functions_absent_from_all_worker_graphs": 69,
+    "sites_without_static_function_match": 67,
+    "unmatched_functions_absent_from_all_worker_graphs": 67,
     "sites_reached_by_multiple_operations": 52
   },
   "operations": [
@@ -253,19 +253,19 @@
       "statically_reachable_sql_site_count": 16,
       "statically_reachable_sql_site_ids": [
         "services/ingestion/data_freshness.py:103:8",
-        "services/ingestion/data_freshness.py:169:8",
-        "services/ingestion/data_freshness.py:184:8",
-        "services/ingestion/data_freshness.py:196:8",
-        "services/ingestion/data_freshness.py:223:8",
-        "services/ingestion/data_freshness.py:239:8",
-        "services/ingestion/data_freshness.py:268:8",
-        "services/ingestion/data_freshness.py:384:16",
-        "services/ingestion/data_freshness.py:402:20",
-        "services/ingestion/data_freshness.py:482:28",
-        "services/ingestion/data_freshness.py:493:24",
-        "services/ingestion/data_freshness.py:501:20",
+        "services/ingestion/data_freshness.py:155:8",
+        "services/ingestion/data_freshness.py:170:8",
+        "services/ingestion/data_freshness.py:182:8",
+        "services/ingestion/data_freshness.py:209:8",
+        "services/ingestion/data_freshness.py:225:8",
+        "services/ingestion/data_freshness.py:254:8",
+        "services/ingestion/data_freshness.py:370:16",
+        "services/ingestion/data_freshness.py:388:20",
+        "services/ingestion/data_freshness.py:468:28",
+        "services/ingestion/data_freshness.py:479:24",
+        "services/ingestion/data_freshness.py:487:20",
         "services/ingestion/data_freshness.py:52:12",
-        "services/ingestion/data_freshness.py:552:8",
+        "services/ingestion/data_freshness.py:538:8",
         "services/ingestion/data_freshness.py:57:12",
         "services/ingestion/data_freshness.py:72:8"
       ]
@@ -318,17 +318,17 @@
       "statically_reachable_sql_site_ids": [
         "services/common/worker_database.py:142:12",
         "services/ingestion/data_freshness.py:103:8",
-        "services/ingestion/data_freshness.py:169:8",
-        "services/ingestion/data_freshness.py:184:8",
-        "services/ingestion/data_freshness.py:196:8",
-        "services/ingestion/data_freshness.py:223:8",
-        "services/ingestion/data_freshness.py:239:8",
-        "services/ingestion/data_freshness.py:268:8",
-        "services/ingestion/data_freshness.py:384:16",
-        "services/ingestion/data_freshness.py:402:20",
-        "services/ingestion/data_freshness.py:482:28",
-        "services/ingestion/data_freshness.py:493:24",
-        "services/ingestion/data_freshness.py:501:20",
+        "services/ingestion/data_freshness.py:155:8",
+        "services/ingestion/data_freshness.py:170:8",
+        "services/ingestion/data_freshness.py:182:8",
+        "services/ingestion/data_freshness.py:209:8",
+        "services/ingestion/data_freshness.py:225:8",
+        "services/ingestion/data_freshness.py:254:8",
+        "services/ingestion/data_freshness.py:370:16",
+        "services/ingestion/data_freshness.py:388:20",
+        "services/ingestion/data_freshness.py:468:28",
+        "services/ingestion/data_freshness.py:479:24",
+        "services/ingestion/data_freshness.py:487:20",
         "services/ingestion/data_freshness.py:52:12",
         "services/ingestion/data_freshness.py:57:12",
         "services/ingestion/data_freshness.py:72:8",
@@ -413,14 +413,14 @@
         "services/ingestion/copernicus_remote_sensing.py:236:8",
         "services/ingestion/gee_remote_sensing.py:296:4",
         "services/ingestion/gee_remote_sensing.py:335:8",
-        "services/ingestion/remote_sensing_fetcher.py:136:8",
-        "services/ingestion/remote_sensing_fetcher.py:176:8",
-        "services/ingestion/remote_sensing_fetcher.py:232:8",
-        "services/ingestion/remote_sensing_fetcher.py:253:12",
-        "services/ingestion/remote_sensing_fetcher.py:271:8",
-        "services/ingestion/remote_sensing_fetcher.py:301:8",
-        "services/ingestion/remote_sensing_fetcher.py:462:8",
-        "services/ingestion/remote_sensing_fetcher.py:528:16"
+        "services/ingestion/remote_sensing_fetcher.py:118:8",
+        "services/ingestion/remote_sensing_fetcher.py:158:8",
+        "services/ingestion/remote_sensing_fetcher.py:214:8",
+        "services/ingestion/remote_sensing_fetcher.py:235:12",
+        "services/ingestion/remote_sensing_fetcher.py:253:8",
+        "services/ingestion/remote_sensing_fetcher.py:283:8",
+        "services/ingestion/remote_sensing_fetcher.py:444:8",
+        "services/ingestion/remote_sensing_fetcher.py:510:16"
       ]
     },
     {
@@ -8527,29 +8527,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:114:8",
+      "id": "services/ingestion/data_freshness.py:155:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 114,
-      "scope": "_query_latest_ingestion",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "ingestion_log"
-      ],
-      "import_closure_operations": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:169:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 169,
+      "line": 155,
       "scope": "_alert_state",
       "method": "execute",
       "expression_kind": "literal",
@@ -8570,9 +8550,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:184:8",
+      "id": "services/ingestion/data_freshness.py:170:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 184,
+      "line": 170,
       "scope": "_alert_state",
       "method": "execute",
       "expression_kind": "literal",
@@ -8593,9 +8573,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:196:8",
+      "id": "services/ingestion/data_freshness.py:182:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 196,
+      "line": 182,
       "scope": "_alert_state",
       "method": "execute",
       "expression_kind": "literal",
@@ -8616,9 +8596,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:223:8",
+      "id": "services/ingestion/data_freshness.py:209:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 223,
+      "line": 209,
       "scope": "_persist_alert_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -8639,9 +8619,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:239:8",
+      "id": "services/ingestion/data_freshness.py:225:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 239,
+      "line": 225,
       "scope": "_persist_alert_event",
       "method": "execute",
       "expression_kind": "fstring",
@@ -8662,9 +8642,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:268:8",
+      "id": "services/ingestion/data_freshness.py:254:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 268,
+      "line": 254,
       "scope": "_insert_check_result",
       "method": "execute",
       "expression_kind": "literal",
@@ -8685,9 +8665,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:384:16",
+      "id": "services/ingestion/data_freshness.py:370:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 384,
+      "line": 370,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -8706,9 +8686,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:402:20",
+      "id": "services/ingestion/data_freshness.py:388:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 402,
+      "line": 388,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -8727,9 +8707,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:482:28",
+      "id": "services/ingestion/data_freshness.py:468:28",
       "source": "services/ingestion/data_freshness.py",
-      "line": 482,
+      "line": 468,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -8750,9 +8730,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:493:24",
+      "id": "services/ingestion/data_freshness.py:479:24",
       "source": "services/ingestion/data_freshness.py",
-      "line": 493,
+      "line": 479,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -8773,9 +8753,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:501:20",
+      "id": "services/ingestion/data_freshness.py:487:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 501,
+      "line": 487,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -8794,9 +8774,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:552:8",
+      "id": "services/ingestion/data_freshness.py:538:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 552,
+      "line": 538,
       "scope": "get_freshness_summary",
       "method": "execute",
       "expression_kind": "literal",
@@ -9811,29 +9791,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:117:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:118:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 117,
-      "scope": "_query_active_jobs",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "remote_sensing_job"
-      ],
-      "import_closure_operations": [
-        "scheduled_module:services.ingestion.remote_sensing_fetcher",
-        "scheduled_module:services.ingestion.remote_sensing_worker"
-      ],
-      "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match",
-      "function_in_any_worker_graph": false,
-      "review_status": "function_not_reached_by_any_static_worker_root"
-    },
-    {
-      "id": "services/ingestion/remote_sensing_fetcher.py:136:8",
-      "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 136,
+      "line": 118,
       "scope": "_claim_due_jobs",
       "method": "execute",
       "expression_kind": "literal",
@@ -9855,9 +9815,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:176:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:158:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 176,
+      "line": 158,
       "scope": "_query_job",
       "method": "execute",
       "expression_kind": "literal",
@@ -9877,9 +9837,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:232:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:214:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 232,
+      "line": 214,
       "scope": "_update_job_status",
       "method": "execute",
       "expression_kind": "fstring",
@@ -9899,9 +9859,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:253:12",
+      "id": "services/ingestion/remote_sensing_fetcher.py:235:12",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 253,
+      "line": 235,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
       "expression_kind": "literal",
@@ -9921,9 +9881,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:271:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:253:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 271,
+      "line": 253,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
       "expression_kind": "literal",
@@ -9944,9 +9904,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:301:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:283:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 301,
+      "line": 283,
       "scope": "_record_provider_attempt",
       "method": "execute",
       "expression_kind": "literal",
@@ -9966,9 +9926,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:462:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:444:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 462,
+      "line": 444,
       "scope": "list_jobs",
       "method": "execute",
       "expression_kind": "literal",
@@ -9989,9 +9949,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:528:16",
+      "id": "services/ingestion/remote_sensing_fetcher.py:510:16",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 528,
+      "line": 510,
       "scope": "main",
       "method": "execute",
       "expression_kind": "literal",

@@ -215,19 +215,26 @@ def test_job_lookup_binds_location_scope_to_sql():
     assert parameters == (job_id, LOCATION_ID)
 
 
-def test_job_listing_and_active_job_query_bind_location_scope():
-    from services.ingestion.remote_sensing_fetcher import _query_active_jobs, list_jobs
+def test_job_listing_and_due_claim_bind_location_scope():
+    from services.ingestion.remote_sensing_fetcher import _claim_due_jobs, list_jobs
 
-    for operation in (list_jobs, _query_active_jobs):
-        conn = MagicMock()
-        cursor = conn.cursor.return_value
-        cursor.fetchall.return_value = []
+    list_conn = MagicMock()
+    list_cursor = list_conn.cursor.return_value
+    list_cursor.fetchall.return_value = []
+    list_jobs(list_conn, LOCATION_ID)
+    list_sql, list_parameters = list_cursor.execute.call_args.args
+    assert "location_id = %s" in list_sql
+    assert list_parameters == (LOCATION_ID,)
 
-        operation(conn, LOCATION_ID)
-
-        sql, parameters = cursor.execute.call_args.args
-        assert "location_id = %s" in sql
-        assert parameters == (LOCATION_ID,)
+    claim_conn = MagicMock()
+    claim_cursor = claim_conn.cursor.return_value
+    claim_cursor.fetchall.return_value = []
+    _claim_due_jobs(claim_conn, LOCATION_ID)
+    claim_sql, claim_parameters = claim_cursor.execute.call_args.args
+    assert "location_id = %s::uuid" in claim_sql
+    assert claim_parameters[0] == LOCATION_ID
+    assert claim_parameters[1].startswith("remote-sensing-")
+    claim_conn.commit.assert_called_once()
 
 
 def test_fetch_job_rolls_back_and_propagates_outbox_failure(monkeypatch):

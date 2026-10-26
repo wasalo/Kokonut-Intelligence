@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-26",
+  "scope": "Retired two unreferenced private SQL readers superseded by current freshness and remote-sensing paths. No runtime feature or schema was added.",
+  "retired_helpers": [
+    {
+      "function": "services.ingestion.data_freshness._query_latest_ingestion",
+      "production_callers_found": 0,
+      "replacement": "services.ingestion.data_freshness._query_latest_data_at"
+    },
+    {
+      "function": "services.ingestion.remote_sensing_fetcher._query_active_jobs",
+      "production_callers_found": 0,
+      "replacement": "services.ingestion.remote_sensing_fetcher._claim_due_jobs"
+    }
+  ],
+  "verification": {
+    "focused_test_modules": [
+      "tests/test_data_freshness_cursor_cleanup.py",
+      "tests/test_data_freshness_notification_outbox.py",
+      "tests/test_data_freshness_cli_parity.py",
+      "tests/test_freshness_worker.py",
+      "tests/test_remote_sensing_csv_location_scope.py",
+      "tests/test_remote_sensing_provider_records.py",
+      "tests/test_remote_sensing_fetcher_cli_parity.py",
+      "tests/test_remote_sensing_fetcher_write_cursor_cleanup.py",
+      "tests/test_remote_sensing_fetcher_cursor_cleanup.py",
+      "tests/test_remote_sensing_worker.py",
+      "tests/test_remote_sensing_automation.py",
+      "tests/test_remote_sensing_scheduler_contract.py",
+      "tests/test_remote_sensing_cli_parity.py"
+    ],
+    "focused_test_result": "157 passed",
+    "generated_inventory_checks": "worker source closure, function reachability, SQL inventory, SQL reachability, effect inventory, boundary preflight, and runtime SQL inventory all passed",
+    "ruff": "passed",
+    "compileall": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; named MAN-CAP checks separately gated",
+    "git_diff_check": "passed"
+  },
+  "updated_worker_sql_counts": {
+    "operation_roots": 49,
+    "sql_execution_sites": 471,
+    "sites_with_static_operation_path": 404,
+    "operation_site_memberships": 585,
+    "sites_without_static_function_match": 67
+  },
+  "limitations": [
+    "The caller search is limited to this repository; private function compatibility for external consumers was not assessed.",
+    "The two active replacement paths preserve their existing code behavior; this source-only change does not verify live schedules or provider parity.",
+    "The remaining 67 unmatched SQL sites are not thereby proven dead or unreachable."
+  ],
+  "environment_touched": {
+    "database": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  }
+}

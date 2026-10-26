@@ -19363,3 +19363,23 @@ open (1,245 total). No database, provider, candidate, or legacy service was
 used. The analyzer does not establish live grants, authorization, RLS, runtime
 schedule state, or effects. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/common-cli-command-callback-reachability.json`.
+
+### Progress addendum — retire superseded private SQL readers, 26 October 2026
+
+Removed the unreferenced private `data_freshness._query_latest_ingestion` and
+`remote_sensing_fetcher._query_active_jobs` readers. Repository search found no
+production callers. Freshness still reads source timestamps through
+`_query_latest_data_at`; remote-sensing execution still claims one due job at a
+time through the exact-location lease query. Existing cursor-failure and
+scheduler-scope tests now cover those current paths.
+
+The focused freshness/remote-sensing selection passes 157 tests. The SQL
+inventory now contains 471 sites: 404 are linked to static worker operations
+across 585 memberships, and 67 remain without a static match. All generated
+worker/runtime inventories, Ruff, compilation, capability-matrix validation,
+and diff checks pass. No migration, database, provider, candidate, or legacy
+service was used. Capability classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows. Checklist: 1,221 complete / 25 open
+(1,246 total). The inventory change does not classify the other unmatched
+sites as dead code or prove their external callers absent. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/retired-private-sql-readers.json`.
