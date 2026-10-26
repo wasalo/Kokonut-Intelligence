@@ -71,9 +71,10 @@ services:
       # Shared with the Gateway OIDC provider. Directus is denied access to
       # scoped collections until users map to Kokonut operator identities.
       KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:-}
-      # Preserve legacy schedule behavior; the optional Kernel profile defaults both off.
-      KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION: ${KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION:-true}
-      KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION: ${KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION:-true}
+      # Directus schedules are explicit opt-ins across profiles. NOI has a
+      # separate signed Kernel worker; weekly aggregation remains optional.
+      KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION: ${KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION:-false}
+      KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION: ${KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION:-false}
       LOG_LEVEL: "info"
       WEBSOCKETS_ENABLED: "true"
       FILES_MAX_UPLOAD_SIZE: "50mb"

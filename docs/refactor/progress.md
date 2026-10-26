@@ -19432,3 +19432,19 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows. Checklist: 1,224 complete / 25 open
 (1,249 total). Evidence:
 `docs/refactor/builds/2026-10-26-recovery/directus-noi-action-request-context.json`.
+
+### Progress addendum — Directus schedules default off, 26 October 2026
+
+The root Compose stack now matches the optional Kernel Directus profile: daily
+NOI reconciliation and weekly activity aggregation do not start unless their
+individual environment flags are set to `true`. Both hooks remain available
+for explicit compatibility use. The signed, default-off NOI worker remains
+the native location-scoped option.
+
+The focused Compose compatibility file passes all three tests. No Directus
+runtime, Docker service, or schedule was started. Active task ownership,
+explicit environment overrides, credential provisioning, and runtime parity
+remain open. Capability classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows. Checklist: 1,225 complete / 25 open
+(1,250 total). Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-schedules-default-off.json`.

@@ -76,13 +76,14 @@ fakes; the global handle is unused in these paths. The remaining direct
 read. This is mocked source evidence and does not prove pinned-runtime
 transaction semantics.
 
-The two legacy Directus schedules are now independent explicit opt-ins in the
-extension. The legacy root Compose stack keeps both enabled by default for
-compatibility; the optional Kernel Directus profile defaults both off. Daily
-NOI snapshot reconciliation is separately available through the signed,
+The two Directus schedules are independent explicit opt-ins in the extension
+and default off in both the root and Kernel Compose profiles. Daily NOI
+snapshot reconciliation is separately available through the signed,
 default-off Kernel worker, and weekly activity aggregation remains an optional
-read-only compatibility effect. No schedule was activated or run by this
-change; ownership, runtime identity, overlap, and output parity remain open.
+read-only compatibility effect. Setting either Compose variable to `true`
+still enables that schedule explicitly. No schedule was activated or run by
+this change; ownership, runtime identity, overlap, and output parity remain
+open.
 
 The 23 October runtime probe confirms the pinned unlicensed Directus profile
 cannot provide custom permission management: an owner request to create an

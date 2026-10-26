@@ -3418,3 +3418,15 @@ bundle and TypeScript check. Tests use mocks only. Live action-context
 behavior, provider/runtime acceptance, and scheduled-hook identity/scope
 remain open. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/directus-noi-action-request-context.json`.
+
+### 26 October 2026 — Directus schedules default off
+
+The root Compose profile now defaults both legacy Directus schedules off,
+matching the optional Kernel Directus profile. Operators may still opt in to
+the daily batch NOI reconciliation or weekly read-only aggregation by setting
+its exact environment flag to `true`. The signed, default-off, location-scoped
+NOI worker remains available as the native reconciliation path. The focused
+Compose compatibility test passes all three tests. No schedule/runtime was
+started; active schedule ownership, credentials, overlap, and output parity
+remain open. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-schedules-default-off.json`.
