@@ -20,6 +20,29 @@
     "dependency_resolution_platform": "BUILDPLATFORM",
     "target_architecture_selection": "TARGETARCH"
   },
+  "multiarch_release_inventory": {
+    "initial_clean_build": {
+      "status": "rejected_by_release_gate",
+      "index_sha256": "442ad36ce9e06e86149819d6d6c6581acdd7cd0991997794e2c865954370ab10",
+      "reason": "The digest-pinned Python base image includes packaging 26.2; pip inventory selected that inherited dist-info instead of the locked packaging 26.3 wheel."
+    },
+    "post_fix_build": {
+      "status": "passed",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "index_sha256": "f7562aac5eb653f050fe0da754e54f7b88d75a1e9c9935cada45971c43da1d5d",
+      "locked_packages": 24,
+      "matching_total_python_packages": 27,
+      "allowed_unlocked_base_tools": {
+        "pip": "24.0",
+        "setuptools": "79.0.1",
+        "wheel": "0.46.3"
+      },
+      "dependency_layers_reused_from_initial_clean_locked_install": true,
+      "target_images_rebuilt_after_base_metadata_removal": true,
+      "archive_removed_after_verification": true
+    },
+    "hosted_full_uncached_release_gate": "pending"
+  },
   "amd64": {
     "status": "passed",
     "image": "kokonut-ml-anomaly-lock-verify:amd64",
@@ -73,7 +96,7 @@
   "physical_raspberry_pi_tested": false,
   "temporary_validation_images_removed": true,
   "repository_checks": {
-    "focused_pytest": "27 passed: lock generator and Kernel profile contracts",
+    "focused_pytest": "29 passed: ML OCI release gate, lock generator, and Kernel profile contracts",
     "ruff": "passed",
     "python_compilation": "passed",
     "shell_syntax": "passed",

@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "config/kernel/release-input-lock.json"
+ML_BASE_TOOLING = {"pip": "24.0", "setuptools": "79.0.1", "wheel": "0.46.3"}
 
 
 class LockError(RuntimeError):
@@ -245,16 +246,94 @@ def _image_file(archive: tarfile.TarFile, manifest: dict, image_path: str) -> by
     raise LockError(f"multi-platform image does not contain {image_path}")
 
 
+def _normalized_python_inventory(packages: list[dict]) -> dict[str, str]:
+    inventory = {}
+    for item in packages:
+        name = item.get("name")
+        version = item.get("version")
+        if not isinstance(name, str) or not isinstance(version, str):
+            raise LockError("Python package inventory entries must have string name and version fields")
+        normalized_name = re.sub(r"[-_.]+", "-", name).lower()
+        previous = inventory.get(normalized_name)
+        if previous is not None and previous != version:
+            raise LockError(
+                f"Python package inventory has conflicting versions for {normalized_name}: "
+                f"{previous} and {version}"
+            )
+        inventory[normalized_name] = version
+    if not inventory:
+        raise LockError("Python package inventory is empty")
+    return inventory
+
+
+def _ml_lock_versions(lock_path: Path = ROOT / "requirements/ml-anomaly-runtime.lock") -> dict[str, str]:
+    pins = {}
+    for number, raw_line in enumerate(lock_path.read_text(encoding="utf-8").splitlines(), 1):
+        line = raw_line.strip()
+        if not line or line.startswith("#") or line.startswith("--hash="):
+            continue
+        line = line.rstrip("\\").strip().split(";", 1)[0].strip()
+        if "==" not in line:
+            raise LockError(f"invalid ML runtime lock entry at {lock_path}:{number}")
+        name, version = line.split("==", 1)
+        normalized_name = re.sub(r"[-_.]+", "-", name).lower()
+        if not normalized_name or not version or normalized_name in pins:
+            raise LockError(f"duplicate or invalid ML runtime lock pin at {lock_path}:{number}")
+        pins[normalized_name] = version
+    if not pins:
+        raise LockError(f"ML runtime lock has no package pins: {lock_path}")
+    return pins
+
+
+def _verify_ml_package_inventories(
+    inventories: dict[str, dict[str, str]], lock_pins: dict[str, str]
+) -> None:
+    expected_architectures = {"amd64", "arm64"}
+    actual_architectures = set(inventories)
+    if actual_architectures != expected_architectures:
+        missing = expected_architectures - actual_architectures
+        unexpected = actual_architectures - expected_architectures
+        details = []
+        if missing:
+            details.append(f"missing: {', '.join(sorted(missing))}")
+        if unexpected:
+            details.append(f"unexpected: {', '.join(sorted(unexpected))}")
+        raise LockError("ML image architecture inventory is invalid (" + "; ".join(details) + ")")
+    expected = {**lock_pins, **ML_BASE_TOOLING}
+    for architecture, inventory in inventories.items():
+        mismatches = [
+            f"{name}: installed={inventory.get(name, '<missing>')}, locked={version}"
+            for name, version in expected.items()
+            if inventory.get(name) != version
+        ]
+        if mismatches:
+            raise LockError(
+                f"{architecture} ML image package versions differ from the runtime lock/base tooling contract:\n  "
+                + "\n  ".join(mismatches[:30])
+            )
+        undeclared = inventory.keys() - expected.keys()
+        if undeclared:
+            raise LockError(
+                f"{architecture} optional ML image includes undeclared package(s): "
+                + ", ".join(sorted(undeclared))
+            )
+    if inventories["amd64"] != inventories["arm64"]:
+        left, right = inventories["amd64"], inventories["arm64"]
+        differences = [
+            f"{name}: amd64={left.get(name, '<missing>')}, arm64={right.get(name, '<missing>')}"
+            for name in sorted(left.keys() | right.keys())
+            if left.get(name) != right.get(name)
+        ]
+        raise LockError("ML Python package version parity failed:\n  " + "\n  ".join(differences[:30]))
+
+
 def _verify_application(archive_path: Path) -> None:
     with tarfile.open(archive_path, mode="r:*") as archive:
         manifests, index_digest = _platform_manifests(archive)
         inventories = {}
         for architecture, manifest in manifests.items():
             packages = json.loads(_image_file(archive, manifest, "app/python-packages.json"))
-            inventories[architecture] = {
-                item["name"].lower().replace("_", "-").replace(".", "-"): item["version"]
-                for item in packages
-            }
+            inventories[architecture] = _normalized_python_inventory(packages)
         if inventories["amd64"] != inventories["arm64"]:
             left, right = inventories["amd64"], inventories["arm64"]
             differences = [
@@ -266,6 +345,22 @@ def _verify_application(archive_path: Path) -> None:
         print(
             "Kernel app OCI build verified: linux/amd64 + linux/arm64, "
             f"{len(inventories['amd64'])} matching Python packages, index sha256:{index_digest}"
+        )
+
+
+def _verify_ml_anomaly(archive_path: Path) -> None:
+    with tarfile.open(archive_path, mode="r:*") as archive:
+        manifests, index_digest = _platform_manifests(archive)
+        inventories = {}
+        for architecture, manifest in manifests.items():
+            packages = json.loads(_image_file(archive, manifest, "app/python-packages.json"))
+            inventories[architecture] = _normalized_python_inventory(packages)
+        lock_pins = _ml_lock_versions()
+        _verify_ml_package_inventories(inventories, lock_pins)
+        print(
+            "Optional ML OCI build verified: linux/amd64 + linux/arm64, "
+            f"{len(lock_pins)} locked packages and {len(inventories['amd64'])} matching total Python packages, "
+            f"index sha256:{index_digest}"
         )
 
 
@@ -340,6 +435,7 @@ def _verify_postgis(archive_path: Path, lock: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--application-oci", type=Path, help="verify a multi-platform Kernel OCI archive")
+    parser.add_argument("--ml-anomaly-oci", type=Path, help="verify the optional ML worker OCI archive")
     parser.add_argument("--postgis-oci", type=Path, help="verify a multi-platform PostGIS OCI archive")
     args = parser.parse_args()
     try:
@@ -348,9 +444,11 @@ def main() -> int:
         print("Kernel release inputs match config/kernel/release-input-lock.json")
         if args.application_oci:
             _verify_application(args.application_oci)
+        if args.ml_anomaly_oci:
+            _verify_ml_anomaly(args.ml_anomaly_oci)
         if args.postgis_oci:
             _verify_postgis(args.postgis_oci, lock)
-        if not args.application_oci and not args.postgis_oci:
+        if not args.application_oci and not args.ml_anomaly_oci and not args.postgis_oci:
             print("No OCI archives supplied; platform builds were not inspected")
     except (LockError, KeyError, OSError, tarfile.TarError, json.JSONDecodeError) as error:
         print(f"Kernel release gate failed: {error}", file=sys.stderr)

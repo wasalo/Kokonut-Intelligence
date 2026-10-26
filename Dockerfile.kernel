@@ -123,6 +123,11 @@ RUN set -eu; \
 FROM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS ml-anomaly
 WORKDIR /app
 RUN useradd -m -u 10001 -s /bin/bash appuser
+# The pinned base image includes packaging 26.2. Remove its metadata and code
+# before copying the hash-locked runtime (26.3), avoiding ambiguous duplicate
+# dist-info selection by pip's package inventory.
+RUN rm -rf /usr/local/lib/python3.11/site-packages/packaging \
+    /usr/local/lib/python3.11/site-packages/packaging-*.dist-info
 COPY --from=ml-anomaly-dependencies /opt/ml-anomaly-site/ /usr/local/lib/python3.11/site-packages/
 COPY requirements/ml-anomaly.txt requirements/ml-anomaly-runtime.in requirements/ml-anomaly-runtime.lock ./requirements/
 COPY services/ ./services/

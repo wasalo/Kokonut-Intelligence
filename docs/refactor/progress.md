@@ -17,9 +17,27 @@ and `docs/refactor/builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-arm64
 These checks establish software image/import portability only; physical
 Raspberry Pi performance, thermal behavior, power-loss, reliability, and
 endurance acceptance remain open. No candidate/legacy stack, migration,
-credential, provider, or Compose service was touched. Checklist remains 1,207
-complete / 25 open (1,232 total); CAP-040 remains partial and MAN-CAP-040/047
+credential, provider, or Compose service was touched. Checklist remains 1,208
+complete / 25 open (1,233 total); CAP-040 remains partial and MAN-CAP-040/047
 remain open.
+
+### Progress addendum — optional ML image release inventory, 26 October 2026
+
+The multiarch release script now builds the optional `ml-anomaly` target and
+checks its OCI package inventory against the hash-locked runtime and across
+AMD64/ARM64. A clean two-architecture build completed, and the new release
+checker correctly caught a package inventory mismatch: the digest-pinned base
+image already contains `packaging 26.2`, while the ML lock specifies `26.3`.
+The ML image stage now removes the inherited package/module metadata before
+copying in the locked wheel, and a focused regression checks that ordering.
+The post-fix AMD64/ARM64 OCI archive passes: all 24 lock entries and all 27
+installed package versions match on both platforms (index
+`sha256:f7562aac5eb653f050fe0da754e54f7b88d75a1e9c9935cada45971c43da1d5d`).
+The targeted rebuild reused dependencies from the preceding clean hash-locked
+install. The release checker now permits only the exact base tools `pip==24.0`,
+`setuptools==79.0.1`, and `wheel==0.46.3` outside the ML lock. A hosted full
+uncached release-gate run remains pending. No candidate or legacy service,
+database, migration, or credential was touched.
 
 ### Progress addendum — isolated manual ML anomaly reader, 26 October 2026
 

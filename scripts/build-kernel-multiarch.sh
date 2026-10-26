@@ -55,6 +55,19 @@ python3 scripts/check-kernel-release-inputs.py \
     --application-oci "$BUILD_DIR/kernel-clickhouse-app.oci.tar"
 rm -f "$BUILD_DIR/kernel-clickhouse-app.oci.tar"
 
+# Verify the independently locked optional ML worker on both architectures.
+docker buildx build \
+    --pull \
+    --no-cache \
+    --platform linux/amd64,linux/arm64 \
+    --target ml-anomaly \
+    --output "type=oci,dest=$BUILD_DIR/kernel-ml-anomaly.oci.tar" \
+    --file Dockerfile.kernel \
+    .
+python3 scripts/check-kernel-release-inputs.py \
+    --ml-anomaly-oci "$BUILD_DIR/kernel-ml-anomaly.oci.tar"
+rm -f "$BUILD_DIR/kernel-ml-anomaly.oci.tar"
+
 docker buildx build \
     --pull \
     --no-cache \

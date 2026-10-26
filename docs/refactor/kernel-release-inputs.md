@@ -1,9 +1,9 @@
 # Kernel release-input and architecture build gate
 
 The GitHub Actions `CI` job verifies a reviewed build-input lock and builds the
-default app, ClickHouse-enabled app, and PostGIS targets as multi-platform OCI
-archives for `linux/amd64` and `linux/arm64`. The gate runs on main updates and
-pull requests.
+default app, ClickHouse-enabled app, optional sensor-anomaly ML worker, and
+PostGIS targets as multi-platform OCI archives for `linux/amd64` and
+`linux/arm64`. The gate runs on main updates and pull requests.
 It uses `--pull --no-cache` so paired builds resolve current locked inputs. It
 does not load images into the host daemon, start containers, alter Compose
 projects, publish images, or touch database volumes.
@@ -21,20 +21,33 @@ amd64/arm64 availability.
 
 The gate extracts `python-packages.json` from each default and ClickHouse app
 platform and requires exact package name/version parity between the two
-architectures. It also checks that both database image variants contain the
-locked PostGIS package versions. Platform identity comes from Linux AMD64/ARM64
-OCI index descriptors. The checker recursively walks nested indexes and falls
+architectures. For the optional ML image it also checks that every package
+matches the wheel lock, both architectures have identical inventories, and
+unrelated analytics packages are absent. It checks that both database image
+variants contain the locked PostGIS package versions. Platform identity comes
+from Linux AMD64/ARM64 OCI index descriptors. The checker recursively walks nested indexes and falls
 back to image config metadata when an image descriptor omits platform labels;
 non-image attestations are skipped. OCI archive digests and platform
 descriptors are reported in the CI log; temporary archives are removed at job
 exit.
 
 The optional `ml-anomaly` target also enforces its own Python 3.11 Linux
-AMD64/ARM64 wheel lock during image construction. Its current locked builds,
-offline imports, `pip check`, CLI, and bounded resource smokes pass locally
+AMD64/ARM64 wheel lock during image construction. Its locked images, offline
+imports, `pip check`, CLI, and bounded resource smokes pass locally
 ([evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-hash-locked-image-builds.json)).
-The checked-in `scripts/build-kernel-multiarch.sh` does not build that optional
-target, so hosted multi-architecture acceptance for it remains open.
+The checked-in `scripts/build-kernel-multiarch.sh` builds that target and passes
+its OCI archive to the package-lock and architecture-parity verifier. The first
+clean multiarch archive check exposed the base image's unpinned `packaging 26.2`
+metadata winning package inventory selection over the locked `26.3` wheel. The
+ML image now removes the base copy before installing the locked target contents,
+and a regression checks this ordering. The post-fix AMD64/ARM64 OCI archive
+passed with 24 lock-matched packages and 27 matching total Python packages
+([evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-hash-locked-image-builds.json)).
+That targeted rebuild reused dependency layers from the preceding clean
+hash-enforced build; hosted full uncached release-gate acceptance remains
+pending. The gate permits only the exact Python base tools `pip==24.0`,
+`setuptools==79.0.1`, and `wheel==0.46.3` outside the ML lock; all other
+installed packages must be declared in the ML runtime lock.
 
 ## Current limits
 
