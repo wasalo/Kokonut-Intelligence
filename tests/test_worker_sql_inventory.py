@@ -112,6 +112,7 @@ def test_unclassified_sql_sites_are_explicitly_enumerated_for_follow_up():
     assert [(site["source"], site["line"]) for site in unknown] == [
         ("services/agents/base.py", 149),
         ("services/analytics/organic_certification.py", 295),
+        ("services/analytics/reporting_reader.py", 256),
         ("services/common/database.py", 77),
         ("services/common/database.py", 80),
         ("services/common/database.py", 142),
@@ -485,9 +486,11 @@ def test_dynamic_sql_review_categories_remain_explicit():
     }
     assert {site["expression_kind"] for site in by_source["services/common/database.py"]} == {"composed_or_variable"}
     assert {site["expression_kind"] for site in by_source["services/metrics/cli.py"]} == {"fstring"}
-    assert (
-        sum(site["expression_kind"] == "composed" for site in by_source["services/analytics/reporting_reader.py"]) == 1
-    )
+    reporting_reader_kinds = [
+        site["expression_kind"] for site in by_source["services/analytics/reporting_reader.py"]
+    ]
+    assert reporting_reader_kinds.count("composed") == 0
+    assert reporting_reader_kinds.count("composed_or_variable") == 1
     assert sum(site["expression_kind"] == "fstring" for site in by_source["services/ingestion/data_freshness.py"]) == 4
 
 

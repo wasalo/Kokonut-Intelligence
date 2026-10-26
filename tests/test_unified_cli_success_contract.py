@@ -1082,6 +1082,7 @@ def test_delphi_study_list_fails_closed_without_opening_shared_database(monkeypa
         delphi_cli,
         "_get_conn",
         lambda: pytest.fail("unscoped study listing must not open the shared database"),
+        raising=False,
     )
     with pytest.raises(SystemExit, match="authenticated.*location-scoped Operator Gateway"):
         delphi_cli.cmd_list_studies(None)

@@ -212,7 +212,7 @@ def wait_ready(docker: str, container: str) -> None:
                 container,
                 "pg_isready",
                 "-h",
-                "/var/run/postgresql",
+                "127.0.0.1",
                 "-U",
                 "postgres",
                 "-d",

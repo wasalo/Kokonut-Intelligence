@@ -82,6 +82,7 @@ _EXPECTED_ROUTE_POLICIES = {
     ("GET", "/api/participation/delphi/styles.css"): ("delphi_participant_app", "read", True),
     ("GET", "/api/participation/delphi/workspace"): ("delphi_participant", "read", True),
     ("POST", "/api/participation/delphi/contributions"): ("delphi_participant", "write", True),
+    ("POST", "/api/participation/delphi/minority-reports"): ("delphi_participant", "write", True),
 }
 
 _participant_router = APIRouter()

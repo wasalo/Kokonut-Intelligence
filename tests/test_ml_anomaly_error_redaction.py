@@ -19,7 +19,7 @@ def test_fit_prophet_logs_only_bounded_exception_class(monkeypatch, caplog):
     monkeypatch.setattr(
         ml_anomaly_detector,
         "_query_sensor_timeseries",
-        lambda *_args: list(range(100)),
+        lambda *_args, **_kwargs: list(range(100)),
     )
     monkeypatch.setattr(
         ml_anomaly_detector,

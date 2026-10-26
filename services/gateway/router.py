@@ -74,6 +74,7 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/participation/delphi/styles\.css$"), "delphi_participant_app", "read", True),
     ("GET", re.compile(r"^/api/participation/delphi/workspace$"), "delphi_participant", "read", True),
     ("POST", re.compile(r"^/api/participation/delphi/contributions$"), "delphi_participant", "write", True),
+    ("POST", re.compile(r"^/api/participation/delphi/minority-reports$"), "delphi_participant", "write", True),
     ("GET", re.compile(r"^/api/v1/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/v1/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/v1/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),

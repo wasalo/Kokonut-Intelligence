@@ -42,7 +42,7 @@ def test_study_create_submit_uses_csrf_no_store_and_exact_retry_key():
     submitter = _function(
         source,
         "async function submitDelphiStudyDraft()",
-        "async function loadDelphiRecommendationDraftStudies(",
+        "async function loadDelphiConsentNoticeDraftStudies(",
     )
     assert "delphiStudyDraftLocations.has(locationId)" in submitter
     assert "delphiStudyDraftRequestIds.get(requestKey)" in submitter
