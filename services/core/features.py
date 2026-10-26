@@ -117,6 +117,14 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a dedicated database login and bounded function for event notification enqueue",
     },
+    "isolated_notification_delivery": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded functions for notification delivery",
+    },
     "event_retention_cleanup": {
         "enabled": os.getenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "false").lower() == "true",
         "critical": False,

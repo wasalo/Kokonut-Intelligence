@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a conservative direct-call graph for allowlisted worker operations.
+"""Build a conservative direct-call graph for source-registered worker operations.
 
 The graph follows statically resolved Python function calls within each
 operation's local ``services.*`` import closure. It is a review index, not a
@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.worker_source_closure as worker_source_closure  # noqa: E402
+from services.security.execution_allowlist import ISOLATED_WORKER_ENTRYPOINTS  # noqa: E402
 
 
 def _function_key(module: str, qualname: str) -> str:
@@ -603,6 +604,16 @@ def _operation_roots(
     if operation["kind"] == "event_handler":
         module, _, function = operation["name"].rpartition(".")
         key = _function_key(module, function)
+        return (
+            [{"function": key, "source": definitions[key]["source"], "line": definitions[key]["line"]}]
+            if key in definitions
+            else []
+        )
+
+    if operation["kind"] == "isolated_worker":
+        module = operation["root_modules"][0]
+        function = ISOLATED_WORKER_ENTRYPOINTS.get(module)
+        key = _function_key(module, function) if function else ""
         return (
             [{"function": key, "source": definitions[key]["source"], "line": definitions[key]["line"]}]
             if key in definitions

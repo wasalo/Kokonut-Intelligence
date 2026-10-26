@@ -4,6 +4,7 @@ Usage:
     python3 -m services.events --process [--batch-size N] [--worker-id ID]
     python3 -m services.events --event-worker [--worker-id ID]
     python3 -m services.events --notification-worker [--worker-id ID]
+    python3 -m services.events --isolated-notification-worker [--worker-id ID]
     python3 -m services.events --stats
     python3 -m services.events --cleanup [--actor OPERATOR]
     python3 -m services.events --list-handlers
@@ -45,7 +46,8 @@ def cmd_process(args):
         bus.close()
 
 
-def _run_worker(args, *, process_events: bool, deliver_notifications: bool):
+def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
+                isolated_notification_delivery: bool = False):
     if args.poll_interval <= 0:
         raise ValueError("poll_interval must be positive")
 
@@ -53,6 +55,12 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool):
 
     process_events = process_events and is_enabled("event_bus")
     deliver_notifications = deliver_notifications and is_enabled("notification_delivery")
+    isolated_notification_delivery = (
+        isolated_notification_delivery
+        and is_enabled("notification_delivery")
+        and is_enabled("isolated_notification_delivery")
+    )
+    deliver_notifications = deliver_notifications or isolated_notification_delivery
     if not process_events and not deliver_notifications:
         logger.info("Event and notification workers are disabled by feature configuration")
         return 0
@@ -70,11 +78,18 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool):
                     bus = get_event_store(lease_seconds=args.lease_seconds, connect_timeout=5)
                     result = bus.process_pending(args.batch_size, args.worker_id)
                 if deliver_notifications:
-                    from services.common.database import get_connection
-                    from services.events.notification_outbox import deliver_batch
+                    if isolated_notification_delivery:
+                        from services.events.notification_delivery_worker import run_once
 
-                    with get_connection(connect_timeout=5) as conn:
-                        notifications = deliver_batch(conn, args.worker_id, args.batch_size)
+                        notifications = run_once(
+                            args.worker_id, args.batch_size, args.lease_seconds
+                        )
+                    else:
+                        from services.common.database import get_connection
+                        from services.events.notification_outbox import deliver_batch
+
+                        with get_connection(connect_timeout=5) as conn:
+                            notifications = deliver_batch(conn, args.worker_id, args.batch_size)
             except KeyboardInterrupt:
                 return 0
             except Exception as exc:
@@ -120,6 +135,16 @@ def cmd_event_worker(args):
 def cmd_notification_worker(args):
     """Continuously deliver durable notification intents without dispatching events."""
     return _run_worker(args, process_events=False, deliver_notifications=True)
+
+
+def cmd_isolated_notification_worker(args):
+    """Deliver notification intents through the dedicated worker login."""
+    return _run_worker(
+        args,
+        process_events=False,
+        deliver_notifications=False,
+        isolated_notification_delivery=True,
+    )
 
 
 def cmd_stats(args):
@@ -315,6 +340,8 @@ def main():
                        help="Continuously dispatch events without delivering notifications")
     group.add_argument("--notification-worker", action="store_true",
                        help="Continuously deliver notifications without dispatching events")
+    group.add_argument("--isolated-notification-worker", action="store_true",
+                       help="Deliver notifications using the dedicated bounded database identity")
     group.add_argument("--stats", action="store_true", help="Show event statistics")
     group.add_argument("--cleanup", action="store_true", help="Clean up old events")
     group.add_argument("--list-handlers", action="store_true", help="List registered handlers")
@@ -374,6 +401,8 @@ def main():
         rc = cmd_event_worker(args)
     elif args.notification_worker:
         rc = cmd_notification_worker(args)
+    elif args.isolated_notification_worker:
+        rc = cmd_isolated_notification_worker(args)
     elif args.stats:
         rc = cmd_stats(args)
     elif args.cleanup:

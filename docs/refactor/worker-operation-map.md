@@ -6,11 +6,11 @@
 local-import closure, signed worker identity primitive, and transaction-bound
 Python adapter are implemented. Source integration now exists for the sensor
 anomaly handler, all four registered cache invalidation handlers, and the two
-global notification enqueue handlers. Signed cache invalidation and isolated
-notification enqueue remain opt-in. Migrations 418–419 and the runtime-role
+global notification enqueue handlers. Signed cache invalidation, isolated notification enqueue, and isolated delivery
+remain opt-in. Migrations 418–419 and the runtime-role
 bootstrap enforce the mobile/worker ACL boundary. Default-off dedicated worker
-paths cover sensor anomaly, cache invalidation, notification enqueue, NOI
-snapshots, current weather, forecasts, climate, CSV sensor ingestion, remote
+paths cover sensor anomaly, cache invalidation, notification enqueue and
+delivery, NOI snapshots, current weather, forecasts, climate, CSV sensor ingestion, remote
 sensing, market data, EAS, RPC, Gnosis Moloch, Baal governance, and data
 freshness. The global
 Baal indexer has migration 644's execute-only database contract and a
@@ -25,10 +25,11 @@ migration 433 is a historical checkpoint, not the current schema ledger. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 30 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
-`ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
-allowlists and checks that each entry has source evidence, a scope description,
-data effects, and an idempotency/retry note.
+the exact 31 modules in `ALLOWED_SCHEDULED_MODULES`, one source-owned isolated
+worker entrypoint, and all seven pairs in `ALLOWED_EVENT_HANDLERS`. Notification
+delivery remains outside the scheduler allowlist. Regression tests compare each
+category with its source registry and require source evidence, scope, data
+effects, and idempotency/retry notes.
 
 The sensor anomaly handler's reads, writes, row scope, and required
 authorization boundaries are tracked in the
@@ -69,10 +70,11 @@ application-wide RLS or proof for other workers.
   concurrency and replay evidence are documented in
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
-  local `services.*` import edges and source files reachable from each of the
-  30 scheduled modules and seven allowlisted handler pairs. It covers 104
-  distinct local source files across 37 operation roots, with no unresolved
-  local modules and three distinct dynamic import sites. These include the
+  local `services.*` import edges and source files reachable from the 31
+  scheduled modules, the isolated notification delivery worker, and seven
+  allowlisted handler pairs. It covers 106 distinct local source files across
+  39 operation roots, with no unresolved local modules and three distinct
+  dynamic import sites. These include the
   EventBus handler runner, the general driver registry, and the code-allowlisted
   scheduled sensor-driver loader. EventBus dispatch is constrained by
   `validate_event_handler` and the exact allowlist. The general driver registry
@@ -89,8 +91,9 @@ application-wide RLS or proof for other workers.
   conditional branches; it is not a function-level call graph and does not
   establish that imported code executes for a particular operation.
 - A generated [direct function reachability graph](worker-function-reachability.json)
-  starts scheduled operations at calls under each executed `__main__` guard and
-  event operations at their allowlisted handler. It resolves local/imported
+  starts scheduled operations at calls under each executed `__main__` guard,
+  the isolated notification worker at its source-registered `run_once` entry,
+  and event operations at their allowlisted handler. It resolves local/imported
   function calls, module aliases, `self`/`cls` methods, and instance methods
   whose candidate types can be inferred locally. The `services.metrics`
   operation also records each of the 20 functions from its literal
@@ -101,16 +104,16 @@ application-wide RLS or proof for other workers.
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 37
-  operation roots and 106 source files, entry functions reach 793 function
-  memberships through 1,068 direct-call and 24 dynamic-dispatch edges, with no unresolved
+  command/request protocol rather than a local function call. Across 39
+  operation roots and 108 source files, entry functions reach 834 function
+  memberships through 1,120 direct-call and 24 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 353
-  Python `.execute` sites in 104 statically imported files. It fingerprints 306 literal
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 357
+  Python `.execute` sites in 106 statically imported files. It fingerprints 310 literal
   statements and flags 47 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
@@ -118,8 +121,8 @@ application-wide RLS or proof for other workers.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 353 sites to the operation graph without including SQL text or
-  values. It links 271 unique sites across 383 operation/site memberships;
+  joins those 357 sites to the operation graph without including SQL text or
+  values. It links 275 unique sites across 392 operation/site memberships;
   82 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
@@ -128,7 +131,7 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 37 operation roots and local imports, reports that the scheduler
+  confirms all 39 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
   RLS blocked. The anomaly, optional cache, NOI snapshot, current-weather,
   weather-forecast, climate, sensor-ingestion, and remote-sensing integrations establish
@@ -141,10 +144,10 @@ application-wide RLS or proof for other workers.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, and EVM call patterns. The current pass
-  finds 69 unique candidate sites across 92 operation/site memberships: HTTP
-  (12 unique / 22 memberships), email delivery (3 / 6), process (1), EVM RPC
+  finds 69 unique candidate sites across 97 operation/site memberships: HTTP
+  (12 unique / 24 memberships), email delivery (3 / 9), process (1), EVM RPC
   (9 / 13), EVM client setup (6 / 10), filesystem (37 / 38), and dynamic import
-  (1 / 2), across 37 operation roots. Filesystem matching includes path
+  (1 / 2), across 39 operation roots. Filesystem matching includes path
   resolution/directory checks, descriptor opens, metadata checks, and cleanup;
   the scheduled CSV driver's constrained openat walk is visible in the
   sensor-worker trace. These are review candidates,
@@ -177,7 +180,7 @@ that a driver is safe to install. `DriverRegistry.load` is not statically
 reachable from the allowlisted scheduled sensor operation; that worker
 continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
 - Source-pattern review covers all 47 composed/variable statements found by the
-  generated SQL inventory across 37 operation roots. The original 30-site
+  generated SQL inventory across 39 operation roots. The original 30-site
   review found that 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds
@@ -374,3 +377,19 @@ contains that inventory test evidence. The separate
 [scheduler argument contract check](builds/2026-10-14-recovery/scheduled-command-contract-check.json)
 passes 77 focused tests across command validation, worker dispatch, and the
 curated job runner.
+
+
+## Isolated notification delivery worker (25 October 2026)
+
+Migration 647 adds a dedicated login with only bounded notification claim and
+attempt-completion functions. The function owner has table-level UPDATE on the
+outbox because PostgreSQL requires it for `SELECT ... FOR UPDATE`; that owner
+is NOLOGIN and the delivery login has no direct table, column, or sequence
+access. The worker commits claims before external sends and fences completion
+by worker ID, lease token, attempt number, and lease expiry. The legacy
+`--notification-worker` and reviewed operator stats/dead-letter actions remain
+available. The `notification-isolated` Compose profile and both feature flags
+remain inactive until credential/DSN provisioning and the separate candidate
+rollout gate close. Disposable PostgreSQL 16 forced-RLS acceptance and evidence
+are in [the batch record](batches.md) and
+[the migration evidence](builds/2026-10-25-recovery/notification-delivery-worker-disposable.json).

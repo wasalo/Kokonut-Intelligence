@@ -69,6 +69,25 @@ def test_clickhouse_outbox_isolation_is_wired_but_opt_in_across_kernel_profiles(
     assert "KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD" in environment
 
 
+def test_isolated_notification_worker_has_no_shared_database_environment():
+    compose = yaml.safe_load((ROOT / "docker-compose.worker.yml").read_text())
+    service = compose["services"]["notification-kernel-worker"]
+    assert service["command"][:4] == [
+        "python3", "-m", "services.events", "--isolated-notification-worker"
+    ]
+    assert service["profiles"] == ["notification-isolated"]
+    assert "KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL" in service["environment"]
+    assert "PG_USER" not in service["environment"]
+    assert "PG_PASSWORD" not in service["environment"]
+    assert "POSTGRES_PASSWORD" not in service["environment"]
+    runtime_role = yaml.safe_load(
+        (ROOT / "docker-compose.kernel-runtime-role.yml").read_text()
+    )
+    bootstrap = runtime_role["services"]["runtime-role-bootstrap"]["environment"]
+    assert "KOKONUT_NOTIFICATION_DELIVERY_USER" in bootstrap
+    assert "KOKONUT_NOTIFICATION_DELIVERY_PASSWORD" in bootstrap
+
+
 def test_oidc_profile_requires_https_proxy_overlay() -> None:
     result = _run_planner("minimal", "--oidc")
 

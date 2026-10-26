@@ -4,9 +4,9 @@
   "reviewed": "2026-10-25",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
-    "operation_roots": 38,
+    "operation_roots": 39,
     "candidate_effect_sites": 69,
-    "operation_site_memberships": 92,
+    "operation_site_memberships": 97,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 3,
@@ -18,11 +18,11 @@
     },
     "operation_memberships_by_category": {
       "dynamic_import": 2,
-      "email_delivery": 6,
+      "email_delivery": 9,
       "evm_client_setup": 10,
       "evm_rpc": 13,
       "filesystem": 38,
-      "http": 22,
+      "http": 24,
       "process": 1
     }
   },
@@ -966,6 +966,51 @@
       "name": "services.metrics.noi_snapshot_worker",
       "candidate_effect_sites": [],
       "category_counts": {}
+    },
+    {
+      "kind": "isolated_worker",
+      "name": "services.events.notification_delivery_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/common/smtp.py",
+          "line": 64,
+          "function": "services.common.smtp:send_message",
+          "category": "email_delivery",
+          "call": "smtplib.SMTP_SSL"
+        },
+        {
+          "source": "services/common/smtp.py",
+          "line": 66,
+          "function": "services.common.smtp:send_message",
+          "category": "email_delivery",
+          "call": "smtplib.SMTP"
+        },
+        {
+          "source": "services/common/smtp.py",
+          "line": 75,
+          "function": "services.common.smtp:send_message",
+          "category": "email_delivery",
+          "call": "server.send_message"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 442,
+          "function": "services.events.notification_outbox:_deliver",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 453,
+          "function": "services.events.notification_outbox:_deliver",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        }
+      ],
+      "category_counts": {
+        "email_delivery": 3,
+        "http": 2
+      }
     },
     {
       "kind": "event_handler",

@@ -22,6 +22,7 @@ import scripts.worker_sql_reachability as worker_sql_reachability  # noqa: E402
 from services.security.execution_allowlist import (  # noqa: E402
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
+    ISOLATED_WORKER_MODULES,
 )
 
 
@@ -37,6 +38,7 @@ def build_preflight() -> dict:
 
     expected_operations = {
         *(f"scheduled_module:{module}" for module in ALLOWED_SCHEDULED_MODULES),
+        *(f"isolated_worker:{module}" for module in ISOLATED_WORKER_MODULES),
         *(f"event_handler:{module}.{function}" for module, function in ALLOWED_EVENT_HANDLERS),
     }
     function_operations = {_operation_ref(operation): operation for operation in function_graph["operations"]}
@@ -84,6 +86,7 @@ def build_preflight() -> dict:
         "status": static_status,
         "operation_coverage": {
             "scheduled_allowlist_count": len(ALLOWED_SCHEDULED_MODULES),
+            "isolated_worker_root_count": len(ISOLATED_WORKER_MODULES),
             "event_handler_allowlist_count": len(ALLOWED_EVENT_HANDLERS),
             "expected_operation_count": len(expected_operations),
             "source_closure_operation_count": len(closure_operations),

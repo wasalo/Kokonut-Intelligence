@@ -541,9 +541,8 @@ def _finish_attempt(
     return attempt_status
 
 
-def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
-    """Deliver one batch with bounded retries; external sends remain at-least-once."""
-    rows = claim_batch(conn, worker_id, limit)
+def deliver_claimed_batch(rows, finish_callback) -> dict[str, int]:
+    """Deliver claimed rows through a caller-owned completion boundary."""
     stats = {"claimed": len(rows), "delivered": 0, "failed": 0, "lease_lost": 0}
     for row in rows:
         error_class = None
@@ -557,7 +556,7 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
                 "Notification delivery failed (outbox_id=%s channel=%s class=%s)",
                 row["id"], row["channel"], error_class,
             )
-        status = _finish_attempt(conn, row, success=success, error_class=error_class)
+        status = finish_callback(row, success=success, error_class=error_class)
         if status == "succeeded":
             stats["delivered"] += 1
         elif status == "lease_lost":
@@ -565,6 +564,15 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
         else:
             stats["failed"] += 1
     return stats
+
+
+def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
+    """Deliver one batch with bounded retries; external sends remain at-least-once."""
+    rows = claim_batch(conn, worker_id, limit)
+    return deliver_claimed_batch(
+        rows,
+        lambda row, **kwargs: _finish_attempt(conn, row, **kwargs),
+    )
 
 
 def _storage_thresholds() -> tuple[int, int]:

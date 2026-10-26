@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a conservative local-import inventory for allowlisted workers.
+"""Build a conservative local-import inventory for source-registered workers.
 
 This is a source navigation aid, not a runtime call graph, effect proof, ACL,
 or tenant policy. It follows statically resolvable imports under ``services``
@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT))
 from services.security.execution_allowlist import (  # noqa: E402
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
+    ISOLATED_WORKER_MODULES,
 )
 
 
@@ -169,6 +170,8 @@ def build_inventory() -> dict:
     operations = []
     for module in sorted(ALLOWED_SCHEDULED_MODULES):
         operations.append(_operation("scheduled_module", module, [module]))
+    for module in sorted(ISOLATED_WORKER_MODULES):
+        operations.append(_operation("isolated_worker", module, [module]))
     for module, function in sorted(ALLOWED_EVENT_HANDLERS):
         operations.append(_operation("event_handler", f"{module}.{function}", [module]))
 

@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 38,
-    "source_files": 107,
+    "operation_roots": 39,
+    "source_files": 108,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 809,
-    "direct_call_edges": 1086,
+    "function_memberships": 834,
+    "direct_call_edges": 1120,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 24
   },
@@ -246,7 +246,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -254,7 +254,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -262,7 +262,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -270,7 +270,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         }
       ],
       "direct_call_edges": [
@@ -332,13 +332,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         }
       ],
       "callback_edges": [],
@@ -356,6 +356,7 @@
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/smtp.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
@@ -366,6 +367,7 @@
         "services/events/cli.py",
         "services/events/fork_detector.py",
         "services/events/insight_transfer.py",
+        "services/events/notification_delivery_worker.py",
         "services/events/notification_outbox.py",
         "services/events/ports.py",
         "services/events/retention.py",
@@ -428,6 +430,22 @@
           "line": 16
         },
         {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 58
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 94
+        },
+        {
           "key": "services.common.worker_environment:event_handler_worker_policy",
           "module": "services.common.worker_environment",
           "qualname": "event_handler_worker_policy",
@@ -449,7 +467,15 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
+        },
+        {
+          "key": "services.core.features:require_feature",
+          "module": "services.core.features",
+          "qualname": "require_feature",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 258
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -577,7 +603,7 @@
           "qualname": "_get_conn",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 496
+          "line": 525
         },
         {
           "key": "services.events.cli:_run_worker",
@@ -585,7 +611,7 @@
           "qualname": "_run_worker",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 48
+          "line": 49
         },
         {
           "key": "services.events.cli:cmd_add_rule",
@@ -593,7 +619,7 @@
           "qualname": "cmd_add_rule",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 485
+          "line": 514
         },
         {
           "key": "services.events.cli:cmd_cleanup",
@@ -601,7 +627,7 @@
           "qualname": "cmd_cleanup",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 139
+          "line": 164
         },
         {
           "key": "services.events.cli:cmd_dispose_dead_letter",
@@ -609,7 +635,7 @@
           "qualname": "cmd_dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 235
+          "line": 260
         },
         {
           "key": "services.events.cli:cmd_event_worker",
@@ -617,7 +643,7 @@
           "qualname": "cmd_event_worker",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 115
+          "line": 130
         },
         {
           "key": "services.events.cli:cmd_fork_opportunities",
@@ -625,7 +651,15 @@
           "qualname": "cmd_fork_opportunities",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 435
+          "line": 464
+        },
+        {
+          "key": "services.events.cli:cmd_isolated_notification_worker",
+          "module": "services.events.cli",
+          "qualname": "cmd_isolated_notification_worker",
+          "class_scope": null,
+          "source": "services/events/cli.py",
+          "line": 140
         },
         {
           "key": "services.events.cli:cmd_list_dead_letter",
@@ -633,7 +667,7 @@
           "qualname": "cmd_list_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 191
+          "line": 216
         },
         {
           "key": "services.events.cli:cmd_list_handlers",
@@ -641,7 +675,7 @@
           "qualname": "cmd_list_handlers",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 162
+          "line": 187
         },
         {
           "key": "services.events.cli:cmd_notification_dispose_dead_letter",
@@ -649,7 +683,7 @@
           "qualname": "cmd_notification_dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 291
+          "line": 316
         },
         {
           "key": "services.events.cli:cmd_notification_list_dead_letter",
@@ -657,7 +691,7 @@
           "qualname": "cmd_notification_list_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 269
+          "line": 294
         },
         {
           "key": "services.events.cli:cmd_notification_process",
@@ -665,7 +699,7 @@
           "qualname": "cmd_notification_process",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 249
+          "line": 274
         },
         {
           "key": "services.events.cli:cmd_notification_replay_dead_letter",
@@ -673,7 +707,7 @@
           "qualname": "cmd_notification_replay_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 279
+          "line": 304
         },
         {
           "key": "services.events.cli:cmd_notification_stats",
@@ -681,7 +715,7 @@
           "qualname": "cmd_notification_stats",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 259
+          "line": 284
         },
         {
           "key": "services.events.cli:cmd_notification_worker",
@@ -689,7 +723,7 @@
           "qualname": "cmd_notification_worker",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 120
+          "line": 135
         },
         {
           "key": "services.events.cli:cmd_pending_transfers",
@@ -697,7 +731,7 @@
           "qualname": "cmd_pending_transfers",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 467
+          "line": 496
         },
         {
           "key": "services.events.cli:cmd_process",
@@ -705,7 +739,7 @@
           "qualname": "cmd_process",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 33
+          "line": 34
         },
         {
           "key": "services.events.cli:cmd_process_event",
@@ -713,7 +747,7 @@
           "qualname": "cmd_process_event",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 453
+          "line": 482
         },
         {
           "key": "services.events.cli:cmd_propose_fork",
@@ -721,7 +755,7 @@
           "qualname": "cmd_propose_fork",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 443
+          "line": 472
         },
         {
           "key": "services.events.cli:cmd_replay_dead_letter",
@@ -729,7 +763,7 @@
           "qualname": "cmd_replay_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 223
+          "line": 248
         },
         {
           "key": "services.events.cli:cmd_resolve_transfer",
@@ -737,7 +771,7 @@
           "qualname": "cmd_resolve_transfer",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 476
+          "line": 505
         },
         {
           "key": "services.events.cli:cmd_stats",
@@ -745,7 +779,7 @@
           "qualname": "cmd_stats",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 125
+          "line": 150
         },
         {
           "key": "services.events.cli:cmd_worker",
@@ -753,7 +787,7 @@
           "qualname": "cmd_worker",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 110
+          "line": 125
         },
         {
           "key": "services.events.cli:main",
@@ -761,7 +795,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 308
+          "line": 333
         },
         {
           "key": "services.events.fork_detector:_jsonb",
@@ -844,6 +878,46 @@
           "line": 158
         },
         {
+          "key": "services.events.notification_delivery_worker:_claim",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "_claim",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 27
+        },
+        {
+          "key": "services.events.notification_delivery_worker:_finish",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "_finish",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 45
+        },
+        {
+          "key": "services.events.notification_delivery_worker:_retry_delay_seconds",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "_retry_delay_seconds",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 69
+        },
+        {
+          "key": "services.events.notification_delivery_worker:_validate",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "_validate",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 15
+        },
+        {
+          "key": "services.events.notification_delivery_worker:run_once",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "run_once",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 74
+        },
+        {
           "key": "services.events.notification_outbox:_configured_channels",
           "module": "services.events.notification_outbox",
           "qualname": "_configured_channels",
@@ -889,7 +963,7 @@
           "qualname": "_storage_thresholds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 570
+          "line": 578
         },
         {
           "key": "services.events.notification_outbox:_validate_operator",
@@ -897,7 +971,7 @@
           "qualname": "_validate_operator",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 651
+          "line": 659
         },
         {
           "key": "services.events.notification_outbox:claim_batch",
@@ -913,6 +987,14 @@
           "qualname": "deliver_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
+          "line": 569
+        },
+        {
+          "key": "services.events.notification_outbox:deliver_claimed_batch",
+          "module": "services.events.notification_outbox",
+          "qualname": "deliver_claimed_batch",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
           "line": 544
         },
         {
@@ -921,7 +1003,7 @@
           "qualname": "dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 701
+          "line": 709
         },
         {
           "key": "services.events.notification_outbox:get_stats",
@@ -929,7 +1011,7 @@
           "qualname": "get_stats",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 590
+          "line": 598
         },
         {
           "key": "services.events.notification_outbox:list_dead_letters",
@@ -937,7 +1019,7 @@
           "qualname": "list_dead_letters",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 632
+          "line": 640
         },
         {
           "key": "services.events.notification_outbox:replay_dead_letter",
@@ -945,7 +1027,7 @@
           "qualname": "replay_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 659
+          "line": 667
         },
         {
           "key": "services.events.retention:event_retention_cleanup_enabled",
@@ -970,6 +1052,18 @@
           "callee": "services.common.smtp:validate_settings",
           "source": "services/common/smtp.py",
           "line": 54
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 116
+        },
+        {
+          "caller": "services.core.features:require_feature",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/core/features.py",
+          "line": 260
         },
         {
           "caller": "services.events.bus:EventBus._claim",
@@ -1101,505 +1195,535 @@
           "caller": "services.events.cli:_get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/events/cli.py",
-          "line": 499
+          "line": 528
         },
         {
           "caller": "services.events.cli:_run_worker",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 76
+          "line": 91
         },
         {
           "caller": "services.events.cli:_run_worker",
           "callee": "services.common.errors:safe_exception_class",
+          "source": "services/events/cli.py",
+          "line": 99
+        },
+        {
+          "caller": "services.events.cli:_run_worker",
+          "callee": "services.common.errors:safe_exception_class",
+          "source": "services/events/cli.py",
+          "line": 108
+        },
+        {
+          "caller": "services.events.cli:_run_worker",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/events/cli.py",
+          "line": 56
+        },
+        {
+          "caller": "services.events.cli:_run_worker",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/events/cli.py",
+          "line": 57
+        },
+        {
+          "caller": "services.events.cli:_run_worker",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/events/cli.py",
+          "line": 60
+        },
+        {
+          "caller": "services.events.cli:_run_worker",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/events/cli.py",
+          "line": 61
+        },
+        {
+          "caller": "services.events.cli:_run_worker",
+          "callee": "services.events.backend:get_event_store",
+          "source": "services/events/cli.py",
+          "line": 78
+        },
+        {
+          "caller": "services.events.cli:_run_worker",
+          "callee": "services.events.notification_delivery_worker:run_once",
           "source": "services/events/cli.py",
           "line": 84
         },
         {
           "caller": "services.events.cli:_run_worker",
-          "callee": "services.common.errors:safe_exception_class",
-          "source": "services/events/cli.py",
-          "line": 93
-        },
-        {
-          "caller": "services.events.cli:_run_worker",
-          "callee": "services.core.features:is_enabled",
-          "source": "services/events/cli.py",
-          "line": 54
-        },
-        {
-          "caller": "services.events.cli:_run_worker",
-          "callee": "services.core.features:is_enabled",
-          "source": "services/events/cli.py",
-          "line": 55
-        },
-        {
-          "caller": "services.events.cli:_run_worker",
-          "callee": "services.events.backend:get_event_store",
-          "source": "services/events/cli.py",
-          "line": 70
-        },
-        {
-          "caller": "services.events.cli:_run_worker",
           "callee": "services.events.notification_outbox:deliver_batch",
           "source": "services/events/cli.py",
-          "line": 77
+          "line": 92
         },
         {
           "caller": "services.events.cli:cmd_add_rule",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 492
+          "line": 521
         },
         {
           "caller": "services.events.cli:cmd_add_rule",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 488
+          "line": 517
         },
         {
           "caller": "services.events.cli:cmd_add_rule",
           "callee": "services.events.insight_transfer:InsightTransferEngine.add_rule",
           "source": "services/events/cli.py",
-          "line": 489
+          "line": 518
         },
         {
           "caller": "services.events.cli:cmd_cleanup",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 150
+          "line": 175
         },
         {
           "caller": "services.events.cli:cmd_cleanup",
           "callee": "services.events.bus:EventBus.cleanup_old_events",
           "source": "services/events/cli.py",
-          "line": 152
+          "line": 177
         },
         {
           "caller": "services.events.cli:cmd_cleanup",
           "callee": "services.events.bus:EventBus.close",
           "source": "services/events/cli.py",
-          "line": 157
+          "line": 182
         },
         {
           "caller": "services.events.cli:cmd_cleanup",
           "callee": "services.events.retention:require_event_retention_cleanup",
           "source": "services/events/cli.py",
-          "line": 143
+          "line": 168
         },
         {
           "caller": "services.events.cli:cmd_dispose_dead_letter",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 238
+          "line": 263
         },
         {
           "caller": "services.events.cli:cmd_dispose_dead_letter",
           "callee": "services.events.bus:EventBus.close",
           "source": "services/events/cli.py",
-          "line": 246
+          "line": 271
         },
         {
           "caller": "services.events.cli:cmd_dispose_dead_letter",
           "callee": "services.events.bus:EventBus.dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 240
+          "line": 265
         },
         {
           "caller": "services.events.cli:cmd_event_worker",
           "callee": "services.events.cli:_run_worker",
           "source": "services/events/cli.py",
-          "line": 117
+          "line": 132
         },
         {
           "caller": "services.events.cli:cmd_fork_opportunities",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 439
+          "line": 468
         },
         {
           "caller": "services.events.cli:cmd_fork_opportunities",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 438
+          "line": 467
         },
         {
           "caller": "services.events.cli:cmd_fork_opportunities",
           "callee": "services.events.fork_detector:detect_fork_opportunities",
           "source": "services/events/cli.py",
-          "line": 438
+          "line": 467
+        },
+        {
+          "caller": "services.events.cli:cmd_isolated_notification_worker",
+          "callee": "services.events.cli:_run_worker",
+          "source": "services/events/cli.py",
+          "line": 142
         },
         {
           "caller": "services.events.cli:cmd_list_dead_letter",
           "callee": "services.common.database:get_db",
           "source": "services/events/cli.py",
-          "line": 194
+          "line": 219
         },
         {
           "caller": "services.events.cli:cmd_list_handlers",
           "callee": "services.common.database:get_db",
           "source": "services/events/cli.py",
-          "line": 165
+          "line": 190
         },
         {
           "caller": "services.events.cli:cmd_notification_dispose_dead_letter",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 303
+          "line": 328
         },
         {
           "caller": "services.events.cli:cmd_notification_dispose_dead_letter",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 295
+          "line": 320
         },
         {
           "caller": "services.events.cli:cmd_notification_dispose_dead_letter",
           "callee": "services.events.notification_outbox:dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 296
+          "line": 321
         },
         {
           "caller": "services.events.cli:cmd_notification_list_dead_letter",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 275
+          "line": 300
         },
         {
           "caller": "services.events.cli:cmd_notification_list_dead_letter",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 273
+          "line": 298
         },
         {
           "caller": "services.events.cli:cmd_notification_list_dead_letter",
           "callee": "services.events.notification_outbox:list_dead_letters",
           "source": "services/events/cli.py",
-          "line": 274
+          "line": 299
         },
         {
           "caller": "services.events.cli:cmd_notification_process",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 255
+          "line": 280
         },
         {
           "caller": "services.events.cli:cmd_notification_process",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 253
+          "line": 278
         },
         {
           "caller": "services.events.cli:cmd_notification_process",
           "callee": "services.events.notification_outbox:deliver_batch",
           "source": "services/events/cli.py",
-          "line": 254
+          "line": 279
         },
         {
           "caller": "services.events.cli:cmd_notification_replay_dead_letter",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 287
+          "line": 312
         },
         {
           "caller": "services.events.cli:cmd_notification_replay_dead_letter",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 283
+          "line": 308
         },
         {
           "caller": "services.events.cli:cmd_notification_replay_dead_letter",
           "callee": "services.events.notification_outbox:replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 284
+          "line": 309
         },
         {
           "caller": "services.events.cli:cmd_notification_stats",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 265
+          "line": 290
         },
         {
           "caller": "services.events.cli:cmd_notification_stats",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 263
+          "line": 288
         },
         {
           "caller": "services.events.cli:cmd_notification_stats",
           "callee": "services.events.notification_outbox:get_stats",
           "source": "services/events/cli.py",
-          "line": 264
+          "line": 289
         },
         {
           "caller": "services.events.cli:cmd_notification_worker",
           "callee": "services.events.cli:_run_worker",
           "source": "services/events/cli.py",
-          "line": 122
+          "line": 137
         },
         {
           "caller": "services.events.cli:cmd_pending_transfers",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 472
+          "line": 501
         },
         {
           "caller": "services.events.cli:cmd_pending_transfers",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 470
+          "line": 499
         },
         {
           "caller": "services.events.cli:cmd_pending_transfers",
           "callee": "services.events.insight_transfer:InsightTransferEngine.get_pending_transfers",
           "source": "services/events/cli.py",
-          "line": 471
+          "line": 500
         },
         {
           "caller": "services.events.cli:cmd_process",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 42
+          "line": 43
         },
         {
           "caller": "services.events.cli:cmd_process",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 36
+          "line": 37
         },
         {
           "caller": "services.events.cli:cmd_process",
           "callee": "services.events.bus:EventBus.close",
           "source": "services/events/cli.py",
-          "line": 45
+          "line": 46
         },
         {
           "caller": "services.events.cli:cmd_process",
           "callee": "services.events.bus:EventBus.process_pending",
           "source": "services/events/cli.py",
-          "line": 38
+          "line": 39
         },
         {
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 463
+          "line": 492
         },
         {
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 458
+          "line": 487
         },
         {
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.events.insight_transfer:InsightTransferEngine.process_event",
           "source": "services/events/cli.py",
-          "line": 460
+          "line": 489
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 449
+          "line": 478
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 447
+          "line": 476
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
           "callee": "services.events.fork_detector:propose_fork_opportunities",
           "source": "services/events/cli.py",
-          "line": 446
+          "line": 475
         },
         {
           "caller": "services.events.cli:cmd_replay_dead_letter",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 226
+          "line": 251
         },
         {
           "caller": "services.events.cli:cmd_replay_dead_letter",
           "callee": "services.events.bus:EventBus.close",
           "source": "services/events/cli.py",
-          "line": 232
+          "line": 257
         },
         {
           "caller": "services.events.cli:cmd_replay_dead_letter",
           "callee": "services.events.bus:EventBus.replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 228
+          "line": 253
         },
         {
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 481
+          "line": 510
         },
         {
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 479
+          "line": 508
         },
         {
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.events.insight_transfer:InsightTransferEngine.resolve_transfer",
           "source": "services/events/cli.py",
-          "line": 480
+          "line": 509
         },
         {
           "caller": "services.events.cli:cmd_stats",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 128
+          "line": 153
         },
         {
           "caller": "services.events.cli:cmd_stats",
           "callee": "services.events.bus:EventBus.close",
           "source": "services/events/cli.py",
-          "line": 132
+          "line": 157
         },
         {
           "caller": "services.events.cli:cmd_stats",
           "callee": "services.events.bus:EventBus.get_stats",
           "source": "services/events/cli.py",
-          "line": 130
+          "line": 155
         },
         {
           "caller": "services.events.cli:cmd_worker",
           "callee": "services.events.cli:_run_worker",
           "source": "services/events/cli.py",
-          "line": 112
+          "line": 127
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_add_rule",
           "source": "services/events/cli.py",
-          "line": 427
+          "line": 456
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_cleanup",
           "source": "services/events/cli.py",
-          "line": 380
+          "line": 409
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 392
+          "line": 421
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_event_worker",
           "source": "services/events/cli.py",
-          "line": 374
+          "line": 401
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_fork_opportunities",
           "source": "services/events/cli.py",
-          "line": 411
+          "line": 440
+        },
+        {
+          "caller": "services.events.cli:main",
+          "callee": "services.events.cli:cmd_isolated_notification_worker",
+          "source": "services/events/cli.py",
+          "line": 405
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_list_dead_letter",
           "source": "services/events/cli.py",
-          "line": 384
+          "line": 413
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_list_handlers",
           "source": "services/events/cli.py",
-          "line": 382
+          "line": 411
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 409
+          "line": 438
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_list_dead_letter",
           "source": "services/events/cli.py",
-          "line": 398
+          "line": 427
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_process",
           "source": "services/events/cli.py",
-          "line": 394
+          "line": 423
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 402
+          "line": 431
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_stats",
           "source": "services/events/cli.py",
-          "line": 396
+          "line": 425
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_worker",
           "source": "services/events/cli.py",
-          "line": 376
+          "line": 403
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_pending_transfers",
           "source": "services/events/cli.py",
-          "line": 419
+          "line": 448
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_process",
           "source": "services/events/cli.py",
-          "line": 370
+          "line": 397
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_process_event",
           "source": "services/events/cli.py",
-          "line": 417
+          "line": 446
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_propose_fork",
           "source": "services/events/cli.py",
-          "line": 413
+          "line": 442
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 388
+          "line": 417
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_resolve_transfer",
           "source": "services/events/cli.py",
-          "line": 423
+          "line": 452
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_stats",
           "source": "services/events/cli.py",
-          "line": 378
+          "line": 407
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_worker",
           "source": "services/events/cli.py",
-          "line": 372
+          "line": 399
         },
         {
           "caller": "services.events.fork_detector:_refs_json",
@@ -1656,6 +1780,60 @@
           "line": 191
         },
         {
+          "caller": "services.events.notification_delivery_worker:_finish",
+          "callee": "services.events.notification_delivery_worker:_retry_delay_seconds",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 56
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 84
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.core.features:require_feature",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 81
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.core.features:require_feature",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 82
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_delivery_worker:_claim",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 86
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_delivery_worker:_finish",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 89
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_delivery_worker:_validate",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 80
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_outbox:_configured_channels",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 83
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_outbox:deliver_claimed_batch",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 87
+        },
+        {
           "caller": "services.events.notification_outbox:_configured_channels",
           "callee": "services.common.smtp:validate_settings",
           "source": "services/events/notification_outbox.py",
@@ -1705,39 +1883,45 @@
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
-          "callee": "services.events.notification_outbox:_deliver",
-          "source": "services/events/notification_outbox.py",
-          "line": 551
-        },
-        {
-          "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:_finish_attempt",
           "source": "services/events/notification_outbox.py",
-          "line": 560
+          "line": 574
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:claim_batch",
           "source": "services/events/notification_outbox.py",
-          "line": 546
+          "line": 571
+        },
+        {
+          "caller": "services.events.notification_outbox:deliver_batch",
+          "callee": "services.events.notification_outbox:deliver_claimed_batch",
+          "source": "services/events/notification_outbox.py",
+          "line": 572
+        },
+        {
+          "caller": "services.events.notification_outbox:deliver_claimed_batch",
+          "callee": "services.events.notification_outbox:_deliver",
+          "source": "services/events/notification_outbox.py",
+          "line": 550
         },
         {
           "caller": "services.events.notification_outbox:dispose_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 711
+          "line": 719
         },
         {
           "caller": "services.events.notification_outbox:get_stats",
           "callee": "services.events.notification_outbox:_storage_thresholds",
           "source": "services/events/notification_outbox.py",
-          "line": 611
+          "line": 619
         },
         {
           "caller": "services.events.notification_outbox:replay_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 660
+          "line": 668
         },
         {
           "caller": "services.events.retention:require_event_retention_cleanup",
@@ -1808,7 +1992,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.core.features:require_feature",
@@ -1816,7 +2000,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 250
+          "line": 258
         },
         {
           "key": "services.export.dataset_refresh:_dataset_failure_summary",
@@ -1870,7 +2054,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 252
+          "line": 260
         },
         {
           "caller": "services.export.dataset_refresh:get_pg",
@@ -3212,7 +3396,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -3220,7 +3404,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -3228,7 +3412,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.ingestion.baal_indexer:_checksum",
@@ -3364,7 +3548,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.ingestion.baal_indexer:_decode_event",
@@ -3609,7 +3793,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -3617,7 +3801,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.adapters.clickhouse:create_client",
@@ -3633,7 +3817,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.core.features:require_feature",
@@ -3641,7 +3825,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 250
+          "line": 258
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -3729,7 +3913,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.core.adapters.clickhouse:create_client",
@@ -3741,7 +3925,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 252
+          "line": 260
         },
         {
           "caller": "services.ingestion.base:get_clickhouse",
@@ -4512,7 +4696,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -4520,7 +4704,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -4528,7 +4712,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -4536,7 +4720,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.ingestion.climate_data:_estimate_bioclim",
@@ -4618,13 +4802,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.ingestion.climate_worker:_load_location",
@@ -5349,7 +5533,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -5357,7 +5541,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -5365,7 +5549,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.ingestion.eas_provider:execute_eas_query",
@@ -5421,7 +5605,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.ingestion.eas_worker:_fetch_wallet_pages",
@@ -5533,7 +5717,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -5541,7 +5725,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -5549,7 +5733,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.core.features:require_feature",
@@ -5557,7 +5741,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 250
+          "line": 258
         },
         {
           "key": "services.ingestion.data_freshness:_alert_event",
@@ -5677,13 +5861,13 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 252
+          "line": 260
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
@@ -6391,7 +6575,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -6399,7 +6583,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -6407,7 +6591,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -6663,7 +6847,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.ingestion.base:get_db",
@@ -7326,7 +7510,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -7334,7 +7518,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -7342,7 +7526,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -7406,7 +7590,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.ingestion.market_data_worker:ingest",
@@ -8209,7 +8393,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -8217,7 +8401,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -8225,7 +8409,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -8233,7 +8417,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.ingestion.copernicus_remote_sensing:_get_token",
@@ -8411,13 +8595,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
@@ -9006,7 +9190,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -9014,7 +9198,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.common.worker_environment:isolated_worker_key",
@@ -9030,7 +9214,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.ingestion.rpc_provider:_validate_endpoint",
@@ -9126,7 +9310,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.ingestion.rpc_provider:configured_rpc_endpoints",
@@ -10247,7 +10431,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -10255,7 +10439,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -10263,7 +10447,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -10271,7 +10455,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.drivers.base:BaseDriver.__init__",
@@ -10447,13 +10631,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.drivers.base:BaseDriver.__init__",
@@ -11321,7 +11505,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -11329,7 +11513,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -11337,7 +11521,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11345,7 +11529,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -11443,13 +11627,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
@@ -11640,7 +11824,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -11648,7 +11832,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -11656,7 +11840,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11664,7 +11848,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -11770,13 +11954,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.ingestion.weather:build_weather_clickhouse_projection",
@@ -12646,7 +12830,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -12654,7 +12838,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -12662,7 +12846,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -12670,7 +12854,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.metrics.noi_snapshot_worker:main",
@@ -12712,13 +12896,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.metrics.noi_snapshot_worker:main",
@@ -12755,6 +12939,255 @@
           "callee": "services.common.worker_database:get_worker_db",
           "source": "services/metrics/noi_snapshot_worker.py",
           "line": 19
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "isolated_worker",
+      "name": "services.events.notification_delivery_worker",
+      "source_files": [
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/smtp.py",
+        "services/common/worker_database.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/events/notification_delivery_worker.py",
+        "services/events/notification_outbox.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.events.notification_delivery_worker:run_once",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 74
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.smtp:send_message",
+          "module": "services.common.smtp",
+          "qualname": "send_message",
+          "class_scope": null,
+          "source": "services/common/smtp.py",
+          "line": 39
+        },
+        {
+          "key": "services.common.smtp:validate_settings",
+          "module": "services.common.smtp",
+          "qualname": "validate_settings",
+          "class_scope": null,
+          "source": "services/common/smtp.py",
+          "line": 16
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 58
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 94
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 235
+        },
+        {
+          "key": "services.core.features:require_feature",
+          "module": "services.core.features",
+          "qualname": "require_feature",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 258
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
+        },
+        {
+          "key": "services.events.notification_delivery_worker:_claim",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "_claim",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 27
+        },
+        {
+          "key": "services.events.notification_delivery_worker:_finish",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "_finish",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 45
+        },
+        {
+          "key": "services.events.notification_delivery_worker:_retry_delay_seconds",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "_retry_delay_seconds",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 69
+        },
+        {
+          "key": "services.events.notification_delivery_worker:_validate",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "_validate",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 15
+        },
+        {
+          "key": "services.events.notification_delivery_worker:run_once",
+          "module": "services.events.notification_delivery_worker",
+          "qualname": "run_once",
+          "class_scope": null,
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 74
+        },
+        {
+          "key": "services.events.notification_outbox:_configured_channels",
+          "module": "services.events.notification_outbox",
+          "qualname": "_configured_channels",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
+          "line": 158
+        },
+        {
+          "key": "services.events.notification_outbox:_deliver",
+          "module": "services.events.notification_outbox",
+          "qualname": "_deliver",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
+          "line": 434
+        },
+        {
+          "key": "services.events.notification_outbox:deliver_claimed_batch",
+          "module": "services.events.notification_outbox",
+          "qualname": "deliver_claimed_batch",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
+          "line": 544
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.common.smtp:send_message",
+          "callee": "services.common.smtp:validate_settings",
+          "source": "services/common/smtp.py",
+          "line": 54
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 116
+        },
+        {
+          "caller": "services.core.features:require_feature",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/core/features.py",
+          "line": 260
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:_finish",
+          "callee": "services.events.notification_delivery_worker:_retry_delay_seconds",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 56
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 84
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.core.features:require_feature",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 81
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.core.features:require_feature",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 82
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_delivery_worker:_claim",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 86
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_delivery_worker:_finish",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 89
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_delivery_worker:_validate",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 80
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_outbox:_configured_channels",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 83
+        },
+        {
+          "caller": "services.events.notification_delivery_worker:run_once",
+          "callee": "services.events.notification_outbox:deliver_claimed_batch",
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 87
+        },
+        {
+          "caller": "services.events.notification_outbox:_configured_channels",
+          "callee": "services.common.smtp:validate_settings",
+          "source": "services/events/notification_outbox.py",
+          "line": 173
+        },
+        {
+          "caller": "services.events.notification_outbox:_configured_channels",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/events/notification_outbox.py",
+          "line": 166
+        },
+        {
+          "caller": "services.events.notification_outbox:_deliver",
+          "callee": "services.common.smtp:send_message",
+          "source": "services/events/notification_outbox.py",
+          "line": 477
+        },
+        {
+          "caller": "services.events.notification_outbox:_deliver",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/events/notification_outbox.py",
+          "line": 447
+        },
+        {
+          "caller": "services.events.notification_outbox:deliver_claimed_batch",
+          "callee": "services.events.notification_outbox:_deliver",
+          "source": "services/events/notification_outbox.py",
+          "line": 550
         }
       ],
       "callback_edges": [],
@@ -12897,7 +13330,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -12905,7 +13338,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -12913,7 +13346,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -12921,7 +13354,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         }
       ],
       "direct_call_edges": [
@@ -13019,13 +13452,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         }
       ],
       "callback_edges": [],
@@ -13168,7 +13601,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -13176,7 +13609,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -13184,7 +13617,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -13192,7 +13625,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         }
       ],
       "direct_call_edges": [
@@ -13290,13 +13723,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         }
       ],
       "callback_edges": [],
@@ -13439,7 +13872,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -13447,7 +13880,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -13455,7 +13888,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -13463,7 +13896,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         }
       ],
       "direct_call_edges": [
@@ -13561,13 +13994,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         }
       ],
       "callback_edges": [],
@@ -13710,7 +14143,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -13718,7 +14151,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -13726,7 +14159,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -13734,7 +14167,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         }
       ],
       "direct_call_edges": [
@@ -13832,13 +14265,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         }
       ],
       "callback_edges": [],
@@ -13883,7 +14316,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -13891,7 +14324,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -13899,7 +14332,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -13955,7 +14388,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.events.handlers:handle_alert_notification",
@@ -14060,7 +14493,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -14068,7 +14501,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.features:is_enabled",
@@ -14076,7 +14509,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 227
+          "line": 235
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -14140,7 +14573,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.events.handlers:handle_alert_notification",
@@ -14287,7 +14720,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -14295,7 +14728,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 63
+          "line": 64
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -14303,7 +14736,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -14425,13 +14858,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 74
+          "line": 75
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 114
+          "line": 116
         },
         {
           "caller": "services.events.notification_outbox:_notification_payloads",

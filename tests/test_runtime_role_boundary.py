@@ -429,6 +429,54 @@ def test_clickhouse_outbox_worker_provisioning_requires_paired_credentials_and_d
             clickhouse_outbox_user="kokonut_clickhouse_outbox_owner",
             clickhouse_outbox_password="c" * 32,
         )
+
+
+def test_notification_delivery_has_only_bounded_attempt_functions():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/647_isolated_notification_delivery_worker.sql").read_text()
+    runtime_source = (root / "services/migration/runtime_role.py").read_text()
+
+    assert len(runtime_role._NOTIFICATION_DELIVERY_FUNCTIONS) == 2
+    assert set(runtime_role._NOTIFICATION_DELIVERY_FUNCTIONS) <= set(
+        runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    )
+    assert all(
+        (function, "kokonut_notification_delivery_owner")
+        in runtime_role._SECURITY_DEFINER_OWNERS
+        for function in runtime_role._NOTIFICATION_DELIVERY_FUNCTIONS
+    )
+    assert "FOR UPDATE SKIP LOCKED" in migration
+    assert "notification_outbox_attempt" in migration
+    assert "session_user <> 'kokonut_notification_delivery_login'" in migration
+    assert "public.notification_outbox_attempt FROM PUBLIC" in migration
+    assert "FROM PUBLIC" in migration
+    assert "TO kokonut_notification_delivery_login" in migration
+    assert "migration 647 notification-delivery functions" in runtime_source
+
+
+def test_notification_delivery_provisioning_requires_paired_credentials_and_distinct_owner():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(ValueError, match="notification-delivery user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            notification_delivery_user="kokonut_notification_delivery_login",
+        )
+    with pytest.raises(ValueError, match="differ from the notification-delivery function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            notification_delivery_user="kokonut_notification_delivery_owner",
+            notification_delivery_password="n" * 32,
+        )
 def test_global_indexer_logins_receive_only_configured_database_connect_grants():
     source = (
         Path(__file__).resolve().parents[1]

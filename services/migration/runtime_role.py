@@ -103,6 +103,10 @@ _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS = (
     "kokonut_security.claim_clickhouse_outbox_batch(text,integer)",
     "kokonut_security.finish_clickhouse_outbox_delivery(uuid,text,uuid,boolean,text,integer,boolean)",
 )
+_NOTIFICATION_DELIVERY_FUNCTIONS = (
+    "kokonut_security.claim_notification_outbox_batch(text,integer,integer,text[])",
+    "kokonut_security.finish_notification_outbox_attempt(uuid,text,uuid,integer,boolean,text,integer)",
+)
 _SENSOR_INGESTION_FUNCTIONS = (
     "kokonut_security.resolve_sensor_driver_instance(uuid,uuid)",
     "kokonut_security.read_sensor_driver_catalog(uuid)",
@@ -158,6 +162,7 @@ _SECURITY_DEFINER_OWNERS = (
     *((function, "kokonut_baal_indexer_owner") for function in _BAAL_INDEXER_FUNCTIONS),
     *((function, "kokonut_freshness_owner") for function in _FRESHNESS_WORKER_FUNCTIONS),
     *((function, "kokonut_clickhouse_outbox_owner") for function in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS),
+    *((function, "kokonut_notification_delivery_owner") for function in _NOTIFICATION_DELIVERY_FUNCTIONS),
     *(
         (function, "kokonut_sensor_ingestion_owner")
         for function in _SENSOR_INGESTION_FUNCTIONS
@@ -186,6 +191,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     *_BAAL_INDEXER_FUNCTIONS,
     *_FRESHNESS_WORKER_FUNCTIONS,
     *_CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
+    *_NOTIFICATION_DELIVERY_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
     *_REMOTE_SENSING_FUNCTIONS,
 )
@@ -1041,6 +1047,8 @@ def provision_runtime_role(
     freshness_password: str | None = None,
     clickhouse_outbox_user: str | None = None,
     clickhouse_outbox_password: str | None = None,
+    notification_delivery_user: str | None = None,
+    notification_delivery_password: str | None = None,
     sensor_ingestion_user: str | None = None,
     sensor_ingestion_password: str | None = None,
     remote_sensing_user: str | None = None,
@@ -1067,7 +1075,10 @@ def provision_runtime_role(
     snapshot and status functions from migration 436. The Gnosis Moloch login
     can execute only migration 643's fixed cursor, receipt, event, outbox, and
     status functions. The Baal login can execute only migration 644's fixed
-    cursor, protocol/wallet lookup, event, and status functions.
+    cursor, protocol/wallet lookup, event, and status functions. When
+    configured, notification delivery uses only migration 647's bounded claim
+    and attempt-completion functions; operator dead-letter actions remain on
+    the separate reviewed operator path.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -1088,6 +1099,8 @@ def provision_runtime_role(
         raise ValueError("freshness worker user and password must be provided together")
     if (clickhouse_outbox_user is None) != (clickhouse_outbox_password is None):
         raise ValueError("ClickHouse outbox user and password must be provided together")
+    if (notification_delivery_user is None) != (notification_delivery_password is None):
+        raise ValueError("notification-delivery user and password must be provided together")
     if (sensor_ingestion_user is None) != (sensor_ingestion_password is None):
         raise ValueError("sensor-ingestion user and password must be provided together")
     if (remote_sensing_user is None) != (remote_sensing_password is None):
@@ -1132,6 +1145,11 @@ def provision_runtime_role(
         if clickhouse_outbox_user is not None
         else None
     )
+    notification_delivery_ident = (
+        _role_identifier(notification_delivery_user, "notification_delivery_user")
+        if notification_delivery_user is not None
+        else None
+    )
     sensor_ingestion_ident = (
         _role_identifier(sensor_ingestion_user, "sensor_ingestion_user")
         if sensor_ingestion_user is not None
@@ -1159,6 +1177,8 @@ def provision_runtime_role(
         role_names.append(freshness_user)
     if clickhouse_outbox_user is not None:
         role_names.append(clickhouse_outbox_user)
+    if notification_delivery_user is not None:
+        role_names.append(notification_delivery_user)
     if sensor_ingestion_user is not None:
         role_names.append(sensor_ingestion_user)
     if remote_sensing_user is not None:
@@ -1179,13 +1199,15 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the freshness function owner")
     if "kokonut_clickhouse_outbox_owner" in role_names:
         raise ValueError("application logins must differ from the ClickHouse outbox function owner")
+    if "kokonut_notification_delivery_owner" in role_names:
+        raise ValueError("application logins must differ from the notification-delivery function owner")
     if "kokonut_sensor_ingestion_owner" in role_names:
         raise ValueError("application logins must differ from the sensor-ingestion function owner")
     if "kokonut_remote_sensing_owner" in role_names:
         raise ValueError("application logins must differ from the remote-sensing function owner")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, sensor-ingestion, and remote-sensing roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, sensor-ingestion, and remote-sensing roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1209,6 +1231,8 @@ def provision_runtime_role(
         credential_pairs.append(("freshness_password", freshness_password))
     if clickhouse_outbox_password is not None:
         credential_pairs.append(("clickhouse_outbox_password", clickhouse_outbox_password))
+    if notification_delivery_password is not None:
+        credential_pairs.append(("notification_delivery_password", notification_delivery_password))
     if sensor_ingestion_password is not None:
         credential_pairs.append(("sensor_ingestion_password", sensor_ingestion_password))
     if remote_sensing_password is not None:
@@ -1233,6 +1257,8 @@ def provision_runtime_role(
         passwords.append(freshness_password)
     if clickhouse_outbox_password is not None:
         passwords.append(clickhouse_outbox_password)
+    if notification_delivery_password is not None:
+        passwords.append(notification_delivery_password)
     if sensor_ingestion_password is not None:
         passwords.append(sensor_ingestion_password)
     if remote_sensing_password is not None:
@@ -1249,6 +1275,7 @@ def provision_runtime_role(
     baal_indexer_database_access: dict[str, bool] = {}
     freshness_database_access: dict[str, bool] = {}
     clickhouse_outbox_database_access: dict[str, bool] = {}
+    notification_delivery_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
     remote_sensing_database_access: dict[str, bool] = {}
     conn.autocommit = True
@@ -1376,6 +1403,18 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "migration 646 ClickHouse outbox functions must be applied before "
                     "provisioning its dedicated login"
+                )
+        if notification_delivery_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "to_regprocedure(%s)" for _ in _NOTIFICATION_DELIVERY_FUNCTIONS
+                ),
+                _NOTIFICATION_DELIVERY_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 647 notification-delivery functions must be applied "
+                    "before provisioning its dedicated login"
                 )
         if sensor_ingestion_user is not None:
             cur.execute(
@@ -1778,6 +1817,48 @@ def provision_runtime_role(
                         sql.SQL(function), clickhouse_outbox_ident
                     )
                 )
+        if notification_delivery_user is not None:
+            assert notification_delivery_ident is not None
+            assert notification_delivery_password is not None
+            _ensure_login_role(
+                cur,
+                name=notification_delivery_user,
+                identifier=notification_delivery_ident,
+                password=notification_delivery_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=notification_delivery_user,
+                identifier=notification_delivery_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), notification_delivery_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), notification_delivery_ident
+                    )
+                )
+                cur.execute(
+                    sql.SQL("REVOKE CREATE ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), notification_delivery_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    notification_delivery_ident
+                )
+            )
+            for function in _NOTIFICATION_DELIVERY_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), notification_delivery_ident
+                    )
+                )
         if sensor_ingestion_user is not None:
             assert sensor_ingestion_ident is not None and sensor_ingestion_password is not None
             _ensure_login_role(
@@ -1906,6 +1987,8 @@ def provision_runtime_role(
             protected_login_idents.append(freshness_ident)
         if clickhouse_outbox_ident is not None:
             protected_login_idents.append(clickhouse_outbox_ident)
+        if notification_delivery_ident is not None:
+            protected_login_idents.append(notification_delivery_ident)
         if sensor_ingestion_ident is not None:
             protected_login_idents.append(sensor_ingestion_ident)
         if remote_sensing_ident is not None:
@@ -2346,6 +2429,8 @@ def provision_runtime_role(
             checked_login_names.append(freshness_user)
         if clickhouse_outbox_user is not None:
             checked_login_names.append(clickhouse_outbox_user)
+        if notification_delivery_user is not None:
+            checked_login_names.append(notification_delivery_user)
         for role_name in checked_login_names:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -2827,6 +2912,14 @@ def provision_runtime_role(
                 "ClickHouse outbox worker",
                 runtime_user,
             )
+        if notification_delivery_user is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                notification_delivery_user,
+                _NOTIFICATION_DELIVERY_FUNCTIONS,
+                "notification-delivery worker",
+                runtime_user,
+            )
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
@@ -2864,6 +2957,16 @@ def provision_runtime_role(
             if cur.fetchone() != (True, False):
                 raise RuntimeError(
                     "notification-enqueue login has unsafe security schema privileges"
+                )
+        if notification_delivery_user is not None:
+            cur.execute(
+                "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+                "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
+                (notification_delivery_user, notification_delivery_user),
+            )
+            if cur.fetchone() != (True, False):
+                raise RuntimeError(
+                    "notification-delivery login has unsafe security schema privileges"
                 )
         for function in (
             *_PRIVATE_RUNTIME_FUNCTIONS,
@@ -3017,6 +3120,24 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "ClickHouse outbox login must connect only to its configured database"
                 )
+        if notification_delivery_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (notification_delivery_user,),
+            )
+            notification_delivery_database_access = {
+                name: allowed for name, allowed in cur.fetchall()
+            }
+            if any(
+                allowed != (name == database)
+                for name, allowed in notification_delivery_database_access.items()
+            ):
+                raise RuntimeError(
+                    "notification-delivery login must connect only to its configured database"
+                )
         if sensor_ingestion_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -3053,6 +3174,7 @@ def provision_runtime_role(
         "baal_indexer_user": baal_indexer_user,
         "freshness_user": freshness_user,
         "clickhouse_outbox_user": clickhouse_outbox_user,
+        "notification_delivery_user": notification_delivery_user,
         "sensor_ingestion_user": sensor_ingestion_user,
         "remote_sensing_user": remote_sensing_user,
         "public_connect_revoked_from": sorted(database_names),
@@ -3065,6 +3187,7 @@ def provision_runtime_role(
         "baal_indexer_connect_grants": baal_indexer_database_access,
         "freshness_worker_connect_grants": freshness_database_access,
         "clickhouse_outbox_worker_connect_grants": clickhouse_outbox_database_access,
+        "notification_delivery_worker_connect_grants": notification_delivery_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "remote_sensing_connect_grants": remote_sensing_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
@@ -3096,6 +3219,7 @@ def provision_runtime_role(
         "runtime_owns_relations": False,
         "operator_auth_owns_relations": False,
         "notification_enqueue_owns_relations": False,
+        "notification_delivery_owns_relations": False,
         "market_data_owns_relations": False,
         "eas_indexer_owns_relations": False,
         "rpc_indexer_owns_relations": False,
@@ -3147,6 +3271,12 @@ def main() -> int:
     )
     clickhouse_outbox_password = os.environ.get(
         "KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD", ""
+    )
+    notification_delivery_user = os.environ.get(
+        "KOKONUT_NOTIFICATION_DELIVERY_USER", "kokonut_notification_delivery_login"
+    )
+    notification_delivery_password = os.environ.get(
+        "KOKONUT_NOTIFICATION_DELIVERY_PASSWORD", ""
     )
     sensor_ingestion_user = os.environ.get(
         "KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login"
@@ -3210,6 +3340,12 @@ def main() -> int:
             ),
             clickhouse_outbox_password=(
                 clickhouse_outbox_password if clickhouse_outbox_password else None
+            ),
+            notification_delivery_user=(
+                notification_delivery_user if notification_delivery_password else None
+            ),
+            notification_delivery_password=(
+                notification_delivery_password if notification_delivery_password else None
             ),
             sensor_ingestion_user=(
                 sensor_ingestion_user if sensor_ingestion_password else None

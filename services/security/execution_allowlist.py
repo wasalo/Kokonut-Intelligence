@@ -14,6 +14,18 @@ ALLOWED_EVENT_HANDLERS = frozenset(
     }
 )
 
+# Explicit one-shot/long-running worker entrypoints that are not valid
+# database-scheduled commands. Static worker inventories include these roots
+# without adding them to the persisted scheduler allowlist.
+ISOLATED_WORKER_MODULES = frozenset(
+    {
+        "services.events.notification_delivery_worker",
+    }
+)
+ISOLATED_WORKER_ENTRYPOINTS = {
+    "services.events.notification_delivery_worker": "run_once",
+}
+
 ALLOWED_SCHEDULED_MODULES = frozenset(
     {
         "services.analytics.carbon_credit_adjustment_check",

@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 38,
-    "source_files": 105,
-    "execution_sites": 355,
-    "static_literal_sites": 308,
+    "operation_roots": 39,
+    "source_files": 106,
+    "execution_sites": 357,
+    "static_literal_sites": 310,
     "composed_or_variable_sites": 47
   },
   "execution_sites": [
@@ -1206,9 +1206,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:138:12",
+      "id": "services/common/worker_database.py:140:12",
       "source": "services/common/worker_database.py",
-      "line": 138,
+      "line": 140,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -1224,7 +1224,9 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
+        "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox_worker",
@@ -2159,9 +2161,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:168:12",
+      "id": "services/events/cli.py:193:12",
       "source": "services/events/cli.py",
-      "line": 168,
+      "line": 193,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -2176,9 +2178,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:197:12",
+      "id": "services/events/cli.py:222:12",
       "source": "services/events/cli.py",
-      "line": 197,
+      "line": 222,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
@@ -2398,6 +2400,40 @@
       ]
     },
     {
+      "id": "services/events/notification_delivery_worker.py:31:12",
+      "source": "services/events/notification_delivery_worker.py",
+      "line": 31,
+      "column": 12,
+      "scope": "_claim",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.claim_notification_outbox_batch"
+      ],
+      "static_sql_sha256": "0335433d9397bedcfa151082d0aabf388740ad6fcf89b74a401e79d50933d5ef",
+      "operation_refs": [
+        "isolated_worker:services.events.notification_delivery_worker",
+        "scheduled_module:services.events"
+      ]
+    },
+    {
+      "id": "services/events/notification_delivery_worker.py:49:12",
+      "source": "services/events/notification_delivery_worker.py",
+      "line": 49,
+      "column": 12,
+      "scope": "_finish",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "91d31b1fd12dd21b2a0123976dfae17f3e9f83e0c4a0e61784ff0b96eead01b0",
+      "operation_refs": [
+        "isolated_worker:services.events.notification_delivery_worker",
+        "scheduled_module:services.events"
+      ]
+    },
+    {
       "id": "services/events/notification_outbox.py:210:12",
       "source": "services/events/notification_outbox.py",
       "line": 210,
@@ -2414,6 +2450,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -2435,6 +2472,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -2456,6 +2494,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -2475,6 +2514,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -2497,6 +2537,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -2518,6 +2559,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -2541,6 +2583,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -2562,6 +2605,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -2583,6 +2627,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -2604,14 +2649,15 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:593:8",
+      "id": "services/events/notification_outbox.py:601:8",
       "source": "services/events/notification_outbox.py",
-      "line": 593,
+      "line": 601,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -2625,14 +2671,15 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:595:8",
+      "id": "services/events/notification_outbox.py:603:8",
       "source": "services/events/notification_outbox.py",
-      "line": 595,
+      "line": 603,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -2647,14 +2694,15 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:636:8",
+      "id": "services/events/notification_outbox.py:644:8",
       "source": "services/events/notification_outbox.py",
-      "line": 636,
+      "line": 644,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -2668,14 +2716,15 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:666:8",
+      "id": "services/events/notification_outbox.py:674:8",
       "source": "services/events/notification_outbox.py",
-      "line": 666,
+      "line": 674,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2689,14 +2738,15 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:677:8",
+      "id": "services/events/notification_outbox.py:685:8",
       "source": "services/events/notification_outbox.py",
-      "line": 677,
+      "line": 685,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2710,14 +2760,15 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:689:8",
+      "id": "services/events/notification_outbox.py:697:8",
       "source": "services/events/notification_outbox.py",
-      "line": 689,
+      "line": 697,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2731,14 +2782,15 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:717:8",
+      "id": "services/events/notification_outbox.py:725:8",
       "source": "services/events/notification_outbox.py",
-      "line": 717,
+      "line": 725,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -2752,14 +2804,15 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:728:8",
+      "id": "services/events/notification_outbox.py:736:8",
       "source": "services/events/notification_outbox.py",
-      "line": 728,
+      "line": 736,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -2773,14 +2826,15 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:737:8",
+      "id": "services/events/notification_outbox.py:745:8",
       "source": "services/events/notification_outbox.py",
-      "line": 737,
+      "line": 745,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -2794,6 +2848,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]

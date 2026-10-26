@@ -736,6 +736,41 @@ services:
     profiles:
       - worker
 
+  notification-kernel-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: ["python3", "-m", "services.events", "--isolated-notification-worker", "--worker-id", "notification-kernel-worker"]
+    user: appuser
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_FEATURE_NOTIFICATION_DELIVERY: ${KOKONUT_FEATURE_NOTIFICATION_DELIVERY:-true}
+      KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY: ${KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY:-true}
+      KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL: ${KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    profiles:
+      - notification-isolated
+
   # Opt-in database scheduler. The cron worker remains unchanged to avoid
   # silently running both dispatch mechanisms during migration.
   kokonut-scheduler:
