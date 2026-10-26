@@ -1,0 +1,44 @@
+{
+  "candidate_or_legacy_modified": false,
+  "checks": {
+    "allowlisted_handler_succeeded_before_and_after_restart": true,
+    "external_provider_calls": 0,
+    "isolated_dispatch_worker_alive_during_database_outage": true,
+    "isolated_dispatch_worker_reconnected_after_restart": true,
+    "isolated_events_completed_before_and_after_restart": true,
+    "isolated_unregistered_events_created_zero_handler_receipts": true,
+    "isolated_worker_id": "isolated-event-dispatch-reconnect-probe",
+    "legacy_event_and_notification_workers_alive_during_outage": true,
+    "legacy_workers_reconnected_after_restart": true,
+    "loopback_webhook_calls": 5,
+    "notification_attempt_history_after_crash": "lease_lost,succeeded",
+    "notification_worker_crash_lease_reclaimed": true,
+    "synthetic_webhook_retry_reused_notification_idempotency_key": true
+  },
+  "credential_scope": "Synthetic random password for the disposable kokonut_event_dispatch_login only; not persisted or printed.",
+  "database_image": "postgres:16-alpine",
+  "database_port_binding": "127.0.0.1 only",
+  "database_volume": false,
+  "fixture_schema_shims": [
+    "notification_outbox.location_id from migration 406"
+  ],
+  "limitations": [
+    "Only migrations 116, 165, 375, and 648 were replayed; the full ordered schema ledger was not applied.",
+    "The optional notification_outbox.location_id column from migration 406 is represented by a fixture shim because its unrelated sensor prerequisites are outside this recovery check.",
+    "The real allowlisted alert-notification handler and webhook ran only against a temporary loopback HTTP server; the handler was not used for the isolated dispatcher probe.",
+    "This proves bounded software process recovery only; production-duration recovery, live handler/provider outage, live credential rollout, legacy-to-isolated handoff, physical Raspberry Pi, and long-duration acceptance remain open."
+  ],
+  "migrations_replayed": [
+    "116_event_bus.sql",
+    "165_event_bus_durability.sql",
+    "375_notification_outbox.sql",
+    "648_isolated_event_dispatch_worker.sql"
+  ],
+  "result": "passed",
+  "run_date_utc": "2026-10-26",
+  "scope": "Legacy event/notification and isolated migration-648 EventBus worker reconnect acceptance",
+  "source_sha256": {
+    "schemas/postgres/648_isolated_event_dispatch_worker.sql": "563798bc60adf358e110bb9ff6a5353b3e4966ea5fd08e4dd08d2d0224f83303",
+    "scripts/check-event-worker-reconnect-disposable.py": "c7f12c270895f726596475f3f023a3a116dab3604cc39c8e9bb813ef786abf9a"
+  }
+}

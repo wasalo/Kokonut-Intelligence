@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise separate event and notification workers across a PostgreSQL restart."""
+"""Exercise event workers, notification delivery, and database recovery."""
 
 from __future__ import annotations
 
@@ -68,7 +68,11 @@ def _start_worker_process(
     worker_id: str,
     env: dict[str, str],
 ) -> tuple[subprocess.Popen[str], list[str], queue.Queue[str | None]]:
-    if command not in {"cmd_event_worker", "cmd_notification_worker"}:
+    if command not in {
+        "cmd_event_worker",
+        "cmd_isolated_event_worker",
+        "cmd_notification_worker",
+    }:
         raise ValueError("unsupported worker command")
     lines: list[str] = []
     output: queue.Queue[str | None] = queue.Queue()
@@ -236,6 +240,24 @@ def _wait_for_completed(name: str, event_id: str, timeout: float) -> tuple[str, 
     raise TimeoutError("EventBus worker did not complete the synthetic event")
 
 
+def _wait_for_isolated_event(
+    name: str, event_id: str, worker_id: str, timeout: float
+) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        values = _sql(
+            name,
+            "SELECT e.status, COALESCE(e.worker_id, ''), "
+            "(SELECT count(*) FROM event_handler_delivery d WHERE d.event_id=e.id) "
+            "FROM platform_event e "
+            f"WHERE e.id = '{event_id}'",
+        ).split("|")
+        if values == ["completed", worker_id, "0"]:
+            return
+        time.sleep(0.25)
+    raise TimeoutError("isolated EventBus worker did not complete the synthetic event")
+
+
 def _drain_output(output: queue.Queue[str | None], lines: list[str]) -> None:
     while True:
         try:
@@ -310,10 +332,14 @@ def main() -> int:
     password = secrets.token_urlsafe(24)
     event_process: subprocess.Popen[str] | None = None
     notification_process: subprocess.Popen[str] | None = None
+    isolated_event_process: subprocess.Popen[str] | None = None
     worker_id = "event-worker-reconnect-probe"
     notification_worker_id = "notification-worker-reconnect-probe"
+    isolated_worker_id = "isolated-event-dispatch-reconnect-probe"
     notification_lines: list[str] = []
     notification_output: queue.Queue[str | None] = queue.Queue()
+    isolated_lines: list[str] = []
+    isolated_output: queue.Queue[str | None] = queue.Queue()
     event_type = "threshold_breached"
     webhook_server: ThreadingHTTPServer | None = None
     webhook_thread: threading.Thread | None = None
@@ -567,6 +593,62 @@ def main() -> int:
         if attempt_history != "lease_lost,succeeded":
             raise RuntimeError("worker-crash attempt history was not lease_lost then succeeded")
 
+        # Stop the compatibility dispatcher before exercising migration 648's
+        # dedicated identity so the same event table has exactly one claimant.
+        for process in (event_process, notification_process):
+            if process is not None and process.poll() is None:
+                process.send_signal(signal.SIGINT)
+                process.wait(timeout=5)
+
+        event_dispatch_password = secrets.token_urlsafe(32)
+        migration_648 = (
+            ROOT / "schemas" / "postgres" / "648_isolated_event_dispatch_worker.sql"
+        ).read_text(encoding="utf-8")
+        _docker(
+            "exec", "-i", name, "psql", "-X", "-v", "ON_ERROR_STOP=1",
+            "-h", "127.0.0.1", "-U", "kokonut", "-d", "kokonut_intelligence",
+            check=True, stdin=migration_648,
+        )
+        _sql(
+            name,
+            "ALTER ROLE kokonut_event_dispatch_login WITH LOGIN PASSWORD "
+            f"'{event_dispatch_password}'",
+        )
+        isolated_env = env.copy()
+        for shared_name in (
+            "DATABASE_URL", "PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASSWORD",
+            "POSTGRES_PASSWORD", "KOKONUT_DB_ADMIN_USER", "KOKONUT_DB_ADMIN_PASSWORD",
+        ):
+            isolated_env.pop(shared_name, None)
+        isolated_env.update(
+            {
+                "KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH": "true",
+                "KOKONUT_ISOLATED_WORKER_KEY": "event_dispatch",
+                "KOKONUT_EVENT_DISPATCH_DATABASE_URL": (
+                    "postgresql://kokonut_event_dispatch_login:"
+                    f"{event_dispatch_password}@127.0.0.1:{port}/kokonut_intelligence"
+                    "?connect_timeout=2"
+                ),
+            }
+        )
+        isolated_event_process, isolated_lines, isolated_output = _start_worker_process(
+            "cmd_isolated_event_worker", isolated_worker_id, isolated_env
+        )
+        isolated_before = _enqueue(name, "isolated_reconnect_probe")
+        _wait_for_isolated_event(name, isolated_before, isolated_worker_id, timeout)
+
+        _docker("stop", "--time", "1", name)
+        _wait_for_log(
+            isolated_event_process, isolated_lines, isolated_output,
+            "Event worker iteration failed", timeout, "isolated event worker",
+        )
+        if isolated_event_process.poll() is not None:
+            raise RuntimeError("isolated event worker exited during the database outage")
+        _docker("start", name)
+        _wait_until_ready(name, timeout)
+        isolated_after = _enqueue(name, "isolated_reconnect_probe")
+        _wait_for_isolated_event(name, isolated_after, isolated_worker_id, timeout)
+
         result.update(
             {
                 "result": "passed",
@@ -588,6 +670,11 @@ def main() -> int:
                 "worker_crash_lease_reclaimed": True,
                 "duplicate_delivery_reused_idempotency_key": True,
                 "worker_crash_attempt_history": attempt_history,
+                "isolated_event_worker_alive_during_outage": True,
+                "isolated_event_worker_reconnected_after_restart": True,
+                "isolated_event_before_restart_completed_without_handler_receipts": True,
+                "isolated_event_after_restart_completed_without_handler_receipts": True,
+                "isolated_event_worker_id": isolated_worker_id,
                 "source_notification_idempotency_keys_distinct": True,
                 "loopback_webhook_calls": 5,
                 "worker_id": worker_id,
@@ -596,6 +683,7 @@ def main() -> int:
                     "116_event_bus.sql",
                     "165_event_bus_durability.sql",
                     "375_notification_outbox.sql",
+                    "648_isolated_event_dispatch_worker.sql",
                 ],
                 "fixture_schema_shims": [
                     "notification_outbox.location_id from migration 406",
@@ -607,12 +695,14 @@ def main() -> int:
                     "The local server returned one synthetic 503, then accepted the retry and the post-restart notification. The first notification recovered from retryable/failed to succeeded/succeeded; its retry reused the same durable notification ID as the idempotency key.",
                     "A third notification request was received while its worker was blocked before receiving the HTTP response. The process was killed, its lease expired in the fixture, and a one-shot replacement worker reclaimed it; the attempt history was lease_lost then succeeded, and the duplicate request reused the same idempotency key.",
                     "All five loopback requests carried their matching durable notification IDs as idempotency keys; retries reused the source notification ID, while the three source events used distinct IDs.",
+                    "The isolated dispatcher used a synthetic dedicated-login password and only its migration-648 bounded functions; its two unregistered synthetic event types completed with zero handler-delivery rows.",
+                    "Both legacy worker processes were stopped before migration 648 was exercised; the isolated dispatcher remained alive during PostgreSQL stop/start and completed a new event after reconnect.",
                     "The PostgreSQL container had no volume and was bound only to loopback.",
                 ],
             }
         )
     finally:
-        for process in (event_process, notification_process):
+        for process in (event_process, notification_process, isolated_event_process):
             if process is not None and process.poll() is None:
                 process.send_signal(signal.SIGINT)
                 try:

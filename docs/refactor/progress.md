@@ -1,3 +1,20 @@
+### Progress addendum — isolated EventBus dispatcher reconnect acceptance, 26 October 2026
+
+The migration-648 isolated EventBus dispatcher now has bounded live-process
+recovery evidence. The disposable PostgreSQL harness starts the worker with a
+synthetic dedicated-login credential, observes its connection failure while
+the database is stopped, restores PostgreSQL, then verifies a fresh synthetic
+event completes under the same worker ID with no handler receipts. Existing
+legacy event/notification reconnect, transient webhook retry, stable
+idempotency key, and notification crash/lease-reclaim checks also pass in the
+same run. The fixture applies migrations 116, 165, 375, and 648, binds its
+database to loopback, and does not access candidate/legacy state or external
+providers. This does not establish real-handler/provider recovery, production
+duration, live dedicated-credential rollout, or the reviewed handoff from the
+legacy dispatcher. Evidence: `docs/refactor/builds/2026-10-26-recovery/event-worker-isolated-dispatch-reconnect.json`.
+Checklist: 1,209 complete / 25 open (1,234 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — slim optional sensor-anomaly ML images, 26 October 2026
 
 The optional sensor-anomaly ML worker now builds as a standalone Python slim
