@@ -592,6 +592,84 @@ describe('Directus hook event registration', () => {
     vi.unstubAllGlobals();
   });
 
+  it('recalculates NOI using the event request database without global fallback', async () => {
+    const actions = new Map<string, (...args: any[]) => Promise<void>>();
+    const globalDatabase = vi.fn();
+    const requestTables: string[] = [];
+    const snapshots: Array<Record<string, unknown>> = [];
+    const requestDatabase = vi.fn((table: string) => {
+      requestTables.push(table);
+      const builder: any = {
+        where: vi.fn(() => builder),
+        first: vi.fn(async () => ({
+          crop_cycle_id: 'cycle-1',
+          location_id: 'location-1',
+          period_start: '2026-01-01T00:00:00Z',
+          period_end: '2026-01-31T00:00:00Z',
+          gross_revenue: '100',
+          returns_discounts: '0',
+          net_revenue: '100',
+          direct_crop_costs: '40',
+          allocated_shared_costs: '10',
+          total_costs: '50',
+          noi: '50',
+          operating_margin_pct: '50',
+          loss_rate_pct: '0',
+        })),
+      };
+      builder.insert = vi.fn((row: Record<string, unknown>) => ({
+        onConflict: vi.fn(() => ({
+          merge: vi.fn(async () => { snapshots.push(row); }),
+        })),
+      }));
+      return builder;
+    });
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: () => undefined,
+        action: (event: string, callback: (...args: any[]) => Promise<void>) => {
+          actions.set(event, callback);
+        },
+        schedule: () => undefined,
+      },
+      { database: globalDatabase, env: {} },
+    );
+
+    for (const event of [
+      'harvest_event.items.create',
+      'sales_event.items.create',
+      'expense_event.items.create',
+    ]) {
+      await actions.get(event)!(
+        { payload: { crop_cycle_id: 'cycle-1' } },
+        { database: requestDatabase },
+      );
+    }
+
+    expect(requestTables).toEqual([
+      'v_crop_cycle_noi', 'noi_snapshot',
+      'v_crop_cycle_noi', 'noi_snapshot',
+      'v_crop_cycle_noi', 'noi_snapshot',
+    ]);
+    expect(snapshots).toHaveLength(3);
+    expect(snapshots[0]).toMatchObject({
+      crop_cycle_id: 'cycle-1',
+      location_id: 'location-1',
+      noi: 50,
+    });
+    expect(globalDatabase).not.toHaveBeenCalled();
+
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await actions.get('harvest_event.items.create')!(
+      { payload: { crop_cycle_id: 'cycle-1' } },
+      { database: undefined },
+    );
+    expect(globalDatabase).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith('[Kokonut] Skipping NOI recalculation: request database unavailable');
+    error.mockRestore();
+  });
+
   it('reports the weekly Directus query as an aggregation, not persisted snapshots', async () => {
     const schedules = new Map<string, () => Promise<void>>();
     const rows = [{ week: '2026-10-19', location_id: 'location-a', activity_count: 3 }];

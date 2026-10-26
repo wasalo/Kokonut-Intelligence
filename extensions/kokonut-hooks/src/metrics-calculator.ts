@@ -45,7 +45,10 @@ export interface NoiBatchResult {
  * Main NOI calculation: reads the shared v_crop_cycle_noi view
  * (single formula owner) and maps it onto the calculation shape.
  */
-export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation> {
+export async function calculateNoi(
+  cropCycleId: string,
+  databaseClient: any = db,
+): Promise<NoiCalculation> {
   const calculation: NoiCalculation = {
     cropCycleId,
     locationId: '',
@@ -66,7 +69,7 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
     },
   };
 
-  const row = await db('v_crop_cycle_noi')
+  const row = await databaseClient('v_crop_cycle_noi')
     .where('crop_cycle_id', cropCycleId)
     .first();
 
@@ -97,7 +100,10 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
 /**
  * Store NOI snapshot in the noi_snapshot table
  */
-export async function storeNoiSnapshot(calc: NoiCalculation): Promise<void> {
+export async function storeNoiSnapshot(
+  calc: NoiCalculation,
+  databaseClient: any = db,
+): Promise<void> {
   const snapshotData = {
     crop_cycle_id: calc.cropCycleId,
     location_id: calc.locationId,
@@ -118,7 +124,7 @@ export async function storeNoiSnapshot(calc: NoiCalculation): Promise<void> {
   };
 
   // Upsert: insert or update existing snapshot for this crop_cycle_id
-  await db('noi_snapshot')
+  await databaseClient('noi_snapshot')
     .insert(snapshotData)
     .onConflict('crop_cycle_id')
     .merge({

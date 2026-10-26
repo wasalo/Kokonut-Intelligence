@@ -3403,3 +3403,18 @@ extension bundle and TypeScript check. No runtime or database was used. The
 source tests do not validate pinned Directus transaction semantics or
 populated-data parity. Evidence:
 `docs/refactor/builds/2026-10-26-recovery/directus-metric-proposal-audit-transaction.json`.
+
+### 26 October 2026 — Directus NOI action request context
+
+The harvest, sales, and expense create actions now pass their Directus event
+context database into `calculateNoi` and `storeNoiSnapshot`. Both calculator
+functions accept an explicit database client and retain their existing module
+default for batch and other callers. The action helper skips recalculation
+when request context is unavailable rather than using the extension-global
+connection. The recalculation remains best-effort and has no durable retry.
+
+The full extension suite passes 99 tests; `npm run build` passes the Directus
+bundle and TypeScript check. Tests use mocks only. Live action-context
+behavior, provider/runtime acceptance, and scheduled-hook identity/scope
+remain open. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-noi-action-request-context.json`.

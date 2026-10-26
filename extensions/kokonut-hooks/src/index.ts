@@ -727,22 +727,31 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     });
   }
 
-  action('harvest_event.items.create', async (meta: Record<string, any>) => {
+  action('harvest_event.items.create', async (
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const payload = meta.payload || meta;
-    await recalculateNoi(payload.crop_cycle_id);
+    await recalculateNoi(payload.crop_cycle_id, context?.database);
   });
 
   // sales_event and expense_event financial mirrors are captured atomically
   // by PostgreSQL migration 434 and delivered by the optional outbox worker.
-  action('sales_event.items.create', async (meta: Record<string, any>) => {
+  action('sales_event.items.create', async (
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const payload = meta.payload || meta;
-    await recalculateNoi(payload.crop_cycle_id);
+    await recalculateNoi(payload.crop_cycle_id, context?.database);
   });
 
-  action('expense_event.items.create', async (meta: Record<string, any>) => {
+  action('expense_event.items.create', async (
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const payload = meta.payload || meta;
     if (payload.crop_cycle_id) {
-      await recalculateNoi(payload.crop_cycle_id);
+      await recalculateNoi(payload.crop_cycle_id, context?.database);
     }
   });
 
@@ -798,11 +807,15 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
   }
 });
 
-async function recalculateNoi(cropCycleId: string | undefined) {
+async function recalculateNoi(cropCycleId: string | undefined, requestDatabase: any) {
   if (!cropCycleId) return;
+  if (typeof requestDatabase !== 'function') {
+    console.error('[Kokonut] Skipping NOI recalculation: request database unavailable');
+    return;
+  }
   try {
-    const calc = await calculateNoi(cropCycleId);
-    await storeNoiSnapshot(calc);
+    const calc = await calculateNoi(cropCycleId, requestDatabase);
+    await storeNoiSnapshot(calc, requestDatabase);
     console.log(`[Kokonut] NOI recalculated for crop cycle: ${cropCycleId}`);
   } catch (error) {
     console.error(`[Kokonut] Failed to recalulate NOI for ${cropCycleId}: ${errorClass(error)}`);

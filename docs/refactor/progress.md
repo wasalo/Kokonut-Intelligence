@@ -19416,3 +19416,19 @@ transaction behavior and populated metric-proposal parity remain open.
 Capability classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows. Checklist: 1,223 complete / 25 open (1,248 total).
 Evidence: `docs/refactor/builds/2026-10-26-recovery/directus-metric-proposal-audit-transaction.json`.
+
+### Progress addendum — Directus NOI action request context, 26 October 2026
+
+The harvest, sales, and expense create actions now pass Directus's event
+database into NOI view reads and snapshot writes. The shared calculation
+functions accept an explicit database while keeping their existing configured
+default for batch and non-Directus callers. If an action has no database
+context, it skips recalculation and does not use the extension-global handle.
+
+The full extension suite passes 99 tests; the extension bundle and TypeScript
+check pass. These are mocked source checks only. Durable retry, live Directus
+event context, scheduled-hook identity/scope, and populated-data parity remain
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows. Checklist: 1,224 complete / 25 open
+(1,249 total). Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-noi-action-request-context.json`.
