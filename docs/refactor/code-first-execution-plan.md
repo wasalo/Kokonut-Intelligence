@@ -3358,3 +3358,14 @@ and limitations are in
 `builds/2026-10-26-recovery/directus-tenant-update-transaction-boundary.json`.
 Broader permission, field, relation, hook, schedule, and pinned-runtime parity
 remain open.
+
+### 26 October 2026 — Directus feedback-review transaction boundary
+
+Stakeholder-feedback publish/reject review evidence now inserts in the
+request-bound pre-update filter after transition validation and before the
+item write. The same request database is used; insert failure aborts the filter
+and clears the pending transition marker. The extension suite passes 93 tests,
+and its bundler and TypeScript check pass. No database or Directus runtime was
+used. Evidence: `builds/2026-10-26-recovery/directus-feedback-review-atomicity.json`.
+This does not establish pinned-runtime transaction semantics or populated
+review parity.

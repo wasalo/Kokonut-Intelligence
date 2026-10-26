@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import registerHook, { resolveHookDatabase } from './index.js';
+import { consumePendingTransition } from './workflow.js';
 
 describe('Directus hook event registration', () => {
   it('uses collection-qualified Directus item event names', () => {
@@ -196,42 +197,79 @@ describe('Directus hook event registration', () => {
     expect(globalDatabase).not.toHaveBeenCalled();
   });
 
-  it('stores the authenticated actor separately from the staff reviewer reference', async () => {
+  it('records feedback decisions through the request transaction before the item update', async () => {
     const feedbackId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const directusUserId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
     const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
-    const database = (table: string) => ({
-      insert: async (row: Record<string, unknown>) => {
-        inserts.push({ table, row });
-      },
+    const operations: string[] = [];
+    const statuses = ['verified', 'verified', 'submitted', 'submitted', 'verified', 'verified'];
+    const requestDatabase = vi.fn((table: string) => {
+      const builder: any = {
+        where: vi.fn(() => builder),
+        first: vi.fn(async () => {
+          if (table === 'stakeholder_feedback') {
+            operations.push('feedback-read');
+            return {
+              status: statuses.shift(),
+              is_public: false,
+              submitted_at: '2020-01-01T00:00:00Z',
+            };
+          }
+          return undefined;
+        }),
+        insert: vi.fn(async (row: Record<string, unknown>) => {
+          operations.push('review-insert');
+          inserts.push({ table, row });
+        }),
+      };
+      return builder;
     });
-    const actions = new Map<string, Array<(...args: any[]) => Promise<void>>>();
+    const globalDatabase = vi.fn();
+    const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();
 
     (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
       {
-        filter: () => undefined,
-        action: (event: string, callback: (...args: any[]) => Promise<void>) => {
-          const callbacks = actions.get(event) || [];
+        filter: (event: string, callback: (...args: any[]) => Promise<any>) => {
+          const callbacks = filters.get(event) || [];
           callbacks.push(callback);
-          actions.set(event, callbacks);
+          filters.set(event, callbacks);
         },
+        action: () => undefined,
         schedule: () => undefined,
       },
-      { database, env: {} },
+      { database: globalDatabase, env: {} },
     );
 
-    const feedbackAction = actions.get('stakeholder_feedback.items.update')?.at(-1);
-    expect(feedbackAction).toBeDefined();
-    await feedbackAction!({
+    const feedbackUpdate = filters.get('stakeholder_feedback.items.update')?.at(-1);
+    expect(feedbackUpdate).toBeDefined();
+    const context = { database: requestDatabase };
+    await feedbackUpdate!({ status: 'published' }, {
       keys: [feedbackId],
-      payload: { status: 'published' },
-      accountability: { user: directusUserId },
-    });
-    await feedbackAction!({
+      accountability: { admin: true, user: directusUserId },
+    }, context);
+    await feedbackUpdate!({ status: 'rejected', rejection_reason: 'Please review.' }, {
       keys: [feedbackId],
-      payload: { status: 'rejected', rejection_reason: 'Please review.' },
-      accountability: { user: directusUserId },
-    });
+      accountability: { admin: true, user: directusUserId },
+    }, context);
+
+    await expect(feedbackUpdate!({ status: 'published' }, {
+      keys: [feedbackId],
+      accountability: { admin: true, user: directusUserId },
+    }, {
+      database: vi.fn((table: string) => {
+        const builder: any = {
+          where: vi.fn(() => builder),
+          first: vi.fn(async () => ({
+            status: table === 'stakeholder_feedback' ? 'verified' : undefined,
+            is_public: false,
+            submitted_at: '2020-01-01T00:00:00Z',
+          })),
+          insert: vi.fn(async () => { throw new Error('review storage unavailable'); }),
+        };
+        return builder;
+      }),
+    })).rejects.toThrow('review storage unavailable');
+    expect(consumePendingTransition('stakeholder_feedback', feedbackId)).toBeUndefined();
 
     expect(inserts).toEqual([{
       table: 'stakeholder_feedback_review',
@@ -252,6 +290,11 @@ describe('Directus hook event registration', () => {
         metadata: { actor_directus_user_id: directusUserId },
       },
     }]);
+    expect(operations).toEqual([
+      'feedback-read', 'feedback-read', 'review-insert',
+      'feedback-read', 'feedback-read', 'review-insert',
+    ]);
+    expect(globalDatabase).not.toHaveBeenCalled();
   });
 
   it('binds Directus update reads and workflow checks to the request database', async () => {

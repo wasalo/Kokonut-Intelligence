@@ -575,7 +575,25 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       : {};
     validateStakeholderFeedback({ ...(current || {}), ...payload });
     const validated = parseOrThrow(validateStakeholderFeedbackUpdate, payload);
-    return await applyWorkflow('stakeholder_feedback', validated, meta, requestDatabase);
+    const workflowPayload = await applyWorkflow(
+      'stakeholder_feedback', validated, meta, requestDatabase,
+    );
+    if (recordId && (validated.status === 'published' || validated.status === 'rejected')) {
+      try {
+        await recordFeedbackReview(requestDatabase, {
+          feedbackId: recordId,
+          action: validated.status === 'published' ? 'published_summary' : 'dismissed',
+          responseText: validated.status === 'published'
+            ? 'Public summary published.'
+            : validated.rejection_reason,
+          actorDirectusUserId: getUserId(meta),
+        });
+      } catch (error) {
+        consumePendingTransition('stakeholder_feedback', recordId);
+        throw error;
+      }
+    }
+    return workflowPayload;
   });
 
   filter('metric_proposal.items.update', async (
@@ -695,33 +713,6 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       }
     });
   }
-
-  action('stakeholder_feedback.items.update', async (meta: Record<string, any>) => {
-    const recordId = meta.keys?.[0] ?? meta.keys?.id;
-    const status = meta?.payload?.status;
-    if (!recordId || !status) return;
-
-    const userId = getUserId(meta);
-    if (status === 'published') {
-      await recordFeedbackReview(
-        database, {
-          feedbackId: recordId,
-          action: 'published_summary',
-          responseText: 'Public summary published.',
-          actorDirectusUserId: userId,
-        }
-      );
-    } else if (status === 'rejected') {
-      await recordFeedbackReview(
-        database, {
-          feedbackId: recordId,
-          action: 'dismissed',
-          responseText: meta?.payload?.rejection_reason,
-          actorDirectusUserId: userId,
-        }
-      );
-    }
-  });
 
   action('metric_proposal.items.update', async (meta: Record<string, any>) => {
     const recordId = meta.keys?.[0] ?? meta.keys?.id;

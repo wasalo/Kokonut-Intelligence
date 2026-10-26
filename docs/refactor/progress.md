@@ -1,3 +1,16 @@
+### Progress addendum — Directus feedback-review transaction boundary, 26 October 2026
+
+Stakeholder-feedback publish/reject review evidence now runs inside the
+request-bound pre-update filter, after the workflow transition is validated and
+before Directus writes the item. The review insert uses the request database;
+a storage error rejects the update and clears the cached pending transition.
+Actor attribution and the existing published-summary/dismissed actions are
+preserved. All 93 Directus extension tests pass, as do the extension bundler
+and TypeScript check. No database or Directus runtime was used. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/directus-feedback-review-atomicity.json`.
+Checklist: 1,213 complete / 25 open (1,238 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — Directus tenant update transaction boundary, 26 October 2026
 
 Downstream lifecycle and business filters for all eleven tenant-scoped Directus

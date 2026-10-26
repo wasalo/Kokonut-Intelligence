@@ -57,6 +57,15 @@ bundler, and TypeScript check pass. This remains source/unit evidence, not
 pinned-runtime confirmation. Evidence: [tenant update transaction boundary]
 (builds/2026-10-26-recovery/directus-tenant-update-transaction-boundary.json).
 
+Stakeholder-feedback review entries for publish/reject transitions are now
+written by the request-bound pre-update filter after workflow validation. The
+entry uses the same request database and failure aborts the item update; its
+pending transition marker is cleared on failure. This moves the review effect
+out of the previous post-update action. The full extension suite passes 93
+tests, and the extension bundle/type check pass. Pinned-runtime transaction
+semantics remain open. Evidence: [feedback-review atomicity]
+(builds/2026-10-26-recovery/directus-feedback-review-atomicity.json).
+
 All registered update filters now choose `context.database` when Directus
 provides it and pass that handle to pre-write role, existing-row,
 tenant-reference, and workflow checks. Sales recomputation also reads through
