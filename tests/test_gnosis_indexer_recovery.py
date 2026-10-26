@@ -326,7 +326,7 @@ def test_gnosis_run_skips_previously_claimed_log_before_projecting(monkeypatch):
     monkeypatch.setattr(
         gnosis_indexer,
         "claim_gnosis_event_log",
-        lambda *_args: claimed.append(True) or False,
+        lambda *_args, **_kwargs: claimed.append(True) or False,
     )
 
     gnosis_indexer.run()

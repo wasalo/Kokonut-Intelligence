@@ -271,6 +271,27 @@ def test_market_data_function_is_private_and_owned_by_its_bounded_role():
     ).read_text()
 
 
+def test_gnosis_indexer_has_its_own_execute_only_role_contract():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/643_isolated_gnosis_moloch_indexer.sql").read_text()
+    runtime_source = (root / "services/migration/runtime_role.py").read_text()
+
+    assert len(runtime_role._GNOSIS_INDEXER_FUNCTIONS) == 12
+    assert set(runtime_role._GNOSIS_INDEXER_FUNCTIONS) <= set(
+        runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    )
+    assert all(
+        (function, "kokonut_gnosis_indexer_owner")
+        in runtime_role._SECURITY_DEFINER_OWNERS
+        for function in runtime_role._GNOSIS_INDEXER_FUNCTIONS
+    )
+    assert "session_user <> 'kokonut_gnosis_indexer_login'" in migration
+    assert "FROM PUBLIC" in migration
+    assert "TO kokonut_gnosis_indexer_login" in migration
+    assert "{label} login retains direct relation privileges" in runtime_source
+    assert "migration 643 Gnosis-indexer functions" in runtime_source
+
+
 def test_market_data_dedicated_secret_reaches_only_the_runtime_role_bootstrap():
     root = Path(__file__).resolve().parents[1]
     bootstrap = (root / "docker-compose.kernel-runtime-role.yml").read_text()

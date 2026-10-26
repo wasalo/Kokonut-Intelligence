@@ -94,7 +94,9 @@ def _normalize_hash(value, name: str) -> str:
     return normalized
 
 
-def claim_gnosis_event_log(db, chain: str, log_entry: dict, event_name: str) -> bool:
+def claim_gnosis_event_log(
+    db, chain: str, log_entry: dict, event_name: str, *, persistence=None
+) -> bool:
     """Claim a log identity or reject a same-identity block-hash mismatch.
 
     The caller must keep the receipt and all event/outbox projections in the
@@ -109,6 +111,11 @@ def claim_gnosis_event_log(db, chain: str, log_entry: dict, event_name: str) -> 
         raise ValueError("Gnosis log is missing its block number or log index") from exc
     if log_index < 0 or block_number < 0:
         raise ValueError("Gnosis log block number and log index must be non-negative")
+
+    if persistence is not None:
+        return persistence.claim_event(
+            db, chain, tx_hash, log_index, block_number, block_hash, event_name
+        )
 
     with db.cursor() as cur:
         cur.execute(
@@ -160,9 +167,9 @@ def load_abi() -> list:
         return json.load(f)
 
 
-def get_web3() -> Web3:
+def get_web3(rpc_url: Optional[str] = None) -> Web3:
     """Get Web3 instance for Gnosis Chain."""
-    return Web3(Web3.HTTPProvider(GNOSIS_RPC_URL))
+    return Web3(Web3.HTTPProvider(rpc_url or GNOSIS_RPC_URL))
 
 
 def get_moloch_contract(w3: Web3):
@@ -185,8 +192,10 @@ def fetch_block_timestamp(w3: Web3, block_number: int) -> datetime:
     return datetime.fromtimestamp(block["timestamp"], tz=timezone.utc)
 
 
-def get_wallet_id(db, address: str, chain: str) -> Optional[str]:
+def get_wallet_id(db, address: str, chain: str, *, persistence=None) -> Optional[str]:
     """Look up wallet_id from wallet_profile by address and chain."""
+    if persistence is not None:
+        return persistence.resolve_wallet(db, address, chain)
     with db.cursor() as cur:
         cur.execute(
             "SELECT id FROM wallet_profile WHERE LOWER(address) = LOWER(%s) AND chain = %s",
@@ -196,8 +205,10 @@ def get_wallet_id(db, address: str, chain: str) -> Optional[str]:
         return str(row[0]) if row else None
 
 
-def insert_governance_event(db, record: dict) -> Optional[str]:
+def insert_governance_event(db, record: dict, *, persistence=None) -> Optional[str]:
     """Insert governance event into PostgreSQL. Returns record ID."""
+    if persistence is not None:
+        return persistence.store_governance_event(db, record)
     with db.cursor() as cur:
         cur.execute(
             """
@@ -228,8 +239,10 @@ def insert_governance_event(db, record: dict) -> Optional[str]:
         return str(row[0]) if row else None
 
 
-def insert_treasury_event(db, record: dict) -> Optional[str]:
+def insert_treasury_event(db, record: dict, *, persistence=None) -> Optional[str]:
     """Insert treasury event into PostgreSQL. Returns record ID."""
+    if persistence is not None:
+        return persistence.store_treasury_event(db, record)
     with db.cursor() as cur:
         cur.execute(
             """
@@ -404,8 +417,10 @@ def event_to_action_type(event_name: str) -> str:
     return mapping.get(event_name, "other")
 
 
-def get_location_from_wallet(db, wallet_id: str) -> Optional[str]:
+def get_location_from_wallet(db, wallet_id: str, *, persistence=None) -> Optional[str]:
     """Resolve location_id from wallet_profile.owner_id where owner_type = 'farm'."""
+    if persistence is not None:
+        return persistence.resolve_wallet_location(db, wallet_id)
     with db.cursor() as cur:
         cur.execute(
             "SELECT owner_id FROM wallet_profile WHERE id = %s AND owner_type = 'farm' LIMIT 1",
@@ -415,8 +430,10 @@ def get_location_from_wallet(db, wallet_id: str) -> Optional[str]:
         return str(row[0]) if row else None
 
 
-def insert_dlego_usage(db, record: dict) -> Optional[str]:
+def insert_dlego_usage(db, record: dict, *, persistence=None) -> Optional[str]:
     """Insert digital lego usage event into PostgreSQL. Returns record ID."""
+    if persistence is not None:
+        return persistence.store_digital_lego_usage(db, record)
     with db.cursor() as cur:
         cur.execute(
             """
@@ -447,7 +464,7 @@ def insert_dlego_usage(db, record: dict) -> Optional[str]:
         return str(row[0]) if row else None
 
 
-def insert_dlego_clickhouse(record: dict, conn=None) -> None:
+def insert_dlego_clickhouse(record: dict, conn=None, *, persistence=None) -> None:
     """Queue canonical usage; direct writes are demo-only when conn is absent."""
     usage_date = record.get("usage_date", "")
     if hasattr(usage_date, "strftime"):
@@ -475,10 +492,19 @@ def insert_dlego_clickhouse(record: dict, conn=None) -> None:
     try:
         if conn is not None:
             payload_hash = hash_payload(record)
-            enqueue(conn, event_key=f"governance:dlego_events:{record.get('tx_hash')}:{record.get('action_type')}",
-                    source_table="digital_lego_usage", source_id=str(record.get("tx_hash", "")),
-                    target_table="dlego_events", columns=columns, rows=rows,
-                    payload_hash=payload_hash)
+            enqueue_values = {
+                "event_key": f"governance:dlego_events:{record.get('tx_hash')}:{record.get('action_type')}",
+                "source_table": "digital_lego_usage",
+                "source_id": str(record.get("tx_hash", "")),
+                "target_table": "dlego_events",
+                "columns": columns,
+                "rows": rows,
+                "payload_hash": payload_hash,
+            }
+            if persistence is None:
+                enqueue(conn, **enqueue_values)
+            else:
+                persistence.enqueue_projection(conn, **enqueue_values)
             return
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows(
@@ -491,7 +517,7 @@ def insert_dlego_clickhouse(record: dict, conn=None) -> None:
         logger.warning("ClickHouse dlego insert failed (%s)", type(e).__name__)
 
 
-def insert_activity_clickhouse(record: dict, conn=None) -> None:
+def insert_activity_clickhouse(record: dict, conn=None, *, persistence=None) -> None:
     """Queue canonical governance activity; direct writes are demo-only without conn."""
     timestamp = record.get("block_timestamp", "")
     if isinstance(timestamp, datetime):
@@ -524,10 +550,23 @@ def insert_activity_clickhouse(record: dict, conn=None) -> None:
     try:
         if conn is not None:
             payload_hash = hash_payload(record)
-            enqueue(conn, event_key=f"governance:wallet_events:{tx_hash}:{event_type}",
-                    source_table="governance_event", source_id=tx_hash,
-                    target_table="wallet_events", columns=columns, rows=rows,
-                    payload_hash=payload_hash)
+            enqueue_values = {
+                "event_key": f"governance:wallet_events:{tx_hash}:{event_type}",
+                "source_table": (
+                    "treasury_event"
+                    if record.get("flow_direction") == "outflow"
+                    else "governance_event"
+                ),
+                "source_id": tx_hash,
+                "target_table": "wallet_events",
+                "columns": columns,
+                "rows": rows,
+                "payload_hash": payload_hash,
+            }
+            if persistence is None:
+                enqueue(conn, **enqueue_values)
+            else:
+                persistence.enqueue_projection(conn, **enqueue_values)
             return
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows(
@@ -551,7 +590,40 @@ DECODE_MAP = {
 }
 
 
-def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
+def _update_indexer_status(
+    db,
+    chain: str,
+    last_synced_block: int,
+    status: str,
+    error_message: str | None = None,
+    metadata: dict | None = None,
+    *,
+    persistence=None,
+) -> None:
+    if persistence is None:
+        update_indexer_status(
+            chain,
+            INDEXER_TYPE,
+            last_synced_block,
+            status,
+            error_message,
+            metadata=metadata,
+            db=db,
+        )
+    else:
+        persistence.update_status(
+            db, last_synced_block, status, error_message, metadata or {}
+        )
+
+
+def run(
+    from_block: Optional[int] = None,
+    to_block: Optional[int] = None,
+    *,
+    database_factory=None,
+    rpc_url: str | None = None,
+    persistence=None,
+):
     """Main ingestion entry point."""
     if from_block is not None and from_block < 0:
         raise ValueError("--from-block must be non-negative")
@@ -568,18 +640,25 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
             f"Gnosis block interval cannot exceed {MAX_BLOCKS_PER_RUN} blocks per run"
         )
 
-    w3 = get_web3()
-    db = get_db()
+    w3 = get_web3() if rpc_url is None else get_web3(rpc_url)
+    db = (database_factory or get_db)()
+    lock_acquired = False
 
     chain = KOKONUT_DAO_CHAIN
     try:
-        with db.cursor() as cur:
-            cur.execute(
-                "SELECT last_synced_block, metadata FROM chain_indexer_status "
-                "WHERE chain = %s AND indexer_type = %s",
-                (chain, INDEXER_TYPE),
-            )
-            row = cur.fetchone()
+        if persistence is not None:
+            persistence.acquire_lock(db)
+            db.commit()
+            lock_acquired = True
+            row = persistence.read_cursor(db)
+        else:
+            with db.cursor() as cur:
+                cur.execute(
+                    "SELECT last_synced_block, metadata FROM chain_indexer_status "
+                    "WHERE chain = %s AND indexer_type = %s",
+                    (chain, INDEXER_TYPE),
+                )
+                row = cur.fetchone()
         last_synced = row[0] if row else None
         cursor_metadata = (row[1] or {}) if row else {}
         cursor_review_required = (
@@ -619,13 +698,13 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
         )
         review_metadata = {"cursor_reviewed": True} if cursor_review_required else None
         if start_block > end_block:
-            update_indexer_status(
+            _update_indexer_status(
+                db,
                 chain,
-                INDEXER_TYPE,
                 last_committed_block,
                 "healthy",
                 metadata=review_metadata,
-                db=db,
+                persistence=persistence,
             )
             db.commit()
             logger.info("Already synced to block %d", end_block)
@@ -665,7 +744,9 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                     if not decoder:
                         continue
 
-                    if not claim_gnosis_event_log(db, chain, log_entry, event_name):
+                    if not claim_gnosis_event_log(
+                        db, chain, log_entry, event_name, persistence=persistence
+                    ):
                         continue
 
                     tx_hash = _normalize_hash(
@@ -688,14 +769,14 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                         )
                     elif event_name == "Withdraw":
                         record = decoder(args, tx_hash, block_number, block_timestamp)
-                        insert_treasury_event(db, record)
-                        insert_activity_clickhouse(record, db)
+                        insert_treasury_event(db, record, persistence=persistence)
+                        insert_activity_clickhouse(record, db, persistence=persistence)
                         total_events += 1
 
                         dlego_location = None
                         if record.get("wallet_id"):
                             dlego_location = get_location_from_wallet(
-                                db, record["wallet_id"]
+                                db, record["wallet_id"], persistence=persistence
                             )
                         dlego_record = {
                             "wallet_id": record.get("wallet_id"),
@@ -710,8 +791,8 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                             "block_number": block_number,
                             "verified": True,
                         }
-                        insert_dlego_usage(db, dlego_record)
-                        insert_dlego_clickhouse(dlego_record, db)
+                        insert_dlego_usage(db, dlego_record, persistence=persistence)
+                        insert_dlego_clickhouse(dlego_record, db, persistence=persistence)
                         continue
                     else:
                         record = decoder(args, tx_hash, block_number, block_timestamp)
@@ -722,27 +803,34 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                         or record.get("metadata", {}).get("voter", "")
                     )
                     if proposer:
-                        wallet_id = get_wallet_id(db, proposer, chain)
+                        wallet_id = get_wallet_id(
+                            db, proposer, chain, persistence=persistence
+                        )
                         if wallet_id:
                             record["wallet_id"] = wallet_id
 
-                    with db.cursor() as cur:
-                        cur.execute(
-                            "SELECT id FROM protocol "
-                            "WHERE slug = 'kokonut-treasury' LIMIT 1"
-                        )
-                        row = cur.fetchone()
-                        if row:
-                            record["protocol_id"] = str(row[0])
+                    if persistence is None:
+                        with db.cursor() as cur:
+                            cur.execute(
+                                "SELECT id FROM protocol "
+                                "WHERE slug = 'kokonut-treasury' LIMIT 1"
+                            )
+                            row = cur.fetchone()
+                            if row:
+                                record["protocol_id"] = str(row[0])
+                    else:
+                        protocol_id = persistence.resolve_protocol(db)
+                        if protocol_id:
+                            record["protocol_id"] = protocol_id
 
-                    insert_governance_event(db, record)
-                    insert_activity_clickhouse(record, db)
+                    insert_governance_event(db, record, persistence=persistence)
+                    insert_activity_clickhouse(record, db, persistence=persistence)
                     total_events += 1
 
                     dlego_location = None
                     if record.get("wallet_id"):
                         dlego_location = get_location_from_wallet(
-                            db, record["wallet_id"]
+                            db, record["wallet_id"], persistence=persistence
                         )
                     dlego_record = {
                         "wallet_id": record.get("wallet_id"),
@@ -757,17 +845,17 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                         "block_number": block_number,
                         "verified": True,
                     }
-                    insert_dlego_usage(db, dlego_record)
-                    insert_dlego_clickhouse(dlego_record, db)
+                    insert_dlego_usage(db, dlego_record, persistence=persistence)
+                    insert_dlego_clickhouse(dlego_record, db, persistence=persistence)
 
                 checkpoint = max(last_committed_block, batch_end)
-                update_indexer_status(
+                _update_indexer_status(
+                    db,
                     chain,
-                    INDEXER_TYPE,
                     checkpoint,
                     "syncing",
                     metadata=review_metadata,
-                    db=db,
+                    persistence=persistence,
                 )
                 db.commit()
                 last_committed_block = checkpoint
@@ -775,13 +863,13 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 db.rollback()
                 safe_error = _safe_indexer_failure(exc)
                 try:
-                    update_indexer_status(
+                    _update_indexer_status(
+                        db,
                         chain,
-                        INDEXER_TYPE,
                         last_committed_block,
                         "error",
                         safe_error,
-                        db=db,
+                        persistence=persistence,
                     )
                     db.commit()
                 except Exception as status_exc:
@@ -799,16 +887,26 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 ) from None
 
         final_checkpoint = max(last_committed_block, end_block)
-        update_indexer_status(
+        _update_indexer_status(
+            db,
             chain,
-            INDEXER_TYPE,
             final_checkpoint,
             "healthy",
             metadata=review_metadata,
-            db=db,
+            persistence=persistence,
         )
         db.commit()
     finally:
+        if persistence is not None and lock_acquired:
+            try:
+                persistence.release_lock(db)
+                db.commit()
+            except Exception as lock_error:
+                db.rollback()
+                logger.warning(
+                    "Could not release Gnosis indexer lock (%s)",
+                    type(lock_error).__name__,
+                )
         db.close()
 
     logger.info(

@@ -75,6 +75,10 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--from-block": "block",
         "--to-block": "block",
     },
+    "services.ingestion.gnosis_worker": {
+        "--from-block": "block",
+        "--to-block": "block",
+    },
     "services.ingestion.anomaly_detector": {
         "--sensor": "uuid",
         "--since": "datetime",
@@ -264,7 +268,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         ):
             raise _reject("month and year filtering is only valid for world_bank")
 
-    elif module_path == "services.ingestion.gnosis_indexer":
+    elif module_path in {
+        "services.ingestion.gnosis_indexer",
+        "services.ingestion.gnosis_worker",
+    }:
         has_start = "--from-block" in options
         has_end = "--to-block" in options
         if has_start != has_end:

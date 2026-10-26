@@ -108,7 +108,13 @@ JOBS = MappingProxyType(
             "RPC indexing (legacy compatibility)",
             required_inputs=("chain",),
         ),
-        "gnosis": JobSpec("services.ingestion.gnosis_indexer", (), 600, 2, 300, "Gnosis indexing"),
+        "gnosis": JobSpec(
+            "services.ingestion.gnosis_worker", (), 600, 2, 300, "Gnosis indexing"
+        ),
+        "gnosis_legacy": JobSpec(
+            "services.ingestion.gnosis_indexer", (), 600, 2, 300,
+            "Gnosis indexing (legacy compatibility)",
+        ),
         "anomaly": JobSpec(
             "services.ingestion.anomaly_detector",
             (),
@@ -284,6 +290,11 @@ def run_job(
         # worker. Native Kernel plans still point at the default-off worker.
         job_id = "credit_adjustment_legacy"
         spec = _LEGACY_CREDIT_ADJUSTMENT
+    if job_id == "gnosis" and not is_enabled("isolated_gnosis_indexer_worker"):
+        # Keep persisted Prefect tasks and the manual CLI on their historical
+        # direct runner until the dedicated login is provisioned and enabled.
+        job_id = "gnosis_legacy"
+        spec = JOBS[job_id]
     return _run_job_spec(
         job_id,
         spec,

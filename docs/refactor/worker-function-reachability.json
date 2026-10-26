@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 33,
-    "source_files": 99,
+    "operation_roots": 34,
+    "source_files": 101,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 701,
-    "direct_call_edges": 952,
+    "function_memberships": 738,
+    "direct_call_edges": 1005,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 24
   },
@@ -246,7 +246,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -254,7 +254,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -262,7 +262,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -270,7 +270,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         }
       ],
       "direct_call_edges": [
@@ -332,13 +332,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         }
       ],
       "callback_edges": [],
@@ -433,7 +433,7 @@
           "qualname": "event_handler_worker_policy",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 93
+          "line": 94
         },
         {
           "key": "services.common.worker_environment:worker_subprocess_environment",
@@ -441,7 +441,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 126
+          "line": 127
         },
         {
           "key": "services.core.features:is_enabled",
@@ -449,7 +449,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -1808,7 +1808,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.core.features:require_feature",
@@ -1816,7 +1816,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 222
+          "line": 230
         },
         {
           "key": "services.export.dataset_refresh:_dataset_failure_summary",
@@ -1870,7 +1870,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 224
+          "line": 232
         },
         {
           "caller": "services.export.dataset_refresh:get_pg",
@@ -3615,7 +3615,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -3623,7 +3623,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -3631,7 +3631,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -3639,7 +3639,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.ingestion.climate_data:_estimate_bioclim",
@@ -3721,13 +3721,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.ingestion.climate_worker:_load_location",
@@ -4452,7 +4452,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -4460,7 +4460,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -4468,7 +4468,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.ingestion.eas_provider:execute_eas_query",
@@ -4524,7 +4524,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.ingestion.eas_worker:_fetch_wallet_pages",
@@ -4612,7 +4612,7 @@
         {
           "function": "services.ingestion.gnosis_indexer:main",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 828
+          "line": 938
         }
       ],
       "reachable_functions": [
@@ -4694,7 +4694,7 @@
           "qualname": "_normalize_hash",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 82
+          "line": 83
         },
         {
           "key": "services.ingestion.gnosis_indexer:_safe_indexer_failure",
@@ -4702,7 +4702,15 @@
           "qualname": "_safe_indexer_failure",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 73
+          "line": 74
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "_update_indexer_status",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 593
         },
         {
           "key": "services.ingestion.gnosis_indexer:_validate_ch_value",
@@ -4710,7 +4718,7 @@
           "qualname": "_validate_ch_value",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 146
+          "line": 154
         },
         {
           "key": "services.ingestion.gnosis_indexer:build_parser",
@@ -4718,7 +4726,7 @@
           "qualname": "build_parser",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 810
+          "line": 920
         },
         {
           "key": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
@@ -4726,7 +4734,7 @@
           "qualname": "claim_gnosis_event_log",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 96
+          "line": 97
         },
         {
           "key": "services.ingestion.gnosis_indexer:event_to_action_type",
@@ -4734,7 +4742,7 @@
           "qualname": "event_to_action_type",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 391
+          "line": 405
         },
         {
           "key": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
@@ -4742,7 +4750,7 @@
           "qualname": "fetch_block_timestamp",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 181
+          "line": 189
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_location_from_wallet",
@@ -4750,7 +4758,7 @@
           "qualname": "get_location_from_wallet",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 406
+          "line": 420
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_moloch_contract",
@@ -4758,7 +4766,7 @@
           "qualname": "get_moloch_contract",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 167
+          "line": 175
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_treasury_contract",
@@ -4766,7 +4774,7 @@
           "qualname": "get_treasury_contract",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 174
+          "line": 182
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_wallet_id",
@@ -4774,7 +4782,7 @@
           "qualname": "get_wallet_id",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 187
+          "line": 195
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_web3",
@@ -4782,7 +4790,7 @@
           "qualname": "get_web3",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 162
+          "line": 170
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
@@ -4790,7 +4798,7 @@
           "qualname": "insert_activity_clickhouse",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 493
+          "line": 520
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
@@ -4798,7 +4806,7 @@
           "qualname": "insert_dlego_clickhouse",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 449
+          "line": 467
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_dlego_usage",
@@ -4806,7 +4814,7 @@
           "qualname": "insert_dlego_usage",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 417
+          "line": 433
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_governance_event",
@@ -4814,7 +4822,7 @@
           "qualname": "insert_governance_event",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 198
+          "line": 208
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_treasury_event",
@@ -4822,7 +4830,7 @@
           "qualname": "insert_treasury_event",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 230
+          "line": 242
         },
         {
           "key": "services.ingestion.gnosis_indexer:load_abi",
@@ -4830,7 +4838,7 @@
           "qualname": "load_abi",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 153
+          "line": 161
         },
         {
           "key": "services.ingestion.gnosis_indexer:main",
@@ -4838,7 +4846,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 821
+          "line": 931
         },
         {
           "key": "services.ingestion.gnosis_indexer:run",
@@ -4846,7 +4854,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 553
+          "line": 619
         }
       ],
       "direct_call_edges": [
@@ -4869,80 +4877,92 @@
           "line": 205
         },
         {
-          "caller": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
-          "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
+          "caller": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "callee": "services.ingestion.base:update_indexer_status",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 102
+          "line": 604
         },
         {
           "caller": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
           "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 103
+          "line": 105
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
+          "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 106
         },
         {
           "caller": "services.ingestion.gnosis_indexer:get_moloch_contract",
           "callee": "services.ingestion.gnosis_indexer:load_abi",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 169
+          "line": 177
         },
         {
           "caller": "services.ingestion.gnosis_indexer:get_treasury_contract",
           "callee": "services.ingestion.gnosis_indexer:load_abi",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 176
+          "line": 184
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 525
+          "line": 552
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.base:post_clickhouse_rows",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 532
+          "line": 572
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 526
+          "line": 567
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 507
+          "line": 534
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 511
+          "line": 538
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 515
+          "line": 542
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 476
+          "line": 494
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.base:post_clickhouse_rows",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 483
+          "line": 510
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 505
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
           "line": 477
         },
@@ -4950,187 +4970,817 @@
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 459
+          "line": 481
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 463
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
-          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 467
+          "line": 485
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_treasury_event",
           "callee": "services.ingestion.base:now_utc",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 246
+          "line": 260
         },
         {
           "caller": "services.ingestion.gnosis_indexer:main",
           "callee": "services.ingestion.gnosis_indexer:build_parser",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 823
+          "line": 933
         },
         {
           "caller": "services.ingestion.gnosis_indexer:main",
           "callee": "services.ingestion.gnosis_indexer:run",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 824
+          "line": 934
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.base:batch_ranges",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 634
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.base:get_db",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 563
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.base:update_indexer_status",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 610
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.base:update_indexer_status",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 752
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.base:update_indexer_status",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 766
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.base:update_indexer_status",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 790
+          "line": 725
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 659
+          "line": 752
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:_safe_indexer_failure",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 764
+          "line": 864
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 656
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:event_to_action_type",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 740
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 671
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 685
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 732
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:get_moloch_contract",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 629
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:get_treasury_contract",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 630
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:get_wallet_id",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 713
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:get_web3",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 562
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 680
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 727
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 702
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 749
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.gnosis_indexer:insert_dlego_usage",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
           "source": "services/ingestion/gnosis_indexer.py",
           "line": 701
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 852
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 866
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 890
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 747
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:event_to_action_type",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 840
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 764
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 778
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 832
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_moloch_contract",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 720
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_treasury_contract",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 721
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_wallet_id",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 806
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_web3",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 643
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 773
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 827
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 795
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 849
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_dlego_usage",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 748
+          "line": 794
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_usage",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 848
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_governance_event",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 726
+          "line": 826
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_treasury_event",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 679
+          "line": 772
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.gnosis_worker",
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/ingestion/__init__.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/config.py",
+        "services/ingestion/gnosis_indexer.py",
+        "services/ingestion/gnosis_worker.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.ingestion.gnosis_worker:main",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 172
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.cli:run",
+          "module": "services.common.cli",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 78
+        },
+        {
+          "key": "services.common.database:get_db",
+          "module": "services.common.database",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/common/database.py",
+          "line": 35
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 54
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 90
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 207
+        },
+        {
+          "key": "services.ingestion.base:_validate_ch_identifiers",
+          "module": "services.ingestion.base",
+          "qualname": "_validate_ch_identifiers",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 69
+        },
+        {
+          "key": "services.ingestion.base:batch_ranges",
+          "module": "services.ingestion.base",
+          "qualname": "batch_ranges",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 294
+        },
+        {
+          "key": "services.ingestion.base:get_db",
+          "module": "services.ingestion.base",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 50
+        },
+        {
+          "key": "services.ingestion.base:hash_payload",
+          "module": "services.ingestion.base",
+          "qualname": "hash_payload",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 121
+        },
+        {
+          "key": "services.ingestion.base:now_utc",
+          "module": "services.ingestion.base",
+          "qualname": "now_utc",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 289
+        },
+        {
+          "key": "services.ingestion.base:post_clickhouse_rows",
+          "module": "services.ingestion.base",
+          "qualname": "post_clickhouse_rows",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 95
+        },
+        {
+          "key": "services.ingestion.base:update_indexer_status",
+          "module": "services.ingestion.base",
+          "qualname": "update_indexer_status",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 187
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:enqueue",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "enqueue",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 39
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:_normalize_hash",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "_normalize_hash",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 83
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:_safe_indexer_failure",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "_safe_indexer_failure",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 74
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "_update_indexer_status",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 593
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:_validate_ch_value",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "_validate_ch_value",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 154
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "claim_gnosis_event_log",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 97
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:event_to_action_type",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "event_to_action_type",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 405
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "fetch_block_timestamp",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 189
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:get_location_from_wallet",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "get_location_from_wallet",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 420
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:get_moloch_contract",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "get_moloch_contract",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 175
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:get_treasury_contract",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "get_treasury_contract",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 182
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:get_wallet_id",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "get_wallet_id",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 195
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:get_web3",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "get_web3",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 170
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "insert_activity_clickhouse",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 520
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "insert_dlego_clickhouse",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 467
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:insert_dlego_usage",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "insert_dlego_usage",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 433
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:insert_governance_event",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "insert_governance_event",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 208
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:insert_treasury_event",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "insert_treasury_event",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 242
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:load_abi",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "load_abi",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 161
+        },
+        {
+          "key": "services.ingestion.gnosis_indexer:run",
+          "module": "services.ingestion.gnosis_indexer",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 619
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:_rpc_endpoint",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "_rpc_endpoint",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 21
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:build_parser",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "build_parser",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 159
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:execute",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "execute",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 145
+        },
+        {
+          "key": "services.ingestion.gnosis_worker:main",
+          "module": "services.ingestion.gnosis_worker",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 166
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 111
+        },
+        {
+          "caller": "services.ingestion.base:get_db",
+          "callee": "services.common.database:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 59
+        },
+        {
+          "caller": "services.ingestion.base:post_clickhouse_rows",
+          "callee": "services.ingestion.base:_validate_ch_identifiers",
+          "source": "services/ingestion/base.py",
+          "line": 99
+        },
+        {
+          "caller": "services.ingestion.base:update_indexer_status",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 205
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "callee": "services.ingestion.base:update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 604
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
+          "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 105
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
+          "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 106
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:get_moloch_contract",
+          "callee": "services.ingestion.gnosis_indexer:load_abi",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 177
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:get_treasury_contract",
+          "callee": "services.ingestion.gnosis_indexer:load_abi",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 184
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 552
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "callee": "services.ingestion.base:post_clickhouse_rows",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 572
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "callee": "services.ingestion.clickhouse_outbox:enqueue",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 567
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 534
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 538
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 542
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 494
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "callee": "services.ingestion.base:post_clickhouse_rows",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 510
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "callee": "services.ingestion.clickhouse_outbox:enqueue",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 505
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 477
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 481
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 485
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_treasury_event",
+          "callee": "services.ingestion.base:now_utc",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 260
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.base:batch_ranges",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 725
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 752
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_safe_indexer_failure",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 864
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 701
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 852
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 866
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:_update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 890
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 747
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:event_to_action_type",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 840
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 764
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 778
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 832
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_moloch_contract",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 720
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_treasury_contract",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 721
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_wallet_id",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 806
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:get_web3",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 643
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 773
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 827
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 795
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 849
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_usage",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 794
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_dlego_usage",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 848
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_governance_event",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 826
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.gnosis_indexer:insert_treasury_event",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 772
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:execute",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 153
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:execute",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 147
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:execute",
+          "callee": "services.ingestion.gnosis_indexer:run",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 150
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:execute",
+          "callee": "services.ingestion.gnosis_worker:_rpc_endpoint",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 149
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:main",
+          "callee": "services.common.cli:run",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 168
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:main",
+          "callee": "services.ingestion.gnosis_worker:build_parser",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 167
+        },
+        {
+          "caller": "services.ingestion.gnosis_worker:main",
+          "callee": "services.ingestion.gnosis_worker:execute",
+          "source": "services/ingestion/gnosis_worker.py",
+          "line": 168
         }
       ],
       "callback_edges": [],
@@ -5481,7 +6131,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -5489,7 +6139,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -5497,7 +6147,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -5561,7 +6211,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.ingestion.market_data_worker:ingest",
@@ -6364,7 +7014,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -6372,7 +7022,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -6380,7 +7030,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -6388,7 +7038,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.ingestion.copernicus_remote_sensing:_get_token",
@@ -6566,13 +7216,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
@@ -7161,7 +7811,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -7169,7 +7819,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.common.worker_environment:isolated_worker_key",
@@ -7177,7 +7827,7 @@
           "qualname": "isolated_worker_key",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 115
+          "line": 116
         },
         {
           "key": "services.core.features:is_enabled",
@@ -7185,7 +7835,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.ingestion.rpc_provider:_validate_endpoint",
@@ -7281,7 +7931,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.ingestion.rpc_provider:configured_rpc_endpoints",
@@ -7502,7 +8152,7 @@
           "qualname": "DriverRegistry.update_instance_status",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 481
+          "line": 509
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -7760,13 +8410,13 @@
           "caller": "services.drivers.registry:DriverRegistry.update_instance_status",
           "callee": "services.common.errors:safe_exception_class",
           "source": "services/drivers/registry.py",
-          "line": 536
+          "line": 564
         },
         {
           "caller": "services.drivers.registry:DriverRegistry.update_instance_status",
           "callee": "services.drivers.registry:DriverRegistry._get_conn",
           "source": "services/drivers/registry.py",
-          "line": 491
+          "line": 519
         },
         {
           "caller": "services.ingestion.base:get_clickhouse",
@@ -8402,7 +9052,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -8410,7 +9060,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -8418,7 +9068,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -8426,7 +9076,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.drivers.base:BaseDriver.__init__",
@@ -8602,13 +9252,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.drivers.base:BaseDriver.__init__",
@@ -9476,7 +10126,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -9484,7 +10134,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -9492,7 +10142,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -9500,7 +10150,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -9598,13 +10248,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
@@ -9795,7 +10445,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -9803,7 +10453,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -9811,7 +10461,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -9819,7 +10469,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -9925,13 +10575,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.ingestion.weather:build_weather_clickhouse_projection",
@@ -10801,7 +11451,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -10809,7 +11459,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -10817,7 +11467,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -10825,7 +11475,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.metrics.noi_snapshot_worker:main",
@@ -10867,13 +11517,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.metrics.noi_snapshot_worker:main",
@@ -11052,7 +11702,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -11060,7 +11710,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -11068,7 +11718,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11076,7 +11726,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         }
       ],
       "direct_call_edges": [
@@ -11174,13 +11824,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         }
       ],
       "callback_edges": [],
@@ -11323,7 +11973,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -11331,7 +11981,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -11339,7 +11989,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11347,7 +11997,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         }
       ],
       "direct_call_edges": [
@@ -11445,13 +12095,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         }
       ],
       "callback_edges": [],
@@ -11594,7 +12244,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -11602,7 +12252,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -11610,7 +12260,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11618,7 +12268,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         }
       ],
       "direct_call_edges": [
@@ -11716,13 +12366,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         }
       ],
       "callback_edges": [],
@@ -11865,7 +12515,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -11873,7 +12523,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -11881,7 +12531,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11889,7 +12539,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         }
       ],
       "direct_call_edges": [
@@ -11987,13 +12637,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         }
       ],
       "callback_edges": [],
@@ -12038,7 +12688,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -12046,7 +12696,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -12054,7 +12704,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -12110,7 +12760,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.events.handlers:handle_alert_notification",
@@ -12215,7 +12865,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -12223,7 +12873,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.features:is_enabled",
@@ -12231,7 +12881,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 199
+          "line": 207
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -12295,7 +12945,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.events.handlers:handle_alert_notification",
@@ -12442,7 +13092,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 53
+          "line": 54
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -12450,7 +13100,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 59
+          "line": 60
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -12458,7 +13108,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 89
+          "line": 90
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -12580,13 +13230,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 70
+          "line": 71
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 110
+          "line": 111
         },
         {
           "caller": "services.events.notification_outbox:_notification_payloads",

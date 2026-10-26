@@ -96,6 +96,23 @@ def test_gnosis_producers_queue_instead_of_inserting():
     direct.assert_not_called()
 
 
+def test_gnosis_withdrawal_outbox_uses_treasury_source():
+    record = {
+        "chain": "gnosis",
+        "flow_direction": "outflow",
+        "tx_hash": "0x" + "a" * 64,
+        "block_number": 12,
+        "block_timestamp": "2026-01-01T00:00:00+00:00",
+    }
+    with patch("services.ingestion.gnosis_indexer.enqueue") as queue:
+        from services.ingestion.gnosis_indexer import insert_activity_clickhouse
+
+        insert_activity_clickhouse(record, MagicMock())
+
+    assert queue.call_args.kwargs["source_table"] == "treasury_event"
+    assert queue.call_args.kwargs["source_id"] == record["tx_hash"]
+
+
 def test_sensor_transport_helpers_queue_instead_of_inserting():
     with patch("services.ingestion.sensor_projection.enqueue") as http_queue, patch("services.ingestion.sensor_projection.post_clickhouse_rows") as http_direct:
         from services.ingestion.http_sensor_receiver import _insert_ch

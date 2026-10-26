@@ -18801,3 +18801,28 @@ Six focused regressions cover valid configuration, invalid/non-object configurat
 Gnosis indexing now caps each invocation at 10,000 blocks, matching the existing first-run lookback. An oversized explicit range is rejected before opening the provider or database. Automatic catch-up clamps the target range and advances the existing cursor only through successful committed batches, allowing the next invocation to continue from the checkpoint without skipping blocks.
 
 The Gnosis CLI, mocked recovery, and scheduled-command selection passes 161 tests; Ruff, compilation, capability-matrix validation, and `git diff --check` pass. No network provider, database, candidate, legacy service, or persistent Compose resource was used. This bounds runtime but does not close the legacy shared database identity, provider recovery, or live-provider gates ([implementation](../../services/ingestion/gnosis_indexer.py); [tests](../../tests/test_gnosis_indexer_recovery.py); [evidence](../builds/2026-10-25-recovery/gnosis-indexer-run-bound.json)). Checklist: 1,193 complete / 25 open (1,218 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Gnosis Moloch worker identity and projection lineage — 25 October 2026
+
+The scheduled legacy Moloch indexer now has an optional isolated worker path.
+Migration 643 gives a dedicated login access only to bounded functions owned by
+a non-login role. The functions bind governance event types, Withdraw treasury
+rows, and dLEGO actions to matching Gnosis event receipts; outbox enqueue also
+requires an existing canonical source row. Withdraw wallet-event projections
+now identify `treasury_event` as their source. The feature is default-off and
+the legacy manual CLI remains available.
+
+The focused Gnosis worker/indexer, outbox, runtime-role, worker-environment, and
+scheduled-command selection passes 307 tests; Ruff and Python compilation
+pass. Network-disabled disposable PostgreSQL 16 applies and replays migration
+643 under forced RLS, verifies receipt and source binding, and confirms the
+worker login has no direct relation access. Candidate migration rollout,
+credential provisioning, live provider/reorg recovery, historical receipt
+reconciliation, and worker activation remain open. No provider, candidate,
+legacy database, or persistent Compose resource was accessed ([worker]
+(../../services/ingestion/gnosis_worker.py); [migration]
+(../../schemas/postgres/643_isolated_gnosis_moloch_indexer.sql); [runner]
+(../../scripts/check-gnosis-indexer-worker-disposable.py); [evidence]
+(builds/2026-10-25-recovery/gnosis-indexer-worker-disposable.json)).
+Checklist: 1,194 complete / 25 open (1,219 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

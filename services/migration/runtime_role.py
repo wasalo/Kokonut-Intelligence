@@ -65,6 +65,20 @@ _RPC_INDEXER_FUNCTIONS = (
     "kokonut_security.store_rpc_indexer_snapshot(text,uuid,jsonb,text)",
     "kokonut_security.finish_rpc_indexer_chain(text,text,text,integer,bigint,integer,text)",
 )
+_GNOSIS_INDEXER_FUNCTIONS = (
+    "kokonut_security.acquire_gnosis_indexer_lock()",
+    "kokonut_security.release_gnosis_indexer_lock()",
+    "kokonut_security.read_gnosis_indexer_cursor()",
+    "kokonut_security.claim_gnosis_event_log(text,text,bigint,bigint,text,text)",
+    "kokonut_security.resolve_gnosis_wallet(text)",
+    "kokonut_security.resolve_gnosis_wallet_location(uuid)",
+    "kokonut_security.resolve_gnosis_protocol()",
+    "kokonut_security.store_gnosis_governance_event(jsonb)",
+    "kokonut_security.store_gnosis_treasury_event(jsonb)",
+    "kokonut_security.store_gnosis_digital_lego_usage(jsonb)",
+    "kokonut_security.enqueue_gnosis_clickhouse(text,text,text,text,jsonb,jsonb,text)",
+    "kokonut_security.update_gnosis_indexer_status(bigint,text,text,jsonb)",
+)
 _SENSOR_INGESTION_FUNCTIONS = (
     "kokonut_security.resolve_sensor_driver_instance(uuid,uuid)",
     "kokonut_security.read_sensor_driver_catalog(uuid)",
@@ -116,6 +130,7 @@ _SECURITY_DEFINER_OWNERS = (
     (_MARKET_DATA_FUNCTION, "kokonut_market_data_owner"),
     *((function, "kokonut_eas_indexer_owner") for function in _EAS_INDEXER_FUNCTIONS),
     *((function, "kokonut_rpc_indexer_owner") for function in _RPC_INDEXER_FUNCTIONS),
+    *((function, "kokonut_gnosis_indexer_owner") for function in _GNOSIS_INDEXER_FUNCTIONS),
     *(
         (function, "kokonut_sensor_ingestion_owner")
         for function in _SENSOR_INGESTION_FUNCTIONS
@@ -140,6 +155,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _MARKET_DATA_FUNCTION,
     *_EAS_INDEXER_FUNCTIONS,
     *_RPC_INDEXER_FUNCTIONS,
+    *_GNOSIS_INDEXER_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
     *_REMOTE_SENSING_FUNCTIONS,
 )
@@ -326,6 +342,85 @@ def _verify_role_attributes(cur, role_name: str) -> None:
     )
     if cur.fetchone()[0]:
         raise RuntimeError(f"{role_name} must not own database relations")
+
+
+def _verify_bounded_indexer_login(
+    cur, role_name: str, functions: tuple[str, ...], label: str, runtime_user: str
+) -> None:
+    """Verify that an indexer login exposes only its named function surface."""
+    _verify_role_attributes(cur, role_name)
+    cur.execute(
+        "SELECT " + ", ".join(
+            "has_function_privilege(%s, %s, 'EXECUTE')" for _ in functions
+        ),
+        tuple(value for function in functions for value in (role_name, function)),
+    )
+    if cur.fetchone() != (True,) * len(functions):
+        raise RuntimeError(f"{label} login is missing a bounded function")
+    cur.execute(
+        "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+        "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
+        (role_name, role_name),
+    )
+    if cur.fetchone() != (True, False):
+        raise RuntimeError(f"{label} login has unsafe security schema privileges")
+    cur.execute(
+        """SELECT EXISTS (
+               SELECT 1 FROM pg_class AS relation
+               JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+               WHERE namespace.nspname = 'public'
+                 AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                 AND (has_table_privilege(%s, relation.oid, 'SELECT')
+                   OR has_table_privilege(%s, relation.oid, 'INSERT')
+                   OR has_table_privilege(%s, relation.oid, 'UPDATE')
+                   OR has_table_privilege(%s, relation.oid, 'DELETE')
+                   OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+                   OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+                   OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+                   OR has_any_column_privilege(%s, relation.oid, 'SELECT')
+                   OR has_any_column_privilege(%s, relation.oid, 'INSERT')
+                   OR has_any_column_privilege(%s, relation.oid, 'UPDATE')
+                   OR has_any_column_privilege(%s, relation.oid, 'REFERENCES'))
+           )""",
+        (role_name,) * 11,
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(f"{label} login retains direct relation privileges")
+    function_slots = ", ".join("to_regprocedure(%s)" for _ in functions)
+    cur.execute(
+        f"""SELECT procedure.oid::regprocedure::text
+              FROM pg_proc AS procedure
+              JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+             WHERE namespace.nspname IN ('public', 'kokonut_security')
+               AND procedure.prosecdef
+               AND procedure.oid <> ALL(ARRAY[{function_slots}])
+               AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
+             LIMIT 1""",
+        (*functions, role_name),
+    )
+    if cur.fetchone() is not None:
+        raise RuntimeError(f"{label} login can execute another SECURITY DEFINER function")
+    cur.execute(
+        """SELECT EXISTS (
+               SELECT 1 FROM pg_class AS sequence
+               JOIN pg_namespace AS namespace ON namespace.oid = sequence.relnamespace
+               WHERE namespace.nspname = 'public' AND sequence.relkind = 'S'
+                 AND (has_sequence_privilege(%s, sequence.oid, 'USAGE')
+                   OR has_sequence_privilege(%s, sequence.oid, 'SELECT')
+                   OR has_sequence_privilege(%s, sequence.oid, 'UPDATE'))
+           )""",
+        (role_name,) * 3,
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(f"{label} login retains application sequence privileges")
+    cur.execute(
+        "SELECT " + " OR ".join(
+            "has_function_privilege(%s, %s, 'EXECUTE')" for _ in functions
+        ),
+        tuple(value for function in functions for value in (runtime_user, function)),
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(f"runtime role can execute {label} worker functions")
 
 
 def _revoke_runtime_default_privileges(
@@ -908,6 +1003,8 @@ def provision_runtime_role(
     eas_indexer_password: str | None = None,
     rpc_indexer_user: str | None = None,
     rpc_indexer_password: str | None = None,
+    gnosis_indexer_user: str | None = None,
+    gnosis_indexer_password: str | None = None,
     sensor_ingestion_user: str | None = None,
     sensor_ingestion_password: str | None = None,
     remote_sensing_user: str | None = None,
@@ -931,7 +1028,9 @@ def provision_runtime_role(
     claim and completion functions. When configured, the global EAS login can
     execute only the bounded chain and attestation functions from migration 433.
     When configured, the global RPC-indexer login can execute only the bounded
-    snapshot and status functions from migration 436.
+    snapshot and status functions from migration 436. The Gnosis Moloch login
+    can execute only migration 643's fixed cursor, receipt, event, outbox, and
+    status functions.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -944,6 +1043,8 @@ def provision_runtime_role(
         raise ValueError("EAS-indexer user and password must be provided together")
     if (rpc_indexer_user is None) != (rpc_indexer_password is None):
         raise ValueError("RPC-indexer user and password must be provided together")
+    if (gnosis_indexer_user is None) != (gnosis_indexer_password is None):
+        raise ValueError("Gnosis-indexer user and password must be provided together")
     if (sensor_ingestion_user is None) != (sensor_ingestion_password is None):
         raise ValueError("sensor-ingestion user and password must be provided together")
     if (remote_sensing_user is None) != (remote_sensing_password is None):
@@ -968,6 +1069,11 @@ def provision_runtime_role(
         if rpc_indexer_user is not None
         else None
     )
+    gnosis_indexer_ident = (
+        _role_identifier(gnosis_indexer_user, "gnosis_indexer_user")
+        if gnosis_indexer_user is not None
+        else None
+    )
     sensor_ingestion_ident = (
         _role_identifier(sensor_ingestion_user, "sensor_ingestion_user")
         if sensor_ingestion_user is not None
@@ -987,6 +1093,8 @@ def provision_runtime_role(
         role_names.append(eas_indexer_user)
     if rpc_indexer_user is not None:
         role_names.append(rpc_indexer_user)
+    if gnosis_indexer_user is not None:
+        role_names.append(gnosis_indexer_user)
     if sensor_ingestion_user is not None:
         role_names.append(sensor_ingestion_user)
     if remote_sensing_user is not None:
@@ -999,13 +1107,15 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the EAS-indexer function owner")
     if "kokonut_rpc_indexer_owner" in role_names:
         raise ValueError("application logins must differ from the RPC-indexer function owner")
+    if "kokonut_gnosis_indexer_owner" in role_names:
+        raise ValueError("application logins must differ from the Gnosis-indexer function owner")
     if "kokonut_sensor_ingestion_owner" in role_names:
         raise ValueError("application logins must differ from the sensor-ingestion function owner")
     if "kokonut_remote_sensing_owner" in role_names:
         raise ValueError("application logins must differ from the remote-sensing function owner")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, RPC-indexer, sensor-ingestion, and remote-sensing roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, sensor-ingestion, and remote-sensing roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1021,6 +1131,8 @@ def provision_runtime_role(
         credential_pairs.append(("eas_indexer_password", eas_indexer_password))
     if rpc_indexer_password is not None:
         credential_pairs.append(("rpc_indexer_password", rpc_indexer_password))
+    if gnosis_indexer_password is not None:
+        credential_pairs.append(("gnosis_indexer_password", gnosis_indexer_password))
     if sensor_ingestion_password is not None:
         credential_pairs.append(("sensor_ingestion_password", sensor_ingestion_password))
     if remote_sensing_password is not None:
@@ -1037,6 +1149,8 @@ def provision_runtime_role(
         passwords.append(eas_indexer_password)
     if rpc_indexer_password is not None:
         passwords.append(rpc_indexer_password)
+    if gnosis_indexer_password is not None:
+        passwords.append(gnosis_indexer_password)
     if sensor_ingestion_password is not None:
         passwords.append(sensor_ingestion_password)
     if remote_sensing_password is not None:
@@ -1049,6 +1163,7 @@ def provision_runtime_role(
     market_data_database_access: dict[str, bool] = {}
     eas_indexer_database_access: dict[str, bool] = {}
     rpc_indexer_database_access: dict[str, bool] = {}
+    gnosis_indexer_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
     remote_sensing_database_access: dict[str, bool] = {}
     conn.autocommit = True
@@ -1131,6 +1246,16 @@ def provision_runtime_role(
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
                     "migration 436 RPC-indexer functions must be applied before "
+                    "provisioning its dedicated login"
+                )
+        if gnosis_indexer_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _GNOSIS_INDEXER_FUNCTIONS),
+                _GNOSIS_INDEXER_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 643 Gnosis-indexer functions must be applied before "
                     "provisioning its dedicated login"
                 )
         if sensor_ingestion_user is not None:
@@ -1354,6 +1479,52 @@ def provision_runtime_role(
                 cur.execute(
                     sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
                         sql.SQL(function), rpc_indexer_ident
+                    )
+                )
+        if gnosis_indexer_user is not None:
+            assert gnosis_indexer_ident is not None and gnosis_indexer_password is not None
+            _ensure_login_role(
+                cur,
+                name=gnosis_indexer_user,
+                identifier=gnosis_indexer_ident,
+                password=gnosis_indexer_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=gnosis_indexer_user,
+                identifier=gnosis_indexer_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), gnosis_indexer_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), gnosis_indexer_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(
+                    gnosis_indexer_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    gnosis_indexer_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    gnosis_indexer_ident
+                )
+            )
+            for function in _GNOSIS_INDEXER_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), gnosis_indexer_ident
                     )
                 )
         if sensor_ingestion_user is not None:
@@ -2359,6 +2530,14 @@ def provision_runtime_role(
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("runtime role can execute RPC-indexer worker functions")
+        if gnosis_indexer_user is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                gnosis_indexer_user,
+                _GNOSIS_INDEXER_FUNCTIONS,
+                "Gnosis-indexer",
+                runtime_user,
+            )
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
@@ -2476,6 +2655,24 @@ def provision_runtime_role(
             rpc_indexer_database_access = {name: allowed for name, allowed in cur.fetchall()}
             if any(allowed != (name == database) for name, allowed in rpc_indexer_database_access.items()):
                 raise RuntimeError("RPC-indexer login must connect only to its configured database")
+        if gnosis_indexer_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (gnosis_indexer_user,),
+            )
+            gnosis_indexer_database_access = {
+                name: allowed for name, allowed in cur.fetchall()
+            }
+            if any(
+                allowed != (name == database)
+                for name, allowed in gnosis_indexer_database_access.items()
+            ):
+                raise RuntimeError(
+                    "Gnosis-indexer login must connect only to its configured database"
+                )
         if sensor_ingestion_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -2508,6 +2705,7 @@ def provision_runtime_role(
         "market_data_user": market_data_user,
         "eas_indexer_user": eas_indexer_user,
         "rpc_indexer_user": rpc_indexer_user,
+        "gnosis_indexer_user": gnosis_indexer_user,
         "sensor_ingestion_user": sensor_ingestion_user,
         "remote_sensing_user": remote_sensing_user,
         "public_connect_revoked_from": sorted(database_names),
@@ -2516,6 +2714,7 @@ def provision_runtime_role(
         "market_data_connect_grants": market_data_database_access,
         "eas_indexer_connect_grants": eas_indexer_database_access,
         "rpc_indexer_connect_grants": rpc_indexer_database_access,
+        "gnosis_indexer_connect_grants": gnosis_indexer_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "remote_sensing_connect_grants": remote_sensing_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
@@ -2581,6 +2780,10 @@ def main() -> int:
         "KOKONUT_RPC_INDEXER_USER", "kokonut_rpc_indexer_login"
     )
     rpc_indexer_password = os.environ.get("KOKONUT_RPC_INDEXER_PASSWORD", "")
+    gnosis_indexer_user = os.environ.get(
+        "KOKONUT_GNOSIS_INDEXER_USER", "kokonut_gnosis_indexer_login"
+    )
+    gnosis_indexer_password = os.environ.get("KOKONUT_GNOSIS_INDEXER_PASSWORD", "")
     sensor_ingestion_user = os.environ.get(
         "KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login"
     )
@@ -2624,6 +2827,12 @@ def main() -> int:
             eas_indexer_password=eas_indexer_password if eas_indexer_password else None,
             rpc_indexer_user=rpc_indexer_user if rpc_indexer_password else None,
             rpc_indexer_password=rpc_indexer_password if rpc_indexer_password else None,
+            gnosis_indexer_user=(
+                gnosis_indexer_user if gnosis_indexer_password else None
+            ),
+            gnosis_indexer_password=(
+                gnosis_indexer_password if gnosis_indexer_password else None
+            ),
             sensor_ingestion_user=(
                 sensor_ingestion_user if sensor_ingestion_password else None
             ),
