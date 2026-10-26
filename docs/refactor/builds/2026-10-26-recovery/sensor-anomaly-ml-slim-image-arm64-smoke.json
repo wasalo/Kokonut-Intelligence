@@ -1,0 +1,41 @@
+{
+  "check": "sensor_anomaly_ml_slim_image_import_smoke",
+  "captured_on": "2026-10-26",
+  "image": "kokonut-kernel-candidate-arm64-sensor-anomaly-ml-worker:latest",
+  "image_id": "sha256:6fec81353a22a291eae410fe9c33a2628615b7fe80b8cb555b0a75dd121ed62d",
+  "docker_image_size_bytes": 986996268,
+  "platform": "linux/arm64",
+  "reported_machine": "aarch64",
+  "python": "3.11",
+  "network": "none",
+  "root_filesystem_read_only": true,
+  "temporary_filesystem": "/tmp tmpfs",
+  "credentials_provided": false,
+  "database_or_provider_calls": false,
+  "cli_help": "passed",
+  "pip_check": "passed",
+  "installed_package_count": 27,
+  "imported_packages": {
+    "numpy": "1.26.4",
+    "pandas": "3.0.6",
+    "prophet": "1.5.0",
+    "scikit_learn": "1.9.1",
+    "scipy": "1.17.1",
+    "psycopg2": "2.9.13"
+  },
+  "unrelated_packages_absent": {
+    "fastapi": true,
+    "gstools": true,
+    "requests": true,
+    "typer": true,
+    "web3": true,
+    "yfinance": true
+  },
+  "sensor_anomaly_ml_worker_imported": true,
+  "candidate_or_legacy_touched": false,
+  "compose_services_started": false,
+  "physical_raspberry_pi_tested": false,
+  "non_fatal_notices": [
+    "Matplotlib created its font cache in /tmp under QEMU; Prophet optional Plotly visualization support is unavailable"
+  ]
+}

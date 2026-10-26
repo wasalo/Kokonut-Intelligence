@@ -3,7 +3,7 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 968,
+    "source_files": 969,
     "execution_sites": 4933,
     "worker_operation_roots": 41,
     "sites_with_worker_operation_refs": 359,
@@ -452,7 +452,7 @@
       "sites_with_worker_operation_refs": 0
     },
     "ingestion": {
-      "source_files": 72,
+      "source_files": 73,
       "execution_sites": 258,
       "statement_groups": {
         "read_candidate": 142,

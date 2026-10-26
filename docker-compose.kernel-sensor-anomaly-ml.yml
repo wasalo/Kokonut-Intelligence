@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile.kernel
       target: ml-anomaly
     restart: "no"
-    command: ["python3", "-m", "services.ingestion.anomaly_detector"]
+    command: ["python3", "-m", "services.ingestion.sensor_anomaly_ml_cli"]
     depends_on:
       database:
         condition: service_healthy

@@ -104,6 +104,7 @@ FROM --platform=$BUILDPLATFORM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c
 ARG TARGETARCH
 WORKDIR /build
 COPY requirements/ml-anomaly.txt ./requirements/ml-anomaly.txt
+COPY requirements/ml-anomaly-runtime.in ./requirements/ml-anomaly-runtime.in
 RUN set -eu; \
     case "$TARGETARCH" in \
       amd64) set -- --platform=manylinux_2_28_x86_64 --platform=manylinux2014_x86_64 ;; \
@@ -113,21 +114,30 @@ RUN set -eu; \
     python3 -m pip install --disable-pip-version-check --no-cache-dir \
       --only-binary=:all: --ignore-installed --target=/opt/ml-anomaly-site \
       "$@" --python-version=3.11 --implementation=cp --abi=cp311 \
-      -r requirements/ml-anomaly.txt
+      -r requirements/ml-anomaly-runtime.in
 
 # Optional one-shot ML anomaly worker. The default Kernel target stays small;
 # only this explicit profile receives the selected architecture's ML packages.
-FROM kernel-base AS ml-anomaly
-USER root
+FROM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS ml-anomaly
+WORKDIR /app
+RUN useradd -m -u 10001 -s /bin/bash appuser
 COPY --from=ml-anomaly-dependencies /opt/ml-anomaly-site/ /usr/local/lib/python3.11/site-packages/
-COPY requirements/ml-anomaly.txt ./requirements/ml-anomaly.txt
+COPY requirements/ml-anomaly.txt requirements/ml-anomaly-runtime.in ./requirements/
+COPY services/ ./services/
+COPY schemas/ ./schemas/
+COPY config/ ./config/
+COPY VERSION ./VERSION
+COPY pyproject.toml ./pyproject.toml
+COPY Dockerfile.kernel ./Dockerfile.kernel
 RUN pip list --disable-pip-version-check --format=json > /app/python-packages.json \
+    && python3 -VV > /app/python-runtime.txt \
     && mkdir -p /var/lib/kokonut/ml-models \
     && chown -R appuser:appuser /var/lib/kokonut/ml-models \
-    && chown appuser:appuser /app/python-packages.json
-USER appuser
+    && chown appuser:appuser /app/python-packages.json /app/python-runtime.txt
 RUN python3 -m services.core.image_manifest --target ml-anomaly
-CMD ["python3", "-m", "services.ingestion.anomaly_detector"]
+RUN chown appuser:appuser /app/source-manifest.json
+USER appuser
+CMD ["python3", "-m", "services.ingestion.sensor_anomaly_ml_cli"]
 
 # Default builds remain the minimal API/worker image.
 FROM kernel-base AS kernel

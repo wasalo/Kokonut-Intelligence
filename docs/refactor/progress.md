@@ -1,3 +1,26 @@
+### Progress addendum — slim optional sensor-anomaly ML images, 26 October 2026
+
+The optional sensor-anomaly ML worker now builds as a standalone Python slim
+image with the model libraries and PostgreSQL driver, rather than inheriting
+the full Kernel runtime. A dedicated CLI validates a single location and
+imports the ML worker only after validation. AMD64 and ARM64 images build from
+architecture-specific wheels resolved on `BUILDPLATFORM`; network-disabled,
+read-only smokes, `pip check`, CLI help, and worker/model imports pass. Docker
+metadata reports 955 MB (AMD64) and 987 MB (ARM64), reductions of about 20%
+from the preceding images. The optional ML transitive dependency set still uses
+compatibility ranges and is not hash-locked. The 119-test focused selection,
+Ruff, compilation, release-input and dependency checks, worker inventories,
+capability-matrix validation, and AMD64/ARM64 Compose rendering pass. Evidence:
+`docs/refactor/builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-builds.json`,
+`docs/refactor/builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-native-smoke.json`,
+and `docs/refactor/builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-arm64-smoke.json`.
+These checks establish software image/import portability only; physical
+Raspberry Pi performance, thermal behavior, power-loss, reliability, and
+endurance acceptance remain open. No candidate/legacy stack, migration,
+credential, provider, or Compose service was touched. Checklist remains 1,207
+complete / 25 open (1,232 total); CAP-040 remains partial and MAN-CAP-040/047
+remain open.
+
 ### Progress addendum — isolated manual ML anomaly reader, 26 October 2026
 
 Manual ML anomaly checks and training can now use a default-off, one-location
@@ -15,7 +38,7 @@ The focused CLI, worker, model, runtime-role, and profile selection passed 114
 tests. Ruff, compilation, dependency-group alignment, six regenerated
 worker/runtime inventories, and AMD64/ARM64 Compose profile checks pass. The
 native optional image builds, and a network-disabled/read-only smoke imports the
-worker and five required model packages without yfinance/gstools ([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)). The optional Dockerfile stage resolves target-specific binary wheels on `BUILDPLATFORM`; both AMD64 and ARM64 images build, `pip check` passes, and no-network/read-only imports pass under native execution and ARM64/QEMU ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-builds.json); [ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-image-arm64-smoke.json)). The opt-in images are 1.20 GB and 1.23 GB cumulative Docker size, making image slimming a follow-up for constrained devices. This is software portability evidence only; physical Pi behavior remains open.
+worker and five required model packages without yfinance/gstools ([initial image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)). The optional Dockerfile stage resolves target-specific binary wheels on `BUILDPLATFORM`; both AMD64 and ARM64 images build, `pip check` passes, and no-network/read-only imports pass under native execution and ARM64/QEMU ([initial build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-builds.json); [initial ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-image-arm64-smoke.json)). Those first images measured 1.20 GB and 1.23 GB. The later slim-image update at the top of this file supersedes those sizes with 955 MB and 987 MB builds, about 20% smaller. Both entries establish software portability only; physical Pi behavior remains open.
 Disposable PostgreSQL 16 applied and replayed migrations
 405/419/650 under forced RLS and verified exact-location and quality filtering,
 transaction-context reset and denial, direct-table denial, and the reader-role

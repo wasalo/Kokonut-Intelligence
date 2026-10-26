@@ -1,12 +1,12 @@
 {
   "format_version": 1,
-  "lock_scope": "Kernel default and ClickHouse-enabled application plus PostGIS image build inputs",
+  "lock_scope": "Kernel default and ClickHouse-enabled application, optional sensor-anomaly ML worker, and PostGIS image build inputs",
   "base_images": {
     "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
   },
   "sha256_inputs": {
-    "Dockerfile.kernel": "e09fc6b995b7f6a5bfc150bacc6cdddee47f94942abc442689aef92c70a398c4",
+    "Dockerfile.kernel": "b20083c476af66a0be5a5453da141955c158721c9974dbd3c3783e52f99dfeda",
     "Dockerfile.kernel-postgis": "180b813d48759c170cc36a78526c893dc71e51a78c18a75cd101c330a1958d8c",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
@@ -17,6 +17,8 @@
     "requirements/kernel-runtime.lock": "80e50a655e4f7c530d102fd09b4fc0502ae9020ed5a170303615e4c0dfd08921",
     "requirements/kernel-clickhouse.in": "d45f7ea822daef4616987cb57a240a4e2eea4fdf74424aa6222b1f0167c2bc4e",
     "requirements/kernel-clickhouse.lock": "ea9154ed4eb3c4234dee73a6588f4550191f227de82f972644d937b090dc66ab",
+    "requirements/ml-anomaly.txt": "47739b7c732e8cbb203f1aca416dd03339ac0c0f16e8a17f108fcd89e307da22",
+    "requirements/ml-anomaly-runtime.in": "ced2ea751e17c00b41755469c7df18e690bbafea17a429cbdcdbf281dc292dd8",
     "config/postgres/kernel-postgis-packages.json": "c436d6268f440f7ac54bf298b65529199680cf48526f0504cb1bceed02bec79c",
     "config/postgres/kernel-apt.sources": "1bc6a4368d8284b4e8a35f24e381449e493eff6f9993869987f5193538f0cd42",
     "config/postgres/kernel-pgdg.pref": "cfb19023faf4c4b54c39f471cc8287a022922f159adbae1a8c4bf26f7077a4ec",
@@ -32,7 +34,7 @@
   },
   "dependency_lock_status": {
     "python_direct_inputs": "SHA-256-locked source requirement manifests",
-    "python_transitive_dependencies": "hash-locked default and ClickHouse profile closures; pending GitHub multi-architecture acceptance",
+    "python_transitive_dependencies": "hash-locked default and ClickHouse profile closures; optional ML dependencies use bounded compatibility constraints and are not yet hash-locked; pending GitHub multi-architecture acceptance",
     "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; release gate compares complete installed package inventories against exact locked architecture-specific expectations; multi-architecture acceptance pending"
   }
 }

@@ -40,25 +40,27 @@ Baseline detection and the signed event-driven worker are not routed through
 this read-only identity.
 
 The default Kernel image does not install any of these ML dependencies. The
-optional `ml-anomaly` Dockerfile target installs only the five direct
-requirements in `requirements/ml-anomaly.txt` (pandas, NumPy, Prophet,
-scikit-learn, and SciPy), rather than adding the unrelated yfinance and gstools
-packages from the full analytics group. The dependency-group checker verifies
-that this smaller manifest remains an exact subset of `analytics.txt`. The
-`sensor-anomaly-ml` Compose profile is a one-shot worker, uses a separate DSN
-and credential, and stores model artifacts in a dedicated named volume. The
-Dockerfile resolves and extracts architecture-specific binary wheels in a
-`BUILDPLATFORM` stage, then copies them into the requested target image. Both
-AMD64 and ARM64 optional images build. Network-disabled, read-only import smokes
-pass for the worker and all five direct model packages on native AMD64 and
-ARM64 under software emulation ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-builds.json);
-[ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-image-arm64-smoke.json)).
-`pip check` passes in both images. Their measured cumulative Docker image sizes
-are about 1.20 GB for AMD64 and 1.23 GB for ARM64. This worker is an opt-in
-profile and these sizes do not describe the default/minimal Kernel image; image
-slimming remains useful before constrained-device deployment. These checks do
-not verify performance, reliability, thermal behavior, or power-loss handling
-on a physical Raspberry Pi.
+optional `ml-anomaly` Dockerfile target installs the five model requirements
+from `requirements/ml-anomaly.txt` (pandas, NumPy, Prophet, scikit-learn, and
+SciPy) plus `psycopg2-binary`, rather than inheriting the full Kernel image or
+unrelated yfinance/gstools packages. The dependency-group checker verifies
+that the model manifest remains an exact subset of `analytics.txt`. Its runtime
+input currently uses compatibility ranges and is not yet hash-locked. A narrow
+CLI validates exactly one location and loads the ML worker only after input
+validation. The `sensor-anomaly-ml` Compose profile is a one-shot worker, uses
+a separate DSN and credential, and stores model artifacts in a dedicated named
+volume. The Dockerfile resolves architecture-specific binary wheels in a
+`BUILDPLATFORM` stage, then copies them into a standalone Python slim image.
+Both AMD64 and ARM64 images build; network-disabled, read-only import smokes
+and `pip check` pass for the worker and all five model packages ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-builds.json);
+[AMD64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-native-smoke.json);
+[ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-arm64-smoke.json)).
+Docker reports 955 MB for AMD64 and 987 MB for ARM64, reductions of about 20%
+from the preceding images. The root filesystems measured 702 MiB and 736 MiB
+with `du`; these remain substantial opt-in images, not a size claim for the
+default Kernel image. The checks establish software portability only and do not
+verify performance, reliability, thermal behavior, or power-loss handling on a
+physical Raspberry Pi.
 
 ## Activation sequence
 
@@ -121,14 +123,13 @@ before reporting success. See
 [`check-sensor-anomaly-ml-source-disposable.py`](../../scripts/check-sensor-anomaly-ml-source-disposable.py)
 and [the recorded result](builds/2026-10-26-recovery/sensor-anomaly-ml-source-disposable.json).
 
-The AMD64 optional image builds and a network-disabled, read-only image smoke
-imports the worker and all five direct model packages, confirms yfinance/gstools
-are absent, and provides no database credentials ([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)).
-The ARM64 image also builds after cross-installing AArch64 wheels on the native
-build platform; its network-disabled, read-only QEMU smoke reports `aarch64`
-and imports the same worker and package set ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-builds.json);
-[ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-image-arm64-smoke.json)).
-This closes software image/import portability only. Physical Raspberry Pi
+The current slim AMD64 image builds and a network-disabled, read-only smoke
+imports the worker and all five model packages, confirms unrelated analytics
+packages are absent, and has no database credentials. The slim ARM64 image
+builds after cross-installing AArch64 wheels on the native build platform; its
+network-disabled, read-only QEMU smoke reports `aarch64` and imports the same
+worker and package set. See the three slim-image evidence files above. This
+closes software image/import portability only. Physical Raspberry Pi
 performance and reliability acceptance remain open.
 
 Rollback is to leave the feature and Compose profile off, or disable the

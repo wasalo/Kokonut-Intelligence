@@ -182,6 +182,9 @@ def test_sensor_anomaly_ml_is_an_explicit_single_location_worker_profile() -> No
     worker = compose["services"]["sensor-anomaly-ml-worker"]
     assert worker["profiles"] == ["sensor-anomaly-ml"]
     assert worker["build"]["target"] == "ml-anomaly"
+    assert worker["command"] == [
+        "python3", "-m", "services.ingestion.sensor_anomaly_ml_cli"
+    ]
     assert "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_DATABASE_URL" in worker["environment"]
     assert "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_WORKER_CREDENTIAL" in worker["environment"]
     assert "PG_USER" not in worker["environment"]
@@ -189,6 +192,11 @@ def test_sensor_anomaly_ml_is_an_explicit_single_location_worker_profile() -> No
     assert "POSTGRES_PASSWORD" not in worker["environment"]
 
     dockerfile = (ROOT / "Dockerfile.kernel").read_text()
+    assert "AS ml-anomaly" in dockerfile
+    assert "FROM python:3.11-slim@sha256:" in dockerfile.split("AS ml-anomaly", 1)[1]
+    assert "FROM kernel-base AS ml-anomaly" not in dockerfile
+    assert "ml-anomaly-runtime.in" in dockerfile
+    assert 'CMD ["python3", "-m", "services.ingestion.sensor_anomaly_ml_cli"]' in dockerfile
     assert "AS ml-anomaly-dependencies" in dockerfile
     assert "--platform=$BUILDPLATFORM" in dockerfile
     assert "ARG TARGETARCH" in dockerfile
@@ -211,6 +219,10 @@ def test_sensor_anomaly_ml_is_an_explicit_single_location_worker_profile() -> No
     }
     assert "yfinance>=1.0.0,<2.0.0" not in ml_requirements
     assert "gstools>=1.6.0,<2.0.0" not in ml_requirements
+
+    ml_runtime = (ROOT / "requirements/ml-anomaly-runtime.in").read_text()
+    assert "-r ml-anomaly.txt" in ml_runtime
+    assert "psycopg2-binary>=2.9.12,<3.0.0" in ml_runtime
 
     plan = _run_planner("standard", "--sensor-anomaly-ml")
     assert plan.returncode == 0

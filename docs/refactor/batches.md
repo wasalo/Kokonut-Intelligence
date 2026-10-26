@@ -29,28 +29,28 @@ acceptance remains separate; none is marked accepted.
 - [x] Add a default-off location-scoped Kernel path for manual ML anomaly
   checks/training. Migration 650 adds a signed, quality-filtered source view
   and separate `SET`-only reader login; the CLI routes only `--ml-check` and
-  `--ml-train` through it, requires exactly one location, and rejects
-  `--all-locations` before database access. A dedicated one-shot Compose
-  profile and optional ML-only image target keep model dependencies out of the
-  default Kernel image; `requirements/ml-anomaly.txt` is a five-package subset
-  that excludes unrelated yfinance/gstools. The 114-test focused selection,
-  Ruff, compilation, six generated worker/runtime inventories, dependency-group
-  alignment, and AMD64/ARM64 Compose config checks pass. The native optional
-  image builds and a no-network/read-only import smoke passes ([image evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-native-smoke.json)).
-  The Dockerfile resolves target-specific binary wheels on `BUILDPLATFORM`.
-  Both AMD64 and ARM64 images build; no-network/read-only imports pass under
-  native execution and ARM64/QEMU, reporting `aarch64`; `pip check` passes in
-  both images. Their cumulative image sizes are 1.20 GB and 1.23 GB, so slimming
-  the opt-in worker remains useful for constrained devices ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-image-builds.json);
-  [ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-image-arm64-smoke.json)).
-  This is software portability evidence; Raspberry Pi hardware acceptance
-  remains open. Disposable PostgreSQL 16 applies and replays migrations 405/419/650 and
-  verifies signed exact-location/quality filtering, scope reset/denial, forced
-  RLS, direct table denial, and reader-role switching ([source checks](builds/2026-10-26-recovery/sensor-anomaly-ml-source-checks.json); [contract](sensor-anomaly-ml-worker-contract.md);
+  `--ml-train` through it, validates one location, and rejects aggregate mode
+  before database access or worker import. A dedicated one-shot Compose
+  profile and standalone optional image target keep model dependencies out of
+  the default Kernel image. The 119-test focused selection, Ruff, compilation,
+  worker/runtime inventories, dependency-group alignment, and AMD64/ARM64
+  Compose config checks pass. The optional images build for both architectures,
+  with no-network/read-only imports and `pip check` passing. They measure 955 MB
+  (AMD64) and 987 MB (ARM64), about 20% smaller than prior image builds
+  ([build evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-builds.json);
+  [AMD64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-native-smoke.json);
+  [ARM64 smoke](builds/2026-10-26-recovery/sensor-anomaly-ml-slim-image-arm64-smoke.json)).
+  Their optional ML dependency closure remains compatibility-range based and
+  is not hash-locked. ARM64/QEMU is software evidence only; physical Raspberry
+  Pi acceptance remains open. Disposable PostgreSQL 16 applies and replays
+  migrations 405/419/650 and verifies signed exact-location/quality filtering,
+  scope reset/denial, forced RLS, direct table denial, and reader-role switching
+  ([source checks](builds/2026-10-26-recovery/sensor-anomaly-ml-source-checks.json);
+  [contract](sensor-anomaly-ml-worker-contract.md);
   [migration](../../schemas/postgres/650_signed_sensor_anomaly_ml_source.sql);
   [worker](../../services/ingestion/sensor_anomaly_ml_worker.py);
   [evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-source-disposable.json)).
-  The profile is not activated, no candidate/legacy migration or worker grant
+  The profile is not activated; no candidate/legacy migration or worker grant
   was provisioned, and no live/populated parity or physical Pi acceptance is
   claimed. Roll back by disabling the feature/profile or reverting the CLI
   route; retain the additive migration and role history. CAP-040 remains

@@ -1,0 +1,43 @@
+{
+  "check": "sensor_anomaly_ml_slim_optional_image_builds",
+  "captured_on": "2026-10-26",
+  "dockerfile": "Dockerfile.kernel",
+  "target": "ml-anomaly",
+  "base_image": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
+  "dependency_resolution_platform": "BUILDPLATFORM",
+  "target_architecture_selection": "TARGETARCH",
+  "binary_wheels_only": true,
+  "dependency_input": "requirements/ml-anomaly-runtime.in",
+  "dependency_lock_status": "Compatibility ranges are used; the optional ML closure is not hash-locked.",
+  "native_amd64": {
+    "status": "passed",
+    "image": "kokonut-kernel-candidate-sensor-anomaly-ml-worker:latest",
+    "image_id": "sha256:50dfdf6bbe9527bedb03210e27a2de9e82cb1c0542de451d54e593519446b61e",
+    "platform": "linux/amd64",
+    "docker_image_size_bytes": 955405653,
+    "previous_image_size_bytes": 1196104910,
+    "reduction_bytes": 240699257,
+    "reduction_percent_rounded": 20.1,
+    "du_root_filesystem": "702 MiB",
+    "read_only_no_network_import_smoke": "sensor-anomaly-ml-slim-image-native-smoke.json",
+    "pip_check": "passed"
+  },
+  "arm64": {
+    "status": "passed",
+    "image": "kokonut-kernel-candidate-arm64-sensor-anomaly-ml-worker:latest",
+    "image_id": "sha256:6fec81353a22a291eae410fe9c33a2628615b7fe80b8cb555b0a75dd121ed62d",
+    "platform": "linux/arm64",
+    "docker_image_size_bytes": 986996268,
+    "previous_image_size_bytes": 1231777316,
+    "reduction_bytes": 244781048,
+    "reduction_percent_rounded": 19.9,
+    "du_root_filesystem": "736 MiB",
+    "read_only_no_network_import_smoke": "sensor-anomaly-ml-slim-image-arm64-smoke.json",
+    "pip_check": "passed"
+  },
+  "arm64_dependency_installation": "AArch64 wheels resolve and unpack on the native build platform; runtime image was verified under software emulation.",
+  "candidate_or_legacy_touched": false,
+  "compose_services_started": false,
+  "database_or_provider_calls": false,
+  "physical_raspberry_pi_tested": false
+}

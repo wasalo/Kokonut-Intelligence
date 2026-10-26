@@ -21,6 +21,7 @@ manifest; the Kernel image uses the selected hash-locked closure below.
 | dev.txt | Python test runner and Starlette ASGI test client |
 | kernel-runtime.in / kernel-runtime.lock | Standard Kernel runtime input and hash-locked transitive closure |
 | kernel-clickhouse.in / kernel-clickhouse.lock | Standard runtime plus hash-locked optional ClickHouse closure |
+| ml-anomaly-runtime.in | Narrow optional ML worker runtime input: model packages plus psycopg2, with compatibility ranges (not yet hash-locked) |
 
 Install selected groups with repeated `-r` arguments. For example:
 
@@ -31,17 +32,19 @@ These are dependency candidates, not certified deployment profiles.
 it does not certify all lazily loaded endpoints, jobs, exports, or domain CLIs.
 Media object storage currently requires the exports group. Web3 capability users
 require the Web3 group even when no local blockchain node is deployed.
-The sensor-anomaly worker installs only `ml-anomaly.txt` (pandas, NumPy,
-Prophet, scikit-learn, and SciPy), rather than pulling unrelated market-data
-and geostatistics packages from the full analytics group. These numerical
+The sensor-anomaly worker installs `ml-anomaly-runtime.in`: the five model
+packages from `ml-anomaly.txt` (pandas, NumPy, Prophet, scikit-learn, and
+SciPy) plus the PostgreSQL driver, rather than the full Kernel dependency
+closure or unrelated market-data/geostatistics packages. These numerical
 libraries can still be substantial on an edge device; ARM64 software builds do
 not establish runtime resource suitability.
 
-Dependency weight remains unmeasured. The group files preserve compatibility
-ranges, while the Kernel image lockfiles pin the resolved versions and artifact
-hashes for the standard runtime and optional ClickHouse profile. Package
-resolution, image builds, runtime imports, compatibility suites, and ARM64 wheel
-availability still require acceptance. Do not remove packages from legacy
+The standard and optional ClickHouse image lockfiles pin resolved versions and
+artifact hashes. The optional ML worker currently uses compatibility ranges,
+not a hash-locked transitive closure; its current AMD64 and ARM64 images measure
+about 955 MB and 987 MB respectively. Package resolution, runtime imports,
+compatibility suites, and ARM64 software builds pass for this slice, but image
+weight remains material for edge devices. Do not remove packages from legacy
 images until capability checks pass. Keep constraints synchronized with
 `requirements.txt` during transition.
 

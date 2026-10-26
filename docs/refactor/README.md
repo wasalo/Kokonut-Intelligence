@@ -156,7 +156,8 @@ assertion after later commits.
 - [Kernel candidate](kernel-candidate.md): isolated image/Compose preparation,
   with build, schema, worker, and capability gates still open.
 - [Candidate dependency groups](../../requirements/README.md): additive manifests
-  for image slimming, with legacy installs preserved and validation still pending.
+  for image slimming; group alignment passes, while the optional ML transitive
+  closure is not hash-locked and broader runtime acceptance remains pending.
 - [Provider configuration](provider-configuration.md): first Phase 1 settings
   and health reporting slice, with remaining runtime validation gates.
 - [Capability matrix](capability-matrix.md): all 66 README capabilities, owning
