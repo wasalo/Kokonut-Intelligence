@@ -102,6 +102,29 @@ def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
     }
 
 
+def test_scheduled_anomaly_replay_receives_only_its_existing_worker_identity():
+    source = {
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://anomaly-worker",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "anomaly-secret",
+        "KOKONUT_FRESHNESS_DATABASE_URL": "postgresql://freshness-worker",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-secret",
+    }
+    module = "services.ingestion.sensor_anomaly_scan_worker"
+    worker_key = scheduled_module_worker_key(module)
+
+    assert worker_key == "sensor_anomaly"
+    assert worker_subprocess_environment(
+        allowed_worker_keys=(worker_key,),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://anomaly-worker",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "anomaly-secret",
+        ISOLATED_WORKER_KEY_ENV: "sensor_anomaly",
+    }
+
+
 def test_scheduled_credit_adjustment_worker_receives_only_its_exact_secret_pair():
     source = {
         "KOKONUT_CREDIT_ADJUSTMENT_DATABASE_URL": "postgresql://credit-worker",

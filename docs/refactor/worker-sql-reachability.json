@@ -3,13 +3,13 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 40,
+    "operation_roots": 41,
     "sql_execution_sites": 358,
-    "statically_reachable_site_memberships": 394,
+    "statically_reachable_site_memberships": 400,
     "unique_sites_with_static_operation_path": 276,
     "sites_without_static_function_match": 82,
     "unmatched_functions_absent_from_all_worker_graphs": 82,
-    "sites_reached_by_multiple_operations": 43
+    "sites_reached_by_multiple_operations": 45
   },
   "operations": [
     {
@@ -453,6 +453,20 @@
     },
     {
       "kind": "scheduled_module",
+      "name": "services.ingestion.sensor_anomaly_scan_worker",
+      "operation_ref": "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
+      "statically_reachable_sql_site_count": 6,
+      "statically_reachable_sql_site_ids": [
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:254:12",
+        "services/common/tenant_context.py:255:8",
+        "services/common/worker_database.py:141:12",
+        "services/ingestion/sensor_anomaly_worker.py:118:8",
+        "services/ingestion/sensor_anomaly_worker.py:125:8"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.ingestion.sensor_ingester",
       "operation_ref": "scheduled_module:services.ingestion.sensor_ingester",
       "statically_reachable_sql_site_count": 17,
@@ -721,8 +735,8 @@
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
         "services/common/worker_database.py:141:12",
-        "services/ingestion/sensor_anomaly_worker.py:110:8",
-        "services/ingestion/sensor_anomaly_worker.py:117:8"
+        "services/ingestion/sensor_anomaly_worker.py:118:8",
+        "services/ingestion/sensor_anomaly_worker.py:125:8"
       ]
     }
   ],
@@ -1721,6 +1735,7 @@
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.rpc_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
@@ -1776,6 +1791,7 @@
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.rpc_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
@@ -1831,6 +1847,7 @@
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.rpc_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
@@ -1864,6 +1881,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1878,6 +1896,7 @@
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1906,6 +1925,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1935,6 +1955,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1964,6 +1985,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1978,6 +2000,7 @@
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -2008,6 +2031,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -2022,6 +2046,7 @@
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -2052,6 +2077,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -2083,6 +2109,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -2114,6 +2141,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -2155,6 +2183,7 @@
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -2181,6 +2210,7 @@
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -3633,7 +3663,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "event_handler:services.events.handlers.handle_alert_notification",
@@ -3661,7 +3692,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "event_handler:services.events.handlers.handle_alert_notification",
@@ -3689,7 +3721,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "event_handler:services.events.handlers.handle_alert_notification",
@@ -3715,7 +3748,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "event_handler:services.events.handlers.handle_alert_notification",
@@ -3743,7 +3777,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -3769,7 +3804,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -3797,7 +3833,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -3823,7 +3860,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -3849,7 +3887,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -3875,7 +3914,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -3901,7 +3941,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -3928,7 +3969,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -3954,7 +3996,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -3980,7 +4023,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -4006,7 +4050,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -4032,7 +4077,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -4058,7 +4104,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -4084,7 +4131,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -4110,7 +4158,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.events"
@@ -7368,9 +7417,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:110:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:118:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 110,
+      "line": 118,
       "scope": "_one",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -7378,19 +7427,21 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:117:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:125:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 117,
+      "line": 125,
       "scope": "_many",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -7398,10 +7449,12 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,

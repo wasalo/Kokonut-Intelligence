@@ -3,8 +3,8 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 40,
-    "source_files": 107,
+    "operation_roots": 41,
+    "source_files": 108,
     "execution_sites": 358,
     "static_literal_sites": 310,
     "composed_or_variable_sites": 48
@@ -868,6 +868,7 @@
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.rpc_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
@@ -921,6 +922,7 @@
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.rpc_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
@@ -974,6 +976,7 @@
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.rpc_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
@@ -1005,6 +1008,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1032,6 +1036,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1059,6 +1064,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1086,6 +1092,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1115,6 +1122,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1144,6 +1152,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1173,6 +1182,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1202,6 +1212,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -1241,6 +1252,7 @@
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_worker",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -2490,7 +2502,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2512,7 +2525,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2534,7 +2548,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2554,7 +2569,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2577,7 +2593,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2599,7 +2616,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2623,7 +2641,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2645,7 +2664,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2667,7 +2687,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2689,7 +2710,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2711,7 +2733,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2734,7 +2757,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2756,7 +2780,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2778,7 +2803,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2800,7 +2826,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2822,7 +2849,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2844,7 +2872,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2866,7 +2895,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -2888,7 +2918,8 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
@@ -5585,9 +5616,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:110:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:118:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 110,
+      "line": 118,
       "column": 8,
       "scope": "_one",
       "method": "execute",
@@ -5597,7 +5628,8 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statement_variants": [
         {
@@ -5643,6 +5675,14 @@
           "statement_kind": "SELECT",
           "candidate_relations": [],
           "static_sql_sha256": "9e5675bc4cb3a94f84627dd7fa94994a43494258fe0d0b053adffcdfd94fc943"
+        },
+        {
+          "operation": "list_pending_events",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.list_sensor_anomaly_events_since"
+          ],
+          "static_sql_sha256": "e4477b80bde9631111f574aa25e37d467e0dc244d7ceb422e8376e2472fa80e0"
         },
         {
           "operation": "list_rules",
@@ -5681,9 +5721,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:117:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:125:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 117,
+      "line": 125,
       "column": 8,
       "scope": "_many",
       "method": "execute",
@@ -5693,7 +5733,8 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statement_variants": [
         {
@@ -5739,6 +5780,14 @@
           "statement_kind": "SELECT",
           "candidate_relations": [],
           "static_sql_sha256": "9e5675bc4cb3a94f84627dd7fa94994a43494258fe0d0b053adffcdfd94fc943"
+        },
+        {
+          "operation": "list_pending_events",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.list_sensor_anomaly_events_since"
+          ],
+          "static_sql_sha256": "e4477b80bde9631111f574aa25e37d467e0dc244d7ceb422e8376e2472fa80e0"
         },
         {
           "operation": "list_rules",

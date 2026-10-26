@@ -123,12 +123,21 @@ JOBS = MappingProxyType(
             "Baal indexing (legacy compatibility)",
         ),
         "anomaly": JobSpec(
-            "services.ingestion.anomaly_detector",
+            "services.ingestion.sensor_anomaly_scan_worker",
             (),
             300,
             2,
             300,
             "Anomaly detection",
+            required_inputs=("location_id",),
+        ),
+        "anomaly_legacy": JobSpec(
+            "services.ingestion.anomaly_detector",
+            (),
+            300,
+            2,
+            300,
+            "Anomaly detection (legacy compatibility)",
             required_inputs=("location_id",),
         ),
         "freshness": JobSpec(
@@ -256,6 +265,7 @@ def _run_job_spec(
         job_label = {
             "eas": "EAS indexing",
             "rpc": "RPC indexing",
+            "anomaly_legacy": "Anomaly",
         }.get(job_id, job_id.replace("_", " ").capitalize())
         raise ValueError(
             f"{job_label} refresh requires "
@@ -323,6 +333,9 @@ def run_job(
         spec = JOBS[job_id]
     if job_id == "freshness" and not is_enabled("isolated_freshness_worker"):
         job_id = "freshness_legacy"
+        spec = JOBS[job_id]
+    if job_id == "anomaly" and not is_enabled("isolated_sensor_anomaly_scan_worker"):
+        job_id = "anomaly_legacy"
         spec = JOBS[job_id]
     if job_id == "projections" and not is_enabled("isolated_clickhouse_outbox_worker"):
         # Preserve deployed schedules while the dedicated login is not provisioned.

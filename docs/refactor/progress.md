@@ -1,3 +1,29 @@
+### Progress addendum — signed scheduled sensor-anomaly replay inventory, 26 October 2026
+
+Migration 649 adds a bounded `list_sensor_anomaly_events_since` function that
+requires the existing signed `sensor_reading/process` location context, validates
+source event, reading, device, sensor type, and payload selectors, and returns
+one canonical event per reading only while an enabled rule lacks its durable
+effect receipt. The scan is capped at 100 events and a 24-hour window. A new
+default-off Kernel JobSpec replays those events through the existing signed,
+idempotent event handler; when disabled, scheduled execution keeps the legacy
+per-location compatibility route. Manual baseline and ML scans remain available
+through the legacy CLI.
+
+The focused worker, scheduler, command-contract, and environment selection
+passes 252 tests. Ruff, compilation, dependency-group alignment, and provider
+boundaries pass. Network-isolated disposable PostgreSQL 16 applies and replays
+migration 649 under forced RLS, checks signed-location denial, source/device
+matching, duplicate-event suppression, per-reading/rule receipt completion,
+EventBus crash/retry recovery, and direct table-access denial ([migration](../schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql); [runner](../scripts/check-sensor-anomaly-worker-delivery-disposable.py); [evidence](builds/2026-10-26-recovery/sensor-anomaly-replay-inventory-disposable.json)). The candidate and legacy databases and all providers remain untouched. No database login, worker secret, active grant, feature activation, or persisted schedule was provisioned.
+
+This closes the source-level scheduled replay boundary only; baseline and ML
+worker isolation, legacy source rows without matching events, candidate rollout,
+credential/grant provisioning, live notification delivery, duplicate behavior
+on populated data, and schedule reconciliation remain open. Checklist: 1,204
+complete / 25 open (1,229 total); matrix classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — current-source ARM64 app smoke, 26 October 2026
 
 The Kernel image at local commit `b0740b9d` builds for `linux/arm64`. A

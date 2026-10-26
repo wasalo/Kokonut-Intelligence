@@ -106,7 +106,7 @@
     },
     {
       "module": "services.ingestion.anomaly_detector",
-      "scope": "Scheduled JobSpec execution requires one explicit --location-id; recent sensor readings and baseline rows are filtered to it, and cooldown/alert/ingestion-lineage operations retain that location. The hourly Prefect adapter fans out over active Kokonut Network locations. Scoped runs do not bootstrap shared alert-rule reference rows. Manual anomaly, baseline, and ML-check operations require --location-id or explicit --all-locations; no-argument invocation prints help. ML training requires one location, and --list-rules remains an explicit global read. The event handler is source-reading scoped.",
+      "scope": "The explicit-location manual CLI remains available. The scheduled JobSpec now targets a default-off signed replay worker; when disabled, Prefect retains this legacy per-location scan as a compatibility fallback. Baseline comparison and ML operations remain on the legacy CLI and require an explicit location or --all-locations; --list-rules remains an explicit global read.",
       "reads": [
         "public.alert_rule",
         "public.sensor_reading",
@@ -127,18 +127,23 @@
       "external_effects": [
         "Scheduled CLI mode can send email and Directus notifications; event mode queues notifications durably. Actuation is recorded for later approval/execution in PostgreSQL; this module does not publish MQTT commands."
       ],
-      "idempotency": "The event handler reserves a per-source-reading/rule effect receipt and commits alert/claim/notification intent atomically. Scheduled window scans are now location-scoped but remain at-least-once; duplicate alert behavior across retries requires separate populated-data review. Actuation remains behind approval policy.",
-      "retry_boundary": "The handler deduplicates same-reading/rule retries. Scheduled retries may repeat readings within the same location and the current code does not establish batch-window idempotency; direct external notification delivery remains at-least-once.",
+      "idempotency": "The legacy scheduled fallback remains at-least-once. The default-off Kernel replay worker selects only durable source events with an enabled rule lacking a location-bound effect receipt, then delegates each event to the existing per-reading/rule idempotent handler. No duplicate event is emitted.",
+      "retry_boundary": "The legacy fallback can repeat readings and direct provider notification remains at-least-once. The signed replay path is bounded to a 24-hour event window and 100 events per invocation; each event commits independently through the existing worker. Failed events remain eligible for a later scheduled retry, while committed receipts suppress duplicate effects. Feature-off retains the legacy route; credentials and candidate rollout remain separate gates.",
       "sources": [
-        "services/ingestion/anomaly_detector.py",
-        "services/events/notification_outbox.py",
-        "services/ingestion/mqtt_actuator.py",
+        "docs/refactor/event-handler-concurrency.md",
         "schemas/postgres/081_oracle_infrastructure.sql",
         "schemas/postgres/375_notification_outbox.sql",
-        "docs/refactor/event-handler-concurrency.md",
+        "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql",
+        "scripts/check-sensor-anomaly-worker-delivery-disposable.py",
         "services/core/jobs.py",
+        "services/events/notification_outbox.py",
         "services/flows/anomaly_detection.py",
-        "services/security/scheduled_command_contracts.py"
+        "services/ingestion/anomaly_detector.py",
+        "services/ingestion/mqtt_actuator.py",
+        "services/ingestion/sensor_anomaly_scan_worker.py",
+        "services/ingestion/sensor_anomaly_worker.py",
+        "services/security/scheduled_command_contracts.py",
+        "tests/test_sensor_anomaly_scan_worker.py"
       ]
     },
     {
@@ -680,6 +685,46 @@
         "services/security/execution_allowlist.py",
         "services/security/scheduled_command_contracts.py",
         "schemas/postgres/436_isolated_rpc_indexer.sql"
+      ]
+    },
+    {
+      "module": "services.ingestion.sensor_anomaly_scan_worker",
+      "worker_key": "sensor_anomaly",
+      "scope": "Default-off scheduled replay requires one explicit --location-id. Migration 649 lists only actual sensor_reading source events for the matching signed location, device, sensor type, and enabled rule; the event payload selectors and source reading must agree. The inventory is bounded to the preceding 24 hours and at most 100 readings per call. Each event is delegated to the existing signed event handler. Manual baseline/ML and source-less historical scans remain on the legacy CLI.",
+      "reads": [
+        "public.alert_rule",
+        "public.platform_event",
+        "public.sensor_anomaly_effect",
+        "public.sensor_device",
+        "public.sensor_reading",
+        "public.sensor_type"
+      ],
+      "writes": [
+        "public.sensor_anomaly_effect",
+        "public.sensor_alert",
+        "public.mrv_claim",
+        "public.ingestion_log",
+        "public.platform_event",
+        "public.notification_outbox",
+        "public.actuation_log"
+      ],
+      "external_effects": [
+        "No provider call in the scanner; event handling queues notification intents and approval-required actuation intents for separate workers/review."
+      ],
+      "idempotency": "Migration 649 returns one canonical event per reading only while at least one current enabled device rule lacks a location-bound receipt. The existing worker commits the alert/claim/notification/actuation intent and per-reading/rule receipts atomically for each event. Duplicate event rows do not consume multiple batch slots.",
+      "retry_boundary": "The inventory function is read-only and enforces signed location equality, a 24-hour maximum lookback, and a 1–100 batch limit. Each event is processed in its own worker transaction; a failed event remains eligible for retry, and previous committed events are suppressed by receipts. The feature defaults off and the scheduler falls back to the legacy per-location job until worker credentials, grant, migration rollout, and schedule reconciliation are completed.",
+      "sources": [
+        "services/ingestion/sensor_anomaly_scan_worker.py",
+        "services/ingestion/sensor_anomaly_worker.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/jobs.py",
+        "services/security/scheduled_command_contracts.py",
+        "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql",
+        "scripts/check-sensor-anomaly-worker-delivery-disposable.py",
+        "tests/test_sensor_anomaly_scan_worker.py"
       ]
     },
     {
@@ -1432,7 +1477,7 @@
   "known_open_items": [
     "Finish reviewing transitive worker call/effect paths that are not statically resolved. The graph now includes the native sensor worker's literal code-allowlisted CSV driver class and method dispatch, and the effect inventory records its descriptor-safe file operations. The general driver loader now resolves built-ins through source-owned targets and third-party code through exact installed kokonut.drivers entry points; installed package code remains trusted and unsandboxed. Remaining uncertainty includes arbitrary callbacks, provider internals, database-side behavior, and SQL sites outside current worker-root paths.",
     "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
-    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, notification-delivery, event-dispatch, climate, weather, market-data, sensor-ingestion, remote-sensing, EAS, RPC-indexer, Gnosis-indexer, Baal-indexer, and freshness-worker integrations remain default-off until credentials are provisioned and owner-approved candidate rollout plus schedule reconciliation are complete.",
+    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, scheduled sensor-anomaly replay (migration 649), opt-in cache handler, notification-enqueue, notification-delivery, event-dispatch, climate, weather, market-data, sensor-ingestion, remote-sensing, EAS, RPC-indexer, Gnosis-indexer, Baal-indexer, and freshness-worker integrations remain default-off until credentials are provisioned and owner-approved candidate rollout plus schedule reconciliation are complete.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
   ],
   "isolated_workers": [

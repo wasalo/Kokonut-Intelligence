@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 40,
-    "source_files": 109,
+    "operation_roots": 41,
+    "source_files": 110,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 848,
-    "direct_call_edges": 1144,
+    "function_memberships": 875,
+    "direct_call_edges": 1187,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 24
   },
@@ -270,7 +270,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         }
       ],
       "direct_call_edges": [
@@ -452,7 +452,7 @@
           "qualname": "event_handler_worker_policy",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 97
+          "line": 98
         },
         {
           "key": "services.common.worker_environment:worker_subprocess_environment",
@@ -460,7 +460,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 130
+          "line": 131
         },
         {
           "key": "services.core.features:is_enabled",
@@ -468,7 +468,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.core.features:require_feature",
@@ -476,7 +476,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 264
+          "line": 272
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -1072,7 +1072,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 266
+          "line": 274
         },
         {
           "caller": "services.events.bus:EventBus._claim",
@@ -2025,7 +2025,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.core.features:require_feature",
@@ -2033,7 +2033,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 264
+          "line": 272
         },
         {
           "key": "services.export.dataset_refresh:_dataset_failure_summary",
@@ -2087,7 +2087,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 266
+          "line": 274
         },
         {
           "caller": "services.export.dataset_refresh:get_pg",
@@ -3445,7 +3445,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.ingestion.baal_indexer:_checksum",
@@ -3850,7 +3850,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.core.features:require_feature",
@@ -3858,7 +3858,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 264
+          "line": 272
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -3958,7 +3958,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 266
+          "line": 274
         },
         {
           "caller": "services.ingestion.base:get_clickhouse",
@@ -4753,7 +4753,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.ingestion.climate_data:_estimate_bioclim",
@@ -5582,7 +5582,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.ingestion.eas_provider:execute_eas_query",
@@ -5766,7 +5766,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.core.features:require_feature",
@@ -5774,7 +5774,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 264
+          "line": 272
         },
         {
           "key": "services.ingestion.data_freshness:_alert_event",
@@ -5900,7 +5900,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 266
+          "line": 274
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
@@ -6624,7 +6624,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -7559,7 +7559,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -8450,7 +8450,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.ingestion.copernicus_remote_sensing:_get_token",
@@ -9239,7 +9239,7 @@
           "qualname": "isolated_worker_key",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 119
+          "line": 120
         },
         {
           "key": "services.core.features:is_enabled",
@@ -9247,7 +9247,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.ingestion.rpc_provider:_validate_endpoint",
@@ -9464,6 +9464,514 @@
           "callee": "services.ingestion.rpc_worker:ingest",
           "source": "services/ingestion/rpc_worker.py",
           "line": 300
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.sensor_anomaly_scan_worker",
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/smtp.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/events/notification_outbox.py",
+        "services/ingestion/sensor_anomaly_scan_worker.py",
+        "services/ingestion/sensor_anomaly_worker.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.ingestion.sensor_anomaly_scan_worker:main",
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 68
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.cli:print_json",
+          "module": "services.common.cli",
+          "qualname": "print_json",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 73
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:_set_worker_context",
+          "module": "services.common.tenant_context",
+          "qualname": "_set_worker_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 222
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_worker_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_worker_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 122
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 59
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 65
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 95
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 249
+        },
+        {
+          "key": "services.core.features:require_feature",
+          "module": "services.core.features",
+          "qualname": "require_feature",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 272
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
+        },
+        {
+          "key": "services.events.notification_outbox:_notification_payloads",
+          "module": "services.events.notification_outbox",
+          "qualname": "_notification_payloads",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
+          "line": 45
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_scan_worker:_location",
+          "module": "services.ingestion.sensor_anomaly_scan_worker",
+          "qualname": "_location",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 14
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_scan_worker:_since",
+          "module": "services.ingestion.sensor_anomaly_scan_worker",
+          "qualname": "_since",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 21
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_scan_worker:main",
+          "module": "services.ingestion.sensor_anomaly_scan_worker",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 51
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_scan_worker:run",
+          "module": "services.ingestion.sensor_anomaly_scan_worker",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 33
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:_alert_payload",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_alert_payload",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 171
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_enqueue_notifications",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 205
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:_many",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_many",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 122
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:_one",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_one",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 115
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:_payload_hash",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_payload_hash",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 129
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:_record_outcome",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_record_outcome",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 153
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:_rule",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_rule",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 136
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:_statement_for",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_statement_for",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 108
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:list_pending_sensor_reading_events",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "list_pending_sensor_reading_events",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 440
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "process_sensor_reading",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 247
+        },
+        {
+          "key": "services.ingestion.sensor_anomaly_worker:replay_recent_sensor_reading_events",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "replay_recent_sensor_reading_events",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 481
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 245
+        },
+        {
+          "caller": "services.common.tenant_context:_set_worker_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 236
+        },
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:_set_worker_context",
+          "source": "services/common/tenant_context.py",
+          "line": 138
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 76
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 117
+        },
+        {
+          "caller": "services.core.features:require_feature",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/core/features.py",
+          "line": 274
+        },
+        {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/events/notification_outbox.py",
+          "line": 106
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_scan_worker:main",
+          "callee": "services.common.cli:print_json",
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 64
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_scan_worker:main",
+          "callee": "services.ingestion.sensor_anomaly_scan_worker:_location",
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 58
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_scan_worker:main",
+          "callee": "services.ingestion.sensor_anomaly_scan_worker:_since",
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 59
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_scan_worker:main",
+          "callee": "services.ingestion.sensor_anomaly_scan_worker:run",
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 64
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_scan_worker:run",
+          "callee": "services.core.features:require_feature",
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 37
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_scan_worker:run",
+          "callee": "services.ingestion.sensor_anomaly_scan_worker:_location",
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 38
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_scan_worker:run",
+          "callee": "services.ingestion.sensor_anomaly_worker:replay_recent_sensor_reading_events",
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 44
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
+          "callee": "services.events.notification_outbox:_notification_payloads",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 216
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 226
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:_many",
+          "callee": "services.ingestion.sensor_anomaly_worker:_statement_for",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 123
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:_one",
+          "callee": "services.ingestion.sensor_anomaly_worker:_statement_for",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 116
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:_record_outcome",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 162
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:list_pending_sensor_reading_events",
+          "callee": "services.common.tenant_context:set_worker_tenant_context",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 453
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:list_pending_sensor_reading_events",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 450
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:list_pending_sensor_reading_events",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 451
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:list_pending_sensor_reading_events",
+          "callee": "services.ingestion.sensor_anomaly_worker:_many",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 460
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.common.tenant_context:set_worker_tenant_context",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 261
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 256
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 257
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_alert_payload",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 377
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 388
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_many",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 274
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 268
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 282
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 294
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 312
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 327
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 345
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 362
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 399
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 414
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_payload_hash",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 336
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_record_outcome",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 302
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_rule",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 274
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:replay_recent_sensor_reading_events",
+          "callee": "services.ingestion.sensor_anomaly_worker:list_pending_sensor_reading_events",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 489
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:replay_recent_sensor_reading_events",
+          "callee": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 506
         }
       ],
       "callback_edges": [],
@@ -10488,7 +10996,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.drivers.base:BaseDriver.__init__",
@@ -11562,7 +12070,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -11881,7 +12389,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -12887,7 +13395,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.metrics.noi_snapshot_worker:main",
@@ -13025,7 +13533,7 @@
           "qualname": "isolated_worker_key",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 119
+          "line": 120
         },
         {
           "key": "services.core.features:is_enabled",
@@ -13033,7 +13541,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.core.features:require_feature",
@@ -13041,7 +13549,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 264
+          "line": 272
         },
         {
           "key": "services.events.dispatch_worker:IsolatedEventBus._claim",
@@ -13119,7 +13627,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 266
+          "line": 274
         },
         {
           "caller": "services.events.dispatch_worker:IsolatedEventBus._claim",
@@ -13292,7 +13800,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.core.features:require_feature",
@@ -13300,7 +13808,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 264
+          "line": 272
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -13392,7 +13900,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 266
+          "line": 274
         },
         {
           "caller": "services.events.notification_delivery_worker:_finish",
@@ -13643,7 +14151,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         }
       ],
       "direct_call_edges": [
@@ -13914,7 +14422,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         }
       ],
       "direct_call_edges": [
@@ -14185,7 +14693,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         }
       ],
       "direct_call_edges": [
@@ -14456,7 +14964,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         }
       ],
       "direct_call_edges": [
@@ -14621,7 +15129,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -14798,7 +15306,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 241
+          "line": 249
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -15057,7 +15565,7 @@
           "qualname": "_alert_payload",
           "class_scope": null,
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 163
+          "line": 171
         },
         {
           "key": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
@@ -15065,7 +15573,7 @@
           "qualname": "_enqueue_notifications",
           "class_scope": null,
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 197
+          "line": 205
         },
         {
           "key": "services.ingestion.sensor_anomaly_worker:_many",
@@ -15073,7 +15581,7 @@
           "qualname": "_many",
           "class_scope": null,
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 114
+          "line": 122
         },
         {
           "key": "services.ingestion.sensor_anomaly_worker:_one",
@@ -15081,7 +15589,7 @@
           "qualname": "_one",
           "class_scope": null,
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 107
+          "line": 115
         },
         {
           "key": "services.ingestion.sensor_anomaly_worker:_payload_hash",
@@ -15089,7 +15597,7 @@
           "qualname": "_payload_hash",
           "class_scope": null,
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 121
+          "line": 129
         },
         {
           "key": "services.ingestion.sensor_anomaly_worker:_record_outcome",
@@ -15097,7 +15605,7 @@
           "qualname": "_record_outcome",
           "class_scope": null,
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 145
+          "line": 153
         },
         {
           "key": "services.ingestion.sensor_anomaly_worker:_rule",
@@ -15105,7 +15613,7 @@
           "qualname": "_rule",
           "class_scope": null,
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 128
+          "line": 136
         },
         {
           "key": "services.ingestion.sensor_anomaly_worker:_statement_for",
@@ -15113,7 +15621,7 @@
           "qualname": "_statement_for",
           "class_scope": null,
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 100
+          "line": 108
         },
         {
           "key": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
@@ -15121,7 +15629,7 @@
           "qualname": "process_sensor_reading",
           "class_scope": null,
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 239
+          "line": 247
         }
       ],
       "direct_call_edges": [
@@ -15171,77 +15679,65 @@
           "caller": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 208
+          "line": 216
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
           "callee": "services.ingestion.sensor_anomaly_worker:_one",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 218
+          "line": 226
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:_many",
           "callee": "services.ingestion.sensor_anomaly_worker:_statement_for",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 115
+          "line": 123
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:_one",
           "callee": "services.ingestion.sensor_anomaly_worker:_statement_for",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 108
+          "line": 116
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:_record_outcome",
           "callee": "services.ingestion.sensor_anomaly_worker:_one",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 154
+          "line": 162
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.common.tenant_context:set_worker_tenant_context",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 253
+          "line": 261
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.common.worker_database:get_worker_credential",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 248
+          "line": 256
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.common.worker_database:get_worker_db",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 249
+          "line": 257
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.ingestion.sensor_anomaly_worker:_alert_payload",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 369
+          "line": 377
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 380
+          "line": 388
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.ingestion.sensor_anomaly_worker:_many",
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 266
-        },
-        {
-          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
-          "callee": "services.ingestion.sensor_anomaly_worker:_one",
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 260
-        },
-        {
-          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
-          "callee": "services.ingestion.sensor_anomaly_worker:_one",
           "source": "services/ingestion/sensor_anomaly_worker.py",
           "line": 274
         },
@@ -15249,61 +15745,73 @@
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.ingestion.sensor_anomaly_worker:_one",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 286
+          "line": 268
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.ingestion.sensor_anomaly_worker:_one",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 304
+          "line": 282
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.ingestion.sensor_anomaly_worker:_one",
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 319
-        },
-        {
-          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
-          "callee": "services.ingestion.sensor_anomaly_worker:_one",
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 337
-        },
-        {
-          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
-          "callee": "services.ingestion.sensor_anomaly_worker:_one",
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 354
-        },
-        {
-          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
-          "callee": "services.ingestion.sensor_anomaly_worker:_one",
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 391
-        },
-        {
-          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
-          "callee": "services.ingestion.sensor_anomaly_worker:_one",
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 406
-        },
-        {
-          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
-          "callee": "services.ingestion.sensor_anomaly_worker:_payload_hash",
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 328
-        },
-        {
-          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
-          "callee": "services.ingestion.sensor_anomaly_worker:_record_outcome",
           "source": "services/ingestion/sensor_anomaly_worker.py",
           "line": 294
         },
         {
           "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 312
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 327
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 345
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 362
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 399
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 414
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_payload_hash",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 336
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_record_outcome",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 302
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
           "callee": "services.ingestion.sensor_anomaly_worker:_rule",
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 266
+          "line": 274
         }
       ],
       "callback_edges": [],

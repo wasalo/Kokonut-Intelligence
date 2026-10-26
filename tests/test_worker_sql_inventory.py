@@ -178,14 +178,15 @@ def test_sensor_anomaly_sql_inventory_records_only_fixed_map_variants():
     ]
 
     assert [(site["line"], site["statement_kind"]) for site in sites] == [
-        (110, "SELECT"),
-        (117, "SELECT"),
+        (118, "SELECT"),
+        (125, "SELECT"),
     ]
-    assert all(len(site["statement_variants"]) == 12 for site in sites)
+    assert all(len(site["statement_variants"]) == 13 for site in sites)
     for site in sites:
         variants = site["statement_variants"]
         assert {variant["operation"] for variant in variants} == {
             "read_source",
+            "list_pending_events",
             "list_rules",
             "reserve_effect",
             "check_cooldown",
@@ -254,7 +255,7 @@ def test_sensor_anomaly_worker_dispatches_only_named_fixed_sql_operations():
         operation_names.append(operation.value)
 
     assert set(operation_names) == set(_QUERY_SQL)
-    assert len(_QUERY_SQL) == 12
+    assert len(_QUERY_SQL) == 13
     assert len(set(_QUERY_SQL.values())) == len(_QUERY_SQL)
 
 

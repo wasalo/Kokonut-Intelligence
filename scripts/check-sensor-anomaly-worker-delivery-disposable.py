@@ -12,7 +12,7 @@ import subprocess
 import sys
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import psycopg2
@@ -33,6 +33,7 @@ FIXTURES_AND_MIGRATIONS = (
     ("tests/fixtures/sensor_anomaly_worker_reads_disposable.sql", "schemas/postgres/412_sensor_anomaly_worker_reads.sql"),
     ("tests/fixtures/sensor_anomaly_alert_write_disposable.sql", "schemas/postgres/413_sensor_anomaly_alert_write.sql"),
     ("tests/fixtures/sensor_anomaly_worker_delivery_disposable.sql", "schemas/postgres/414_sensor_anomaly_worker_delivery.sql"),
+    (None, "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql"),
 )
 DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json"
 
@@ -139,7 +140,7 @@ def main() -> int:
             docker_sql(docker, container, migration_text)
             if migration_name.endswith("414_sensor_anomaly_worker_delivery.sql"):
                 docker_sql(docker, container, migration_text)
-        checks.append("migrations 405–414 apply in order and migration 414 replays cleanly")
+        checks.append("migrations 405–414 and 649 apply in order and migration 649 replays cleanly")
 
         docker_sql(
             docker,
@@ -186,7 +187,47 @@ def main() -> int:
         # developer's .env.sops during an isolated acceptance.
         os.environ["KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT"] = "true"
 
-        from services.ingestion.sensor_anomaly_worker import process_sensor_reading
+        from services.ingestion.sensor_anomaly_worker import (
+            list_pending_sensor_reading_events,
+            process_sensor_reading,
+        )
+
+        scan_since = datetime.now(timezone.utc) - timedelta(hours=1)
+        pending_events = list_pending_sensor_reading_events(
+            location_id=LOCATION_ID, since=scan_since, batch_size=100
+        )
+        pending_ids = {event["event_id"] for event in pending_events}
+        if SOURCE_EVENT_ID not in pending_ids:
+            raise AssertionError(f"bounded replay inventory omitted the unprocessed source: {pending_ids}")
+        if any(event["sensor_id"] != SENSOR_ID for event in pending_events):
+            raise AssertionError(f"bounded replay inventory returned another device: {pending_events}")
+        if {"a0000000-0000-0000-0000-000000000031", "a0000000-0000-0000-0000-000000000034"} <= pending_ids:
+            raise AssertionError("replay inventory returned duplicate events for one source reading")
+        checks.append("signed replay inventory returns only matching location/device sensor events")
+
+        from services.common.tenant_context import set_worker_tenant_context
+
+        set_worker_tenant_context(
+            worker,
+            credential=RAW_CREDENTIAL,
+            location_id=LOCATION_ID,
+            resource="sensor_reading",
+            action="process",
+        )
+        with worker.cursor() as cursor:
+            try:
+                cursor.execute(
+                    "SELECT * FROM kokonut_security.list_sensor_anomaly_events_since(%s, %s, 100)",
+                    ("a0000000-0000-0000-0000-000000000002", scan_since),
+                )
+            except psycopg2.Error as exc:
+                worker.rollback()
+                if exc.pgcode != "42501":
+                    raise
+            else:
+                worker.rollback()
+                raise AssertionError("anomaly inventory accepted a different location than its signed context")
+        checks.append("anomaly inventory rejects a location that differs from the signed worker context")
 
         first = process_sensor_reading(
             sensor_id=SENSOR_ID, location_id=LOCATION_ID, event_id=SOURCE_EVENT_ID
@@ -197,6 +238,13 @@ def main() -> int:
         }:
             raise AssertionError(f"bounded worker transaction had unexpected effects: {first}")
         checks.append("signed worker transaction creates the alert, draft claim, notification and approval intent")
+
+        pending_after_processing = list_pending_sensor_reading_events(
+            location_id=LOCATION_ID, since=scan_since, batch_size=100
+        )
+        if SOURCE_EVENT_ID in {event["event_id"] for event in pending_after_processing}:
+            raise AssertionError("completed reading/rule receipts remained in the replay inventory")
+        checks.append("replay inventory excludes a reading once every current rule has a durable receipt")
 
         alert_rows = query(
             admin,
@@ -447,25 +495,31 @@ def main() -> int:
             "then retries on attempt two without duplicate effects"
         )
 
-        with worker.cursor() as cursor:
-            cursor.execute("SET LOCAL ROLE kokonut_worker_execution")
-            try:
-                cursor.execute("SELECT * FROM public.sensor_alert LIMIT 0")
-            except psycopg2.Error as exc:
-                worker.rollback()
-                if exc.pgcode != "42501":
-                    raise
-            else:
-                worker.rollback()
-                raise AssertionError("worker execution unexpectedly has direct sensor_alert SELECT")
-        checks.append("forced-RLS function owners work while worker execution has no direct alert table access")
+        for relation in ("sensor_alert", "platform_event", "sensor_anomaly_effect"):
+            with worker.cursor() as cursor:
+                cursor.execute("SET LOCAL ROLE kokonut_worker_execution")
+                try:
+                    cursor.execute(f"SELECT * FROM public.{relation} LIMIT 0")
+                except psycopg2.Error as exc:
+                    worker.rollback()
+                    if exc.pgcode != "42501":
+                        raise
+                else:
+                    worker.rollback()
+                    raise AssertionError(
+                        f"worker execution unexpectedly has direct {relation} SELECT"
+                    )
+        checks.append("forced-RLS functions work while worker execution has no direct source or effect table reads")
 
         evidence = {
             "schema_version": 1,
             "date": datetime.now(timezone.utc).date().isoformat(),
-            "scope": "Signed event-driven sensor anomaly transaction and delivery",
+    "scope": "Signed sensor anomaly effects and bounded scheduled replay inventory",
             "database": "isolated disposable PostgreSQL 16 container",
             "migration_414_sha256": hashlib.sha256(migration_414.read_bytes()).hexdigest(),
+            "migration_649_sha256": hashlib.sha256(
+                (ROOT / "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql").read_bytes()
+            ).hexdigest(),
             "migrations": [migration for _, migration in FIXTURES_AND_MIGRATIONS],
             "result": "passed",
             "checks": [{"result": "passed", "description": item} for item in checks],

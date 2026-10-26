@@ -1223,19 +1223,19 @@
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 12,
+          "line": 13,
           "target": "services.common.tenant_context",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 13,
+          "line": 14,
           "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 14,
+          "line": 15,
           "target": "services.events.notification_outbox",
           "kind": "from"
         }
@@ -4931,6 +4931,195 @@
     },
     {
       "kind": "scheduled_module",
+      "name": "services.ingestion.sensor_anomaly_scan_worker",
+      "root_modules": [
+        "services.ingestion.sensor_anomaly_scan_worker"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.http",
+        "services.common.logging",
+        "services.common.smtp",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.features",
+        "services.core.providers",
+        "services.events.notification_outbox",
+        "services.ingestion.sensor_anomaly_scan_worker",
+        "services.ingestion.sensor_anomaly_worker"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/smtp.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/events/notification_outbox.py",
+        "services/ingestion/sensor_anomaly_scan_worker.py",
+        "services/ingestion/sensor_anomaly_worker.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 18,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 19,
+          "target": "services.common.smtp",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 104,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 164,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 437,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 444,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 445,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 9,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 10,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_scan_worker.py",
+          "line": 11,
+          "target": "services.ingestion.sensor_anomaly_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 13,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 14,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 15,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.ingestion.sensor_ingester",
       "root_modules": [
         "services.ingestion.sensor_ingester"
@@ -8484,19 +8673,19 @@
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 12,
+          "line": 13,
           "target": "services.common.tenant_context",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 13,
+          "line": 14,
           "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 14,
+          "line": 15,
           "target": "services.events.notification_outbox",
           "kind": "from"
         }

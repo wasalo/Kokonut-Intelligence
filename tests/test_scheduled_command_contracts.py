@@ -57,6 +57,11 @@ def test_every_scheduled_module_has_a_command_contract():
         ),
         ("services.ingestion.anomaly_detector", ["--location-id", str(uuid4())]),
         ("services.ingestion.anomaly_detector", ["--baseline-check", "--location-id", str(uuid4())]),
+        ("services.ingestion.sensor_anomaly_scan_worker", ["--location-id", str(uuid4())]),
+        (
+            "services.ingestion.sensor_anomaly_scan_worker",
+            ["--location-id", str(uuid4()), "--batch-size", "100"],
+        ),
         ("services.metrics", ["--compute", "--all", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--metric", "value_flowed", "--location-id", str(uuid4())]),
         ("services.metrics.noi_snapshot_worker", ["--location-id", str(uuid4())]),
@@ -130,6 +135,11 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.rpc_worker", ["--chain", "polygon"]),
         ("services.ingestion.anomaly_detector", []),
         ("services.ingestion.anomaly_detector", ["--baseline-check"]),
+        ("services.ingestion.sensor_anomaly_scan_worker", []),
+        (
+            "services.ingestion.sensor_anomaly_scan_worker",
+            ["--location-id", str(uuid4()), "--batch-size", "101"],
+        ),
         ("services.ingestion.climate_data", ["--all"]),
         ("services.ingestion.climate_data", ["--all", "--location-id", "invalid"]),
         ("services.ingestion.climate_data", ["--all", "--worldclim", "--location-id", str(uuid4())]),
@@ -380,7 +390,7 @@ def test_weather_forecast_dispatch_forwards_only_its_exact_worker_credentials():
 def test_anomaly_job_requires_one_explicit_location_before_dispatch():
     job = JOBS["anomaly"]
 
-    assert job.module == "services.ingestion.anomaly_detector"
+    assert job.module == "services.ingestion.sensor_anomaly_scan_worker"
     assert job.required_inputs == ("location_id",)
     with patch("services.core.jobs.subprocess.run") as run:
         with pytest.raises(ValueError, match="Anomaly refresh requires a location"):
@@ -393,7 +403,28 @@ def test_anomaly_job_requires_one_explicit_location_before_dispatch():
     location_id = str(uuid4())
     plan = build_job_plan("anomaly", "hourly", location_id=location_id)
     assert plan["scheduled_task"]["command_args"] == ["--location-id", location_id]
+    assert plan["scheduled_task"]["module_path"] == "services.ingestion.sensor_anomaly_scan_worker"
     assert plan["scheduled_task"]["is_enabled"] is False
+
+
+@pytest.mark.parametrize(
+    ("enabled", "expected_job"),
+    [(False, "anomaly_legacy"), (True, "anomaly")],
+)
+def test_anomaly_schedule_switches_only_after_signed_replay_is_enabled(
+    monkeypatch, enabled, expected_job
+):
+    import services.core.jobs as jobs
+
+    monkeypatch.setattr(
+        jobs,
+        "is_enabled",
+        lambda name: enabled if name == "isolated_sensor_anomaly_scan_worker" else True,
+    )
+    with patch("services.core.jobs._run_job_spec", return_value={"status": "success"}) as dispatch:
+        jobs.run_job("anomaly", location_id=str(uuid4()))
+
+    assert dispatch.call_args.args[:2] == (expected_job, jobs.JOBS[expected_job])
 
 
 def test_remote_sensing_job_defaults_to_one_due_job_batch():

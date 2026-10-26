@@ -112,6 +112,11 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--check": None,
         "--source": "identifier",
     },
+    "services.ingestion.sensor_anomaly_scan_worker": {
+        "--location-id": "uuid",
+        "--since": "datetime",
+        "--batch-size": "anomaly_batch_size",
+    },
     "services.export.dataset_refresh": {
         "--dataset-id": "uuid",
         "--all": None,
@@ -198,7 +203,10 @@ def _validate_value(kind: str, value: str) -> None:
     elif kind == "worker_id":
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}", value):
             raise _reject("worker identifier has an invalid format")
-    elif kind in {"month", "year", "block", "batch_size", "outbox_batch_size", "small_batch_size"}:
+    elif kind in {
+        "month", "year", "block", "batch_size", "outbox_batch_size",
+        "small_batch_size", "anomaly_batch_size",
+    }:
         if not value.isdecimal():
             raise _reject("numeric argument must be a non-negative integer")
         number = int(value)
@@ -209,6 +217,7 @@ def _validate_value(kind: str, value: str) -> None:
             "batch_size": (1, 1000),
             "outbox_batch_size": (1, 100),
             "small_batch_size": (1, 10),
+            "anomaly_batch_size": (1, 100),
         }
         lower, upper = limits[kind]
         if not lower <= number <= upper:
@@ -240,6 +249,12 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject(
                 "scheduled sensor ingestion requires one driver instance and one location"
             )
+
+    if module_path == "services.ingestion.sensor_anomaly_scan_worker":
+        if "--location-id" not in options or options - {
+            "--location-id", "--since", "--batch-size"
+        }:
+            raise _reject("scheduled sensor anomaly replay requires one location and bounded options")
 
     if module_path in {
         "services.ingestion.weather",

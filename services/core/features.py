@@ -217,6 +217,14 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a dedicated database login and bounded functions for global data-freshness checks",
     },
+    "isolated_sensor_anomaly_scan_worker": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_ISOLATED_SENSOR_ANOMALY_SCAN_WORKER", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Replay recent sensor-reading events through the signed location-scoped anomaly worker",
+    },
     "isolated_clickhouse_outbox_worker": {
         "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_CLICKHOUSE_OUTBOX_WORKER", "false").lower() == "true",
         "critical": False,
