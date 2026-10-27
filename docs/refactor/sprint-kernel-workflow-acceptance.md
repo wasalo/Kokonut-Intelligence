@@ -48,14 +48,13 @@ reviewable PR targeting `develop`.
   merge, `develop` was at the baseline above; release readiness requires the
   required checks on the actual release PR head.
 
-The ignored root
-[implementation-plan file](../../Kokonut-Kernel-Architecture-Refactor-Implementation-Plan.md)
-currently contains progress addenda and a capability-matrix copy; the original
-phase definitions and architecture narrative could not be located in it. Keep
-the file intact. This sprint uses the tracked [phase ledger](progress.md#phase-ledger),
-[code-first execution plan](code-first-execution-plan.md), capability matrix,
-and current code as its comparison. Recover or reconstruct the original plan
-separately if an authoritative copy becomes available.
+The [owner-provided original implementation plan](implementation-plan-alignment.md)
+is now available and its Phase 0–8 criteria are cross-referenced against the
+tracked phase ledger and current evidence. The ignored root plan file contains
+progress addenda and a matrix copy, so it remains preserved as a separate
+working artifact. This sprint is chiefly a Phase 7 workflow slice, supported
+by Phase 2 runtime and Phase 8 recovery/ARM64 checks; it does not mark a whole
+phase complete.
 
 ## Batch 1 — Baseline and a disposable acceptance target
 
