@@ -321,11 +321,13 @@ that its full source-plan phase is complete.
   migration-658–662 ACL checks pass on native and ARM64/QEMU disposable
   PostgreSQL, covering 79 private relations, 24 mutation-denied relations,
   two append-only relations, and the API-key column boundary. The complete
-  651-file ARM64 replay through migration 660 passes its two-tenant scope
-  probe and verifies 103 boundaries; migrations 661–662 raise the source-declared
-  policy inventory to 106, but these three newest policies have only focused
-  ACL acceptance so far. A full-schema two-tenant replay through 662 remains
-  queued. This is synthetic software acceptance; broad runtime access
+  653-file ARM64 replay through migration 662 passes its two-tenant scope
+  probe and verifies all 106 declared boundaries (79 private, 24 mutation-
+  denied, two append-only, and the API-key column boundary), with zero direct
+  table or column privilege violations. It reports 1,014 public relations with
+  effective table-level DML while RLS is disabled, so broad runtime access and
+  universal application tenant isolation remain open. This is synthetic
+  software acceptance; broad runtime access
   remains beyond these selected boundaries and the probe does not establish
   universal application tenant isolation.
   The target-aware analytics inventory links 274 relations with
@@ -347,7 +349,7 @@ that its full source-plan phase is complete.
   table grants from RLS, worker, Directus and production enforcement.
   Sources: [runtime boundary](batches.md#L2826),
   [agent boundary](batches.md#L3652),
-  [latest full-schema probe](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json).
+  [latest full-schema probe](builds/2026-10-27-recovery/arm64-resource-limited-schema-662.json).
 - [ ] **C2 — Finish Gateway and SDK contract parity.** Audit registered routes,
   auth/action/scope policy, pagination, error models and SDK behavior; close
   source-verifiable gaps without exposing generic CRUD or weakening default
@@ -377,18 +379,18 @@ that its full source-plan phase is complete.
   farm records or production identity. Sources: [CAP-035](batches.md#L3484),
   [CAP-036](batches.md#L3574), [CAP-037](batches.md#L3582),
   [CAP-038](batches.md#L3652).
-- [ ] **C7 — Finish software-only ARM64 and recovery evidence.** The full
-  resource-limited ARM64/QEMU schema replay passes all 651 migration files
-  through 660, with zero pending/failed migrations, no OOM kill, and successful
-  cleanup. The updated full-schema operator probe passes 17 checks and verifies
-  79 private, 22 mutation-denied, and one append-only relation boundaries.
-  Focused migrations 658–662 ACL acceptance passes natively and on ARM64/QEMU;
-  this includes 79 private tables, 24 mutation-denied tables, two append-only
-  tables, and the API-key column boundary. The complete current schema and
-  two-tenant probe through migration 662 are
-  queued. This remains synthetic software evidence, not physical-device,
+- [ ] **C7 — Finish software-only ARM64 and recovery evidence.** The complete
+  653-file ARM64/QEMU schema replay through migration 662 passes under the
+  verified 1.5 GiB/two-CPU database budget. All 17 operator-scope assertions
+  pass across two synthetic tenants and verify 106 declared runtime boundaries
+  (79 private, 24 mutation-denied, two append-only, plus the API-key column
+  boundary); no direct table or column privilege violations were found. The
+  database was not OOM-killed, no seeds or farm data were loaded, no host ports
+  were published, and temporary resources were removed. The probe still
+  reports 1,014 public relations with effective table-level DML while RLS is
+  disabled. This remains synthetic software evidence, not physical-device,
   populated-data, external-provider/media, R2, or production recovery
-  acceptance ([full replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json);
+  acceptance ([full replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-662.json);
   [native ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-disposable.json);
   [ARM64 ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-arm64-disposable.json);
   [native graph-type ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-disposable.json);
@@ -413,7 +415,7 @@ that its full source-plan phase is complete.
   [portability gates](batches.md#L2012).
 - [ ] **C8 — Reconcile all ledgers after each batch.** Keep the sprint TODO,
   `batches.md`, `progress.md`, capability matrix and migration/evidence links
-  consistent. Preserve the 26 open composite checklist entries until their
+  consistent. Preserve the 25 open composite checklist entries until their
   individual acceptance criteria close.
 
 ## Owner or environment gates after code work
@@ -470,11 +472,12 @@ checks pass for apply/replay, read access, mutation/reference denial, stale
 column-grant cleanup, and provisioner reapplication. The focused migration,
 role, report, ARM64-contract, and migration suite passes 122 tests; Ruff,
 dependency/provider boundaries, and SQL inventory checks pass. The static
-report now declares 105 boundaries with no mapping gaps. The full ARM64 replay
-through 660 still verifies 103 boundaries; full-chain and two-tenant probe
-through 661 remain queued. Disposable checks used no seeds or farm data and
-did not touch candidate/legacy databases. Broader runtime DML/RLS boundaries
-and physical Raspberry Pi acceptance remain open.
+report now declares 105 boundaries with no mapping gaps. The focused checks
+were followed by a complete ARM64/QEMU replay through migration 662; the later
+probe verifies all 106 declared boundaries on the full chain. Disposable checks
+used no seeds or farm data and did not touch candidate/legacy databases.
+Broader runtime DML/RLS boundaries and physical Raspberry Pi acceptance remain
+open ([full-chain evidence](builds/2026-10-27-recovery/arm64-resource-limited-schema-662.json)).
 Checklist: 1,264 complete / 26 open (1,290 total). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows.
@@ -486,8 +489,12 @@ Migration 662 makes `access_audit_log` SELECT/INSERT-only for
 The role provisioner reapplies the policy after broad grants. Native and
 ARM64/QEMU disposable checks pass migration replay, column-grant cleanup,
 read/append success, and mutation denial. Focused suites pass 126 tests. The
-latest full-schema two-tenant evidence still ends at migration 660, so schema
-replay through 662 remains open. No retention period is selected; cleanup
-stays outside runtime authority and must follow the future configurable policy.
-Checklist: 1,265 complete / 26 open (1,291 total); capability classifications
-remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+full 653-file ARM64/QEMU schema replay through migration 662 now passes
+under the verified 1.5 GiB/two-CPU budget. Its two-tenant probe passes all 17
+assertions and verifies 106 declared boundaries, including the new append-only
+audit policy, with zero direct table/column privilege violations. No retention
+period is selected; cleanup stays outside runtime authority and must follow
+the future configurable policy. The probe still reports 1,014 relations with
+effective table DML while RLS is disabled, so C1 remains open. Checklist:
+1,266 complete / 25 open (1,291 total); capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

@@ -3,25 +3,21 @@
 **Runtime-role acceptance update (27 October 2026):** A clean native replay of
 all 648 ordered migrations through 657 passes full runtime-role provisioning
 and the two-tenant operator-context probe. Focused native and ARM64/QEMU
-disposable PostgreSQL checks pass migrations 658–662, covering 79 private
-relations, 24 mutation-denied relations, two append-only relations, and the
-API-key read-only column policy. The complete 651-file
-schema chain through migration 660 passes on ARM64/QEMU under a verified 1.5
-GiB memory/swap and two-CPU database limit. Its operator-scope probe passes all
-17 checks and verifies 1,511 public relations, 103 then-declared runtime
-boundaries (79 private, 22 mutation-denied, one append-only, and the API-key
-column boundary), and two synthetic tenants with no direct table or column
-privilege violations. Migration 661 adds two graph-type boundaries, bringing
-the source-declared inventory to 105, and migration 662 adds the append-only
-capability-audit boundary, bringing it to 106. These three have focused
-native/ARM64 ACL checks, but are not yet included in a full-schema two-tenant
-probe. The latest
-full probe reports 1,016 relations with table DML while RLS is disabled; this
-is not a count of relations permitting UPDATE/DELETE and underscores that
-broad compatibility DML and non-universal application-table RLS remain. These
-disposable checks are not candidate or production state and do not establish
-universal tenant isolation
-([full ARM64 schema and scope evidence](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json);
+disposable PostgreSQL checks pass migrations 658–662. The complete 653-file
+schema chain through migration 662 now passes on ARM64/QEMU under a verified
+1.5 GiB memory/swap and two-CPU database limit. Its full-schema operator-scope
+probe passes all 17 checks across two synthetic tenants and verifies all 106
+declared boundaries: 79 private relations, 24 mutation-denied relations, two
+append-only relations, and the API-key read-only column boundary. There are
+zero direct table or column privilege violations. The probe covers 1,511
+public relations and reports 1,014 with effective table-level DML while RLS is
+disabled; this is not a count of relations permitting UPDATE/DELETE and broad
+compatibility DML and non-universal application-table RLS remain. The runner
+loaded no seeds or farm data, published no ports, was not OOM-killed, and
+removed its temporary resources. This is disposable software-portability
+evidence, not candidate/production state, universal tenant isolation, or
+physical Raspberry Pi acceptance
+([full ARM64 schema and scope evidence](builds/2026-10-27-recovery/arm64-resource-limited-schema-662.json);
 [native focused ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-disposable.json);
 [ARM64 focused ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-arm64-disposable.json);
 [native graph-type ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-disposable.json);
@@ -49,11 +45,11 @@ This remains synthetic local evidence, not populated-data, provider/media, R2,
 whole-platform or production RPO/RTO acceptance
 ([build/profile evidence](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json);
 [checkpoint/restore evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json)).
-The complete schema through migration 660 now replays on ARM64/QEMU under a
-verified 1.5 GiB memory/swap and two-CPU database budget with all 651 files
-applied, no OOM kill, and successful cleanup; this does not verify constrained
-app operation or Pi hardware
-([resource-limited replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json)).
+The complete schema through migration 662 replays on ARM64/QEMU under a
+verified 1.5 GiB memory/swap and two-CPU database budget with all 653 files
+applied, no OOM kill, and successful cleanup; this does not verify physical Pi
+hardware
+([resource-limited replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-662.json)).
 See [synthetic backup/restore evidence](builds/2026-10-27-recovery/kernel-synthetic-backup-restore.json).
 The app runtime limit result is recorded in
 [constrained ARM64 runtime evidence](builds/2026-10-27-recovery/kernel-app-arm64-constrained-runtime.json).
@@ -66,10 +62,11 @@ writes and 425 target sites identified by the conservative matcher across 89
 source files. `farm` remains the unmatched candidate because current INSERT
 statements only read it. The source-policy report recognizes 106 declared
 runtime boundaries. Focused native/ARM64 disposable checks verify migrations
-658–662; the full ARM64 schema and two-tenant probe currently ends at 660 and
-verifies the earlier 103 boundaries. Migrations 661–662 add three graph-type
-and capability-audit policies covered by focused checks, but not yet by a
-full-chain probe. All candidates remain subject to caller/source review. The
+658–662, and the complete ARM64 schema plus two-tenant probe through 662
+verifies all 106 with zero direct table or column privilege violations. The
+probe reports 1,014 relations with effective table DML while RLS is disabled;
+broad compatibility DML remains an open C1 concern. All candidates remain
+subject to caller/source review. The
 read-only `advisory_rule`,
 `crop_family`, `crop_nutrient_removal_factor`, and `certification_type` policies
 are recorded in the runtime-role acceptance above. The policy set now also

@@ -20476,3 +20476,25 @@ open. No capability classification or MAN-CAP status changed.
 
 Checklist: 1,244 complete / 25 open (1,269 total). Capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Full ARM64/QEMU schema and operator-scope replay through migration 662 — 27 October 2026
+
+The current 653-file schema chain applied cleanly through
+`662_runtime_access_audit_log_append_only` on the repository's ARM64 PostGIS
+image under QEMU. The disposable database had a verified 1.5 GiB memory/swap
+and two-CPU budget; it applied zero seeds, loaded no farm records, published no
+host ports, was not OOM-killed, and was removed with its temporary resources.
+The two-tenant operator-scope probe passed all 17 assertions and verified 106
+declared runtime boundaries: 79 private relations, 24 mutation-denied
+relations, two append-only relations, and the API-key read-only column
+boundary. It found no direct table or column privilege violations. The probe
+reports 1,014 public relations with effective table-level DML while RLS is
+disabled; broad compatibility DML and universal application tenant isolation
+remain open. This is software portability evidence only, not physical
+Raspberry Pi acceptance. Candidate and legacy databases were untouched.
+
+Evidence: [ARM64 full-schema and two-tenant replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-662.json).
+
+Checklist: 1,266 complete / 25 open (1,291 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
