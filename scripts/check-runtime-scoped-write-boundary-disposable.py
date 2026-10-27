@@ -62,8 +62,11 @@ ACCESS_AUDIT_LOG_MIGRATION = (
 AGENT_ACTION_LOG_MIGRATION = (
     ROOT / "schemas/postgres/663_runtime_agent_action_log_read_only.sql"
 )
+CARBON_BENCHMARK_MIGRATION = (
+    ROOT / "schemas/postgres/664_runtime_carbon_benchmark_read_only.sql"
+)
 REFERENCE_CATALOGS = (
-    "cooperative_type", "dfs_insurance_product_type", "evidence_maturity_level",
+    "carbon_benchmark", "cooperative_type", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type",
 )
@@ -211,6 +214,10 @@ def check_boundary(
                     "TO kokonut_directus_runtime"
                 )
                 cursor.execute(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE ON public.carbon_benchmark "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
                     "GRANT SELECT (marker), INSERT (id, marker), UPDATE (marker), REFERENCES (id) "
                     "ON public.data_access_log TO kokonut_runtime"
                 )
@@ -292,6 +299,11 @@ def check_boundary(
                 )
                 cursor.execute(agent_action_log_migration)
                 cursor.execute(agent_action_log_migration)
+                carbon_benchmark_migration = CARBON_BENCHMARK_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(carbon_benchmark_migration)
+                cursor.execute(carbon_benchmark_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -369,9 +381,25 @@ def check_boundary(
                         "disposal_method": 660,
                         "graph_node_type": 661,
                         "graph_edge_type": 661,
+                        "carbon_benchmark": 664,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
+                    )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', "
+                    "'public.carbon_benchmark', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.carbon_benchmark', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.carbon_benchmark', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.carbon_benchmark', 'DELETE')"
+                )
+                if cursor.fetchone() != (True, True, True, True):
+                    raise AssertionError(
+                        "migration 664 unexpectedly changed the separate Directus role"
                     )
             with connection.cursor() as cursor:
                 for table, migration_number in (
@@ -387,6 +415,7 @@ def check_boundary(
                     ("disposal_method", 660),
                     ("graph_node_type", 661),
                     ("graph_edge_type", 661),
+                    ("carbon_benchmark", 664),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -529,6 +558,21 @@ def check_boundary(
                 if scoped_applied["relations"].get(table) is not True:
                     raise AssertionError(
                         f"runtime provisioner skipped the {table} boundary"
+                    )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', "
+                    "'public.carbon_benchmark', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.carbon_benchmark', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.carbon_benchmark', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.carbon_benchmark', 'DELETE')"
+                )
+                if cursor.fetchone() != (True, True, True, True):
+                    raise AssertionError(
+                        "migration 664 or runtime provisioner changed the Directus role"
                     )
 
             with connection.cursor() as cursor:
@@ -923,6 +967,14 @@ def check_boundary(
                     "select_allowed": True,
                     "insert_update_delete_truncate_denied": True,
                     "references_and_column_grants_denied": True,
+                },
+                "read_only_carbon_benchmark": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
                 },
                 "column_level_privilege_regression_detected": True,
                 "bounded_gateway_function_behavior": "not exercised; source migrations are not installed",

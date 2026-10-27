@@ -313,9 +313,9 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
         raise ValueError("operator scope probe did not report the runtime scoped-write boundary")
     if (
         scoped_write["private_relations_expected"] != 79
-        or scoped_write["mutation_denied_relations_expected"] != 25
+        or scoped_write["mutation_denied_relations_expected"] != 26
         or scoped_write["private_relations_verified"] != 79
-        or scoped_write["mutation_denied_relations_verified"] != 25
+        or scoped_write["mutation_denied_relations_verified"] != 26
         or scoped_write["direct_table_privilege_violations"] != 0
         or scoped_write["direct_column_privilege_violations"] != 0
         or scoped_write["farm_activity_ledger_readable"] != 1

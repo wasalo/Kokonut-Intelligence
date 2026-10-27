@@ -562,3 +562,8 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   the 17-check two-tenant probe pass. The six-module regression suite passes
   135 tests. C1 remains open because 1,013 relations retain effective DML while
   RLS is disabled ([batch](batches.md); [progress](progress.md#progress-addendum--agent_action_log-runtime-read-only-boundary--27-october-2026)).
+- [x] Keep seeded `carbon_benchmark` references readable but immutable to the
+  Kernel runtime. Migration 664, native/ARM64 disposable ACL checks, and the
+  655-file full-schema replay pass; 136 focused tests pass. The report records
+  108 declared controls and 1,012 relations with effective DML while RLS is
+  disabled; C1 remains open ([batch](batches.md); [progress](progress.md#progress-addendum--carbon_benchmark-runtime-read-only-boundary--27-october-2026)).

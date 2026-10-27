@@ -340,6 +340,36 @@ Checklist: 1,249 complete / 25 open (1,274 total). Capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
 
+### Progress addendum — `carbon_benchmark` runtime read-only boundary — 27 October 2026
+
+Repository review found `carbon_benchmark` is created by migration 028 and
+initialized from literature values by seed 027. CRISP uses a literal
+location-independent `SELECT`; the analytics helper constructs a dynamic
+SELECT string that the static SQL scanner does not fully represent, so that
+source was checked directly. No application runtime writer was found. Migration
+664 and runtime-role provisioning now preserve SELECT and deny table/column
+INSERT, UPDATE, DELETE, TRUNCATE, and REFERENCES. The migration changes only
+`kokonut_runtime`; disposable checks confirm the separate Directus DB role's
+current DML privileges are unchanged. Native and ARM64/QEMU PostgreSQL 16
+apply/replay, stale-grant cleanup, and provisioner-reapplication checks pass.
+The full native replay applies all 655 ordered schema files through 664 and
+passes the 17-check synthetic two-tenant probe under the 1.5 GiB/two-CPU
+limits; there are no seeds and cleanup completed. The source/ACL report covers
+108 declared controls with zero mismatches. It still finds 1,012 public
+relations with effective DML while RLS is disabled, so C1 remains open. The
+six-module selection passes 136 tests; Ruff, compilation, requirement/provider
+boundaries, SQL-inventory freshness, capability validation, and diff checks
+pass. Directus API behavior and owner-approved reference editing remain
+unverified; no candidate/legacy DB or farm rows were touched. Evidence:
+[migration](../schemas/postgres/664_runtime_carbon_benchmark_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-664-native-disposable.json),
+and [ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,275 complete / 25 open (1,300 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
 ### Progress addendum — ARM64 advisory-rule ACL check — 27 October 2026
 
 The focused disposable ACL checker now accepts an explicit Docker platform and

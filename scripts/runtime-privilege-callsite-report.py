@@ -52,6 +52,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "graph_node_type": "runtime_mutations_denied",
     "graph_edge_type": "runtime_mutations_denied",
     "agent_action_log": "runtime_mutations_denied",
+    "carbon_benchmark": "runtime_mutations_denied",
     "data_access_log": "runtime_append_only_read_insert",
     "access_audit_log": "runtime_append_only_read_insert",
 }

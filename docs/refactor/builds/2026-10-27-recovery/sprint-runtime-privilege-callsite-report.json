@@ -4917,31 +4917,49 @@
       ],
       "candidate_write_target_sites_by_statement": {},
       "candidate_write_target_source_files": [],
-      "configured_runtime_boundary": null,
+      "configured_runtime_boundary": "runtime_mutations_denied",
       "dml_overlaps_explicit_revoke": false,
-      "effective_dml_privileges": [
-        "DELETE",
-        "INSERT",
-        "UPDATE"
-      ],
+      "effective_dml_privileges": [],
       "effective_dml_revokes": [],
       "effective_privileges": {
-        "delete": true,
-        "insert": true,
+        "delete": false,
+        "insert": false,
         "select": true,
         "truncate": false,
-        "update": true
+        "update": false
       },
       "effective_truncate_privilege": false,
-      "expected_runtime_boundary": null,
-      "explicit_runtime_dml_revokes": [],
-      "explicit_runtime_revokes": [],
-      "has_any_dml": true,
+      "expected_runtime_boundary": "runtime_mutations_denied",
+      "explicit_runtime_dml_revokes": [
+        {
+          "migration": "664_runtime_carbon_benchmark_read_only.sql",
+          "privileges": "ALL PRIVILEGES"
+        }
+      ],
+      "explicit_runtime_revokes": [
+        {
+          "migration": "664_runtime_carbon_benchmark_read_only.sql",
+          "privileges": "ALL PRIVILEGES"
+        },
+        {
+          "migration": "664_runtime_carbon_benchmark_read_only.sql",
+          "privileges": "INSERT (%1$I)"
+        },
+        {
+          "migration": "664_runtime_carbon_benchmark_read_only.sql",
+          "privileges": "REFERENCES (%1$I)"
+        },
+        {
+          "migration": "664_runtime_carbon_benchmark_read_only.sql",
+          "privileges": "UPDATE (%1$I)"
+        }
+      ],
+      "has_any_dml": false,
       "kind": "r",
       "relation": "carbon_benchmark",
       "rls_enabled": false,
       "rls_forced": false,
-      "runtime_boundary_policy_matches_source": null
+      "runtime_boundary_policy_matches_source": true
     },
     {
       "candidate_execution_sites_by_statement": {
@@ -69398,8 +69416,8 @@
       "direct_column_privilege_violations": 0,
       "direct_table_privilege_violations": 0,
       "farm_activity_ledger_readable": 1,
-      "mutation_denied_relations_expected": 25,
-      "mutation_denied_relations_verified": 25,
+      "mutation_denied_relations_expected": 26,
+      "mutation_denied_relations_verified": 26,
       "private_relations_expected": 79,
       "private_relations_verified": 79
     },
@@ -69407,25 +69425,25 @@
   },
   "runtime_role_policy_source": {
     "path": "services/migration/runtime_role.py",
-    "sha256": "d0563a2ac6e5f17d69afccad3ea4037fec5c02a997c1bf70315a20cc9dd428ce"
+    "sha256": "ed6cdf9f8097ffba2af8206d35e00a2ace12e368977a76bd04047cfef8b6ac1f"
   },
   "scope_limit": "No application rows, operator identifiers, or secrets are included. The report does not include a full column ACL inventory, sequence ACLs, object ownership, security-definer behavior, Directus, external consumers, or production state. The API-key read-only column allowlist is separately verified by the runtime provisioner. Static policy coverage and its source digest do not prove that the provisioner has executed.",
   "source_dirty": true,
-  "source_revision": "66163ff8",
+  "source_revision": "79bda84f",
   "summary": {
     "dml_relations_matching_explicit_runtime_revoke": 0,
     "dml_relations_without_candidate_sites": 510,
     "migration_revoked_relations_missing_or_mismatched_runtime_policy": 0,
-    "migration_revoked_relations_with_runtime_policy": 107,
-    "relations_with_any_dml": 1400,
+    "migration_revoked_relations_with_runtime_policy": 108,
+    "relations_with_any_dml": 1399,
     "relations_with_candidate_execution_sites": 910,
     "relations_with_effective_truncate": 0,
     "relations_with_effective_truncate_and_rls_disabled": 0,
     "runtime_relations": 1511,
-    "tables_with_dml_and_rls_disabled": 1013,
+    "tables_with_dml_and_rls_disabled": 1012,
     "unprotected_dml_relations_matching_explicit_runtime_revoke": 0,
     "unprotected_dml_relations_without_candidate_sites": 261,
-    "unprotected_dml_relations_without_candidate_write_sites": 451
+    "unprotected_dml_relations_without_candidate_write_sites": 450
   },
   "unprotected_candidate_write_relations_by_service": {
     "abundance": 30,
@@ -69776,7 +69794,6 @@
     "capital_flow_observation",
     "capital_provider_utility_scenario",
     "capital_source",
-    "carbon_benchmark",
     "cash_flow_snapshot",
     "causal_link",
     "causal_loop",

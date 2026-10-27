@@ -1,16 +1,17 @@
 # Capability preservation matrix
 
-**Runtime-role acceptance update (27 October 2026):** A clean native replay of
-all 648 ordered migrations through 657 passes full runtime-role provisioning
-and the two-tenant operator-context probe. Focused native and ARM64/QEMU
-disposable PostgreSQL checks pass migrations 658–663. The complete 654-file
-schema chain through migration 663 passes on native AMD64 under a verified
-1.5 GiB memory/swap and two-CPU database limit. Its full-schema operator-scope
-probe passes all 17 checks across two synthetic tenants and verifies all 107
-declared controls: 79 private relations, 25 mutation-denied relations, two
+**Runtime-role acceptance update (27 October 2026):** Earlier native replay of
+the 648 ordered migration files through migration 657 passed runtime-role
+provisioning and the two-tenant operator-context probe. Focused native and
+ARM64/QEMU disposable PostgreSQL checks pass migrations 658–664. The latest
+complete 655-file schema chain through migration 664 passes on native AMD64
+under a verified 1.5 GiB memory/swap and two-CPU database limit. Its
+full-schema operator-scope
+probe passes all 17 checks across two synthetic tenants and verifies all 108
+declared controls: 79 private relations, 26 mutation-denied relations, two
 append-only relations, and the API-key read-only column boundary. There are
 zero direct table or column privilege violations. The probe covers 1,511
-public relations and reports 1,013 with effective table-level DML while RLS is
+public relations and reports 1,012 with effective table-level DML while RLS is
 disabled; this is not a count of relations permitting UPDATE/DELETE and broad
 compatibility DML and non-universal application-table RLS remain. The runner
 loaded no seeds or farm data, published no ports, was not OOM-killed, and
@@ -20,6 +21,9 @@ physical Raspberry Pi acceptance
 ([full native schema and scope evidence](builds/2026-10-27-recovery/runtime-role-full-schema-663-native-disposable.json);
 [focused native ACL](builds/2026-10-27-recovery/agent-action-log-read-only-disposable.json);
 [focused ARM64/QEMU ACL](builds/2026-10-27-recovery/agent-action-log-read-only-arm64-disposable.json);
+[full native schema and scope evidence through 664](builds/2026-10-27-recovery/runtime-role-full-schema-664-native-disposable.json);
+[carbon benchmark native ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-disposable.json);
+[carbon benchmark ARM64/QEMU ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-arm64-disposable.json);
 [native focused ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-disposable.json);
 [ARM64 focused ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-arm64-disposable.json);
 [native graph-type ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-disposable.json);

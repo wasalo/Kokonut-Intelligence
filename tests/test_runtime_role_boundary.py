@@ -27,7 +27,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 107
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 108
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -411,6 +411,44 @@ def test_agent_action_log_is_read_only_for_kernel_runtime_and_remains_exportable
     assert "agent_action_log" in ALLOWED_COLLECTIONS
     assert "kokonut_directus_runtime" not in migration
     assert "Directus" in migration
+
+
+def test_carbon_benchmarks_are_seeded_references_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/664_runtime_carbon_benchmark_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/028_carbon_framework.sql").read_text()
+    seed = (root / "schemas/seeds/027_carbon_framework_seeds.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    runtime_writers = [
+        site for site in sql_inventory["execution_sites"]
+        if "carbon_benchmark" in site["write_target_relations"]
+    ]
+    runtime_readers = {
+        site["source"] for site in sql_inventory["execution_sites"]
+        if "carbon_benchmark" in site["candidate_relations"]
+        and site["statement_kind"] == "SELECT"
+    }
+
+    assert "carbon_benchmark" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "carbon_benchmark" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS carbon_benchmark" in initial_schema
+    assert "INSERT INTO carbon_benchmark" in seed
+    assert runtime_writers == []
+    assert runtime_readers == {"services/crisp/carbon_yield.py"}
+    assert "SELECT * FROM carbon_benchmark WHERE 1=1" in (
+        root / "services/analytics/carbon_balance.py"
+    ).read_text()
+    assert "FROM carbon_benchmark" in (
+        root / "services/crisp/carbon_yield.py"
+    ).read_text()
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.carbon_benchmark FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.carbon_benchmark TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
 
 
 def test_mobile_credential_columns_are_excluded_from_runtime_reads():
