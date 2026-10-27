@@ -532,10 +532,18 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
 - [x] Revalidate the native full schema and runtime boundary through migration
   662 under a 1.5 GiB/two-CPU database limit. All 653 files applied, and all 17
   signed synthetic operator/scope assertions passed with zero direct table or
-  column violations among 106 declared boundaries. Regenerate the current ACL
-  and analytics inventories from this evidence: 1,014 public relations still
-  have effective DML while RLS is disabled, and the `farm` source-site join is
-  still unmatched. C1 remains open; the checker does not establish universal
-  tenant isolation or production state. Eleven report/inventory tests plus
-  Ruff, compilation, capability validation, and diff checks pass. No seeds,
-  candidate or legacy database were used ([batch](batches.md); [evidence](progress.md#native-full-schema-runtime-role-revalidation-through-migration-662--27-october-2026)).
+  column violations among 106 declared boundaries. The refreshed report
+  distinguishes referenced relations from actual DML targets; the analytics
+  inventory now has 273 target relations / 425 sites and no unmatched
+  candidates. `farm` is only an `INSERT … SELECT` source for two other target
+  tables. The probe still finds 1,014 public relations with effective DML while
+  RLS is disabled, so C1 remains open and universal tenant isolation is not
+  established. Thirteen report/inventory tests plus Ruff, compilation, SQL
+  inventory freshness, capability validation, and diff checks pass. No seeds,
+  candidate, or legacy database were used ([batch](batches.md); [evidence](progress.md#correct-analytics-dml-target-classification--27-october-2026)).
+- [x] Separate SQL-referenced relations from actual DML targets in the C1
+  reports. The false `farm` source classification is removed; the inventory
+  now covers 273 write-target relations / 425 sites with no unmatched
+  candidates. Thirteen focused report/inventory tests and static checks pass.
+  C1 remains open because 1,014 public relations still retain effective DML
+  while RLS is disabled ([batch](batches.md); [progress](progress.md#correct-analytics-dml-target-classification--27-october-2026)).

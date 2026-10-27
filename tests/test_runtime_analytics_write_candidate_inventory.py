@@ -17,6 +17,7 @@ def _acl_relation(
     *,
     rls_enabled: bool = False,
     source_files: list[dict[str, object]] | None = None,
+    write_target_source_files: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     return {
         "relation": relation,
@@ -33,6 +34,9 @@ def _acl_relation(
         "configured_runtime_boundary": None,
         "runtime_boundary_policy_matches_source": None,
         "candidate_source_files": source_files or [],
+        "candidate_write_target_source_files": (
+            source_files if write_target_source_files is None else write_target_source_files
+        ) or [],
     }
 
 
@@ -123,6 +127,14 @@ def test_inventory_does_not_treat_insert_select_sources_as_write_targets():
                 "path": "services/analytics/advisor.py",
                 "statement_counts": {"INSERT": 1},
             }],
+            write_target_source_files=(
+                [{
+                    "path": "services/analytics/advisor.py",
+                    "statement_counts": {"INSERT": 1},
+                }]
+                if relation == "advisory_recommendation"
+                else []
+            ),
         )
         for relation in ("advisory_recommendation", "advisory_rule")
     ]
@@ -133,13 +145,34 @@ def test_inventory_does_not_treat_insert_select_sources_as_write_targets():
 
     rows = {row["relation"]: row for row in report["relations"]}
     assert rows["advisory_recommendation"]["candidate_write_sites"]
-    assert rows["advisory_rule"]["candidate_write_sites"] == []
-    assert rows["advisory_rule"]["review_status"] == (
-        "write_target_not_confirmed_in_static_site_inventory"
-    )
+    assert "advisory_rule" not in rows
     assert report["summary"]["candidate_sites"] == 1
+    assert report["summary"]["relations_missing_matching_sql_site"] == []
+
+
+def test_inventory_excludes_farm_when_analytics_only_reads_it_in_insert_select():
+    source = [{
+        "path": "services/analytics/multi_farm.py",
+        "statement_counts": {"INSERT": 2},
+    }]
+    report = INVENTORY["build_inventory"](
+        {
+            "relations": [
+                _acl_relation("farm", source_files=source, write_target_source_files=[]),
+                _acl_relation("farm_template_instance", source_files=source),
+                _acl_relation("farm_onboarding_workflow", source_files=source),
+            ]
+        },
+        {"execution_sites": []},
+    )
+
+    rows = {row["relation"]: row for row in report["relations"]}
+    assert "farm" not in rows
+    assert "farm_template_instance" in rows
+    assert "farm_onboarding_workflow" in rows
     assert report["summary"]["relations_missing_matching_sql_site"] == [
-        "advisory_rule"
+        "farm_onboarding_workflow",
+        "farm_template_instance",
     ]
 
 

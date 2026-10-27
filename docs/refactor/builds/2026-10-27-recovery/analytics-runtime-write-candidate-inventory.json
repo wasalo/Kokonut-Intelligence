@@ -2,7 +2,7 @@
   "generated_by": "scripts/runtime-analytics-write-candidate-inventory.py",
   "inputs": {
     "acl_report_path": "docs/refactor/builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json",
-    "acl_report_sha256": "7c1284926ef61b6007e5f4f610c14a886a0c565e6a2324121b2d634a28e7aab4",
+    "acl_report_sha256": "af3ccde48d99296b9932d554d7e7044c845f901205d0f810909703061f184ea2",
     "acl_report_source_revision": "cf3729df",
     "runtime_role_policy_sha256": "d502c93db3150d928b0310ae4643614f83ac56753dd870f221e69f1ba2714127",
     "sql_inventory_path": "docs/refactor/runtime-sql-inventory.json",
@@ -3317,26 +3317,6 @@
       ]
     },
     {
-      "candidate_write_sites": [],
-      "migration_boundary": {
-        "configured": null,
-        "expected": null,
-        "matches_source": null
-      },
-      "observed_acl": {
-        "delete": true,
-        "insert": true,
-        "rls_enabled": false,
-        "select": true,
-        "update": true
-      },
-      "relation": "farm",
-      "review_status": "write_target_not_confirmed_in_static_site_inventory",
-      "static_candidate_source_files": [
-        "services/analytics/multi_farm.py"
-      ]
-    },
-    {
       "candidate_write_sites": [
         {
           "expression_kind": "literal",
@@ -5337,7 +5317,6 @@
       "relation": "party",
       "review_status": "source_and_caller_review_required",
       "static_candidate_source_files": [
-        "services/analytics/governance_proposals.py",
         "services/analytics/stakeholders.py"
       ]
     },
@@ -10474,10 +10453,8 @@
   "scope": "Unprotected public ordinary/partitioned relations with an analytics-package INSERT/UPDATE/DELETE/MERGE target candidate, joined to generated runtime SQL sites.",
   "summary": {
     "candidate_sites": 425,
-    "relations": 274,
-    "relations_missing_matching_sql_site": [
-      "farm"
-    ],
+    "relations": 273,
+    "relations_missing_matching_sql_site": [],
     "relations_with_declared_boundary": 1,
     "sites_by_expression_kind": {
       "fstring": 21,

@@ -195,7 +195,13 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         name = row.get("relation")
         if not isinstance(name, str) or not name:
             raise ValueError("runtime ACL inventory contains an invalid relation name")
-        relations[name] = {**row, "sites": Counter(), "sources": defaultdict(Counter)}
+        relations[name] = {
+            **row,
+            "sites": Counter(),
+            "sources": defaultdict(Counter),
+            "write_target_sites": Counter(),
+            "write_target_sources": defaultdict(Counter),
+        }
 
     for site in sites:
         if not isinstance(site, dict):
@@ -211,6 +217,13 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             if isinstance(statement_kind, str):
                 entry["sites"][statement_kind] += 1
                 entry["sources"][source][statement_kind] += 1
+        if statement_kind in {"INSERT", "UPDATE", "DELETE", "MERGE"}:
+            for relation in site.get("write_target_relations", []):
+                entry = relations.get(relation)
+                if entry is None:
+                    continue
+                entry["write_target_sites"][statement_kind] += 1
+                entry["write_target_sources"][source][statement_kind] += 1
 
     revokes = _source_revokes()
     runtime_boundaries, runtime_role_sha256 = _runtime_role_boundaries()
@@ -321,6 +334,16 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
                 }
                 for source, counts in sorted(row["sources"].items())
             ],
+            "candidate_write_target_sites_by_statement": dict(
+                sorted(row["write_target_sites"].items())
+            ),
+            "candidate_write_target_source_files": [
+                {
+                    "path": source,
+                    "statement_counts": dict(sorted(counts.items())),
+                }
+                for source, counts in sorted(row["write_target_sources"].items())
+            ],
             "explicit_runtime_revokes": source_revokes,
             "explicit_runtime_dml_revokes": dml_revokes,
             "effective_dml_privileges": sorted(effective_dml_privileges),
@@ -353,10 +376,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
     ]
     unprotected_without_write_site = [
         row["relation"] for row in unprotected_dml
-        if not any(
-            row["candidate_execution_sites_by_statement"].get(kind, 0)
-            for kind in ("INSERT", "UPDATE", "DELETE")
-        )
+        if not row["candidate_write_target_sites_by_statement"]
     ]
     unprotected_overlapping = [
         row["relation"] for row in unprotected_dml
@@ -364,12 +384,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
     ]
     write_relations_by_service: dict[str, set[str]] = defaultdict(set)
     for row in unprotected_dml:
-        for source in row["candidate_source_files"]:
-            if not any(
-                source["statement_counts"].get(kind, 0)
-                for kind in ("INSERT", "UPDATE", "DELETE")
-            ):
-                continue
+        for source in row["candidate_write_target_source_files"]:
             parts = Path(source["path"]).parts
             service = parts[1] if len(parts) > 2 and parts[0] == "services" else "other"
             write_relations_by_service[service].add(row["relation"])

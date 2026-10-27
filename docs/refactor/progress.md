@@ -20592,12 +20592,34 @@ evidence. No seeds or farm records were loaded, no host ports were published,
 and the uniquely labeled Compose project and temporary client image were
 removed. The refreshed ACL/source report shows 1,511 relations, 106 declared
 boundaries, and zero explicit-revoke mismatches; its linked analytics inventory
-remains 274 candidate relations / 425 sites, with `farm` unmatched for review.
-Eleven focused report/inventory tests pass; Ruff, compilation, capability
-matrix validation, and diff checks pass. Candidate and legacy databases remain
+remains 273 actual write-target relations / 425 sites, with no unmatched
+analytics candidates. The former `farm` join gap was a classification error:
+two `INSERT … SELECT` statements read `farm` and write to
+`farm_template_instance` and `farm_onboarding_workflow`. Thirteen focused
+report/inventory tests pass; Ruff, compilation, SQL-inventory freshness,
+capability matrix validation, and diff checks pass. Candidate and legacy databases remain
 untouched. Evidence: [full-schema native replay](builds/2026-10-27-recovery/runtime-role-full-schema-662-native-disposable.json),
 [ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
 and [analytics candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
 Checklist: 1,271 complete / 25 open (1,296 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Correct analytics DML target classification — 27 October 2026
+
+The ACL/source report now tracks SQL-referenced relations separately from
+actual `INSERT`, `UPDATE`, `DELETE`, and `MERGE` write targets. The analytics
+write-candidate generator uses only the latter, so `farm` is correctly
+recognized as a read source rather than an analytics writer. The two affected
+statements write to `farm_template_instance` and
+`farm_onboarding_workflow`. The regenerated inventory has 273 target relations
+and 425 candidate write sites across 89 files, with no unmatched candidates;
+the ACL report still shows 1,014 relations with effective DML while RLS is off,
+so C1 remains open. Thirteen focused report/inventory tests pass. No grants,
+migrations, database state, candidate service, or legacy service changed.
+Rollback reverts the reporting logic and regenerated JSON; no data rollback is
+needed. Evidence: [ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)
+and [analytics candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,272 complete / 25 open (1,297 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.

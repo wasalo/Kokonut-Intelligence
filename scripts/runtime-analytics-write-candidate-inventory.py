@@ -85,7 +85,7 @@ def build_inventory(acl_report: dict[str, Any], sql_inventory: dict[str, Any]) -
             continue
 
         analytics_sources = [
-            source for source in row.get("candidate_source_files", [])
+            source for source in row.get("candidate_write_target_source_files", [])
             if isinstance(source, dict)
             and isinstance(source.get("path"), str)
             and source["path"].startswith(ANALYTICS_PREFIX)

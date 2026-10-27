@@ -337,3 +337,55 @@ def test_source_report_does_not_claim_full_schema_role_acceptance_without_probe(
 
     assert report["runtime_role_acceptance"]["full_schema_replay_passed"] is False
     assert report["runtime_role_acceptance"]["scoped_acl_checks_passed"] is False
+
+
+def test_insert_select_source_is_not_reported_as_a_dml_target():
+    site = {
+        "id": "services/analytics/multi_farm.py:39:4",
+        "source": "services/analytics/multi_farm.py",
+        "line": 39,
+        "scope": "instantiate_farm_from_template",
+        "method": "execute",
+        "expression_kind": "literal",
+        "statement_kind": "INSERT",
+        "candidate_relations": ["farm", "farm_template_instance"],
+        "write_target_relations": ["farm_template_instance"],
+        "static_sql_sha256": "c" * 64,
+        "operation_refs": [],
+    }
+    report = REPORTER["build_report"](
+        {
+            "result": "inventory",
+            "runtime_public_relation_acl": [
+                _acl_row("farm", select=True, insert=True, update=True, delete=True),
+                _acl_row(
+                    "farm_template_instance",
+                    select=True,
+                    insert=True,
+                    update=True,
+                    delete=True,
+                ),
+            ],
+        },
+        {"execution_sites": [site]},
+    )
+
+    rows = {row["relation"]: row for row in report["relations"]}
+    farm = rows["farm"]
+    assert farm["candidate_execution_sites_by_statement"] == {"INSERT": 1}
+    assert farm["candidate_source_files"] == [{
+        "path": "services/analytics/multi_farm.py",
+        "statement_counts": {"INSERT": 1},
+    }]
+    assert farm["candidate_write_target_sites_by_statement"] == {}
+    assert farm["candidate_write_target_source_files"] == []
+    assert report["summary"]["unprotected_dml_relations_without_candidate_write_sites"] == 1
+    assert report["unprotected_dml_relations_without_candidate_write_sites"] == ["farm"]
+    assert report["unprotected_candidate_write_relations_by_service"] == {"analytics": 1}
+
+    target = rows["farm_template_instance"]
+    assert target["candidate_write_target_sites_by_statement"] == {"INSERT": 1}
+    assert target["candidate_write_target_source_files"] == [{
+        "path": "services/analytics/multi_farm.py",
+        "statement_counts": {"INSERT": 1},
+    }]
