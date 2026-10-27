@@ -1,0 +1,105 @@
+{
+  "check": "arm64_optional_kernel_targets",
+  "created_at_utc": "2026-10-27T19:15:34Z",
+  "source_revision": "8da25cfd",
+  "builder": {
+    "docker_context": "default",
+    "buildx_builder": "default",
+    "platform": "linux/arm64",
+    "runtime": "Docker Desktop BuildKit with ARM64/QEMU"
+  },
+  "targets": {
+    "grpc": {
+      "image": "kokonut-kernel-optional-grpc-arm64:8da25cfd",
+      "image_id": "sha256:23116e2e0d229a5d0bf49316b5d056eef858f4adff0c701b5ec7b5bf3e73b56c",
+      "architecture": "linux/arm64",
+      "size_bytes": 589523416,
+      "build": "passed",
+      "smoke": "passed",
+      "limits": {"memory_bytes": 536870912, "memory_swap_bytes": 536870912, "cpus": 1, "pids": 64},
+      "root_filesystem": "read-only",
+      "network": "none",
+      "imports": [
+        "grpc",
+        "google.protobuf",
+        "services.grpc.ecocredit.v1.service_pb2_grpc",
+        "services.grpc.data.v1.service_pb2_grpc"
+      ],
+      "versions": {"grpcio": "1.85.0", "protobuf": "6.33.6"},
+      "cli_help": "passed"
+    },
+    "mqtt": {
+      "image": "kokonut-kernel-optional-mqtt-arm64:8da25cfd",
+      "image_id": "sha256:2614fee0cb481ddc1ec136673f402a55b416b30511756cac5357f1d3b88e8e5a",
+      "architecture": "linux/arm64",
+      "size_bytes": 548939932,
+      "build": "passed",
+      "smoke": "passed",
+      "limits": {"memory_bytes": 536870912, "memory_swap_bytes": 536870912, "cpus": 1, "pids": 64},
+      "root_filesystem": "read-only",
+      "network": "none",
+      "imports": ["paho.mqtt.client", "services.ingestion.mqtt_subscriber"],
+      "versions": {"paho-mqtt": "2.1.0"},
+      "cli_help": "passed"
+    },
+    "oidc": {
+      "image": "kokonut-kernel-optional-oidc-arm64:8da25cfd",
+      "image_id": "sha256:f08a2621b5bcb196a99585aff9eaca8a75cf81affeea8b8fc69802a16d1f5e39",
+      "architecture": "linux/arm64",
+      "size_bytes": 581274248,
+      "build": "passed",
+      "smoke": "passed",
+      "limits": {"memory_bytes": 536870912, "memory_swap_bytes": 536870912, "cpus": 1, "pids": 64},
+      "root_filesystem": "read-only",
+      "network": "none",
+      "imports": [
+        "httpx2",
+        "authlib.integrations.starlette_client.OAuth",
+        "cryptography",
+        "services.gateway.operator_auth"
+      ],
+      "versions": {"Authlib": "1.9.1", "httpx2": "2.16.0", "itsdangerous": "2.2.0"},
+      "cli_help": "services.core.runtime --help passed",
+      "dependency_issue_found_and_fixed": "Authlib's Starlette integration failed when neither httpx2 nor httpx was present in the optional OIDC image. A shared requirements/http-client.txt group now supplies httpx2 to both the OIDC image and developer ASGI-test setup while remaining outside the default Kernel image."
+    },
+    "ml-anomaly": {
+      "image": "kokonut-kernel-optional-ml-anomaly-arm64:8da25cfd",
+      "image_id": "sha256:727057734ceba36a19d8ac39697580d11f3d1224cb58ae5c773b73c2556cfc55",
+      "architecture": "linux/arm64",
+      "size_bytes": 987161930,
+      "build": "passed",
+      "smoke": "passed",
+      "limits": {"memory_bytes": 1073741824, "memory_swap_bytes": 1073741824, "cpus": 2, "pids": 64},
+      "root_filesystem": "read-only",
+      "network": "none",
+      "imports": [
+        "numpy",
+        "pandas",
+        "prophet",
+        "psycopg2",
+        "scipy",
+        "sklearn",
+        "services.ingestion.sensor_anomaly_ml_cli"
+      ],
+      "versions": {
+        "numpy": "1.26.4",
+        "pandas": "3.0.6",
+        "prophet": "1.5.0",
+        "scipy": "1.17.1",
+        "scikit-learn": "1.9.1"
+      },
+      "cli_help": "passed",
+      "model_fit_performed": false,
+      "runtime_note": "Matplotlib used its writable /tmp cache fallback in the read-only container; the optional Plotly import was unavailable and was not required for this import/help smoke."
+    }
+  },
+  "database_or_provider_calls": false,
+  "compose_services_started": false,
+  "candidate_or_legacy_database_touched": false,
+  "physical_raspberry_pi_tested": false,
+  "limitations": [
+    "Build and import evidence under QEMU does not measure Raspberry Pi performance, thermals, endurance, or power-loss behavior.",
+    "No PostgreSQL, ClickHouse, MQTT broker, identity provider, model training, or external network call was exercised.",
+    "This closes the Dockerfile's four optional ARM64 image-target build/import slice only; full profile, hardware, provider, populated-data, and recovery acceptance remain separately gated."
+  ]
+}

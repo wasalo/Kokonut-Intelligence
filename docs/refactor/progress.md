@@ -20498,3 +20498,25 @@ Evidence: [ARM64 full-schema and two-tenant replay](builds/2026-10-27-recovery/a
 Checklist: 1,266 complete / 25 open (1,291 total). Capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+### Optional Kernel ARM64 targets and OIDC dependency correction — 27 October 2026
+
+All four optional Dockerfile targets (gRPC, MQTT, OIDC, and ML anomaly) now
+build from pushed revision `8da25cfd` for `linux/arm64`. Network-disabled,
+read-only QEMU smokes import the target entry points and generated gRPC stubs;
+CLI help passes within per-target CPU, memory, and PID limits. The OIDC image
+smoke exposed that Authlib's Starlette integration imports `httpx2` or `httpx`,
+but the optional image had neither. A shared `requirements/http-client.txt`
+now supplies `httpx2` to the OIDC image and developer ASGI test setup without
+adding it to the default Kernel runtime. The dependency-group alignment check
+and 38 focused Kernel/OIDC tests pass. No database, broker, provider, external
+network, Compose service, or ML model fit was used. Image sizes and digests,
+imports, versions, and limitations are recorded in [ARM64 optional target
+evidence](builds/2026-10-27-recovery/arm64-optional-kernel-targets-8da25cfd.json).
+This closes the remaining optional Dockerfile image-build slice of C7, not
+physical Raspberry Pi behavior, live providers, whole-profile acceptance, or
+the remaining recovery gates. Candidate and legacy deployments remain
+untouched; reverting the source change restores the prior dependency manifests
+and image recipe. Checklist: 1,267 complete / 25 open (1,292 total). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; no MAN-CAP acceptance status changed.

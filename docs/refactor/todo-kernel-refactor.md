@@ -397,6 +397,12 @@ that its full source-plan phase is complete.
   [ARM64 graph-type ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-arm64-disposable.json);
   [native capability-audit ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-disposable.json);
   [ARM64 capability-audit ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-arm64-disposable.json)).
+  The remaining optional Dockerfile targets (gRPC, MQTT, OIDC, and ML anomaly)
+  now also build from pushed revision `8da25cfd` for ARM64 and pass bounded,
+  network-disabled, read-only import and CLI-help checks. The OIDC image's
+  missing Authlib HTTP client dependency was corrected and verified. This closes
+  the image-build subgate; no database, broker, provider, or Compose service
+  was started ([optional target evidence](builds/2026-10-27-recovery/arm64-optional-kernel-targets-8da25cfd.json)).
   Both base and ClickHouse-superset Kernel app images build for AMD64/ARM64
   with matching locked packages, and minimal/edge/standard/analytics Compose
   selections validate for ARM64 ([schema](builds/2026-10-27-recovery/arm64-schema-652-disposable.json);
@@ -407,8 +413,8 @@ that its full source-plan phase is complete.
   have now passed against the full synthetic 643-migration database with a
   matching schema fingerprint and sentinel ([recovery evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json)).
   This does not represent populated farm data, external media/providers, R2,
-  whole-platform recovery, or a production RPO/RTO drill. Still build remaining
-  optional service-image combinations. The Kernel API liveness smoke now passes at
+  whole-platform recovery, or a production RPO/RTO drill. All optional
+  Dockerfile image targets now have ARM64 build/import evidence. The Kernel API liveness smoke now passes at
   512 MiB/one CPU, but this does not establish schema readiness. No physical
   Raspberry Pi is available, so hardware power-loss and endurance remain open.
   Sources: [Phase 8](implementation-plan-alignment.md#L28),

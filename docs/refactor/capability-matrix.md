@@ -35,8 +35,13 @@ ClickHouse client, and the minimal, edge, standard, and analytics Compose
 selections validate for ARM64. The current Gateway also passes a no-network
 ARM64 runtime liveness check under verified 512 MiB, one-CPU, 64-PID limits,
 with a read-only root filesystem and bounded writable tmpfs. This checks
-process health only, not schema readiness or database/provider paths. Remaining
-optional service images remain open. The synthetic age-encrypted
+process health only, not schema readiness or database/provider paths. The four
+remaining optional Dockerfile targets (gRPC, MQTT, OIDC, and ML anomaly) now
+also build for ARM64 from revision 8da25cfd and pass bounded, network-disabled,
+read-only import and CLI-help smokes. The OIDC smoke found and verified a fix
+for Authlib's missing HTTP client dependency. No external service was started;
+broader profile, provider, and physical-device gates remain open
+([optional target evidence](builds/2026-10-27-recovery/arm64-optional-kernel-targets-8da25cfd.json)). The synthetic age-encrypted
 single-database round trip is now supplemented by a successful exercise of the
 repository checkpoint command and role-prerequisite bootstrap, restoring all
 643 migrations through 652 with a matching fingerprint and sentinel. The
