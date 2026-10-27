@@ -27,11 +27,13 @@ the batch log and the affected capability/progress records are updated.
   have table-level DML, including 75 with a matching historical runtime DML
   revoke; 334 have no static candidate callsite. No database privileges were
   changed by the inventory.
-- [x] Implement the first narrow C1 repair in runtime-role provisioning:
-  reapply the migrations' governed-action, identity-table and selected Delphi
-  private-receipt revocations after the broad compatibility grant, while
-  preserving selected table reads. This code has not yet passed its focused
-  runtime-role acceptance and was not rolled out.
+- [x] Implement the source-declared C1 runtime ACL repair in role provisioning:
+  after the compatibility grant, deny direct runtime access to all 64 tables
+  whose ordered migrations revoke `ALL`, and deny write privileges on the 11
+  tables whose migrations revoke only mutations. Existing reads remain for the
+  write-only group. The provisioner verifies the resulting table and column
+  ACLs. This code has not yet passed focused disposable-role acceptance and
+  was not rolled out.
 
 ## Code work to continue without owner input
 
@@ -46,8 +48,10 @@ that its full source-plan phase is complete.
   generate the relation-level join with
   `scripts/runtime-privilege-callsite-report.py`; review explicit revokes that
   overlap effective DML and source callsites that the heuristic inventory
-  cannot classify before making any ACL change. The governed-action bootstrap
-  correction is now authored; focused acceptance is still open.
+  cannot classify before making any ACL change. The 75 migration-declared
+  runtime revokes are now restored by the bootstrap correction; focused
+  acceptance is still open. The remaining broad DML grants require separate
+  callsite, worker-identity and Directus review before changing them.
   Sources: [runtime boundary](batches.md#L2826),
   [agent boundary](batches.md#L3652),
   [full-schema probe](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json).

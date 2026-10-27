@@ -19747,3 +19747,28 @@ CAP-024 acceptance/classification is unchanged. No migration was needed for
 the provisioning-path correction. No tests were added or run in this batch.
 Checklist: 1,235 complete / 26 open (1,261 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — restore all migration-declared runtime table denials, 26 October 2026
+
+The ACL/source join identified 75 unprotected tables whose ordered migrations
+explicitly revoke runtime DML. Runtime-role provisioning now restores all of
+those declared boundaries after its compatibility-wide grant: 64 relations
+with `REVOKE ALL` receive no direct runtime table or column access, and 11
+relations with mutation-only revokes lose write privileges while retaining
+reads. The provisioning verifier checks the resulting table and column
+privileges and aborts when a listed boundary is not enforced. The private
+relations span agent review receipts, business-canvas requests, governance and
+identity evidence, operating-pilot receipts, and solution-lifecycle receipts.
+
+This implements the existing migration policy rather than adding a schema
+migration. It does not remove the compatibility grant for the other 1,026
+unprotected DML relations, and it does not establish RLS, worker/Directus
+parity, production ACLs, or successful bounded-function behavior. Focused
+disposable role-provisioning acceptance remains open; no candidate or legacy
+database was touched and no tests were added or run. Evidence is in the
+[isolated relation ACL probe](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json),
+[source/callsite join](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json),
+and [runtime-role provisioner](../../services/migration/runtime_role.py).
+Checklist remains 1,235 complete / 26 open (1,261 total); capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.
