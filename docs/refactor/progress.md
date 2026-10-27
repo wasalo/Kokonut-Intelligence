@@ -1,3 +1,27 @@
+### Sprint baseline — 26 October 2026
+
+The disposable native PostGIS replay applied all 642 schema files through 651
+with no seeds, no published host ports, and verified cleanup. Its evidence
+records a dirty worktree from untracked generated evidence; the schema and
+migration inputs match planning commit `a0de63ef`. Separate minimal-schema
+checks exercised restricted runtime and operator-auth logins, signed context,
+wrong-location denial, revocation, and forced RLS on a synthetic probe table.
+The general runtime login still has broad DML on other public tables.
+
+The replay runner now refuses project resources that exist before it starts;
+labelled and unlabelled synthetic Docker volume collisions were preserved. An
+optional two-tenant operator probe can run after the complete schema replay in
+the database's isolated network namespace. It passed a smaller PostGIS smoke;
+the full-schema combined run remains pending. The profile planner also accepts
+an explicit validated project name for disposable ZITADEL work, with defaults
+unchanged. The focused selection passes 97 tests, with Ruff and diff checks.
+No candidate or legacy database was touched, and no MAN-CAP status changes.
+Evidence: [baseline](builds/2026-10-26-recovery/sprint-workflow-baseline.json),
+[full replay](builds/2026-10-26-recovery/sprint-native-schema-replay.json),
+[role check](builds/2026-10-26-recovery/sprint-operator-session-role-disposable.json),
+[context check](builds/2026-10-26-recovery/sprint-operator-tenant-context-disposable.json),
+and [project collision check](builds/2026-10-26-recovery/sprint-schema-project-collision.json).
+
 ### Sprint planning checkpoint — 26 October 2026
 
 The next proposed batch is an [authenticated farm workflow and recovery sprint](sprint-kernel-workflow-acceptance.md)

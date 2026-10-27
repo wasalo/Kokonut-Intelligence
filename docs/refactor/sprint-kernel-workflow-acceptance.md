@@ -59,10 +59,11 @@ separately if an authoritative copy becomes available.
 
 ## Batch 1 — Baseline and a disposable acceptance target
 
-- [ ] Record the source commit, clean worktree, Docker/available-disk state,
+- [x] Record the source commit, clean worktree, Docker/available-disk state,
   selected profiles, migration/checksum plan, and exact CI/Security results.
   Reconcile the current checklist snapshot and affected capability rows without
-  treating historical source tests as live acceptance.
+  treating historical source tests as live acceptance
+  ([baseline](builds/2026-10-26-recovery/sprint-workflow-baseline.json)).
 - [ ] Build an isolated Compose project with synthetic organizations, two
   locations, and the operator identities needed for independent review. Use a
   fresh PostGIS database and ordered migrations; identify any missing fixture
@@ -79,6 +80,22 @@ separately if an authoritative copy becomes available.
 [operator-session role check](../../scripts/check-operator-session-role-disposable.py),
 and [tenant contract](mobile-tenant-isolation.md).
 
+**Progress, 26 October:** a network-disabled native PostGIS replay applied all
+642 current schema files through 651, with zero seeds and successful cleanup
+([evidence](builds/2026-10-26-recovery/sprint-native-schema-replay.json)). The
+replay recorded a dirty worktree because generated evidence was untracked; its
+schema and migration inputs match planning commit `a0de63ef`. Separate
+minimal-schema runs passed the restricted-login/session and signed operator
+context checks, including wrong-location denial
+([roles](builds/2026-10-26-recovery/sprint-operator-session-role-disposable.json);
+[context](builds/2026-10-26-recovery/sprint-operator-tenant-context-disposable.json)).
+The replay runner now refuses existing project resources before cleanup; both
+labelled and unlabelled synthetic-volume collisions were preserved in a live
+Docker check ([evidence](builds/2026-10-26-recovery/sprint-schema-project-collision.json)).
+An optional two-tenant probe and a unique-project planner option are prepared;
+the probe passed a small synthetic PostGIS smoke, but its combined full-schema
+run remains open. The 97-test focused selection and Ruff passed.
+
 **Done when:** the target can be created and removed repeatably; migration
 status and role identities are captured without secrets; a wrong-location
 principal is denied; and the current candidate is identified separately from
@@ -91,7 +108,8 @@ encrypted checkpoint and rehearse restore before applying ordered migrations.
   and Gateway OIDC overlays in the isolated project. Generate temporary test
   secrets separately from the user's production configuration. Configure local
   issuer discovery, client, callback, and test accounts; keep credentials out
-  of logs, Git, and evidence.
+  of logs, Git, and evidence. Use a unique `--project` with the profile planner;
+  its default project name targets the existing candidate.
 - [ ] Use a locally trusted HTTPS test origin. Verify real discovery, PKCE,
   sign-in, callback, Gateway session, CSRF rejection, logout/revocation, and
   audit attribution. Do not bypass a browser certificate warning. If local CA

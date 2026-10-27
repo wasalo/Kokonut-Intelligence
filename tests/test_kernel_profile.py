@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import shlex
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +31,31 @@ def test_default_profile_planner_does_not_select_optional_overlays() -> None:
     assert "docker-compose.kernel-proxy.yml" not in result.stdout
     assert "docker-compose.kernel-oidc.yml" not in result.stdout
     assert "--env-file /dev/null" in result.stdout
+
+
+def test_explicit_project_is_used_for_an_isolated_zitadel_plan() -> None:
+    result = _run_planner("minimal", "--zitadel", "--project", "kokonut-sprint-123")
+
+    assert result.returncode == 0, result.stderr
+    command = shlex.split(result.stdout)
+    assert command[command.index("-p") + 1] == "kokonut-sprint-123"
+    assert "kokonut-kernel-candidate" not in command
+
+
+@pytest.mark.parametrize("project", ["UPPER", "-bad", "bad.name", "x" * 64])
+def test_invalid_project_name_is_rejected(project: str) -> None:
+    result = _run_planner("minimal", f"--project={project}")
+
+    assert result.returncode != 0
+    assert "--project must be" in result.stderr
+
+
+def test_default_projects_remain_unchanged_for_both_architectures() -> None:
+    amd64 = shlex.split(_run_planner("minimal").stdout)
+    arm64 = shlex.split(_run_planner("minimal", "--target-platform", "linux/arm64").stdout)
+
+    assert amd64[amd64.index("-p") + 1] == "kokonut-kernel-candidate"
+    assert arm64[arm64.index("-p") + 1] == "kokonut-kernel-candidate-arm64"
 
 
 def test_default_and_oidc_kernel_runtime_commands_require_schema_readiness() -> None:

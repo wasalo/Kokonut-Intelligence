@@ -28,6 +28,14 @@ acceptance remains separate; none is marked accepted.
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
 
+**Sprint baseline (26 October 2026):** native disposable PostgreSQL/PostGIS
+replayed all 642 schema files through 651 without seeds and cleaned up; separate
+minimal-schema operator-role and signed-context checks passed. The runner now
+rejects an existing Compose project before cleanup, and an optional full-schema
+two-tenant probe is prepared. Its combined replay, live OIDC, and workflow
+acceptance remain open. See the [sprint](sprint-kernel-workflow-acceptance.md)
+and [baseline evidence](builds/2026-10-26-recovery/sprint-workflow-baseline.json).
+
 **Current worker-boundary inventory (26 October 2026):** the checked source map
 covers 49 roots and 138 source files; the function graph has 1,172 function
 memberships, 1,658 direct-call edges, two exact callback edges, and 56 dynamic

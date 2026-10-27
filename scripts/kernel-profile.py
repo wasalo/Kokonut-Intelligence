@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import shlex
 from pathlib import Path
 
@@ -44,10 +45,15 @@ def main() -> None:
                         help="Declare the deployment architecture for compatibility checks")
     parser.add_argument("--separate-workers", action="store_true",
                         help="Select separate API/worker roles for analytics")
+    parser.add_argument(
+        "--project", help="Explicit Compose project name (for example, a unique disposable test project)"
+    )
     for name in OPTIONAL:
         parser.add_argument(f"--{name.replace('_', '-')}", dest=name, action="store_true")
     parser.add_argument("--action", choices=["config", "build", "up", "ps"], default="config")
     args = parser.parse_args()
+    if args.project is not None and not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", args.project):
+        parser.error("--project must be 1–63 lowercase letters, digits, hyphens, or underscores and start with a letter or digit")
     is_arm64 = args.target_platform == "linux/arm64"
     if is_arm64 and args.profile not in {"minimal", "edge", "standard", "analytics"}:
         parser.error("ARM64 currently supports only minimal, edge, standard, and analytics profiles")
@@ -107,7 +113,9 @@ def main() -> None:
 
     # --env-file prevents Compose implicitly loading a plaintext .env. Export
     # required secrets explicitly before running the printed command.
-    project_name = "kokonut-kernel-candidate-arm64" if is_arm64 else "kokonut-kernel-candidate"
+    project_name = args.project or (
+        "kokonut-kernel-candidate-arm64" if is_arm64 else "kokonut-kernel-candidate"
+    )
     command = ["docker", "compose", "--project-directory", str(ROOT),
                "--env-file", "/dev/null", "-p", project_name]
     for filename in files:

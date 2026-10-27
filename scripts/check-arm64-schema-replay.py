@@ -18,6 +18,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE_FILE = ROOT / "docker-compose.schema-bootstrap.yml"
 SOURCE_READER_MIGRATION = "schema:541_agent_synthesis_source_reader.sql"
+OPERATOR_PROBE = ROOT / "scripts/fixtures/sprint_operator_scope_probe.py"
+OPERATOR_PROBE_CHECKS = frozenset({
+    "runtime and operator-auth logins cannot bypass RLS or create roles or databases",
+    "two synthetic tenant/location/identity/grant sets were created",
+    "both restricted logins are denied direct operator-session reads",
+    "operator-auth login created two sessions through the bounded function",
+    "each real runtime login context sees only its synthetic tenant under forced RLS",
+    "wrong-location denial clears context and tenant-probe visibility",
+    "tenant context is cleared at transaction end",
+    "revoked grant and revoked session both fail closed",
+})
 sys.path.insert(0, str(ROOT))
 
 
@@ -99,6 +110,27 @@ def run(
     return result
 
 
+def ensure_disposable_project_unused(project: str, *, command_runner=run) -> None:
+    """Refuse a project with existing resources before any compose teardown is possible."""
+    label = f"label=com.docker.compose.project={project}"
+    checks = (
+        ["docker", "ps", "-a", "--filter", label, "--format", "{{.ID}}"],
+        ["docker", "volume", "ls", "--filter", label, "--format", "{{.Name}}"],
+        ["docker", "network", "ls", "--filter", label, "--format", "{{.ID}}"],
+    )
+    for command in checks:
+        if command_runner(command, capture=True).stdout.strip():
+            raise RuntimeError("disposable Compose project already has resources")
+    volume_names = command_runner(
+        ["docker", "volume", "ls", "--format", "{{.Name}}"], capture=True
+    ).stdout.splitlines()
+    container_names = command_runner(
+        ["docker", "ps", "-a", "--format", "{{.Names}}"], capture=True
+    ).stdout.splitlines()
+    if f"{project}_schema-bootstrap-data" in volume_names or f"{project}-database-1" in container_names:
+        raise RuntimeError("disposable Compose project resource name already exists")
+
+
 def compose_base(project: str) -> list[str]:
     return [
         "docker",
@@ -133,6 +165,45 @@ def migration_command(
     return command
 
 
+def operator_scope_probe_command(container_id: str, client_image: str) -> list[str]:
+    """Run the probe in the replay database's network namespace, without a host port."""
+    if not re.fullmatch(r"[a-f0-9]{12,64}", container_id):
+        raise ValueError("invalid disposable database container ID")
+    return [
+        "docker", "run", "--rm", "--pull=never",
+        "--network", f"container:{container_id}",
+        "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+        "--env", "SPRINT_DISPOSABLE", "--env", "SPRINT_DATABASE",
+        "--env", "SPRINT_ADMIN_PASSWORD", "--env", "SPRINT_RUNTIME_PASSWORD",
+        "--env", "SPRINT_AUTH_PASSWORD", "--env", "PYTHONDONTWRITEBYTECODE=1",
+        "--volume", f"{ROOT / 'services'}:/workspace/services:ro",
+        "--volume", f"{ROOT / 'VERSION'}:/workspace/VERSION:ro",
+        "--volume", f"{OPERATOR_PROBE}:/workspace/probe.py:ro",
+        "--workdir", "/workspace", "--entrypoint", "python3",
+        client_image, "/workspace/probe.py",
+    ]
+
+
+def parse_operator_scope_probe(output: str) -> dict[str, object]:
+    """Accept only a completed two-tenant probe; never infer success from exit alone."""
+    result = json.loads(output)
+    if not isinstance(result, dict) or result.get("result") != "passed":
+        raise ValueError("operator scope probe did not report success")
+    if any(result.get(key) != 2 for key in (
+        "synthetic_tenant_count", "synthetic_location_count", "synthetic_operator_count"
+    )):
+        raise ValueError("operator scope probe did not cover both synthetic tenants")
+    checks = result.get("checks")
+    if not isinstance(checks, list) or any(not isinstance(item, str) for item in checks):
+        raise ValueError("operator scope probe did not report its checks")
+    if len(checks) != len(OPERATOR_PROBE_CHECKS) or set(checks) != OPERATOR_PROBE_CHECKS:
+        raise ValueError("operator scope probe did not complete every required check")
+    count = result.get("runtime_public_tables_with_dml_and_rls_disabled")
+    if type(count) is not int or count < 0:
+        raise ValueError("operator scope probe did not report its runtime DML exposure")
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -143,6 +214,14 @@ def main() -> int:
     parser.add_argument("--platform", default="linux/arm64")
     parser.add_argument("--project", help="unique disposable Compose project name")
     parser.add_argument("--output", type=Path, help="evidence JSON output path")
+    parser.add_argument(
+        "--operator-scope-probe", action="store_true",
+        help="also exercise synthetic operator logins and tenant context after the full replay",
+    )
+    parser.add_argument(
+        "--probe-image", default="kokonut-kernel-candidate-app:latest",
+        help="locally available Kernel client image for the optional operator probe",
+    )
     args = parser.parse_args()
 
     if args.platform not in {"linux/arm64", "linux/amd64"}:
@@ -201,6 +280,9 @@ def main() -> int:
     started_at = time.monotonic()
     project_started = False
     try:
+        stage = "project_conflict_preflight"
+        ensure_disposable_project_unused(project)
+        stage = "image_inspection"
         image = run(
             ["docker", "image", "inspect", args.image, "--format", "{{.Os}}/{{.Architecture}} {{.Id}}"],
             capture=True,
@@ -330,6 +412,44 @@ def main() -> int:
             or evidence["container_architecture"] != {"linux/arm64": "aarch64", "linux/amd64": "x86_64"}[args.platform]
         ):
             raise RuntimeError("schema count, seed count, or ARM64 architecture check failed")
+        if args.operator_scope_probe:
+            stage = "operator_scope_probe"
+            client_image = run(
+                ["docker", "image", "inspect", args.probe_image, "--format", "{{.Os}}/{{.Architecture}} {{.Id}}"],
+                capture=True,
+            ).stdout.strip().split(maxsplit=1)
+            if len(client_image) != 2 or client_image[0] != args.platform:
+                raise RuntimeError(f"probe image platform is not {args.platform}")
+            container_id = run(
+                compose + ["ps", "-q", "database"], env=env, capture=True
+            ).stdout.strip()
+            probe_env = env.copy()
+            probe_env.update({
+                "SPRINT_DISPOSABLE": "yes",
+                "SPRINT_DATABASE": database,
+                "SPRINT_ADMIN_PASSWORD": env["POSTGRES_PASSWORD"],
+                "SPRINT_RUNTIME_PASSWORD": secrets.token_urlsafe(32),
+                "SPRINT_AUTH_PASSWORD": secrets.token_urlsafe(32),
+            })
+            try:
+                probe_output = run(
+                    operator_scope_probe_command(container_id, args.probe_image),
+                    env=probe_env, capture=True,
+                ).stdout
+            except ReplayCommandFailure as exc:
+                try:
+                    failure = json.loads(exc.stdout)
+                except json.JSONDecodeError:
+                    failure = {}
+                if isinstance(failure, dict):
+                    evidence["operator_scope_probe_failure"] = {
+                        key: failure.get(key) for key in ("result", "stage", "error_type", "sqlstate")
+                    }
+                raise
+            evidence["operator_scope_probe"] = parse_operator_scope_probe(probe_output)
+            evidence["operator_scope_probe_image"] = {
+                "name": args.probe_image, "platform": client_image[0], "image_id": client_image[1],
+            }
         evidence["result"] = "passed"
     except Exception as exc:  # evidence stores only safe failure metadata
         evidence["failed_stage"] = stage

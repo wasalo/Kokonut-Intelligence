@@ -189,6 +189,24 @@ def test_zitadel_planner_selects_only_the_required_optional_overlays() -> None:
     assert "docker-compose.kernel-metabase.yml" not in result.stdout
 
 
+def test_explicit_zitadel_project_renders_isolated_volume_names() -> None:
+    planned = subprocess.run(
+        [sys.executable, str(PLANNER), "minimal", "--zitadel", "--project", "kokonut-sprint-test"],
+        cwd=ROOT, capture_output=True, text=True, check=False,
+    )
+    assert planned.returncode == 0, planned.stderr
+    command = shlex.split(planned.stdout)
+    command[-2:] = ["config", "--format", "json"]
+    rendered = subprocess.run(
+        command, cwd=ROOT, env=TEST_ENV, capture_output=True, text=True, check=False,
+    )
+    assert rendered.returncode == 0, rendered.stderr
+    config = json.loads(rendered.stdout)
+    assert config["name"] == "kokonut-sprint-test"
+    for volume in ("kernel-postgres-data", "kernel-zitadel-postgres-data", "kernel-zitadel-bootstrap"):
+        assert config["volumes"][volume]["name"] == f"kokonut-sprint-test_{volume}"
+
+
 def test_standard_zitadel_arm64_planner_command_resolves_all_services_for_arm64() -> None:
     planned = subprocess.run(
         [

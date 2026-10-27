@@ -1,7 +1,10 @@
 """Regression coverage for partial progress in ARM64 schema replay evidence."""
 
+import json
 import runpy
 from pathlib import Path
+
+import pytest
 
 replay_module = runpy.run_path(
     str(Path(__file__).resolve().parents[1] / "scripts" / "check-arm64-schema-replay.py"),
@@ -13,6 +16,14 @@ migration_command = replay_module["migration_command"]
 safe_error_summary = replay_module["safe_error_summary"]
 ReplayCommandFailure = replay_module["ReplayCommandFailure"]
 run = replay_module["run"]
+operator_scope_probe_command = replay_module["operator_scope_probe_command"]
+parse_operator_scope_probe = replay_module["parse_operator_scope_probe"]
+ensure_disposable_project_unused = replay_module["ensure_disposable_project_unused"]
+
+probe_module = runpy.run_path(
+    str(Path(__file__).resolve().parents[1] / "scripts" / "fixtures" / "sprint_operator_scope_probe.py"),
+    run_name="sprint_operator_scope_probe_test_module",
+)
 
 
 def test_started_schema_migrations_extracts_ordered_ids_from_runner_log():
@@ -116,3 +127,84 @@ def test_captured_failure_retains_output_for_migration_diagnostics(monkeypatch):
         assert error.stderr == "database error"
     else:
         raise AssertionError("captured command failure should be raised")
+
+
+def test_operator_probe_shares_only_the_disposable_database_network():
+    command = operator_scope_probe_command("a" * 64, "local-kernel-client:test")
+
+    assert command[command.index("--network") + 1] == "container:" + "a" * 64
+    assert "--pull=never" in command and "--read-only" in command
+    assert command.count("--volume") == 3
+    assert all(
+        command[index + 1].endswith(":ro")
+        for index, value in enumerate(command) if value == "--volume"
+    )
+    assert "SPRINT_ADMIN_PASSWORD" in command
+    assert not any(value.startswith("SPRINT_ADMIN_PASSWORD=") for value in command)
+    assert "--publish" not in command
+
+
+@pytest.mark.parametrize("container_id", ["", "../outside", "a" * 11, "g" * 64])
+def test_operator_probe_rejects_non_container_ids(container_id):
+    with pytest.raises(ValueError, match="container ID"):
+        operator_scope_probe_command(container_id, "local-kernel-client:test")
+
+
+def test_operator_probe_requires_both_tenants_and_a_success_result():
+    good = {
+        "result": "passed", "checks": list(replay_module["OPERATOR_PROBE_CHECKS"]),
+        "synthetic_tenant_count": 2, "synthetic_location_count": 2,
+        "synthetic_operator_count": 2, "runtime_public_tables_with_dml_and_rls_disabled": 4,
+    }
+    assert parse_operator_scope_probe(json.dumps(good))["result"] == "passed"
+    with pytest.raises(ValueError):
+        parse_operator_scope_probe(json.dumps({**good, "synthetic_operator_count": 1}))
+    with pytest.raises(ValueError):
+        parse_operator_scope_probe(json.dumps({**good, "result": "failed"}))
+    with pytest.raises(ValueError):
+        parse_operator_scope_probe(json.dumps({**good, "checks": good["checks"][:-1]}))
+    with pytest.raises(ValueError):
+        parse_operator_scope_probe(json.dumps({**good, "runtime_public_tables_with_dml_and_rls_disabled": -1}))
+
+
+def test_operator_probe_rejects_non_disposable_database_before_connecting(monkeypatch):
+    monkeypatch.setenv("SPRINT_DISPOSABLE", "yes")
+    monkeypatch.setenv("SPRINT_DATABASE", "kokonut_intelligence")
+
+    def unexpected_connection(*_args, **_kwargs):
+        raise AssertionError("the probe opened a database connection")
+
+    monkeypatch.setitem(probe_module, "_connection", unexpected_connection)
+    with pytest.raises(ValueError, match="isolated schema replay"):
+        probe_module["run_probe"]()
+
+
+@pytest.mark.parametrize("collision_index", range(5))
+def test_schema_replay_rejects_existing_project_resources_before_start(collision_index):
+    outputs = ["", "", "", "", ""]
+    outputs[collision_index] = (
+        "example_schema-bootstrap-data\n" if collision_index == 3
+        else "example-database-1\n" if collision_index == 4
+        else "existing-resource\n"
+    )
+    commands = []
+
+    def fake_run(command, **_kwargs):
+        index = len(commands)
+        commands.append(command)
+        return replay_module["subprocess"].CompletedProcess(command, 0, outputs[index], "")
+
+    with pytest.raises(RuntimeError, match="already"):
+        ensure_disposable_project_unused("example", command_runner=fake_run)
+    assert not any("down" in command or "up" in command for command in commands)
+
+
+def test_schema_replay_accepts_an_unused_project():
+    commands = []
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        return replay_module["subprocess"].CompletedProcess(command, 0, "unrelated\n" if len(commands) > 3 else "", "")
+
+    ensure_disposable_project_unused("example", command_runner=fake_run)
+    assert len(commands) == 5

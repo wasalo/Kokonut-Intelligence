@@ -14,6 +14,12 @@ separate `docker-compose.kernel-zitadel.yml` overlay starts the optional
 self-hosted provider. Use `python3 scripts/kernel-profile.py minimal
 --zitadel` to select the complete candidate, HTTPS proxy, OIDC client, and
 ZITADEL deployment set.
+For a disposable test, add `--project` with a unique name, such as
+`--project kokonut-sprint-identity-test`; the default project name selects the
+local candidate. Check the chosen name for existing containers and volumes
+before starting or removing a test project. Choose separate loopback ports via
+`KOKONUT_KERNEL_PORT`, `KOKONUT_KERNEL_HTTP_PORT`, and
+`KOKONUT_KERNEL_HTTPS_PORT`; a project name does not isolate host ports.
 
 ```text
 Browser ── HTTPS ── Caddy ──┬── hub.kokonut.network ── Kernel Gateway
