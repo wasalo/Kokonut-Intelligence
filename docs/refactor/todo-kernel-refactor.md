@@ -593,3 +593,10 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   scope checks; 141 focused tests pass. The report records 114 controls and
   1,006 relations with effective DML while RLS is disabled. C1 remains open
   ([batch](batches.md); [progress](progress.md#progress-addendum--reporting-and-governance-registries-runtime-read-only-boundary--27-october-2026)).
+
+- [x] Keep `impact_framework` and `impact_dimension` readable but immutable to
+  `kokonut_runtime`. Migration 669 passes native and ARM64/QEMU focused ACL
+  checks and a 660-file native replay with 25 two-tenant scope checks; 142
+  focused tests pass. The report records 116 controls and 1,004 relations
+  with effective DML while RLS is disabled. C1 remains open
+  ([batch](batches.md); [progress](progress.md#progress-addendum--impact-framework-catalogs-runtime-read-only-boundary--27-october-2026)).

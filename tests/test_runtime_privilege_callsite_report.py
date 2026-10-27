@@ -15,6 +15,8 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
 
     assert overrides["gri_indicator"] == "runtime_mutations_denied"
     assert overrides["governance_framework"] == "runtime_mutations_denied"
+    assert overrides["impact_framework"] == "runtime_mutations_denied"
+    assert overrides["impact_dimension"] == "runtime_mutations_denied"
 
 
 def _acl_row(
@@ -45,9 +47,9 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
     mutation_relation = "ai_summary"
     scoped_policy = {
         "private_relations_expected": 79,
-        "mutation_denied_relations_expected": 32,
+        "mutation_denied_relations_expected": 34,
         "private_relations_verified": 79,
-        "mutation_denied_relations_verified": 32,
+        "mutation_denied_relations_verified": 34,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,

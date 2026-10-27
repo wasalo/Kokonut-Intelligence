@@ -20856,3 +20856,42 @@ and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-r
 Checklist: 1,279 complete / 25 open (1,304 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+
+### Progress addendum — impact framework catalogs runtime read-only boundary — 27 October 2026
+
+Migration 025 defines `impact_framework` and `impact_dimension`; seed 023
+provides initial shared reference rows. Repository source review and runtime SQL
+inventory found no direct service or extension writes or query sites for these
+tables. Migration 669 preserves `SELECT` and revokes `kokonut_runtime` table
+and residual column INSERT, UPDATE, REFERENCES, DELETE, and TRUNCATE
+privileges. Runtime-role provisioning reapplies the boundary after
+compatibility grants. The migration leaves the separate Directus role alone.
+Focused native and ARM64/QEMU disposable PostgreSQL 16 checks pass
+apply/replay, read access, table/column mutation denial, provisioner
+reapplication, and preservation of synthetic Directus grants.
+
+A fresh native AMD64 replay applied all 660 ordered schema files through
+migration 669 and passed all 25 two-tenant operator-scope checks under
+verified 1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no ports
+were published, the database was not OOM-killed, and temporary resources were
+removed. Seeded impact-framework rows were therefore not exercised. The
+refreshed report recognizes 116 runtime-role controls with zero policy
+mismatches; 1,004 public relations retain effective table DML while RLS is
+disabled, so broad C1 hardening and universal tenant isolation remain open.
+The six-module focused regression selection passes 142 tests; Ruff, Python
+compilation, dependency/provider boundaries, SQL-inventory freshness, and
+capability-matrix validation pass. Candidate/legacy databases and live provider
+state were untouched. Directus API behavior, seeded report parity, and physical
+Raspberry Pi behavior remain unverified. Rollback retains ordered migration
+669; re-enabling runtime writes requires a reviewed forward migration.
+
+Evidence: [migration](../schemas/postgres/669_runtime_impact_framework_catalogs_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/impact-framework-catalogs-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/impact-framework-catalogs-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-669-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,280 complete / 25 open (1,305 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

@@ -144,6 +144,8 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
     for table, label in (
         ("gri_indicator", "GRI indicator mappings"),
         ("governance_framework", "governance framework registry"),
+        ("impact_framework", "impact framework references"),
+        ("impact_dimension", "impact framework dimensions"),
     ):
         if not relation_exists(table):
             raise AssertionError(f"full schema is missing {label}")
@@ -397,6 +399,8 @@ def run_probe() -> dict[str, object]:
                 "runtime can read static pollinator species references",
                 "runtime can query shared GRI indicator mappings",
                 "runtime can query the governance framework registry",
+                "runtime can query shared impact frameworks",
+                "runtime can query shared impact framework dimensions",
                 "runtime can read seeded certification types",
                 "runtime can read seeded cooperative types",
                 "runtime can read seeded insurance product types",

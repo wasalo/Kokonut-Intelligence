@@ -77,12 +77,15 @@ STATIC_REFERENCE_CATALOGS_MIGRATION = (
 REPORTING_REGISTRY_MIGRATION = (
     ROOT / "schemas/postgres/668_runtime_reporting_registry_read_only.sql"
 )
+IMPACT_FRAMEWORK_CATALOGS_MIGRATION = (
+    ROOT / "schemas/postgres/669_runtime_impact_framework_catalogs_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "ghg_emission_factor", "cooperative_type",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
-    "gri_indicator", "governance_framework",
+    "gri_indicator", "governance_framework", "impact_framework", "impact_dimension",
 )
 
 
@@ -242,6 +245,7 @@ def check_boundary(
                 for table in (
                     "process_maturity_level", "pollinator_species_reference",
                     "gri_indicator", "governance_framework",
+                    "impact_framework", "impact_dimension",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -356,6 +360,11 @@ def check_boundary(
                 )
                 cursor.execute(reporting_registry_migration)
                 cursor.execute(reporting_registry_migration)
+                impact_framework_catalogs_migration = (
+                    IMPACT_FRAMEWORK_CATALOGS_MIGRATION.read_text(encoding="utf-8")
+                )
+                cursor.execute(impact_framework_catalogs_migration)
+                cursor.execute(impact_framework_catalogs_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -440,6 +449,8 @@ def check_boundary(
                         "pollinator_species_reference": 667,
                         "gri_indicator": 668,
                         "governance_framework": 668,
+                        "impact_framework": 669,
+                        "impact_dimension": 669,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -493,6 +504,7 @@ def check_boundary(
                 for table in (
                     "process_maturity_level", "pollinator_species_reference",
                     "gri_indicator", "governance_framework",
+                    "impact_framework", "impact_dimension",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -526,6 +538,8 @@ def check_boundary(
                     ("pollinator_species_reference", 667),
                     ("gri_indicator", 668),
                     ("governance_framework", 668),
+                    ("impact_framework", 669),
+                    ("impact_dimension", 669),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -1170,6 +1184,22 @@ def check_boundary(
                     "directus_role_unchanged": True,
                 },
                 "read_only_governance_framework": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_impact_framework": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_impact_dimension": {
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,

@@ -59,6 +59,8 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "pollinator_species_reference": "runtime_mutations_denied",
     "gri_indicator": "runtime_mutations_denied",
     "governance_framework": "runtime_mutations_denied",
+    "impact_framework": "runtime_mutations_denied",
+    "impact_dimension": "runtime_mutations_denied",
     "data_access_log": "runtime_append_only_read_insert",
     "access_audit_log": "runtime_append_only_read_insert",
 }

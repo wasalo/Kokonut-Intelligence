@@ -1061,6 +1061,8 @@ _RUNTIME_MUTATION_TABLES = (
     "pollinator_species_reference",
     "gri_indicator",
     "governance_framework",
+    "impact_framework",
+    "impact_dimension",
     "crop_family",
     "crop_nutrient_removal_factor",
     "certification_type",
