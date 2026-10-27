@@ -20576,3 +20576,28 @@ test](../../tests/test_sdk.py) and [cross-language parity test](../../tests/test
 Checklist: 1,270 complete / 25 open (1,295 total). Capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+### Native full-schema runtime-role revalidation through migration 662 — 27 October 2026
+
+A fresh native AMD64 replay applied all 653 ordered schema files through
+`662_runtime_access_audit_log_append_only` on a disposable database capped at
+1.5 GiB memory/swap and two CPUs. The signed two-tenant operator probe passed
+all 17 assertions: 79 private relations, 24 mutation-denied relations, two
+append-only ledgers, API-key column boundaries, forced-RLS tenant separation,
+wrong-location denial cleanup, and transaction-end context reset. It found
+zero direct table/column privilege violations for those declared boundaries,
+while 1,014 public relations still retain effective table DML with RLS off;
+therefore C1 remains open and the synthetic probe is not universal isolation
+evidence. No seeds or farm records were loaded, no host ports were published,
+and the uniquely labeled Compose project and temporary client image were
+removed. The refreshed ACL/source report shows 1,511 relations, 106 declared
+boundaries, and zero explicit-revoke mismatches; its linked analytics inventory
+remains 274 candidate relations / 425 sites, with `farm` unmatched for review.
+Eleven focused report/inventory tests pass; Ruff, compilation, capability
+matrix validation, and diff checks pass. Candidate and legacy databases remain
+untouched. Evidence: [full-schema native replay](builds/2026-10-27-recovery/runtime-role-full-schema-662-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,271 complete / 25 open (1,296 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

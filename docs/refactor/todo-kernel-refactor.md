@@ -526,3 +526,16 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   Ruff, compilation, and diff checks pass. This fixes one concrete static typing
   mismatch; other create/update payloads and runtime behavior remain outside
   this subgate ([batch record](batches.md); [progress](progress.md#export-format-typing-parity--27-october-2026)).
+
+### Current continuation — C1 full-schema runtime-role revalidation
+
+- [x] Revalidate the native full schema and runtime boundary through migration
+  662 under a 1.5 GiB/two-CPU database limit. All 653 files applied, and all 17
+  signed synthetic operator/scope assertions passed with zero direct table or
+  column violations among 106 declared boundaries. Regenerate the current ACL
+  and analytics inventories from this evidence: 1,014 public relations still
+  have effective DML while RLS is disabled, and the `farm` source-site join is
+  still unmatched. C1 remains open; the checker does not establish universal
+  tenant isolation or production state. Eleven report/inventory tests plus
+  Ruff, compilation, capability validation, and diff checks pass. No seeds,
+  candidate or legacy database were used ([batch](batches.md); [evidence](progress.md#native-full-schema-runtime-role-revalidation-through-migration-662--27-october-2026)).
