@@ -41,6 +41,7 @@ OPERATOR_PROBE_CHECKS = frozenset({
     "runtime can query the governance framework registry",
     "runtime can query shared impact frameworks",
     "runtime can query shared impact framework dimensions",
+    "runtime can read governed expense categories",
     "runtime can read seeded certification types",
     "runtime can read seeded cooperative types",
     "runtime can read seeded insurance product types",
@@ -321,9 +322,9 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
         raise ValueError("operator scope probe did not report the runtime scoped-write boundary")
     if (
         scoped_write["private_relations_expected"] != 79
-        or scoped_write["mutation_denied_relations_expected"] != 34
+        or scoped_write["mutation_denied_relations_expected"] != 35
         or scoped_write["private_relations_verified"] != 79
-        or scoped_write["mutation_denied_relations_verified"] != 34
+        or scoped_write["mutation_denied_relations_verified"] != 35
         or scoped_write["direct_table_privilege_violations"] != 0
         or scoped_write["direct_column_privilege_violations"] != 0
         or scoped_write["farm_activity_ledger_readable"] != 1

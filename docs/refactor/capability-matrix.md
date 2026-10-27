@@ -1,24 +1,25 @@
 # Capability preservation matrix
 
 **Runtime-role acceptance update (27 October 2026):** Focused native and
-ARM64/QEMU disposable PostgreSQL 16 checks pass migrations 658–669. A fresh
-native AMD64 replay of all 660 ordered schema files through migration 669
-passes the full provisioner and all 25 two-tenant operator-scope checks under
+ARM64/QEMU disposable PostgreSQL 16 checks pass migrations 658–670. A fresh
+native AMD64 replay of all 661 ordered schema files through migration 670
+passes the full provisioner and all 26 two-tenant operator-scope checks under
 verified 1.5 GiB memory/swap and two-CPU database limits. The probe verifies
-116 declared runtime-role controls: 79 private relations, 34 mutation-denied
+117 declared runtime-role controls: 79 private relations, 35 mutation-denied
 relations, two append-only relations, and the API-key read-only column
 boundary. It reports zero direct table or column privilege violations across
-1,511 public relations; 1,004 relations retain effective table-level DML while
+1,511 public relations; 1,003 relations retain effective table-level DML while
 RLS is disabled. Broad compatibility DML and non-universal application-table
 RLS remain open C1 concerns. The replay loaded no seeds or farm data, published
 no ports, was not OOM-killed, and removed temporary resources. Seed-dependent
-catalog contents were therefore not exercised by the replay; focused ACL
-checks use synthetic tables and verify grants, not populated seed parity. This
-is synthetic software-portability evidence, not candidate/production state,
-universal tenant isolation, populated-data acceptance, or physical Raspberry
-Pi acceptance ([full native schema and scope evidence through 669](builds/2026-10-27-recovery/runtime-role-full-schema-669-native-disposable.json);
-[impact-catalog native ACL](builds/2026-10-27-recovery/impact-framework-catalogs-runtime-read-only-disposable.json);
-[impact-catalog ARM64/QEMU ACL](builds/2026-10-27-recovery/impact-framework-catalogs-runtime-read-only-arm64-disposable.json);
+expense-category contents were therefore not exercised by the replay; the
+focused ACL checks use synthetic tables and verify grants, not populated seed
+parity. This is synthetic software-portability evidence, not
+candidate/production state, universal tenant isolation, populated-data
+acceptance, or physical Raspberry Pi acceptance ([full native schema and scope
+evidence through 670](builds/2026-10-27-recovery/runtime-role-full-schema-670-native-disposable.json);
+[expense-category native ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-disposable.json);
+[expense-category ARM64/QEMU ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-arm64-disposable.json);
 [policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
 No seeds or farm data were loaded, no ports were published, temporary resources
 were removed, and no physical Raspberry Pi acceptance is claimed; these are
@@ -61,18 +62,19 @@ The app runtime limit result is recorded in
 source-line report joins the runtime ACL snapshot with SQL inventory v2, which
 separates DML targets from source relations. It identifies 273 candidate
 relations and 425 target sites across 89 source files, with no unmatched
-candidate sites. The full migration-669 probe verifies 116 declared runtime
-controls with zero policy mismatches; 1,004 relations still retain effective
+candidate sites. The full migration-670 probe verifies 117 declared runtime
+controls with zero policy mismatches; 1,003 relations still retain effective
 DML while RLS is disabled. This is not universal tenant isolation. The source
 report is heuristic and candidate writers still need callsite review. Recent
 read-only runtime policies include seeded factor and benchmark catalogs,
 `operations_protocol`, `process_maturity_level`,
 `pollinator_species_reference`, `gri_indicator`, `governance_framework`,
-`impact_framework`, and `impact_dimension`; migrations 668–669 change only the
-Kernel runtime role and preserve SELECT. Directus grants are preserved by
-focused ACL checks, but Directus API row/role parity is not implied. Seeded GRI,
-governance, and impact catalog contents were not loaded in the full replay.
-Runtime relation and function scope limits remain documented in the report
+`impact_framework`, `impact_dimension`, and `expense_category`; migrations
+668–670 change only the Kernel runtime role and preserve SELECT. Directus
+grants are preserved by focused ACL checks, but Directus API row/role parity is
+not implied. Seeded registry, impact, and expense-category contents were not
+loaded in the full replay. Runtime relation and function scope limits remain
+documented in the report
 ([inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json);
 [generator](../scripts/runtime-analytics-write-candidate-inventory.py);
 [ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).

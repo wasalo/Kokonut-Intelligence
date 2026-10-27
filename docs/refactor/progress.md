@@ -20895,3 +20895,43 @@ and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-r
 Checklist: 1,280 complete / 25 open (1,305 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+
+### Progress addendum — governed expense category runtime read-only boundary — 27 October 2026
+
+Migration 004 defines `expense_category` as a shared governed taxonomy and
+seed 000 supplies the default values. Finance and AI-summary source paths read
+the taxonomy; the runtime SQL inventory and source review found no service or
+extension write target. Migration 670 preserves `SELECT` and revokes
+`kokonut_runtime` table and residual column INSERT, UPDATE, REFERENCES, DELETE,
+and TRUNCATE privileges. Runtime-role provisioning reapplies the boundary
+after compatibility grants. The migration leaves the separate Directus role
+unchanged. Focused native and ARM64/QEMU disposable PostgreSQL 16 checks pass
+apply/replay, read access, table/column mutation denial, provisioner
+reapplication, and preservation of synthetic Directus grants.
+
+A fresh native AMD64 replay applied all 661 ordered schema files through
+migration 670 and passed all 26 two-tenant operator-scope checks under
+verified 1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no ports
+were published, the database was not OOM-killed, and temporary resources were
+removed. Seeded category contents were therefore not exercised. The refreshed
+report recognizes 117 runtime-role controls with zero policy mismatches; 1,003
+public relations retain effective table DML while RLS is disabled, so broad
+C1 hardening and universal tenant isolation remain open. The six-module
+focused regression selection passes 143 tests; Ruff, Python compilation,
+dependency/provider boundaries, SQL-inventory freshness, and capability-matrix
+validation pass. Candidate/legacy databases and live provider state were
+untouched. Directus API behavior and populated category parity remain
+unverified. Rollback retains ordered migration 670; re-enabling runtime writes
+requires a reviewed forward migration and an authenticated category-management
+path.
+
+Evidence: [migration](../schemas/postgres/670_runtime_expense_category_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-670-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,281 complete / 25 open (1,306 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

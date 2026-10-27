@@ -28,7 +28,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 116
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 117
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -657,6 +657,43 @@ def test_impact_framework_catalogs_are_read_only_to_kernel_runtime():
     assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
     assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
     assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_expense_category_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/670_runtime_expense_category_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/004_finance.sql").read_text()
+    seed = (root / "schemas/seeds/000_expense_categories.sql").read_text()
+    readers = (root / "services/agents/ai_summary.py").read_text()
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "expense_category" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "expense_category" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS expense_category" in schema
+    assert "Expense categories (governed taxonomy)" in schema
+    assert "INSERT INTO expense_category" in seed
+    assert "FROM expense_category" in readers
+    assert "JOIN expense_category" in readers
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?expense_category\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.expense_category" in migration
+    assert "GRANT SELECT ON TABLE public.expense_category TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
     assert "kokonut_directus_runtime" not in migration
 
 

@@ -2,11 +2,11 @@
   "generated_by": "scripts/runtime-analytics-write-candidate-inventory.py",
   "inputs": {
     "acl_report_path": "docs/refactor/builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json",
-    "acl_report_sha256": "4d0900f286d9aa8172a70c9819abb120c4d4e100cd5801d45fc691008c8599db",
-    "acl_report_source_revision": "e853d2cd",
-    "runtime_role_policy_sha256": "07b7d09a846d169c9a920ea470cf8b3731edad944616f938cc0f1ca56203ec91",
+    "acl_report_sha256": "7bcb30a67ff98f181511f6bdb72a90f88e64b5783f158cfbb17446976f34078c",
+    "acl_report_source_revision": "601a765e",
+    "runtime_role_policy_sha256": "a54b5efcfd10b18bb2b72a8fabefbae2934ee76efe08212352dc880b3739bc15",
     "sql_inventory_path": "docs/refactor/runtime-sql-inventory.json",
-    "sql_inventory_sha256": "a6d453e68de06978082690842eee8869e43c463720fa1ffa6ae181da94340b4c",
+    "sql_inventory_sha256": "677b15736c0c91634d76d56b44af5d639e264e48a2eb4043d85cf5ac46ece6af",
     "sql_inventory_version": 2
   },
   "limitations": [

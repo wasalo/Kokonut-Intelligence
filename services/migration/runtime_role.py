@@ -1063,6 +1063,7 @@ _RUNTIME_MUTATION_TABLES = (
     "governance_framework",
     "impact_framework",
     "impact_dimension",
+    "expense_category",
     "crop_family",
     "crop_nutrient_removal_factor",
     "certification_type",
