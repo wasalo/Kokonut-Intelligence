@@ -74,11 +74,15 @@ OPERATIONS_PROTOCOL_MIGRATION = (
 STATIC_REFERENCE_CATALOGS_MIGRATION = (
     ROOT / "schemas/postgres/667_runtime_static_reference_catalogs_read_only.sql"
 )
+REPORTING_REGISTRY_MIGRATION = (
+    ROOT / "schemas/postgres/668_runtime_reporting_registry_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "ghg_emission_factor", "cooperative_type",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
+    "gri_indicator", "governance_framework",
 )
 
 
@@ -235,7 +239,10 @@ def check_boundary(
                     "GRANT SELECT, INSERT, UPDATE, DELETE ON public.operations_protocol "
                     "TO kokonut_directus_runtime"
                 )
-                for table in ("process_maturity_level", "pollinator_species_reference"):
+                for table in (
+                    "process_maturity_level", "pollinator_species_reference",
+                    "gri_indicator", "governance_framework",
+                ):
                     cursor.execute(
                         sql.SQL(
                             "GRANT SELECT, INSERT, UPDATE, DELETE ON public.{} "
@@ -344,6 +351,11 @@ def check_boundary(
                 )
                 cursor.execute(static_reference_catalogs_migration)
                 cursor.execute(static_reference_catalogs_migration)
+                reporting_registry_migration = REPORTING_REGISTRY_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(reporting_registry_migration)
+                cursor.execute(reporting_registry_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -426,6 +438,8 @@ def check_boundary(
                         "operations_protocol": 666,
                         "process_maturity_level": 667,
                         "pollinator_species_reference": 667,
+                        "gri_indicator": 668,
+                        "governance_framework": 668,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -476,7 +490,10 @@ def check_boundary(
                         "migration 666 unexpectedly changed the separate Directus role"
                     )
             with connection.cursor() as cursor:
-                for table in ("process_maturity_level", "pollinator_species_reference"):
+                for table in (
+                    "process_maturity_level", "pollinator_species_reference",
+                    "gri_indicator", "governance_framework",
+                ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
                         "has_table_privilege('kokonut_directus_runtime', %s, 'INSERT'), "
@@ -486,7 +503,7 @@ def check_boundary(
                     )
                     if cursor.fetchone() != (True, True, True, True):
                         raise AssertionError(
-                            f"migration 667 unexpectedly changed Directus grants on {table}"
+                            f"static catalog migration unexpectedly changed Directus grants on {table}"
                         )
             with connection.cursor() as cursor:
                 for table, migration_number in (
@@ -507,6 +524,8 @@ def check_boundary(
                     ("operations_protocol", 666),
                     ("process_maturity_level", 667),
                     ("pollinator_species_reference", 667),
+                    ("gri_indicator", 668),
+                    ("governance_framework", 668),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -1135,6 +1154,22 @@ def check_boundary(
                     "directus_role_unchanged": True,
                 },
                 "read_only_pollinator_species_reference": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_gri_indicator": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_governance_framework": {
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,

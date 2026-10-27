@@ -586,3 +586,10 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   two-tenant scope checks; 139 focused tests pass. The report records 112
   controls and 1,008 relations with effective DML while RLS is disabled. C1
   remains open ([batch](batches.md); [progress](progress.md#progress-addendum--static-taxonomy-runtime-read-only-boundary--27-october-2026)).
+
+- [x] Keep the GRI reporting and governance-framework registries readable but
+  immutable to `kokonut_runtime`. Migration 668 passes native and ARM64/QEMU
+  focused PostgreSQL checks and a 659-file native replay with 23 two-tenant
+  scope checks; 141 focused tests pass. The report records 114 controls and
+  1,006 relations with effective DML while RLS is disabled. C1 remains open
+  ([batch](batches.md); [progress](progress.md#progress-addendum--reporting-and-governance-registries-runtime-read-only-boundary--27-october-2026)).

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -27,7 +28,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 112
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 114
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -552,6 +553,62 @@ def test_static_reference_catalogs_are_read_only_to_kernel_runtime():
         assert f"CREATE TABLE IF NOT EXISTS {table}" in schema
         assert f"INSERT INTO {table}" in schema
         assert runtime_writers == []
+        assert f"'{table}'" in migration
+
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_reporting_registries_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/668_runtime_reporting_registry_read_only.sql"
+    ).read_text()
+    inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    sources = {
+        "gri_indicator": (
+            root / "schemas/postgres/062_true_cost_accounting.sql",
+            root / "schemas/seeds/062_true_cost_accounting.sql",
+            "services/analytics/gri_reporting.py",
+        ),
+        "governance_framework": (
+            root / "schemas/postgres/324_baal_governance.sql",
+            root / "schemas/seeds/020_gnosis_chain.sql",
+            "services/governance/cli.py",
+        ),
+    }
+
+    for table, (schema_path, seed_path, reader_path) in sources.items():
+        schema = schema_path.read_text()
+        seed = seed_path.read_text()
+        sites = [
+            site for site in inventory["execution_sites"]
+            if table in site["candidate_relations"]
+        ]
+
+        assert table in runtime_role._RUNTIME_MUTATION_TABLES
+        assert table not in runtime_role._RUNTIME_PRIVATE_TABLES
+        assert f"CREATE TABLE IF NOT EXISTS {table}" in schema
+        assert f"INSERT INTO {table}" in seed
+        assert sites and {site["statement_kind"] for site in sites} == {"SELECT"}
+        assert f"{table}" in (root / reader_path).read_text()
+        assert not any(
+            re.search(
+                rf"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?{table}\b",
+                path.read_text(errors="replace"),
+                re.I,
+            )
+            for path in application_sources
+        )
         assert f"'{table}'" in migration
 
     assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1

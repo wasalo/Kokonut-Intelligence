@@ -20815,3 +20815,44 @@ and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-r
 Checklist: 1,278 complete / 25 open (1,303 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+
+### Progress addendum — reporting and governance registries runtime read-only boundary — 27 October 2026
+
+Source review confirmed `gri_indicator` is a shared GRI reporting map
+initialized by seed 062 and read by the reporting service, while
+`governance_framework` is the migration-defined registry of adapter/deployment
+metadata initialized by seed 020 and read by the governance CLI. No runtime SQL
+write targets or service/extension write statements were found. Migration 668
+preserves `SELECT` and revokes `kokonut_runtime` table and residual column
+INSERT, UPDATE, REFERENCES, DELETE, and TRUNCATE privileges. Runtime-role
+provisioning reapplies the boundary after compatibility grants. The migration
+does not change the separate Directus role. Focused native and ARM64/QEMU
+disposable PostgreSQL 16 checks pass apply/replay, read access, table/column
+mutation denial, provisioner reapplication, and preservation of synthetic
+Directus grants.
+
+A fresh native AMD64 replay applied all 659 ordered schema files through
+migration 668 and passed all 23 two-tenant operator-scope checks under
+verified 1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no ports
+were published, the database was not OOM-killed, and temporary resources were
+removed. Seeded GRI and governance catalog contents were not exercised by this
+empty schema fixture. The refreshed report recognizes 114 runtime-role controls
+with zero policy mismatches; 1,006 public relations retain effective table DML
+while RLS is disabled, so broad C1 hardening and universal tenant isolation
+remain open. The six-module focused regression selection passes 141 tests;
+Ruff, Python compilation, dependency/provider boundaries, SQL-inventory
+freshness, and capability-matrix validation pass. Candidate/legacy databases
+and live provider state were untouched. Directus API behavior and live adapter
+reads remain unverified. Rollback retains ordered migration 668; re-enabling
+runtime writes requires a reviewed forward migration.
+
+Evidence: [migration](../schemas/postgres/668_runtime_reporting_registry_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/reporting-registries-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/reporting-registries-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-668-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,279 complete / 25 open (1,304 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

@@ -57,6 +57,8 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "operations_protocol": "runtime_mutations_denied",
     "process_maturity_level": "runtime_mutations_denied",
     "pollinator_species_reference": "runtime_mutations_denied",
+    "gri_indicator": "runtime_mutations_denied",
+    "governance_framework": "runtime_mutations_denied",
     "data_access_log": "runtime_append_only_read_insert",
     "access_audit_log": "runtime_append_only_read_insert",
 }

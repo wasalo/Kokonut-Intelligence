@@ -10,6 +10,13 @@ REPORTER = runpy.run_path(
 )
 
 
+def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
+    overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert overrides["gri_indicator"] == "runtime_mutations_denied"
+    assert overrides["governance_framework"] == "runtime_mutations_denied"
+
+
 def _acl_row(
     relation: str,
     *,
@@ -38,9 +45,9 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
     mutation_relation = "ai_summary"
     scoped_policy = {
         "private_relations_expected": 79,
-        "mutation_denied_relations_expected": 30,
+        "mutation_denied_relations_expected": 32,
         "private_relations_verified": 79,
-        "mutation_denied_relations_verified": 30,
+        "mutation_denied_relations_verified": 32,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,

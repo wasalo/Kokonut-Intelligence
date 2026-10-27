@@ -1059,6 +1059,8 @@ _RUNTIME_MUTATION_TABLES = (
     "operations_protocol",
     "process_maturity_level",
     "pollinator_species_reference",
+    "gri_indicator",
+    "governance_framework",
     "crop_family",
     "crop_nutrient_removal_factor",
     "certification_type",
