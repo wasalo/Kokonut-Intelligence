@@ -30,6 +30,7 @@ OPERATOR_PROBE_CHECKS = frozenset({
     "revoked grant and revoked session both fail closed",
     "runtime provisioner denied direct table and column access to private relations",
     "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
+    "runtime provisioner limited API-key reads to reviewed columns and denied all writes",
 })
 sys.path.insert(0, str(ROOT))
 
@@ -225,6 +226,16 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
         or scoped_write["farm_activity_ledger_readable"] != 1
     ):
         raise ValueError("operator scope probe did not verify every runtime scoped-write ACL")
+    if result.get("runtime_api_key_policy") != {
+        "select_columns": [
+            "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"
+        ],
+        "insert_columns": [],
+        "update_columns": [],
+        "delete": False,
+        "verified_by_provisioner": True,
+    }:
+        raise ValueError("operator scope probe did not verify the API-key column boundary")
     relation_acl = result.get("runtime_public_relation_acl")
     if relation_acl is not None:
         if not isinstance(relation_acl, list):

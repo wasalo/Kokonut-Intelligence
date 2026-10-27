@@ -32,6 +32,9 @@ _RUNTIME_POLICY_NAMES = {
 # This append-only event ledger intentionally restores only SELECT after its
 # migration revokes ALL; the dedicated trigger owner remains the sole writer.
 _SOURCE_REVOKE_POLICY_OVERRIDES = {
+    # The migration revokes table-wide access, then restores a verified read-only
+    # column allowlist for API-key authentication.
+    "api_key": "read_only_column_allowlist",
     "farm_activity_operator_event": "runtime_mutations_denied",
 }
 
@@ -73,8 +76,8 @@ def _source_revokes() -> dict[str, list[dict[str, str]]]:
     }
 
 
-def _runtime_role_denials() -> tuple[dict[str, str], str]:
-    """Read the provisioner's explicit table denial lists without importing it."""
+def _runtime_role_boundaries() -> tuple[dict[str, str], str]:
+    """Read table-denial and special column-boundary declarations without importing."""
     source_path = ROOT / "services/migration/runtime_role.py"
     try:
         source_text = source_path.read_text(encoding="utf-8")
@@ -83,10 +86,21 @@ def _runtime_role_denials() -> tuple[dict[str, str], str]:
         raise ValueError("could not parse runtime-role policy lists") from exc
 
     values: dict[str, set[str]] = {}
+    api_key_columns: tuple[str, ...] | None = None
+    function_names = {
+        node.name for node in tree.body if isinstance(node, ast.FunctionDef)
+    }
     for node in tree.body:
         if not isinstance(node, ast.Assign) or len(node.targets) != 1:
             continue
         target = node.targets[0]
+        if isinstance(target, ast.Name) and target.id == "_API_KEY_COLUMNS":
+            if not isinstance(node.value, (ast.Tuple, ast.List)) or any(
+                not isinstance(item, ast.Constant) or not isinstance(item.value, str)
+                for item in node.value.elts
+            ):
+                raise ValueError("_API_KEY_COLUMNS must be a literal tuple or list")
+            api_key_columns = tuple(item.value for item in node.value.elts)
         if not isinstance(target, ast.Name) or target.id not in _RUNTIME_POLICY_NAMES.values():
             continue
         if not isinstance(node.value, (ast.Tuple, ast.List)):
@@ -104,6 +118,13 @@ def _runtime_role_denials() -> tuple[dict[str, str], str]:
         **{table: "no_direct_runtime_access" for table in values[_RUNTIME_POLICY_NAMES["private"]]},
         **{table: "runtime_mutations_denied" for table in values[_RUNTIME_POLICY_NAMES["mutations"]]},
     }
+    if (
+        api_key_columns == (
+            "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"
+        )
+        and {"_apply_api_key_boundary", "_verify_api_key_boundary"} <= function_names
+    ):
+        denials["api_key"] = "read_only_column_allowlist"
     return denials, hashlib.sha256(source_text.encode("utf-8")).hexdigest()
 
 
@@ -158,7 +179,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
                 entry["sources"][source][statement_kind] += 1
 
     revokes = _source_revokes()
-    runtime_denials, runtime_role_sha256 = _runtime_role_denials()
+    runtime_boundaries, runtime_role_sha256 = _runtime_role_boundaries()
     scoped_write = probe.get("runtime_scoped_write_policy")
     expected_scoped_write = {
         "private_relations_expected": 79,
@@ -173,6 +194,16 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         isinstance(scoped_write, dict)
         and all(scoped_write.get(key) == value for key, value in expected_scoped_write.items())
     )
+    api_key_policy = probe.get("runtime_api_key_policy")
+    api_key_boundary_passed = api_key_policy == {
+        "select_columns": [
+            "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"
+        ],
+        "insert_columns": [],
+        "update_columns": [],
+        "delete": False,
+        "verified_by_provisioner": True,
+    }
     full_schema_replay_passed = (
         replay.get("result") == "passed"
         and replay.get("schema_files_applied") == 642
@@ -194,10 +225,10 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
                 token.strip() for token in revoke["privileges"].split(",")
             ))
         ]
-        expected_denial = _SOURCE_REVOKE_POLICY_OVERRIDES.get(name)
-        if expected_denial is None:
-            expected_denial = _expected_runtime_denial(dml_revokes)
-        configured_denial = runtime_denials.get(name)
+        expected_boundary = _SOURCE_REVOKE_POLICY_OVERRIDES.get(name)
+        if expected_boundary is None:
+            expected_boundary = _expected_runtime_denial(dml_revokes)
+        configured_boundary = runtime_boundaries.get(name)
         output_rows.append({
             "relation": name,
             "kind": row.get("kind"),
@@ -221,11 +252,11 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "explicit_runtime_revokes": source_revokes,
             "explicit_runtime_dml_revokes": dml_revokes,
             "dml_overlaps_explicit_revoke": bool(dml and dml_revokes),
-            "expected_runtime_denial": expected_denial,
-            "configured_runtime_denial": configured_denial,
-            "runtime_denial_policy_matches_source": (
-                configured_denial == expected_denial
-                if expected_denial is not None else None
+            "expected_runtime_boundary": expected_boundary,
+            "configured_runtime_boundary": configured_boundary,
+            "runtime_boundary_policy_matches_source": (
+                configured_boundary == expected_boundary
+                if expected_boundary is not None else None
             ),
         })
 
@@ -268,10 +299,10 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             parts = Path(source["path"]).parts
             service = parts[1] if len(parts) > 2 and parts[0] == "services" else "other"
             write_relations_by_service[service].add(row["relation"])
-    policy_rows = [row for row in output_rows if row["expected_runtime_denial"] is not None]
+    policy_rows = [row for row in output_rows if row["expected_runtime_boundary"] is not None]
     policy_gaps = [
         row["relation"] for row in policy_rows
-        if not row["runtime_denial_policy_matches_source"]
+        if not row["runtime_boundary_policy_matches_source"]
     ]
     return {
         "result": "inventory",
@@ -289,15 +320,17 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         ),
         "scope_limit": (
             "No application rows, operator identifiers, or secrets are included. The "
-            "report does not cover column privileges, sequence ACLs, object ownership, "
-            "security-definer behavior, Directus, external consumers, or production "
-            "state. Static policy coverage and its source digest do not prove that "
-            "the provisioner has executed."
+            "report does not include a full column ACL inventory, sequence ACLs, object "
+            "ownership, security-definer behavior, Directus, external consumers, or "
+            "production state. The API-key read-only column allowlist is separately "
+            "verified by the runtime provisioner. Static policy coverage and its source "
+            "digest do not prove that the provisioner has executed."
         ),
         "runtime_role_acceptance": {
             "full_schema_replay_passed": full_schema_replay_passed,
             "scoped_acl_checks_passed": runtime_role_acl_checks_passed,
             "scoped_acl_summary": scoped_write if isinstance(scoped_write, dict) else None,
+            "api_key_column_boundary_passed": api_key_boundary_passed,
             "target_scope": "isolated disposable database only",
             "production_or_candidate_state_established": False,
         },

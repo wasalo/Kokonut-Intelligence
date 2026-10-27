@@ -24,19 +24,21 @@ the batch log and the affected capability/progress records are updated.
 - [x] Add relation-level runtime ACL/default-ACL capture to the isolated probe
   and a source-callsite/revoke join at
   [`scripts/runtime-privilege-callsite-report.py`](../../scripts/runtime-privilege-callsite-report.py).
-  The detailed replay and source join completed: 1,101 unprotected base tables
-  have table-level DML, including 75 with a matching historical runtime DML
-  revoke; 334 have no static candidate callsite. No database privileges were
-  changed by the inventory.
+  The refreshed full-schema report covers all 1,511 public relations, records
+  1,026 ordinary/partitioned relations with unprotected table DML after real
+  provisioner execution, and matches all 92 source-declared runtime boundaries
+  with zero policy gaps. The SQL callsite join remains heuristic. No candidate
+  or legacy database privileges were changed.
 - [x] Implement the source-declared C1 runtime ACL repair in role provisioning:
   after the compatibility grant, deny direct runtime access to the 79 private
   tables, deny writes on 11 migration-defined mutation-only tables, and keep
   the append-only farm-activity ledger SELECT-only. The provisioner verifies
-  the resulting table and column ACLs. Static comparison now covers all 91
-  relation-level source revokes with no policy gap. The focused runtime-role
-  suite passes 48 tests, and a disposable PostgreSQL fixture confirms all 91
-  relation ACL outcomes plus column-grant detection; full migration-installed
-  acceptance is recorded immediately below.
+  the resulting table and column ACLs. Static comparison covers 91 private or
+  mutation-denied relations plus the separate API-key read-only column
+  allowlist, with no policy gap. The focused runtime-role suite passes 48
+  tests, and a disposable PostgreSQL fixture confirms the scoped ACL outcomes
+  plus column-grant detection; full migration-installed acceptance is recorded
+  immediately below.
 - [x] Complete full-schema runtime-role acceptance against all 642 ordered
   migrations through 651: the provisioner installs and verifies all 79 private
   and 12 mutation-denied relation boundaries, with zero residual table or
@@ -45,8 +47,11 @@ the batch log and the affected capability/progress records are updated.
   context through the bounded function, reject cross-location access, and clear
   context on denial and transaction end. No seeds or farm data were loaded;
   cleanup succeeded; candidate and legacy databases were untouched. The
-  separate ARM64 full-schema replay also passes, while this role probe ran
-  natively with matching AMD64 images. See
+  probe also verifies API-key reads are limited to seven reviewed columns and
+  all writes are denied. The separate ARM64 full-schema replay also passes,
+  while this role probe ran natively with matching AMD64 images. The refreshed
+  relation/callsite report has 1,511 rows and zero gaps across 92 declared
+  boundaries. See
   [full-schema role evidence](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json).
 
 ## Code work to continue without owner input
@@ -58,10 +63,10 @@ that its full source-plan phase is complete.
   The 642-migration isolated inventory found 1,101 relations with unprotected
   runtime DML. Of these, 529 have no static write candidate and 334 have no
   SQL candidate at all; the counts are heuristic and the latter is a subset.
-  The source report fingerprints `runtime_role.py`, covers all 91 matched
-  migration-declared revokes with zero static policy gaps, and groups write
-  candidates by service (the service counts overlap). Full migration-installed
-  provisioning and signed operator-context acceptance now pass for the
+  The source report fingerprints `runtime_role.py`, covers 91 scoped table
+  boundaries plus the API-key read-only column allowlist with zero static
+  policy gaps, and groups write candidates by service (the service counts
+  overlap). Full migration-installed provisioning and signed operator-context acceptance now pass for the
   source-declared policy; the runtime login still has broad DML on 1,026 other
   relations. Next classify them by capability and caller identity, starting
   with the 281 candidate analytics

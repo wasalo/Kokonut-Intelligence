@@ -164,6 +164,15 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,
         },
+        "runtime_api_key_policy": {
+            "select_columns": [
+                "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"
+            ],
+            "insert_columns": [],
+            "update_columns": [],
+            "delete": False,
+            "verified_by_provisioner": True,
+        },
     }
     assert parse_operator_scope_probe(json.dumps(good))["result"] == "passed"
     with pytest.raises(ValueError):
@@ -184,6 +193,8 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
                 "direct_column_privilege_violations": 1,
             },
         }))
+    with pytest.raises(ValueError, match="API-key column boundary"):
+        parse_operator_scope_probe(json.dumps({**good, "runtime_api_key_policy": None}))
 
 
 def test_operator_probe_rejects_non_disposable_database_before_connecting(monkeypatch):

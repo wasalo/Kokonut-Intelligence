@@ -5,11 +5,14 @@ all 642 migrations through 651, full role provisioning and the two-tenant
 operator-context probe pass. The provisioner denies direct runtime access to
 79 private relations and direct mutations on 12 scoped relations, with zero
 remaining table/column privilege violations across those boundaries; the
-bounded operator-context function still establishes the expected signed tenant
-scope. The runtime principal nevertheless retains compatibility DML on 1,026
-other relations and application-table RLS is not universal, so tenant isolation
-remains incomplete. This disposable result does not represent candidate or
-production state
+beyond those groups, the provisioner verifies that API-key authentication can
+read only seven reviewed columns and cannot write. The bounded operator-context
+function still establishes the expected signed tenant scope. The refreshed
+source-policy report covers all 1,511 public relations and matches 92 declared
+runtime boundaries with zero gaps. The runtime principal nevertheless retains
+compatibility DML on 1,026 other relations and application-table RLS is not
+universal, so tenant isolation remains incomplete. This disposable result does
+not represent candidate or production state
 ([evidence](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json)).
 
 **Sprint tenant and identity evidence (26 October 2026):** CAP-053's real
@@ -26,15 +29,14 @@ This advances CAP-053 and the shared workflow prerequisite for CAP-001/CAP-047;
 browser, HTTPS and end-to-end authorization remain open. Classifications and
 MAN-CAP acceptance do not change.
 
-The relation-level follow-up confirms 1,101 ordinary/partitioned public tables
-had effective runtime DML while RLS was disabled in the isolated replay. The
-static join found 75 of those tables, 15 RLS-enabled tables, and the
-append-only farm-activity ledger with migration-declared runtime revokes. The
-provisioner now re-applies all 91 relation-level policies after its
-compatibility grant; source comparison reports no missing or mismatched policy.
-The callsite inventory remains heuristic and is not a complete SQL reachability
-or authorization proof. The migration-installed bootstrap and bounded
-operator-context behavior now pass on a disposable full-schema database
+The pre-provisioning relation inventory counted 1,101 ordinary/partitioned
+public tables with effective runtime DML while RLS was disabled. After the real
+provisioner ran, the refreshed full-schema snapshot counts 1,026 such tables.
+The static source comparison covers 91 scoped table policies plus the API-key
+read-only column allowlist, with zero missing or mismatched policy. The
+callsite inventory remains heuristic and is not a complete SQL reachability or
+authorization proof. The migration-installed bootstrap, API-key boundary, and
+bounded operator-context behavior pass on a disposable full-schema database
 (69 focused tests and a 91-table ACL fixture). No candidate or production role
 rollout occurred
 ([ACL inventory](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);

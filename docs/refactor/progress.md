@@ -19810,10 +19810,18 @@ image was AMD64. The initial mismatched ARM64/client attempt is recorded with
 the platform diagnosis and cleanup status in its evidence; it does not negate
 the completed ARM64 migration replay.
 
-This closes full migration-installed acceptance for the 91 source-declared
-runtime ACL boundaries, not the broader C1 goal. The compatibility runtime
-login still has table DML on 1,026 other public relations; RLS is not universal,
-and no candidate or production role rollout occurred. Next C1 work remains
+The provisioner also verifies the API-key authentication exception: reads are
+limited to the seven reviewed columns (`id`, `key_hash`, `key_prefix`,
+`role_id`, `scopes`, `expires_at`, `is_active`) and all writes are denied. The
+refreshed full-schema ACL inventory includes all 1,511 public relations, and
+the source-policy comparison covers 91 scoped table boundaries plus this
+API-key column allowlist with zero missing or mismatched policies. The focused
+runtime-role, report, and replay regression selection passes 72 tests.
+
+This closes full migration-installed acceptance for these 92 source-declared
+runtime boundaries, not the broader C1 goal. The compatibility runtime login
+still has table DML on 1,026 other public relations; RLS is not universal, and
+no candidate or production role rollout occurred. Next C1 work remains
 caller-identity and operation review of those remaining grants, starting with
 the analytics candidate group. Evidence:
 [full-schema runtime acceptance](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json),

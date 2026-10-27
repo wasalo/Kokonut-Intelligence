@@ -27,7 +27,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 91
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 92
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 

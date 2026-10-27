@@ -17,6 +17,7 @@ import psycopg2
 from psycopg2 import errors
 
 from services.migration.runtime_role import (
+    _API_KEY_COLUMNS,
     _RUNTIME_MUTATION_TABLES,
     _RUNTIME_PRIVATE_TABLES,
     provision_runtime_role,
@@ -162,6 +163,15 @@ def run_probe() -> dict[str, object]:
             raise AssertionError("runtime provisioner returned an incomplete scoped ACL policy")
         if not all(relations.values()):
             raise AssertionError("runtime provisioner did not find every scoped ACL relation")
+        api_key_privileges = provisioned.get("runtime_api_key_privileges")
+        expected_api_key_privileges = {
+            "select": list(_API_KEY_COLUMNS),
+            "insert": [],
+            "update": [],
+            "delete": False,
+        }
+        if api_key_privileges != expected_api_key_privileges:
+            raise AssertionError("runtime provisioner returned an unexpected API-key boundary")
         with admin.cursor() as cur:
             cur.execute(
                 """SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
@@ -279,6 +289,7 @@ def run_probe() -> dict[str, object]:
             checks.extend([
                 "runtime provisioner denied direct table and column access to private relations",
                 "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
+                "runtime provisioner limited API-key reads to reviewed columns and denied all writes",
                 "each real runtime login context sees only its synthetic tenant under forced RLS",
                 "wrong-location denial clears context and tenant-probe visibility",
                 "tenant context is cleared at transaction end",
@@ -379,6 +390,13 @@ def run_probe() -> dict[str, object]:
             "private_relations_expected": len(_RUNTIME_PRIVATE_TABLES),
             "mutation_denied_relations_expected": len(_RUNTIME_MUTATION_TABLES),
             **scoped_acl,
+        },
+        "runtime_api_key_policy": {
+            "select_columns": list(_API_KEY_COLUMNS),
+            "insert_columns": [],
+            "update_columns": [],
+            "delete": False,
+            "verified_by_provisioner": True,
         },
         "runtime_public_relation_acl": runtime_relation_acl,
         "runtime_default_acl": default_acl_inventory,
