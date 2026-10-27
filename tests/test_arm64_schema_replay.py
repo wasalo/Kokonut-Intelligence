@@ -41,6 +41,16 @@ def test_started_schema_migrations_extracts_ordered_ids_from_runner_log():
     ]
 
 
+def test_operator_probe_fixture_implements_every_required_acceptance_check():
+    fixture = (
+        Path(__file__).resolve().parents[1]
+        / "scripts/fixtures/sprint_operator_scope_probe.py"
+    ).read_text()
+
+    for check in replay_module["OPERATOR_PROBE_CHECKS"]:
+        assert f'"{check}"' in fixture
+
+
 def test_started_schema_migrations_returns_empty_for_no_apply_log():
     assert started_schema_migrations("database startup failed") == []
 
@@ -157,9 +167,9 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
         "synthetic_operator_count": 2, "runtime_public_tables_with_dml_and_rls_disabled": 4,
         "runtime_scoped_write_policy": {
             "private_relations_expected": 79,
-            "mutation_denied_relations_expected": 35,
+            "mutation_denied_relations_expected": 36,
             "private_relations_verified": 79,
-            "mutation_denied_relations_verified": 35,
+            "mutation_denied_relations_verified": 36,
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,
@@ -222,9 +232,9 @@ def test_operator_probe_counts_insert_only_relations_as_effective_dml():
         "runtime_public_tables_with_dml_and_rls_disabled": 1,
         "runtime_scoped_write_policy": {
             "private_relations_expected": 79,
-            "mutation_denied_relations_expected": 35,
+            "mutation_denied_relations_expected": 36,
             "private_relations_verified": 79,
-            "mutation_denied_relations_verified": 35,
+            "mutation_denied_relations_verified": 36,
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,

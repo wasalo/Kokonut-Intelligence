@@ -147,6 +147,7 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         ("impact_framework", "impact framework references"),
         ("impact_dimension", "impact framework dimensions"),
         ("expense_category", "expense categories"),
+        ("crisp_risk_dimension", "CRISP risk dimension definitions"),
     ):
         if not relation_exists(table):
             raise AssertionError(f"full schema is missing {label}")
@@ -403,6 +404,7 @@ def run_probe() -> dict[str, object]:
                 "runtime can query shared impact frameworks",
                 "runtime can query shared impact framework dimensions",
                 "runtime can read governed expense categories",
+                "runtime can query shared CRISP risk dimension definitions",
                 "runtime can read seeded certification types",
                 "runtime can read seeded cooperative types",
                 "runtime can read seeded insurance product types",

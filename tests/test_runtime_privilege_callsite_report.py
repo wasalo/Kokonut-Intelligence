@@ -48,9 +48,9 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
     mutation_relation = "ai_summary"
     scoped_policy = {
         "private_relations_expected": 79,
-        "mutation_denied_relations_expected": 35,
+        "mutation_denied_relations_expected": 36,
         "private_relations_verified": 79,
-        "mutation_denied_relations_verified": 35,
+        "mutation_denied_relations_verified": 36,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,

@@ -607,3 +607,11 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   focused tests pass. The report records 117 controls and 1,003 relations
   with effective DML while RLS is disabled. C1 remains open
   ([batch](batches.md); [progress](progress.md#progress-addendum--governed-expense-category-runtime-read-only-boundary--27-october-2026)).
+
+- [x] Keep shared CRISP risk-dimension definitions readable but immutable to
+  `kokonut_runtime` while retaining location-specific weight overrides.
+  Migration 671 passes native and ARM64/QEMU focused ACL checks and a 662-file
+  native replay with 27 two-tenant scope checks; the six-module focused suite
+  passes 145 tests. The refreshed report records 118 runtime controls and
+  1,002 relations with effective table DML while RLS is disabled. C1 remains
+  open ([batch](batches.md); [progress](progress.md#progress-addendum--crisp-risk-dimension-runtime-read-only-boundary--27-october-2026)).

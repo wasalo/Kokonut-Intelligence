@@ -20935,3 +20935,43 @@ and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-r
 Checklist: 1,281 complete / 25 open (1,306 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+
+### Progress addendum — CRISP risk-dimension runtime read-only boundary — 27 October 2026
+
+Schema 076 and seed 076 define the shared CRISP scoring dimensions and default
+weights. Source review found a read join in the CRISP scoring engine and no
+service or extension writer. Location-specific adjustments remain in
+`crisp_location_weight`; migration 671 therefore makes only the global
+dimension catalog read-only for `kokonut_runtime`, leaving the separate
+location-weight relation outside the deny policy. The migration removes table
+and residual column INSERT, UPDATE, and REFERENCES rights, restores SELECT,
+and the role provisioner reapplies the rule after compatibility grants.
+Focused native and ARM64/QEMU PostgreSQL 16 checks pass migration apply/replay,
+read access, mutation/TRUNCATE/REFERENCES and stale-column denial, provisioner
+reapplication, and preservation of synthetic Directus grants.
+
+A fresh native AMD64 replay applied all 662 ordered schema files through 671
+and passed all 27 two-tenant operator-scope checks under verified 1.5 GiB/two-
+CPU limits. No seeds or farm data were loaded, no ports were published, no OOM
+occurred, and disposable resources were removed. Thus seeded CRISP-dimension
+contents were not checked for populated parity. The refreshed source/ACL report
+covers 118 controls with zero policy mismatches; 1,002 public relations retain
+effective table-level DML while RLS is disabled, so C1 and universal tenant
+isolation remain open. Six focused suites pass 145 tests; Ruff, compilation,
+dependency/provider boundaries, SQL-inventory freshness, and capability-matrix
+validation pass. Candidate/legacy databases and live providers were untouched.
+Global scoring-methodology edits now require a reviewed migration; per-location
+weight overrides remain writable. Directus API behavior and populated
+reference parity remain unverified. Rollback retains migration 671; runtime
+writes to the global definitions require a reviewed forward migration.
+
+Evidence: [migration](../schemas/postgres/671_runtime_crisp_risk_dimension_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-671-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,282 complete / 25 open (1,307 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

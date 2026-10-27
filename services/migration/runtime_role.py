@@ -1064,6 +1064,7 @@ _RUNTIME_MUTATION_TABLES = (
     "impact_framework",
     "impact_dimension",
     "expense_category",
+    "crisp_risk_dimension",
     "crop_family",
     "crop_nutrient_removal_factor",
     "certification_type",
