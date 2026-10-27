@@ -19784,3 +19784,43 @@ and [runtime-role provisioner](../../services/migration/runtime_role.py).
 Checklist remains 1,235 complete / 26 open (1,261 total); capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows.
+
+### Progress addendum — migration-installed runtime ACL acceptance, 27 October 2026
+
+The prior C1 acceptance exercised the ACL helper against synthetic relation
+definitions but did not run role provisioning after full schema migrations.
+The updated disposable probe now replays all 642 ordered migrations through
+651, provisions the actual runtime and operator-auth logins, and checks the
+installed policy. It verifies all 79 private relations have no direct table or
+column privileges and all 12 mutation-denied relations have no direct table or
+column writes; the farm-activity event ledger remains readable and has no
+direct runtime writes. Provisioning completed its full verifier without an
+ACL violation.
+
+Using the resulting restricted logins, the probe created synthetic sessions
+for two operators and exercised the migration-backed signed operator-context
+function. Each operator saw only its own tenant in a forced-RLS fixture;
+cross-location use was denied, denial cleared context, and transaction end
+reset it. The focused runtime-role/replay selection passes 69 tests. The full
+disposable database applied 642/642 schemas with no failed or pending rows,
+zero seeds, and successful cleanup. Candidate and legacy databases were not
+touched. A separate ARM64/QEMU schema-only replay also passed all 642
+migrations; the combined role probe ran natively because the available client
+image was AMD64. The initial mismatched ARM64/client attempt is recorded with
+the platform diagnosis and cleanup status in its evidence; it does not negate
+the completed ARM64 migration replay.
+
+This closes full migration-installed acceptance for the 91 source-declared
+runtime ACL boundaries, not the broader C1 goal. The compatibility runtime
+login still has table DML on 1,026 other public relations; RLS is not universal,
+and no candidate or production role rollout occurred. Next C1 work remains
+caller-identity and operation review of those remaining grants, starting with
+the analytics candidate group. Evidence:
+[full-schema runtime acceptance](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json),
+[synthetic ACL helper check](builds/2026-10-26-recovery/runtime-scoped-write-boundary-disposable.json),
+[ARM64 schema replay](builds/2026-10-26-recovery/arm64-qemu-current-schema-refresh-after-645-fix.json),
+and [source-to-policy join](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json).
+
+Checklist: 1,236 complete / 25 open (1,261 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.

@@ -28,6 +28,8 @@ OPERATOR_PROBE_CHECKS = frozenset({
     "wrong-location denial clears context and tenant-probe visibility",
     "tenant context is cleared at transaction end",
     "revoked grant and revoked session both fail closed",
+    "runtime provisioner denied direct table and column access to private relations",
+    "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
 })
 sys.path.insert(0, str(ROOT))
 
@@ -201,6 +203,28 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
     count = result.get("runtime_public_tables_with_dml_and_rls_disabled")
     if type(count) is not int or count < 0:
         raise ValueError("operator scope probe did not report its runtime DML exposure")
+    scoped_write = result.get("runtime_scoped_write_policy")
+    expected_scoped_fields = {
+        "private_relations_expected",
+        "mutation_denied_relations_expected",
+        "private_relations_verified",
+        "mutation_denied_relations_verified",
+        "direct_table_privilege_violations",
+        "direct_column_privilege_violations",
+        "farm_activity_ledger_readable",
+    }
+    if not isinstance(scoped_write, dict) or set(scoped_write) != expected_scoped_fields:
+        raise ValueError("operator scope probe did not report the runtime scoped-write boundary")
+    if (
+        scoped_write["private_relations_expected"] != 79
+        or scoped_write["mutation_denied_relations_expected"] != 12
+        or scoped_write["private_relations_verified"] != 79
+        or scoped_write["mutation_denied_relations_verified"] != 12
+        or scoped_write["direct_table_privilege_violations"] != 0
+        or scoped_write["direct_column_privilege_violations"] != 0
+        or scoped_write["farm_activity_ledger_readable"] != 1
+    ):
+        raise ValueError("operator scope probe did not verify every runtime scoped-write ACL")
     relation_acl = result.get("runtime_public_relation_acl")
     if relation_acl is not None:
         if not isinstance(relation_acl, list):
@@ -260,7 +284,12 @@ def main() -> int:
 
     if args.platform not in {"linux/arm64", "linux/amd64"}:
         parser.error("platform must be linux/arm64 or linux/amd64")
-    project = args.project or f"kokonut-arm64-schema-{date.today():%Y%m%d}-{uuid.uuid4().hex[:8]}"
+    project_prefix = (
+        "kokonut-arm64-schema"
+        if args.platform == "linux/arm64"
+        else "kokonut-native-schema"
+    )
+    project = args.project or f"{project_prefix}-{date.today():%Y%m%d}-{uuid.uuid4().hex[:8]}"
     if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", project):
         parser.error("project must be a lowercase Docker Compose project name")
 
@@ -275,7 +304,8 @@ def main() -> int:
     if len(ids) != len(set(ids)):
         raise SystemExit("schema migration IDs must be unique")
 
-    output = args.output or ROOT / "docs/refactor/builds" / f"{date.today():%Y-%m-%d}-recovery" / f"arm64-qemu-current-schema-{ids[-1].split(':', 1)[1].split('_', 1)[0]}.json"
+    platform_label = "arm64-qemu" if args.platform == "linux/arm64" else "native"
+    output = args.output or ROOT / "docs/refactor/builds" / f"{date.today():%Y-%m-%d}-recovery" / f"{platform_label}-current-schema-{ids[-1].split(':', 1)[1].split('_', 1)[0]}.json"
     compose = compose_base(project)
     database = f"kokonut_bootstrap_{os.getpid()}"
     env = os.environ.copy()
@@ -447,13 +477,19 @@ def main() -> int:
         ):
             raise RuntimeError("schema count, seed count, or ARM64 architecture check failed")
         if args.operator_scope_probe:
-            stage = "operator_scope_probe"
+            stage = "operator_scope_probe_image_inspection"
             client_image = run(
                 ["docker", "image", "inspect", args.probe_image, "--format", "{{.Os}}/{{.Architecture}} {{.Id}}"],
                 capture=True,
             ).stdout.strip().split(maxsplit=1)
+            evidence["operator_scope_probe_image"] = {
+                "name": args.probe_image,
+                "platform": client_image[0] if client_image else None,
+                "image_id": client_image[1] if len(client_image) > 1 else None,
+            }
             if len(client_image) != 2 or client_image[0] != args.platform:
                 raise RuntimeError(f"probe image platform is not {args.platform}")
+            stage = "operator_scope_probe"
             container_id = run(
                 compose + ["ps", "-q", "database"], env=env, capture=True
             ).stdout.strip()
@@ -481,9 +517,6 @@ def main() -> int:
                     }
                 raise
             evidence["operator_scope_probe"] = parse_operator_scope_probe(probe_output)
-            evidence["operator_scope_probe_image"] = {
-                "name": args.probe_image, "platform": client_image[0], "image_id": client_image[1],
-            }
         evidence["result"] = "passed"
     except Exception as exc:  # evidence stores only safe failure metadata
         evidence["failed_stage"] = stage

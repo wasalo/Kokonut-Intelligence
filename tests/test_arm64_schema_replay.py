@@ -155,6 +155,15 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
         "result": "passed", "checks": list(replay_module["OPERATOR_PROBE_CHECKS"]),
         "synthetic_tenant_count": 2, "synthetic_location_count": 2,
         "synthetic_operator_count": 2, "runtime_public_tables_with_dml_and_rls_disabled": 4,
+        "runtime_scoped_write_policy": {
+            "private_relations_expected": 79,
+            "mutation_denied_relations_expected": 12,
+            "private_relations_verified": 79,
+            "mutation_denied_relations_verified": 12,
+            "direct_table_privilege_violations": 0,
+            "direct_column_privilege_violations": 0,
+            "farm_activity_ledger_readable": 1,
+        },
     }
     assert parse_operator_scope_probe(json.dumps(good))["result"] == "passed"
     with pytest.raises(ValueError):
@@ -165,6 +174,16 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
         parse_operator_scope_probe(json.dumps({**good, "checks": good["checks"][:-1]}))
     with pytest.raises(ValueError):
         parse_operator_scope_probe(json.dumps({**good, "runtime_public_tables_with_dml_and_rls_disabled": -1}))
+    with pytest.raises(ValueError, match="scoped-write boundary"):
+        parse_operator_scope_probe(json.dumps({**good, "runtime_scoped_write_policy": None}))
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps({
+            **good,
+            "runtime_scoped_write_policy": {
+                **good["runtime_scoped_write_policy"],
+                "direct_column_privilege_violations": 1,
+            },
+        }))
 
 
 def test_operator_probe_rejects_non_disposable_database_before_connecting(monkeypatch):

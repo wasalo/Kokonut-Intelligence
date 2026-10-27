@@ -16,7 +16,11 @@ from contextlib import closing
 import psycopg2
 from psycopg2 import errors
 
-from services.migration.runtime_role import provision_runtime_role
+from services.migration.runtime_role import (
+    _RUNTIME_MUTATION_TABLES,
+    _RUNTIME_PRIVATE_TABLES,
+    provision_runtime_role,
+)
 
 PROBE_STAGE = "target_validation"
 
@@ -47,6 +51,74 @@ def _context(cur, session_hash: str, operator_id: str, location_id: str):
         (session_hash, operator_id, location_id),
     )
     return cur.fetchall()
+
+
+def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
+    """Verify migration-installed runtime ACLs, including column grants."""
+    mutation_privileges = (
+        "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER",
+    )
+    private_privileges = (
+        "SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER",
+    )
+
+    def relation_exists(table: str) -> bool:
+        cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+        return cur.fetchone()[0] is not None
+
+    def has_table_privilege(table: str, privilege: str) -> bool:
+        cur.execute(
+            "SELECT has_table_privilege(current_user, %s, %s)",
+            (f"public.{table}", privilege),
+        )
+        return bool(cur.fetchone()[0])
+
+    def has_column_privilege(table: str, privilege: str) -> bool:
+        cur.execute(
+            """SELECT EXISTS (
+                   SELECT 1
+                     FROM pg_attribute
+                    WHERE attrelid = %s::regclass
+                      AND attnum > 0 AND NOT attisdropped
+                      AND has_column_privilege(
+                          current_user, %s::regclass, attname, %s
+                      )
+               )""",
+            (f"public.{table}", f"public.{table}", privilege),
+        )
+        return bool(cur.fetchone()[0])
+
+    private_installed = 0
+    mutation_installed = 0
+    for table in _RUNTIME_PRIVATE_TABLES:
+        if not relation_exists(table):
+            raise AssertionError(f"full schema is missing private runtime relation {table}")
+        private_installed += 1
+        if any(has_table_privilege(table, privilege) for privilege in private_privileges):
+            raise AssertionError(f"runtime login retains table privilege on {table}")
+        column_privileges = ("SELECT", "INSERT", "UPDATE", "REFERENCES")
+        if any(has_column_privilege(table, privilege) for privilege in column_privileges):
+            raise AssertionError(f"runtime login retains column privilege on {table}")
+
+    for table in _RUNTIME_MUTATION_TABLES:
+        if not relation_exists(table):
+            raise AssertionError(f"full schema is missing mutation-denied relation {table}")
+        mutation_installed += 1
+        if any(has_table_privilege(table, privilege) for privilege in mutation_privileges):
+            raise AssertionError(f"runtime login retains table mutation privilege on {table}")
+        if any(has_column_privilege(table, privilege) for privilege in ("INSERT", "UPDATE")):
+            raise AssertionError(f"runtime login retains column mutation privilege on {table}")
+
+    if not has_table_privilege("farm_activity_operator_event", "SELECT"):
+        raise AssertionError("runtime login lost read access to the farm-activity audit ledger")
+
+    return {
+        "private_relations_verified": private_installed,
+        "mutation_denied_relations_verified": mutation_installed,
+        "direct_table_privilege_violations": 0,
+        "direct_column_privilege_violations": 0,
+        "farm_activity_ledger_readable": 1,
+    }
 
 
 def run_probe() -> dict[str, object]:
@@ -83,6 +155,13 @@ def run_probe() -> dict[str, object]:
         )
         if provisioned["status"] != "provisioned":
             raise AssertionError("runtime role provisioning did not complete")
+        scoped_write = provisioned.get("runtime_scoped_write_privileges")
+        relations = scoped_write.get("relations") if isinstance(scoped_write, dict) else None
+        expected_relations = set(_RUNTIME_PRIVATE_TABLES) | set(_RUNTIME_MUTATION_TABLES)
+        if not isinstance(relations, dict) or set(relations) != expected_relations:
+            raise AssertionError("runtime provisioner returned an incomplete scoped ACL policy")
+        if not all(relations.values()):
+            raise AssertionError("runtime provisioner did not find every scoped ACL relation")
         with admin.cursor() as cur:
             cur.execute(
                 """SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
@@ -178,6 +257,7 @@ def run_probe() -> dict[str, object]:
 
             PROBE_STAGE = "signed_tenant_context"
             with runtime.cursor() as cur:
+                scoped_acl = _assert_scoped_runtime_acl(cur)
                 for index in range(2):
                     expected = [(organizations[index], locations[index], operators[index], "operator")]
                     if _context(cur, session_hashes[index], operators[index], locations[index]) != expected:
@@ -197,6 +277,8 @@ def run_probe() -> dict[str, object]:
                     raise AssertionError("tenant context survived transaction end")
             runtime.rollback()
             checks.extend([
+                "runtime provisioner denied direct table and column access to private relations",
+                "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
                 "each real runtime login context sees only its synthetic tenant under forced RLS",
                 "wrong-location denial clears context and tenant-probe visibility",
                 "tenant context is cleared at transaction end",
@@ -298,6 +380,11 @@ def run_probe() -> dict[str, object]:
         "synthetic_location_count": 2,
         "synthetic_operator_count": 2,
         "runtime_public_tables_with_dml_and_rls_disabled": unprotected_dml_tables,
+        "runtime_scoped_write_policy": {
+            "private_relations_expected": len(_RUNTIME_PRIVATE_TABLES),
+            "mutation_denied_relations_expected": len(_RUNTIME_MUTATION_TABLES),
+            **scoped_acl,
+        },
         "runtime_public_relation_acl": runtime_relation_acl,
         "runtime_default_acl": default_acl_inventory,
         "scope_limit": (

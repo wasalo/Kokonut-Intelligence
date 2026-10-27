@@ -1,10 +1,24 @@
 # Capability preservation matrix
 
+**Runtime-role acceptance update (27 October 2026):** After a clean replay of
+all 642 migrations through 651, full role provisioning and the two-tenant
+operator-context probe pass. The provisioner denies direct runtime access to
+79 private relations and direct mutations on 12 scoped relations, with zero
+remaining table/column privilege violations across those boundaries; the
+bounded operator-context function still establishes the expected signed tenant
+scope. The runtime principal nevertheless retains compatibility DML on 1,026
+other relations and application-table RLS is not universal, so tenant isolation
+remains incomplete. This disposable result does not represent candidate or
+production state
+([evidence](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json)).
+
 **Sprint tenant and identity evidence (26 October 2026):** CAP-053's real
 runtime and operator-auth principals passed a two-tenant synthetic forced-RLS
-probe after a clean 642-migration replay. The probe counted 1,101 public tables
-with runtime table-level DML and RLS disabled; universal tenant isolation remains
-open ([evidence](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json)).
+probe after a clean 642-migration replay. The pre-provisioning inventory counted
+1,101 public tables with runtime table-level DML and RLS disabled; the full
+provisioning probe reduced that count to 1,026, but neither measurement proves
+universal tenant isolation
+([evidence](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json)).
 The optional ZITADEL provider now starts on a fresh isolated volume and returns
 its expected issuer internally after a token-volume permissions fix
 ([evidence](builds/2026-10-26-recovery/sprint-zitadel-provider-smoke.json)).
@@ -19,13 +33,13 @@ append-only farm-activity ledger with migration-declared runtime revokes. The
 provisioner now re-applies all 91 relation-level policies after its
 compatibility grant; source comparison reports no missing or mismatched policy.
 The callsite inventory remains heuristic and is not a complete SQL reachability
-or authorization proof. Source tests and synthetic table/column ACL checks pass
-(48 focused tests and a 91-table disposable fixture). Migration-installed
-bootstrap and bounded Gateway function behavior remain open, and the code has
-not been rolled out
+or authorization proof. The migration-installed bootstrap and bounded
+operator-context behavior now pass on a disposable full-schema database
+(69 focused tests and a 91-table ACL fixture). No candidate or production role
+rollout occurred
 ([ACL inventory](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
 [callsite report](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
-The tracker now records 1,235 completed and 26 open checklist items (1,261
+The tracker now records 1,236 completed and 25 open checklist items (1,261
 total); the 67 capability classifications remain 24 baseline-retained, 7
 deployed, and 36 prepared.
 

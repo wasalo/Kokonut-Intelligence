@@ -1,6 +1,6 @@
 # Kokonut Kernel refactor TODO
 
-Updated: 26 October 2026. This is the active cross-phase work queue for the
+Updated: 27 October 2026. This is the active cross-phase work queue for the
 owner-provided [architecture implementation plan](implementation-plan-alignment.md).
 The detailed, historically preserved acceptance records remain in
 [batches.md](batches.md); this file groups their remaining gates into work that
@@ -35,8 +35,19 @@ the batch log and the affected capability/progress records are updated.
   the resulting table and column ACLs. Static comparison now covers all 91
   relation-level source revokes with no policy gap. The focused runtime-role
   suite passes 48 tests, and a disposable PostgreSQL fixture confirms all 91
-  relation ACL outcomes plus column-grant detection. Full migration-installed
-  bootstrap and bounded-function acceptance remain open; no rollout occurred.
+  relation ACL outcomes plus column-grant detection; full migration-installed
+  acceptance is recorded immediately below.
+- [x] Complete full-schema runtime-role acceptance against all 642 ordered
+  migrations through 651: the provisioner installs and verifies all 79 private
+  and 12 mutation-denied relation boundaries, with zero residual table or
+  column privileges; the general runtime retains the farm-activity audit read.
+  Two real restricted operator sessions establish correct synthetic tenant
+  context through the bounded function, reject cross-location access, and clear
+  context on denial and transaction end. No seeds or farm data were loaded;
+  cleanup succeeded; candidate and legacy databases were untouched. The
+  separate ARM64 full-schema replay also passes, while this role probe ran
+  natively with matching AMD64 images. See
+  [full-schema role evidence](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json).
 
 ## Code work to continue without owner input
 
@@ -49,10 +60,11 @@ that its full source-plan phase is complete.
   SQL candidate at all; the counts are heuristic and the latter is a subset.
   The source report fingerprints `runtime_role.py`, covers all 91 matched
   migration-declared revokes with zero static policy gaps, and groups write
-  candidates by service (the service counts overlap). Synthetic table/column
-  ACL acceptance passes; full bootstrap and bounded-function acceptance remain
-  open. Next classify the remaining 1,026 unprotected relations
-  by capability and caller identity, starting with the 281 candidate analytics
+  candidates by service (the service counts overlap). Full migration-installed
+  provisioning and signed operator-context acceptance now pass for the
+  source-declared policy; the runtime login still has broad DML on 1,026 other
+  relations. Next classify them by capability and caller identity, starting
+  with the 281 candidate analytics
   write relations; change only reviewed slices with bounded functions or exact
   grants. Do not blanket-revoke from heuristic absence. Preserve rollback and
   distinguish table grants from RLS, worker, Directus and production enforcement.
