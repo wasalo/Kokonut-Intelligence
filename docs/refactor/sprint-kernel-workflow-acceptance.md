@@ -69,7 +69,7 @@ separately if an authoritative copy becomes available.
   fresh PostGIS database and ordered migrations; identify any missing fixture
   or enrollment/setup work before implementing it. Never treat a transport
   receipt as consent, semantic review, or publication.
-- [ ] Exercise the separate runtime and operator-auth database principals in
+- [x] Exercise the separate runtime and operator-auth database principals in
   the fixture. Record grants, denial cases, and remaining direct-table access;
   do not label the overall database tenant-isolated on this evidence.
 
@@ -92,9 +92,13 @@ context checks, including wrong-location denial
 The replay runner now refuses existing project resources before cleanup; both
 labelled and unlabelled synthetic-volume collisions were preserved in a live
 Docker check ([evidence](builds/2026-10-26-recovery/sprint-schema-project-collision.json)).
-An optional two-tenant probe and a unique-project planner option are prepared;
-the probe passed a small synthetic PostGIS smoke, but its combined full-schema
-run remains open. The 97-test focused selection and Ruff passed.
+The full-schema replay and two-tenant probe passed on clean source `020a5279`
+([evidence](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json)).
+The runtime login has table-level DML on 1,101 public tables without RLS;
+this is a count, not a complete privileges audit. Forced RLS in this check
+applied only to the synthetic probe table. The complete disposable workflow
+fixture and general tenant isolation remain open. The 97-test focused selection
+and Ruff passed.
 
 **Done when:** the target can be created and removed repeatably; migration
 status and role identities are captured without secrets; a wrong-location
@@ -126,6 +130,22 @@ encrypted checkpoint and rehearse restore before applying ordered migrations.
 [Caddy configuration](../../config/caddy/Caddyfile.kernel.zitadel),
 [operator identity](../../services/gateway/operator_auth.py), and
 [operator console](../../apps/operator-console/index.html).
+
+**Progress, 26 October:** a fresh isolated ZITADEL database, API and Login V2
+started and internal discovery returned the configured issuer; the identity
+database role is non-superuser and the disposable project was removed
+([evidence](builds/2026-10-26-recovery/sprint-zitadel-provider-smoke.json)).
+The first startup exposed a fresh-volume permission failure
+([diagnostic](builds/2026-10-26-recovery/sprint-zitadel-provider-third-attempt.json));
+a networkless permissions helper now preserves and restricts the Login UI
+token. Tests cover its Compose contract, and a disposable volume check exercised
+write/read access, rerun preservation, unrelated-user denial, invalid identity,
+and symlink rejection
+([evidence](builds/2026-10-26-recovery/sprint-zitadel-bootstrap-permissions.json)).
+The combined profile, replay and tenant unit selection passes 98 tests;
+Ruff, shell syntax and capability-matrix validation pass.
+This is internal HTTP startup/discovery only: Caddy, HTTPS, client provisioning,
+browser login and Gateway session acceptance remain open.
 
 **Done when:** a reproducible browser and API run uses the real local provider
 and separate operator principals, demonstrates the positive and denial paths,

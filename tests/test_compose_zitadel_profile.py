@@ -134,6 +134,25 @@ def test_zitadel_profile_is_private_and_uses_a_dedicated_non_superuser_database_
     assert login["environment"]["ZITADEL_SERVICE_USER_TOKEN_FILE"] == "/zitadel/bootstrap/login-client.pat"
 
 
+def test_login_token_volume_has_a_networkless_least_privilege_bootstrap() -> None:
+    services = _compose(*FILES)["services"]
+    bootstrap = services["zitadel-bootstrap-permissions"]
+    assert bootstrap["network_mode"] == "none"
+    assert bootstrap["read_only"] is True
+    assert set(bootstrap["cap_drop"]) == {"ALL"}
+    assert set(bootstrap["cap_add"]) == {"CHOWN", "FOWNER", "DAC_OVERRIDE"}
+    assert not bootstrap.get("ports")
+    assert bootstrap["environment"]["KOKONUT_ZITADEL_API_UID"] == "1000"
+    assert bootstrap["environment"]["KOKONUT_ZITADEL_LOGIN_GID"] == "65533"
+    assert services["zitadel-api"]["depends_on"]["zitadel-bootstrap-permissions"]["condition"] == "service_completed_successfully"
+    for name in ("zitadel-bootstrap-permissions", "zitadel-api", "zitadel-login"):
+        volume = next(v for v in services[name]["volumes"] if v["target"] == "/zitadel/bootstrap")
+        assert volume.get("read_only", False) is (name == "zitadel-login")
+    mounts = {name for name, service in services.items() for volume in service.get("volumes", [])
+              if volume.get("target") == "/zitadel/bootstrap"}
+    assert mounts == {"zitadel-bootstrap-permissions", "zitadel-api", "zitadel-login"}
+
+
 def test_owner_selected_production_identity_and_callback_hosts_render_exactly() -> None:
     env = {
         **TEST_ENV,
@@ -248,6 +267,7 @@ def test_standard_zitadel_arm64_planner_command_resolves_all_services_for_arm64(
         "zitadel-db",
         "zitadel-api",
         "zitadel-login",
+        "zitadel-bootstrap-permissions",
     }
     assert all(service.get("platform") == "linux/arm64" for service in services.values())
     assert services["app"]["build"]["target"] == "oidc"

@@ -1,5 +1,17 @@
 # Capability preservation matrix
 
+**Sprint tenant and identity evidence (26 October 2026):** CAP-053's real
+runtime and operator-auth principals passed a two-tenant synthetic forced-RLS
+probe after a clean 642-migration replay. The probe counted 1,101 public tables
+with runtime table-level DML and RLS disabled; universal tenant isolation remains
+open ([evidence](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json)).
+The optional ZITADEL provider now starts on a fresh isolated volume and returns
+its expected issuer internally after a token-volume permissions fix
+([evidence](builds/2026-10-26-recovery/sprint-zitadel-provider-smoke.json)).
+This advances CAP-053 and the shared workflow prerequisite for CAP-001/CAP-047;
+browser, HTTPS and end-to-end authorization remain open. Classifications and
+MAN-CAP acceptance do not change.
+
 **Sprint planning checkpoint (26 October 2026):** On `develop` at `ef29f193`,
 the matrix validates 67 rows: 24 baseline-retained, seven deployed, and 36
 prepared; the 67 MAN-CAP checks remain separately open. The proposed

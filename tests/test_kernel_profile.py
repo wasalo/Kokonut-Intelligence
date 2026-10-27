@@ -337,7 +337,9 @@ def test_arm64_identity_overlays_pin_each_supported_service_architecture() -> No
     provider = yaml.safe_load((ROOT / "docker-compose.kernel-zitadel.yml").read_text())
 
     assert proxy["services"]["proxy"]["platform"] == "linux/arm64"
-    assert set(zitadel["services"]) == {"zitadel-db", "zitadel-api", "zitadel-login"}
+    assert set(zitadel["services"]) == {
+        "zitadel-db", "zitadel-api", "zitadel-login", "zitadel-bootstrap-permissions"
+    }
     assert all(service["platform"] == "linux/arm64" for service in zitadel["services"].values())
     assert "postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193" in provider[
         "services"

@@ -1,3 +1,22 @@
+### Sprint tenant and identity acceptance — 26 October 2026
+
+On clean source `020a5279`, an isolated PostGIS replay applied all 642 ordered
+schemas and the two-tenant restricted-login probe passed, including revocation,
+wrong-location denial and forced RLS on its synthetic table. It counted 1,101
+public tables with runtime table-level DML and RLS disabled. This does not prove
+tenant isolation for those tables or cover every view and role
+([evidence](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json)).
+
+Fresh ZITADEL startup initially failed because its non-root API could not write
+the Login UI token to a new volume. A networkless helper now initializes narrow
+permissions and preserves existing token contents. A disposable fresh provider
+then started with an isolated identity database and returned the expected OIDC
+issuer over internal HTTP ([startup](builds/2026-10-26-recovery/sprint-zitadel-provider-smoke.json);
+[permissions](builds/2026-10-26-recovery/sprint-zitadel-bootstrap-permissions.json)).
+The browser, Caddy/TLS, client provisioning and end-to-end Gateway workflow
+remain unverified. No candidate or legacy data was touched; no capability
+classification or MAN-CAP acceptance changes.
+
 ### Sprint baseline — 26 October 2026
 
 The disposable native PostGIS replay applied all 642 schema files through 651
@@ -12,7 +31,7 @@ The replay runner now refuses project resources that exist before it starts;
 labelled and unlabelled synthetic Docker volume collisions were preserved. An
 optional two-tenant operator probe can run after the complete schema replay in
 the database's isolated network namespace. It passed a smaller PostGIS smoke;
-the full-schema combined run remains pending. The profile planner also accepts
+the full-schema combined run subsequently passed, as recorded above. The profile planner also accepts
 an explicit validated project name for disposable ZITADEL work, with defaults
 unchanged. The focused selection passes 97 tests, with Ruff and diff checks.
 No candidate or legacy database was touched, and no MAN-CAP status changes.

@@ -32,8 +32,10 @@ The proposed next sprint and its bounded acceptance criteria are recorded in
 replayed all 642 schema files through 651 without seeds and cleaned up; separate
 minimal-schema operator-role and signed-context checks passed. The runner now
 rejects an existing Compose project before cleanup, and an optional full-schema
-two-tenant probe is prepared. Its combined replay, live OIDC, and workflow
-acceptance remain open. See the [sprint](sprint-kernel-workflow-acceptance.md)
+two-tenant probe passed against all 642 migrations. The probe counted 1,101
+public tables with runtime DML and RLS disabled; it did not establish universal
+tenant isolation. Isolated ZITADEL startup and internal discovery now pass;
+HTTPS, live login and workflow acceptance remain open. See the [sprint](sprint-kernel-workflow-acceptance.md)
 and [baseline evidence](builds/2026-10-26-recovery/sprint-workflow-baseline.json).
 
 **Current worker-boundary inventory (26 October 2026):** the checked source map

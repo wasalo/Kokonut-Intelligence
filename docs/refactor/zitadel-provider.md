@@ -69,8 +69,8 @@ establish live OIDC acceptance.
 - The profile pins the ZITADEL API, Login, Caddy, and identity PostgreSQL
   defaults to OCI index digests. Read-only registry inspection confirmed
   `linux/amd64` and `linux/arm64` children for all four defaults. The ARM64
-  planner appends explicit platform overlays for Caddy and the three provider
-  services; the OIDC application target separately builds and passes a
+  planner appends explicit platform overlays for Caddy and the provider
+  services, including the bootstrap helper; the OIDC application target separately builds and passes a
   no-network ARM64 smoke. The merged standard+ZITADEL config resolves every
   service to ARM64. Environment image overrides must retain that architecture.
   This is manifest/config evidence only: no ZITADEL container, login, or
@@ -84,6 +84,14 @@ establish live OIDC acceptance.
   migrations. ZITADEL's master key is exactly 32 characters and is durable
   encryption state: losing or replacing it can make encrypted IdP data
   inaccessible.
+- The dedicated Login UI token volume is initialized by a networkless,
+  short-lived permissions helper. The pinned API runs as UID 1000; the Login
+  UI runs with GID 65533. The helper makes the directory `0750` and its token
+  file `0640`, preserves existing token contents, and the Login UI mounts it
+  read-only. Image overrides must preserve those identities or explicitly set
+  `KOKONUT_ZITADEL_API_UID` and `KOKONUT_ZITADEL_LOGIN_GID` to the replacement
+  images' nonzero IDs. Back up and review any existing partially initialized
+  identity database before attempting recovery; do not reset it automatically.
 
 ## Configuration and acceptance
 
