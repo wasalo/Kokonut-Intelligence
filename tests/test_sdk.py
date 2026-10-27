@@ -2412,6 +2412,62 @@ def test_generic_crud_helpers_use_directus_item_routes_and_unwrap_data_without_n
     )
 
 
+def test_generic_crud_helpers_encode_untrusted_path_segments_before_request():
+    from unittest.mock import call
+
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = True
+    response.json.return_value = {"data": []}
+    client.session.get = Mock(return_value=response)
+    client.session.post = Mock(return_value=response)
+    client.session.patch = Mock(return_value=response)
+    client.session.delete = Mock(return_value=response)
+
+    client.list_items("farm/../../auth")
+    client.get_item("location", "farm/../../auth?token=x#fragment%")
+    client.create_item("farm/../../auth", {})
+    client.create_items("farm/../../auth", [])
+    client.update_item("location", "farm/../../auth", {})
+    client.delete_item("location", "farm/../../auth")
+    client.aggregate("farm/../../auth", aggregate={"count": "*"})
+
+    collection_url = "http://localhost:8055/items/farm%2F..%2F..%2Fauth"
+    item_url = "http://localhost:8055/items/location/farm%2F..%2F..%2Fauth"
+    query_item_url = (
+        "http://localhost:8055/items/location/"
+        "farm%2F..%2F..%2Fauth%3Ftoken%3Dx%23fragment%25"
+    )
+    assert client.session.get.call_args_list == [
+        call(collection_url, params={}),
+        call(query_item_url, params={}),
+        call(collection_url, params={"aggregate": '{"count": "*"}'}),
+    ]
+    assert client.session.post.call_args_list == [
+        call(collection_url, json={}),
+        call(collection_url, json=[]),
+    ]
+    client.session.patch.assert_called_once_with(item_url, json={})
+    client.session.delete.assert_called_once_with(item_url)
+
+
+@pytest.mark.parametrize("segment", ["", ".", ".."])
+def test_generic_crud_helpers_reject_empty_and_dot_path_segments_before_request(segment):
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    client.session.get = Mock()
+
+    with pytest.raises(ValueError, match="path segment"):
+        client.get_item("location", segment)
+    with pytest.raises(ValueError, match="path segment"):
+        client.list_items(segment)
+
+    client.session.get.assert_not_called()
+
+
 def test_export_create_many_delegates_to_directus_batch_without_network_calls():
     from kokonut import KokonutClient
 

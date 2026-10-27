@@ -20975,3 +20975,22 @@ and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-r
 Checklist: 1,282 complete / 25 open (1,307 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+## Progress addendum — SDK path-segment parity — 27 October 2026
+
+The Python and JavaScript generic Directus clients now percent-encode caller-
+controlled collection and item IDs as single route segments. They reject empty
+and dot-only segments before transport, so slashes, query delimiters, and
+fragments in caller values remain encoded in the serialized route segment.
+Inspection of the pinned Directus 17.x request descriptors confirmed that its helper
+functions interpolate these values without encoding, so the protection belongs
+in Kokonut's SDK boundary. The full Python SDK suite passes 98 tests; JavaScript
+passes 56 tests, with TypeScript build, Ruff, and Python compilation clean. All
+checks capture URLs without contacting a service. This closes the SDK path
+serialization subgate only; the full C2 route/auth/scope, pagination/error,
+live OIDC, and populated acceptance gates remain open. No capability
+classification or MAN-CAP acceptance changed.
+
+Evidence: [SDK path-segment regression](builds/2026-10-27-recovery/sdk-path-segment-parity.json).
+Checklist: 1,283 complete / 25 open (1,308 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

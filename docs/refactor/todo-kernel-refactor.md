@@ -615,3 +615,12 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   passes 145 tests. The refreshed report records 118 runtime controls and
   1,002 relations with effective table DML while RLS is disabled. C1 remains
   open ([batch](batches.md); [progress](progress.md#progress-addendum--crisp-risk-dimension-runtime-read-only-boundary--27-october-2026)).
+
+- [x] Encode caller-controlled collection and item IDs in the Python and
+  JavaScript Directus SDKs as single path segments. The pinned Directus helper
+  interpolates those values directly; focused regressions verify slashes and query/fragment delimiters staying encoded
+  in the serialized route, with dot-segment rejection before transport. The
+  full SDK suites pass (98 Python, 56 JavaScript), with TypeScript build, Ruff,
+  and compilation clean. This closes one C2 serialization slice only;
+  route/action/scope and runtime parity gates remain open
+  ([batch](batches.md); [evidence](builds/2026-10-27-recovery/sdk-path-segment-parity.json)).

@@ -39,6 +39,8 @@ describe('KokonutClient REST transport boundary', () => {
         data = { id: 'location-2', name: 'Synthetic Location' };
       } else if (method === 'POST' && url.pathname === '/items/farm') {
         data = [{ id: 'farm-1', name: 'Synthetic Farm' }];
+      } else if (method === 'POST' && url.pathname.startsWith('/items/farm%2F')) {
+        data = [];
       } else {
         throw new Error(`Unexpected Directus request: ${method} ${url.pathname}`);
       }
@@ -127,5 +129,30 @@ describe('KokonutClient REST transport boundary', () => {
     expect(JSON.parse(requests[5]!.body ?? 'null')).toEqual({ country: 'DO' });
     expect(new URL(requests[6]!.url).pathname).toBe('/items/location/location-1');
     expect(requests[6]!.body).toBeNull();
+
+    const hostileCollection = 'farm/../../auth';
+    const hostileItemId = 'farm/../../auth?token=x#fragment%';
+    await client.listItems(hostileCollection);
+    await client.getItem('location', hostileItemId);
+    await client.createItem(hostileCollection, {});
+    await client.createItems(hostileCollection, []);
+    await client.updateItem('location', 'farm/../../auth', {});
+    await client.deleteItem('location', 'farm/../../auth');
+    await client.aggregate(hostileCollection, { aggregate: { count: '*' } });
+
+    expect(requests.slice(8).map((request) => new URL(request.url).pathname)).toEqual([
+      '/items/farm%2F..%2F..%2Fauth',
+      '/items/location/farm%2F..%2F..%2Fauth%3Ftoken%3Dx%23fragment%25',
+      '/items/farm%2F..%2F..%2Fauth',
+      '/items/farm%2F..%2F..%2Fauth',
+      '/items/location/farm%2F..%2F..%2Fauth',
+      '/items/location/farm%2F..%2F..%2Fauth',
+      '/items/farm%2F..%2F..%2Fauth',
+    ]);
+
+    const requestCount = fetchStub.mock.calls.length;
+    await expect(client.getItem('location', '..')).rejects.toThrow('path segment');
+    await expect(client.listItems('')).rejects.toThrow('path segment');
+    expect(fetchStub).toHaveBeenCalledTimes(requestCount);
   });
 });

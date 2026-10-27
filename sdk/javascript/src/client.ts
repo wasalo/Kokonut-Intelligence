@@ -89,6 +89,16 @@ import type {
   VariogramModel,
   WeatherObservation,
 } from './types.js';
+
+function encodeDirectusPathSegment(value: string, name: string): string {
+  if (typeof value !== 'string') {
+    throw new TypeError(`${name} must be a string`);
+  }
+  if (value.length === 0 || value === '.' || value === '..') {
+    throw new TypeError(`${name} must be a non-empty path segment`);
+  }
+  return encodeURIComponent(value);
+}
 import {
   buildLocationReadMethods,
   buildReferenceReadMethods,
@@ -391,34 +401,67 @@ export class KokonutClient {
     }
     if (options?.meta !== undefined) query.meta = options.meta;
 
-    return this.execute(() => this.directus.request(readItems(collection, query)));
+    return this.execute(() =>
+      this.directus.request(readItems(encodeDirectusPathSegment(collection, 'collection'), query)),
+    );
   }
 
   async getItem(collection: string, id: string, fields?: string[]): Promise<any> {
     const query: Record<string, any> = {};
     if (fields) query.fields = fields;
 
-    return this.execute(() => this.directus.request(readItem(collection, id, query)));
+    return this.execute(() =>
+      this.directus.request(
+        readItem(
+          encodeDirectusPathSegment(collection, 'collection'),
+          encodeDirectusPathSegment(id, 'id'),
+          query,
+        ),
+      ),
+    );
   }
 
   async createItem(collection: string, data: Record<string, any>): Promise<any> {
-    return this.execute(() => this.directus.request(createItem(collection, data)));
+    return this.execute(() =>
+      this.directus.request(createItem(encodeDirectusPathSegment(collection, 'collection'), data)),
+    );
   }
 
   async createItems(collection: string, data: Record<string, any>[]): Promise<any[]> {
-    return this.execute(() => this.directus.request(createItems(collection, data)));
+    return this.execute(() =>
+      this.directus.request(createItems(encodeDirectusPathSegment(collection, 'collection'), data)),
+    );
   }
 
   async updateItem(collection: string, id: string, data: Record<string, any>): Promise<any> {
-    return this.execute(() => this.directus.request(updateItem(collection, id, data)));
+    return this.execute(() =>
+      this.directus.request(
+        updateItem(
+          encodeDirectusPathSegment(collection, 'collection'),
+          encodeDirectusPathSegment(id, 'id'),
+          data,
+        ),
+      ),
+    );
   }
 
   async deleteItem(collection: string, id: string): Promise<void> {
-    await this.execute(() => this.directus.request(deleteItem(collection, id)));
+    await this.execute(() =>
+      this.directus.request(
+        deleteItem(
+          encodeDirectusPathSegment(collection, 'collection'),
+          encodeDirectusPathSegment(id, 'id'),
+        ),
+      ),
+    );
   }
 
   async aggregate(collection: string, options: KokonutAggregationOptions): Promise<any[]> {
-    return this.execute(() => this.directus.request(aggregateItems(collection, options)));
+    return this.execute(() =>
+      this.directus.request(
+        aggregateItems(encodeDirectusPathSegment(collection, 'collection'), options),
+      ),
+    );
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {
