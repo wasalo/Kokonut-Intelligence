@@ -567,3 +567,9 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   655-file full-schema replay pass; 136 focused tests pass. The report records
   108 declared controls and 1,012 relations with effective DML while RLS is
   disabled; C1 remains open ([batch](batches.md); [progress](progress.md#progress-addendum--carbon_benchmark-runtime-read-only-boundary--27-october-2026)).
+- [x] Keep seeded `ghg_emission_factor` references readable but immutable to
+  the Kernel runtime. Migration 665, native/ARM64 disposable ACL checks, and
+  the 656-file native full-schema replay with 18 operator-scope checks pass;
+  137 focused tests pass. The report records 109 declared controls and 1,011
+  relations with effective DML while RLS is disabled; C1 remains open
+  ([batch](batches.md); [progress](progress.md#progress-addendum--ghg_emission_factor-runtime-read-only-boundary--27-october-2026)).

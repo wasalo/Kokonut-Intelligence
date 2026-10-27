@@ -1055,6 +1055,7 @@ _RUNTIME_MUTATION_TABLES = (
     "agent_action_log",
     "advisory_rule",
     "carbon_benchmark",
+    "ghg_emission_factor",
     "crop_family",
     "crop_nutrient_removal_factor",
     "certification_type",

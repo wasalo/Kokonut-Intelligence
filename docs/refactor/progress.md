@@ -20700,3 +20700,42 @@ and [ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-re
 Checklist: 1,274 complete / 25 open (1,299 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+### Progress addendum — `ghg_emission_factor` runtime read-only boundary — 27 October 2026
+
+Source review confirmed `ghg_emission_factor` is a shared reference catalog
+defined by migration 028 and initialized/upserted by seed 027. The carbon
+analytics consumer builds a dynamic `SELECT`; repository search and the runtime
+SQL write-target inventory found no application writer. Migration 665 keeps
+`SELECT` for `kokonut_runtime` and revokes table plus residual column-level
+INSERT, UPDATE, REFERENCES, DELETE, and TRUNCATE access. The runtime role
+provisioner reapplies the policy after compatibility grants. The migration
+names only the Kernel runtime role. Native and ARM64/QEMU disposable PostgreSQL
+16 checks pass migration apply/replay, read access, table and column write
+denial, provisioner reapplication, and preservation of the separate Directus
+role's existing DML grants.
+
+A fresh native AMD64 replay applied all 656 ordered schema files through
+migration 665 and passed all 18 two-tenant operator-scope checks under verified
+1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no host ports were
+published, the database was not OOM-killed, and temporary resources were
+removed. The regenerated source/ACL report covers 109 declared controls with
+zero policy mismatches; 1,011 public relations retain effective table DML
+while RLS is disabled, so C1 and universal tenant isolation remain open. The
+six-module focused regression selection passes 137 tests; Ruff, Python
+compilation, dependency/provider boundaries, SQL-inventory freshness, and
+capability-matrix validation pass. Candidate/legacy databases and live provider
+state were untouched. This synthetic ACL acceptance does not verify populated
+tenant data, Directus API behavior, or a future Gateway-mediated reference
+editing flow. Rollback retains ordered migration 665; restoring runtime writes
+requires a reviewed forward migration.
+
+Evidence: [migration](../schemas/postgres/665_runtime_ghg_emission_factor_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/ghg-emission-factor-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/ghg-emission-factor-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-665-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,276 complete / 25 open (1,301 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

@@ -27,7 +27,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 108
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 109
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -448,6 +448,43 @@ def test_carbon_benchmarks_are_seeded_references_read_only_to_kernel_runtime():
     assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
     assert "REVOKE ALL PRIVILEGES ON TABLE public.carbon_benchmark FROM kokonut_runtime" in migration
     assert "GRANT SELECT ON TABLE public.carbon_benchmark TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_ghg_emission_factors_are_seeded_references_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/665_runtime_ghg_emission_factor_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/028_carbon_framework.sql").read_text()
+    seed = (root / "schemas/seeds/027_carbon_framework_seeds.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    runtime_writers = [
+        site for site in sql_inventory["execution_sites"]
+        if "ghg_emission_factor" in site["write_target_relations"]
+    ]
+
+    assert "ghg_emission_factor" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "ghg_emission_factor" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS ghg_emission_factor" in initial_schema
+    assert "INSERT INTO ghg_emission_factor" in seed
+    assert "ON CONFLICT (factor_key) DO UPDATE" in seed
+    assert runtime_writers == []
+    # The consumer's SELECT is assembled dynamically and is therefore checked
+    # directly instead of relying on the static SQL inventory.
+    assert "SELECT * FROM ghg_emission_factor WHERE 1=1" in (
+        root / "services/analytics/carbon_balance.py"
+    ).read_text()
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.ghg_emission_factor "
+        "FROM kokonut_runtime"
+    ) in migration
+    assert (
+        "GRANT SELECT ON TABLE public.ghg_emission_factor TO kokonut_runtime"
+    ) in migration
     assert "kokonut_directus_runtime" not in migration
 
 
