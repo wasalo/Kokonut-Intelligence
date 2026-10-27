@@ -401,7 +401,7 @@ Contributing guidelines:
 
 > [!IMPORTANT]
 > - `AGENTS.md` is the canonical command reference and contributing workflow — update it when adding commands, env vars, or conventions.
-> - Branch from `develop` (`feat/...`, `fix/...`, `chore/...`) and open a pull request to `develop`; promote release batches to `main` with a separate reviewed pull request. Never push directly to either protected branch.
+> - Branch from `develop` (`feat/...`, `fix/...`, `chore/...`) and open a pull request to `develop` using squash or rebase; promote release batches to `main` with a separate reviewed pull request, using a merge commit when preserving release ancestry is desired. Never push directly to either protected branch.
 > - Seed files must be idempotent with `ON CONFLICT` guards and `psql -v ON_ERROR_STOP=1`.
 
 ---

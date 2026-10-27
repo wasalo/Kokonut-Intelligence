@@ -12,7 +12,7 @@ Feature work follows a branch → PR → merge flow through `develop`; reviewed 
    - Open and review pull requests through GitHub; require the repository's CI and Security checks before merging.
    - Never push directly to `develop` or `main`.
 
-3. **Merge and release**: Merge feature PRs into `develop` after required checks and reviews pass. Promote completed release batches with a separate PR from `develop` to `main` after the same gates pass.
+3. **Merge and release**: Merge feature PRs into `develop` after required checks and reviews pass, using squash or rebase to preserve its required linear history. Promote completed release batches with a separate PR from `develop` to `main` after the same gates pass; use a merge commit when preserving release ancestry is desired.
    - Merge through GitHub; delete feature branches after merge.
 
 **Hotfixes**: Branch from `main` and open a reviewed PR to `main`; forward-merge the resulting fix into `develop` so the branches do not drift. Do not commit directly to either protected branch.
