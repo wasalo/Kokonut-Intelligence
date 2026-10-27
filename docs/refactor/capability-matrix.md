@@ -14,10 +14,10 @@ MAN-CAP acceptance do not change.
 
 The relation-level follow-up confirms 1,101 ordinary/partitioned public tables
 have effective runtime DML while RLS is disabled; the static join also matches
-124 such tables to source migrations that explicitly revoke runtime DML. The
+75 such tables to source migrations that explicitly revoke runtime DML. The
 new report is heuristic callsite evidence, not a complete SQL reachability or
-authorization proof. Runtime provisioning now re-applies the tactical Gateway
-write and private-ledger boundaries after its compatibility grant, but this
+authorization proof. Runtime provisioning now re-applies governed action-write
+and private identity-ledger boundaries after its compatibility grant, but this
 slice still needs focused runtime-role acceptance and has not been rolled out
 ([ACL inventory](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
 [callsite report](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).

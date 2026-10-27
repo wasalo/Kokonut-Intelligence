@@ -17,8 +17,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 _REVOKE = re.compile(
-    r"\bREVOKE\s+(?P<privileges>[A-Z_,\s]+?)\s+ON\s+TABLE\s+"
-    r"(?P<relations>.*?)\s+FROM\s+(?:[^;]*?,\s*)?kokonut_runtime\b",
+    r"\bREVOKE\s+(?P<privileges>[^;]+?)\s+ON\s+TABLE\s+"
+    r"(?P<relations>[^;]+?)\s+FROM\s+(?P<grantees>[^;]+);",
     re.IGNORECASE | re.DOTALL,
 )
 _PUBLIC_RELATION = re.compile(r"\bpublic\.(?:\"([^\"]+)\"|([a-zA-Z_][\w$]*))")
@@ -40,6 +40,10 @@ def _source_revokes() -> dict[str, list[dict[str, str]]]:
     for path in sorted((ROOT / "schemas/postgres").glob("*.sql")):
         source = path.read_text(encoding="utf-8")
         for match in _REVOKE.finditer(source):
+            if not re.search(
+                r"\bkokonut_runtime\b", match.group("grantees"), re.IGNORECASE
+            ):
+                continue
             privileges = " ".join(match.group("privileges").split()).upper()
             for relation_match in _PUBLIC_RELATION.finditer(match.group("relations")):
                 relation = relation_match.group(1) or relation_match.group(2)

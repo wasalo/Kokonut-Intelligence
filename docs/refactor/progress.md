@@ -19728,16 +19728,18 @@ The isolated full-schema replay completed all 642 migrations with zero pending
 or failed entries, zero seeds, no farm data, and successful cleanup. Its real
 runtime/operator-auth logins pass the existing two-tenant forced-RLS probe on
 the synthetic test relation. The expanded catalog probe reports 1,101 public
-ordinary/partitioned tables with effective runtime DML and RLS disabled. The
-source join reports 124 of those tables also match a migration that explicitly
-revokes runtime DML; 598 DML-bearing relations have no static SQL candidate
-site. The candidate-site parser is heuristic, and this does not prove
+ordinary/partitioned tables with effective runtime DML and RLS disabled. After
+fixing a scanner that crossed PL/pgSQL statement boundaries, the source join
+reports 75 of those tables also match a migration that explicitly revokes
+runtime DML; 598 DML-bearing relations have no static SQL candidate site. The
+candidate-site parser is heuristic, and this does not prove
 universal tenant isolation or production state ([probe](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
 [join](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
 
-Based on that evidence, `runtime_role.py` now reapplies the governance-tactical
-item/session mutation denials and private audit-ledger boundaries after its
-compatibility-wide grant. It preserves existing table reads and verifies both
+Based on that evidence, `runtime_role.py` now reapplies the governed circle,
+role, assignment, and tactical item/session mutation denials plus private
+request, decision, binding, identity, and audit-ledger boundaries after its
+compatibility-wide grant. It preserves selected table reads and verifies both
 table and column privileges. Focused disposable runtime-role acceptance is
 still open; this code has not been applied to the candidate or production, and
 CAP-024 acceptance/classification is unchanged. No migration was needed for
