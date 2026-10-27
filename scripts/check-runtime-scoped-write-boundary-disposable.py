@@ -68,9 +68,12 @@ CARBON_BENCHMARK_MIGRATION = (
 GHG_EMISSION_FACTOR_MIGRATION = (
     ROOT / "schemas/postgres/665_runtime_ghg_emission_factor_read_only.sql"
 )
+OPERATIONS_PROTOCOL_MIGRATION = (
+    ROOT / "schemas/postgres/666_runtime_operations_protocol_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "ghg_emission_factor", "cooperative_type",
-    "dfs_insurance_product_type", "evidence_maturity_level",
+    "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type",
 )
@@ -226,6 +229,10 @@ def check_boundary(
                     "TO kokonut_directus_runtime"
                 )
                 cursor.execute(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE ON public.operations_protocol "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
                     "GRANT SELECT (marker), INSERT (id, marker), UPDATE (marker), REFERENCES (id) "
                     "ON public.data_access_log TO kokonut_runtime"
                 )
@@ -317,6 +324,11 @@ def check_boundary(
                 )
                 cursor.execute(ghg_emission_factor_migration)
                 cursor.execute(ghg_emission_factor_migration)
+                operations_protocol_migration = OPERATIONS_PROTOCOL_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(operations_protocol_migration)
+                cursor.execute(operations_protocol_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -396,6 +408,7 @@ def check_boundary(
                         "graph_edge_type": 661,
                         "carbon_benchmark": 664,
                         "ghg_emission_factor": 665,
+                        "operations_protocol": 666,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -431,6 +444,21 @@ def check_boundary(
                         "migration 665 unexpectedly changed the separate Directus role"
                     )
             with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', "
+                    "'public.operations_protocol', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.operations_protocol', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.operations_protocol', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.operations_protocol', 'DELETE')"
+                )
+                if cursor.fetchone() != (True, True, True, True):
+                    raise AssertionError(
+                        "migration 666 unexpectedly changed the separate Directus role"
+                    )
+            with connection.cursor() as cursor:
                 for table, migration_number in (
                     ("advisory_rule", 653),
                     ("crop_family", 654),
@@ -446,6 +474,7 @@ def check_boundary(
                     ("graph_edge_type", 661),
                     ("carbon_benchmark", 664),
                     ("ghg_emission_factor", 665),
+                    ("operations_protocol", 666),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -618,6 +647,21 @@ def check_boundary(
                 if cursor.fetchone() != (True, True, True, True):
                     raise AssertionError(
                         "migration 665 or runtime provisioner changed the Directus role"
+                    )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', "
+                    "'public.operations_protocol', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.operations_protocol', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.operations_protocol', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.operations_protocol', 'DELETE')"
+                )
+                if cursor.fetchone() != (True, True, True, True):
+                    raise AssertionError(
+                        "migration 666 or runtime provisioner changed the Directus role"
                     )
 
             with connection.cursor() as cursor:
@@ -1022,6 +1066,14 @@ def check_boundary(
                     "directus_role_unchanged": True,
                 },
                 "read_only_ghg_emission_factor": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_operations_protocol": {
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,

@@ -27,7 +27,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 109
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 110
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -484,6 +484,46 @@ def test_ghg_emission_factors_are_seeded_references_read_only_to_kernel_runtime(
     ) in migration
     assert (
         "GRANT SELECT ON TABLE public.ghg_emission_factor TO kokonut_runtime"
+    ) in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_operations_protocols_are_seeded_references_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/666_runtime_operations_protocol_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/028_carbon_framework.sql").read_text()
+    seed = (root / "schemas/seeds/027_carbon_framework_seeds.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    runtime_writers = [
+        site for site in sql_inventory["execution_sites"]
+        if "operations_protocol" in site["write_target_relations"]
+    ]
+    runtime_readers = {
+        site["source"] for site in sql_inventory["execution_sites"]
+        if "operations_protocol" in site["candidate_relations"]
+        and site["statement_kind"] == "SELECT"
+    }
+
+    assert "operations_protocol" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "operations_protocol" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS operations_protocol" in initial_schema
+    assert "INSERT INTO operations_protocol" in seed
+    assert runtime_writers == []
+    assert runtime_readers == {"services/export/reports/core.py"}
+    assert "FROM operations_protocol" in (
+        root / "services/export/reports/core.py"
+    ).read_text()
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.operations_protocol "
+        "FROM kokonut_runtime"
+    ) in migration
+    assert (
+        "GRANT SELECT ON TABLE public.operations_protocol TO kokonut_runtime"
     ) in migration
     assert "kokonut_directus_runtime" not in migration
 

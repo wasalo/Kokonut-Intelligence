@@ -126,6 +126,10 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         raise AssertionError("full schema is missing greenhouse-gas emission factors")
     cur.execute("SELECT count(*) FROM public.ghg_emission_factor")
     cur.fetchone()
+    if not relation_exists("operations_protocol"):
+        raise AssertionError("full schema is missing operations protocols")
+    cur.execute("SELECT count(*) FROM public.operations_protocol")
+    cur.fetchone()
     if not relation_exists("certification_type"):
         raise AssertionError("full schema is missing certification types")
     cur.execute("SELECT count(*) FROM public.certification_type")
@@ -365,6 +369,7 @@ def run_probe() -> dict[str, object]:
                 "runtime provisioner keeps shared advisory rules readable but immutable",
                 "runtime can read seeded crop-nutrient removal factors",
                 "runtime can query shared greenhouse-gas emission-factor references",
+                "runtime can query shared versioned operations protocols",
                 "runtime can read seeded certification types",
                 "runtime can read seeded cooperative types",
                 "runtime can read seeded insurance product types",

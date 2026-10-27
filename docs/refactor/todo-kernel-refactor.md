@@ -573,3 +573,9 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   137 focused tests pass. The report records 109 declared controls and 1,011
   relations with effective DML while RLS is disabled; C1 remains open
   ([batch](batches.md); [progress](progress.md#progress-addendum--ghg_emission_factor-runtime-read-only-boundary--27-october-2026)).
+- [x] Keep shared seeded `operations_protocol` handbook entries readable but
+  immutable to the Kernel runtime. Migration 666, native/ARM64 disposable ACL
+  checks, and the 657-file native full-schema replay with 19 operator-scope
+  checks pass; 138 focused tests pass. The report records 110 declared
+  controls and 1,010 relations with effective DML while RLS is disabled; C1
+  remains open ([batch](batches.md); [progress](progress.md#progress-addendum--operations_protocol-runtime-read-only-boundary--27-october-2026)).

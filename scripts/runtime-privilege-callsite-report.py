@@ -54,6 +54,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "agent_action_log": "runtime_mutations_denied",
     "carbon_benchmark": "runtime_mutations_denied",
     "ghg_emission_factor": "runtime_mutations_denied",
+    "operations_protocol": "runtime_mutations_denied",
     "data_access_log": "runtime_append_only_read_insert",
     "access_audit_log": "runtime_append_only_read_insert",
 }
