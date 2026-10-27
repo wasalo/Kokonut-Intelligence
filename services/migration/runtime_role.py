@@ -873,7 +873,7 @@ def _verify_farm_activity_operator_event_boundary(cur, role_name: str) -> None:
         )
 
 
-_GOVERNANCE_PRIVATE_TABLES = (
+_RUNTIME_PRIVATE_TABLES = (
     "operator_governance_party_binding",
     "governance_role_assignment_request",
     "governance_role_assignment_decision",
@@ -884,28 +884,33 @@ _GOVERNANCE_PRIVATE_TABLES = (
     "governance_tactical_content_event",
     "party_location_identity_case",
     "party_location_identity_decision",
+    "delphi_recommendation_review_decision",
+    "delphi_recommendation_draft_request",
+    "delphi_stopping_evaluation",
+    "delphi_minority_report_review_decision",
 )
 
 
-_GOVERNANCE_MUTATION_TABLES = (
+_RUNTIME_MUTATION_TABLES = (
     "governance_circle",
     "governance_role",
     "governance_role_assignment",
     "governance_tactical_item",
     "governance_tactical_session",
+    "delphi_minority_report",
 )
 
 
-def _apply_governance_action_boundary(
+def _apply_scoped_write_boundary(
     cur, runtime_ident: sql.Identifier
 ) -> dict[str, object]:
-    """Keep governed actions behind Gateway functions and protect private ledgers."""
+    """Reapply scoped-action and private-receipt denials after compatibility grants."""
     mutation_privileges = (
         "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER",
     )
     rules = {
-        **{table: mutation_privileges for table in _GOVERNANCE_MUTATION_TABLES},
-        **{table: ("ALL",) for table in _GOVERNANCE_PRIVATE_TABLES},
+        **{table: mutation_privileges for table in _RUNTIME_MUTATION_TABLES},
+        **{table: ("ALL",) for table in _RUNTIME_PRIVATE_TABLES},
     }
     installed: dict[str, bool] = {}
     for table, table_privileges in rules.items():
@@ -952,25 +957,25 @@ def _apply_governance_action_boundary(
     return {
         "installed": any(installed.values()),
         "relations": installed,
-        "direct_governance_mutations": "denied; bounded Gateway functions only",
-        "private_governance_and_identity_ledgers": "no direct runtime access",
+        "direct_scoped_mutations": "denied; bounded Gateway functions only",
+        "private_governance_identity_and_delphi_receipts": "no direct runtime access",
         "reads": "existing runtime SELECT grants preserved",
     }
 
 
-def _verify_governance_action_boundary(cur, role_name: str) -> None:
-    """Fail if compatibility provisioning reopens governed action table access."""
+def _verify_scoped_write_boundary(cur, role_name: str) -> None:
+    """Fail if compatibility provisioning reopens bounded-action table access."""
     mutation_privileges = (
         "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER",
     )
     for table, table_privileges in {
-        **{table: mutation_privileges for table in _GOVERNANCE_MUTATION_TABLES},
+        **{table: mutation_privileges for table in _RUNTIME_MUTATION_TABLES},
         **{
             table: (
                 "SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE",
                 "REFERENCES", "TRIGGER",
             )
-            for table in _GOVERNANCE_PRIVATE_TABLES
+            for table in _RUNTIME_PRIVATE_TABLES
         },
     }.items():
         cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
@@ -995,7 +1000,7 @@ def _verify_governance_action_boundary(cur, role_name: str) -> None:
 
         column_privileges = (
             ("SELECT", "INSERT", "UPDATE", "REFERENCES")
-            if table in _GOVERNANCE_PRIVATE_TABLES
+            if table in _RUNTIME_PRIVATE_TABLES
             else ("INSERT", "UPDATE")
         )
         column_privilege_sql = " OR ".join(
@@ -2361,7 +2366,7 @@ def provision_runtime_role(
         mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
         farm_activity_event_grants = _apply_farm_activity_operator_event_boundary(cur, runtime_ident)
-        governance_action_grants = _apply_governance_action_boundary(
+        scoped_write_grants = _apply_scoped_write_boundary(
             cur, runtime_ident
         )
         solution_stage_gate_grants = _apply_solution_stage_gate_boundary(
@@ -3269,7 +3274,7 @@ def provision_runtime_role(
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
         _verify_farm_activity_operator_event_boundary(cur, runtime_user)
-        _verify_governance_action_boundary(cur, runtime_user)
+        _verify_scoped_write_boundary(cur, runtime_user)
         _verify_solution_stage_gate_boundary(cur, runtime_user)
         _verify_solution_experiment_protocol_boundary(cur, runtime_user)
         _verify_no_runtime_default_privileges(
@@ -3595,11 +3600,13 @@ def provision_runtime_role(
             "mobile_device_enrollment": "explicit column allowlist; no table-wide UPDATE or DELETE",
             "operator_session": "bounded functions only",
             "farm_activity_operator_event": "read-only SELECT; trigger owner appends; no direct write",
-            "governance circle, role, assignment, tactical item and session writes": (
+            "governance circle, role, assignment, tactical item/session and Delphi report writes": (
                 "direct runtime mutations are denied; audited Gateway functions own writes"
             ),
             "governance action/decision/request ledgers, operator party bindings, "
-            "location identity cases and decisions": "no direct runtime access",
+            "location identity cases/decisions, Delphi recommendation/stopping/minority-review ledgers": (
+                "no direct runtime access"
+            ),
             "solution_stage_gate": "bounded security-definer functions only; no direct runtime access",
             "solution_experiment": (
                 "bounded Gateway protocol creation; lifecycle updates limited to status and timestamps"
@@ -3608,7 +3615,7 @@ def provision_runtime_role(
         "runtime_mobile_credential_privileges": mobile_credential_grants,
         "runtime_api_key_privileges": api_key_grants,
         "runtime_farm_activity_operator_event_privileges": farm_activity_event_grants,
-        "runtime_governance_action_privileges": governance_action_grants,
+        "runtime_scoped_write_privileges": scoped_write_grants,
         "runtime_solution_stage_gate_privileges": solution_stage_gate_grants,
         "runtime_solution_experiment_protocol_privileges": solution_experiment_protocol_grants,
         "farm_activity_event_owner_restored": farm_activity_event_owner_ready,

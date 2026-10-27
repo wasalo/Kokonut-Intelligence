@@ -19737,10 +19737,11 @@ universal tenant isolation or production state ([probe](builds/2026-10-26-recove
 [join](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
 
 Based on that evidence, `runtime_role.py` now reapplies the governed circle,
-role, assignment, and tactical item/session mutation denials plus private
-request, decision, binding, identity, and audit-ledger boundaries after its
-compatibility-wide grant. It preserves selected table reads and verifies both
-table and column privileges. Focused disposable runtime-role acceptance is
+role, assignment, tactical item/session, and Delphi minority-report mutation
+denials plus private request, decision, binding, identity, audit-ledger, and
+selected Delphi review-receipt boundaries after its compatibility-wide grant.
+It preserves selected table reads and verifies both table and column
+privileges. Focused disposable runtime-role acceptance is
 still open; this code has not been applied to the candidate or production, and
 CAP-024 acceptance/classification is unchanged. No migration was needed for
 the provisioning-path correction. No tests were added or run in this batch.
