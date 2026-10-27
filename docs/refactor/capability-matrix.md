@@ -41,15 +41,17 @@ also build for ARM64 from revision 8da25cfd and pass bounded, network-disabled,
 read-only import and CLI-help smokes. The OIDC smoke found and verified a fix
 for Authlib's missing HTTP client dependency. No external service was started;
 broader profile, provider, and physical-device gates remain open
-([optional target evidence](builds/2026-10-27-recovery/arm64-optional-kernel-targets-8da25cfd.json)). The synthetic age-encrypted
-single-database round trip is now supplemented by a successful exercise of the
-repository checkpoint command and role-prerequisite bootstrap, restoring all
-643 migrations through 652 with a matching fingerprint and sentinel. The
-isolated target uses a raised PostgreSQL lock budget for its atomic restore.
-This remains synthetic local evidence, not populated-data, provider/media, R2,
-whole-platform or production RPO/RTO acceptance
+([optional target evidence](builds/2026-10-27-recovery/arm64-optional-kernel-targets-8da25cfd.json)).
+The synthetic age-encrypted single-database rehearsal has now been repeated
+against all 653 current migrations through 662. The repository checkpoint
+command produced an encrypted archive without a plaintext disk dump; the
+documented role prerequisites and atomic restore yielded matching migration
+fingerprints and a synthetic sentinel in a fresh database. This remains
+synthetic local evidence, not populated-data, provider/media, R2, whole-platform
+or production RPO/RTO acceptance
 ([build/profile evidence](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json);
-[checkpoint/restore evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json)).
+[prior 643/652 rehearsal](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json);
+[current 653/662 rehearsal](builds/2026-10-27-recovery/kernel-checkpoint-restore-current-schema.json)).
 The complete schema through migration 662 replays on ARM64/QEMU under a
 verified 1.5 GiB memory/swap and two-CPU database budget with all 653 files
 applied, no OOM kill, and successful cleanup; this does not verify physical Pi

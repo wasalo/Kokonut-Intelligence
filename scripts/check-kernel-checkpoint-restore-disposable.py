@@ -103,6 +103,20 @@ def migration_fingerprint(output: str) -> dict[str, object]:
     return {"applied": int(parts[0]), "migration_digest_md5": parts[1], "latest": parts[2]}
 
 
+def expected_schema_head() -> tuple[int, str]:
+    """Return the ordered schema migration count and current ledger ID."""
+    paths = [
+        path
+        for path in sorted(
+            (ROOT / "schemas" / "postgres").glob("*.sql"), key=lambda item: item.name
+        )
+        if path.stem.split("_", 1)[0].isdigit()
+    ]
+    if not paths:
+        raise CheckFailure("no ordered schema migrations were found")
+    return len(paths), f"schema:{paths[-1].name}"
+
+
 def restore_archive(
     command: list[str],
     project_env: dict[str, str],
@@ -158,7 +172,7 @@ def main() -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        default=ROOT / "docs/refactor/builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json",
+        default=ROOT / "docs/refactor/builds/2026-10-27-recovery/kernel-checkpoint-restore-current-schema.json",
     )
     args = parser.parse_args()
     if not args.identity_file.is_file():
@@ -190,6 +204,11 @@ def main() -> int:
     restore_started = False
     stage = "preflight"
     try:
+        expected_schema_count, expected_latest_migration = expected_schema_head()
+        evidence["expected_schema"] = {
+            "migration_count": expected_schema_count,
+            "latest_migration": expected_latest_migration,
+        }
         if not SOURCE_COMPOSE.is_file() or not RESTORE_COMPOSE.is_file() or not ROLE_PREREQUISITES.is_file():
             raise CheckFailure("a recovery manifest or role-prerequisite file is unavailable")
         ensure_project_unused(source_project)
@@ -247,8 +266,11 @@ def main() -> int:
                 source_env,
             )
         )
-        if source_fingerprint["applied"] != 643 or source_fingerprint["latest"] != "schema:652_runtime_append_only_data_access_log.sql":
-            raise CheckFailure("source schema replay did not reach the expected 643-migration head")
+        if (
+            source_fingerprint["applied"] != expected_schema_count
+            or source_fingerprint["latest"] != expected_latest_migration
+        ):
+            raise CheckFailure("source schema replay did not reach the current migration head")
         query(
             source_command,
             "kokonut_intelligence",

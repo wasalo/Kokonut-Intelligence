@@ -20520,3 +20520,27 @@ untouched; reverting the source change restores the prior dependency manifests
 and image recipe. Checklist: 1,267 complete / 25 open (1,292 total). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; no MAN-CAP acceptance status changed.
+
+### Current-schema encrypted checkpoint and restore — 27 October 2026
+
+The repository's actual checkpoint command and documented role-prerequisite
+restore procedure now pass against all 653 ordered schema files through
+`662_runtime_access_audit_log_append_only`. The isolated source applied no
+seeds and loaded no farm data. `kernel-checkpoint.sh` streamed the database
+dump into age encryption; only the encrypted archive was written to temporary
+storage, with its manifest digest verified. The restore applied role
+prerequisites to a fresh PostGIS cluster, then restored transactionally into a
+new `template0` database using the enlarged lock budget. The source and restored
+migration fingerprints and a synthetic sentinel match. Both uniquely labeled
+internal-only Compose projects and the temporary archive were cleaned up; an
+unrelated pre-existing volume from a similarly named old Compose project was
+left untouched. Candidate and legacy databases were not accessed. The checker
+now derives its expected migration count/head from the same ordered schema
+filenames as the migration runner, rather than pinning the old 643/652 state;
+two focused unit tests pass, along with Ruff, compilation, and diff checks.
+Evidence: [current-schema checkpoint/restore](builds/2026-10-27-recovery/kernel-checkpoint-restore-current-schema.json).
+This is synthetic schema recovery evidence, not populated-farm, R2,
+whole-platform, constrained-device, production RPO/RTO, or 24-hour acceptance.
+Checklist: 1,268 complete / 25 open (1,293 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

@@ -407,14 +407,16 @@ that its full source-plan phase is complete.
   with matching locked packages, and minimal/edge/standard/analytics Compose
   selections validate for ARM64 ([schema](builds/2026-10-27-recovery/arm64-schema-652-disposable.json);
   [app and profile evidence](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json)).
-  The full schema replay also passes at 1.5 GiB/two CPUs
-  ([resource-limited replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-652.json)).
+  The full ARM64 schema replay also passes under the 1.5 GiB/two-CPU budget
+  through migration 662 ([resource-limited replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-662.json)).
   The repository's encrypted checkpoint command and role-prerequisite restore
-  have now passed against the full synthetic 643-migration database with a
-  matching schema fingerprint and sentinel ([recovery evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json)).
+  now pass against all 653 current schema migrations through 662, with a
+  matching fingerprint and synthetic sentinel in a fresh database ([prior 643/652 evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json);
+  [current 653/662 evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-current-schema.json)).
   This does not represent populated farm data, external media/providers, R2,
   whole-platform recovery, or a production RPO/RTO drill. All optional
-  Dockerfile image targets now have ARM64 build/import evidence. The Kernel API liveness smoke now passes at
+  Dockerfile image targets now have ARM64 build/import evidence. The Kernel API
+  liveness smoke now passes at
   512 MiB/one CPU, but this does not establish schema readiness. No physical
   Raspberry Pi is available, so hardware power-loss and endurance remain open.
   Sources: [Phase 8](implementation-plan-alignment.md#L28),
