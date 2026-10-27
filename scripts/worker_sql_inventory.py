@@ -33,6 +33,11 @@ STATEMENT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _SQL_RELATION = r'((?:"[^"\n]+"|[A-Za-z_][\w$]*)(?:\s*\.\s*(?:"[^"\n]+"|[A-Za-z_][\w$]*))?)'
+_TRUNCATE_TARGETS = re.compile(
+    r"^\s*(?:--[^\n]*\n\s*)*TRUNCATE\s+(?:TABLE\s+)?(?:ONLY\s+)?"
+    r"(?P<targets>.+?)\s*(?:\s+(?:RESTART|CONTINUE|CASCADE|RESTRICT)\b|;?\s*$)",
+    re.IGNORECASE | re.DOTALL,
+)
 _WRITE_TARGET_PATTERNS = {
     "INSERT": re.compile(
         r"^\s*(?:--[^\n]*\n\s*)*INSERT\s+INTO\s+(?:ONLY\s+)?"
@@ -97,7 +102,34 @@ def _candidate_relations(query: str) -> list[str]:
 
 
 def _write_target_relations(query: str, statement_kind: str) -> list[str]:
-    """Extract only a simple leading DML target, not tables read by the query."""
+    """Extract simple leading mutation targets, not tables read by the query."""
+    if statement_kind == "TRUNCATE":
+        match = _TRUNCATE_TARGETS.match(query)
+        if match is None:
+            return []
+        target_clause = match.group("targets").strip().rstrip(";").strip()
+        parts = []
+        current = []
+        in_identifier = False
+        for character in target_clause:
+            if character == '"':
+                in_identifier = not in_identifier
+            if character == "," and not in_identifier:
+                parts.append("".join(current))
+                current = []
+            else:
+                current.append(character)
+        parts.append("".join(current))
+        targets = []
+        for part in parts:
+            target_match = re.fullmatch(
+                r"\s*" + _SQL_RELATION + r"\s*\*?\s*", part
+            )
+            if target_match is None:
+                return []
+            target = re.sub(r"\s*\.\s*", ".", target_match.group(1))
+            targets.append(target.replace('"', ""))
+        return sorted(set(targets))
     pattern = _WRITE_TARGET_PATTERNS.get(statement_kind)
     if pattern is None:
         return []

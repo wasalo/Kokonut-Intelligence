@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-WRITE_KINDS = {"INSERT", "UPDATE", "DELETE", "MERGE"}
+WRITE_KINDS = {"INSERT", "UPDATE", "DELETE", "MERGE", "TRUNCATE"}
 ANALYTICS_PREFIX = "services/analytics/"
 
 

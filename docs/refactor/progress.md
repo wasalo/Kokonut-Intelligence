@@ -20623,3 +20623,20 @@ and [analytics candidate inventory](builds/2026-10-27-recovery/analytics-runtime
 Checklist: 1,272 complete / 25 open (1,297 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+### Track runtime TRUNCATE targets and privileges — 27 October 2026
+
+The shared runtime SQL inventory now extracts simple `TRUNCATE` targets,
+including comma-separated tables and the `ONLY`, `RESTART IDENTITY`, and
+`CASCADE` clauses. It treats `TRUNCATE` as a write candidate. The C1 ACL report
+shows effective `TRUNCATE` grants separately from ordinary table DML and
+lists affected relations, including those where RLS is disabled. The saved
+migration-662 native replay reports zero effective runtime `TRUNCATE` grants
+across 1,511 public relations. This is a synthetic ACL snapshot, not current
+candidate or production state. The scanner, ACL report, and analytics
+inventory selection passes 41 tests; Ruff, compilation, inventory freshness,
+capability validation, and diff checks pass. No database or provider was used.
+Rollback reverts the scanner/report changes and regenerates the artifacts.
+Checklist: 1,273 complete / 25 open (1,298 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

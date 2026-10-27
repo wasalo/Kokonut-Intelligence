@@ -24,8 +24,8 @@ from scripts.worker_sql_inventory import _SQLCallVisitor  # noqa: E402
 
 _STATEMENT_GROUPS = {
     "read_candidate": {"SELECT"},
-    "write_candidate": {"INSERT", "UPDATE", "DELETE", "MERGE"},
-    "schema_change": {"CREATE", "ALTER", "DROP", "TRUNCATE"},
+    "write_candidate": {"INSERT", "UPDATE", "DELETE", "MERGE", "TRUNCATE"},
+    "schema_change": {"CREATE", "ALTER", "DROP"},
     "transaction_or_session": {"SET", "SAVEPOINT", "ROLLBACK", "RELEASE"},
     "procedure_or_bulk": {"CALL", "COPY", "DO"},
 }

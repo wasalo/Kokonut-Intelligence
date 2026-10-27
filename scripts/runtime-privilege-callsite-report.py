@@ -217,7 +217,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             if isinstance(statement_kind, str):
                 entry["sites"][statement_kind] += 1
                 entry["sources"][source][statement_kind] += 1
-        if statement_kind in {"INSERT", "UPDATE", "DELETE", "MERGE"}:
+        if statement_kind in {"INSERT", "UPDATE", "DELETE", "MERGE", "TRUNCATE"}:
             for relation in site.get("write_target_relations", []):
                 entry = relations.get(relation)
                 if entry is None:
@@ -321,6 +321,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
                 privilege: row.get(privilege) is True
                 for privilege in ("select", "insert", "update", "delete", "truncate")
             },
+            "effective_truncate_privilege": row.get("truncate") is True,
             "rls_enabled": row.get("rls_enabled") is True,
             "rls_forced": row.get("rls_forced") is True,
             "has_any_dml": dml,
@@ -431,6 +432,13 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         "summary": {
             "runtime_relations": len(output_rows),
             "relations_with_any_dml": sum(row["has_any_dml"] for row in output_rows),
+            "relations_with_effective_truncate": sum(
+                row["effective_truncate_privilege"] for row in output_rows
+            ),
+            "relations_with_effective_truncate_and_rls_disabled": sum(
+                row["effective_truncate_privilege"] and not row["rls_enabled"]
+                for row in output_rows
+            ),
             "tables_with_dml_and_rls_disabled": len(unprotected_dml),
             "relations_with_candidate_execution_sites": sum(
                 bool(row["candidate_execution_sites_by_statement"])
@@ -451,6 +459,14 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "migration_revoked_relations_missing_or_mismatched_runtime_policy": len(policy_gaps),
         },
         "dml_relations_without_candidate_sites": dml_without_site,
+        "relations_with_effective_truncate": [
+            row["relation"] for row in output_rows
+            if row["effective_truncate_privilege"]
+        ],
+        "relations_with_effective_truncate_and_rls_disabled": [
+            row["relation"] for row in output_rows
+            if row["effective_truncate_privilege"] and not row["rls_enabled"]
+        ],
         "dml_relations_matching_explicit_runtime_revoke": overlapping,
         "unprotected_dml_relations_without_candidate_sites": unprotected_without_site,
         "unprotected_dml_relations_without_candidate_write_sites": (

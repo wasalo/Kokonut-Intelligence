@@ -315,9 +315,10 @@ that its full source-plan phase is complete.
   with unprotected runtime DML. Of these, 529 have no static write candidate
   and 334 have no SQL candidate at all; the counts are heuristic and the
   latter is a subset.
-  The native full-schema acceptance through migration 657 covers 98 table
-  policies (79 private, 18 mutation-denied, and one append-only) plus the
-  API-key read-only column allowlist: 99 observed boundaries. Focused
+  The native full-schema acceptance through migration 662 covers the current
+  runtime boundary policies, including 79 private relations, 24
+  mutation-denied relations, two append-only relations, and the API-key
+  read-only column allowlist: 106 declared boundaries. Focused
   migration-658–662 ACL checks pass on native and ARM64/QEMU disposable
   PostgreSQL, covering 79 private relations, 24 mutation-denied relations,
   two append-only relations, and the API-key column boundary. The complete
@@ -326,13 +327,17 @@ that its full source-plan phase is complete.
   denied, two append-only, and the API-key column boundary), with zero direct
   table or column privilege violations. It reports 1,014 public relations with
   effective table-level DML while RLS is disabled, so broad runtime access and
-  universal application tenant isolation remain open. This is synthetic
+  universal application tenant isolation remain open. It separately reports
+  zero effective runtime TRUNCATE grants across 1,511 public relations in this
+  synthetic replay. This is synthetic
   software acceptance; broad runtime access
   remains beyond these selected boundaries and the probe does not establish
   universal application tenant isolation.
-  The target-aware analytics inventory links 274 relations with
+  The target-aware analytics inventory links 273 relations with
   effective DML and analytics write candidates to 425 write-target sites
-  across 89 files; `advisory_rule` and `crop_family` are protected read-only,
+  across 89 files, with no unmatched candidate relations; `farm` is a
+  read-only source in two `INSERT … SELECT` statements, not a write target.
+  `advisory_rule` and `crop_family` are protected read-only,
   `crop_nutrient_removal_factor`, `certification_type`, `cooperative_type`,
   `dfs_insurance_product_type`, `evidence_maturity_level`, `sensor_type`,
   `waste_type`, `disposal_method`, `graph_node_type`, and `graph_edge_type`
@@ -340,9 +345,7 @@ that its full source-plan phase is complete.
   and ARM64/QEMU focused disposable targets. `access_audit_log` is append-only
   for the runtime through migration 662 on both targets; no retention period
   or pruning authorization is included.
-  `farm` is the remaining
-  unmatched source candidate. Review
-  other unresolved callers before changing grants. Classify candidates by
+  Review other unresolved callers before changing grants. Classify candidates by
   capability and caller identity first. Change only
   reviewed slices with bounded functions or exact grants. Do not
   blanket-revoke from heuristic absence. Preserve rollback and distinguish
@@ -547,3 +550,8 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   candidates. Thirteen focused report/inventory tests and static checks pass.
   C1 remains open because 1,014 public relations still retain effective DML
   while RLS is disabled ([batch](batches.md); [progress](progress.md#correct-analytics-dml-target-classification--27-october-2026)).
+- [x] Track `TRUNCATE` SQL targets and effective runtime `TRUNCATE` privileges
+  separately from ordinary table DML. The migration-662 native snapshot reports
+  zero runtime `TRUNCATE` grants. The scanner, ACL report, and analytics
+  inventory selection passes 41 tests plus static checks; this does not close
+  broad table-DML or universal RLS gaps ([batch](batches.md); [progress](progress.md#track-runtime-truncate-targets-and-privileges--27-october-2026)).

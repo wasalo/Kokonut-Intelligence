@@ -10,7 +10,15 @@ REPORTER = runpy.run_path(
 )
 
 
-def _acl_row(relation: str, *, select: bool, insert: bool, update: bool, delete: bool):
+def _acl_row(
+    relation: str,
+    *,
+    select: bool,
+    insert: bool,
+    update: bool,
+    delete: bool,
+    truncate: bool = False,
+):
     return {
         "schema": "public",
         "relation": relation,
@@ -19,7 +27,7 @@ def _acl_row(relation: str, *, select: bool, insert: bool, update: bool, delete:
         "insert": insert,
         "update": update,
         "delete": delete,
-        "truncate": False,
+        "truncate": truncate,
         "rls_enabled": False,
         "rls_forced": False,
     }
@@ -389,3 +397,46 @@ def test_insert_select_source_is_not_reported_as_a_dml_target():
         "path": "services/analytics/multi_farm.py",
         "statement_counts": {"INSERT": 1},
     }]
+
+
+def test_truncate_privileges_and_targets_are_reported_separately_from_dml():
+    site = {
+        "id": "services/analytics/cleanup.py:12:4",
+        "source": "services/analytics/cleanup.py",
+        "line": 12,
+        "scope": "clear_expired_cache",
+        "method": "execute",
+        "expression_kind": "literal",
+        "statement_kind": "TRUNCATE",
+        "candidate_relations": ["expired_cache"],
+        "write_target_relations": ["expired_cache"],
+        "static_sql_sha256": "d" * 64,
+        "operation_refs": [],
+    }
+    report = REPORTER["build_report"](
+        {
+            "result": "inventory",
+            "runtime_public_relation_acl": [
+                _acl_row(
+                    "expired_cache",
+                    select=True,
+                    insert=False,
+                    update=False,
+                    delete=False,
+                    truncate=True,
+                ),
+            ],
+        },
+        {"execution_sites": [site]},
+    )
+
+    row = report["relations"][0]
+    assert row["has_any_dml"] is False
+    assert row["effective_truncate_privilege"] is True
+    assert row["candidate_write_target_sites_by_statement"] == {"TRUNCATE": 1}
+    assert report["relations_with_effective_truncate"] == ["expired_cache"]
+    assert report["relations_with_effective_truncate_and_rls_disabled"] == [
+        "expired_cache"
+    ]
+    assert report["summary"]["relations_with_effective_truncate"] == 1
+    assert report["summary"]["relations_with_effective_truncate_and_rls_disabled"] == 1

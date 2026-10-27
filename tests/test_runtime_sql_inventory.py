@@ -79,6 +79,27 @@ def write(conn):
     assert sites[3]["write_target_relations"] == ["public.advisory_recommendation"]
 
 
+def test_runtime_sql_inventory_tracks_truncate_targets_separately(tmp_path: Path):
+    source = "services/example.py"
+    path = tmp_path / "example.py"
+    path.write_text(
+        '''
+def clear(conn):
+    conn.execute("TRUNCATE TABLE public.first_table, public.second_table RESTART IDENTITY CASCADE")
+''',
+        encoding="utf-8",
+    )
+
+    site = _scan_source(source, path, [])[0]
+
+    assert site["statement_kind"] == "TRUNCATE"
+    assert site["statement_group"] == "write_candidate"
+    assert site["write_target_relations"] == [
+        "public.first_table",
+        "public.second_table",
+    ]
+
+
 def test_inventory_does_not_classify_real_insert_select_sources_as_write_targets():
     sites = {
         site["id"]: site for site in build_inventory()["execution_sites"]
