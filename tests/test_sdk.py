@@ -1484,7 +1484,7 @@ def test_export_log_type_exposes_canonical_export_table_fields():
     assert export_log.status == "generating"
 
 
-def test_python_export_format_type_matches_javascript_sdk_contract():
+def test_python_export_format_type_is_public_and_used_by_export_fields():
     from typing import Optional, get_args, get_type_hints
 
     from kokonut import ExportFormat

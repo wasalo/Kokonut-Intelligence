@@ -251,3 +251,30 @@ def test_python_and_typescript_sdk_argument_names_match_or_use_reviewed_aliases(
                 f"{group}.{method} argument names mismatch: Python={python_names}, "
                 f"TypeScript={sorted(typescript_methods[group][method])}"
             )
+
+
+def test_python_and_typescript_export_format_literals_match():
+    python_types = ast.parse(
+        (ROOT / "sdk/python/kokonut/types.py").read_text(encoding="utf-8")
+    )
+    alias = next(
+        statement.value
+        for statement in python_types.body
+        if isinstance(statement, ast.Assign)
+        and any(
+            isinstance(target, ast.Name) and target.id == "ExportFormat"
+            for target in statement.targets
+        )
+    )
+    assert isinstance(alias, ast.Subscript) and isinstance(alias.value, ast.Name)
+    assert alias.value.id == "Literal"
+    python_values = tuple(
+        ast.literal_eval(value)
+        for value in (alias.slice.elts if isinstance(alias.slice, ast.Tuple) else [alias.slice])
+    )
+
+    typescript = (ROOT / "sdk/javascript/src/types.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"export type ExportFormat\s*=\s*([^;]+);", typescript)
+    assert declaration is not None, "TypeScript ExportFormat union is missing"
+    typescript_values = tuple(re.findall(r"'([^']+)'", declaration.group(1)))
+    assert typescript_values and python_values == typescript_values

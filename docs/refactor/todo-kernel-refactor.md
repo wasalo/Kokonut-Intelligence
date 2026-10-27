@@ -521,7 +521,8 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   [progress evidence](progress.md#sdk-parameter-name-parity-contract--27-october-2026).
 - [x] Align the Python `ExportFormat` type with the TypeScript union and use it
   for the export model and `create_export` helper. The focused SDK selection
-  passes 97 tests and the schema guard covers 109 models / 2,150 columns; Ruff,
-  compilation, and diff checks pass. This fixes one concrete static typing
+  passes 98 tests, including a source comparison of the Python `Literal` and
+  actual TypeScript union; the schema guard covers 109 models / 2,150 columns.
+  Ruff, compilation, and diff checks pass. This fixes one concrete static typing
   mismatch; other create/update payloads and runtime behavior remain outside
   this subgate ([batch record](batches.md); [progress](progress.md#export-format-typing-parity--27-october-2026)).
