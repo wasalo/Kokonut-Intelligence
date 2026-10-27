@@ -1,0 +1,11 @@
+{
+  "bounded_gateway_function_behavior": "not exercised; source migrations are not installed",
+  "column_level_privilege_regression_detected": true,
+  "database_scope": "temporary container, empty database, synthetic relation definitions",
+  "engine": "PostgreSQL 16, pinned postgis image",
+  "mutation_only_tables_select_only": 12,
+  "private_tables_without_runtime_access": 79,
+  "result": "passed",
+  "tables_exercised": 91,
+  "timestamp": "2026-10-27T03:27:41Z"
+}

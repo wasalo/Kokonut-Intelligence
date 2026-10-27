@@ -1,8 +1,49 @@
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
 
 from services.migration import runtime_role
+
+
+def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "services/migration/runtime_role.py").read_bytes()
+    report = json.loads(
+        (
+            root
+            / "docs/refactor/builds/2026-10-26-recovery/"
+            "sprint-runtime-privilege-callsite-report.json"
+        ).read_text()
+    )
+
+    assert set(runtime_role._RUNTIME_PRIVATE_TABLES).isdisjoint(
+        runtime_role._RUNTIME_MUTATION_TABLES
+    )
+    assert report["runtime_role_policy_source"]["sha256"] == hashlib.sha256(
+        source
+    ).hexdigest()
+    assert report["summary"][
+        "migration_revoked_relations_missing_or_mismatched_runtime_policy"
+    ] == 0
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 91
+    assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
+
+
+def test_runtime_scoped_denials_follow_compatibility_table_grant():
+    source = (
+        Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py"
+    ).read_text()
+    broad_grant = source.index(
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public"
+    )
+    scoped_reapply = source.index(
+        "scoped_write_grants = _apply_scoped_write_boundary("
+    )
+    scoped_verification = source.index("_verify_scoped_write_boundary(cur, runtime_user)")
+
+    assert broad_grant < scoped_reapply < scoped_verification
 
 
 def test_mobile_credential_columns_are_excluded_from_runtime_reads():

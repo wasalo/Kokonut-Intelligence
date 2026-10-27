@@ -19772,10 +19772,14 @@ This implements the existing migration policy rather than adding a schema
 migration. It does not remove the compatibility grant for the other 1,026
 unprotected DML relations, and it does not establish RLS, worker/Directus
 parity, production ACLs, or successful bounded-function behavior. Focused
-disposable role-provisioning acceptance remains open; no candidate or legacy
-database was touched and no tests were added or run. Evidence is in the
+runtime-role tests pass (48). A disposable PostgreSQL 16 fixture exercises all
+91 synthetic relation ACLs and confirms the column-level verifier fails closed
+on a residual grant. This validates the ACL helper, not the migration-installed
+bootstrap or bounded Gateway/security-definer behavior. Candidate and legacy
+databases were untouched. Evidence is in the
 [isolated relation ACL probe](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json),
 [source/callsite join](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json),
+the [disposable ACL check](builds/2026-10-26-recovery/runtime-scoped-write-boundary-disposable.json),
 and [runtime-role provisioner](../../services/migration/runtime_role.py).
 Checklist remains 1,235 complete / 26 open (1,261 total); capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared

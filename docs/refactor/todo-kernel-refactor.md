@@ -33,8 +33,10 @@ the batch log and the affected capability/progress records are updated.
   tables, deny writes on 11 migration-defined mutation-only tables, and keep
   the append-only farm-activity ledger SELECT-only. The provisioner verifies
   the resulting table and column ACLs. Static comparison now covers all 91
-  relation-level source revokes with no policy gap. This code has not yet
-  passed focused disposable-role acceptance and was not rolled out.
+  relation-level source revokes with no policy gap. The focused runtime-role
+  suite passes 48 tests, and a disposable PostgreSQL fixture confirms all 91
+  relation ACL outcomes plus column-grant detection. Full migration-installed
+  bootstrap and bounded-function acceptance remain open; no rollout occurred.
 
 ## Code work to continue without owner input
 
@@ -47,8 +49,9 @@ that its full source-plan phase is complete.
   SQL candidate at all; the counts are heuristic and the latter is a subset.
   The source report fingerprints `runtime_role.py`, covers all 91 matched
   migration-declared revokes with zero static policy gaps, and groups write
-  candidates by service (the service counts overlap). Focused disposable-role
-  acceptance is open. Next classify the remaining 1,026 unprotected relations
+  candidates by service (the service counts overlap). Synthetic table/column
+  ACL acceptance passes; full bootstrap and bounded-function acceptance remain
+  open. Next classify the remaining 1,026 unprotected relations
   by capability and caller identity, starting with the 281 candidate analytics
   write relations; change only reviewed slices with bounded functions or exact
   grants. Do not blanket-revoke from heuristic absence. Preserve rollback and

@@ -19,8 +19,10 @@ append-only farm-activity ledger with migration-declared runtime revokes. The
 provisioner now re-applies all 91 relation-level policies after its
 compatibility grant; source comparison reports no missing or mismatched policy.
 The callsite inventory remains heuristic and is not a complete SQL reachability
-or authorization proof. Focused disposable runtime-role acceptance remains
-open, and the code has not been rolled out
+or authorization proof. Source tests and synthetic table/column ACL checks pass
+(48 focused tests and a 91-table disposable fixture). Migration-installed
+bootstrap and bounded Gateway function behavior remain open, and the code has
+not been rolled out
 ([ACL inventory](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
 [callsite report](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
 The tracker now records 1,235 completed and 26 open checklist items (1,261

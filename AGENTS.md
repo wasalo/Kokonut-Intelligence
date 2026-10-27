@@ -85,6 +85,7 @@ Commands:
 - Check Kernel dependency group alignment: `python3 scripts/check-requirement-groups.py`
 - Check optional provider import boundaries: `python3 scripts/check-provider-boundaries.py`
 - Check runtime-role boundaries in disposable PostgreSQL: `python3 scripts/check-operator-session-role-disposable.py`
+- Check migration-declared runtime table/column denials in disposable PostgreSQL: `python3 scripts/check-runtime-scoped-write-boundary-disposable.py`
 - Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`
 - Check worker direct function reachability: `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
 - Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
