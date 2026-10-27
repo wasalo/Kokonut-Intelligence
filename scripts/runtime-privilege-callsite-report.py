@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
 import re
 from collections import Counter, defaultdict
@@ -72,11 +73,12 @@ def _source_revokes() -> dict[str, list[dict[str, str]]]:
     }
 
 
-def _runtime_role_denials() -> dict[str, str]:
+def _runtime_role_denials() -> tuple[dict[str, str], str]:
     """Read the provisioner's explicit table denial lists without importing it."""
     source_path = ROOT / "services/migration/runtime_role.py"
     try:
-        tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+        source_text = source_path.read_text(encoding="utf-8")
+        tree = ast.parse(source_text, filename=str(source_path))
     except (OSError, SyntaxError) as exc:
         raise ValueError("could not parse runtime-role policy lists") from exc
 
@@ -98,10 +100,11 @@ def _runtime_role_denials() -> dict[str, str]:
     if values[_RUNTIME_POLICY_NAMES["private"]] & values[_RUNTIME_POLICY_NAMES["mutations"]]:
         raise ValueError("runtime-role private and mutation-only lists overlap")
 
-    return {
+    denials = {
         **{table: "no_direct_runtime_access" for table in values[_RUNTIME_POLICY_NAMES["private"]]},
         **{table: "runtime_mutations_denied" for table in values[_RUNTIME_POLICY_NAMES["mutations"]]},
     }
+    return denials, hashlib.sha256(source_text.encode("utf-8")).hexdigest()
 
 
 def _expected_runtime_denial(revokes: list[dict[str, str]]) -> str | None:
@@ -155,7 +158,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
                 entry["sources"][source][statement_kind] += 1
 
     revokes = _source_revokes()
-    runtime_denials = _runtime_role_denials()
+    runtime_denials, runtime_role_sha256 = _runtime_role_denials()
     output_rows: list[dict[str, Any]] = []
     for name, row in sorted(relations.items()):
         dml = any(
@@ -248,8 +251,13 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "No application rows, operator identifiers, or secrets are included. The "
             "report does not cover column privileges, sequence ACLs, object ownership, "
             "security-definer behavior, Directus, external consumers, or production "
-            "state."
+            "state. Static policy coverage and its source digest do not prove that "
+            "the provisioner has executed."
         ),
+        "runtime_role_policy_source": {
+            "path": "services/migration/runtime_role.py",
+            "sha256": runtime_role_sha256,
+        },
         "summary": {
             "runtime_relations": len(output_rows),
             "relations_with_any_dml": sum(row["has_any_dml"] for row in output_rows),

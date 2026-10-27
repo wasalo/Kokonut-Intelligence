@@ -50031,7 +50031,11 @@
     }
   ],
   "result": "inventory",
-  "scope_limit": "No application rows, operator identifiers, or secrets are included. The report does not cover column privileges, sequence ACLs, object ownership, security-definer behavior, Directus, external consumers, or production state.",
+  "runtime_role_policy_source": {
+    "path": "services/migration/runtime_role.py",
+    "sha256": "b441a94b536d64a8ab54d189b71006abc7db3052f777a4ed532b19c36cb8ceab"
+  },
+  "scope_limit": "No application rows, operator identifiers, or secrets are included. The report does not cover column privileges, sequence ACLs, object ownership, security-definer behavior, Directus, external consumers, or production state. Static policy coverage and its source digest do not prove that the provisioner has executed.",
   "source_dirty": true,
   "source_revision": "317fffee",
   "summary": {
