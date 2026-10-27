@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-WRITE_KINDS = {"INSERT", "UPDATE", "DELETE"}
+WRITE_KINDS = {"INSERT", "UPDATE", "DELETE", "MERGE"}
 ANALYTICS_PREFIX = "services/analytics/"
 
 
@@ -59,7 +59,7 @@ def build_inventory(acl_report: dict[str, Any], sql_inventory: dict[str, Any]) -
             raise ValueError("SQL inventory contains a malformed execution site")
         source = site.get("source")
         kind = site.get("statement_kind")
-        relations = site.get("candidate_relations")
+        relations = site.get("write_target_relations")
         if not isinstance(source, str) or not isinstance(relations, list):
             continue
         if not source.startswith(ANALYTICS_PREFIX) or kind not in WRITE_KINDS:
@@ -149,7 +149,11 @@ def build_inventory(acl_report: dict[str, Any], sql_inventory: dict[str, Any]) -
                 locations,
                 key=lambda site: (site["path"], site["line"] or 0, site["id"]),
             ),
-            "review_status": "source_and_caller_review_required",
+            "review_status": (
+                "source_and_caller_review_required"
+                if locations
+                else "write_target_not_confirmed_in_static_site_inventory"
+            ),
         })
 
     entries.sort(key=lambda entry: entry["relation"])
@@ -159,10 +163,11 @@ def build_inventory(acl_report: dict[str, Any], sql_inventory: dict[str, Any]) -
         "generated_by": "scripts/runtime-analytics-write-candidate-inventory.py",
         "scope": (
             "Unprotected public ordinary/partitioned relations with an analytics-package "
-            "INSERT/UPDATE/DELETE candidate, joined to generated runtime SQL sites."
+            "INSERT/UPDATE/DELETE/MERGE target candidate, joined to generated runtime SQL sites."
         ),
         "limitations": [
             "Static SQL relation candidates are heuristic and do not prove execution reachability.",
+            "Write targets are conservatively extracted from simple leading DML; CTEs, dynamic SQL, and complex forms may remain unmatched.",
             "No caller authorization, tenant identity, RLS, worker identity, or Directus behavior is inferred.",
             "No application rows, SQL text, credentials, or database state are included.",
             "Do not revoke grants from this inventory alone; review source callers and transaction contracts first.",

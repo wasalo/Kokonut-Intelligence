@@ -32,6 +32,27 @@ STATEMENT_PATTERN = re.compile(
     r"^\s*(?:--[^\n]*\n\s*)*(SELECT|INSERT|UPDATE|DELETE|WITH|MERGE|CREATE|ALTER|DROP|TRUNCATE|CALL|COPY|SET|DO|SAVEPOINT|ROLLBACK|RELEASE)\b",
     re.IGNORECASE,
 )
+_SQL_RELATION = r'((?:"[^"\n]+"|[A-Za-z_][\w$]*)(?:\s*\.\s*(?:"[^"\n]+"|[A-Za-z_][\w$]*))?)'
+_WRITE_TARGET_PATTERNS = {
+    "INSERT": re.compile(
+        r"^\s*(?:--[^\n]*\n\s*)*INSERT\s+INTO\s+(?:ONLY\s+)?"
+        + _SQL_RELATION,
+        re.IGNORECASE,
+    ),
+    "UPDATE": re.compile(
+        r"^\s*(?:--[^\n]*\n\s*)*UPDATE\s+(?:ONLY\s+)?" + _SQL_RELATION,
+        re.IGNORECASE,
+    ),
+    "DELETE": re.compile(
+        r"^\s*(?:--[^\n]*\n\s*)*DELETE\s+FROM\s+(?:ONLY\s+)?"
+        + _SQL_RELATION,
+        re.IGNORECASE,
+    ),
+    "MERGE": re.compile(
+        r"^\s*(?:--[^\n]*\n\s*)*MERGE\s+INTO\s+" + _SQL_RELATION,
+        re.IGNORECASE,
+    ),
+}
 
 
 def _query_template(node: ast.AST) -> tuple[str, str]:
@@ -73,6 +94,18 @@ def _candidate_relations(query: str) -> list[str]:
         relation = relation.replace('"', "")
         found.add(relation)
     return sorted(found)
+
+
+def _write_target_relations(query: str, statement_kind: str) -> list[str]:
+    """Extract only a simple leading DML target, not tables read by the query."""
+    pattern = _WRITE_TARGET_PATTERNS.get(statement_kind)
+    if pattern is None:
+        return []
+    match = pattern.match(query)
+    if match is None:
+        return []
+    relation = re.sub(r"\s*\.\s*", ".", match.group(1)).replace('"', "")
+    return [relation]
 
 
 def _statement_kind(query: str) -> str:
@@ -445,10 +478,18 @@ def _target_binds_name(target: ast.expr, name: str) -> bool:
 
 
 class _SQLCallVisitor(ast.NodeVisitor):
-    def __init__(self, source: str, operations: list[str], tree: ast.Module):
+    def __init__(
+        self,
+        source: str,
+        operations: list[str],
+        tree: ast.Module,
+        *,
+        include_write_targets: bool = False,
+    ):
         self.source = source
         self.operations = operations
         self.tree = tree
+        self.include_write_targets = include_write_targets
         self.scope: list[str] = []
         self.functions: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
         self.sites: list[dict] = []
@@ -518,6 +559,10 @@ class _SQLCallVisitor(ast.NodeVisitor):
             "static_sql_sha256": fingerprint,
             "operation_refs": self.operations,
         }
+        if self.include_write_targets:
+            site["write_target_relations"] = _write_target_relations(
+                query, statement_kind
+            )
         if statement_variants:
             site["statement_variants"] = statement_variants
         return site

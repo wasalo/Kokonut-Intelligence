@@ -1,16 +1,17 @@
 {
   "generated_by": "scripts/runtime-analytics-write-candidate-inventory.py",
   "inputs": {
-    "acl_report_path": "docs/refactor/builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json",
-    "acl_report_sha256": "e603d80c61b002906494e3aa905ed4d32c9929d23fda1ff4018e70ba4ff3dc36",
-    "acl_report_source_revision": "179809d4",
-    "runtime_role_policy_sha256": "b441a94b536d64a8ab54d189b71006abc7db3052f777a4ed532b19c36cb8ceab",
+    "acl_report_path": "docs/refactor/builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json",
+    "acl_report_sha256": "03150e95f1298e085b07344178ac3abb4b78c7ad0b78804da6a65b6030ed032c",
+    "acl_report_source_revision": "9691128b",
+    "runtime_role_policy_sha256": "d502c93db3150d928b0310ae4643614f83ac56753dd870f221e69f1ba2714127",
     "sql_inventory_path": "docs/refactor/runtime-sql-inventory.json",
-    "sql_inventory_sha256": "b32db4feb3cc8803289f739b8c0c81269377a90a7fd449d0edb549e3cb1b673a",
-    "sql_inventory_version": 1
+    "sql_inventory_sha256": "d428c7189be059cd2c2921dd2e0053ff4656e5e957cc9586fca22444279f21c0",
+    "sql_inventory_version": 2
   },
   "limitations": [
     "Static SQL relation candidates are heuristic and do not prove execution reachability.",
+    "Write targets are conservatively extracted from simple leading DML; CTEs, dynamic SQL, and complex forms may remain unmatched.",
     "No caller authorization, tenant identity, RLS, worker identity, or Directus behavior is inferred.",
     "No application rows, SQL text, credentials, or database state are included.",
     "Do not revoke grants from this inventory alone; review source callers and transaction contracts first."
@@ -130,38 +131,6 @@
         "update": true
       },
       "relation": "advisory_recommendation",
-      "review_status": "source_and_caller_review_required",
-      "static_candidate_source_files": [
-        "services/analytics/advisor.py"
-      ]
-    },
-    {
-      "candidate_write_sites": [
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/advisor.py:371:4",
-          "line": 371,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/advisor.py",
-          "scope": "generate_recommendation",
-          "statement_kind": "INSERT",
-          "static_sql_sha256": "22ddbc2fd81839847027bcf0128194d19f012ec9d43af5fb204cd618c515630b"
-        }
-      ],
-      "migration_boundary": {
-        "configured": null,
-        "expected": null,
-        "matches_source": null
-      },
-      "observed_acl": {
-        "delete": true,
-        "insert": true,
-        "rls_enabled": false,
-        "select": true,
-        "update": true
-      },
-      "relation": "advisory_rule",
       "review_status": "source_and_caller_review_required",
       "static_candidate_source_files": [
         "services/analytics/advisor.py"
@@ -1091,17 +1060,6 @@
           "scope": "add_purchase_participant",
           "statement_kind": "INSERT",
           "static_sql_sha256": "1e908945aade3f472065309fff75b986d9227c5bece26bdd9ade7ee67a3d254e"
-        },
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/cooperative.py:645:8",
-          "line": 645,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/cooperative.py",
-          "scope": "add_purchase_participant",
-          "statement_kind": "UPDATE",
-          "static_sql_sha256": "76881c0452939ebb7f15943a2f9a25cb54ff5b1c49f6cd27ff36af930fa51a96"
         }
       ],
       "migration_boundary": {
@@ -1476,17 +1434,6 @@
           "scope": "add_member",
           "statement_kind": "INSERT",
           "static_sql_sha256": "5515300c442a55a61b41c9f5f110464e090fae22cd9efb1f3e7a97316a6e3da8"
-        },
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/cooperative.py:146:8",
-          "line": 146,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/cooperative.py",
-          "scope": "add_member",
-          "statement_kind": "UPDATE",
-          "static_sql_sha256": "b758980813820dffb543c965e9f86f3c3c98ebca18117b50b5557c6ac33d83e3"
         }
       ],
       "migration_boundary": {
@@ -1790,17 +1737,6 @@
           "scope": "approve_alliance",
           "statement_kind": "INSERT",
           "static_sql_sha256": "312d9c37223a109cee04379b37fbf6874050fb95853b7eac80c983ab4ee4dde5"
-        },
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/coordination.py:113:12",
-          "line": 113,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/coordination.py",
-          "scope": "approve_alliance",
-          "statement_kind": "UPDATE",
-          "static_sql_sha256": "f0641866ff439ad763a1a5e1d71d72622d03f03e550a3d0f54476ab49cd39085"
         }
       ],
       "migration_boundary": {
@@ -2512,17 +2448,6 @@
           "scope": "cast_quadratic_vote",
           "statement_kind": "INSERT",
           "static_sql_sha256": "283480b0c6f2ed0e1bdd6ce29745f48849d8fb54fd1c4e5b53c8c2e65fdcba4f"
-        },
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/hybrid_voting.py:56:4",
-          "line": 56,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/hybrid_voting.py",
-          "scope": "cast_quadratic_vote",
-          "statement_kind": "UPDATE",
-          "static_sql_sha256": "921ef2c4b2efd1b21145ce5e637ed61095d445e89b300badbb4022317ff0907f"
         }
       ],
       "migration_boundary": {
@@ -2569,16 +2494,16 @@
         }
       ],
       "migration_boundary": {
-        "configured": null,
-        "expected": null,
-        "matches_source": null
+        "configured": "runtime_append_only_read_insert",
+        "expected": "runtime_append_only_read_insert",
+        "matches_source": true
       },
       "observed_acl": {
-        "delete": true,
+        "delete": false,
         "insert": true,
         "rls_enabled": false,
         "select": true,
-        "update": true
+        "update": false
       },
       "relation": "data_access_log",
       "review_status": "source_and_caller_review_required",
@@ -3392,30 +3317,7 @@
       ]
     },
     {
-      "candidate_write_sites": [
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/multi_farm.py:39:4",
-          "line": 39,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/multi_farm.py",
-          "scope": "instantiate_farm_from_template",
-          "statement_kind": "INSERT",
-          "static_sql_sha256": "c98174a399325b3887450779fb6265533609f6d3cc948261eb646722b47b8740"
-        },
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/multi_farm.py:65:8",
-          "line": 65,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/multi_farm.py",
-          "scope": "instantiate_farm_from_template",
-          "statement_kind": "INSERT",
-          "static_sql_sha256": "40846453dfc9b380b82e50aff114aae1a1b613fd4792a8e7d036db2d1170738f"
-        }
-      ],
+      "candidate_write_sites": [],
       "migration_boundary": {
         "configured": null,
         "expected": null,
@@ -3429,7 +3331,7 @@
         "update": true
       },
       "relation": "farm",
-      "review_status": "source_and_caller_review_required",
+      "review_status": "write_target_not_confirmed_in_static_site_inventory",
       "static_candidate_source_files": [
         "services/analytics/multi_farm.py"
       ]
@@ -4465,17 +4367,6 @@
           "scope": "join_group_buy",
           "statement_kind": "INSERT",
           "static_sql_sha256": "2c53966debdfcaf6f87652d62092cd4b274bcf02dc68bdf0c2c6033794dbaae5"
-        },
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/procurement.py:238:4",
-          "line": 238,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/procurement.py",
-          "scope": "join_group_buy",
-          "statement_kind": "UPDATE",
-          "static_sql_sha256": "4561693ac8048d142ca9e6c30d03591383c0c30ae1c4f65c08af1a1a133168ab"
         }
       ],
       "migration_boundary": {
@@ -5421,17 +5312,6 @@
       "candidate_write_sites": [
         {
           "expression_kind": "literal",
-          "id": "services/analytics/governance_proposals.py:200:8",
-          "line": 200,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/governance_proposals.py",
-          "scope": "record_review",
-          "statement_kind": "INSERT",
-          "static_sql_sha256": "380089c7ecae85171d697995847184fcc80b0498728e775d5575cd90809d1827"
-        },
-        {
-          "expression_kind": "literal",
           "id": "services/analytics/stakeholders.py:61:8",
           "line": 61,
           "method": "execute",
@@ -6148,17 +6028,6 @@
           "scope": "add_factor",
           "statement_kind": "INSERT",
           "static_sql_sha256": "8485cb5a040a5f1c08569bebbb6b1b4afb347872fea9b0dc303a61eca250c2aa"
-        },
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/pestel.py:109:8",
-          "line": 109,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/pestel.py",
-          "scope": "add_factor",
-          "statement_kind": "UPDATE",
-          "static_sql_sha256": "9aec22283aa2137729156bed1669d488680e20b6b84d4dabf50a2c43d0d041d9"
         }
       ],
       "migration_boundary": {
@@ -9023,17 +8892,6 @@
         },
         {
           "expression_kind": "literal",
-          "id": "services/analytics/strategy_consultation.py:40:8",
-          "line": 40,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/strategy_consultation.py",
-          "scope": "submit_response",
-          "statement_kind": "INSERT",
-          "static_sql_sha256": "9447fc178a6f21bbdbfd73e0536203757fee31980e36497680e11b40f5df42ca"
-        },
-        {
-          "expression_kind": "literal",
           "id": "services/analytics/strategy_consultation.py:55:8",
           "line": 55,
           "method": "execute",
@@ -9074,17 +8932,6 @@
           "scope": "submit_response",
           "statement_kind": "INSERT",
           "static_sql_sha256": "9447fc178a6f21bbdbfd73e0536203757fee31980e36497680e11b40f5df42ca"
-        },
-        {
-          "expression_kind": "literal",
-          "id": "services/analytics/strategy_consultation.py:55:8",
-          "line": 55,
-          "method": "execute",
-          "operation_refs": [],
-          "path": "services/analytics/strategy_consultation.py",
-          "scope": "synthesize_consultation",
-          "statement_kind": "UPDATE",
-          "static_sql_sha256": "567c42d57b1ca5491e07ef080c5feee8f0193c1eb99ce0a14e065f6c49c869a4"
         }
       ],
       "migration_boundary": {
@@ -10624,20 +10471,22 @@
     }
   ],
   "result": "inventory",
-  "scope": "Unprotected public ordinary/partitioned relations with an analytics-package INSERT/UPDATE/DELETE candidate, joined to generated runtime SQL sites.",
+  "scope": "Unprotected public ordinary/partitioned relations with an analytics-package INSERT/UPDATE/DELETE/MERGE target candidate, joined to generated runtime SQL sites.",
   "summary": {
     "candidate_sites": 425,
-    "relations": 275,
-    "relations_missing_matching_sql_site": [],
-    "relations_with_declared_boundary": 0,
+    "relations": 274,
+    "relations_missing_matching_sql_site": [
+      "farm"
+    ],
+    "relations_with_declared_boundary": 1,
     "sites_by_expression_kind": {
       "fstring": 21,
-      "literal": 416
+      "literal": 404
     },
     "sites_by_statement": {
       "DELETE": 9,
-      "INSERT": 277,
-      "UPDATE": 151
+      "INSERT": 272,
+      "UPDATE": 144
     },
     "source_files": 89
   }

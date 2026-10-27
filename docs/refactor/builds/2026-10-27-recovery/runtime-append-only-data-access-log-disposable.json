@@ -1,0 +1,18 @@
+{
+  "append_only_data_access_log": {
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "select_and_insert_allowed": true,
+    "stale_column_grants_removed": true,
+    "update_delete_truncate_denied": true
+  },
+  "bounded_gateway_function_behavior": "not exercised; source migrations are not installed",
+  "column_level_privilege_regression_detected": true,
+  "database_scope": "temporary container, empty database, synthetic relation definitions",
+  "engine": "PostgreSQL 16, pinned postgis image",
+  "mutation_only_tables_select_only": 12,
+  "private_tables_without_runtime_access": 79,
+  "result": "passed",
+  "tables_exercised": 92,
+  "timestamp": "2026-10-27T05:11:43Z"
+}

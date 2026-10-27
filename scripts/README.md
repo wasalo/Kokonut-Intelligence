@@ -18,6 +18,7 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 | `seed-pilot.sh` | Load pilot farm data (`*_pilot_*.sql` seeds + CRISP + alignment + dashboards) | Manual, CI |
 | `check-agent-safety-superuser-disposable.py` | Exercise migration 598 worker/admin lifecycle guards on network-disabled temporary PostgreSQL | CI, manual |
 | `check-credit-adjustment-worker-disposable.py` | Exercise migration 599 signed, location-scoped, read-only credit-adjustment checks on temporary PostgreSQL; a 180-second startup bound is the default; optional `--platform linux/arm64 --startup-timeout 360` runs the focused contract under QEMU | CI, manual |
+| `check-runtime-scoped-write-boundary-disposable.py` | Exercise migration-declared runtime table/column ACLs and the provisioner's post-compatibility reapplication on empty disposable PostgreSQL; ARM64 defaults to the repository's local `kokonut-kernel-postgis-arm64:local` image; optional `--image` overrides it | Manual |
 | `seed-metabase.sh` | Configure Metabase with database connection (prints manual setup instructions) | Manual |
 
 ## Metric Computation

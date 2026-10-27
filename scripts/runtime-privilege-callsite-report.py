@@ -25,17 +25,34 @@ _REVOKE = re.compile(
 )
 _PUBLIC_RELATION = re.compile(r"\bpublic\.(?:\"([^\"]+)\"|([a-zA-Z_][\w$]*))")
 _DML_PRIVILEGES = {"INSERT", "UPDATE", "DELETE", "TRUNCATE"}
+_TABLE_DML_PRIVILEGES = {"INSERT", "UPDATE", "DELETE"}
 _RUNTIME_POLICY_NAMES = {
     "private": "_RUNTIME_PRIVATE_TABLES",
     "mutations": "_RUNTIME_MUTATION_TABLES",
+    "append_only": "_RUNTIME_APPEND_ONLY_TABLES",
 }
-# This append-only event ledger intentionally restores only SELECT after its
-# migration revokes ALL; the dedicated trigger owner remains the sole writer.
+# The role provisioner recognizes append-only audit ledgers separately from
+# fully read-only relations; the farm-activity operator event remains a
+# trigger-owned, read-only exception.
 _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # The migration revokes table-wide access, then restores a verified read-only
     # column allowlist for API-key authentication.
     "api_key": "read_only_column_allowlist",
     "farm_activity_operator_event": "runtime_mutations_denied",
+    "advisory_rule": "runtime_mutations_denied",
+    "crop_family": "runtime_mutations_denied",
+    "crop_nutrient_removal_factor": "runtime_mutations_denied",
+    "certification_type": "runtime_mutations_denied",
+    "cooperative_type": "runtime_mutations_denied",
+    "dfs_insurance_product_type": "runtime_mutations_denied",
+    "evidence_maturity_level": "runtime_mutations_denied",
+    "sensor_type": "runtime_mutations_denied",
+    "waste_type": "runtime_mutations_denied",
+    "disposal_method": "runtime_mutations_denied",
+    "graph_node_type": "runtime_mutations_denied",
+    "graph_edge_type": "runtime_mutations_denied",
+    "data_access_log": "runtime_append_only_read_insert",
+    "access_audit_log": "runtime_append_only_read_insert",
 }
 
 
@@ -113,10 +130,19 @@ def _runtime_role_boundaries() -> tuple[dict[str, str], str]:
         raise ValueError("runtime-role source lacks an explicit scoped denial list")
     if values[_RUNTIME_POLICY_NAMES["private"]] & values[_RUNTIME_POLICY_NAMES["mutations"]]:
         raise ValueError("runtime-role private and mutation-only lists overlap")
+    if (
+        values[_RUNTIME_POLICY_NAMES["append_only"]]
+        & (values[_RUNTIME_POLICY_NAMES["private"]] | values[_RUNTIME_POLICY_NAMES["mutations"]])
+    ):
+        raise ValueError("runtime-role append-only list overlaps another policy list")
 
     denials = {
         **{table: "no_direct_runtime_access" for table in values[_RUNTIME_POLICY_NAMES["private"]]},
         **{table: "runtime_mutations_denied" for table in values[_RUNTIME_POLICY_NAMES["mutations"]]},
+        **{
+            table: "runtime_append_only_read_insert"
+            for table in values[_RUNTIME_POLICY_NAMES["append_only"]]
+        },
     }
     provisioner = functions.get("provision_runtime_role")
     provisioner_calls = {
@@ -152,6 +178,7 @@ def _expected_runtime_denial(revokes: list[dict[str, str]]) -> str | None:
 
 def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, Any]:
     """Cross-reference observed ACLs, static SQL candidates and explicit revokes."""
+    expected_schema_files = len(list((ROOT / "schemas/postgres").glob("*.sql")))
     replay = probe
     scoped_probe = probe.get("operator_scope_probe")
     if isinstance(scoped_probe, dict):
@@ -190,12 +217,17 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
     scoped_write = probe.get("runtime_scoped_write_policy")
     expected_scoped_write = {
         "private_relations_expected": 79,
-        "mutation_denied_relations_expected": 12,
+        "mutation_denied_relations_expected": 24,
         "private_relations_verified": 79,
-        "mutation_denied_relations_verified": 12,
+        "mutation_denied_relations_verified": 24,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
+        "append_only_relations_expected": 2,
+        "append_only_relations_verified": 2,
+        "append_only_select_insert_verified": 2,
+        "append_only_mutations_denied": 2,
+        "append_only_column_grants_denied": 2,
     }
     runtime_role_acl_checks_passed = (
         isinstance(scoped_write, dict)
@@ -211,9 +243,18 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         "delete": False,
         "verified_by_provisioner": True,
     }
+    append_only_policy = probe.get("runtime_append_only_policy")
+    append_only_boundary_passed = append_only_policy == {
+        "relations_expected": 2,
+        "relations_verified": 2,
+        "select_insert_verified": 2,
+        "mutations_denied": 2,
+        "column_grants_denied": 2,
+        "verified_by_provisioner": True,
+    }
     full_schema_replay_passed = (
         replay.get("result") == "passed"
-        and replay.get("schema_files_applied") == 642
+        and replay.get("schema_files_applied") == expected_schema_files
         and replay.get("schema_files_pending") == 0
         and replay.get("schema_files_failed") == 0
         and replay.get("seeds_applied") == 0
@@ -236,6 +277,30 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         if expected_boundary is None:
             expected_boundary = _expected_runtime_denial(dml_revokes)
         configured_boundary = runtime_boundaries.get(name)
+        revoked_dml_privileges: set[str] = set()
+        for revoke in dml_revokes:
+            tokens = {token.strip().upper() for token in revoke["privileges"].split(",")}
+            if tokens & {"ALL", "ALL PRIVILEGES"}:
+                revoked_dml_privileges.update(_TABLE_DML_PRIVILEGES)
+            else:
+                revoked_dml_privileges.update(
+                    _TABLE_DML_PRIVILEGES.intersection(tokens)
+                )
+        effective_dml_privileges = {
+            privilege
+            for privilege in _TABLE_DML_PRIVILEGES
+            if row.get(privilege.lower()) is True
+        }
+        # data_access_log restores INSERT after a migration-level REVOKE ALL;
+        # its only intended runtime DML privilege is the append operation.
+        policy_allowed_dml = (
+            {"INSERT"}
+            if expected_boundary == "runtime_append_only_read_insert"
+            else set()
+        )
+        effective_dml_revokes = sorted(
+            (effective_dml_privileges & revoked_dml_privileges) - policy_allowed_dml
+        )
         output_rows.append({
             "relation": name,
             "kind": row.get("kind"),
@@ -258,7 +323,9 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             ],
             "explicit_runtime_revokes": source_revokes,
             "explicit_runtime_dml_revokes": dml_revokes,
-            "dml_overlaps_explicit_revoke": bool(dml and dml_revokes),
+            "effective_dml_privileges": sorted(effective_dml_privileges),
+            "effective_dml_revokes": effective_dml_revokes,
+            "dml_overlaps_explicit_revoke": bool(effective_dml_revokes),
             "expected_runtime_boundary": expected_boundary,
             "configured_runtime_boundary": configured_boundary,
             "runtime_boundary_policy_matches_source": (
@@ -293,7 +360,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
     ]
     unprotected_overlapping = [
         row["relation"] for row in unprotected_dml
-        if row["explicit_runtime_dml_revokes"]
+        if row["dml_overlaps_explicit_revoke"]
     ]
     write_relations_by_service: dict[str, set[str]] = defaultdict(set)
     for row in unprotected_dml:
@@ -338,6 +405,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "scoped_acl_checks_passed": runtime_role_acl_checks_passed,
             "scoped_acl_summary": scoped_write if isinstance(scoped_write, dict) else None,
             "api_key_column_boundary_passed": api_key_boundary_passed,
+            "append_only_audit_ledgers_boundary_passed": append_only_boundary_passed,
             "target_scope": "isolated disposable database only",
             "production_or_candidate_state_established": False,
         },

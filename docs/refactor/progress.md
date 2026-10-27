@@ -1,3 +1,441 @@
+### Progress addendum — C1 capability-access audit ledger ACL — 27 October 2026
+
+Source review found `AuditLogger` inserts and queries `access_audit_log`; no
+service, extension, script, or CLI writer updates or deletes audit entries. The
+sandbox policy also explicitly denies access to this table. Migration 662 now
+removes runtime table and residual column privileges, restores SELECT/INSERT
+only, and documents that cleanup requires separately authorized administration
+under a configured retention policy. Runtime-role provisioning reapplies the
+same ACL after compatibility grants.
+
+Native PostgreSQL 16 and ARM64/QEMU disposable checks passed migration apply
+and replay, allowed SELECT/INSERT, denied UPDATE/DELETE/TRUNCATE, removal of
+stale SELECT/INSERT/UPDATE/REFERENCES column grants, and reapplication after
+the normal broad compatibility grant. Its ARM64 mode now defaults to the repository’s local ARM64 PostGIS image because the separately pinned upstream digest is AMD64-only. The checker also revalidated the 79
+private relations, 24 mutation-denied relations, and existing append-only
+ledger. The focused migration, role, source-report, ARM64-contract, and
+migration-runner selection passes 126 tests. Candidate and legacy databases
+and actual audit records were untouched.
+
+The source report now records 106 runtime boundaries without policy-mapping
+gaps. The latest full ARM64 schema/two-tenant probe still ends at migration
+660 and reports the earlier 103 boundaries; it predates the graph-type and
+capability-audit migrations, so full-chain acceptance through 662 remains
+open. The 37-minute ARM64/QEMU run stays grouped with the next migration batch.
+No physical Raspberry Pi, retention period, or pruning authorization is
+claimed. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; no MAN-CAP is marked accepted. The checklist
+now records 1,265 complete / 26 open (1,291 total).
+
+Evidence: [migration 662](../schemas/postgres/662_runtime_access_audit_log_append_only.sql),
+[native disposable ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-disposable.json),
+[ARM64 disposable ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-arm64-disposable.json),
+[source privilege report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+[full schema through 660](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json).
+
+### Progress addendum — C1 versioned graph projection type ACL — 27 October 2026
+
+Source review traced `graph_node_type` and `graph_edge_type` writes to the
+versioned schema seed in migration 173; the graph projection worker writes
+projection generations, nodes, and edges, not these type registries. Migration
+661 now removes runtime table and residual column mutation/reference grants,
+restores SELECT, documents migration-managed changes, and makes runtime-role
+provisioning reapply the boundary after compatibility grants.
+
+Native and ARM64/QEMU disposable PostgreSQL checks apply/replay migration 661,
+verify reads succeed and INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES fail, remove
+stale column grants, then confirm the provisioner closes privileges reopened by
+compatibility grants. The 104 exercised relations comprise 79 private, 24
+mutation-denied, and one append-only relation. Focused migration, runtime-role,
+report, ARM64-contract, and migration-runner checks pass 122 tests; Ruff,
+dependency/provider-boundary checks, and SQL inventory freshness pass. No
+candidate or legacy database was touched.
+
+The complete resource-limited ARM64/QEMU schema replay and two-tenant probe
+still ends at migration 660 and verifies 103 declared boundaries. Migration
+661 raises the source-declared count to 105; the two new graph policies are
+covered by focused native and ARM64 checks but not yet by a full-chain probe.
+That 37-minute replay is tracked as an open gate and will be combined with the
+next migration batch. This remains software-portability evidence; no physical
+Raspberry Pi acceptance is claimed. Capability classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows; no MAN-CAP is
+marked accepted. The checklist now records 1,264 complete / 26 open (1,290
+total).
+
+Evidence: [migration 661](../schemas/postgres/661_runtime_graph_projection_types_read_only.sql),
+[native focused ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-disposable.json),
+[ARM64 focused ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-arm64-disposable.json),
+[source policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+[complete schema through 660](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json).
+
+### Progress addendum — native/ARM64 catalog ACLs and full ARM64 replay through 660 — 27 October 2026
+
+After Docker restarted, the combined migration-658–660 ACL acceptance passed
+on native PostgreSQL 16 and ARM64/QEMU PostgreSQL 16. Both focused runs verify
+that the seeded catalog relations remain readable but deny table and column
+mutation, truncate, and REFERENCES; stale column grants are removed, migration
+replay is safe, and the role provisioner reapplies policy after compatibility grants.
+Across 102 relations, the checks cover 79 private relations, 22
+mutation-denied relations, and one append-only relation.
+
+The complete ARM64/QEMU replay then applied all 651 ordered schema files
+through migration 660 with zero pending or failed files. Docker verified a
+1.5 GiB memory/swap cap and two CPUs; the database reported `aarch64`, no OOM
+kill, no seeds or farm data, no published ports, and successful cleanup. The
+updated full-schema operator-scope probe passed all 17 checks against two
+synthetic tenants, verifying 1,511 public relations, the 103 declared runtime
+boundaries, and no direct table/column privilege violations within those
+boundaries. It reports 1,016 public tables with runtime table DML while RLS is
+disabled, so this does not establish universal tenant isolation.
+
+Evidence: [native ACL acceptance](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-disposable.json),
+[ARM64 ACL acceptance](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-arm64-disposable.json),
+[complete ARM64 schema and operator-scope run](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json).
+Candidate and legacy databases were untouched. No capability classification
+or MAN-CAP acceptance changed. This closes the two focused ACL/full-schema
+composite checklist gates, bringing the checklist to 1,263 complete / 25 open
+(1,288 total); capability classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows. Physical Raspberry Pi, production,
+populated-data, external provider/media, and broad runtime database-boundary
+acceptance remain open.
+
+### Historical progress addendum — ARM64 replay preflight before Docker restart — superseded 27 October 2026
+
+The attempted 1.5 GiB/two-CPU ARM64/QEMU replay through migration 657 stopped
+during project-conflict preflight. The run applied zero migrations and did not
+create a container or volume. A read-only `docker info` request did not return;
+the user-owned Docker socket was present with normal ownership and mode, so no
+permission changes were made. The last completed full ARM64 schema replay
+remains through migration 654; focused ACL checks still pass through 657. This
+is an environment gate, not a schema or migration failure. Candidate and legacy
+databases were untouched.
+
+Evidence: [failed preflight attempt](builds/2026-10-27-recovery/arm64-resource-limited-schema-657.json),
+[last full-chain pass](builds/2026-10-27-recovery/arm64-resource-limited-schema-654.json).
+Checklist: 1,258 complete / 26 open (1,284 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Historical progress addendum — C1 source-only reference-catalog status before Docker restart — superseded 27 October 2026
+
+Source review found `evidence_maturity_level`, `sensor_type`, `waste_type`, and
+`disposal_method` are seeded reference catalogs with no application write
+targets. Sensor-reading INSERT statements reference `sensor_type` in lookup
+subqueries; the SQL inventory confirms their DML target is `sensor_reading`.
+Waste workflows store type and method values on `waste_stream`; they do not
+write the separate lookup catalogs. Migrations 658–660 revoke runtime table
+and residual column mutation/reference privileges, restore SELECT, and
+document that catalog changes use reviewed migrations. Runtime-role
+provisioning reapplies these boundaries after compatibility grants. The static
+report now identifies 103 declared boundaries with no missing source policy.
+
+The source, role-report, ARM64-contract, and migration suites pass 121 tests.
+Ruff, Python compilation, runtime/worker SQL inventory checks, dependency and
+provider boundaries, capability matrix validation, and `git diff --check` pass.
+The persisted full-schema ACL probe still ends at migration 657 and shows the
+old grants on the four new catalogs. A read-only Docker daemon query timed out
+after eight seconds, so no disposable PostgreSQL acceptance has run through
+migration 660. Candidate and legacy databases were not contacted.
+
+Evidence: [migration 658](../schemas/postgres/658_runtime_evidence_maturity_read_only.sql),
+[migration 659](../schemas/postgres/659_runtime_sensor_type_read_only.sql),
+[migration 660](../schemas/postgres/660_runtime_waste_reference_catalogs_read_only.sql),
+[disposable ACL checker](../scripts/check-runtime-scoped-write-boundary-disposable.py),
+[static policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+[last full-schema probe](builds/2026-10-27-recovery/runtime-role-full-schema-657-disposable.json).
+Checklist: 1,261 complete / 27 open (1,288 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C2 public OpenAPI export boundary — 27 October 2026
+
+The native public OpenAPI exporter now includes only routes whose registered
+policy is public and read-only. Private versioned routes, including the new
+Baal governance reads, no longer appear in the public contract or its generated
+SDK paths. Export fails closed if a public operation is not GET/read. A new
+regression compares the generated source contract with the checked-in OpenAPI
+snapshot and confirms the private routes stay excluded. The public API,
+Gateway route-policy, and governance-focused selections pass 39 tests. The
+broader Python SDK method/schema/gRPC selection passes 118 tests; JavaScript
+passes 56 and TypeScript passes 35, with both packages building successfully.
+Generated SDK files match the OpenAPI snapshot, and Ruff, Python compilation,
+and schema parity checks pass. No database or provider was contacted. This
+closes the public-snapshot export gap only; it does not close broader
+Gateway/SDK parity.
+
+Evidence: [exporter](../scripts/export_public_api_openapi.py),
+[regression](../tests/test_public_api_openapi.py),
+[public OpenAPI snapshot](native-public-api-v1.openapi.json).
+Checklist: 1,258 complete / 25 open (1,283 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — ARM64/QEMU focused reference-catalog ACL check through 657 — 27 October 2026
+
+The disposable ARM64 PostgreSQL 16 fixture applies and replays migrations
+652–657. It verifies all 18 mutation-denied relations, the 79 private-table
+denials, append-only `data_access_log`, and each shared read-only reference
+policy after compatibility grants are reapplied. The temporary container was
+removed. This is focused QEMU portability evidence; the full ARM64 schema chain
+remains through 654, and no physical Raspberry Pi acceptance is claimed.
+
+Evidence: [focused ARM64 ACL check](builds/2026-10-27-recovery/reference-catalogs-runtime-read-only-arm64-disposable.json).
+Checklist: 1,257 complete / 25 open (1,282 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C1 shared reference-catalog runtime ACL — 27 October 2026
+
+The cooperative-type and DFS insurance-product lookup tables are seeded by
+schema migrations and only read by their service callsites; no service,
+extension, or script writer was found. Migration 657 removes general-runtime
+table and residual column mutation/reference privileges, restores SELECT, and
+the runtime provisioner reapplies the contract after compatibility grants.
+Native and ARM64/QEMU PostgreSQL 16 checks pass migration replay, reads,
+mutation/truncate/reference denial, stale-grant cleanup, and provisioner
+reapplication. A clean native replay of all 648 migrations through 657 passes
+full runtime provisioning and the signed two-tenant context probe. The report
+covers 99 declared boundaries with zero gaps; 1,020 public relations still
+retain effective table DML while RLS is disabled. The 132-test focused suite,
+Ruff, compilation, dependency/provider checks, and SQL/worker inventories pass.
+No candidate or legacy database was used.
+
+Evidence: [migration](../schemas/postgres/657_runtime_reference_catalogs_read_only.sql),
+[native ACL check](builds/2026-10-27-recovery/reference-catalogs-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL check](builds/2026-10-27-recovery/reference-catalogs-runtime-read-only-arm64-disposable.json),
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-657-disposable.json),
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,256 complete / 25 open (1,281 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C1 certification-type reference ACL — 27 October 2026
+
+Source review found the global `certification_type` table is initialized by
+migration 143 and used by analytics/Gateway code for lookup; no application or
+extension writer was found. Migration 656 removes general-runtime table and
+residual column mutation/reference privileges, restores `SELECT`, and the
+runtime provisioner reapplies the same policy after compatibility grants.
+Focused PostgreSQL 16 migration and privilege checks pass on native AMD64 and
+ARM64/QEMU. A clean native replay of all 647 migrations through 656 passes full
+runtime provisioning and the signed two-tenant context probe. The refreshed
+report covers 97 source-declared boundaries with zero gaps; 1,022 public
+relations still retain table DML while RLS is disabled. The 131-test focused
+selection, Ruff, compilation, SQL/worker inventories, dependency/provider
+checks, and matrix validation pass. No candidate or legacy database was used.
+
+Evidence: [migration](../schemas/postgres/656_runtime_certification_type_read_only.sql),
+[native ACL check](builds/2026-10-27-recovery/certification-type-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL check](builds/2026-10-27-recovery/certification-type-runtime-read-only-arm64-disposable.json),
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-656-disposable.json),
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,254 complete / 25 open (1,279 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — ARM64/QEMU focused ACL check through 656 — 27 October 2026
+
+The disposable ARM64 PostgreSQL 16 fixture applies and replays migrations
+652–656. It verifies the 16 mutation-denied tables, all 79 private-table
+denials, append-only `data_access_log`, and read-only advisory, crop-family,
+crop-nutrient, and certification-type policies after broad grants are
+reapplied. The temporary container was removed. This is targeted QEMU
+portability evidence; the full ARM64 chain is through 654, and no physical
+Raspberry Pi acceptance is claimed.
+
+Evidence: [focused ARM64 ACL check](builds/2026-10-27-recovery/certification-type-runtime-read-only-arm64-disposable.json).
+Checklist: 1,255 complete / 25 open (1,280 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C1 crop-nutrient reference ACL and ARM64 portability — 27 October 2026
+
+The source audit found `crop_nutrient_removal_factor` is initialized by schema
+migration 151 and read by the nutrient-budget service, with no application
+writer. Migration 655 now keeps it readable and removes general-runtime table
+and residual column mutation/reference privileges; role provisioning enforces
+the same contract after compatibility grants. The focused PostgreSQL 16 check
+passes apply/replay, read, write-denial, and stale-grant checks. A clean native
+replay of all 646 migrations through 655 passes the provisioner and signed
+two-tenant context probe. The refreshed report covers 96 declared boundaries
+with zero gaps; 1,023 public relations still retain effective table DML while
+RLS is disabled. The 130-test focused selection, Ruff, Python compilation,
+dependency/provider boundaries, SQL/worker inventories, and matrix validation
+pass. Candidate and legacy databases were untouched.
+
+Evidence: [migration](../schemas/postgres/655_runtime_crop_nutrient_removal_factor_read_only.sql),
+[native ACL check](builds/2026-10-27-recovery/crop-nutrient-factor-runtime-read-only-disposable.json),
+[native full-schema probe](builds/2026-10-27-recovery/runtime-role-full-schema-655-disposable.json),
+[source-policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,251 complete / 25 open (1,276 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — resource-limited ARM64/QEMU schema replay through 654 — 27 October 2026
+
+All 645 migration files through migration 654 applied under Docker `linux/arm64`
+QEMU with PostgreSQL limited to 1.5 GiB memory/swap and two CPUs. The replay
+had zero failures or pending migrations, loaded no seeds or farm data, was not
+OOM-killed, and cleaned its temporary resources. This is software portability
+evidence only; the chain has not yet been replayed through migration 655 and no
+physical Raspberry Pi acceptance is claimed.
+
+Evidence: [resource-limited replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-654.json).
+Checklist: 1,252 complete / 25 open (1,277 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — ARM64/QEMU focused runtime ACL acceptance through 655 — 27 October 2026
+
+The isolated ARM64 PostgreSQL check applies and replays migrations 652–655. It
+confirms the 15 mutation-denied relations are read-only after runtime
+provisioning, the 79 private relations remain inaccessible, and all four
+shared reference/audit policies retain their intended read or append-only
+behavior. The container was temporary and removed. No candidate or legacy
+database was touched. This is focused QEMU portability evidence, not a full
+ARM64 replay through 655 or physical-device acceptance.
+
+Evidence: [focused ARM64 ACL check](builds/2026-10-27-recovery/crop-nutrient-factor-runtime-read-only-arm64-disposable.json).
+Checklist: 1,253 complete / 25 open (1,278 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C1 crop-family runtime ACL and ARM64 check — 27 October 2026
+
+Source review found eight analytics SELECT sites for the global
+`crop_family` taxonomy and no application writer after seed initialization.
+Migration 654 and runtime-role provisioning now keep the taxonomy readable but
+deny mutation and REFERENCES grants, including stale column grants after the
+compatibility grant. The focused PostgreSQL check passes natively and on the
+local `linux/arm64` image; a clean native replay of all 645 ordered schemas
+through 654 passes provisioning and the two-tenant signed-context probe.
+The refreshed ACL report has 95 boundaries and no gaps across 1,511 public
+relations; 1,024 relations still have effective table DML while RLS is
+disabled. The 129-test focused selection, Ruff, compilation, source inventory,
+and capability validation pass. Candidate and legacy databases were not used.
+
+Evidence: [migration](../schemas/postgres/654_runtime_crop_family_read_only.sql),
+[native ACL check](builds/2026-10-27-recovery/crop-family-runtime-read-only-disposable.json),
+[ARM64 ACL check](builds/2026-10-27-recovery/crop-family-runtime-read-only-arm64-disposable.json),
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-654-disposable.json),
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+The ARM64 result is Docker/QEMU portability evidence, not Raspberry Pi hardware
+acceptance. Checklist: 1,251 complete / 25 open (1,276 total). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows; MAN-CAP acceptance is unchanged.
+
+### Progress addendum — ARM64 Kernel API under constrained runtime budget — 27 October 2026
+
+The current `Dockerfile.kernel` target builds for `linux/arm64` and starts the
+Gateway API in a disposable container with a verified 512 MiB memory and swap
+ceiling, one CPU, 64-PID limit, no network, read-only root filesystem, and
+64/16 MiB `/tmp` and audit-spool tmpfs mounts. The container runs as the image's
+non-root `appuser`, publishes no ports, and passes Docker health plus a direct
+`/health` request (`status=ok`, `service=gateway`, `audit_capture=ok`). The
+checker removes the uniquely named container and image after the run. It uses
+ARM64 software emulation on an x86_64 Docker host; no Raspberry Pi hardware is
+claimed.
+
+This checks process liveness only: it has no PostgreSQL or provider
+connectivity, and does not establish schema readiness or feature data paths.
+No candidate, legacy, or production database was used. The reusable
+[checker](../scripts/check-kernel-app-resource-disposable.py) and
+[evidence](builds/2026-10-27-recovery/kernel-app-arm64-constrained-runtime.json)
+record the verified Docker limits and cleanup. Ruff, Python compilation, the
+live disposable smoke, and `git diff --check` pass. C7 remains open for the
+remaining optional service images, full ARM64 schema replay through migration
+653, Pi hardware checks, and populated/provider recovery.
+
+Checklist: 1,249 complete / 25 open (1,274 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Progress addendum — ARM64 advisory-rule ACL check — 27 October 2026
+
+The focused disposable ACL checker now accepts an explicit Docker platform and
+image. It passes against `kokonut-kernel-postgis-arm64:local` with
+`linux/arm64`: migration 653 applies and replays, the restricted runtime can
+read synthetic advisory rules but cannot insert, update, delete, or reference
+them, and the provisioner removes simulated broad table and column grants.
+The temporary container was removed; no candidate or legacy database was used
+([checker](../scripts/check-runtime-scoped-write-boundary-disposable.py);
+[evidence](builds/2026-10-27-recovery/advisory-rule-runtime-read-only-arm64-disposable.json)).
+This is a focused ARM64-platform check; full-chain ARM64 schema evidence still
+covers migrations through 652, and no physical Raspberry Pi acceptance is
+claimed. Checklist: 1,248 complete / 25 open (1,273 total). Capability
+classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — read-only shared advisory rules — 27 October 2026
+
+Migration 653 now makes `advisory_rule` read-only for `kokonut_runtime`. Source
+review found the application reads this shared reference table while producing
+recommendations; no direct application SQL writer was found, and default rows
+are added by seed/admin processes. Live Directus/UI mutation behavior was not
+tested. Runtime provisioning reasserts the policy after its
+compatibility grants. The focused PostgreSQL 16 check applies and replays the
+migration, verifies `SELECT`, rejects table and column writes plus
+`REFERENCES`, and confirms the provisioner restores the same policy after
+synthetic broad grants. A clean replay of all 644 migrations through 653 passed
+runtime-role provisioning and the two-tenant signed-context probe. It covered
+1,511 public relations and 94 declared runtime boundaries with zero gaps; the
+runtime DML/RLS-disabled count decreased from 1,026 to 1,025. No seeds, farm
+data, candidate, legacy service, or production database were used, and all
+disposable resources were removed
+([migration](../schemas/postgres/653_runtime_advisory_rule_read_only.sql);
+[focused acceptance](builds/2026-10-27-recovery/advisory-rule-runtime-read-only-disposable.json);
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-653-disposable.json);
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
+
+The target-aware analytics inventory now reports 274 candidate ACL relations
+and 425 write-target sites across 89 files; `advisory_rule` is no longer an
+unprotected write candidate. Source review traced the `farm` occurrence to an
+analytics `INSERT ... SELECT` source; its full writer set and optional Directus
+behavior are not established, so privileges remain unchanged. The focused
+127-test selection, Ruff, compilation, and inventory checks pass. C1 remains
+open because broad runtime DML and non-universal RLS remain. Rollback keeps
+migration 653; restoring runtime writes requires a separately reviewed forward
+migration. Checklist: 1,247 complete / 25 open (1,272 total). Capability
+classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — target-aware analytics write inventory — 27 October 2026
+
+The C1 analytics write inventory previously joined every relation mentioned in
+a DML statement to its write classification. That treated tables read by
+`INSERT ... SELECT` as writes: `advisory_rule` and `farm` appeared to be runtime
+write candidates even though the current statements insert into other tables
+and only read those sources. Runtime SQL inventory version 2 now records a
+separate, conservative target list for simple leading INSERT/UPDATE/DELETE/
+MERGE statements; relation references remain available for read and audit
+review. The analytics join uses target lists, retains ACL candidates without a
+confirmed source target, and labels them for manual review rather than dropping
+them.
+
+The refreshed inventory retains 275 ACL candidate relations and records 425
+write-target sites across 89 analytics source files. `advisory_rule` and `farm`
+are the two unmatched candidates; no grant or database change was made. Thirteen
+focused tests pass, as do Ruff, Python compilation, inventory freshness,
+dependency/provider boundary checks, capability validation, and diff checks
+([inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json);
+[SQL scanner](../scripts/worker_sql_inventory.py);
+[candidate join](../scripts/runtime-analytics-write-candidate-inventory.py)).
+This improves review precision but does not reduce the remaining broad runtime
+DML or establish caller authorization. Checklist: 1,246 complete / 25 open
+(1,271 total); capability classifications are unchanged.
+
+### Progress addendum — full encrypted checkpoint and database restore — 27 October 2026
+
+The isolated recovery rehearsal applied all 643 ordered migrations through 652,
+inserted a synthetic sentinel, invoked the repository's `kernel-checkpoint.sh`,
+and restored the age-encrypted database archive into a fresh `template0`
+database after applying the documented NOLOGIN role prerequisites. The restored
+migration count, ordered migration/checksum fingerprint, latest migration, and
+sentinel all matched the source. No plaintext dump was written to disk, and the
+unique source/restore projects, their networks and volumes, and temporary
+checkpoint were removed. No seeds, farm data, candidate/legacy service, or
+provider were used.
+
+The first restore exposed PostgreSQL's default `max_locks_per_transaction`
+budget as insufficient for the full schema when `pg_restore` uses one atomic
+transaction. The standalone recovery Compose target now sets a 4096 lock budget;
+normal application Compose is unchanged. The corrected full restore passed
+([checker](../scripts/check-kernel-checkpoint-restore-disposable.py);
+[recovery procedure](recovery-preparation.md);
+[evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json)).
+This synthetic single-database result does not establish populated-data, external
+media/provider, R2, whole-platform, constrained-resource, production RPO/RTO, or
+24-hour recovery acceptance. Capability classifications are unchanged. The
+checklist now records 1,245 complete / 25 open (1,270 total).
+
 ### Sprint tenant and identity acceptance — 26 October 2026
 
 On clean source `020a5279`, an isolated PostGIS replay applied all 642 ordered
@@ -19879,3 +20317,162 @@ validation, and diff checks pass. No database or provider was used. Evidence:
 Checklist: 1,238 complete / 25 open (1,263 total). Capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changes.
+
+### Progress addendum — append-only runtime audit boundary, 27 October 2026
+
+Migration 652 and runtime-role provisioning now enforce the existing
+`data_access_log` append-only contract. The ordered migration removes table
+and stale column grants, then grants only `SELECT` and `INSERT`. Provisioning
+reapplies and verifies that contract after compatibility grants. Disposable
+PostgreSQL 16 acceptance confirms migration replay, read/append success,
+update/delete/truncate denial, and removal of stale column ACLs.
+
+A clean native replay applied all 643 ordered migrations through 652 and passed
+the full role provisioner and two-tenant signed-context probe. It loaded no
+seeds or farm data, cleaned up successfully, and did not touch candidate or
+legacy services. The refreshed policy report covers 1,511 relations and 93
+declared boundaries with zero gaps. Its 1,026 table-level DML/RLS-disabled
+count includes the intended insert-only audit ledger; it does not mean all
+1,026 relations allow UPDATE or DELETE. The analytics candidate inventory
+still identifies 275 relations / 425 sites / 89 source files for caller-scope
+review; one relation now has a declared boundary. C1 is not complete.
+
+The focused selection passes 176 tests and 63 subtests. Ruff, Python
+compilation, runtime-SQL inventory freshness, dependency/provider boundary
+checks, capability-matrix validation, and `git diff --check` pass. Rollback can
+revert application code while retaining migration 652 and the provisioner
+policy; reversing the append-only grant requires a separately reviewed
+forward migration. No candidate or production rollout occurred. Evidence:
+[migration](../schemas/postgres/652_runtime_append_only_data_access_log.sql),
+[isolated ACL acceptance](builds/2026-10-27-recovery/runtime-append-only-data-access-log-disposable.json),
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-disposable.json),
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics candidates](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+
+Checklist: 1,239 complete / 25 open (1,264 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — current schema portability on ARM64, 27 October 2026
+
+The repository's isolated schema replay harness successfully applied all 643
+ordered migration files through 652 to PostgreSQL/PostGIS under Docker
+`linux/arm64` QEMU. It recorded zero failed or pending migrations, applied no
+seeds, published no host ports, and cleaned up the disposable Compose project.
+The target database image is `kokonut-kernel-postgis-arm64:local`, platform
+`linux/arm64`, image ID
+`sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296`.
+The replay took 1,624 seconds on the Docker host. It touched neither candidate
+nor legacy data. This proves schema replay portability under emulation only;
+it does not prove a physical Raspberry Pi, full application image/profile
+builds, resource-constrained operation, or backup/restore acceptance.
+
+Evidence: [ARM64 schema replay](builds/2026-10-27-recovery/arm64-schema-652-disposable.json)
+and [replay harness](../scripts/check-arm64-schema-replay.py). The C7 gate
+remains open for ARM64 application/profile builds, constrained CPU/memory
+checks, and synthetic backup/restore rehearsal. No capability classification
+or MAN-CAP acceptance changed.
+
+Checklist: 1,240 complete / 25 open (1,265 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — Kernel application ARM64 build and smoke, 27 October 2026
+
+The current `Dockerfile.kernel` target built successfully for both
+`linux/amd64` and `linux/arm64` into a temporary OCI archive. The release-input
+validator confirmed the image index and matching versions for all 72 locked
+Python packages. A separately loaded ARM64 image ran under QEMU in an offline,
+read-only container with a 64 MiB `/tmp`; the smoke imported the Gateway
+factory, process supervisor, and migration-652 runtime-role policy, confirmed
+the `aarch64` architecture, and verified the no-worker process plan contains
+only the API. It made no database or provider calls. The archive and loaded
+image were removed after capture. No service was started, published, or
+deployed, and candidate/legacy state was untouched.
+
+Evidence: [build and runtime smoke](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json).
+C7 remains open for ClickHouse-superset and Compose profile builds, constrained
+CPU/memory operation, and synthetic backup/restore. QEMU does not close
+physical Raspberry Pi power-loss, thermal, performance, or endurance checks.
+No capability classification or MAN-CAP acceptance changed.
+
+Checklist: 1,241 complete / 25 open (1,266 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — optional ClickHouse and ARM64 profile configuration, 27 October 2026
+
+The optional ClickHouse-superset Kernel image also built for both AMD64 and
+ARM64. The release-input validator confirmed all 75 locked package versions
+match across the two architectures. A local ARM64/QEMU image smoke imported
+`clickhouse_connect` 1.10.0 and confirmed the API-only process plan in a
+network-disabled, read-only container with 64 MiB of temporary storage; it
+made no database or ClickHouse connection. The image and OCI archive were
+removed after acceptance.
+
+The ARM64 Compose selections for minimal, edge, standard, and analytics all
+pass `config --quiet` with synthetic placeholder values, without creating
+containers. Evidence is consolidated with the [base Kernel multiarch build and
+smoke](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json). Optional
+service image combinations, constrained CPU/memory operation, and synthetic
+backup/restore remain open, as does physical-device validation. No capability
+classification or MAN-CAP acceptance changed.
+
+Checklist: 1,242 complete / 25 open (1,267 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+
+### Progress addendum — resource-limited current ARM64 schema replay, 27 October 2026
+
+The current 643-migration schema chain through migration 652 now passes on
+Docker linux/arm64/QEMU with the isolated PostgreSQL container capped at
+1.5 GiB memory, an equal swap ceiling, and two CPUs. The harness sets these
+limits on the unstarted disposable container and verifies Docker's effective
+HostConfig before the replay. All migrations applied with zero pending or
+failed, no seeds, and no OOM kill. The replay took 1,663.4 seconds and cleaned
+up its temporary container, network, and volume. Docker reached the two-CPU
+ceiling in samples while memory remained below 252 MiB. This is a bounded
+software check, not a performance benchmark or Raspberry Pi hardware result.
+Evidence: [resource-limited replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-652.json).
+
+The replay harness now accepts optional `--memory-limit` and `--cpu-limit`
+arguments and records both requested and Docker-verified limits. On Docker
+Desktop, the memory swap cap must be set alongside memory; it is set equal to
+the requested memory budget to disable additional swap. Python compilation,
+CLI help, valid/invalid budget parsing, `git diff --check`, and the capability
+matrix validator pass.
+
+The candidate and legacy stacks were untouched; no seeds or farm data were
+loaded. Kernel app resource limits, remaining optional service-image
+combinations, synthetic backup/restore, and physical device acceptance remain
+open. No capability classification or MAN-CAP acceptance changed.
+
+Checklist: 1,243 complete / 25 open (1,268 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+
+### Progress addendum — synthetic encrypted backup/restore primitives, 27 October 2026
+
+A reusable offline checker now exercises a synthetic two-row PostgreSQL
+round-trip. It streams `pg_dump` directly into age encryption, stores only the
+ciphertext temporarily, rejects a wrong decryption identity, streams the valid
+archive directly into `pg_restore`, and compares the restored rows in a fresh
+`template0` database. Both containers use separate uniquely labeled volumes,
+`--network none`, no published ports, and a pinned PostgreSQL/PostGIS image;
+all resources and temporary files were removed. The archive checksum and byte
+count are recorded without recording the age identity path or any secret.
+
+Python compilation, Ruff, CLI help, the live synthetic round-trip, wrong-key
+rejection, evidence assertions, cleanup inspection, capability validation, and
+`git diff --check` pass. Evidence: [synthetic backup/restore](builds/2026-10-27-recovery/kernel-synthetic-backup-restore.json); checker: [check-kernel-backup-restore-disposable.py](../scripts/check-kernel-backup-restore-disposable.py).
+
+This tests streaming backup/restore primitives only. It does not call
+`kernel-checkpoint.sh`, restore the full schema/role prerequisites, validate
+provider/media state, or establish a production recovery point. Candidate and
+legacy data were untouched; no seeds or farm records were used. The full
+recovery procedure, R2 transfer, and physical Raspberry Pi behavior remain
+open. No capability classification or MAN-CAP status changed.
+
+Checklist: 1,244 complete / 25 open (1,269 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

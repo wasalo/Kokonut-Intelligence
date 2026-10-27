@@ -856,6 +856,100 @@ def _apply_farm_activity_operator_event_boundary(
     return {"installed": True, "select": True, "insert": False, "update": False, "delete": False}
 
 
+def _apply_runtime_append_only_boundary(
+    cur, runtime_ident: sql.Identifier
+) -> dict[str, object]:
+    """Retain read/append access while removing runtime mutation privileges."""
+    installed: dict[str, bool] = {}
+    for table in _RUNTIME_APPEND_ONLY_TABLES:
+        cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+        if cur.fetchone()[0] is None:
+            installed[table] = False
+            continue
+
+        table_ident = sql.Identifier("public", table)
+        cur.execute(
+            sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
+                table_ident, runtime_ident
+            )
+        )
+        cur.execute(
+            "SELECT attname FROM pg_attribute "
+            "WHERE attrelid = %s::regclass AND attnum > 0 AND NOT attisdropped",
+            (f"public.{table}",),
+        )
+        columns = [row[0] for row in cur.fetchall()]
+        for column in columns:
+            for privilege in ("SELECT", "INSERT", "UPDATE", "REFERENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                        sql.SQL(privilege),
+                        sql.Identifier(column),
+                        table_ident,
+                        runtime_ident,
+                    )
+                )
+        cur.execute(
+            sql.SQL("GRANT SELECT, INSERT ON TABLE {} TO {}").format(
+                table_ident, runtime_ident
+            )
+        )
+        installed[table] = True
+
+    return {
+        "installed": any(installed.values()),
+        "relations": installed,
+        "select": True,
+        "insert": True,
+        "update": False,
+        "delete": False,
+        "truncate": False,
+        "references": False,
+        "trigger": False,
+        "column_privileges": "none; table-level SELECT and INSERT only",
+    }
+
+
+def _verify_runtime_append_only_boundary(cur, role_name: str) -> None:
+    """Verify exact table rights and that stale per-column grants were removed."""
+    for table in _RUNTIME_APPEND_ONLY_TABLES:
+        cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+        if cur.fetchone()[0] is None:
+            continue
+        privileges = ("SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER")
+        cur.execute(
+            "SELECT " + ", ".join(
+                "has_table_privilege(%s, %s, %s)" for _ in privileges
+            ),
+            tuple(
+                value
+                for privilege in privileges
+                for value in (role_name, f"public.{table}", privilege)
+            ),
+        )
+        if cur.fetchone() != (True, True, False, False, False, False, False):
+            raise RuntimeError(
+                f"{role_name} has unexpected privileges on append-only {table}"
+            )
+        cur.execute(
+            """SELECT EXISTS (
+                   SELECT 1
+                     FROM pg_attribute AS column_row
+                     CROSS JOIN LATERAL aclexplode(column_row.attacl) AS privilege
+                    WHERE column_row.attrelid = %s::regclass
+                      AND column_row.attnum > 0
+                      AND NOT column_row.attisdropped
+                      AND privilege.grantee = (SELECT oid FROM pg_roles WHERE rolname = %s)
+                      AND privilege.privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES')
+               )""",
+            (f"public.{table}", role_name),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError(
+                f"{role_name} retains column-level grants on append-only {table}"
+            )
+
+
 def _verify_farm_activity_operator_event_boundary(cur, role_name: str) -> None:
     cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
     if cur.fetchone()[0] is None:
@@ -958,6 +1052,18 @@ _RUNTIME_PRIVATE_TABLES = (
 
 _RUNTIME_MUTATION_TABLES = (
     "ai_summary",
+    "advisory_rule",
+    "crop_family",
+    "crop_nutrient_removal_factor",
+    "certification_type",
+    "cooperative_type",
+    "dfs_insurance_product_type",
+    "evidence_maturity_level",
+    "sensor_type",
+    "waste_type",
+    "disposal_method",
+    "graph_node_type",
+    "graph_edge_type",
     "delphi_minority_report",
     "farm_activity_operator_event",
     "governance_circle",
@@ -970,6 +1076,9 @@ _RUNTIME_MUTATION_TABLES = (
     "solution_configuration",
     "solution_learning_record",
 )
+
+# Immutable audit evidence keeps SELECT/INSERT under the runtime login.
+_RUNTIME_APPEND_ONLY_TABLES = ("data_access_log", "access_audit_log")
 
 
 def _apply_scoped_write_boundary(
@@ -1005,7 +1114,7 @@ def _apply_scoped_write_boundary(
                         sql.SQL(privilege), table_ident, runtime_ident
                     )
                 )
-            column_privileges = ("INSERT", "UPDATE")
+            column_privileges = ("INSERT", "UPDATE", "REFERENCES")
 
         cur.execute(
             "SELECT attname FROM pg_attribute "
@@ -1072,7 +1181,7 @@ def _verify_scoped_write_boundary(cur, role_name: str) -> None:
         column_privileges = (
             ("SELECT", "INSERT", "UPDATE", "REFERENCES")
             if table in _RUNTIME_PRIVATE_TABLES
-            else ("INSERT", "UPDATE")
+            else ("INSERT", "UPDATE", "REFERENCES")
         )
         column_privilege_sql = " OR ".join(
             "has_column_privilege(%s, %s, attname, %s)"
@@ -2440,6 +2549,9 @@ def provision_runtime_role(
         scoped_write_grants = _apply_scoped_write_boundary(
             cur, runtime_ident
         )
+        append_only_grants = _apply_runtime_append_only_boundary(
+            cur, runtime_ident
+        )
         solution_stage_gate_grants = _apply_solution_stage_gate_boundary(
             cur, runtime_ident
         )
@@ -3346,6 +3458,7 @@ def provision_runtime_role(
         _verify_api_key_boundary(cur, runtime_user)
         _verify_farm_activity_operator_event_boundary(cur, runtime_user)
         _verify_scoped_write_boundary(cur, runtime_user)
+        _verify_runtime_append_only_boundary(cur, runtime_user)
         _verify_solution_stage_gate_boundary(cur, runtime_user)
         _verify_solution_experiment_protocol_boundary(cur, runtime_user)
         _verify_no_runtime_default_privileges(
@@ -3671,6 +3784,11 @@ def provision_runtime_role(
             "mobile_device_enrollment": "explicit column allowlist; no table-wide UPDATE or DELETE",
             "operator_session": "bounded functions only",
             "farm_activity_operator_event": "read-only SELECT; trigger owner appends; no direct write",
+            "data_access_log": "append-only evidence; runtime SELECT and INSERT only",
+            "access_audit_log": (
+                "capability-access audit evidence; runtime SELECT and INSERT only; "
+                "retention cleanup requires separately authorized administration"
+            ),
             "governance circle, role, assignment, tactical item/session and Delphi report writes": (
                 "direct runtime mutations are denied; audited Gateway functions own writes"
             ),
@@ -3687,6 +3805,7 @@ def provision_runtime_role(
         "runtime_api_key_privileges": api_key_grants,
         "runtime_farm_activity_operator_event_privileges": farm_activity_event_grants,
         "runtime_scoped_write_privileges": scoped_write_grants,
+        "runtime_append_only_privileges": append_only_grants,
         "runtime_solution_stage_gate_privileges": solution_stage_gate_grants,
         "runtime_solution_experiment_protocol_privileges": solution_experiment_protocol_grants,
         "farm_activity_event_owner_restored": farm_activity_event_owner_ready,

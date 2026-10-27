@@ -45,7 +45,9 @@ def _scan_source(source: str, path: Path, operation_refs: list[str]) -> list[dic
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=source)
     except (OSError, SyntaxError, UnicodeError) as exc:
         raise ValueError(f"Unable to parse runtime SQL source {source}") from exc
-    visitor = _SQLCallVisitor(source, operation_refs, tree)
+    visitor = _SQLCallVisitor(
+        source, operation_refs, tree, include_write_targets=True
+    )
     visitor.visit(tree)
     for site in visitor.sites:
         site["statement_group"] = _statement_group(site["statement_kind"])
@@ -115,11 +117,12 @@ def build_inventory() -> dict:
         }
 
     return {
-        "version": 1,
+        "version": 2,
         "generated_by": "scripts/runtime_sql_inventory.py",
         "scope": (
             "Direct Python SQL execution calls in services/**/*.py, including API, worker, "
-            "and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. "
+            "and CLI modules. Relation names and simple leading DML targets are regex-derived "
+            "candidates, not a parsed SQL AST. "
             "The scan cannot prove query reachability, ORM/extension/external effects, complete "
             "database access, required columns, or authorization. It is not a grant allowlist."
         ),
@@ -133,6 +136,11 @@ def build_inventory() -> dict:
             "statement_groups": dict(sorted(Counter(site["statement_group"] for site in sites).items())),
             "expression_kinds": dict(sorted(expression_kinds.items())),
             "relation_candidates": len(relations),
+            "write_target_relations": len({
+                relation
+                for site in sites
+                for relation in site.get("write_target_relations", [])
+            }),
             "sites_without_relation_candidates": sum(not site["candidate_relations"] for site in sites),
             "service_packages": len(service_packages),
         },

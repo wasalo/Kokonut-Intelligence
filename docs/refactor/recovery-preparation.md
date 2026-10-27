@@ -55,6 +55,10 @@ volume with no API, workers, host ports or vendor services. Its database image m
 be the checkpoint's recorded image; AMD64 only at this stage. Validate the manifest
 scope, nonempty archive and SHA256 before decryption. The checksum is accidental
 corruption evidence; age authentication supplies ciphertext integrity.
+The recovery server sets `max_locks_per_transaction=4096`: a single-transaction
+restore of the complete Kernel schema exceeds PostgreSQL's default lock budget.
+This setting was verified by the disposable full-checkpoint restore; it does not
+change the normal application database configuration.
 
 1. Load encrypted secrets with scripts/load-secrets.sh. Set
    KOKONUT_RECOVERY_DATABASE_IMAGE to the manifest image identity. Never restore

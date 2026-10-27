@@ -1,32 +1,106 @@
 # Capability preservation matrix
 
-**Runtime-role acceptance update (27 October 2026):** After a clean replay of
-all 642 migrations through 651, full role provisioning and the two-tenant
-operator-context probe pass. The provisioner denies direct runtime access to
-79 private relations and direct mutations on 12 scoped relations, with zero
-direct table/column privilege violations in these groups. It also verifies
-that API-key authentication can read only seven reviewed columns and cannot
-write. The bounded operator-context function still establishes the expected
-signed tenant scope. The refreshed source-policy report covers all 1,511 public
-relations and matches 92 declared runtime boundaries with zero gaps. The
-runtime principal nevertheless retains
-compatibility DML on 1,026 other relations and application-table RLS is not
-universal, so tenant isolation remains incomplete. This disposable result does
-not represent candidate or production state
-([evidence](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json)).
+**Runtime-role acceptance update (27 October 2026):** A clean native replay of
+all 648 ordered migrations through 657 passes full runtime-role provisioning
+and the two-tenant operator-context probe. Focused native and ARM64/QEMU
+disposable PostgreSQL checks pass migrations 658–662, covering 79 private
+relations, 24 mutation-denied relations, two append-only relations, and the
+API-key read-only column policy. The complete 651-file
+schema chain through migration 660 passes on ARM64/QEMU under a verified 1.5
+GiB memory/swap and two-CPU database limit. Its operator-scope probe passes all
+17 checks and verifies 1,511 public relations, 103 then-declared runtime
+boundaries (79 private, 22 mutation-denied, one append-only, and the API-key
+column boundary), and two synthetic tenants with no direct table or column
+privilege violations. Migration 661 adds two graph-type boundaries, bringing
+the source-declared inventory to 105, and migration 662 adds the append-only
+capability-audit boundary, bringing it to 106. These three have focused
+native/ARM64 ACL checks, but are not yet included in a full-schema two-tenant
+probe. The latest
+full probe reports 1,016 relations with table DML while RLS is disabled; this
+is not a count of relations permitting UPDATE/DELETE and underscores that
+broad compatibility DML and non-universal application-table RLS remain. These
+disposable checks are not candidate or production state and do not establish
+universal tenant isolation
+([full ARM64 schema and scope evidence](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json);
+[native focused ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-disposable.json);
+[ARM64 focused ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-arm64-disposable.json);
+[native graph-type ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-disposable.json);
+[ARM64 graph-type ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-arm64-disposable.json);
+[native capability-audit ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-disposable.json);
+[ARM64 capability-audit ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-arm64-disposable.json);
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
+No seeds or farm data were loaded, no ports were published, temporary resources
+were removed, and no physical Raspberry Pi acceptance is claimed; these are
+software-portability results only.
+The current base and ClickHouse-superset Kernel app OCI targets build for
+AMD64/ARM64 with 72 and 75 matching locked Python packages, respectively.
+Offline ARM64 smokes import the Gateway/runtime-role policy and optional
+ClickHouse client, and the minimal, edge, standard, and analytics Compose
+selections validate for ARM64. The current Gateway also passes a no-network
+ARM64 runtime liveness check under verified 512 MiB, one-CPU, 64-PID limits,
+with a read-only root filesystem and bounded writable tmpfs. This checks
+process health only, not schema readiness or database/provider paths. Remaining
+optional service images remain open. The synthetic age-encrypted
+single-database round trip is now supplemented by a successful exercise of the
+repository checkpoint command and role-prerequisite bootstrap, restoring all
+643 migrations through 652 with a matching fingerprint and sentinel. The
+isolated target uses a raised PostgreSQL lock budget for its atomic restore.
+This remains synthetic local evidence, not populated-data, provider/media, R2,
+whole-platform or production RPO/RTO acceptance
+([build/profile evidence](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json);
+[checkpoint/restore evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json)).
+The complete schema through migration 660 now replays on ARM64/QEMU under a
+verified 1.5 GiB memory/swap and two-CPU database budget with all 651 files
+applied, no OOM kill, and successful cleanup; this does not verify constrained
+app operation or Pi hardware
+([resource-limited replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json)).
+See [synthetic backup/restore evidence](builds/2026-10-27-recovery/kernel-synthetic-backup-restore.json).
+The app runtime limit result is recorded in
+[constrained ARM64 runtime evidence](builds/2026-10-27-recovery/kernel-app-arm64-constrained-runtime.json).
 
-**C1 analytics write-candidate inventory (27 October 2026):** A new
-reproducible source-line report joins the refreshed ACL snapshot with the SQL
-execution inventory. It identifies 275 currently unprotected relations, 425
-unique candidate write sites, and 89 analytics source files; all 437
-relation/site associations remain marked for caller/source review. No grants
-were changed. Five focused inventory tests pass, and the report records its
+**C1 analytics write-candidate inventory (27 October 2026):** A reproducible
+source-line report joins the refreshed ACL snapshot with the SQL execution
+inventory. Runtime SQL inventory v2 separates DML targets from source tables
+referenced by the query. It identifies 274 relations with candidate analytics
+writes and 425 target sites identified by the conservative matcher across 89
+source files. `farm` remains the unmatched candidate because current INSERT
+statements only read it. The source-policy report recognizes 106 declared
+runtime boundaries. Focused native/ARM64 disposable checks verify migrations
+658–662; the full ARM64 schema and two-tenant probe currently ends at 660 and
+verifies the earlier 103 boundaries. Migrations 661–662 add three graph-type
+and capability-audit policies covered by focused checks, but not yet by a
+full-chain probe. All candidates remain subject to caller/source review. The
+read-only `advisory_rule`,
+`crop_family`, `crop_nutrient_removal_factor`, and `certification_type` policies
+are recorded in the runtime-role acceptance above. The policy set now also
+covers the shared `cooperative_type` and `dfs_insurance_product_type` catalogs.
+The `evidence_maturity_level`, `sensor_type`, `waste_type`, `disposal_method`,
+`graph_node_type`, and `graph_edge_type` policies are applied and read-only on
+native and ARM64 disposable PostgreSQL through migration 661. The
+`access_audit_log` policy permits runtime SELECT/INSERT only through migration
+662; retention and cleanup remain separately configured and authorized.
+Thirteen focused inventory tests pass, and the report records its
 heuristic limits
 ([inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json);
 [generator](../scripts/runtime-analytics-write-candidate-inventory.py)).
 Source review also corrected the portability fulfillment audit to insert the
 export event into the migration-defined `data_access_log` with an allowed
 status; its write remains atomic with the request update.
+
+**C2 public OpenAPI export boundary (27 October 2026):** The native contract
+exporter now excludes routes whose registered policy is private and accepts
+only public GET/read operations. This keeps versioned but authenticated Gateway
+routes out of the public OpenAPI snapshot and SDK generation input. A regression
+confirms the checked-in snapshot matches current source and omits the private
+Baal governance operations; 39 public API, policy, and governance tests pass.
+The broader Python SDK method/schema/gRPC selection passes 118 tests, the
+JavaScript SDK passes 56, and the TypeScript SDK passes 35; JavaScript and
+TypeScript builds and the generated public SDK freshness check also pass. This
+does not close route-level authorization, all SDK/service parity, or release acceptance
+([exporter](../scripts/export_public_api_openapi.py);
+[regression](../tests/test_public_api_openapi.py)). Checklist: 1,265 complete /
+26 open (1,291 total); capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows.
 
 **Sprint tenant and identity evidence (26 October 2026):** CAP-053's real
 runtime and operator-auth principals passed a two-tenant synthetic forced-RLS
@@ -42,19 +116,20 @@ This advances CAP-053 and the shared workflow prerequisite for CAP-001/CAP-047;
 browser, HTTPS and end-to-end authorization remain open. Classifications and
 MAN-CAP acceptance do not change.
 
-The pre-provisioning relation inventory counted 1,101 ordinary/partitioned
-public tables with effective runtime DML while RLS was disabled. After the real
-provisioner ran, the refreshed full-schema snapshot counts 1,026 such tables.
-The static source comparison covers 91 scoped table policies plus the API-key
-read-only column allowlist, with zero missing or mismatched policy. The
-callsite inventory remains heuristic and is not a complete SQL reachability or
-authorization proof. The migration-installed bootstrap, API-key boundary, and
-bounded operator-context behavior pass on a disposable full-schema database
-(69 focused tests and a 91-table ACL fixture). No candidate or production role
-rollout occurred
+**Historical baseline (26 October 2026):** The pre-provisioning relation
+inventory counted 1,101 ordinary/partitioned public tables with effective
+runtime DML while RLS was disabled. After the provisioner ran, that full-schema
+snapshot counted 1,026 such tables. The static source comparison at that time
+covered 91 scoped table policies plus the API-key read-only column allowlist,
+with zero missing or mismatched policy. The current 27 October results above
+supersede that snapshot. The callsite inventory remains heuristic and is not a
+complete SQL reachability or authorization proof. The migration-installed
+bootstrap, API-key boundary, and bounded operator-context behavior passed on a
+disposable full-schema database. No candidate or production role rollout
+occurred
 ([ACL inventory](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
 [callsite report](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
-The tracker now records 1,238 completed and 25 open checklist items (1,263
+The tracker now records 1,258 completed and 26 open checklist items (1,284
 total); the 67 capability classifications remain 24 baseline-retained, 7
 deployed, and 36 prepared.
 

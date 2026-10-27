@@ -14,10 +14,11 @@ import uuid
 from contextlib import closing
 
 import psycopg2
-from psycopg2 import errors
+from psycopg2 import errors, sql
 
 from services.migration.runtime_role import (
     _API_KEY_COLUMNS,
+    _RUNTIME_APPEND_ONLY_TABLES,
     _RUNTIME_MUTATION_TABLES,
     _RUNTIME_PRIVATE_TABLES,
     provision_runtime_role,
@@ -107,11 +108,69 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         mutation_installed += 1
         if any(has_table_privilege(table, privilege) for privilege in mutation_privileges):
             raise AssertionError(f"runtime login retains table mutation privilege on {table}")
-        if any(has_column_privilege(table, privilege) for privilege in ("INSERT", "UPDATE")):
+        if any(has_column_privilege(table, privilege) for privilege in ("INSERT", "UPDATE", "REFERENCES")):
             raise AssertionError(f"runtime login retains column mutation privilege on {table}")
 
     if not has_table_privilege("farm_activity_operator_event", "SELECT"):
         raise AssertionError("runtime login lost read access to the farm-activity audit ledger")
+    if not relation_exists("advisory_rule") or not has_table_privilege(
+        "advisory_rule", "SELECT"
+    ):
+        raise AssertionError("runtime login lost read access to shared advisory rules")
+    if not relation_exists("crop_nutrient_removal_factor"):
+        raise AssertionError("full schema is missing crop nutrient removal factors")
+    cur.execute("SELECT count(*) FROM public.crop_nutrient_removal_factor")
+    if cur.fetchone()[0] < 1:
+        raise AssertionError("runtime login cannot read seeded crop nutrient factors")
+    if not relation_exists("certification_type"):
+        raise AssertionError("full schema is missing certification types")
+    cur.execute("SELECT count(*) FROM public.certification_type")
+    if cur.fetchone()[0] < 1:
+        raise AssertionError("runtime login cannot read seeded certification types")
+    for table, label in (
+        ("cooperative_type", "cooperative types"),
+        ("dfs_insurance_product_type", "insurance product types"),
+    ):
+        if not relation_exists(table):
+            raise AssertionError(f"full schema is missing {label}")
+        cur.execute(
+            sql.SQL("SELECT count(*) FROM public.{}").format(sql.Identifier(table))
+        )
+        if cur.fetchone()[0] < 1:
+            raise AssertionError(f"runtime login cannot read seeded {label}")
+
+    append_only_verified = 0
+    for table in _RUNTIME_APPEND_ONLY_TABLES:
+        if not relation_exists(table):
+            raise AssertionError(f"full schema is missing append-only runtime relation {table}")
+        expected = {
+            "SELECT": True,
+            "INSERT": True,
+            "UPDATE": False,
+            "DELETE": False,
+            "TRUNCATE": False,
+            "REFERENCES": False,
+            "TRIGGER": False,
+        }
+        observed = {privilege: has_table_privilege(table, privilege) for privilege in expected}
+        if observed != expected:
+            raise AssertionError(f"runtime append-only ACL is unexpected on {table}")
+        cur.execute(
+            """SELECT EXISTS (
+                   SELECT 1
+                     FROM pg_attribute AS column_row
+                     CROSS JOIN LATERAL aclexplode(column_row.attacl) AS privilege
+                    WHERE column_row.attrelid = %s::regclass
+                      AND column_row.attnum > 0
+                      AND NOT column_row.attisdropped
+                      AND privilege.grantee = (SELECT oid FROM pg_roles WHERE rolname = current_user)
+                      AND privilege.privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES')
+               )""",
+            (f"public.{table}",),
+        )
+        if cur.fetchone()[0]:
+            raise AssertionError(f"runtime login retains column-level access on {table}")
+        append_only_verified += 1
 
     return {
         "private_relations_verified": private_installed,
@@ -119,6 +178,11 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
+        "append_only_relations_expected": len(_RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_relations_verified": append_only_verified,
+        "append_only_select_insert_verified": append_only_verified,
+        "append_only_mutations_denied": append_only_verified,
+        "append_only_column_grants_denied": append_only_verified,
     }
 
 
@@ -172,6 +236,11 @@ def run_probe() -> dict[str, object]:
         }
         if api_key_privileges != expected_api_key_privileges:
             raise AssertionError("runtime provisioner returned an unexpected API-key boundary")
+        append_only_privileges = provisioned.get("runtime_append_only_privileges")
+        if not isinstance(append_only_privileges, dict) or append_only_privileges.get(
+            "relations"
+        ) != {table: True for table in _RUNTIME_APPEND_ONLY_TABLES}:
+            raise AssertionError("runtime provisioner returned an incomplete append-only policy")
         with admin.cursor() as cur:
             cur.execute(
                 """SELECT rolname, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
@@ -289,7 +358,13 @@ def run_probe() -> dict[str, object]:
             checks.extend([
                 "runtime provisioner denied direct table and column access to private relations",
                 "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
+                "runtime provisioner keeps shared advisory rules readable but immutable",
+                "runtime can read seeded crop-nutrient removal factors",
+                "runtime can read seeded certification types",
+                "runtime can read seeded cooperative types",
+                "runtime can read seeded insurance product types",
                 "runtime provisioner limited API-key reads to reviewed columns and denied all writes",
+                "runtime can append and read data-access evidence but cannot update, delete, or truncate it",
                 "each real runtime login context sees only its synthetic tenant under forced RLS",
                 "wrong-location denial clears context and tenant-probe visibility",
                 "tenant context is cleared at transaction end",
@@ -317,7 +392,9 @@ def run_probe() -> dict[str, object]:
                          JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
                         WHERE namespace.nspname = 'public' AND relation.relkind IN ('r', 'p')
                           AND NOT relation.relrowsecurity
-                          AND has_table_privilege(current_user, relation.oid, 'INSERT, UPDATE, DELETE')"""
+                          AND (has_table_privilege(current_user, relation.oid, 'INSERT')
+                            OR has_table_privilege(current_user, relation.oid, 'UPDATE')
+                            OR has_table_privilege(current_user, relation.oid, 'DELETE'))"""
                 )
                 unprotected_dml_tables = cur.fetchone()[0]
                 cur.execute(
@@ -396,6 +473,14 @@ def run_probe() -> dict[str, object]:
             "insert_columns": [],
             "update_columns": [],
             "delete": False,
+            "verified_by_provisioner": True,
+        },
+        "runtime_append_only_policy": {
+            "relations_expected": scoped_acl["append_only_relations_expected"],
+            "relations_verified": scoped_acl["append_only_relations_verified"],
+            "select_insert_verified": scoped_acl["append_only_select_insert_verified"],
+            "mutations_denied": scoped_acl["append_only_mutations_denied"],
+            "column_grants_denied": scoped_acl["append_only_column_grants_denied"],
             "verified_by_provisioner": True,
         },
         "runtime_public_relation_acl": runtime_relation_acl,

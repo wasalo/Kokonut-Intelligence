@@ -46,6 +46,7 @@ def test_inventory_links_unprotected_analytics_candidate_to_exact_site():
         "expression_kind": "literal",
         "statement_kind": "INSERT",
         "candidate_relations": ["harvest_event"],
+        "write_target_relations": ["harvest_event"],
         "static_sql_sha256": "a" * 64,
         "operation_refs": ["farm.harvest.record"],
     }
@@ -99,6 +100,47 @@ def test_inventory_links_unprotected_analytics_candidate_to_exact_site():
     }]
     assert row["review_status"] == "source_and_caller_review_required"
     assert any("Do not revoke" in item for item in report["limitations"])
+
+
+def test_inventory_does_not_treat_insert_select_sources_as_write_targets():
+    insert_site = {
+        "id": "services/analytics/advisor.py:371:4",
+        "source": "services/analytics/advisor.py",
+        "line": 371,
+        "scope": "generate_recommendation",
+        "method": "execute",
+        "expression_kind": "literal",
+        "statement_kind": "INSERT",
+        "candidate_relations": ["advisory_recommendation", "advisory_rule"],
+        "write_target_relations": ["advisory_recommendation"],
+        "static_sql_sha256": "c" * 64,
+        "operation_refs": [],
+    }
+    acl_relations = [
+        _acl_relation(
+            relation,
+            source_files=[{
+                "path": "services/analytics/advisor.py",
+                "statement_counts": {"INSERT": 1},
+            }],
+        )
+        for relation in ("advisory_recommendation", "advisory_rule")
+    ]
+    report = INVENTORY["build_inventory"](
+        {"relations": acl_relations},
+        {"execution_sites": [insert_site]},
+    )
+
+    rows = {row["relation"]: row for row in report["relations"]}
+    assert rows["advisory_recommendation"]["candidate_write_sites"]
+    assert rows["advisory_rule"]["candidate_write_sites"] == []
+    assert rows["advisory_rule"]["review_status"] == (
+        "write_target_not_confirmed_in_static_site_inventory"
+    )
+    assert report["summary"]["candidate_sites"] == 1
+    assert report["summary"]["relations_missing_matching_sql_site"] == [
+        "advisory_rule"
+    ]
 
 
 def test_inventory_keeps_candidate_visible_when_line_inventory_has_no_match():

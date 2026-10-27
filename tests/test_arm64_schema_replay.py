@@ -157,12 +157,17 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
         "synthetic_operator_count": 2, "runtime_public_tables_with_dml_and_rls_disabled": 4,
         "runtime_scoped_write_policy": {
             "private_relations_expected": 79,
-            "mutation_denied_relations_expected": 12,
+        "mutation_denied_relations_expected": 24,
             "private_relations_verified": 79,
-            "mutation_denied_relations_verified": 12,
+        "mutation_denied_relations_verified": 24,
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,
+            "append_only_relations_expected": 2,
+            "append_only_relations_verified": 2,
+            "append_only_select_insert_verified": 2,
+            "append_only_mutations_denied": 2,
+            "append_only_column_grants_denied": 2,
         },
         "runtime_api_key_policy": {
             "select_columns": [
@@ -171,6 +176,14 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
             "insert_columns": [],
             "update_columns": [],
             "delete": False,
+            "verified_by_provisioner": True,
+        },
+        "runtime_append_only_policy": {
+            "relations_expected": 2,
+            "relations_verified": 2,
+            "select_insert_verified": 2,
+            "mutations_denied": 2,
+            "column_grants_denied": 2,
             "verified_by_provisioner": True,
         },
     }
@@ -195,6 +208,52 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
         }))
     with pytest.raises(ValueError, match="API-key column boundary"):
         parse_operator_scope_probe(json.dumps({**good, "runtime_api_key_policy": None}))
+    with pytest.raises(ValueError, match="append-only audit boundary"):
+        parse_operator_scope_probe(json.dumps({**good, "runtime_append_only_policy": None}))
+
+
+def test_operator_probe_counts_insert_only_relations_as_effective_dml():
+    good = {
+        "result": "passed",
+        "checks": list(replay_module["OPERATOR_PROBE_CHECKS"]),
+        "synthetic_tenant_count": 2,
+        "synthetic_location_count": 2,
+        "synthetic_operator_count": 2,
+        "runtime_public_tables_with_dml_and_rls_disabled": 1,
+        "runtime_scoped_write_policy": {
+            "private_relations_expected": 79,
+                "mutation_denied_relations_expected": 24,
+            "private_relations_verified": 79,
+                "mutation_denied_relations_verified": 24,
+            "direct_table_privilege_violations": 0,
+            "direct_column_privilege_violations": 0,
+            "farm_activity_ledger_readable": 1,
+            "append_only_relations_expected": 2,
+            "append_only_relations_verified": 2,
+            "append_only_select_insert_verified": 2,
+            "append_only_mutations_denied": 2,
+            "append_only_column_grants_denied": 2,
+        },
+        "runtime_api_key_policy": {
+            "select_columns": ["id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"],
+            "insert_columns": [], "update_columns": [], "delete": False,
+            "verified_by_provisioner": True,
+        },
+        "runtime_append_only_policy": {
+            "relations_expected": 2, "relations_verified": 2,
+            "select_insert_verified": 2, "mutations_denied": 2,
+            "column_grants_denied": 2, "verified_by_provisioner": True,
+        },
+        "runtime_public_relation_acl": [
+            {
+                "schema": "public", "relation": "data_access_log", "kind": "r",
+                "select": True, "insert": True, "update": False, "delete": False,
+                "truncate": False, "rls_enabled": False, "rls_forced": False,
+            }
+        ],
+        "runtime_default_acl": [],
+    }
+    assert parse_operator_scope_probe(json.dumps(good))["result"] == "passed"
 
 
 def test_operator_probe_rejects_non_disposable_database_before_connecting(monkeypatch):
