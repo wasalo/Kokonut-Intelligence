@@ -321,11 +321,6 @@ def run_probe() -> dict[str, object]:
                          JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
                         WHERE namespace.nspname = 'public'
                           AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
-                          AND (has_table_privilege(current_user, relation.oid, 'SELECT')
-                            OR has_table_privilege(current_user, relation.oid, 'INSERT')
-                            OR has_table_privilege(current_user, relation.oid, 'UPDATE')
-                            OR has_table_privilege(current_user, relation.oid, 'DELETE')
-                            OR has_table_privilege(current_user, relation.oid, 'TRUNCATE'))
                         ORDER BY namespace.nspname, relation.relname"""
                 )
                 runtime_relation_acl = [

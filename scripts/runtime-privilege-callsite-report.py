@@ -159,6 +159,27 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
 
     revokes = _source_revokes()
     runtime_denials, runtime_role_sha256 = _runtime_role_denials()
+    scoped_write = probe.get("runtime_scoped_write_policy")
+    expected_scoped_write = {
+        "private_relations_expected": 79,
+        "mutation_denied_relations_expected": 12,
+        "private_relations_verified": 79,
+        "mutation_denied_relations_verified": 12,
+        "direct_table_privilege_violations": 0,
+        "direct_column_privilege_violations": 0,
+        "farm_activity_ledger_readable": 1,
+    }
+    runtime_role_acl_checks_passed = (
+        isinstance(scoped_write, dict)
+        and all(scoped_write.get(key) == value for key, value in expected_scoped_write.items())
+    )
+    full_schema_replay_passed = (
+        replay.get("result") == "passed"
+        and replay.get("schema_files_applied") == 642
+        and replay.get("schema_files_pending") == 0
+        and replay.get("schema_files_failed") == 0
+        and replay.get("seeds_applied") == 0
+    )
     output_rows: list[dict[str, Any]] = []
     for name, row in sorted(relations.items()):
         dml = any(
@@ -262,8 +283,9 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "heuristic; they are not proof of reachable execution. Explicit revokes "
             "are a static scan of ordered schema SQL and may omit dynamic SQL. The "
             "provisioning-policy comparison statically parses runtime_role.py lists; "
-            "it does not mean that role provisioning has been run or accepted. Review "
-            "source and database behavior before changing grants."
+            "the runtime_role_acceptance record separately states whether this probe "
+            "also exercised full-schema role provisioning and its scoped ACL checks. "
+            "Review source and database behavior before changing grants."
         ),
         "scope_limit": (
             "No application rows, operator identifiers, or secrets are included. The "
@@ -272,6 +294,13 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "state. Static policy coverage and its source digest do not prove that "
             "the provisioner has executed."
         ),
+        "runtime_role_acceptance": {
+            "full_schema_replay_passed": full_schema_replay_passed,
+            "scoped_acl_checks_passed": runtime_role_acl_checks_passed,
+            "scoped_acl_summary": scoped_write if isinstance(scoped_write, dict) else None,
+            "target_scope": "isolated disposable database only",
+            "production_or_candidate_state_established": False,
+        },
         "runtime_role_policy_source": {
             "path": "services/migration/runtime_role.py",
             "sha256": runtime_role_sha256,
