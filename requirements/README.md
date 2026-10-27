@@ -15,10 +15,11 @@ manifest; the Kernel image uses the selected hash-locked closure below.
 | ml-anomaly.txt | Small optional dependency subset for sensor-anomaly modeling |
 | geospatial.txt | Earth Engine and GIS file access |
 | oidc.txt | Optional operator OIDC integration |
+| http-client.txt | Shared HTTPX2 transport for OIDC and Starlette's ASGI test client |
 | orchestration.txt | Prefect |
 | mqtt.txt | Paho sensor/actuator transport |
 | grpc.txt | gRPC, generated bindings tooling, protobuf |
-| dev.txt | Python test runner and Starlette ASGI test client |
+| dev.txt | Python test runner |
 | kernel-runtime.in / kernel-runtime.lock | Standard Kernel runtime input and hash-locked transitive closure |
 | kernel-clickhouse.in / kernel-clickhouse.lock | Standard runtime plus hash-locked optional ClickHouse closure |
 | ml-anomaly-runtime.in / ml-anomaly-runtime.lock | Narrow optional ML worker input and hash-locked Python 3.11 Linux AMD64/ARM64 wheel closure |
@@ -26,6 +27,10 @@ manifest; the Kernel image uses the selected hash-locked closure below.
 Install selected groups with repeated `-r` arguments. For example:
 
     python3 -m pip install -r requirements/kernel.txt -r requirements/web3.txt
+
+Install `http-client.txt` with `dev.txt` for Starlette's ASGI test client, or
+with `oidc.txt` for Authlib's Starlette OIDC client. The optional OIDC image
+installs both groups and the default Kernel image does not include either.
 
 These are dependency candidates, not certified deployment profiles.
 `kernel.txt` covers inspected gateway startup paths and PostgreSQL infrastructure;

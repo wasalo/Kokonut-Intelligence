@@ -67,6 +67,20 @@ def test_default_and_oidc_kernel_runtime_commands_require_schema_readiness() -> 
     assert all("--require-schema" in command for command in runtime_commands)
 
 
+def test_oidc_image_installs_authlibs_shared_http_client_dependency() -> None:
+    dockerfile = (ROOT / "Dockerfile.kernel").read_text()
+    oidc_target = dockerfile.split("FROM kernel-base AS oidc", maxsplit=1)[1].split(
+        "FROM --platform=$BUILDPLATFORM", maxsplit=1
+    )[0]
+    oidc_requirements = (ROOT / "requirements" / "oidc.txt").read_text()
+    http_client_requirements = (ROOT / "requirements" / "http-client.txt").read_text()
+
+    assert "authlib" in oidc_requirements
+    assert "httpx2" in http_client_requirements
+    assert "COPY requirements/oidc.txt requirements/http-client.txt" in oidc_target
+    assert "-r requirements/oidc.txt -r requirements/http-client.txt" in oidc_target
+
+
 def test_standard_api_and_worker_require_schema_readiness() -> None:
     standard = yaml.safe_load((ROOT / "docker-compose.kernel-standard.yml").read_text())
 
