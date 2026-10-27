@@ -2,21 +2,20 @@
 
 ## Contributing Workflow
 
-All work follows a 3-step branch → PR → merge flow:
+Feature work follows a branch → PR → merge flow through `develop`; reviewed releases are promoted from `develop` to `main`:
 
-1. **Branch**: Create a new local branch from `main` when starting a feature or improvement.
+1. **Branch**: Create a new local branch from the latest `develop` when starting a feature or improvement.
    - Naming: `feat/short-name`, `fix/short-name`, or `chore/short-name`
-   - `git checkout -b feat/my-feature main`
+   - `git checkout develop && git pull --ff-only && git checkout -b feat/my-feature`
 
-2. **Commit & PR**: Commit locally, push the branch, and open a PR to `main`.
+2. **Commit & PR**: Commit locally, push the branch, and open a PR to `develop`.
    - Open and review pull requests through GitHub; require the repository's CI and Security checks before merging.
-   - Never push directly to `main`.
+   - Never push directly to `develop` or `main`.
 
-3. **Merge**: When CI passes, merge the PR into `main`.
-   - Merge through GitHub after required checks and reviews pass.
-   - Delete the feature branch after merge.
+3. **Merge and release**: Merge feature PRs into `develop` after required checks and reviews pass. Promote completed release batches with a separate PR from `develop` to `main` after the same gates pass.
+   - Merge through GitHub; delete feature branches after merge.
 
-**Exception**: Hotfixes may be committed directly to `main` with a follow-up PR for any ancillary changes.
+**Hotfixes**: Branch from `main` and open a reviewed PR to `main`; forward-merge the resulting fix into `develop` so the branches do not drift. Do not commit directly to either protected branch.
 
 ## Unified CLI
 
