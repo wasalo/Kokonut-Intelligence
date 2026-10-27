@@ -218,6 +218,10 @@ recovery procedure rather than editing historical migrations.
 
 ## Verification and review
 
+The master work queue is [todo-kernel-refactor.md](todo-kernel-refactor.md).
+It groups repository-owned work ahead of provider, data-owner and production
+gates and links back to the detailed acceptance items below.
+
 Start with focused existing checks for the code touched, including
 `tests/test_operator_auth.py`, `tests/test_compose_zitadel_profile.py`,
 `tests/test_tenant_context.py`, `tests/test_farm_activity_workflow.py`,
