@@ -20560,3 +20560,17 @@ database, provider, or network was used. Evidence: [SDK method parity test](../.
 Checklist: 1,269 complete / 25 open (1,294 total). Capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+### Export-format typing parity — 27 October 2026
+
+The Python SDK now exports the same five-value `ExportFormat` literal as the
+TypeScript SDK and applies it to the `ExportLog.format` model field and
+`exports.create_export(format=...)`. This tightens static typing only; runtime
+request payloads and accepted server behavior are unchanged, and Python 3.9+
+compatibility is retained. The focused Python SDK plus cross-language parity
+selection passes 97 tests. The SDK schema check passes for 109 models and
+2,150 canonical columns; Ruff, compilation, and diff checks pass. No database,
+provider, or network was used. Evidence: [focused SDK test](../../tests/test_sdk.py).
+Checklist: 1,270 complete / 25 open (1,295 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

@@ -1484,6 +1484,19 @@ def test_export_log_type_exposes_canonical_export_table_fields():
     assert export_log.status == "generating"
 
 
+def test_python_export_format_type_matches_javascript_sdk_contract():
+    from typing import Optional, get_args, get_type_hints
+
+    from kokonut import ExportFormat
+    from kokonut.methods import ExportMethods
+    from kokonut.types import ExportLog
+
+    expected = ("csv", "json", "xlsx", "pdf", "parquet")
+    assert get_args(ExportFormat) == expected
+    assert get_type_hints(ExportMethods.create_export)["format"] == Optional[ExportFormat]
+    assert get_type_hints(ExportLog)["format"] == Optional[ExportFormat]
+
+
 def test_export_get_forwards_requested_fields_without_network_calls():
     from kokonut import KokonutClient
 

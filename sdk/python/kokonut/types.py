@@ -14,6 +14,7 @@ PaymentStatus = Literal["pending", "partial", "paid", "overdue", "cancelled"]
 SensorSeverity = Literal["info", "warning", "critical"]
 AlertLifecycle = Literal["open", "acknowledged", "resolved", "false_positive"]
 ExportStatus = Literal["pending", "generating", "completed", "failed"]
+ExportFormat = Literal["csv", "json", "xlsx", "pdf", "parquet"]
 OrganizationType = Literal["cooperative", "nonprofit", "dao", "enterprise", "collective", "other"]
 OrganizationStatus = Literal["active", "inactive", "dissolved"]
 OrganizationMembershipType = Literal["owned", "affiliated", "sponsored", "partner"]
@@ -2762,7 +2763,7 @@ class AiSummary:
 class ExportLog:
     id: str
     export_type: str
-    format: Optional[str] = None
+    format: Optional[ExportFormat] = None
     entity_type: Optional[str] = None
     entity_ids: Optional[List[str]] = None
     user_id: Optional[str] = None

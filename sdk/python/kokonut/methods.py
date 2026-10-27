@@ -6,6 +6,7 @@ from .types import (
     AttestationRecord,
     CropCycle,
     ExpenseEvent,
+    ExportFormat,
     ExportLog,
     Farm,
     FieldNote,
@@ -618,7 +619,7 @@ class ExportMethods(GenericMethods):
     def create_export(
         self,
         export_type: str,
-        format: Optional[str] = None,
+        format: Optional[ExportFormat] = None,
         entity_type: Optional[str] = None,
         entity_ids: Optional[List[str]] = None,
         target_table: Optional[str] = None,
