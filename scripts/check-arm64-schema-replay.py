@@ -201,6 +201,40 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
     count = result.get("runtime_public_tables_with_dml_and_rls_disabled")
     if type(count) is not int or count < 0:
         raise ValueError("operator scope probe did not report its runtime DML exposure")
+    relation_acl = result.get("runtime_public_relation_acl")
+    if relation_acl is not None:
+        if not isinstance(relation_acl, list):
+            raise ValueError("operator scope probe returned an invalid relation ACL inventory")
+        required_fields = {
+            "schema", "relation", "kind", "select", "insert", "update",
+            "delete", "truncate", "rls_enabled", "rls_forced",
+        }
+        for relation in relation_acl:
+            if not isinstance(relation, dict) or set(relation) != required_fields:
+                raise ValueError("operator scope probe returned an invalid relation ACL row")
+            if relation["schema"] != "public" or not isinstance(relation["relation"], str):
+                raise ValueError("operator scope probe returned an unexpected relation scope")
+            if relation["kind"] not in {"r", "p", "v", "m", "f"} or any(
+                type(relation[field]) is not bool
+                for field in ("select", "insert", "update", "delete", "truncate", "rls_enabled", "rls_forced")
+            ):
+                raise ValueError("operator scope probe returned invalid relation ACL values")
+        observed = sum(
+            row["kind"] in {"r", "p"}
+            and row["insert"] and row["update"] and row["delete"]
+            and not row["rls_enabled"]
+            for row in relation_acl
+        )
+        if observed != count:
+            raise ValueError("operator scope probe relation ACL inventory does not match its exposure count")
+        default_acl = result.get("runtime_default_acl")
+        if not isinstance(default_acl, list) or any(
+            not isinstance(row, dict)
+            or set(row) != {"grantor", "object_type", "schema", "runtime_or_public_grantee"}
+            or type(row["runtime_or_public_grantee"]) is not bool
+            for row in default_acl
+        ):
+            raise ValueError("operator scope probe returned an invalid default ACL inventory")
     return result
 
 

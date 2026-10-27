@@ -19721,3 +19721,26 @@ touched. This is software portability under QEMU, not physical-device,
 power-loss, or sustained-load acceptance. Checklist: 1,234 complete / 25 open
 (1,259 total); capability classifications remain 24 baseline-retained, 7
 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — runtime relation ACL inventory and first scoped repair, 26 October 2026
+
+The isolated full-schema replay completed all 642 migrations with zero pending
+or failed entries, zero seeds, no farm data, and successful cleanup. Its real
+runtime/operator-auth logins pass the existing two-tenant forced-RLS probe on
+the synthetic test relation. The expanded catalog probe reports 1,101 public
+ordinary/partitioned tables with effective runtime DML and RLS disabled. The
+source join reports 124 of those tables also match a migration that explicitly
+revokes runtime DML; 598 DML-bearing relations have no static SQL candidate
+site. The candidate-site parser is heuristic, and this does not prove
+universal tenant isolation or production state ([probe](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
+[join](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
+
+Based on that evidence, `runtime_role.py` now reapplies the governance-tactical
+item/session mutation denials and private audit-ledger boundaries after its
+compatibility-wide grant. It preserves existing table reads and verifies both
+table and column privileges. Focused disposable runtime-role acceptance is
+still open; this code has not been applied to the candidate or production, and
+CAP-024 acceptance/classification is unchanged. No migration was needed for
+the provisioning-path correction. No tests were added or run in this batch.
+Checklist: 1,235 complete / 26 open (1,261 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

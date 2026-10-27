@@ -227,6 +227,67 @@ def run_probe() -> dict[str, object]:
                           AND has_table_privilege(current_user, relation.oid, 'INSERT, UPDATE, DELETE')"""
                 )
                 unprotected_dml_tables = cur.fetchone()[0]
+                cur.execute(
+                    """SELECT namespace.nspname, relation.relname, relation.relkind,
+                              has_table_privilege(current_user, relation.oid, 'SELECT'),
+                              has_table_privilege(current_user, relation.oid, 'INSERT'),
+                              has_table_privilege(current_user, relation.oid, 'UPDATE'),
+                              has_table_privilege(current_user, relation.oid, 'DELETE'),
+                              has_table_privilege(current_user, relation.oid, 'TRUNCATE'),
+                              relation.relrowsecurity, relation.relforcerowsecurity
+                         FROM pg_class AS relation
+                         JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+                        WHERE namespace.nspname = 'public'
+                          AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                          AND (has_table_privilege(current_user, relation.oid, 'SELECT')
+                            OR has_table_privilege(current_user, relation.oid, 'INSERT')
+                            OR has_table_privilege(current_user, relation.oid, 'UPDATE')
+                            OR has_table_privilege(current_user, relation.oid, 'DELETE')
+                            OR has_table_privilege(current_user, relation.oid, 'TRUNCATE'))
+                        ORDER BY namespace.nspname, relation.relname"""
+                )
+                runtime_relation_acl = [
+                    {
+                        "schema": row[0],
+                        "relation": row[1],
+                        "kind": row[2],
+                        "select": row[3],
+                        "insert": row[4],
+                        "update": row[5],
+                        "delete": row[6],
+                        "truncate": row[7],
+                        "rls_enabled": row[8],
+                        "rls_forced": row[9],
+                    }
+                    for row in cur.fetchall()
+                ]
+                cur.execute(
+                    """SELECT grantor.rolname, defaults.defaclobjtype,
+                              COALESCE(namespace.nspname, '<all schemas>'),
+                              bool_or(privilege.grantee IN (
+                                  0, (SELECT oid FROM pg_roles WHERE rolname = current_user)
+                              ))
+                         FROM pg_default_acl AS defaults
+                         JOIN pg_roles AS grantor ON grantor.oid = defaults.defaclrole
+                         LEFT JOIN pg_namespace AS namespace
+                           ON namespace.oid = defaults.defaclnamespace
+                         CROSS JOIN LATERAL aclexplode(defaults.defaclacl) AS privilege
+                        WHERE defaults.defaclnamespace = 0
+                           OR namespace.nspname = 'public'
+                        GROUP BY grantor.rolname, defaults.defaclobjtype,
+                                 COALESCE(namespace.nspname, '<all schemas>')
+                        ORDER BY grantor.rolname, defaults.defaclobjtype,
+                                 COALESCE(namespace.nspname, '<all schemas>')"""
+                )
+                default_acl_inventory = [
+                    {
+                        "grantor": row[0],
+                        "object_type": row[1],
+                        "schema": row[2],
+                        "runtime_or_public_grantee": row[3],
+                    }
+                    for row in cur.fetchall()
+                ]
             runtime.rollback()
             checks.append("revoked grant and revoked session both fail closed")
 
@@ -237,10 +298,13 @@ def run_probe() -> dict[str, object]:
         "synthetic_location_count": 2,
         "synthetic_operator_count": 2,
         "runtime_public_tables_with_dml_and_rls_disabled": unprotected_dml_tables,
+        "runtime_public_relation_acl": runtime_relation_acl,
+        "runtime_default_acl": default_acl_inventory,
         "scope_limit": (
-            "Forced RLS is enabled only on a synthetic probe table. The count includes "
-            "public tables reachable through table-level DML and is not a complete "
-            "column, view, worker, Directus, or production authorization audit."
+            "The relation inventory reports effective table-level privileges only for "
+            "public relations. Forced RLS is enabled only on a synthetic probe table. "
+            "This is not a complete column, sequence, view definition, worker, Directus, "
+            "function, ownership, or production authorization audit."
         ),
     }
 

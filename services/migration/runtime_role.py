@@ -873,6 +873,141 @@ def _verify_farm_activity_operator_event_boundary(cur, role_name: str) -> None:
         )
 
 
+_GOVERNANCE_TACTICAL_PRIVATE_TABLES = (
+    "governance_tactical_action_event",
+    "governance_tactical_session_creation_event",
+    "governance_tactical_content_event",
+)
+
+
+def _apply_governance_tactical_boundary(
+    cur, runtime_ident: sql.Identifier
+) -> dict[str, object]:
+    """Keep governed tactical writes and audit ledgers behind the Gateway functions."""
+    rules = {
+        "governance_tactical_item": (
+            "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER",
+        ),
+        "governance_tactical_session": (
+            "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER",
+        ),
+        **{table: ("ALL",) for table in _GOVERNANCE_TACTICAL_PRIVATE_TABLES},
+    }
+    installed: dict[str, bool] = {}
+    for table, table_privileges in rules.items():
+        cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+        if cur.fetchone()[0] is None:
+            installed[table] = False
+            continue
+
+        table_ident = sql.Identifier("public", table)
+        if table_privileges == ("ALL",):
+            cur.execute(
+                sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
+                    table_ident, runtime_ident
+                )
+            )
+            column_privileges = ("SELECT", "INSERT", "UPDATE", "REFERENCES")
+        else:
+            for privilege in table_privileges:
+                cur.execute(
+                    sql.SQL("REVOKE {} ON TABLE {} FROM {}").format(
+                        sql.SQL(privilege), table_ident, runtime_ident
+                    )
+                )
+            column_privileges = ("INSERT", "UPDATE")
+
+        cur.execute(
+            "SELECT attname FROM pg_attribute "
+            "WHERE attrelid = %s::regclass AND attnum > 0 AND NOT attisdropped",
+            (f"public.{table}",),
+        )
+        columns = [row[0] for row in cur.fetchall()]
+        for column in columns:
+            for privilege in column_privileges:
+                cur.execute(
+                    sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                        sql.SQL(privilege),
+                        sql.Identifier(column),
+                        table_ident,
+                        runtime_ident,
+                    )
+                )
+        installed[table] = True
+
+    return {
+        "installed": any(installed.values()),
+        "relations": installed,
+        "direct_item_mutations": "denied; bounded Gateway function only",
+        "direct_session_mutations": "denied; bounded Gateway function only",
+        "private_audit_ledgers": "no direct runtime access",
+        "reads": "existing runtime SELECT grants preserved",
+    }
+
+
+def _verify_governance_tactical_boundary(cur, role_name: str) -> None:
+    """Fail provisioning if broad runtime grants reopen tactical table writes."""
+    for table, table_privileges in {
+        "governance_tactical_item": (
+            "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER",
+        ),
+        "governance_tactical_session": (
+            "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER",
+        ),
+        **{
+            table: (
+                "SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE",
+                "REFERENCES", "TRIGGER",
+            )
+            for table in _GOVERNANCE_TACTICAL_PRIVATE_TABLES
+        },
+    }.items():
+        cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+        if cur.fetchone()[0] is None:
+            continue
+        table_privilege_sql = ", ".join(
+            "has_table_privilege(%s, %s, %s)" for _ in table_privileges
+        )
+        parameters = tuple(
+            value
+            for privilege in table_privileges
+            for value in (role_name, f"public.{table}", privilege)
+        )
+        cur.execute(
+            "SELECT " + table_privilege_sql,
+            parameters,
+        )
+        if any(cur.fetchone()):
+            raise RuntimeError(
+                f"{role_name} retains direct {table} table privileges"
+            )
+
+        column_privileges = (
+            ("SELECT", "INSERT", "UPDATE", "REFERENCES")
+            if table in _GOVERNANCE_TACTICAL_PRIVATE_TABLES
+            else ("INSERT", "UPDATE")
+        )
+        column_privilege_sql = " OR ".join(
+            "has_column_privilege(%s, %s, attname, %s)"
+            for _ in column_privileges
+        )
+        column_parameters = tuple(
+            value
+            for privilege in column_privileges
+            for value in (role_name, f"public.{table}", privilege)
+        )
+        cur.execute(
+            "SELECT EXISTS (SELECT 1 FROM pg_attribute "
+            "WHERE attrelid = %s::regclass AND attnum > 0 AND NOT attisdropped "
+            "AND (" + column_privilege_sql + "))",
+            (f"public.{table}", *column_parameters),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError(
+                f"{role_name} retains direct {table} column privileges"
+            )
+
+
 def _apply_solution_stage_gate_boundary(
     cur, runtime_ident: sql.Identifier
 ) -> dict[str, object]:
@@ -2215,6 +2350,9 @@ def provision_runtime_role(
         mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
         farm_activity_event_grants = _apply_farm_activity_operator_event_boundary(cur, runtime_ident)
+        governance_tactical_grants = _apply_governance_tactical_boundary(
+            cur, runtime_ident
+        )
         solution_stage_gate_grants = _apply_solution_stage_gate_boundary(
             cur, runtime_ident
         )
@@ -3120,6 +3258,7 @@ def provision_runtime_role(
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
         _verify_farm_activity_operator_event_boundary(cur, runtime_user)
+        _verify_governance_tactical_boundary(cur, runtime_user)
         _verify_solution_stage_gate_boundary(cur, runtime_user)
         _verify_solution_experiment_protocol_boundary(cur, runtime_user)
         _verify_no_runtime_default_privileges(
@@ -3445,6 +3584,11 @@ def provision_runtime_role(
             "mobile_device_enrollment": "explicit column allowlist; no table-wide UPDATE or DELETE",
             "operator_session": "bounded functions only",
             "farm_activity_operator_event": "read-only SELECT; trigger owner appends; no direct write",
+            "governance_tactical_item and governance_tactical_session": (
+                "direct runtime mutations are denied; audited Gateway functions own writes"
+            ),
+            "governance_tactical_action_event, governance_tactical_session_creation_event, "
+            "governance_tactical_content_event": "private ledgers; no direct runtime access",
             "solution_stage_gate": "bounded security-definer functions only; no direct runtime access",
             "solution_experiment": (
                 "bounded Gateway protocol creation; lifecycle updates limited to status and timestamps"
@@ -3453,6 +3597,7 @@ def provision_runtime_role(
         "runtime_mobile_credential_privileges": mobile_credential_grants,
         "runtime_api_key_privileges": api_key_grants,
         "runtime_farm_activity_operator_event_privileges": farm_activity_event_grants,
+        "runtime_governance_tactical_privileges": governance_tactical_grants,
         "runtime_solution_stage_gate_privileges": solution_stage_gate_grants,
         "runtime_solution_experiment_protocol_privileges": solution_experiment_protocol_grants,
         "farm_activity_event_owner_restored": farm_activity_event_owner_ready,

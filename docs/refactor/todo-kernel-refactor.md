@@ -20,6 +20,17 @@ the batch log and the affected capability/progress records are updated.
   discovery. Fix and record safe permissions for its Login UI token volume.
 - [x] Keep these findings and acceptance limits in the sprint, phase and
   capability records. Local commits: `020a5279`, `be1c2c2e`, `968a49fc`.
+- [x] Add relation-level runtime ACL/default-ACL capture to the isolated probe
+  and a source-callsite/revoke join at
+  [`scripts/runtime-privilege-callsite-report.py`](../../scripts/runtime-privilege-callsite-report.py).
+  The detailed replay and source join completed: 1,101 unprotected base tables
+  have table-level DML, including 124 with a matching historical runtime DML
+  revoke; 334 have no static candidate callsite. No database privileges were
+  changed by the inventory.
+- [x] Implement the first narrow C1 repair in runtime-role provisioning:
+  reapply the migrations' governance-tactical write and private-ledger denials
+  after the broad compatibility grant, while preserving table reads. This code
+  has not yet passed its focused runtime-role acceptance and was not rolled out.
 
 ## Code work to continue without owner input
 
@@ -30,7 +41,12 @@ that its full source-plan phase is complete.
   Inventory the 1,101 relations and actual application/worker/Directus
   callsites, group them by capability and identity, then revoke access only in
   reviewed slices with bounded functions or exact grants. Preserve a rollback
-  path and keep RLS/tenant claims scoped to what is actually enforced.
+  path and keep RLS/tenant claims scoped to what is actually enforced. First
+  generate the relation-level join with
+  `scripts/runtime-privilege-callsite-report.py`; review explicit revokes that
+  overlap effective DML and source callsites that the heuristic inventory
+  cannot classify before making any ACL change. The governance-tactical
+  bootstrap correction is now authored; focused acceptance is still open.
   Sources: [runtime boundary](batches.md#L2826),
   [agent boundary](batches.md#L3652),
   [full-schema probe](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json).

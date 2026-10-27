@@ -12,6 +12,19 @@ This advances CAP-053 and the shared workflow prerequisite for CAP-001/CAP-047;
 browser, HTTPS and end-to-end authorization remain open. Classifications and
 MAN-CAP acceptance do not change.
 
+The relation-level follow-up confirms 1,101 ordinary/partitioned public tables
+have effective runtime DML while RLS is disabled; the static join also matches
+124 such tables to source migrations that explicitly revoke runtime DML. The
+new report is heuristic callsite evidence, not a complete SQL reachability or
+authorization proof. Runtime provisioning now re-applies the tactical Gateway
+write and private-ledger boundaries after its compatibility grant, but this
+slice still needs focused runtime-role acceptance and has not been rolled out
+([ACL inventory](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
+[callsite report](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
+The tracker now records 1,235 completed and 26 open checklist items (1,261
+total); the 67 capability classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared.
+
 **Sprint planning checkpoint (26 October 2026):** On `develop` at `ef29f193`,
 the matrix validates 67 rows: 24 baseline-retained, seven deployed, and 36
 prepared; the 67 MAN-CAP checks remain separately open. The proposed
