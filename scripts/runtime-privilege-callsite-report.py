@@ -55,6 +55,8 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "carbon_benchmark": "runtime_mutations_denied",
     "ghg_emission_factor": "runtime_mutations_denied",
     "operations_protocol": "runtime_mutations_denied",
+    "process_maturity_level": "runtime_mutations_denied",
+    "pollinator_species_reference": "runtime_mutations_denied",
     "data_access_log": "runtime_append_only_read_insert",
     "access_audit_log": "runtime_append_only_read_insert",
 }

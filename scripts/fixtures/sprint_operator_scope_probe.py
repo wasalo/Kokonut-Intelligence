@@ -130,6 +130,17 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         raise AssertionError("full schema is missing operations protocols")
     cur.execute("SELECT count(*) FROM public.operations_protocol")
     cur.fetchone()
+    for table, label in (
+        ("process_maturity_level", "process maturity levels"),
+        ("pollinator_species_reference", "pollinator species references"),
+    ):
+        if not relation_exists(table):
+            raise AssertionError(f"full schema is missing {label}")
+        cur.execute(
+            sql.SQL("SELECT count(*) FROM public.{}").format(sql.Identifier(table))
+        )
+        if cur.fetchone()[0] < 1:
+            raise AssertionError(f"runtime login cannot read {label}")
     if not relation_exists("certification_type"):
         raise AssertionError("full schema is missing certification types")
     cur.execute("SELECT count(*) FROM public.certification_type")
@@ -370,6 +381,8 @@ def run_probe() -> dict[str, object]:
                 "runtime can read seeded crop-nutrient removal factors",
                 "runtime can query shared greenhouse-gas emission-factor references",
                 "runtime can query shared versioned operations protocols",
+                "runtime can read static process maturity levels",
+                "runtime can read static pollinator species references",
                 "runtime can read seeded certification types",
                 "runtime can read seeded cooperative types",
                 "runtime can read seeded insurance product types",

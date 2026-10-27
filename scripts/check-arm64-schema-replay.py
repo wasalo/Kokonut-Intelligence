@@ -35,6 +35,8 @@ OPERATOR_PROBE_CHECKS = frozenset({
     "runtime can read seeded crop-nutrient removal factors",
     "runtime can query shared greenhouse-gas emission-factor references",
     "runtime can query shared versioned operations protocols",
+    "runtime can read static process maturity levels",
+    "runtime can read static pollinator species references",
     "runtime can read seeded certification types",
     "runtime can read seeded cooperative types",
     "runtime can read seeded insurance product types",
@@ -315,9 +317,9 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
         raise ValueError("operator scope probe did not report the runtime scoped-write boundary")
     if (
         scoped_write["private_relations_expected"] != 79
-        or scoped_write["mutation_denied_relations_expected"] != 28
+        or scoped_write["mutation_denied_relations_expected"] != 30
         or scoped_write["private_relations_verified"] != 79
-        or scoped_write["mutation_denied_relations_verified"] != 28
+        or scoped_write["mutation_denied_relations_verified"] != 30
         or scoped_write["direct_table_privilege_violations"] != 0
         or scoped_write["direct_column_privilege_violations"] != 0
         or scoped_write["farm_activity_ledger_readable"] != 1

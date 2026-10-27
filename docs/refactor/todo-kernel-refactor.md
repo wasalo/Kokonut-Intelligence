@@ -579,3 +579,10 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   checks pass; 138 focused tests pass. The report records 110 declared
   controls and 1,010 relations with effective DML while RLS is disabled; C1
   remains open ([batch](batches.md); [progress](progress.md#progress-addendum--operations_protocol-runtime-read-only-boundary--27-october-2026)).
+
+- [x] Keep `process_maturity_level` and `pollinator_species_reference`
+  readable but immutable to the Kernel runtime. Migration 667 passes native and
+  ARM64/QEMU focused PostgreSQL checks and a 658-file native replay with 21
+  two-tenant scope checks; 139 focused tests pass. The report records 112
+  controls and 1,008 relations with effective DML while RLS is disabled. C1
+  remains open ([batch](batches.md); [progress](progress.md#progress-addendum--static-taxonomy-runtime-read-only-boundary--27-october-2026)).

@@ -1,36 +1,22 @@
 # Capability preservation matrix
 
-**Runtime-role acceptance update (27 October 2026):** Earlier native replay of
-the 648 ordered migration files through migration 657 passed runtime-role
-provisioning and the two-tenant operator-context probe. Focused native and
-ARM64/QEMU disposable PostgreSQL checks pass migrations 658–666. The latest
-complete 657-file schema chain through migration 666 passes on native AMD64
-under a verified 1.5 GiB memory/swap and two-CPU database limit. Its
-full-schema operator-scope probe passes all 19 checks across two synthetic
-tenants and verifies all 110 declared controls: 79 private relations, 28
-mutation-denied relations, two
-append-only relations, and the API-key read-only column boundary. There are
-zero direct table or column privilege violations. The probe covers 1,511
-public relations and reports 1,010 with effective table-level DML while RLS is
-disabled; this is not a count of relations permitting UPDATE/DELETE and broad
-compatibility DML and non-universal application-table RLS remain. The runner
-loaded no seeds or farm data, published no ports, was not OOM-killed, and
-removed its temporary resources. This is disposable software-portability
-evidence, not candidate/production state, universal tenant isolation, or
-physical Raspberry Pi acceptance
-([full native schema and scope evidence through 666](builds/2026-10-27-recovery/runtime-role-full-schema-666-native-disposable.json);
-[operations-protocol native ACL](builds/2026-10-27-recovery/operations-protocol-runtime-read-only-disposable.json);
-[operations-protocol ARM64/QEMU ACL](builds/2026-10-27-recovery/operations-protocol-runtime-read-only-arm64-disposable.json);
-[emission-factor native ACL](builds/2026-10-27-recovery/ghg-emission-factor-runtime-read-only-disposable.json);
-[emission-factor ARM64/QEMU ACL](builds/2026-10-27-recovery/ghg-emission-factor-runtime-read-only-arm64-disposable.json);
-[carbon benchmark native ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-disposable.json);
-[carbon benchmark ARM64/QEMU ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-arm64-disposable.json);
-[native focused ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-disposable.json);
-[ARM64 focused ACL](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-arm64-disposable.json);
-[native graph-type ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-disposable.json);
-[ARM64 graph-type ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-arm64-disposable.json);
-[native capability-audit ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-disposable.json);
-[ARM64 capability-audit ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-arm64-disposable.json);
+**Runtime-role acceptance update (27 October 2026):** Focused native and
+ARM64/QEMU disposable PostgreSQL 16 checks pass migrations 658–667. A fresh
+native AMD64 replay of all 658 ordered schema files through migration 667
+passes the full provisioner and all 21 two-tenant operator-scope checks under
+verified 1.5 GiB memory/swap and two-CPU database limits. The probe verifies
+112 declared runtime-role controls: 79 private relations, 30 mutation-denied
+relations, two append-only relations, and the API-key read-only column
+boundary. It reports zero direct table or column privilege violations across
+1,511 public relations; 1,008 relations retain effective table-level DML while
+RLS is disabled. Broad compatibility DML and non-universal application-table
+RLS remain open C1 concerns. The replay loaded no seeds or farm data, published
+no ports, was not OOM-killed, and removed temporary resources. This is
+synthetic software-portability evidence, not candidate/production state,
+universal tenant isolation, populated-data acceptance, or physical Raspberry
+Pi acceptance ([full native schema and scope evidence through 667](builds/2026-10-27-recovery/runtime-role-full-schema-667-native-disposable.json);
+[static-reference native ACL](builds/2026-10-27-recovery/static-reference-catalogs-runtime-read-only-disposable.json);
+[static-reference ARM64/QEMU ACL](builds/2026-10-27-recovery/static-reference-catalogs-runtime-read-only-arm64-disposable.json);
 [policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
 No seeds or farm data were loaded, no ports were published, temporary resources
 were removed, and no physical Raspberry Pi acceptance is claimed; these are
@@ -49,8 +35,9 @@ read-only import and CLI-help smokes. The OIDC smoke found and verified a fix
 for Authlib's missing HTTP client dependency. No external service was started;
 broader profile, provider, and physical-device gates remain open
 ([optional target evidence](builds/2026-10-27-recovery/arm64-optional-kernel-targets-8da25cfd.json)).
-The synthetic age-encrypted single-database rehearsal has now been repeated
-against all 653 current migrations through 662. The repository checkpoint
+The synthetic age-encrypted single-database rehearsal was repeated against
+the 653-migration schema through migration 662; later migrations, including
+667, have not yet been added to that restore rehearsal. The repository checkpoint
 command produced an encrypted archive without a plaintext disk dump; the
 documented role prerequisites and atomic restore yielded matching migration
 fingerprints and a synthetic sentinel in a fresh database. This remains
@@ -68,35 +55,23 @@ See [synthetic backup/restore evidence](builds/2026-10-27-recovery/kernel-synthe
 The app runtime limit result is recorded in
 [constrained ARM64 runtime evidence](builds/2026-10-27-recovery/kernel-app-arm64-constrained-runtime.json).
 
-**C1 analytics write-candidate inventory (27 October 2026):** A reproducible
-source-line report joins the refreshed ACL snapshot with the SQL execution
-inventory. Runtime SQL inventory v2 separates DML targets from source tables
-referenced by the query. It identifies 274 relations with candidate analytics
-writes and 425 target sites identified by the conservative matcher across 89
-source files. `farm` remains the unmatched candidate because current INSERT
-statements only read it. The source-policy report recognizes 106 declared
-runtime boundaries. Focused native/ARM64 disposable checks verify migrations
-658–662, and the complete ARM64 schema plus two-tenant probe through 662
-verifies all 106 with zero direct table or column privilege violations. The
-probe reports 1,014 relations with effective table DML while RLS is disabled;
-broad compatibility DML remains an open C1 concern. All candidates remain
-subject to caller/source review. The
-read-only `advisory_rule`,
-`crop_family`, `crop_nutrient_removal_factor`, and `certification_type` policies
-are recorded in the runtime-role acceptance above. The policy set now also
-covers the shared `cooperative_type` and `dfs_insurance_product_type` catalogs.
-The `evidence_maturity_level`, `sensor_type`, `waste_type`, `disposal_method`,
-`graph_node_type`, and `graph_edge_type` policies are applied and read-only on
-native and ARM64 disposable PostgreSQL through migration 661. The
-`access_audit_log` policy permits runtime SELECT/INSERT only through migration
-662; retention and cleanup remain separately configured and authorized.
-Thirteen focused inventory tests pass, and the report records its
-heuristic limits
+**C1 analytics write-candidate inventory (27 October 2026):** The refreshed
+source-line report joins the runtime ACL snapshot with SQL inventory v2, which
+separates DML targets from source relations. It identifies 273 candidate
+relations and 425 target sites across 89 source files, with no unmatched
+candidate sites. The full migration-667 probe verifies 112 declared runtime
+controls with zero policy mismatches; 1,008 relations still retain effective
+DML while RLS is disabled. This is not universal tenant isolation. The source
+report is heuristic and candidate writers still need callsite review. The
+latest read-only runtime policies include the seeded factor and benchmark
+catalogs, `operations_protocol`, `process_maturity_level`, and
+`pollinator_species_reference`; migration 667 only changes the Kernel runtime
+role and preserves SELECT. Directus grants are preserved by focused ACL checks,
+but Directus API row/role parity is not implied. Runtime relation and function
+scope limits remain documented in the report
 ([inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json);
-[generator](../scripts/runtime-analytics-write-candidate-inventory.py)).
-Source review also corrected the portability fulfillment audit to insert the
-export event into the migration-defined `data_access_log` with an allowed
-status; its write remains atomic with the request update.
+[generator](../scripts/runtime-analytics-write-candidate-inventory.py);
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
 
 **C2 public OpenAPI export boundary (27 October 2026):** The native contract
 exporter now excludes routes whose registered policy is private and accepts

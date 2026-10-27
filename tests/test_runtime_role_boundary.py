@@ -27,7 +27,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 110
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 112
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -525,6 +525,38 @@ def test_operations_protocols_are_seeded_references_read_only_to_kernel_runtime(
     assert (
         "GRANT SELECT ON TABLE public.operations_protocol TO kokonut_runtime"
     ) in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_static_reference_catalogs_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/667_runtime_static_reference_catalogs_read_only.sql"
+    ).read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+
+    for table, schema_path in (
+        ("process_maturity_level", "schemas/postgres/191_process_targets.sql"),
+        ("pollinator_species_reference", "schemas/postgres/155_pollinator_health.sql"),
+    ):
+        schema = (root / schema_path).read_text()
+        runtime_writers = [
+            site for site in sql_inventory["execution_sites"]
+            if table in site["write_target_relations"]
+        ]
+
+        assert table in runtime_role._RUNTIME_MUTATION_TABLES
+        assert table not in runtime_role._RUNTIME_PRIVATE_TABLES
+        assert f"CREATE TABLE IF NOT EXISTS {table}" in schema
+        assert f"INSERT INTO {table}" in schema
+        assert runtime_writers == []
+        assert f"'{table}'" in migration
+
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
     assert "kokonut_directus_runtime" not in migration
 
 

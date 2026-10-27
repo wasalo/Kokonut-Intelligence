@@ -20777,3 +20777,41 @@ and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-r
 Checklist: 1,277 complete / 25 open (1,302 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+
+### Progress addendum — static taxonomy runtime read-only boundary — 27 October 2026
+
+Source review confirmed `process_maturity_level` and
+`pollinator_species_reference` are migration-defined static catalogs with inline
+initial values and no runtime SQL write targets. Migration 667 preserves
+`SELECT` and revokes `kokonut_runtime` table and residual column INSERT,
+UPDATE, REFERENCES, DELETE, and TRUNCATE privileges. Runtime-role provisioning
+reapplies the boundary after compatibility grants. The migration does not
+change the separate Directus role. Focused native and ARM64/QEMU disposable
+PostgreSQL 16 checks pass apply/replay, reads, table/column mutation denial,
+provisioner reapplication, and preservation of Directus grants.
+
+A fresh native AMD64 replay applied all 658 ordered schema files through
+migration 667 and passed all 21 two-tenant operator-scope checks under
+verified 1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no ports
+were published, the database was not OOM-killed, and temporary resources were
+removed. The refreshed report recognizes 112 runtime-role controls with zero
+policy mismatches; 1,008 public relations retain effective table DML while RLS
+is disabled, so broad C1 hardening and universal tenant isolation remain open.
+The six-module focused regression selection passes 139 tests; Ruff, Python
+compilation, dependency/provider boundaries, SQL-inventory freshness, and
+capability-matrix validation pass. Candidate/legacy databases and live provider
+state were untouched. The ACL evidence does not verify populated tenant data,
+Directus API behavior, or physical Raspberry Pi behavior. Rollback retains
+ordered migration 667; re-enabling runtime writes requires a reviewed forward
+migration.
+
+Evidence: [migration](../schemas/postgres/667_runtime_static_reference_catalogs_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/static-reference-catalogs-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/static-reference-catalogs-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-667-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,278 complete / 25 open (1,303 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

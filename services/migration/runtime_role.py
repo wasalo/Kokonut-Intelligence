@@ -1057,6 +1057,8 @@ _RUNTIME_MUTATION_TABLES = (
     "carbon_benchmark",
     "ghg_emission_factor",
     "operations_protocol",
+    "process_maturity_level",
+    "pollinator_species_reference",
     "crop_family",
     "crop_nutrient_removal_factor",
     "certification_type",
