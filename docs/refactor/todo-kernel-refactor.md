@@ -506,3 +506,16 @@ the future configurable policy. The probe still reports 1,014 relations with
 effective table DML while RLS is disabled, so C1 remains open. Checklist:
 1,266 complete / 25 open (1,291 total); capability classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Current continuation — C2 SDK parameter-name contract
+
+- [x] Extend the Python/TypeScript method-parity regression to compare
+  positional parameter names with an explicit alias map for the reviewed
+  `itemId`/`id`, `sensorId`/`deviceId`, and attestation subject/entity naming
+  pairs. The focused three-test suite, Ruff, compilation, and diff checks pass.
+  No public method signatures changed. This closes only the static parameter-
+  name inventory subgate; C2 remains open for parameter types and runtime
+  serialization, authenticated route/action/scope and pagination/error
+  behavior, broader SDK/runtime parity, live OIDC, and populated acceptance.
+  See the [batch record](batches.md) and
+  [progress evidence](progress.md#sdk-parameter-name-parity-contract--27-october-2026).

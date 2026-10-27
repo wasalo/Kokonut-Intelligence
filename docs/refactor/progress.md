@@ -20544,3 +20544,19 @@ whole-platform, constrained-device, production RPO/RTO, or 24-hour acceptance.
 Checklist: 1,268 complete / 25 open (1,293 total). Capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+### SDK parameter-name parity contract — 27 October 2026
+
+The Python/TypeScript SDK parity guard now compares positional argument names
+in addition to the existing method inventory, inherited generic surfaces, and
+required/optional argument shapes. Four reviewed naming aliases are explicit:
+Python `item_id`/TypeScript `id`, `sensor_id`/`deviceId`, and attestation
+`subject_type`/`entityType` plus `subject_id`/`entityId`. Public method
+signatures were not changed, preserving Python keyword callers. The focused
+SDK parity suite passes three tests; Ruff, Python compilation, and whitespace
+checks pass. This is static contract coverage only: parameter types, runtime
+serialization, authorization, and complete route/SDK parity remain open. No
+database, provider, or network was used. Evidence: [SDK method parity test](../../tests/test_sdk_method_parity.py).
+Checklist: 1,269 complete / 25 open (1,294 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
