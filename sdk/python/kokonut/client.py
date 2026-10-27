@@ -418,6 +418,16 @@ class KokonutClient:
     ) -> List[Any]:
         params = options.to_params() if options else {}
         params.update(kwargs)
+        if params.get("offset") is not None:
+            if params.get("limit") is None:
+                # Match the TypeScript SDK and ListOptions contract: offset
+                # pagination is meaningful only with a limit; page may still
+                # be used when both forms are supplied without that limit.
+                params.pop("offset")
+            else:
+                if params["limit"] == 0:
+                    raise ValueError("offset pagination requires a non-zero limit")
+                params.pop("page", None)
         resp = self.session.get(self._collection_url(collection), params=self._serialize_params(params))
         self._handle_error(resp)
         data = resp.json()

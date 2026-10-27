@@ -624,3 +624,10 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   and compilation clean. This closes one C2 serialization slice only;
   route/action/scope and runtime parity gates remain open
   ([batch](batches.md); [evidence](builds/2026-10-27-recovery/sdk-path-segment-parity.json)).
+
+- [x] Align pagination serialization across Python and JavaScript SDK list calls.
+  Merged options now use consistent offset/limit/page precedence, and invalid
+  zero-limit offset requests fail before transport. The full SDK suites pass
+  99 Python and 57 JavaScript tests; TypeScript build, Ruff, compilation, and
+  109-model schema-parity checks pass. C2 remains open for route/auth, error and
+  runtime parity ([batch](batches.md); [evidence](builds/2026-10-27-recovery/sdk-pagination-contract.json)).

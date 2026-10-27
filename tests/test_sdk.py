@@ -2363,6 +2363,30 @@ def test_list_items_preserves_extra_directus_query_parameters_without_network_ca
     )
 
 
+def test_list_items_normalizes_pagination_precedence_like_javascript_sdk():
+    from unittest.mock import call
+
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = True
+    response.json.return_value = {"data": []}
+    client.session.get = Mock(return_value=response)
+
+    client.list_items("farm", offset=10)
+    client.list_items("farm", offset=10, page=3)
+    client.list_items("farm", limit=25, offset=10, page=3)
+    with pytest.raises(ValueError, match="non-zero limit"):
+        client.list_items("farm", limit=0, offset=10)
+
+    assert client.session.get.call_args_list == [
+        call("http://localhost:8055/items/farm", params={}),
+        call("http://localhost:8055/items/farm", params={"page": 3}),
+        call("http://localhost:8055/items/farm", params={"limit": 25, "offset": 10}),
+    ]
+
+
 def test_generic_crud_helpers_use_directus_item_routes_and_unwrap_data_without_network_calls():
     from unittest.mock import call
 

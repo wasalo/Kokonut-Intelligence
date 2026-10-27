@@ -20994,3 +20994,21 @@ classification or MAN-CAP acceptance changed.
 Evidence: [SDK path-segment regression](builds/2026-10-27-recovery/sdk-path-segment-parity.json).
 Checklist: 1,283 complete / 25 open (1,308 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+
+## Progress addendum — SDK pagination parity — 27 October 2026
+
+The Python generic `list_items(..., **kwargs)` path now normalizes pagination
+options after merging them, matching the TypeScript contract. Offset pagination
+requires a limit; when offset and limit are valid, offset takes precedence over
+page. If offset has no limit, it is removed and an explicit page remains active.
+A zero limit with offset fails before transport. The complete Python SDK suite
+passes 99 tests, JavaScript passes 57 tests, TypeScript build and Ruff pass, and
+the schema parity checker passes across 109 models. These checks use mocks and
+static schema sources only. Broader C2 authorization, error/runtime, live OIDC,
+and populated acceptance remain open; capability classifications and MAN-CAP
+acceptance are unchanged.
+
+Evidence: [SDK pagination contract](builds/2026-10-27-recovery/sdk-pagination-contract.json).
+Checklist: 1,284 complete / 25 open (1,309 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

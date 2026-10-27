@@ -880,6 +880,23 @@ describe('KokonutClient', () => {
     });
   });
 
+  it('keeps offset pagination paired with a limit and gives it precedence over page', async () => {
+    await client.listItems('farm', { offset: 10 });
+    await client.listItems('farm', { offset: 10, page: 3 });
+    await client.listItems('farm', { limit: 25, offset: 10, page: 3 });
+
+    const request = (client as any).directus.request;
+    expect(request.mock.calls.slice(-3)).toEqual([
+      [{ collection: 'farm', query: {} }],
+      [{ collection: 'farm', query: { page: 3 } }],
+      [{ collection: 'farm', query: { limit: 25, offset: 10 } }],
+    ]);
+    await expect(client.listItems('farm', { limit: 0, offset: 10 })).rejects.toThrow(
+      'offset pagination requires a non-zero limit',
+    );
+    expect(request).toHaveBeenCalledTimes(3);
+  });
+
   it('preserves additional Directus list-query parameters and pagination precedence', async () => {
     await client.listItems('harvest_event', {
       search: 'coconut',
