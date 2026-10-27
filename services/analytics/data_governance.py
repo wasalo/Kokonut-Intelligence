@@ -590,11 +590,11 @@ def fulfill_portability(
             # Log the authorized third-party fulfillment
             cur.execute(
                 """
-                INSERT INTO access_audit_log
+                INSERT INTO data_access_log
                     (accessor_id, data_category, resource_type, resource_id,
                      access_type, purpose, accessor_type, consent_id, status)
                 VALUES (%s, 'portability_export', 'data_portability_request', %s,
-                        'write', 'portability_fulfillment', 'system', NULL, 'allowed')
+                        'export', 'portability_fulfillment', 'system', NULL, 'success')
                 """,
                 (fulfilled_by, request_id),
             )

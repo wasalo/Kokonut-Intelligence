@@ -522,16 +522,10 @@
   "relations": [
     {
       "candidate_execution_sites_by_statement": {
-        "INSERT": 2,
+        "INSERT": 1,
         "SELECT": 3
       },
       "candidate_source_files": [
-        {
-          "path": "services/analytics/data_governance.py",
-          "statement_counts": {
-            "INSERT": 1
-          }
-        },
         {
           "path": "services/security/audit.py",
           "statement_counts": {
@@ -8429,14 +8423,14 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "INSERT": 1,
+        "INSERT": 2,
         "SELECT": 2
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/data_governance.py",
           "statement_counts": {
-            "INSERT": 1,
+            "INSERT": 2,
             "SELECT": 2
           }
         }
@@ -50059,7 +50053,7 @@
   },
   "unprotected_candidate_write_relations_by_service": {
     "abundance": 30,
-    "analytics": 276,
+    "analytics": 275,
     "attestation": 2,
     "cache": 1,
     "capital": 1,

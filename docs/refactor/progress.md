@@ -19838,7 +19838,7 @@ MAN-CAP acceptance status changes.
 To make the remaining broad runtime grants reviewable without revoking from
 static guesses, a reproducible inventory now joins the refreshed post-
 provisioning relation ACL report to the generated SQL execution-site inventory.
-It identifies 276 currently unprotected relations with analytics-package
+It identifies 275 currently unprotected relations with analytics-package
 write candidates, 425 unique candidate sites across 89 source files, and 437
 relation/site associations. Every entry retains its source path, line, function
 scope, statement kind, expression classification, static SQL digest, and any
@@ -19856,5 +19856,26 @@ This advances the review process only; C1 still has 1,026 unprotected DML
 relations and requires capability/caller review before scoped grant changes.
 
 Checklist: 1,237 complete / 25 open (1,262 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — data-portability audit schema alignment, 27 October 2026
+
+Source review found that third-party portability fulfillment attempted to
+insert `accessor_id`, `data_category`, and related fields into
+`access_audit_log`, whose migration-defined columns instead support the
+capability-token audit contract. It also used `allowed`, which is not a valid
+status for that table. The function now writes an `export`/`success` event to
+the existing `data_access_log` contract from migration 144, keeping the audit
+and request-state update in one transaction. No schema migration was needed.
+
+The data-governance and analytics-inventory suites pass 63 tests and 63
+subtests. Runtime SQL inventory freshness, Ruff, compilation, capability-matrix
+validation, and diff checks pass. No database or provider was used. Evidence:
+[focused tests](../tests/test_data_governance.py),
+[schema](../schemas/postgres/144_data_governance.sql), and the refreshed
+[runtime SQL inventory](runtime-sql-inventory.json).
+
+Checklist: 1,238 complete / 25 open (1,263 total). Capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changes.

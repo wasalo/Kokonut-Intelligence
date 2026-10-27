@@ -54,7 +54,7 @@ the batch log and the affected capability/progress records are updated.
   boundaries. See
   [full-schema role evidence](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json).
 - [x] Create a reproducible, read-only source-line inventory for C1's remaining
-  analytics write candidates. It links 276 currently unprotected relations to
+  analytics write candidates. It links 275 currently unprotected relations to
   425 unique candidate SQL sites across 89 source files (437 relation/site
   references) and reports any unmatched source relation; none are missing.
   Every entry stays marked for caller/source review, and the report explicitly
@@ -62,6 +62,12 @@ the batch log and the affected capability/progress records are updated.
   No database, candidate, or legacy service was accessed. See the
   [inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json)
   and [generator](../../scripts/runtime-analytics-write-candidate-inventory.py).
+- [x] Correct third-party data-portability audit writes to use the existing
+  `data_access_log` contract from migration 144. The previous insert targeted
+  `access_audit_log` with columns and a status value that table does not have;
+  it now records an export/success event in the correct transaction. The
+  focused data-governance and analytics-inventory suites pass. No schema change
+  or database rollout was needed.
 
 ## Code work to continue without owner input
 
@@ -79,7 +85,7 @@ that its full source-plan phase is complete.
   overlap). Full migration-installed provisioning and signed operator-context
   acceptance now pass for the source-declared policy; the runtime login still
   has broad DML on 1,026 other relations. A reproducible source-line inventory
-  now links 276 currently unprotected relations to 425 analytics write
+  now links 275 currently unprotected relations to 425 analytics write
   candidates across 89 files; classify these by capability and caller identity
   before changing grants. Change only
   reviewed slices with bounded functions or exact grants. Do not

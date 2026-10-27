@@ -17,13 +17,16 @@ not represent candidate or production state
 
 **C1 analytics write-candidate inventory (27 October 2026):** A new
 reproducible source-line report joins the refreshed ACL snapshot with the SQL
-execution inventory. It identifies 276 currently unprotected relations, 425
+execution inventory. It identifies 275 currently unprotected relations, 425
 unique candidate write sites, and 89 analytics source files; all 437
 relation/site associations remain marked for caller/source review. No grants
 were changed. Five focused inventory tests pass, and the report records its
 heuristic limits
 ([inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json);
 [generator](../scripts/runtime-analytics-write-candidate-inventory.py)).
+Source review also corrected the portability fulfillment audit to insert the
+export event into the migration-defined `data_access_log` with an allowed
+status; its write remains atomic with the request update.
 
 **Sprint tenant and identity evidence (26 October 2026):** CAP-053's real
 runtime and operator-auth principals passed a two-tenant synthetic forced-RLS
@@ -51,7 +54,7 @@ bounded operator-context behavior pass on a disposable full-schema database
 rollout occurred
 ([ACL inventory](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
 [callsite report](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
-The tracker now records 1,237 completed and 25 open checklist items (1,262
+The tracker now records 1,238 completed and 25 open checklist items (1,263
 total); the 67 capability classifications remain 24 baseline-retained, 7
 deployed, and 36 prepared.
 
