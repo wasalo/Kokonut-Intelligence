@@ -19,10 +19,14 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (26 October 2026):** 1,232 checklist items complete and 25
-open (1,257 total). The [capability matrix](capability-matrix.md) has 67 validated
-rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
+**Current snapshot (26 October 2026):** 1,234 checklist items complete and 25
+open (1,259 total), counting nested items. The
+[capability matrix](capability-matrix.md) has 67 validated rows: 24
+baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+The proposed next sprint and its bounded acceptance criteria are recorded in
+[authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
 
 **Current worker-boundary inventory (26 October 2026):** the checked source map
 covers 49 roots and 138 source files; the function graph has 1,172 function

@@ -1,3 +1,13 @@
+### Sprint planning checkpoint — 26 October 2026
+
+The next proposed batch is an [authenticated farm workflow and recovery sprint](sprint-kernel-workflow-acceptance.md)
+based on `develop` at `ef29f193`. It combines an isolated real ZITADEL login,
+location-scoped device enrollment and farm lifecycle, and reproducible recovery
+evidence. The checklist has 1,234 complete and 25 open items including nested
+items. The matrix validates 67 rows: 24 baseline-retained, seven deployed, and
+36 prepared; named MAN-CAP acceptance remains open. This is planning only and
+does not change capability status or claim a current candidate rollout.
+
 ### Progress addendum — Directus dashboard field allowlist, 26 October 2026
 
 The repository-managed Auditor policy now reads the dashboard metadata fields
