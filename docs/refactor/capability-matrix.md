@@ -13,13 +13,14 @@ browser, HTTPS and end-to-end authorization remain open. Classifications and
 MAN-CAP acceptance do not change.
 
 The relation-level follow-up confirms 1,101 ordinary/partitioned public tables
-have effective runtime DML while RLS is disabled; the static join also matches
-75 such tables to source migrations that explicitly revoke runtime DML. The
-new report is heuristic callsite evidence, not a complete SQL reachability or
-authorization proof. Runtime provisioning now re-applies governed action-write,
-identity, and selected Delphi private-receipt boundaries after its compatibility
-grant, but this slice still needs focused runtime-role acceptance and has not
-been rolled out
+had effective runtime DML while RLS was disabled in the isolated replay. The
+static join found 75 of those tables, 15 RLS-enabled tables, and the
+append-only farm-activity ledger with migration-declared runtime revokes. The
+provisioner now re-applies all 91 relation-level policies after its
+compatibility grant; source comparison reports no missing or mismatched policy.
+The callsite inventory remains heuristic and is not a complete SQL reachability
+or authorization proof. Focused disposable runtime-role acceptance remains
+open, and the code has not been rolled out
 ([ACL inventory](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
 [callsite report](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
 The tracker now records 1,235 completed and 26 open checklist items (1,261
