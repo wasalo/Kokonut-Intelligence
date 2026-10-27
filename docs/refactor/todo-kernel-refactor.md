@@ -28,12 +28,12 @@ the batch log and the affected capability/progress records are updated.
   revoke; 334 have no static candidate callsite. No database privileges were
   changed by the inventory.
 - [x] Implement the source-declared C1 runtime ACL repair in role provisioning:
-  after the compatibility grant, deny direct runtime access to all 64 tables
-  whose ordered migrations revoke `ALL`, and deny write privileges on the 11
-  tables whose migrations revoke only mutations. Existing reads remain for the
-  write-only group. The provisioner verifies the resulting table and column
-  ACLs. This code has not yet passed focused disposable-role acceptance and
-  was not rolled out.
+  after the compatibility grant, deny direct runtime access to the 79 private
+  tables, deny writes on 11 migration-defined mutation-only tables, and keep
+  the append-only farm-activity ledger SELECT-only. The provisioner verifies
+  the resulting table and column ACLs. Static comparison now covers all 91
+  relation-level source revokes with no policy gap. This code has not yet
+  passed focused disposable-role acceptance and was not rolled out.
 
 ## Code work to continue without owner input
 

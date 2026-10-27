@@ -19750,15 +19750,19 @@ remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 ### Progress addendum — restore all migration-declared runtime table denials, 26 October 2026
 
-The ACL/source join identified 75 unprotected tables whose ordered migrations
-explicitly revoke runtime DML. Runtime-role provisioning now restores all of
-those declared boundaries after its compatibility-wide grant: 64 relations
-with `REVOKE ALL` receive no direct runtime table or column access, and 11
-relations with mutation-only revokes lose write privileges while retaining
-reads. The provisioning verifier checks the resulting table and column
-privileges and aborts when a listed boundary is not enforced. The private
-relations span agent review receipts, business-canvas requests, governance and
-identity evidence, operating-pilot receipts, and solution-lifecycle receipts.
+The ACL/source join identified 75 unprotected tables and 15 RLS-enabled tables
+whose ordered migrations explicitly revoke runtime DML, plus the separately
+protected append-only farm-activity ledger. Runtime-role provisioning now
+restores all 91 matching relation policies after its compatibility-wide grant:
+79 private relations receive no direct runtime table or column access, 11
+mutation-only relations lose write privileges while retaining reads, and the
+farm-activity ledger remains SELECT-only with its dedicated writer. A
+source-only comparison between ordered migration revokes and the provisioner's
+explicit policy lists reports zero gaps. The provisioning verifier checks
+table and column privileges and aborts when a listed boundary is not enforced.
+The private relations span agent review receipts, business-canvas requests,
+governance and identity evidence, operating-pilot receipts, and
+solution-lifecycle receipts.
 
 This implements the existing migration policy rather than adding a schema
 migration. It does not remove the compatibility grant for the other 1,026

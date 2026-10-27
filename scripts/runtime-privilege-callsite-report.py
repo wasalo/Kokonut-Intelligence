@@ -9,6 +9,7 @@ review the source before changing any database grant.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
 from collections import Counter, defaultdict
@@ -23,6 +24,15 @@ _REVOKE = re.compile(
 )
 _PUBLIC_RELATION = re.compile(r"\bpublic\.(?:\"([^\"]+)\"|([a-zA-Z_][\w$]*))")
 _DML_PRIVILEGES = {"INSERT", "UPDATE", "DELETE", "TRUNCATE"}
+_RUNTIME_POLICY_NAMES = {
+    "private": "_RUNTIME_PRIVATE_TABLES",
+    "mutations": "_RUNTIME_MUTATION_TABLES",
+}
+# This append-only event ledger intentionally restores only SELECT after its
+# migration revokes ALL; the dedicated trigger owner remains the sole writer.
+_SOURCE_REVOKE_POLICY_OVERRIDES = {
+    "farm_activity_operator_event": "runtime_mutations_denied",
+}
 
 
 def _load_json(path: Path, label: str) -> dict[str, Any]:
@@ -62,6 +72,53 @@ def _source_revokes() -> dict[str, list[dict[str, str]]]:
     }
 
 
+def _runtime_role_denials() -> dict[str, str]:
+    """Read the provisioner's explicit table denial lists without importing it."""
+    source_path = ROOT / "services/migration/runtime_role.py"
+    try:
+        tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+    except (OSError, SyntaxError) as exc:
+        raise ValueError("could not parse runtime-role policy lists") from exc
+
+    values: dict[str, set[str]] = {}
+    for node in tree.body:
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        target = node.targets[0]
+        if not isinstance(target, ast.Name) or target.id not in _RUNTIME_POLICY_NAMES.values():
+            continue
+        if not isinstance(node.value, (ast.Tuple, ast.List)):
+            raise ValueError(f"{target.id} must be a literal tuple or list")
+        if any(not isinstance(item, ast.Constant) or not isinstance(item.value, str) for item in node.value.elts):
+            raise ValueError(f"{target.id} must contain only literal relation names")
+        values[target.id] = {item.value for item in node.value.elts}
+
+    if set(values) != set(_RUNTIME_POLICY_NAMES.values()):
+        raise ValueError("runtime-role source lacks an explicit scoped denial list")
+    if values[_RUNTIME_POLICY_NAMES["private"]] & values[_RUNTIME_POLICY_NAMES["mutations"]]:
+        raise ValueError("runtime-role private and mutation-only lists overlap")
+
+    return {
+        **{table: "no_direct_runtime_access" for table in values[_RUNTIME_POLICY_NAMES["private"]]},
+        **{table: "runtime_mutations_denied" for table in values[_RUNTIME_POLICY_NAMES["mutations"]]},
+    }
+
+
+def _expected_runtime_denial(revokes: list[dict[str, str]]) -> str | None:
+    if not revokes:
+        return None
+    if any("ALL" in entry["privileges"].split() for entry in revokes):
+        return "no_direct_runtime_access"
+    if any(
+        _DML_PRIVILEGES.intersection(
+            token.strip() for token in entry["privileges"].split(",")
+        )
+        for entry in revokes
+    ):
+        return "runtime_mutations_denied"
+    return None
+
+
 def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, Any]:
     """Cross-reference observed ACLs, static SQL candidates and explicit revokes."""
     replay = probe
@@ -98,6 +155,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
                 entry["sources"][source][statement_kind] += 1
 
     revokes = _source_revokes()
+    runtime_denials = _runtime_role_denials()
     output_rows: list[dict[str, Any]] = []
     for name, row in sorted(relations.items()):
         dml = any(
@@ -112,6 +170,10 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
                 token.strip() for token in revoke["privileges"].split(",")
             ))
         ]
+        expected_denial = _SOURCE_REVOKE_POLICY_OVERRIDES.get(name)
+        if expected_denial is None:
+            expected_denial = _expected_runtime_denial(dml_revokes)
+        configured_denial = runtime_denials.get(name)
         output_rows.append({
             "relation": name,
             "kind": row.get("kind"),
@@ -135,6 +197,12 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "explicit_runtime_revokes": source_revokes,
             "explicit_runtime_dml_revokes": dml_revokes,
             "dml_overlaps_explicit_revoke": bool(dml and dml_revokes),
+            "expected_runtime_denial": expected_denial,
+            "configured_runtime_denial": configured_denial,
+            "runtime_denial_policy_matches_source": (
+                configured_denial == expected_denial
+                if expected_denial is not None else None
+            ),
         })
 
     dml_without_site = [
@@ -158,6 +226,11 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         row["relation"] for row in unprotected_dml
         if row["explicit_runtime_dml_revokes"]
     ]
+    policy_rows = [row for row in output_rows if row["expected_runtime_denial"] is not None]
+    policy_gaps = [
+        row["relation"] for row in policy_rows
+        if not row["runtime_denial_policy_matches_source"]
+    ]
     return {
         "result": "inventory",
         "source_revision": replay.get("source_revision"),
@@ -166,7 +239,9 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "Effective table privileges are read from the isolated runtime-role probe. "
             "SQL relation candidates come from runtime-sql-inventory.json and may be "
             "heuristic; they are not proof of reachable execution. Explicit revokes "
-            "are a static scan of ordered schema SQL and may omit dynamic SQL. Review "
+            "are a static scan of ordered schema SQL and may omit dynamic SQL. The "
+            "provisioning-policy comparison statically parses runtime_role.py lists; "
+            "it does not mean that role provisioning has been run or accepted. Review "
             "source and database behavior before changing grants."
         ),
         "scope_limit": (
@@ -191,6 +266,8 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "unprotected_dml_relations_matching_explicit_runtime_revoke": len(
                 unprotected_overlapping
             ),
+            "migration_revoked_relations_with_runtime_policy": len(policy_rows) - len(policy_gaps),
+            "migration_revoked_relations_missing_or_mismatched_runtime_policy": len(policy_gaps),
         },
         "dml_relations_without_candidate_sites": dml_without_site,
         "dml_relations_matching_explicit_runtime_revoke": overlapping,
@@ -198,6 +275,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         "unprotected_dml_relations_matching_explicit_runtime_revoke": (
             unprotected_overlapping
         ),
+        "migration_revoked_relations_missing_or_mismatched_runtime_policy": policy_gaps,
         "relations": output_rows,
     }
 
