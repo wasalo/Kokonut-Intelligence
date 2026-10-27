@@ -59,6 +59,9 @@ GRAPH_PROJECTION_TYPES_MIGRATION = (
 ACCESS_AUDIT_LOG_MIGRATION = (
     ROOT / "schemas/postgres/662_runtime_access_audit_log_append_only.sql"
 )
+AGENT_ACTION_LOG_MIGRATION = (
+    ROOT / "schemas/postgres/663_runtime_agent_action_log_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "cooperative_type", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
@@ -171,6 +174,10 @@ def check_boundary(
                     "CREATE ROLE kokonut_runtime NOLOGIN NOSUPERUSER "
                     "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
                 )
+                cursor.execute(
+                    "CREATE ROLE kokonut_directus_runtime NOLOGIN NOSUPERUSER "
+                    "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
+                )
                 relations = tuple(
                     dict.fromkeys(
                         (*runtime_role._RUNTIME_PRIVATE_TABLES,
@@ -194,6 +201,14 @@ def check_boundary(
                 cursor.execute(
                     "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
                     "IN SCHEMA public TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (id), UPDATE (marker), REFERENCES (id) "
+                    "ON public.agent_action_log TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE ON public.agent_action_log "
+                    "TO kokonut_directus_runtime"
                 )
                 cursor.execute(
                     "GRANT SELECT (marker), INSERT (id, marker), UPDATE (marker), REFERENCES (id) "
@@ -272,6 +287,11 @@ def check_boundary(
                 )
                 cursor.execute(access_audit_log_migration)
                 cursor.execute(access_audit_log_migration)
+                agent_action_log_migration = AGENT_ACTION_LOG_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(agent_action_log_migration)
+                cursor.execute(agent_action_log_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -285,6 +305,41 @@ def check_boundary(
                 True, True, False, False
             ):
                 raise AssertionError("migration 662 did not establish read/insert-only rights")
+            if _relation_privileges(connection, "agent_action_log") != (
+                True, False, False, False
+            ):
+                raise AssertionError("migration 663 did not establish read-only rights")
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_runtime', "
+                    "'public.agent_action_log', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_runtime', "
+                    "'public.agent_action_log', 'REFERENCES'), "
+                    "EXISTS (SELECT 1 FROM pg_attribute "
+                    "WHERE attrelid = 'public.agent_action_log'::regclass "
+                    "AND attnum > 0 AND NOT attisdropped AND ("
+                    "has_column_privilege('kokonut_runtime', 'public.agent_action_log', attname, 'INSERT') "
+                    "OR has_column_privilege('kokonut_runtime', 'public.agent_action_log', attname, 'UPDATE') "
+                    "OR has_column_privilege('kokonut_runtime', 'public.agent_action_log', attname, 'REFERENCES')))"
+                )
+                if cursor.fetchone() != (False, False, False):
+                    raise AssertionError(
+                        "migration 663 retained truncate/reference/column write grants"
+                    )
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', "
+                    "'public.agent_action_log', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.agent_action_log', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.agent_action_log', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.agent_action_log', 'DELETE')"
+                )
+                if cursor.fetchone() != (True, True, True, True):
+                    raise AssertionError(
+                        "migration 663 unexpectedly changed the separate Directus role"
+                    )
             if _relation_privileges(connection, "advisory_rule") != (
                 True, False, False, False
             ):
@@ -419,6 +474,27 @@ def check_boundary(
                 True, True, False, False
             ):
                 raise AssertionError("runtime provisioner reopened capability-audit writes")
+            if _relation_privileges(connection, "agent_action_log") != (
+                True, False, False, False
+            ):
+                raise AssertionError("runtime provisioner reopened agent-action-log writes")
+            if scoped_applied["relations"].get("agent_action_log") is not True:
+                raise AssertionError("runtime provisioner skipped agent-action-log boundary")
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', "
+                    "'public.agent_action_log', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.agent_action_log', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.agent_action_log', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.agent_action_log', 'DELETE')"
+                )
+                if cursor.fetchone() != (True, True, True, True):
+                    raise AssertionError(
+                        "runtime provisioner changed the separate Directus role"
+                    )
             if _relation_privileges(connection, "advisory_rule") != (
                 True, False, False, False
             ):
@@ -477,6 +553,33 @@ def check_boundary(
                     else:
                         connection.rollback()
                         raise AssertionError(f"runtime advisory-rule write unexpectedly succeeded: {statement}")
+                cursor.execute("RESET ROLE")
+
+            with connection.cursor() as cursor:
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute("SELECT marker FROM public.agent_action_log")
+                for statement in (
+                    "INSERT INTO public.agent_action_log (id, marker) "
+                    "VALUES ('00000000-0000-0000-0000-000000000005', 'forbidden')",
+                    "UPDATE public.agent_action_log SET marker = 'forbidden'",
+                    "DELETE FROM public.agent_action_log",
+                    "TRUNCATE public.agent_action_log",
+                ):
+                    try:
+                        cursor.execute(statement)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode != "42501":
+                            raise AssertionError(
+                                f"expected privilege denial for {statement}; got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError(
+                            f"runtime agent-action-log write unexpectedly succeeded: {statement}"
+                        )
                 cursor.execute("RESET ROLE")
 
             with connection.cursor() as cursor:
@@ -735,6 +838,14 @@ def check_boundary(
                     "select_allowed": True,
                     "insert_update_delete_denied": True,
                     "references_and_column_grants_denied": True,
+                },
+                "read_only_agent_action_log": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_write_grants_denied": True,
+                    "directus_role_unchanged": True,
                 },
                 "read_only_crop_family": {
                     "migration_applied_and_replayed": True,

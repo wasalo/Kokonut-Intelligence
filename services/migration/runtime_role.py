@@ -1052,6 +1052,7 @@ _RUNTIME_PRIVATE_TABLES = (
 
 _RUNTIME_MUTATION_TABLES = (
     "ai_summary",
+    "agent_action_log",
     "advisory_rule",
     "crop_family",
     "crop_nutrient_removal_factor",
@@ -1402,10 +1403,11 @@ def provision_runtime_role(
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
-    The runtime role keeps DML compatibility for existing public tables,
-    except ``operator_session``, mobile credentials, ``api_key``, and
-    ``solution_stage_gate``, which use
-    explicit least-privilege grants. New public tables and sequences receive no
+    The runtime role keeps DML compatibility for legacy public tables, then
+    reapplies its declared private, mutation-denied, append-only, and
+    call-site-specific boundaries. ``operator_session``, mobile credentials,
+    ``api_key``, and ``solution_stage_gate`` use additional explicit
+    least-privilege grants. New public tables and sequences receive no
     automatic runtime privileges. The dedicated auth role can only execute
     the three bounded functions from migration 395. This is scoped to a
     dedicated Kernel PostgreSQL instance. When configured, the optional

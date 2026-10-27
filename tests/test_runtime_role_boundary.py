@@ -27,7 +27,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 106
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 107
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -387,6 +387,30 @@ def test_access_audit_log_runtime_write_inventory_is_append_only():
     assert writers[0]["source"] == "services/security/audit.py"
     assert writers[0]["scope"] == "AuditLogger.log_access"
     assert writers[0]["statement_kind"] == "INSERT"
+
+
+def test_agent_action_log_is_read_only_for_kernel_runtime_and_remains_exportable():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/663_runtime_agent_action_log_read_only.sql"
+    ).read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    from services.export.exporter import ALLOWED_COLLECTIONS
+
+    assert "agent_action_log" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "agent_action_log" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.agent_action_log FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.agent_action_log TO kokonut_runtime" in migration
+    assert all(
+        "agent_action_log" not in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert "agent_action_log" in ALLOWED_COLLECTIONS
+    assert "kokonut_directus_runtime" not in migration
+    assert "Directus" in migration
 
 
 def test_mobile_credential_columns_are_excluded_from_runtime_reads():

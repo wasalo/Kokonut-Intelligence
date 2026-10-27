@@ -555,3 +555,10 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   zero runtime `TRUNCATE` grants. The scanner, ACL report, and analytics
   inventory selection passes 41 tests plus static checks; this does not close
   broad table-DML or universal RLS gaps ([batch](batches.md); [progress](progress.md#track-runtime-truncate-targets-and-privileges--27-october-2026)).
+- [x] Make the legacy `agent_action_log` read-only to `kokonut_runtime` while
+  retaining export reads and the separate Directus role's existing writes.
+  Migration 663 and the role provisioner revoke runtime table/column writes;
+  native and ARM64/QEMU disposable checks, a 654-file full-schema replay, and
+  the 17-check two-tenant probe pass. The six-module regression suite passes
+  135 tests. C1 remains open because 1,013 relations retain effective DML while
+  RLS is disabled ([batch](batches.md); [progress](progress.md#progress-addendum--agent_action_log-runtime-read-only-boundary--27-october-2026)).

@@ -38,9 +38,9 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
     mutation_relation = "ai_summary"
     scoped_policy = {
         "private_relations_expected": 79,
-        "mutation_denied_relations_expected": 24,
+        "mutation_denied_relations_expected": 25,
         "private_relations_verified": 79,
-        "mutation_denied_relations_verified": 24,
+        "mutation_denied_relations_verified": 25,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
@@ -164,6 +164,13 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
                     update=False,
                     delete=False,
                 ),
+                _acl_row(
+                    "agent_action_log",
+                    select=True,
+                    insert=False,
+                    update=False,
+                    delete=False,
+                ),
             ],
             "runtime_scoped_write_policy": scoped_policy,
             "runtime_append_only_policy": {
@@ -223,6 +230,9 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
     assert rows["access_audit_log"]["expected_runtime_boundary"] == "runtime_append_only_read_insert"
     assert rows["access_audit_log"]["configured_runtime_boundary"] == "runtime_append_only_read_insert"
     assert rows["access_audit_log"]["runtime_boundary_policy_matches_source"] is True
+    assert rows["agent_action_log"]["expected_runtime_boundary"] == "runtime_mutations_denied"
+    assert rows["agent_action_log"]["configured_runtime_boundary"] == "runtime_mutations_denied"
+    assert rows["agent_action_log"]["runtime_boundary_policy_matches_source"] is True
     assert report["summary"]["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == 0
     assert report["runtime_role_acceptance"] == {
         "full_schema_replay_passed": True,

@@ -20640,3 +20640,33 @@ Rollback reverts the scanner/report changes and regenerates the artifacts.
 Checklist: 1,273 complete / 25 open (1,298 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changed.
+
+### Progress addendum — `agent_action_log` runtime read-only boundary — 27 October 2026
+
+The legacy `log_agent_action()` and `get_agent_actions()` paths already fail
+before database access without an authenticated identity, and the source
+inventory contains no direct runtime SQL writer. The generic exporter still
+allows this collection, so migration 663 keeps `SELECT` for `kokonut_runtime`
+and revokes table and residual column INSERT/UPDATE/REFERENCES access; the
+runtime policy also denies DELETE, TRUNCATE, and other mutations. Directus is
+provisioned under a separate role; its current DML grants are not named by the
+migration and remain intact. The native and ARM64/QEMU disposable PostgreSQL 16
+checks pass apply/replay, read access, table/column write denial, provisioner
+reapplication after compatibility grants, and Directus-role preservation. A
+fresh native replay of all 654 ordered schema files through migration 663
+passes all 17 synthetic two-tenant checks under 1.5 GiB/two-CPU limits; no
+seeds are loaded and temporary resources are removed. The refreshed report
+matches all 107 declared controls with zero policy gaps, while 1,013 relations
+still retain effective table DML with RLS disabled. The focused six-module
+selection passes 135 tests; Ruff, compilation, dependency/provider checks,
+SQL-inventory freshness, and diff checks pass. Candidate/legacy services,
+provider state, and farm rows were untouched. C1 remains open; this source and
+synthetic ACL acceptance does not prove populated-data tenant safety or
+production role state. Evidence: [migration](../schemas/postgres/663_runtime_agent_action_log_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/agent-action-log-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/agent-action-log-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-663-native-disposable.json),
+and [ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,274 complete / 25 open (1,299 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.

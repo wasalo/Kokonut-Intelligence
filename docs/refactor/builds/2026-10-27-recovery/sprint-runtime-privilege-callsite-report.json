@@ -2,7 +2,6 @@
   "dml_relations_matching_explicit_runtime_revoke": [],
   "dml_relations_without_candidate_sites": [
     "adaptive_stewardship_review",
-    "agent_action_log",
     "agent_capability_manifest",
     "agent_identity",
     "algorithmic_redistribution_mechanism",
@@ -1089,31 +1088,49 @@
       "candidate_source_files": [],
       "candidate_write_target_sites_by_statement": {},
       "candidate_write_target_source_files": [],
-      "configured_runtime_boundary": null,
+      "configured_runtime_boundary": "runtime_mutations_denied",
       "dml_overlaps_explicit_revoke": false,
-      "effective_dml_privileges": [
-        "DELETE",
-        "INSERT",
-        "UPDATE"
-      ],
+      "effective_dml_privileges": [],
       "effective_dml_revokes": [],
       "effective_privileges": {
-        "delete": true,
-        "insert": true,
+        "delete": false,
+        "insert": false,
         "select": true,
         "truncate": false,
-        "update": true
+        "update": false
       },
       "effective_truncate_privilege": false,
-      "expected_runtime_boundary": null,
-      "explicit_runtime_dml_revokes": [],
-      "explicit_runtime_revokes": [],
-      "has_any_dml": true,
+      "expected_runtime_boundary": "runtime_mutations_denied",
+      "explicit_runtime_dml_revokes": [
+        {
+          "migration": "663_runtime_agent_action_log_read_only.sql",
+          "privileges": "ALL PRIVILEGES"
+        }
+      ],
+      "explicit_runtime_revokes": [
+        {
+          "migration": "663_runtime_agent_action_log_read_only.sql",
+          "privileges": "ALL PRIVILEGES"
+        },
+        {
+          "migration": "663_runtime_agent_action_log_read_only.sql",
+          "privileges": "INSERT (%1$I)"
+        },
+        {
+          "migration": "663_runtime_agent_action_log_read_only.sql",
+          "privileges": "REFERENCES (%1$I)"
+        },
+        {
+          "migration": "663_runtime_agent_action_log_read_only.sql",
+          "privileges": "UPDATE (%1$I)"
+        }
+      ],
+      "has_any_dml": false,
       "kind": "r",
       "relation": "agent_action_log",
       "rls_enabled": false,
       "rls_forced": false,
-      "runtime_boundary_policy_matches_source": null
+      "runtime_boundary_policy_matches_source": true
     },
     {
       "candidate_execution_sites_by_statement": {},
@@ -69381,8 +69398,8 @@
       "direct_column_privilege_violations": 0,
       "direct_table_privilege_violations": 0,
       "farm_activity_ledger_readable": 1,
-      "mutation_denied_relations_expected": 24,
-      "mutation_denied_relations_verified": 24,
+      "mutation_denied_relations_expected": 25,
+      "mutation_denied_relations_verified": 25,
       "private_relations_expected": 79,
       "private_relations_verified": 79
     },
@@ -69390,25 +69407,25 @@
   },
   "runtime_role_policy_source": {
     "path": "services/migration/runtime_role.py",
-    "sha256": "d502c93db3150d928b0310ae4643614f83ac56753dd870f221e69f1ba2714127"
+    "sha256": "d0563a2ac6e5f17d69afccad3ea4037fec5c02a997c1bf70315a20cc9dd428ce"
   },
   "scope_limit": "No application rows, operator identifiers, or secrets are included. The report does not include a full column ACL inventory, sequence ACLs, object ownership, security-definer behavior, Directus, external consumers, or production state. The API-key read-only column allowlist is separately verified by the runtime provisioner. Static policy coverage and its source digest do not prove that the provisioner has executed.",
-  "source_dirty": false,
-  "source_revision": "cf3729df",
+  "source_dirty": true,
+  "source_revision": "66163ff8",
   "summary": {
     "dml_relations_matching_explicit_runtime_revoke": 0,
-    "dml_relations_without_candidate_sites": 511,
+    "dml_relations_without_candidate_sites": 510,
     "migration_revoked_relations_missing_or_mismatched_runtime_policy": 0,
-    "migration_revoked_relations_with_runtime_policy": 106,
-    "relations_with_any_dml": 1401,
+    "migration_revoked_relations_with_runtime_policy": 107,
+    "relations_with_any_dml": 1400,
     "relations_with_candidate_execution_sites": 910,
     "relations_with_effective_truncate": 0,
     "relations_with_effective_truncate_and_rls_disabled": 0,
     "runtime_relations": 1511,
-    "tables_with_dml_and_rls_disabled": 1014,
+    "tables_with_dml_and_rls_disabled": 1013,
     "unprotected_dml_relations_matching_explicit_runtime_revoke": 0,
-    "unprotected_dml_relations_without_candidate_sites": 262,
-    "unprotected_dml_relations_without_candidate_write_sites": 452
+    "unprotected_dml_relations_without_candidate_sites": 261,
+    "unprotected_dml_relations_without_candidate_write_sites": 451
   },
   "unprotected_candidate_write_relations_by_service": {
     "abundance": 30,
@@ -69461,7 +69478,6 @@
   "unprotected_dml_relations_matching_explicit_runtime_revoke": [],
   "unprotected_dml_relations_without_candidate_sites": [
     "adaptive_stewardship_review",
-    "agent_action_log",
     "agent_capability_manifest",
     "agent_identity",
     "algorithmic_redistribution_mechanism",
@@ -69726,7 +69742,6 @@
   "unprotected_dml_relations_without_candidate_write_sites": [
     "adaptive_stewardship_review",
     "adoption_barrier_assessment",
-    "agent_action_log",
     "agent_capability_manifest",
     "agent_identity",
     "agent_task",

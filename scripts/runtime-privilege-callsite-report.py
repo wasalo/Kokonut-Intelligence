@@ -51,6 +51,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "disposal_method": "runtime_mutations_denied",
     "graph_node_type": "runtime_mutations_denied",
     "graph_edge_type": "runtime_mutations_denied",
+    "agent_action_log": "runtime_mutations_denied",
     "data_access_log": "runtime_append_only_read_insert",
     "access_audit_log": "runtime_append_only_read_insert",
 }
@@ -228,11 +229,17 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
     revokes = _source_revokes()
     runtime_boundaries, runtime_role_sha256 = _runtime_role_boundaries()
     scoped_write = probe.get("runtime_scoped_write_policy")
+    private_relation_count = sum(
+        policy == "no_direct_runtime_access" for policy in runtime_boundaries.values()
+    )
+    mutation_denial_count = sum(
+        policy == "runtime_mutations_denied" for policy in runtime_boundaries.values()
+    )
     expected_scoped_write = {
-        "private_relations_expected": 79,
-        "mutation_denied_relations_expected": 24,
-        "private_relations_verified": 79,
-        "mutation_denied_relations_verified": 24,
+        "private_relations_expected": private_relation_count,
+        "mutation_denied_relations_expected": mutation_denial_count,
+        "private_relations_verified": private_relation_count,
+        "mutation_denied_relations_verified": mutation_denial_count,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
