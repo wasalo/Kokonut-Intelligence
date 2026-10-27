@@ -20,7 +20,7 @@ the batch log and the affected capability/progress records are updated.
   discovery. Fix and record safe permissions for its Login UI token volume.
 - [x] Keep these findings and acceptance limits in the sprint, phase and
   capability records. Local commits: `020a5279`, `be1c2c2e`, `968a49fc`,
-  `e6bee5ae`, `2f7e0c0a`, `97317dfc`, `263a6d19`.
+  `e6bee5ae`, `2f7e0c0a`, `97317dfc`, `263a6d19`, `03d215b2`, `cd7a02bc`.
 - [x] Add relation-level runtime ACL/default-ACL capture to the isolated probe
   and a source-callsite/revoke join at
   [`scripts/runtime-privilege-callsite-report.py`](../../scripts/runtime-privilege-callsite-report.py).
