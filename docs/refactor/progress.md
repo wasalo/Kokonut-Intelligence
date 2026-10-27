@@ -19760,6 +19760,10 @@ farm-activity ledger remains SELECT-only with its dedicated writer. A
 source-only comparison between ordered migration revokes and the provisioner's
 explicit policy lists reports zero gaps. The provisioning verifier checks
 table and column privileges and aborts when a listed boundary is not enforced.
+The generated report now includes the provisioner SHA-256 and distinguishes
+529 relations with no static write candidate from the 334 with no static SQL
+candidate; these heuristic sets overlap. Its per-service write counts also
+overlap and are only triage data.
 The private relations span agent review receipts, business-canvas requests,
 governance and identity evidence, operating-pilot receipts, and
 solution-lifecycle receipts.

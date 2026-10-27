@@ -225,10 +225,28 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         row["relation"] for row in unprotected_dml
         if not row["candidate_execution_sites_by_statement"]
     ]
+    unprotected_without_write_site = [
+        row["relation"] for row in unprotected_dml
+        if not any(
+            row["candidate_execution_sites_by_statement"].get(kind, 0)
+            for kind in ("INSERT", "UPDATE", "DELETE")
+        )
+    ]
     unprotected_overlapping = [
         row["relation"] for row in unprotected_dml
         if row["explicit_runtime_dml_revokes"]
     ]
+    write_relations_by_service: dict[str, set[str]] = defaultdict(set)
+    for row in unprotected_dml:
+        for source in row["candidate_source_files"]:
+            if not any(
+                source["statement_counts"].get(kind, 0)
+                for kind in ("INSERT", "UPDATE", "DELETE")
+            ):
+                continue
+            parts = Path(source["path"]).parts
+            service = parts[1] if len(parts) > 2 and parts[0] == "services" else "other"
+            write_relations_by_service[service].add(row["relation"])
     policy_rows = [row for row in output_rows if row["expected_runtime_denial"] is not None]
     policy_gaps = [
         row["relation"] for row in policy_rows
@@ -271,6 +289,9 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "unprotected_dml_relations_without_candidate_sites": len(
                 unprotected_without_site
             ),
+            "unprotected_dml_relations_without_candidate_write_sites": len(
+                unprotected_without_write_site
+            ),
             "unprotected_dml_relations_matching_explicit_runtime_revoke": len(
                 unprotected_overlapping
             ),
@@ -280,6 +301,15 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         "dml_relations_without_candidate_sites": dml_without_site,
         "dml_relations_matching_explicit_runtime_revoke": overlapping,
         "unprotected_dml_relations_without_candidate_sites": unprotected_without_site,
+        "unprotected_dml_relations_without_candidate_write_sites": (
+            unprotected_without_write_site
+        ),
+        "unprotected_candidate_write_relations_by_service": {
+            service: len(relations)
+            for service, relations in sorted(
+                write_relations_by_service.items(), key=lambda item: item[0]
+            )
+        },
         "unprotected_dml_relations_matching_explicit_runtime_revoke": (
             unprotected_overlapping
         ),

@@ -19,7 +19,8 @@ the batch log and the affected capability/progress records are updated.
 - [x] Start a fresh isolated ZITADEL API/Login stack and confirm internal OIDC
   discovery. Fix and record safe permissions for its Login UI token volume.
 - [x] Keep these findings and acceptance limits in the sprint, phase and
-  capability records. Local commits: `020a5279`, `be1c2c2e`, `968a49fc`.
+  capability records. Local commits: `020a5279`, `be1c2c2e`, `968a49fc`,
+  `e6bee5ae`, `2f7e0c0a`, `97317dfc`, `263a6d19`.
 - [x] Add relation-level runtime ACL/default-ACL capture to the isolated probe
   and a source-callsite/revoke join at
   [`scripts/runtime-privilege-callsite-report.py`](../../scripts/runtime-privilege-callsite-report.py).
@@ -41,17 +42,17 @@ Work in this order. Each item is a bounded implementation batch, not a claim
 that its full source-plan phase is complete.
 
 - [ ] **C1 — Replace broad runtime database privileges with scoped contracts.**
-  Inventory the 1,101 relations and actual application/worker/Directus
-  callsites, group them by capability and identity, then revoke access only in
-  reviewed slices with bounded functions or exact grants. Preserve a rollback
-  path and keep RLS/tenant claims scoped to what is actually enforced. First
-  generate the relation-level join with
-  `scripts/runtime-privilege-callsite-report.py`; review explicit revokes that
-  overlap effective DML and source callsites that the heuristic inventory
-  cannot classify before making any ACL change. The 75 migration-declared
-  runtime revokes are now restored by the bootstrap correction; focused
-  acceptance is still open. The remaining broad DML grants require separate
-  callsite, worker-identity and Directus review before changing them.
+  The 642-migration isolated inventory found 1,101 relations with unprotected
+  runtime DML. Of these, 529 have no static write candidate and 334 have no
+  SQL candidate at all; the counts are heuristic and the latter is a subset.
+  The source report fingerprints `runtime_role.py`, covers all 91 matched
+  migration-declared revokes with zero static policy gaps, and groups write
+  candidates by service (the service counts overlap). Focused disposable-role
+  acceptance is open. Next classify the remaining 1,026 unprotected relations
+  by capability and caller identity, starting with the 281 candidate analytics
+  write relations; change only reviewed slices with bounded functions or exact
+  grants. Do not blanket-revoke from heuristic absence. Preserve rollback and
+  distinguish table grants from RLS, worker, Directus and production enforcement.
   Sources: [runtime boundary](batches.md#L2826),
   [agent boundary](batches.md#L3652),
   [full-schema probe](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json).
