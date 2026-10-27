@@ -87,8 +87,8 @@ def _runtime_role_boundaries() -> tuple[dict[str, str], str]:
 
     values: dict[str, set[str]] = {}
     api_key_columns: tuple[str, ...] | None = None
-    function_names = {
-        node.name for node in tree.body if isinstance(node, ast.FunctionDef)
+    functions = {
+        node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)
     }
     for node in tree.body:
         if not isinstance(node, ast.Assign) or len(node.targets) != 1:
@@ -118,11 +118,18 @@ def _runtime_role_boundaries() -> tuple[dict[str, str], str]:
         **{table: "no_direct_runtime_access" for table in values[_RUNTIME_POLICY_NAMES["private"]]},
         **{table: "runtime_mutations_denied" for table in values[_RUNTIME_POLICY_NAMES["mutations"]]},
     }
+    provisioner = functions.get("provision_runtime_role")
+    provisioner_calls = {
+        node.func.id
+        for node in ast.walk(provisioner)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    } if provisioner is not None else set()
     if (
         api_key_columns == (
             "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"
         )
-        and {"_apply_api_key_boundary", "_verify_api_key_boundary"} <= function_names
+        and {"_apply_api_key_boundary", "_verify_api_key_boundary"} <= functions.keys()
+        and {"_apply_api_key_boundary", "_verify_api_key_boundary"} <= provisioner_calls
     ):
         denials["api_key"] = "read_only_column_allowlist"
     return denials, hashlib.sha256(source_text.encode("utf-8")).hexdigest()

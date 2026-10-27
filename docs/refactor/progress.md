@@ -19832,3 +19832,29 @@ and [source-to-policy join](builds/2026-10-26-recovery/sprint-runtime-privilege-
 Checklist: 1,236 complete / 25 open (1,261 total). Capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
 MAN-CAP acceptance status changes.
+
+### Progress addendum — C1 analytics write-candidate inventory, 27 October 2026
+
+To make the remaining broad runtime grants reviewable without revoking from
+static guesses, a reproducible inventory now joins the refreshed post-
+provisioning relation ACL report to the generated SQL execution-site inventory.
+It identifies 276 currently unprotected relations with analytics-package
+write candidates, 425 unique candidate sites across 89 source files, and 437
+relation/site associations. Every entry retains its source path, line, function
+scope, statement kind, expression classification, static SQL digest, and any
+operation reference. No relation lacked a matching SQL execution site. All
+entries remain marked for caller/source review; this report does not prove
+reachability or tenant authorization and does not recommend grant changes.
+
+The five focused inventory tests pass with Ruff, Python compilation, capability
+matrix validation, and `git diff --check`. No database, provider, candidate, or
+legacy service was used. Evidence:
+[analytics write candidates](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json),
+[generator](../scripts/runtime-analytics-write-candidate-inventory.py), and
+[tests](../tests/test_runtime_analytics_write_candidate_inventory.py).
+This advances the review process only; C1 still has 1,026 unprotected DML
+relations and requires capability/caller review before scoped grant changes.
+
+Checklist: 1,237 complete / 25 open (1,262 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.

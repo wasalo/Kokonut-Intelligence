@@ -4,16 +4,26 @@
 all 642 migrations through 651, full role provisioning and the two-tenant
 operator-context probe pass. The provisioner denies direct runtime access to
 79 private relations and direct mutations on 12 scoped relations, with zero
-remaining table/column privilege violations across those boundaries; the
-beyond those groups, the provisioner verifies that API-key authentication can
-read only seven reviewed columns and cannot write. The bounded operator-context
-function still establishes the expected signed tenant scope. The refreshed
-source-policy report covers all 1,511 public relations and matches 92 declared
-runtime boundaries with zero gaps. The runtime principal nevertheless retains
+direct table/column privilege violations in these groups. It also verifies
+that API-key authentication can read only seven reviewed columns and cannot
+write. The bounded operator-context function still establishes the expected
+signed tenant scope. The refreshed source-policy report covers all 1,511 public
+relations and matches 92 declared runtime boundaries with zero gaps. The
+runtime principal nevertheless retains
 compatibility DML on 1,026 other relations and application-table RLS is not
 universal, so tenant isolation remains incomplete. This disposable result does
 not represent candidate or production state
 ([evidence](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json)).
+
+**C1 analytics write-candidate inventory (27 October 2026):** A new
+reproducible source-line report joins the refreshed ACL snapshot with the SQL
+execution inventory. It identifies 276 currently unprotected relations, 425
+unique candidate write sites, and 89 analytics source files; all 437
+relation/site associations remain marked for caller/source review. No grants
+were changed. Five focused inventory tests pass, and the report records its
+heuristic limits
+([inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json);
+[generator](../scripts/runtime-analytics-write-candidate-inventory.py)).
 
 **Sprint tenant and identity evidence (26 October 2026):** CAP-053's real
 runtime and operator-auth principals passed a two-tenant synthetic forced-RLS
@@ -41,7 +51,7 @@ bounded operator-context behavior pass on a disposable full-schema database
 rollout occurred
 ([ACL inventory](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
 [callsite report](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
-The tracker now records 1,236 completed and 25 open checklist items (1,261
+The tracker now records 1,237 completed and 25 open checklist items (1,262
 total); the 67 capability classifications remain 24 baseline-retained, 7
 deployed, and 36 prepared.
 

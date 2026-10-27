@@ -31,7 +31,7 @@ the batch log and the affected capability/progress records are updated.
   or legacy database privileges were changed.
 - [x] Implement the source-declared C1 runtime ACL repair in role provisioning:
   after the compatibility grant, deny direct runtime access to the 79 private
-  tables, deny writes on 11 migration-defined mutation-only tables, and keep
+  tables, deny writes on 12 migration-defined mutation-only tables, and keep
   the append-only farm-activity ledger SELECT-only. The provisioner verifies
   the resulting table and column ACLs. Static comparison covers 91 private or
   mutation-denied relations plus the separate API-key read-only column
@@ -53,6 +53,15 @@ the batch log and the affected capability/progress records are updated.
   relation/callsite report has 1,511 rows and zero gaps across 92 declared
   boundaries. See
   [full-schema role evidence](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json).
+- [x] Create a reproducible, read-only source-line inventory for C1's remaining
+  analytics write candidates. It links 276 currently unprotected relations to
+  425 unique candidate SQL sites across 89 source files (437 relation/site
+  references) and reports any unmatched source relation; none are missing.
+  Every entry stays marked for caller/source review, and the report explicitly
+  forbids inferring authorization or revoking privileges from static matches.
+  No database, candidate, or legacy service was accessed. See the
+  [inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json)
+  and [generator](../../scripts/runtime-analytics-write-candidate-inventory.py).
 
 ## Code work to continue without owner input
 
@@ -60,19 +69,22 @@ Work in this order. Each item is a bounded implementation batch, not a claim
 that its full source-plan phase is complete.
 
 - [ ] **C1 — Replace broad runtime database privileges with scoped contracts.**
-  The 642-migration isolated inventory found 1,101 relations with unprotected
-  runtime DML. Of these, 529 have no static write candidate and 334 have no
-  SQL candidate at all; the counts are heuristic and the latter is a subset.
+  The initial pre-provisioning 642-migration inventory found 1,101 relations
+  with unprotected runtime DML. Of these, 529 have no static write candidate
+  and 334 have no SQL candidate at all; the counts are heuristic and the
+  latter is a subset.
   The source report fingerprints `runtime_role.py`, covers 91 scoped table
   boundaries plus the API-key read-only column allowlist with zero static
   policy gaps, and groups write candidates by service (the service counts
-  overlap). Full migration-installed provisioning and signed operator-context acceptance now pass for the
-  source-declared policy; the runtime login still has broad DML on 1,026 other
-  relations. Next classify them by capability and caller identity, starting
-  with the 281 candidate analytics
-  write relations; change only reviewed slices with bounded functions or exact
-  grants. Do not blanket-revoke from heuristic absence. Preserve rollback and
-  distinguish table grants from RLS, worker, Directus and production enforcement.
+  overlap). Full migration-installed provisioning and signed operator-context
+  acceptance now pass for the source-declared policy; the runtime login still
+  has broad DML on 1,026 other relations. A reproducible source-line inventory
+  now links 276 currently unprotected relations to 425 analytics write
+  candidates across 89 files; classify these by capability and caller identity
+  before changing grants. Change only
+  reviewed slices with bounded functions or exact grants. Do not
+  blanket-revoke from heuristic absence. Preserve rollback and distinguish
+  table grants from RLS, worker, Directus and production enforcement.
   Sources: [runtime boundary](batches.md#L2826),
   [agent boundary](batches.md#L3652),
   [full-schema probe](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json).
