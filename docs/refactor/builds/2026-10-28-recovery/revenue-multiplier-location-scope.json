@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-28",
+  "report_type": "revenue_multiplier",
+  "finding": "The CLI requires a location for this non-network report, but a direct Python call could pass None or an empty string and the generator would start the analyzer, which opens its own database connection.",
+  "change": "The report generator now rejects missing location scope before importing or invoking the analyzer.",
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_report_generator_readonly.py tests/test_report_generator_cli.py",
+    "result": "passed",
+    "tests": 125,
+    "ruff": "passed",
+    "py_compile": "passed"
+  },
+  "limitations": [
+    "The change preserves the report's location-only contract and does not alter any explicit network-level report.",
+    "The analyzer was mocked; no database, provider, candidate, legacy, or external network was used.",
+    "This closes only the direct-call missing-scope path; it does not establish tenant isolation or populated report parity."
+  ]
+}

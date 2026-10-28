@@ -1,3 +1,43 @@
+### Progress addendum — C1 yield-benchmark runtime ACL — 28 October 2026
+
+Migration 680 keeps the location-scoped `yield_benchmark` table readable but
+immutable to `kokonut_runtime`. The prior migration-679 full-schema ACL
+snapshot showed table SELECT/INSERT/UPDATE/DELETE for the runtime role; source
+review found one application reader in
+`services/analytics/yield_monitoring.py::compare_benchmark` and no writer.
+The migration revokes table and residual column mutation/reference rights,
+restores SELECT, and leaves `kokonut_directus_runtime` untouched. Runtime-role
+provisioning reapplies the same boundary after compatibility grants.
+
+The focused PostgreSQL 16 disposable harness applies migration 680 twice,
+reads a synthetic benchmark row as `kokonut_runtime`, denies INSERT, UPDATE,
+DELETE, TRUNCATE, REFERENCES, TRIGGER and column-level writes, and confirms
+Directus CRUD grants survive migration and provisioner reapplication. The
+126-table harness passed and its disposable container was removed. This is a
+DML boundary, not RLS or tenant-isolation evidence: RLS remains disabled and
+full-schema replay remains through migration 679. Candidate/legacy databases,
+seeds, and farm data were untouched.
+
+Evidence: [migration](../schemas/postgres/680_runtime_yield_benchmark_read_only.sql),
+[focused PostgreSQL 16 acceptance](builds/2026-10-28-recovery/yield-benchmark-runtime-read-only-disposable.json),
+[pre-migration full-schema ACL](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
+[refreshed runtime callsite report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json).
+The source inventories now reflect 4,935 SQL execution sites across 971 files,
+1,223 relation candidates, and 588 write-target relations. The refresh also
+identified `service_registry` INSERT/UPDATE sites in
+`services/analytics/service_catalog.py`; it is not included in this boundary
+because its write callers need separate review. The generated callsite report's
+effective ACL values are still from the full-schema migration-679 snapshot, so
+its `yield_benchmark` INSERT/UPDATE/DELETE=true values describe the pre-680
+state; migration 680's post-change ACL is established by the focused disposable
+acceptance above. The conservative resolver now identifies 53 SQL templates
+held in one unambiguous local assignment; it deliberately leaves dynamic
+identifiers, reassigned SQL, and helper-produced expressions for review
+([inventory resolution evidence](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json)).
+Checklist: 1,351 complete / 25 open (1,376 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — parallel C3/C5/C6/C7 code-first batch — 28 October 2026
 
 The optional Directus hook no longer caches workflow role names for five
@@ -59,8 +99,9 @@ generated contract and five Prefect deployments. The legacy health-check flow
 is not deployed; the weather-forecast worker remains default-off. No new
 schedule was inferred. The job-contract inventory check passes, but active
 provider ownership and runtime acceptance remain open. C1 audit found no next
-safe table revoke; remaining write paths and external/Directus consumers need
-traceable ownership and signed-context proof.
+safe table revoke at that time; the refreshed inventory now isolates the
+`yield_benchmark` DML boundary documented above. Remaining write paths and
+external/Directus consumers need traceable ownership and signed-context proof.
 
 The C3 and C6 audits found no further safe source-only change in those
 specific slices. Directus `workflow_history` and `approval` still have broad
@@ -21650,3 +21691,115 @@ Evidence: [report query inventory](report-generator-query-scope-inventory.json),
 [Delphi workspace bounds](builds/2026-10-28-recovery/delphi-participant-workspace-pagination-openapi.json),
 [operator list bounds](builds/2026-10-28-recovery/operator-list-pagination-openapi-bounds.json),
 [combined verification](builds/2026-10-28-recovery/parallel-report-gateway-contracts.json).
+
+### Progress addendum — parallel C1–C5 source-contract batch — 28 October 2026
+
+The runtime SQL inventory now resolves a query held in one unambiguous local
+assignment when its SQL template uses only literal/f-string fragments. It
+deliberately leaves dynamic identifiers, reassigned variables, and ambiguous
+or helper-produced SQL unresolved. The refreshed inventory records 4,935
+execution sites across 971 files, 1,223 relation candidates, 588 write-target
+relations, and 53 such local templates. The new scan exposed two
+`service_registry` writes in a public helper, but repository search found no
+internal API/CLI/SDK/scheduled caller; migration and seed ownership still need
+reconciliation. `process_benchmark` has no repository caller or seed, but its
+location-linked schema and possibility of external import do not prove it
+should be immutable. `farm_task_framework_step` is an operational cascading
+many-to-many edge without a direct location key; historic reconciliation found
+20 unresolved scope edges among 41 links. No grants on these three relations
+changed.
+
+Gateway pagination now publishes the existing page bounds for data-stream post
+metadata, attachment metadata, federation nodes, and Baal proposal lists. The
+federation route retains its `nodes` field and adds exact `has_more`,
+`next_offset`, and offset-ceiling metadata, so clients can detect when the old
+full-list response has become a bounded page. The pollution-incident queue
+audit found its service already returns at most 100 rows and exposes bounded
+offset, so it received no invented `limit` parameter.
+The JavaScript public API now uses a configurable 10-second request timeout by
+default, matching the Python SDK. The SDK's focused 13 JavaScript tests, 8
+Python tests, and TypeScript build pass.
+
+The Directus source audit confirmed managed `workflow_history` and `approval`
+permissions remain unfiltered and include wildcard fields such as notes and
+rejection reasons. A new explicitly-targeted aggregate-only preflight traces
+only reviewed source-to-location mappings and suppresses identifiers/contents.
+Eight offline tests pass. A no-seed disposable PostgreSQL replay applied all
+671 schemas through migration 680, found 29 required relations and 60 columns,
+and executed both preflight queries read-only; cleanup was verified. The
+database contained no historical rows, so this is SQL/schema compatibility
+only. No Directus permission changed without populated lineage and pinned-runtime
+authorization evidence.
+
+Five location-only report generators now reject missing direct-call locations
+before cursor/analyzer access (`climate_impact`, `revenue_multiplier`,
+`environmental`, `ecological_modeling`, and `ebf_scorecard`). The five focused
+source selections pass 2, 125, 2, 2, and 324 tests. The report query inventory
+is fresh at 94 types, 167 query sites, 166 positional-bind sites, and zero
+unresolved sites or bind mismatches. The other 13 inventory entries lacking a
+visible bound-location SQL predicate were reviewed: twelve are intentionally
+network-scoped and guarded, and `business_plan` has its own location guard.
+
+Worker-contract docs/tests were refreshed to match the current 23 JobSpecs and
+registered sensor contract. The climate CLI/worker audit confirms dataset and
+location preflight before provider/database access and a location-bound,
+default-off signed scheduled worker. Those focused selections pass 40 and 174
+tests. The combined C1–C5 source selection passes 230 tests, plus a separate 31
+route/report checks. SQL-inventory, privilege-report, and write-candidate
+regressions also pass 27 tests after updating the synthetic ACL fixture for
+migration 680's 45 mutation-denied runtime relations. Ruff, Python compilation,
+runtime SQL, report query and helper inventory freshness checks, the
+capability-matrix validator, the JavaScript
+SDK tests, and TypeScript build pass. No provider, candidate/legacy database,
+or populated data was used; no capability classifications or MAN-CAP status
+changed. The credit-custody summary also gained a strict response model for its
+existing service output; seven focused Gateway tests pass, preserving auth and
+response headers. The traceability batch list/detail routes now enforce strict
+service-derived response models that reject unexpected fields and omit actor
+identities, GPS, free text, evidence URLs, and arbitrary payloads; eleven
+focused checks pass with existing authorization and no-store behavior
+preserved. A follow-up C1 source audit found seed-managed impact-framework
+labels that are read-only in application code but may be owner-customizable;
+grants remain unchanged pending confirmation ([catalog audit](builds/2026-10-28-recovery/impact-framework-catalog-candidate-audit.json)). CAP-038 review found existing
+authenticated draft paths already record the session operator, while remaining
+helpers are in-memory/read-only and need a designed dispatch/receipt contract
+before durable attribution. The route audit found the waste incident queue
+already returns no more than 100 rows, so no configurable limit was invented.
+The JavaScript SDK also rejects unsupported timeout values above the browser
+and Node timer limit; fake-timer coverage verifies cleanup on success, failure,
+and abort, including the 1 ms overflow-clamp regression. Eighteen public API
+tests and the TypeScript build pass. The ARM64/QEMU full-schema replay then
+completed through migration 680: 671/671 schemas applied, no pending or failed
+migrations, networking disabled, no seeds/ports/OOM, verified 1.5 GiB/two-CPU
+limits, and cleanup verified. This remains software-only, not Pi hardware or
+production recovery evidence. Checklist: 1,361 complete / 25 open (1,386 total);
+matrix remains 24
+baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.
+
+Evidence: [runtime SQL resolver](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json),
+[Directus preflight](directus-polymorphic-lineage-preflight.md),
+[Directus schema replay](builds/2026-10-28-recovery/directus-polymorphic-lineage-schema-disposable.json),
+[data-stream post pagination](builds/2026-10-28-recovery/data-stream-post-list-pagination-openapi.json),
+[attachment pagination](builds/2026-10-28-recovery/data-stream-file-list-pagination.json),
+[federation pagination](builds/2026-10-28-recovery/federation-node-list-pagination.json),
+[Baal proposal pagination](builds/2026-10-28-recovery/baal-proposal-list-pagination-openapi.json),
+[SDK timeout parity](builds/2026-10-28-recovery/sdk-public-api-timeout-parity.json),
+[traceability response contract](builds/2026-10-28-recovery/traceability-response-contract.json),
+[SDK timeout overflow fix](builds/2026-10-28-recovery/sdk-javascript-timeout-overflow.json),
+[ARM64 full schema replay through 680](builds/2026-10-28-recovery/arm64-resource-limited-schema-680.json),
+[report query inventory](report-generator-query-scope-inventory.json),
+[worker source contract](builds/2026-10-28-recovery/worker-job-source-contract-refresh.json).
+
+The additive `core` deployment profile now uses a separate hash-locked
+dependency closure. Web3, spreadsheet/S3 export, and local encrypted media are
+selectable overlays, while the existing full-capability profiles retain their
+current images. The release gate checks core-only and all-overlay OCI package
+inventories for AMD64 and ARM64; local imports and profile contracts pass, but
+the hosted multi-architecture build remains pending. Core intentionally does
+not claim OIDC support until its identity/runtime composition is implemented.
+Evidence: [core profile contract](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
+[profile selection](profile-selection.md), and
+[release input gate](kernel-release-inputs.md). Checklist: 1,362 complete / 25
+open (1,387 total); matrix remains 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows.

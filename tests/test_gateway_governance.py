@@ -253,6 +253,57 @@ def test_invalid_governance_identifiers_reach_validation_with_global_scope(monke
     assert bad_wallet.status_code == 400
 
 
+def test_baal_proposal_route_publishes_service_page_bounds():
+    parameter = create_app().openapi()["paths"]["/api/v1/governance/baal/proposals"]["get"]["parameters"][0]
+
+    assert parameter["name"] == "limit"
+    assert parameter["schema"]["type"] == "integer"
+    assert parameter["schema"]["default"] == 50
+    assert parameter["schema"]["minimum"] == 1
+    assert parameter["schema"]["maximum"] == 100
+
+
+@pytest.mark.parametrize("limit", ["0", "101", "not-an-integer"])
+def test_baal_proposal_route_rejects_invalid_page_before_reader(monkeypatch, limit):
+    monkeypatch.setenv("KOKONUT_API_KEYS", "governance-key:governance-reader")
+    monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "governance-reader:governance:read")
+
+    def fail_reader(*_args, **_kwargs):
+        pytest.fail("invalid page must be rejected before proposal reader access")
+
+    monkeypatch.setattr("services.gateway.governance.read_baal_proposals", fail_reader)
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/v1/governance/baal/proposals",
+            params={"limit": limit},
+            headers={"x-api-key": "governance-key"},
+        )
+
+    assert response.status_code == 422
+
+
+def test_baal_proposal_route_forwards_integer_page_limit(monkeypatch):
+    monkeypatch.setenv("KOKONUT_API_KEYS", "governance-key:governance-reader")
+    monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "governance-reader:governance:read")
+    seen = []
+
+    def read(limit):
+        seen.append(limit)
+        return {"limit": limit}
+
+    monkeypatch.setattr("services.gateway.governance.read_baal_proposals", read)
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/v1/governance/baal/proposals",
+            params={"limit": "4"},
+            headers={"x-api-key": "governance-key"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["limit"] == 4
+    assert seen == [4]
+
+
 @pytest.mark.parametrize(
     ("path", "method"),
     [

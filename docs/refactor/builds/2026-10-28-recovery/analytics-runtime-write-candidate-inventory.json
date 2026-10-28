@@ -2,11 +2,11 @@
   "generated_by": "scripts/runtime-analytics-write-candidate-inventory.py",
   "inputs": {
     "acl_report_path": "docs/refactor/builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json",
-    "acl_report_sha256": "2e9ee70dee423c9ed88dbca90055b657b325925f9050eb2579efe0abb4eed176",
-    "acl_report_source_revision": "eafa769a",
-    "runtime_role_policy_sha256": "ed42762d8a866155fb9fad11c08f2762832cd260d2ce7b98f5659eee5145749c",
+    "acl_report_sha256": "42fc57a7ebf55ef6b3fd8482aad77f175ea4900b0c7e9207b76f694c39a86fff",
+    "acl_report_source_revision": "82bd48c1",
+    "runtime_role_policy_sha256": "12c009849d5dd2840c0688a14284079b4882b4ed87591e65ca5874dc0618aa56",
     "sql_inventory_path": "docs/refactor/runtime-sql-inventory.json",
-    "sql_inventory_sha256": "53d3ce92201db3cfb60dc18038197c859851b0bd6a22dc9b49fdb88334c43967",
+    "sql_inventory_sha256": "d6db5f8cfb4b05033dd9b77ec22a62a0095d02190e9ef4c52559262764ac9c54",
     "sql_inventory_version": 2
   },
   "limitations": [
@@ -2407,6 +2407,38 @@
     {
       "candidate_write_sites": [
         {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/prm_metrics.py:66:16",
+          "line": 66,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/prm_metrics.py",
+          "scope": "record_satisfaction",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        }
+      ],
+      "migration_boundary": {
+        "configured": null,
+        "expected": null,
+        "matches_source": null
+      },
+      "observed_acl": {
+        "delete": true,
+        "insert": true,
+        "rls_enabled": false,
+        "select": true,
+        "update": true
+      },
+      "relation": "customer_satisfaction",
+      "review_status": "source_and_caller_review_required",
+      "static_candidate_source_files": [
+        "services/analytics/prm_metrics.py"
+      ]
+    },
+    {
+      "candidate_write_sites": [
+        {
           "expression_kind": "literal",
           "id": "services/analytics/hybrid_voting.py:56:4",
           "line": 56,
@@ -2557,6 +2589,17 @@
     {
       "candidate_write_sites": [
         {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/data_quality.py:84:16",
+          "line": 84,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/data_quality.py",
+          "scope": "create_rule",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        },
+        {
           "expression_kind": "literal",
           "id": "services/analytics/data_quality.py:99:16",
           "line": 99,
@@ -2581,6 +2624,38 @@
         "update": true
       },
       "relation": "data_quality_rule",
+      "review_status": "source_and_caller_review_required",
+      "static_candidate_source_files": [
+        "services/analytics/data_quality.py"
+      ]
+    },
+    {
+      "candidate_write_sites": [
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/data_quality.py:166:16",
+          "line": 166,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/data_quality.py",
+          "scope": "score_entity",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        }
+      ],
+      "migration_boundary": {
+        "configured": null,
+        "expected": null,
+        "matches_source": null
+      },
+      "observed_acl": {
+        "delete": true,
+        "insert": true,
+        "rls_enabled": false,
+        "select": true,
+        "update": true
+      },
+      "relation": "data_quality_score",
       "review_status": "source_and_caller_review_required",
       "static_candidate_source_files": [
         "services/analytics/data_quality.py"
@@ -6308,6 +6383,49 @@
     {
       "candidate_write_sites": [
         {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_costing.py:54:8",
+          "line": 54,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_costing.py",
+          "scope": "record_process_cost",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        }
+      ],
+      "migration_boundary": {
+        "configured": null,
+        "expected": null,
+        "matches_source": null
+      },
+      "observed_acl": {
+        "delete": true,
+        "insert": true,
+        "rls_enabled": false,
+        "select": true,
+        "update": true
+      },
+      "relation": "process_cost_observation",
+      "review_status": "source_and_caller_review_required",
+      "static_candidate_source_files": [
+        "services/analytics/process_costing.py"
+      ]
+    },
+    {
+      "candidate_write_sites": [
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_architecture.py:248:12",
+          "line": 248,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_architecture.py",
+          "scope": "create_entity_mapping",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        },
+        {
           "expression_kind": "literal",
           "id": "services/analytics/process_architecture.py:257:12",
           "line": 257,
@@ -6371,6 +6489,135 @@
     },
     {
       "candidate_write_sites": [
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_interfaces.py:57:8",
+          "line": 57,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_interfaces.py",
+          "scope": "register_handoff",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        }
+      ],
+      "migration_boundary": {
+        "configured": null,
+        "expected": null,
+        "matches_source": null
+      },
+      "observed_acl": {
+        "delete": true,
+        "insert": true,
+        "rls_enabled": false,
+        "select": true,
+        "update": true
+      },
+      "relation": "process_handoff",
+      "review_status": "source_and_caller_review_required",
+      "static_candidate_source_files": [
+        "services/analytics/process_interfaces.py"
+      ]
+    },
+    {
+      "candidate_write_sites": [
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_interfaces.py:106:8",
+          "line": 106,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_interfaces.py",
+          "scope": "record_handoff",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        }
+      ],
+      "migration_boundary": {
+        "configured": null,
+        "expected": null,
+        "matches_source": null
+      },
+      "observed_acl": {
+        "delete": true,
+        "insert": true,
+        "rls_enabled": false,
+        "select": true,
+        "update": true
+      },
+      "relation": "process_handoff_log",
+      "review_status": "source_and_caller_review_required",
+      "static_candidate_source_files": [
+        "services/analytics/process_interfaces.py"
+      ]
+    },
+    {
+      "candidate_write_sites": [
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_costing.py:361:8",
+          "line": 361,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_costing.py",
+          "scope": "create_improvement",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        },
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_costing.py:407:8",
+          "line": 407,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_costing.py",
+          "scope": "complete_improvement",
+          "statement_kind": "UPDATE",
+          "static_sql_sha256": null
+        }
+      ],
+      "migration_boundary": {
+        "configured": null,
+        "expected": null,
+        "matches_source": null
+      },
+      "observed_acl": {
+        "delete": true,
+        "insert": true,
+        "rls_enabled": false,
+        "select": true,
+        "update": true
+      },
+      "relation": "process_improvement",
+      "review_status": "source_and_caller_review_required",
+      "static_candidate_source_files": [
+        "services/analytics/process_costing.py"
+      ]
+    },
+    {
+      "candidate_write_sites": [
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_architecture.py:102:12",
+          "line": 102,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_architecture.py",
+          "scope": "create_process",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        },
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_architecture.py:132:12",
+          "line": 132,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_architecture.py",
+          "scope": "update_process",
+          "statement_kind": "UPDATE",
+          "static_sql_sha256": null
+        },
         {
           "expression_kind": "literal",
           "id": "services/analytics/process_architecture.py:142:12",
@@ -6479,6 +6726,17 @@
     {
       "candidate_write_sites": [
         {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_architecture.py:179:12",
+          "line": 179,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_architecture.py",
+          "scope": "assign_ownership",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        },
+        {
           "expression_kind": "literal",
           "id": "services/analytics/process_architecture.py:190:12",
           "line": 190,
@@ -6510,6 +6768,17 @@
     },
     {
       "candidate_write_sites": [
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_simulation.py:74:8",
+          "line": 74,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_simulation.py",
+          "scope": "create_simulation",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        },
         {
           "expression_kind": "literal",
           "id": "services/analytics/process_simulation.py:107:4",
@@ -6592,6 +6861,38 @@
       "review_status": "source_and_caller_review_required",
       "static_candidate_source_files": [
         "services/analytics/process_simulation.py"
+      ]
+    },
+    {
+      "candidate_write_sites": [
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/process_interfaces.py:270:8",
+          "line": 270,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/process_interfaces.py",
+          "scope": "add_trace_step",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        }
+      ],
+      "migration_boundary": {
+        "configured": null,
+        "expected": null,
+        "matches_source": null
+      },
+      "observed_acl": {
+        "delete": true,
+        "insert": true,
+        "rls_enabled": false,
+        "select": true,
+        "update": true
+      },
+      "relation": "process_trace",
+      "review_status": "source_and_caller_review_required",
+      "static_candidate_source_files": [
+        "services/analytics/process_interfaces.py"
       ]
     },
     {
@@ -7299,6 +7600,49 @@
       "review_status": "source_and_caller_review_required",
       "static_candidate_source_files": [
         "services/analytics/sampling_protocol.py"
+      ]
+    },
+    {
+      "candidate_write_sites": [
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/service_catalog.py:110:16",
+          "line": 110,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/service_catalog.py",
+          "scope": "register_service",
+          "statement_kind": "INSERT",
+          "static_sql_sha256": null
+        },
+        {
+          "expression_kind": "composed_or_variable",
+          "id": "services/analytics/service_catalog.py:151:16",
+          "line": 151,
+          "method": "execute",
+          "operation_refs": [],
+          "path": "services/analytics/service_catalog.py",
+          "scope": "update_service",
+          "statement_kind": "UPDATE",
+          "static_sql_sha256": null
+        }
+      ],
+      "migration_boundary": {
+        "configured": null,
+        "expected": null,
+        "matches_source": null
+      },
+      "observed_acl": {
+        "delete": true,
+        "insert": true,
+        "rls_enabled": false,
+        "select": true,
+        "update": true
+      },
+      "relation": "service_registry",
+      "review_status": "source_and_caller_review_required",
+      "static_candidate_source_files": [
+        "services/analytics/service_catalog.py"
       ]
     },
     {
@@ -10452,19 +10796,20 @@
   "result": "inventory",
   "scope": "Unprotected public ordinary/partitioned relations with an analytics-package INSERT/UPDATE/DELETE/MERGE target candidate, joined to generated runtime SQL sites.",
   "summary": {
-    "candidate_sites": 425,
-    "relations": 273,
+    "candidate_sites": 441,
+    "relations": 281,
     "relations_missing_matching_sql_site": [],
     "relations_with_declared_boundary": 1,
     "sites_by_expression_kind": {
+      "composed_or_variable": 16,
       "fstring": 21,
       "literal": 404
     },
     "sites_by_statement": {
       "DELETE": 9,
-      "INSERT": 272,
-      "UPDATE": 144
+      "INSERT": 285,
+      "UPDATE": 147
     },
-    "source_files": 89
+    "source_files": 93
   }
 }

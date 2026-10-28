@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-28",
+  "result": "reviewed_no_safe_runtime_revoke",
+  "scope": [
+    "sdg",
+    "pillar_of_value",
+    "form_of_capital",
+    "regeneration_principle"
+  ],
+  "seed_source": "schemas/seeds/023_impact_frameworks.sql",
+  "source_readers": {
+    "sdg": [
+      "services/analytics/portfolio.py",
+      "services/registry/cids_export.py"
+    ],
+    "pillar_of_value": [
+      "services/registry/cids_export.py"
+    ],
+    "form_of_capital": [
+      "services/capital/capacity.py",
+      "services/registry/cids_export.py"
+    ],
+    "regeneration_principle": [
+      "services/analytics/carbon_balance.py"
+    ]
+  },
+  "repository_application_dml_outside_seed": false,
+  "directus_permission_rows_found": false,
+  "special_boundary": {
+    "relation": "sdg",
+    "policy": "signed CIDS-worker RLS policy exists in migration 546"
+  },
+  "decision": "Leave kokonut_runtime and Directus grants unchanged until owners confirm whether Kokonut-specific framework labels and descriptions are intentionally customizable and where their administration contract lives.",
+  "candidate_or_legacy_touched": false,
+  "database_or_provider_used": false,
+  "limitations": [
+    "No populated external imports or deployed administration clients were inspected.",
+    "Source absence of application DML does not prove the definitions are immutable."
+  ]
+}

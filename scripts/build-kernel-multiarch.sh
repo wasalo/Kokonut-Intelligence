@@ -40,6 +40,38 @@ python3 scripts/check-kernel-release-inputs.py \
     --application-oci "$BUILD_DIR/kernel-app.oci.tar"
 rm -f "$BUILD_DIR/kernel-app.oci.tar"
 
+# Verify the new opt-in minimal dependency closure on both architectures. The
+# base/minimal/edge profiles above continue using the existing full runtime.
+docker buildx build \
+    --pull \
+    --no-cache \
+    --platform linux/amd64,linux/arm64 \
+    --target kernel-core \
+    --output "type=oci,dest=$BUILD_DIR/kernel-core.oci.tar" \
+    --file Dockerfile.kernel \
+    .
+python3 scripts/check-kernel-release-inputs.py \
+    --core-oci "$BUILD_DIR/kernel-core.oci.tar"
+rm -f "$BUILD_DIR/kernel-core.oci.tar"
+
+# Verify that the optional capability overlays can be composed on the lean
+# core for both supported architectures. This also exercises each true build
+# argument and checks the exact union of the four hash-locked closures.
+docker buildx build \
+    --pull \
+    --no-cache \
+    --platform linux/amd64,linux/arm64 \
+    --target kernel-core \
+    --build-arg KOKONUT_CORE_WEB3=true \
+    --build-arg KOKONUT_CORE_EXPORTS=true \
+    --build-arg KOKONUT_CORE_LOCAL_MEDIA=true \
+    --output "type=oci,dest=$BUILD_DIR/kernel-core-capabilities.oci.tar" \
+    --file Dockerfile.kernel \
+    .
+python3 scripts/check-kernel-release-inputs.py \
+    --core-capabilities-oci "$BUILD_DIR/kernel-core-capabilities.oci.tar"
+rm -f "$BUILD_DIR/kernel-core-capabilities.oci.tar"
+
 # Verify the optional ClickHouse client profile has the same locked platform
 # support. This is the same app target with its full superset lock selected.
 docker buildx build \

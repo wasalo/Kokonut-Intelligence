@@ -1,0 +1,3 @@
+# Optional Web3 client and ABI closure for the core image.
+-c kernel-core.lock
+-r web3.txt

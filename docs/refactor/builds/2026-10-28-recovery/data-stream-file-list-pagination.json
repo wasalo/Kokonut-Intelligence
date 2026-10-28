@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-28",
+  "route": "GET /api/data-stream/posts/{post_id}/files",
+  "change": "Published a bounded page contract for location-authorized attachment metadata reads and applied the bounds in the reader query.",
+  "contract": {
+    "limit": {"default": 50, "minimum": 1, "maximum": 100},
+    "offset": {"default": 0, "minimum": 0, "maximum": 5000}
+  },
+  "authorization_preserved": {
+    "resource": "data_stream_file",
+    "action": "read",
+    "location_scope": "required and matched to the post's location",
+    "cache_control": "no-store"
+  },
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_gateway_data_stream.py tests/test_gateway_auth.py",
+    "result": "passed",
+    "tests": 52,
+    "ruff": "passed",
+    "py_compile": "passed"
+  },
+  "limitations": [
+    "No database, provider, external network, candidate, or legacy service was used.",
+    "The page contract limits attachment metadata returned per request; it does not enable media-byte downloads or change tenant authorization."
+  ]
+}

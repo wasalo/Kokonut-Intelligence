@@ -2,8 +2,7 @@
 
 
 def register_traceability_routes(router, provider, run_in_threadpool, psycopg2):
-    from fastapi import Query
-    from fastapi.encoders import jsonable_encoder
+    from fastapi import Query, Response
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
 
@@ -12,10 +11,18 @@ def register_traceability_routes(router, provider, run_in_threadpool, psycopg2):
         get_location_traceability_batch,
         list_location_traceability_batches,
     )
+    from services.gateway.traceability_models import (
+        TraceabilityBatchDetail,
+        TraceabilityBatchPage,
+    )
 
-    @router.get("/operator/api/traceability/{location_id}/batches")
+    @router.get(
+        "/operator/api/traceability/{location_id}/batches",
+        response_model=TraceabilityBatchPage,
+    )
     async def traceability_batches(
         request: Request,
+        response: Response,
         location_id: str,
         status: str | None = None,
         limit: int = Query(default=25, ge=1, le=50),
@@ -51,13 +58,20 @@ def register_traceability_routes(router, provider, run_in_threadpool, psycopg2):
         except psycopg2.Error as exc:
             _log_failure("traceability batch list", exc)
             return _unavailable()
-        return JSONResponse(
-            jsonable_encoder(result),
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
-        )
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Vary"] = "Cookie"
+        return result
 
-    @router.get("/operator/api/traceability/{location_id}/batches/{batch_id}")
-    async def traceability_batch(request: Request, location_id: str, batch_id: str):
+    @router.get(
+        "/operator/api/traceability/{location_id}/batches/{batch_id}",
+        response_model=TraceabilityBatchDetail,
+    )
+    async def traceability_batch(
+        request: Request,
+        response: Response,
+        location_id: str,
+        batch_id: str,
+    ):
         if provider is None:
             return JSONResponse(
                 status_code=404,
@@ -92,10 +106,9 @@ def register_traceability_routes(router, provider, run_in_threadpool, psycopg2):
                 content={"error": "Traceability batch not found"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
-        return JSONResponse(
-            jsonable_encoder(result),
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
-        )
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Vary"] = "Cookie"
+        return result
 
 
 def _log_failure(operation: str, exc: Exception) -> None:

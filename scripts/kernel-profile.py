@@ -22,6 +22,7 @@ ARM64_ANALYTICS = "docker-compose.kernel-arm64-analytics.yml"
 ARM64_SENSOR_ANOMALY_ML = "docker-compose.kernel-arm64-sensor-anomaly-ml.yml"
 PROFILES = {
     "minimal": [],
+    "core": ["docker-compose.kernel-core.yml"],
     "edge": ["docker-compose.kernel-edge.yml"],
     "standard": ["docker-compose.kernel-standard.yml"],
     "analytics": ["docker-compose.kernel-analytics.yml"],
@@ -35,6 +36,9 @@ OPTIONAL = {
     "directus": "docker-compose.kernel-directus.yml",
     "zitadel": "docker-compose.kernel-zitadel.yml",
     "sensor_anomaly_ml": "docker-compose.kernel-sensor-anomaly-ml.yml",
+    "web3": "docker-compose.kernel-core-web3.yml",
+    "exports": "docker-compose.kernel-core-exports.yml",
+    "local_media": "docker-compose.kernel-core-local-media.yml",
 }
 
 
@@ -55,12 +59,18 @@ def main() -> None:
     if args.project is not None and not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", args.project):
         parser.error("--project must be 1–63 lowercase letters, digits, hyphens, or underscores and start with a letter or digit")
     is_arm64 = args.target_platform == "linux/arm64"
-    if is_arm64 and args.profile not in {"minimal", "edge", "standard", "analytics"}:
-        parser.error("ARM64 currently supports only minimal, edge, standard, and analytics profiles")
+    if is_arm64 and args.profile not in {"minimal", "core", "edge", "standard", "analytics"}:
+        parser.error("ARM64 currently supports only core, minimal, edge, standard, and analytics profiles")
     selected_optional = {name for name in OPTIONAL if getattr(args, name)}
+    core_capability_overlays = {"web3", "exports", "local_media"}
+    selected_core_overlays = selected_optional & core_capability_overlays
+    if selected_core_overlays and args.profile != "core":
+        parser.error("--web3, --exports, and --local-media apply only to the core profile")
+    if args.profile == "core" and (args.oidc or args.zitadel):
+        parser.error("the core profile cannot use --oidc or --zitadel because those application overlays select the full OIDC image")
     arm64_verified_optional = {
         "proxy", "oidc", "zitadel", "grpc", "mqtt", "http_sensors", "directus",
-        "sensor_anomaly_ml",
+        "sensor_anomaly_ml", "web3", "exports", "local_media",
     }
     unverified_arm64_optional = selected_optional - arm64_verified_optional
     if is_arm64 and unverified_arm64_optional:

@@ -1,12 +1,12 @@
 {
   "format_version": 1,
-  "lock_scope": "Kernel default and ClickHouse-enabled application, optional sensor-anomaly ML worker, and PostGIS image build inputs",
+  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, and PostGIS image build inputs",
   "base_images": {
     "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
   },
   "sha256_inputs": {
-    "Dockerfile.kernel": "a2ceafbf83df1d1674aa35abda8a99a1e2aaf3670c2a62926f3e969fd5a79db1",
+    "Dockerfile.kernel": "ee17e4fd0251416bab1b22922fb35a186b8e2d23119a939b5b1dace65d307ecd",
     "Dockerfile.kernel-postgis": "180b813d48759c170cc36a78526c893dc71e51a78c18a75cd101c330a1958d8c",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
@@ -25,7 +25,25 @@
     "config/postgres/kernel-apt.sources": "1bc6a4368d8284b4e8a35f24e381449e493eff6f9993869987f5193538f0cd42",
     "config/postgres/kernel-pgdg.pref": "cfb19023faf4c4b54c39f471cc8287a022922f159adbae1a8c4bf26f7077a4ec",
     "config/postgres/kernel-bootstrap.sources": "a4bf76ae4956dcda020029113fb722f0dd35c9597331554a96f63883dfda1f51",
-    "requirements/ml-anomaly-runtime.lock": "70fc5fc6c0f4ea896444fe4f55ae6d1ace3d86391daecdcd111db47d87aaa677"
+    "requirements/ml-anomaly-runtime.lock": "70fc5fc6c0f4ea896444fe4f55ae6d1ace3d86391daecdcd111db47d87aaa677",
+    "docker-compose.kernel-core.yml": "aabccbe6ae34c87d0c39b90115d592f08a4dbf8183ad60f28a3b927aece697a5",
+    "docker-compose.kernel-core-web3.yml": "d24c466ebffecac2780b9421efac4456ed7b90b00746bcbc67533a1773e44e61",
+    "docker-compose.kernel-core-exports.yml": "c064fa91b1fb9d7f58fc4802ef1748954a9ebc7154f7db12e2f00e367b5de836",
+    "docker-compose.kernel-core-local-media.yml": "1737947928be8f0652019351a83955e74ea169e09080f39d879a39e6202e778d",
+    "requirements/kernel-core.in": "596400b8d8eb78b3def0716189c5f5ca244f319d5da614637eb976fe55c2ba23",
+    "requirements/kernel-core.lock": "2a7e820a9ce84bbea04797700b9f62509f43539b328deecde8718db8b33f5a3c",
+    "requirements/kernel-core-web3.in": "65e6fcf5cbb897057514952b00af638bb3c14df9550411c24fb5aa1c11df2890",
+    "requirements/kernel-core-web3.lock": "43cde4be00e5ef4607fc589ddc960dda5e346cd171d2a86a0ee7f18eede6c8a8",
+    "requirements/kernel-core-exports.in": "15225f6576de2273678ed06f6feadc4ff1aa3cb4d266ebdab99ad514d307b0e5",
+    "requirements/kernel-core-exports.lock": "f3c331760c3b31722fb6224ce0d35c048531c091763d4b3b388832091f0c4fb5",
+    "requirements/kernel-core-storage.in": "33ddfcfb920e4bb7b9b51591a575da43c8475b8475ad143e0496243d693df4d1",
+    "requirements/kernel-core-storage.lock": "e34f4138c02279044f016ddda963ab442b691e0da42d906f2ca0a1c98c66f149",
+    "services/core/image_manifest.py": "3d9f2d39463e7c3ba25c0d8673182df7255b5c69bc43d6c5e4633f7032abed39",
+    "scripts/kernel-profile.py": "a907f842f61485e37364caea4f5de0b33ebc1cb5fbd1e31a281b5cdaf6eb1c0b",
+    "scripts/check-kernel-release-inputs.py": "4116116c380c2d407f8e315f0057cbf30fdbf64ba58a43f0172a8bcdaf989402",
+    "scripts/build-kernel-multiarch.sh": "f9e7294af32545cdcd19a685fd08035d219733da44a91bfefe58c272c9a5bc01",
+    "docs/refactor/profile-selection.md": "01a18656aa43592893ead7cd6b70343168a5f4e50622009dd0774f2130c32110",
+    "requirements/README.md": "5f194fd8b09a2a676ef29c47b559d21dabcbfca2fa9cc52ac4016cb4f5b733ac"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
@@ -37,7 +55,7 @@
   },
   "dependency_lock_status": {
     "python_direct_inputs": "SHA-256-locked source requirement manifests",
-    "python_transitive_dependencies": "Hash-locked default, ClickHouse, and optional ML dependency closures; local AMD64/ARM64 locked image acceptance passed; hosted release CI remains pending.",
+    "python_transitive_dependencies": "Hash-locked default, ClickHouse, opt-in lean core and capability-overlay, and optional ML dependency closures; existing default/ClickHouse/ML image acceptance passed, while lean core base and full capability-union multiarch OCI acceptance runs in CI.",
     "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; release gate compares complete installed package inventories against exact locked architecture-specific expectations; multi-architecture acceptance pending"
   }
 }

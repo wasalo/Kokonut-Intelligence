@@ -58,12 +58,95 @@ def test_default_projects_remain_unchanged_for_both_architectures() -> None:
     assert arm64[arm64.index("-p") + 1] == "kokonut-kernel-candidate-arm64"
 
 
+def test_core_profile_is_opt_in_and_selects_the_separate_lean_image() -> None:
+    minimal = shlex.split(_run_planner("minimal").stdout)
+    core = _run_planner("core")
+
+    assert core.returncode == 0, core.stderr
+    assert "docker-compose.kernel-core.yml" not in minimal
+    assert "docker-compose.kernel-core.yml" in core.stdout
+    minimal_compose = yaml.safe_load((ROOT / "docker-compose.kernel-candidate.yml").read_text())
+    assert "target" not in minimal_compose["services"]["app"]["build"]
+    assert "FROM kernel-base AS kernel" in (ROOT / "Dockerfile.kernel").read_text()
+    overlay = yaml.safe_load((ROOT / "docker-compose.kernel-core.yml").read_text())
+    assert overlay["services"]["app"]["build"]["target"] == "kernel-core"
+    assert overlay["services"]["app"]["build"]["args"] == {
+        "KOKONUT_CORE_WEB3": "false",
+        "KOKONUT_CORE_EXPORTS": "false",
+        "KOKONUT_CORE_LOCAL_MEDIA": "false",
+    }
+
+
+def test_core_capabilities_are_explicit_build_overlays() -> None:
+    result = _run_planner("core", "--web3", "--exports", "--local-media")
+
+    assert result.returncode == 0, result.stderr
+    for overlay in (
+        "docker-compose.kernel-core.yml",
+        "docker-compose.kernel-core-web3.yml",
+        "docker-compose.kernel-core-exports.yml",
+        "docker-compose.kernel-core-local-media.yml",
+    ):
+        assert overlay in result.stdout
+    web3 = yaml.safe_load((ROOT / "docker-compose.kernel-core-web3.yml").read_text())
+    exports = yaml.safe_load((ROOT / "docker-compose.kernel-core-exports.yml").read_text())
+    media = yaml.safe_load((ROOT / "docker-compose.kernel-core-local-media.yml").read_text())
+    assert web3["services"]["app"]["build"]["args"]["KOKONUT_CORE_WEB3"] == "true"
+    assert exports["services"]["app"]["build"]["args"]["KOKONUT_CORE_EXPORTS"] == "true"
+    assert media["services"]["app"]["build"]["args"]["KOKONUT_CORE_LOCAL_MEDIA"] == "true"
+    assert "${MOBILE_MEDIA_LOCAL_KEY:?" in media["services"]["app"]["environment"]["MOBILE_MEDIA_LOCAL_KEY"]
+    assert "MOBILE_MEDIA_LOCAL_KEY" not in (ROOT / "Dockerfile.kernel").read_text()
+
+
+@pytest.mark.parametrize("overlay", ["--web3", "--exports", "--local-media"])
+@pytest.mark.parametrize("profile", ["minimal", "edge", "standard", "analytics"])
+def test_core_package_overlays_cannot_be_selected_on_existing_profiles(
+    profile: str, overlay: str,
+) -> None:
+    result = _run_planner(profile, overlay)
+
+    assert result.returncode != 0
+    assert "apply only to the core profile" in result.stderr
+
+
+@pytest.mark.parametrize("option", ["--oidc", "--zitadel"])
+def test_core_profile_rejects_full_oidc_application_target(option: str) -> None:
+    result = _run_planner("core", option)
+
+    assert result.returncode != 0
+    assert "select the full OIDC image" in result.stderr
+
+
+def test_core_profile_uses_the_arm64_candidate_project_and_overlay() -> None:
+    result = _run_planner("core", "--target-platform", "linux/arm64")
+
+    assert result.returncode == 0, result.stderr
+    assert "kokonut-kernel-candidate-arm64" in result.stdout
+    assert "docker-compose.kernel-arm64.yml" in result.stdout
+    assert "docker-compose.kernel-core.yml" in result.stdout
+
+
+def test_core_arm64_capability_overlays_select_the_multiarch_verified_composition() -> None:
+    result = _run_planner(
+        "core", "--target-platform", "linux/arm64", "--web3", "--exports", "--local-media"
+    )
+
+    assert result.returncode == 0, result.stderr
+    for filename in (
+        "docker-compose.kernel-core-web3.yml",
+        "docker-compose.kernel-core-exports.yml",
+        "docker-compose.kernel-core-local-media.yml",
+        "docker-compose.kernel-arm64.yml",
+    ):
+        assert filename in result.stdout
+
+
 def test_default_and_oidc_kernel_runtime_commands_require_schema_readiness() -> None:
     dockerfile = (ROOT / "Dockerfile.kernel").read_text()
     runtime_commands = [line for line in dockerfile.splitlines() if line.startswith("CMD ")
                        and "services.core.runtime" in line]
 
-    assert len(runtime_commands) == 2
+    assert len(runtime_commands) == 3
     assert all("--require-schema" in command for command in runtime_commands)
 
 
@@ -314,7 +397,7 @@ def test_directus_option_selects_only_the_optional_directus_overlay() -> None:
 def test_arm64_planner_rejects_scale_profile() -> None:
     scale = _run_planner("scale", "--target-platform", "linux/arm64")
     assert scale.returncode != 0
-    assert "only minimal, edge, standard, and analytics profiles" in scale.stderr
+    assert "only core, minimal, edge, standard, and analytics profiles" in scale.stderr
 
 
 def test_profile_planner_selects_isolated_arm64_images_for_edge() -> None:

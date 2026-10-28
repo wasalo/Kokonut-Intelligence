@@ -261,3 +261,20 @@ def test_business_plan_adapter_preserves_single_and_all_location_scopes(monkeypa
     }
     assert generated == ["location-a", "location-a", "location-b"]
     assert connection.queries == ["SELECT id FROM location ORDER BY id"]
+
+
+def test_revenue_multiplier_requires_location_before_analyzer(monkeypatch):
+    from services.export.reports import core
+    from services.revenue_multiplier import analyzer
+
+    def fail_if_analyzer_runs(_location_id):
+        raise AssertionError("revenue analysis must not start without a location")
+
+    monkeypatch.setattr(analyzer, "analyze_location", fail_if_analyzer_runs)
+
+    for location_id in (None, ""):
+        with pytest.raises(
+            ValueError,
+            match="revenue_multiplier requires an explicit location_id",
+        ):
+            core.generate_revenue_multiplier(None, location_id)

@@ -10,6 +10,9 @@ from ..common import _serialize_rows
 
 def generate_ecological_modeling(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe ecological modeling report with interactions, model runs, and population dynamics."""
+    if not location_id:
+        raise ValueError("ecological_modeling requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

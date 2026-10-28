@@ -28,7 +28,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 126
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 127
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -1028,6 +1028,52 @@ def test_quantity_unit_catalog_is_read_only_to_kernel_runtime():
     assert "REVOKE UPDATE (%1$I)" in migration
     assert "REVOKE REFERENCES (%1$I)" in migration
     assert "kokonut_directus_runtime" not in migration
+
+
+def test_yield_benchmark_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/680_runtime_yield_benchmark_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/137_yield_monitoring.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    yield_benchmark_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "yield_benchmark" in site.get("candidate_relations", [])
+    ]
+
+    assert "yield_benchmark" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS yield_benchmark" in schema
+    assert len(yield_benchmark_sites) == 1
+    assert yield_benchmark_sites[0]["statement_kind"] == "SELECT"
+    assert yield_benchmark_sites[0]["source"] == "services/analytics/yield_monitoring.py"
+    assert not any(
+        "yield_benchmark" in site.get("write_target_relations", [])
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?yield_benchmark\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.yield_benchmark FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.yield_benchmark TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
 
 
 def test_mobile_credential_columns_are_excluded_from_runtime_reads():

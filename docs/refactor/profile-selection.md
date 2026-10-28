@@ -14,7 +14,7 @@ the planner appends `docker-compose.kernel-arm64.yml`, selects the custom
 PostgreSQL/PostGIS 16 image, and uses the distinct project
 `kokonut-kernel-candidate-arm64`; this keeps its database volume separate from
 the AMD64 candidate. The standard profile also appends the ARM64 worker
-override. Current ARM64 command selection supports minimal, edge, standard, and
+override. Current ARM64 command selection supports core, minimal, edge, standard, and
 analytics. The HTTPS proxy, Gateway OIDC application, self-hosted ZITADEL
 profile, gRPC, MQTT, HTTP sensor receiver, and Directus adapter are also
 selectable on ARM64. ClickHouse analytics is supported as a combined or
@@ -30,12 +30,25 @@ under QEMU; this does not certify Raspberry Pi hardware. See the
 
 | Selection | Services/configuration | Acceptance remaining |
 | --- | --- | --- |
+| core | PostgreSQL + combined API/workers with only the hash-locked kernel runtime | Capability parity, multi-arch OCI build, and recovery |
 | minimal | PostgreSQL + combined API/workers | Capability parity and recovery |
 | edge | Minimal + encrypted local media/resource limits | Media/storage recovery and physical-device behavior |
 | standard | PostgreSQL + separate API and worker; PostgreSQL shared limiter by default | Migration 373, role cutover, and worker progress monitoring |
 | analytics | Minimal + private ClickHouse | Schema bootstrap and projection parity |
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Same gates plus worker analytics parity |
 | scale | Rejected with an explanation | Multi-host failover, replica concurrency, recovery and measured sizing |
+
+`core` is an additive opt-in package profile. It does not change `minimal` or
+the existing profile defaults. Web3, spreadsheet/S3, and encrypted local-media
+dependencies are omitted from core until selected with `--web3`, `--exports`,
+or `--local-media`. The local-media overlay still requires the existing
+runtime `MOBILE_MEDIA_LOCAL_KEY` from the encrypted environment. The release
+gate builds the core base and the composition with all three package overlays
+enabled for linux/amd64 and linux/arm64, then checks exact locked package
+inventories. Hosted CI acceptance is pending. Even a successful ARM64 OCI build
+does not establish Raspberry Pi resource suitability. `--oidc` and `--zitadel`
+are rejected with core because the current OIDC application target is built on
+the full image.
 
 Add `--proxy`, `--oidc`, `--zitadel`, `--grpc`, `--mqtt`, `--http-sensors`, or
 `--directus` explicitly for the corresponding optional overlay. `--oidc` requires `--proxy`
@@ -57,6 +70,8 @@ Examples that only print commands:
 
 ```sh
 python3 scripts/kernel-profile.py minimal
+python3 scripts/kernel-profile.py core --action config
+python3 scripts/kernel-profile.py core --web3 --exports --local-media --action config
 python3 scripts/kernel-profile.py standard --proxy --action build
 python3 scripts/kernel-profile.py analytics --separate-workers --action config
 python3 scripts/kernel-profile.py edge --mqtt --action up

@@ -1061,6 +1061,7 @@ _RUNTIME_MUTATION_TABLES = (
     "farmer_credential_type",
     "market_reference_data",
     "quantity_unit",
+    "yield_benchmark",
     "process_maturity_level",
     "pollinator_species_reference", "pest_degree_day_config",
     "gri_indicator",

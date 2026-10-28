@@ -13,6 +13,9 @@ from .scope import require_network_scope
 
 def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe EBF scorecard report for a location."""
+    if not location_id:
+        raise ValueError("ebf_scorecard requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute(

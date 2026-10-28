@@ -8,9 +8,10 @@ from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 try:
-    from fastapi import APIRouter, Request
+    from fastapi import APIRouter, Query, Request
     from fastapi.responses import JSONResponse
 
+    from services.gateway.federation_models import FederationNodesPage
     from services.gateway.public_models import (
         PublicCrispAssessment,
         PublicCrispAssessmentEnvelope,
@@ -32,11 +33,16 @@ except ImportError:
             return lambda func: func
 
     Request = None
+
+    def Query(default=None, **_kwargs):
+        return default
+
     JSONResponse = None
     PublicCrispAssessment = PublicError = PublicLocationListResponse = None
     PublicLocationResponse = PublicLocationSummary = PublicMetricSummary = None
     PublicLocationSummaryEnvelope = PublicCrispAssessmentEnvelope = None
     PublicMetricSummaryEnvelope = None
+    FederationNodesPage = None
 
 router = APIRouter()
 logger = get_logger("gateway.router")
@@ -353,19 +359,17 @@ async def get_public_analytics_summary_v1(location_id: str):
 
 
 @router.get("/data-stream/posts")
-async def list_data_stream_posts(request: Request):
+async def list_data_stream_posts(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=5000),
+):
     """List or search tenant-scoped Data Stream posts without caching content."""
     from starlette.concurrency import run_in_threadpool
 
     try:
         location_id = request.query_params.get("location_id")
         query_text = request.query_params.get("q")
-        try:
-            limit = int(request.query_params.get("limit", "20"))
-            offset = int(request.query_params.get("offset", "0"))
-        except ValueError as exc:
-            raise ValueError("limit and offset must be integers") from exc
-
         from services.gateway.data_stream import list_gateway_data_stream_posts
 
         rows = await run_in_threadpool(
@@ -388,7 +392,12 @@ async def list_data_stream_posts(request: Request):
 
 
 @router.get("/data-stream/posts/{post_id}/files")
-async def list_data_stream_post_files(post_id: str, request: Request):
+async def list_data_stream_post_files(
+    post_id: str,
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=5000),
+):
     """List safe, tenant-scoped attachment metadata without caching it."""
     from starlette.concurrency import run_in_threadpool
 
@@ -400,6 +409,8 @@ async def list_data_stream_post_files(post_id: str, request: Request):
             post_id,
             request.query_params.get("location_id"),
             request.state.gateway_authorization,
+            limit=limit,
+            offset=offset,
         )
         return _private_response({"data": rows})
     except ValueError as exc:
@@ -488,14 +499,17 @@ async def resolve_iri(iri: str):
         return _internal_error(exc)
 
 
-@router.get("/federation/nodes")
-async def list_federation_nodes():
-    """List federation nodes."""
+@router.get("/federation/nodes", response_model=FederationNodesPage)
+async def list_federation_nodes(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=10000),
+):
+    """List a bounded federation-node page with explicit continuation metadata."""
     try:
         from services.federation.node import FederationNode
         node = FederationNode()
-        nodes = node.list_nodes()
-        return JSONResponse(content={"nodes": nodes})
+        page = node.list_nodes_page(limit=limit, offset=offset)
+        return page
     except Exception as exc:
         return _internal_error(exc)
 
@@ -538,18 +552,14 @@ async def get_baal_governance_config():
 
 
 @router.get("/v1/governance/baal/proposals")
-async def get_baal_governance_proposals(limit: str = "50"):
+async def get_baal_governance_proposals(limit: int = Query(default=50, ge=1, le=100)):
     """Read a bounded newest-first list of global Baal proposals."""
     from starlette.concurrency import run_in_threadpool
 
     from services.gateway.governance import read_baal_proposals
 
     try:
-        parsed_limit = int(limit)
-    except (TypeError, ValueError):
-        return _private_response({"error": "limit must be an integer"}, status_code=400)
-    try:
-        result = await run_in_threadpool(read_baal_proposals, parsed_limit)
+        result = await run_in_threadpool(read_baal_proposals, limit)
         return _private_response({"data": result})
     except Exception as exc:
         return _governance_read_error(exc)

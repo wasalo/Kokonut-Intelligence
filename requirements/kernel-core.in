@@ -1,0 +1,3 @@
+# Minimal Kernel API/worker runtime without capability-specific provider groups.
+-c kernel-runtime.lock
+-r kernel.txt

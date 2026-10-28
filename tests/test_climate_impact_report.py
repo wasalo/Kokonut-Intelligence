@@ -53,6 +53,18 @@ class _Connection:
         return _Cursor(self)
 
 
+def test_climate_impact_rejects_missing_location_before_opening_database():
+    import pytest
+
+    class _NoDatabase:
+        def cursor(self, **_kwargs):
+            raise AssertionError("database must not open without a location scope")
+
+    for location_id in (None, ""):
+        with pytest.raises(ValueError, match="climate_impact requires an explicit location_id"):
+            core.generate_climate_impact(_NoDatabase(), location_id)
+
+
 def test_climate_impact_uses_shared_protocols_without_location_parameter(monkeypatch):
     from services.analytics import carbon_balance
 

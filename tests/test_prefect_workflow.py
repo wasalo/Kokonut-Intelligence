@@ -89,10 +89,20 @@ def test_rpc_flow_preserves_multi_chain_adapter():
     run.assert_called_once_with()
 
 
-def test_scheduled_hourly_preserves_anomaly_and_freshness_without_sensor_flow() -> None:
+def test_scheduled_hourly_waits_for_explicit_sensor_source_mapping() -> None:
+    from inspect import signature
     from unittest.mock import patch
+    from uuid import uuid4
 
+    from services.core.jobs import JOBS
     from services.flows.pipelines import scheduled_hourly
+    from services.flows.sensors import sensor_ingestion_flow
+
+    assert JOBS["sensors"].required_inputs == ("location_id", "driver_instance_id")
+    assert tuple(signature(sensor_ingestion_flow.fn).parameters) == (
+        "location_id",
+        "driver_instance_id",
+    )
 
     with (
         patch("services.flows.anomaly_detection.anomaly_detection_flow") as anomaly,
@@ -104,13 +114,6 @@ def test_scheduled_hourly_preserves_anomaly_and_freshness_without_sensor_flow() 
     anomaly.assert_called_once_with()
     freshness.assert_called_once_with()
     sensor.assert_not_called()
-
-
-def test_sensor_prefect_flow_requires_a_location_and_registered_driver_instance() -> None:
-    from unittest.mock import patch
-    from uuid import uuid4
-
-    from services.flows.sensors import sensor_ingestion_flow
 
     location_id = str(uuid4())
     driver_instance_id = str(uuid4())

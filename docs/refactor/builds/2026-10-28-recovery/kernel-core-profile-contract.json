@@ -1,0 +1,75 @@
+{
+  "record_version": 1,
+  "date": "2026-10-28",
+  "slice": "additive-kernel-core-profile",
+  "status": "implemented; focused local contract checks passed; multi-architecture OCI build is wired into the release gate and awaits CI execution",
+  "compatibility": {
+    "existing_profiles_changed": false,
+    "existing_minimal_uses_full_runtime": true,
+    "new_profile": "core",
+    "core_default_package_groups": [
+      "kernel.txt"
+    ],
+    "core_omits_by_default": [
+      "web3",
+      "eth-abi",
+      "boto3",
+      "openpyxl",
+      "pycryptodome"
+    ],
+    "optional_selectors": {
+      "--web3": "hash-locked Web3 and ABI dependency closure",
+      "--exports": "hash-locked S3 and spreadsheet dependency closure",
+      "--local-media": "hash-locked authenticated local-media dependency; encryption key remains runtime-only"
+    },
+    "oidc": "Rejected with core because the current OIDC target derives from the full application image.",
+    "arm64": "Core base and the combined Web3/export/local-media overlay composition are enabled for ARM64 planner/build acceptance. The exact multi-architecture image builds and package inventory gate are wired; hosted CI acceptance is pending. This does not establish Raspberry Pi resource suitability."
+  },
+  "locks": {
+    "kernel-core.lock": {
+      "package_count": 31,
+      "source": "Hash-preserving core-only projection of the existing kernel-runtime.lock closure, constrained by that lock for future pip-tools regeneration."
+    },
+    "kernel-core-web3.lock": {
+      "package_count": 40
+    },
+    "kernel-core-exports.lock": {
+      "package_count": 9
+    },
+    "kernel-core-storage.lock": {
+      "package_count": 1
+    },
+    "complete_capability_union": {
+      "package_count": 68,
+      "same_pins_as": "requirements/kernel-runtime.lock"
+    }
+  },
+  "checks": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_kernel_profile.py tests/test_kernel_core_import_boundary.py tests/test_kernel_core_release_gate.py -q",
+      "result": "passed",
+      "passed": 58
+    },
+    "release_input_hashes": "passed: python3 scripts/check-kernel-release-inputs.py",
+    "dependency_group_alignment": "passed: python3 scripts/check-requirement-groups.py",
+    "pip_lock_parser": "passed: all 81 package entries across core and overlays parsed and carried SHA-256 hashes",
+    "python_compile": "passed: planner, release checker, and image manifest",
+    "diff_whitespace": "passed: git diff --check",
+    "gateway_startup_import_boundary": "passed in subprocess with Web3, eth_abi, boto3, botocore, openpyxl, and Crypto imports blocked; the API app registered routes without attempting any blocked import",
+    "missing_optional_dependency_behavior": "passed in isolated subprocess: Gateway startup imports none of the omitted packages; S3 and local-media adapters fail closed with MediaStorageNotConfigured, Pink Sheet parsing reports its openpyxl requirement, and a direct Web3 service import fails with ModuleNotFoundError until the Web3 overlay is selected."
+  },
+  "release_gate": {
+    "build_script": "scripts/build-kernel-multiarch.sh builds the kernel-core base and a second kernel-core image with all three optional groups enabled for linux/amd64 and linux/arm64. The OCI checker requires exact package inventories for the 31-package core lock and the 68-package union of all four locks, respectively, plus pinned Python base tooling.",
+    "local_oci_build": "not run in this slice; no persistent stack, candidate database, or legacy database was touched",
+    "next_acceptance": "Hosted CI must pass both multi-architecture kernel-core OCI builds and their exact package inventory checks."
+  },
+  "secrets": {
+    "build_args": [
+      "KOKONUT_CORE_WEB3",
+      "KOKONUT_CORE_EXPORTS",
+      "KOKONUT_CORE_LOCAL_MEDIA"
+    ],
+    "secret_values_passed_to_build": false,
+    "local_media_key": "Required only by the selected local-media runtime Compose overlay; not copied into the image or lock files."
+  }
+}

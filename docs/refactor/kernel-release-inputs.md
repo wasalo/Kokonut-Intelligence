@@ -1,7 +1,7 @@
 # Kernel release-input and architecture build gate
 
 The GitHub Actions `CI` job verifies a reviewed build-input lock and builds the
-default app, ClickHouse-enabled app, optional sensor-anomaly ML worker, and
+default app, opt-in lean core app, ClickHouse-enabled app, optional sensor-anomaly ML worker, and
 PostGIS targets as multi-platform OCI archives for `linux/amd64` and
 `linux/arm64`. The gate runs on main updates and pull requests.
 It uses `--pull --no-cache` so paired builds resolve current locked inputs. It
@@ -13,7 +13,8 @@ projects, publish images, or touch database volumes.
 `config/kernel/release-input-lock.json` pins SHA-256 digests for the application
 and database base manifests, the Kernel Dockerfiles, the direct Python
 requirement manifests and generated locks for the runtime, optional ClickHouse,
-and optional sensor-anomaly ML profiles, the Debian/PGDG apt source definitions,
+the core runtime plus its Web3/export/local-media package overlays, and optional
+sensor-anomaly ML profiles, the Debian/PGDG apt source definitions,
 the signed Debian HTTP bootstrap source used to install the CA bundle, and the
 verified PostGIS package catalog. The catalog records the exact PostGIS runtime
 and script package versions, the Debian snapshot timestamp, and their verified
@@ -21,7 +22,15 @@ amd64/arm64 availability.
 
 The gate extracts `python-packages.json` from each default and ClickHouse app
 platform and requires exact package name/version parity between the two
-architectures. For the optional ML image it also checks that every package
+architectures. The opt-in core image has a separate hash-locked runtime. The
+OCI gate builds the core base and a second core image with Web3, export/S3, and
+local-media overlays enabled together. It checks the first inventory against
+the core lock plus pinned Python base tooling and the second against the union
+of all four locks plus that base tooling. Undeclared and missing packages fail
+the gate. Because the all-overlays combination is built for both architectures,
+the planner permits those three capability selectors on ARM64; hosted CI
+acceptance is pending. For the
+optional ML image it also checks that every package
 matches the wheel lock, both architectures have identical inventories, and
 unrelated analytics packages are absent. It checks that both database image
 variants contain the locked PostGIS package versions. Platform identity comes
@@ -99,6 +108,17 @@ pip-compile --generate-hashes --allow-unsafe --resolver=backtracking --strip-ext
 pip-compile --generate-hashes --allow-unsafe --resolver=backtracking --strip-extras \
   --constraint requirements/kernel-runtime.lock \
   --output-file requirements/kernel-clickhouse.lock requirements/kernel-clickhouse.in
+pip-compile --generate-hashes --allow-unsafe --resolver=backtracking --strip-extras \
+  --output-file requirements/kernel-core.lock requirements/kernel-core.in
+pip-compile --generate-hashes --allow-unsafe --resolver=backtracking --strip-extras \
+  --constraint requirements/kernel-core.lock \
+  --output-file requirements/kernel-core-web3.lock requirements/kernel-core-web3.in
+pip-compile --generate-hashes --allow-unsafe --resolver=backtracking --strip-extras \
+  --constraint requirements/kernel-core.lock \
+  --output-file requirements/kernel-core-exports.lock requirements/kernel-core-exports.in
+pip-compile --generate-hashes --allow-unsafe --resolver=backtracking --strip-extras \
+  --constraint requirements/kernel-core.lock \
+  --output-file requirements/kernel-core-storage.lock requirements/kernel-core-storage.in
 ```
 
 Regenerate the optional ML wheel lock from a Python 3.11 network-enabled

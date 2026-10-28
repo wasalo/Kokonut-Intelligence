@@ -1,0 +1,6 @@
+# Optional Web3 package closure for the additive core app image.
+services:
+  app:
+    build:
+      args:
+        KOKONUT_CORE_WEB3: "true"

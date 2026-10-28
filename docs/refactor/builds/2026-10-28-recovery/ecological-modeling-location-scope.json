@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-28",
+  "report_type": "ecological_modeling",
+  "finding": "This registered location-only report requires location_id in its public signature, but a direct Python call could pass None or an empty string and open a database cursor before executing its location-filtered ecological reads.",
+  "change": "The generator now rejects missing location scope before opening a cursor.",
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_ecological_report_scope.py",
+    "result": "passed",
+    "tests": 2,
+    "ruff": "passed",
+    "py_compile": "passed"
+  },
+  "limitations": [
+    "All ecological report queries remain tied to the requested location; no network-level report or query behavior changed.",
+    "Tests use a mock connection; no database, provider, candidate, legacy, or external network was used.",
+    "This closes only the direct-call missing-scope path; it does not establish tenant isolation or populated-data parity."
+  ]
+}

@@ -108,6 +108,9 @@ MARKET_REFERENCE_DATA_MIGRATION = (
 QUANTITY_UNIT_MIGRATION = (
     ROOT / "schemas/postgres/679_runtime_quantity_unit_read_only.sql"
 )
+YIELD_BENCHMARK_MIGRATION = (
+    ROOT / "schemas/postgres/680_runtime_yield_benchmark_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
@@ -116,6 +119,7 @@ REFERENCE_CATALOGS = (
     "farmer_credential_type",
     "market_reference_data",
     "quantity_unit",
+    "yield_benchmark",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
@@ -246,6 +250,11 @@ def check_boundary(
                         )
                     )
                 cursor.execute(
+                    "INSERT INTO public.yield_benchmark (id, marker) "
+                    "VALUES (%s, %s)",
+                    (str(uuid.uuid4()), "synthetic-yield-benchmark"),
+                )
+                cursor.execute(
                     "CREATE TABLE public.data_access_log "
                     "(id uuid PRIMARY KEY, marker text NOT NULL)"
                 )
@@ -290,6 +299,7 @@ def check_boundary(
                     "farmer_credential_type",
                     "market_reference_data",
                     "quantity_unit",
+                    "yield_benchmark",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -459,6 +469,11 @@ def check_boundary(
                 )
                 cursor.execute(quantity_unit_migration)
                 cursor.execute(quantity_unit_migration)
+                yield_benchmark_migration = YIELD_BENCHMARK_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(yield_benchmark_migration)
+                cursor.execute(yield_benchmark_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -555,6 +570,7 @@ def check_boundary(
                         "farmer_credential_type": 677,
                         "market_reference_data": 678,
                         "quantity_unit": 679,
+                        "yield_benchmark": 680,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -611,6 +627,7 @@ def check_boundary(
                     "impact_framework", "impact_dimension",
                     "expense_category", "crisp_risk_dimension", "reference_class",
                     "farmer_credential_type", "market_reference_data",
+                    "yield_benchmark",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -656,14 +673,17 @@ def check_boundary(
                     ("farmer_credential_type", 677),
                     ("market_reference_data", 678),
                     ("quantity_unit", 679),
+                    ("yield_benchmark", 680),
                 ):
                     cursor.execute(
-                        "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
-                        (f"public.{table}",),
+                        "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES'), "
+                        "has_table_privilege('kokonut_runtime', %s, 'TRUNCATE'), "
+                        "has_table_privilege('kokonut_runtime', %s, 'TRIGGER')",
+                        (f"public.{table}",) * 3,
                     )
-                    if cursor.fetchone()[0]:
+                    if any(cursor.fetchone()):
                         raise AssertionError(
-                            f"migration {migration_number} retained REFERENCES privilege"
+                            f"migration {migration_number} retained REFERENCES/TRUNCATE/TRIGGER privilege"
                         )
                     cursor.execute(
                         "SELECT EXISTS (SELECT 1 FROM pg_attribute "
@@ -849,7 +869,7 @@ def check_boundary(
                     "process_maturity_level", "pollinator_species_reference",
                     "reference_class", "farmer_credential_type",
                     "market_reference_data",
-                    "quantity_unit",
+                    "quantity_unit", "yield_benchmark",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -921,6 +941,13 @@ def check_boundary(
                     cursor.execute(
                         sql.SQL("SELECT marker FROM public.{}").format(identifier)
                     )
+                    rows = cursor.fetchall()
+                    if table == "yield_benchmark" and rows != [
+                        ("synthetic-yield-benchmark",)
+                    ]:
+                        raise AssertionError(
+                            "runtime SELECT did not return the synthetic yield benchmark"
+                        )
                     statements = (
                         (
                             sql.SQL(
@@ -1407,6 +1434,16 @@ def check_boundary(
                     "insert_update_delete_truncate_denied": True,
                     "references_and_column_grants_denied": True,
                     "directus_role_unchanged": True,
+                },
+                "read_only_yield_benchmark": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "synthetic_row_read": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_triggers_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                    "tenant_isolation_established": False,
                 },
                 "column_level_privilege_regression_detected": True,
                 "bounded_gateway_function_behavior": "not exercised; source migrations are not installed",

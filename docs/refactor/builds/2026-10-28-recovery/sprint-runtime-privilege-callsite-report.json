@@ -1,5 +1,7 @@
 {
-  "dml_relations_matching_explicit_runtime_revoke": [],
+  "dml_relations_matching_explicit_runtime_revoke": [
+    "yield_benchmark"
+  ],
   "dml_relations_without_candidate_sites": [
     "adaptive_stewardship_review",
     "agent_capability_manifest",
@@ -43,13 +45,11 @@
     "cross_farm_portfolio",
     "cultural_context_record",
     "cultural_preservation_plan",
-    "customer_satisfaction",
     "cv_fold_result",
     "dapp_session",
     "data_freshness_alert_delivery_attempt",
     "data_governance_category",
     "data_governance_scope",
-    "data_quality_score",
     "data_retention_legal_hold_event",
     "data_sharing_agreement_audit",
     "decomposition_measurement",
@@ -168,10 +168,6 @@
     "pollution_incident_operation_receipt",
     "prediction_accuracy_record",
     "process_benchmark",
-    "process_capability",
-    "process_cost",
-    "process_handoff_log",
-    "process_trace",
     "production_market_match",
     "property",
     "protocol_execution_outbox",
@@ -349,7 +345,6 @@
     "v_prescription_rate_distribution",
     "v_prescription_summary",
     "v_price_trends",
-    "v_process_outcome_correlation",
     "v_public_algorithmic_redistribution_mechanism",
     "v_public_anti_capture_governance_policy",
     "v_public_autocorrelation_summary",
@@ -472,7 +467,6 @@
     "v_strategy_investment_risk_evidence",
     "v_strategy_kernel_benefit_execution",
     "v_sync_performance",
-    "v_total_cost_of_ownership",
     "v_tows_summary",
     "v_training_catalog",
     "v_training_progress_summary",
@@ -11609,10 +11603,30 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "INSERT": 1,
+        "SELECT": 3
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/analytics/prm_metrics.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 3
+          }
+        }
+      ],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/analytics/prm_metrics.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -12393,23 +12407,29 @@
     },
     {
       "candidate_execution_sites_by_statement": {
+        "INSERT": 1,
+        "SELECT": 1,
         "UPDATE": 1
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/data_quality.py",
           "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 1,
             "UPDATE": 1
           }
         }
       ],
       "candidate_write_target_sites_by_statement": {
+        "INSERT": 1,
         "UPDATE": 1
       },
       "candidate_write_target_source_files": [
         {
           "path": "services/analytics/data_quality.py",
           "statement_counts": {
+            "INSERT": 1,
             "UPDATE": 1
           }
         }
@@ -12441,10 +12461,30 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "INSERT": 1,
+        "SELECT": 3
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/analytics/data_quality.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 3
+          }
+        }
+      ],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/analytics/data_quality.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -19005,7 +19045,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 7,
+        "SELECT": 5,
         "UPDATE": 3
       },
       "candidate_source_files": [
@@ -19013,7 +19053,7 @@
           "path": "services/federation/node.py",
           "statement_counts": {
             "INSERT": 1,
-            "SELECT": 3,
+            "SELECT": 1,
             "UPDATE": 2
           }
         },
@@ -20976,13 +21016,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 1
+        "SELECT": 2
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/carbon_balance.py",
           "statement_counts": {
-            "SELECT": 1
+            "SELECT": 2
           }
         }
       ],
@@ -26506,12 +26546,18 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 5,
+        "SELECT": 6,
         "WITH": 7
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/coordination_accounting.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        },
+        {
+          "path": "services/analytics/predictive_bpm.py",
           "statement_counts": {
             "SELECT": 1
           }
@@ -29051,18 +29097,33 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 1
+        "INSERT": 1,
+        "SELECT": 1,
+        "UPDATE": 1
       },
       "candidate_source_files": [
         {
           "path": "services/mobile/forms_cli.py",
           "statement_counts": {
-            "SELECT": 1
+            "INSERT": 1,
+            "SELECT": 1,
+            "UPDATE": 1
           }
         }
       ],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1,
+        "UPDATE": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/mobile/forms_cli.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "UPDATE": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -30472,7 +30533,7 @@
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
         "SELECT": 5,
-        "UPDATE": 2,
+        "UPDATE": 3,
         "WITH": 2
       },
       "candidate_source_files": [
@@ -30481,7 +30542,7 @@
           "statement_counts": {
             "INSERT": 1,
             "SELECT": 3,
-            "UPDATE": 2
+            "UPDATE": 3
           }
         },
         {
@@ -30494,14 +30555,14 @@
       ],
       "candidate_write_target_sites_by_statement": {
         "INSERT": 1,
-        "UPDATE": 2
+        "UPDATE": 3
       },
       "candidate_write_target_source_files": [
         {
           "path": "services/orientation/cycle_tracker.py",
           "statement_counts": {
             "INSERT": 1,
-            "UPDATE": 2
+            "UPDATE": 3
           }
         }
       ],
@@ -36654,10 +36715,28 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/systems/process_control.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/systems/process_control.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -36685,8 +36764,17 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "SELECT": 1
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/analytics/process_costing.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        }
+      ],
       "candidate_write_target_sites_by_statement": {},
       "candidate_write_target_source_files": [],
       "configured_runtime_boundary": null,
@@ -36717,13 +36805,21 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "INSERT": 1,
+        "SELECT": 8
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/prm_metrics.py",
           "statement_counts": {
-            "SELECT": 1
+            "SELECT": 5
+          }
+        },
+        {
+          "path": "services/analytics/process_costing.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 2
           }
         },
         {
@@ -36733,8 +36829,17 @@
           }
         }
       ],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/analytics/process_costing.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -36804,6 +36909,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "DELETE": 1,
+        "INSERT": 1,
         "SELECT": 3
       },
       "candidate_source_files": [
@@ -36811,18 +36917,21 @@
           "path": "services/analytics/process_architecture.py",
           "statement_counts": {
             "DELETE": 1,
+            "INSERT": 1,
             "SELECT": 3
           }
         }
       ],
       "candidate_write_target_sites_by_statement": {
-        "DELETE": 1
+        "DELETE": 1,
+        "INSERT": 1
       },
       "candidate_write_target_source_files": [
         {
           "path": "services/analytics/process_architecture.py",
           "statement_counts": {
-            "DELETE": 1
+            "DELETE": 1,
+            "INSERT": 1
           }
         }
       ],
@@ -36960,13 +37069,15 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "INSERT": 1,
+        "SELECT": 4
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/process_interfaces.py",
           "statement_counts": {
-            "SELECT": 1
+            "INSERT": 1,
+            "SELECT": 3
           }
         },
         {
@@ -36976,8 +37087,17 @@
           }
         }
       ],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/analytics/process_interfaces.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -37005,10 +37125,30 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "INSERT": 1,
+        "SELECT": 2
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/analytics/process_interfaces.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 2
+          }
+        }
+      ],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/analytics/process_interfaces.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -37037,7 +37177,9 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 1
+        "INSERT": 1,
+        "SELECT": 2,
+        "UPDATE": 1
       },
       "candidate_source_files": [
         {
@@ -37045,10 +37187,29 @@
           "statement_counts": {
             "SELECT": 1
           }
+        },
+        {
+          "path": "services/analytics/process_costing.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 1,
+            "UPDATE": 1
+          }
         }
       ],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1,
+        "UPDATE": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/analytics/process_costing.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "UPDATE": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -37135,7 +37296,9 @@
     {
       "candidate_execution_sites_by_statement": {
         "DELETE": 1,
-        "SELECT": 6
+        "INSERT": 1,
+        "SELECT": 7,
+        "UPDATE": 1
       },
       "candidate_source_files": [
         {
@@ -37148,7 +37311,9 @@
           "path": "services/analytics/process_architecture.py",
           "statement_counts": {
             "DELETE": 1,
-            "SELECT": 2
+            "INSERT": 1,
+            "SELECT": 3,
+            "UPDATE": 1
           }
         },
         {
@@ -37165,13 +37330,17 @@
         }
       ],
       "candidate_write_target_sites_by_statement": {
-        "DELETE": 1
+        "DELETE": 1,
+        "INSERT": 1,
+        "UPDATE": 1
       },
       "candidate_write_target_source_files": [
         {
           "path": "services/analytics/process_architecture.py",
           "statement_counts": {
-            "DELETE": 1
+            "DELETE": 1,
+            "INSERT": 1,
+            "UPDATE": 1
           }
         }
       ],
@@ -37342,6 +37511,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "DELETE": 1,
+        "INSERT": 1,
         "SELECT": 2
       },
       "candidate_source_files": [
@@ -37349,18 +37519,21 @@
           "path": "services/analytics/process_architecture.py",
           "statement_counts": {
             "DELETE": 1,
+            "INSERT": 1,
             "SELECT": 2
           }
         }
       ],
       "candidate_write_target_sites_by_statement": {
-        "DELETE": 1
+        "DELETE": 1,
+        "INSERT": 1
       },
       "candidate_write_target_source_files": [
         {
           "path": "services/analytics/process_architecture.py",
           "statement_counts": {
-            "DELETE": 1
+            "DELETE": 1,
+            "INSERT": 1
           }
         }
       ],
@@ -37392,25 +37565,29 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2,
+        "INSERT": 1,
+        "SELECT": 3,
         "UPDATE": 3
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/process_simulation.py",
           "statement_counts": {
-            "SELECT": 2,
+            "INSERT": 1,
+            "SELECT": 3,
             "UPDATE": 3
           }
         }
       ],
       "candidate_write_target_sites_by_statement": {
+        "INSERT": 1,
         "UPDATE": 3
       },
       "candidate_write_target_source_files": [
         {
           "path": "services/analytics/process_simulation.py",
           "statement_counts": {
+            "INSERT": 1,
             "UPDATE": 3
           }
         }
@@ -37539,10 +37716,30 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "INSERT": 1,
+        "SELECT": 2
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/analytics/process_interfaces.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 2
+          }
+        }
+      ],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/analytics/process_interfaces.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -42819,7 +43016,9 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "INSERT": 1,
+        "SELECT": 7,
+        "UPDATE": 1
       },
       "candidate_source_files": [
         {
@@ -42827,10 +43026,29 @@
           "statement_counts": {
             "SELECT": 2
           }
+        },
+        {
+          "path": "services/analytics/service_catalog.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 5,
+            "UPDATE": 1
+          }
         }
       ],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1,
+        "UPDATE": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/analytics/service_catalog.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "UPDATE": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -59332,8 +59550,17 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "SELECT": 1
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/analytics/prm_metrics.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        }
+      ],
       "candidate_write_target_sites_by_statement": {},
       "candidate_write_target_source_files": [],
       "configured_runtime_boundary": null,
@@ -59444,13 +59671,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/commons/scaling.py",
           "statement_counts": {
-            "SELECT": 2
+            "SELECT": 1
           }
         }
       ],
@@ -59737,13 +59964,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/commons/bio_factory.py",
           "statement_counts": {
-            "SELECT": 2
+            "SELECT": 1
           }
         }
       ],
@@ -60234,13 +60461,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/commons/stewardship.py",
           "statement_counts": {
-            "SELECT": 2
+            "SELECT": 1
           }
         }
       ],
@@ -61806,13 +62033,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/commons/liberation.py",
           "statement_counts": {
-            "SELECT": 2
+            "SELECT": 1
           }
         }
       ],
@@ -61846,13 +62073,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/wellbeing.py",
           "statement_counts": {
-            "SELECT": 2
+            "SELECT": 1
           }
         }
       ],
@@ -62883,13 +63110,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/commons/scaling.py",
           "statement_counts": {
-            "SELECT": 2
+            "SELECT": 1
           }
         }
       ],
@@ -63466,13 +63693,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/commons/stewardship.py",
           "statement_counts": {
-            "SELECT": 2
+            "SELECT": 1
           }
         }
       ],
@@ -63740,13 +63967,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/wellbeing.py",
           "statement_counts": {
-            "SELECT": 2
+            "SELECT": 1
           }
         }
       ],
@@ -65722,13 +65949,13 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/strategy.py",
           "statement_counts": {
-            "SELECT": 2
+            "SELECT": 1
           }
         }
       ],
@@ -66791,8 +67018,17 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "SELECT": 2
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/analytics/prm_metrics.py",
+          "statement_counts": {
+            "SELECT": 2
+          }
+        }
+      ],
       "candidate_write_target_sites_by_statement": {},
       "candidate_write_target_source_files": [],
       "configured_runtime_boundary": null,
@@ -69491,14 +69727,18 @@
       ],
       "candidate_write_target_sites_by_statement": {},
       "candidate_write_target_source_files": [],
-      "configured_runtime_boundary": null,
-      "dml_overlaps_explicit_revoke": false,
+      "configured_runtime_boundary": "runtime_mutations_denied",
+      "dml_overlaps_explicit_revoke": true,
       "effective_dml_privileges": [
         "DELETE",
         "INSERT",
         "UPDATE"
       ],
-      "effective_dml_revokes": [],
+      "effective_dml_revokes": [
+        "DELETE",
+        "INSERT",
+        "UPDATE"
+      ],
       "effective_privileges": {
         "delete": true,
         "insert": true,
@@ -69507,15 +69747,37 @@
         "update": true
       },
       "effective_truncate_privilege": false,
-      "expected_runtime_boundary": null,
-      "explicit_runtime_dml_revokes": [],
-      "explicit_runtime_revokes": [],
+      "expected_runtime_boundary": "runtime_mutations_denied",
+      "explicit_runtime_dml_revokes": [
+        {
+          "migration": "680_runtime_yield_benchmark_read_only.sql",
+          "privileges": "ALL PRIVILEGES"
+        }
+      ],
+      "explicit_runtime_revokes": [
+        {
+          "migration": "680_runtime_yield_benchmark_read_only.sql",
+          "privileges": "ALL PRIVILEGES"
+        },
+        {
+          "migration": "680_runtime_yield_benchmark_read_only.sql",
+          "privileges": "INSERT (%1$I)"
+        },
+        {
+          "migration": "680_runtime_yield_benchmark_read_only.sql",
+          "privileges": "REFERENCES (%1$I)"
+        },
+        {
+          "migration": "680_runtime_yield_benchmark_read_only.sql",
+          "privileges": "UPDATE (%1$I)"
+        }
+      ],
       "has_any_dml": true,
       "kind": "r",
       "relation": "yield_benchmark",
       "rls_enabled": false,
       "rls_forced": false,
-      "runtime_boundary_policy_matches_source": null
+      "runtime_boundary_policy_matches_source": true
     },
     {
       "candidate_execution_sites_by_statement": {},
@@ -69586,9 +69848,9 @@
   "runtime_role_acceptance": {
     "api_key_column_boundary_passed": true,
     "append_only_audit_ledgers_boundary_passed": true,
-    "full_schema_replay_passed": true,
+    "full_schema_replay_passed": false,
     "production_or_candidate_state_established": false,
-    "scoped_acl_checks_passed": true,
+    "scoped_acl_checks_passed": false,
     "scoped_acl_summary": {
       "append_only_column_grants_denied": 2,
       "append_only_mutations_denied": 2,
@@ -69607,29 +69869,29 @@
   },
   "runtime_role_policy_source": {
     "path": "services/migration/runtime_role.py",
-    "sha256": "b5639f95b0592ba2cf5637fa9120aa79f1fa80763b934ff299f31f1bae86b5fb"
+    "sha256": "12c009849d5dd2840c0688a14284079b4882b4ed87591e65ca5874dc0618aa56"
   },
   "scope_limit": "No application rows, operator identifiers, or secrets are included. The report does not include a full column ACL inventory, sequence ACLs, object ownership, security-definer behavior, Directus, external consumers, or production state. The API-key read-only column allowlist is separately verified by the runtime provisioner. Static policy coverage and its source digest do not prove that the provisioner has executed.",
   "source_dirty": true,
   "source_revision": "82bd48c1",
   "summary": {
-    "dml_relations_matching_explicit_runtime_revoke": 0,
-    "dml_relations_without_candidate_sites": 500,
+    "dml_relations_matching_explicit_runtime_revoke": 1,
+    "dml_relations_without_candidate_sites": 492,
     "migration_revoked_relations_missing_or_mismatched_runtime_policy": 0,
-    "migration_revoked_relations_with_runtime_policy": 126,
+    "migration_revoked_relations_with_runtime_policy": 127,
     "relations_with_any_dml": 1381,
-    "relations_with_candidate_execution_sites": 910,
+    "relations_with_candidate_execution_sites": 918,
     "relations_with_effective_truncate": 0,
     "relations_with_effective_truncate_and_rls_disabled": 0,
     "runtime_relations": 1511,
     "tables_with_dml_and_rls_disabled": 994,
-    "unprotected_dml_relations_matching_explicit_runtime_revoke": 0,
-    "unprotected_dml_relations_without_candidate_sites": 251,
-    "unprotected_dml_relations_without_candidate_write_sites": 432
+    "unprotected_dml_relations_matching_explicit_runtime_revoke": 1,
+    "unprotected_dml_relations_without_candidate_sites": 245,
+    "unprotected_dml_relations_without_candidate_write_sites": 422
   },
   "unprotected_candidate_write_relations_by_service": {
     "abundance": 30,
-    "analytics": 273,
+    "analytics": 281,
     "attestation": 2,
     "cache": 1,
     "capital": 1,
@@ -69656,7 +69918,7 @@
     "management": 10,
     "metadata_api": 5,
     "metrics": 2,
-    "mobile": 4,
+    "mobile": 5,
     "office": 2,
     "orientation": 4,
     "planning": 13,
@@ -69669,13 +69931,15 @@
     "security": 2,
     "strategic_reserve": 1,
     "stream": 3,
-    "systems": 16,
+    "systems": 17,
     "thesaurus": 3,
     "threatcasting": 24,
     "treasury": 1,
     "trends": 6
   },
-  "unprotected_dml_relations_matching_explicit_runtime_revoke": [],
+  "unprotected_dml_relations_matching_explicit_runtime_revoke": [
+    "yield_benchmark"
+  ],
   "unprotected_dml_relations_without_candidate_sites": [
     "adaptive_stewardship_review",
     "agent_capability_manifest",
@@ -69719,13 +69983,11 @@
     "cross_farm_portfolio",
     "cultural_context_record",
     "cultural_preservation_plan",
-    "customer_satisfaction",
     "cv_fold_result",
     "dapp_session",
     "data_freshness_alert_delivery_attempt",
     "data_governance_category",
     "data_governance_scope",
-    "data_quality_score",
     "data_retention_legal_hold_event",
     "data_sharing_agreement_audit",
     "decomposition_measurement",
@@ -69840,10 +70102,6 @@
     "pollution_incident_operation_receipt",
     "prediction_accuracy_record",
     "process_benchmark",
-    "process_capability",
-    "process_cost",
-    "process_handoff_log",
-    "process_trace",
     "production_market_match",
     "property",
     "protocol_execution_outbox",
@@ -70004,7 +70262,6 @@
     "cultural_context_record",
     "cultural_preservation_plan",
     "customer_job",
-    "customer_satisfaction",
     "cv_fold_result",
     "dao_proposal",
     "dapp_session",
@@ -70012,7 +70269,6 @@
     "data_freshness_config",
     "data_governance_category",
     "data_governance_scope",
-    "data_quality_score",
     "data_retention_legal_hold_event",
     "data_sharing_agreement_audit",
     "decision_policy",
@@ -70145,7 +70401,6 @@
     "metric_proposal",
     "metric_value_source",
     "metric_version",
-    "mobile_form",
     "mobile_form_version",
     "modis_lst_summary",
     "modis_lst_time_series",
@@ -70208,15 +70463,9 @@
     "prediction_accuracy_record",
     "prediction_calibration_policy",
     "process_benchmark",
-    "process_capability",
     "process_cost",
-    "process_cost_observation",
     "process_ctq",
-    "process_handoff",
-    "process_handoff_log",
-    "process_improvement",
     "process_target",
-    "process_trace",
     "production_market_match",
     "prohibited_substance_record",
     "project_funding",
@@ -70263,7 +70512,6 @@
     "sdg",
     "sentinel1_sar_summary",
     "sentinel1_time_series",
-    "service_registry",
     "shipment",
     "shipment_item",
     "smap_moisture_time_series",

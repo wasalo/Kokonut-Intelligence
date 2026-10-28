@@ -60,6 +60,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "farmer_credential_type": "runtime_mutations_denied",
     "market_reference_data": "runtime_mutations_denied",
     "quantity_unit": "runtime_mutations_denied",
+    "yield_benchmark": "runtime_mutations_denied",
     "dfs_currency": "runtime_mutations_denied",
     "ghg_emission_factor": "runtime_mutations_denied",
     "operations_protocol": "runtime_mutations_denied",

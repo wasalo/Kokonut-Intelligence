@@ -506,24 +506,46 @@ that its full source-plan phase is complete.
   preservation. Migration 679 applies the same runtime-only read boundary to
   schema-seeded `quantity_unit` labels; source review found no application SQL
   writer or relation reader, and native/ARM64 checks pass with Directus grants
-  preserved. The target-aware analytics inventory covers
-  273 relations and 425 static write-target sites across 89 files, with no
-  unmatched candidate targets; this is heuristic source evidence, not proof
-  that each write is reachable or tenant-authorized. The next source review
-  found dynamic curriculum definitions in `competency_framework` with no
-  source-owned management contract; its grants remain unchanged until the
-  Gateway or optional Directus administration path is explicit. Review
-  remaining callers and management paths before changing grants. Do not
-  blanket-revoke based on static absence. Preserve rollback and
-  distinguish table grants from RLS, worker, Directus, and production
-  enforcement. The latest audit found no next relation with a complete safe
-  revoke case: configuration/retention registries remain dynamic, and
+  preserved. Migration 680 adds a narrowly supported read-only boundary for
+  `yield_benchmark`: one location-scoped analytics reader and no application
+  write path were found; its DML is denied to `kokonut_runtime`, while the
+  optional Directus role remains unchanged. This does not establish RLS or
+  tenant isolation. The conservative SQL inventory now records 4,935 execution
+  sites across 971 files, 1,223 relation candidates, and 588 write-target
+  relations. It resolves 53 SQL templates stored in one unambiguous local
+  assignment; dynamic identifiers, reassigned variables, and ambiguous/helper
+  expressions remain unresolved. It surfaced `service_registry` INSERT/UPDATE
+  in `services/analytics/service_catalog.py`; repository search found no
+  internal API, CLI, SDK, or scheduled caller, but the public helper and
+  bootstrap/catalog ownership still need reconciliation, so grants remain
+  unchanged. `process_benchmark` has no repository reader/writer, seed, or
+  Directus rule; its location-linked schema does not establish immutability or
+  exclude external imports, so grants also remain unchanged. The
+  `farm_task_framework_step` relation is an operational many-to-many edge with
+  cascades and no direct location key; historic reconciliation found 20
+  unresolved scope edges among 41 links, and the owner deferred those links.
+  It cannot be treated as a static catalog. A follow-up source audit also
+  reviewed the seed-managed `sdg`, `pillar_of_value`, `form_of_capital`, and
+  `regeneration_principle` tables. Repository code reads these labels but does
+  not write them outside the seed; however, their Kokonut-specific definitions
+  may be intentionally owner-customizable, and `sdg` has signed-worker RLS
+  policy. They remain review candidates rather than safe runtime revocations
+  until the management path and ownership are confirmed. These are
+  heuristic/source audits, not proof that external writes are absent or
+  tenant-authorized. The source review found
+  dynamic curriculum definitions in `competency_framework` with no source-owned
+  management contract; its grants remain unchanged until the Gateway or
+  optional Directus administration path is explicit. Other unresolved
+  candidates include dynamic configuration/retention registries and
   `process_benchmark`, `farm_task_framework_step`, and governed reference data
-  still lack complete caller/consumer ownership proof. The current report shows
-  251 unprotected DML relations without an inventoried callsite and 432 without
+  without complete caller/consumer ownership proof. Review remaining callers
+  and management paths before changing grants. Do not blanket-revoke based on
+  static absence. Preserve rollback and distinguish table grants from RLS,
+  worker, Directus, and production enforcement. The current report shows
+  245 unprotected DML relations without an inventoried callsite and 422 without
   an inventoried write-target site; the report does not include all Directus,
   external, ownership, security-definer, column-ACL, or populated-runtime paths.
-  Trace signed-context/write boundaries for the remaining 273 analytics and 25
+  Trace signed-context/write boundaries for the remaining 281 analytics and 25
   credit-class write-target relations, then reconcile unlocated Directus and
   external callers before selecting further revocations. The first credit-
   class trace found gRPC `CreateBatch` accepts a global
@@ -538,7 +560,8 @@ that its full source-plan phase is complete.
   [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-679.json),
   [market-reference ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
   [quantity-unit ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
-  [analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json).
+  [analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json),
+  [local SQL template resolution](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json).
 - [ ] **C2 — Finish Gateway and SDK contract parity.** Audit registered routes,
   auth/action/scope policy, pagination, error models and SDK behavior; close
   source-verifiable gaps without exposing generic CRUD or weakening default
@@ -554,11 +577,34 @@ that its full source-plan phase is complete.
   TypeScript `ReportSnapshot` model now matches canonical SQL and Python. A
   further audit found no additional static SDK mismatch across the 109-model/
   2,150-column check and 15 method/public API tests. Parallel route work now
-  aligns service-backed pagination bounds across 30 Gateway list families,
+  aligns service-backed pagination bounds across 32 Gateway list families,
   including all 25 solution-lifecycle routes and 21 operating-pilot routes;
-  invalid paging fails before readers run. Focused source/OpenAPI regressions
-  cover these bounds. The expanded Gateway integration run is pending;
-  authorization and live runtime behavior remain open.
+  invalid paging fails before readers run. The expanded changed-route and
+  operator integration selection now passes 732 tests, including the Delphi
+  participant workspace and six operator list routes. The additional
+  data-stream attachment route now publishes `limit=1..100` and
+  `offset=0..5,000`; its focused Gateway/auth selection passes 52 tests.
+  The public federation-node route now uses `limit=1..100` and
+  `offset=0..10,000`; 18 focused checks pass and the trusted CLI retains its
+  full-list behavior. Data-stream post lists now publish `limit=1..100`
+  (default 20) and `offset=0..5,000` (three route checks); Baal proposal lists
+  publish `limit=1..100` (default 50) and reject invalid values before reading
+  (26 governance checks). The JavaScript SDK now has the Python client's default
+  10-second deadline; `timeoutMs` accepts only finite values in the timer-safe
+  range 1..2,147,483,647, and explicit `null` is rejected. This prevents Node's
+  overflow clamp from aborting a request after 1 ms. Fake-timer coverage checks
+  success, rejection, timeout, and cleanup; 18 JavaScript tests, 8 Python
+  tests, and the TypeScript build pass. The credit-custody summary now has an explicit response model
+  matching its existing service fields; seven focused checks pass and auth
+  behavior is unchanged. A fresh list-route sweep found the pollution-incident
+  queue is already capped at 100 rows and exposes its bounded offset; it has no
+  configurable limit, so no new parameter was invented. Produce traceability
+  list/detail reads now have explicit strict response models derived from their
+  service projections and schema enums; the models exclude actor names/IDs,
+  GPS, notes/reasons, evidence URLs, and arbitrary JSON. Eleven focused checks
+  pass while auth and no-store error behavior stay unchanged. Authorization
+  parity, authenticated live runtime behavior, and broader SDK route/auth
+  runtime parity remain open.
   Export-log fields
   match the canonical table; the earlier pending-
   create API was removed because the table lacks its request fields and no
@@ -571,10 +617,21 @@ that its full source-plan phase is complete.
   role, field, row and hook gaps for collections still retained; keep native
   farm activity in Gateway. Workflow-role authorization cache freshness is
   fixed; a source audit found unfiltered reads for `workflow_history` and
-  `approval` without tenant-scoped hooks. Map their row-to-location lineage and
-  identify consumers before narrowing those policies; avoid revoking an
-  existing operator feature on static evidence alone. Record surfaces that
-  cannot be proven without a live runtime separately. Sources: [Directus parity](batches.md#L2117),
+  `approval` without tenant-scoped hooks. These permissions also expose wildcard
+  fields, including notes and rejection reasons. A source-only aggregate
+  preflight now maps 24 direct-location sources plus the explicit protocol
+  intent-to-location relation, sanitizes unsupported collection names, and
+  emits no row identifiers or contents. Eight offline tests pass. Its
+  disposable schema check replayed all 671 schema migrations through migration
+  680, found all 29 required relations and 60 columns, and executed both queries
+  in a read-only repeatable-read transaction. The empty database returned no
+  historical rows; it does not prove populated lineage or effective Directus
+  permissions. Select a populated read-only copy and inspect aggregate
+  unresolved/unsupported counts before designing tenant filters. Avoid
+  revoking an existing operator feature based on schema-only evidence. Record
+  surfaces that cannot be proven without a live runtime separately. Sources:
+  [Directus parity](batches.md#L2117),
+  [preflight](directus-polymorphic-lineage-preflight.md),
   [transport/Directus gates](batches.md#L3320).
 - [ ] **C4 — Port repository-defined provider jobs and workflows.** Compare each
   source module against the owned scheduler/job contract, add missing adapters
@@ -582,17 +639,32 @@ that its full source-plan phase is complete.
   and active state are reconciled. The 23-entry catalog matches its generated
   contract, and five Prefect deployments use catalog-backed pipelines; the
   legacy health-check flow is undeployed and weather-forecast remains
-  default-off. Sources: [provider/job inventory](batches.md#L2288),
+  default-off. A source audit of climate ingestion found manual dataset/UUID
+  preflight and the scheduled location-bound default-off signed worker already
+  align; its 174-test climate/CLI/scheduler selection passes without contacting
+  a provider or database. No owner or production schedule was inferred. Sources:
+  [provider/job inventory](batches.md#L2288),
   [worker recovery](batches.md#L2358).
 - [ ] **C5 — Close source-verifiable analytics and reporting gaps.** Port
   registered queries/cards and deterministic projections, fix correctness and
   access gaps, and preserve ClickHouse as rebuildable optional projection.
-  Two more direct report generators now reject missing location scope before
-  database access, consistent with the registry and CLI; reviewed global rows
-  remain visible only under a selected location. The integrated report suite
-  passes 516 tests with four database-dependent skips, and the generated query
-  inventory has zero unresolved sites. Do not infer populated-farm parity from
-  synthetic fixtures. Sources:
+  Direct report generators now reject missing location scope before database
+  access, consistent with the registry and CLI; reviewed global rows remain
+  visible only under a selected location, and unlineaged network rows are
+  omitted from farm-scoped reports. The integrated report suite passes 563
+  tests with four database-dependent skips. Its generated inventory records 94
+  report types, 167 direct query sites, 166 positional-bind sites, and zero
+  unresolved sites or bind mismatches. `climate_impact`,
+  `revenue_multiplier`, `environmental`, and `ecological_modeling` also reject
+  missing location before opening a cursor or starting the analyzer; focused
+  selections pass 2, 125, 2, and 2 tests respectively. The EBF scorecard now
+  rejects a missing/empty location before cursor creation; the focused source
+  selection passes 324 checks. The inventory's 13 entries with no visible
+  location-bound SQL signal were reviewed: twelve are deliberate network
+  reports with explicit network-scope guards, and `business_plan` rejects
+  missing scope while its all-location mode is intentional. Do not infer
+  populated-farm parity from synthetic fixtures.
+  Sources:
   [report/query parity](batches.md#L2334),
   [consumer scope](batches.md#L3139).
 - [ ] **C6 — Complete source-only capability slices.** Continue unresolved
@@ -606,15 +678,18 @@ that its full source-plan phase is complete.
   [CAP-036](batches.md#L3574), [CAP-037](batches.md#L3582),
   [CAP-038](batches.md#L3652).
 - [ ] **C7 — Finish software-only ARM64 and recovery evidence.** The full
-  ARM64/QEMU schema replay is verified through migration 671 under a 1.5 GiB /
-  two-CPU database budget. Focused native and ARM64/QEMU checks cover migrations
-  672–679. The latest full native replay applies all 670 ordered schema files
-  through 679 and passes 34 two-tenant assertions; no seeds or farm data were
-  loaded, no host ports were published, and candidate/legacy state stayed
-  untouched. A new full-chain replay through 679 passed in an isolated
-  ARM64/QEMU database under verified 1.5 GiB/two-CPU limits: all 670 schemas
-  applied, zero pending/failed, no seeds or OOM, and cleanup passed. Both Kernel
-  app images and profile selections have ARM64 build and
+  ARM64/QEMU schema replay now passes through migration 680 under a verified
+  1.5 GiB/two-CPU database budget. Focused native and ARM64/QEMU checks cover
+  migrations 672–680. The prior full native replay through 679 passes 34
+  two-tenant assertions; no seeds or farm data were loaded, no host ports were
+  published, and candidate/legacy state stayed untouched. The new ARM64 full-
+  chain replay applied all 671 schemas through 680, zero pending/failed, with
+  network disabled, no seeds or OOM, and verified cleanup. A separate
+  network-disabled schema check replayed all 671 schema files through migration
+  680 and executed both Directus lineage queries; this demonstrates SQL/schema
+  compatibility only, not ARM64 behavior, populated lineage, RLS, or effective
+  Directus permissions. Both Kernel app images and profile selections have
+  ARM64 build and
   import evidence. This remains software-only evidence: no physical Raspberry
   Pi, populated data, external provider/media, R2, whole-platform production
   recovery, or 24-hour RPO/RTO drill has been accepted. The minimal Gateway
@@ -623,9 +698,17 @@ that its full source-plan phase is complete.
   with no attempted or loaded optional imports, and dependency/provider checks
   passed. This supports the existing profile boundary but does not replace
   ARM64 image build/runtime or physical-device acceptance.
+  The new opt-in `core` image uses an independent hash-locked dependency
+  closure, with Web3, spreadsheet/S3, and local-media overlays. The multiarch
+  release gate validates both core-only and all-overlays images for AMD64 and
+  ARM64; local profile/import checks pass, while hosted CI remains pending.
+  Existing full-capability profiles are unchanged, and core OIDC is rejected
+  until that composition is implemented.
   Sources: [Phase 8](implementation-plan-alignment.md#L28),
   [latest native full replay](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
-  [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-679.json),
+  [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-680.json),
+  [core profile](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
+  [multiarch profile gate](kernel-release-inputs.md),
   [migration 679 ARM64 ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
   [build and profile evidence](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json),
   [recovery gates](batches.md#L2159).

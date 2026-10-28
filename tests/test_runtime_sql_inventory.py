@@ -46,6 +46,93 @@ def write(conn, dynamic):
     assert sites[1]["static_sql_sha256"] is None
 
 
+def test_runtime_sql_inventory_resolves_static_targets_from_single_local_assignments(tmp_path: Path):
+    source = "services/example.py"
+    path = tmp_path / "example.py"
+    path.write_text(
+        '''
+def register(conn):
+    sql = """INSERT INTO service_registry (name) VALUES (%s)"""
+    conn.execute(sql)
+
+def update(conn, fields):
+    sql = f"UPDATE service_registry SET {', '.join(fields)} WHERE name = %s"
+    conn.execute(sql)
+''',
+        encoding="utf-8",
+    )
+
+    sites = _scan_source(source, path, [])
+
+    assert [site["statement_kind"] for site in sites] == ["INSERT", "UPDATE"]
+    assert all(site["candidate_relations"] == ["service_registry"] for site in sites)
+    assert all(site["write_target_relations"] == ["service_registry"] for site in sites)
+    assert all(
+        site["local_query_resolution"] == "single_local_assignment_template"
+        for site in sites
+    )
+    assert all(site["expression_kind"] == "composed_or_variable" for site in sites)
+    assert all(site["static_sql_sha256"] is None for site in sites)
+    assert all("sql" not in site for site in sites)
+
+
+def test_runtime_sql_inventory_does_not_guess_dynamic_or_reassigned_identifiers(tmp_path: Path):
+    source = "services/example.py"
+    path = tmp_path / "example.py"
+    path.write_text(
+        '''
+def dynamic_target(conn, table):
+    sql = f"INSERT INTO public.{table} (name) VALUES (%s)"
+    conn.execute(sql)
+
+def concatenated_target(conn, table):
+    sql = "INSERT INTO public." + table + " (name) VALUES (%s)"
+    conn.execute(sql)
+
+def reassigned(conn, enabled):
+    if enabled:
+        sql = "INSERT INTO service_registry (name) VALUES (%s)"
+    else:
+        sql = "UPDATE service_registry SET name = %s"
+    conn.execute(sql)
+''',
+        encoding="utf-8",
+    )
+
+    sites = _scan_source(source, path, [])
+    dynamic_target, concatenated_target, reassigned = sites
+
+    assert dynamic_target["statement_kind"] == "INSERT"
+    assert dynamic_target["candidate_relations"] == []
+    assert dynamic_target["write_target_relations"] == []
+    assert dynamic_target["local_query_resolution"] == "single_local_assignment_template"
+    assert concatenated_target["statement_kind"] == "INSERT"
+    assert concatenated_target["candidate_relations"] == []
+    assert concatenated_target["write_target_relations"] == []
+    assert "local_query_resolution" not in concatenated_target
+    assert reassigned["statement_kind"] == "UNKNOWN"
+    assert reassigned["candidate_relations"] == []
+    assert reassigned["write_target_relations"] == []
+    assert "local_query_resolution" not in reassigned
+
+
+def test_runtime_sql_inventory_detects_service_catalog_insert_and_update_writers():
+    sites = {
+        site["scope"]: site
+        for site in build_inventory()["execution_sites"]
+        if site["source"] == "services/analytics/service_catalog.py"
+    }
+
+    register = sites["register_service"]
+    update = sites["update_service"]
+    assert register["statement_kind"] == "INSERT"
+    assert register["candidate_relations"] == ["service_registry"]
+    assert register["write_target_relations"] == ["service_registry"]
+    assert update["statement_kind"] == "UPDATE"
+    assert update["candidate_relations"] == ["service_registry"]
+    assert update["write_target_relations"] == ["service_registry"]
+
+
 def test_runtime_sql_inventory_separates_dml_targets_from_referenced_tables(tmp_path: Path):
     source = "services/example.py"
     path = tmp_path / "example.py"

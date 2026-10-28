@@ -353,7 +353,7 @@ def test_data_stream_file_and_attestation_routes_use_separate_read_scopes(monkey
             files = client.get(
                 f"/api/data-stream/posts/{post_id}/files",
                 headers={"x-api-key": "reader-key"},
-                params={"location_id": location_id},
+                params={"location_id": location_id, "limit": 12, "offset": 24},
             )
             proof = client.get(
                 f"/api/data-stream/posts/{post_id}/attestation",
@@ -369,8 +369,43 @@ def test_data_stream_file_and_attestation_routes_use_separate_read_scopes(monkey
     assert proof.headers["cache-control"] == "no-store"
     assert list_files.call_args.args[1] == location_id
     assert list_files.call_args.args[2]["resource"] == "data_stream_file"
+    assert list_files.call_args.kwargs == {"limit": 12, "offset": 24}
     assert read_attestation.call_args.args[1] == location_id
     assert read_attestation.call_args.args[2]["resource"] == "data_stream_proof"
+
+
+def test_data_stream_file_route_publishes_and_enforces_pagination_bounds(monkeypatch):
+    from services.gateway.app import create_app
+
+    schema = create_app().openapi()
+    operation = schema["paths"]["/api/data-stream/posts/{post_id}/files"]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 100
+    assert parameters["limit"]["schema"]["default"] == 50
+    assert parameters["offset"]["schema"]["minimum"] == 0
+    assert parameters["offset"]["schema"]["maximum"] == 5000
+
+    location_id = "11111111-1111-4111-8111-111111111111"
+    post_id = "33333333-3333-4333-8333-333333333333"
+    monkeypatch.setenv("KOKONUT_API_KEYS", "reader-key:reader")
+    monkeypatch.setenv(
+        "KOKONUT_API_KEY_SCOPES",
+        f"reader:data_stream_file:read:{location_id}",
+    )
+    with patch(
+        "services.gateway.data_stream.list_gateway_data_stream_files",
+        return_value=[],
+    ) as list_files:
+        with TestClient(create_app()) as client:
+            response = client.get(
+                f"/api/data-stream/posts/{post_id}/files",
+                headers={"x-api-key": "reader-key"},
+                params={"location_id": location_id, "limit": 101},
+            )
+
+    assert response.status_code == 422
+    list_files.assert_not_called()
 
 
 def test_database_tenant_denial_returns_forbidden(monkeypatch):

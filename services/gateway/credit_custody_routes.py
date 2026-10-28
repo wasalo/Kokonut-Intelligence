@@ -2,15 +2,24 @@
 
 
 def register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Response
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
     from services.gateway.credit_custody import get_credit_custody_summary
+    from services.gateway.credit_custody_models import CreditCustodySummaryResponse
 
-    @router.get("/operator/api/credit-custody/{location_id}/summary")
-    async def credit_custody_summary(request: Request, location_id: str):
+    @router.get(
+        "/operator/api/credit-custody/{location_id}/summary",
+        response_model=CreditCustodySummaryResponse,
+    )
+    async def credit_custody_summary(
+        request: Request,
+        location_id: str,
+        response: Response,
+    ):
         if provider is None:
             return JSONResponse(
                 status_code=404,
@@ -51,7 +60,6 @@ def register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2
                 },
             )
 
-        return JSONResponse(
-            jsonable_encoder(summary),
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
-        )
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Vary"] = "Cookie"
+        return jsonable_encoder(summary)

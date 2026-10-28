@@ -1,5 +1,68 @@
 # Capability preservation matrix
 
+**Latest parallel implementation batch (28 October 2026):** the Directus
+polymorphic-history tool now reports aggregate-only lineage for explicitly
+mapped sources, and its schema-only PostgreSQL replay validates both generated
+queries through migration 680. It does not establish populated lineage or
+effective Directus permissions; broad history/approval fields remain
+permission-sensitive and unchanged. Gateway pagination now covers additional
+data-stream, federation, and Baal proposal reads; the JavaScript public API has
+a bounded default timeout matching Python. Federation's public list retains
+the `nodes` field and now documents exact page continuation metadata, including
+when its hard offset ceiling prevents another page. Five report generators reject
+missing direct-call location scope before database access. Runtime SQL
+inventory resolution remains conservative and the service-catalog and
+benchmark-table grants stay unchanged until ownership and external writers are
+reconciled; the framework-step relation also awaits a location/lifecycle
+contract. No capability classification or MAN-CAP acceptance changed. The
+credit-custody summary and private traceability list/detail routes now publish
+strict service-derived response models; traceability preserves existing JSON
+number/datetime formats and omits sensitive unneeded fields. The JavaScript SDK
+rejects timer-overflow deadlines and verifies abort-timer cleanup. The full
+ARM64/QEMU PostgreSQL schema replay now passes all 671 schema files through
+migration 680 under bounded resources; physical-device and production recovery
+acceptance remain open. A further framework-catalog review found no safe grant
+revoke without owner customization-path confirmation. An additive low-dependency
+`core` profile now has separately locked base dependencies and optional Web3,
+spreadsheet/S3, and local-media overlays; existing full-capability profiles
+remain unchanged. The release gate checks core-only and all-overlay images on
+AMD64 and ARM64, with hosted CI still pending. The checklist is 1,362 complete
+/ 25 open (1,387 total);
+matrix classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows.
+
+Evidence: [Directus schema check](builds/2026-10-28-recovery/directus-polymorphic-lineage-schema-disposable.json),
+[report query inventory](report-generator-query-scope-inventory.json),
+[runtime SQL resolution](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json),
+[data-stream pagination](builds/2026-10-28-recovery/data-stream-post-list-pagination-openapi.json),
+[federation pagination](builds/2026-10-28-recovery/federation-node-list-pagination.json),
+[Baal proposal pagination](builds/2026-10-28-recovery/baal-proposal-list-pagination-openapi.json),
+[credit-custody response contract](builds/2026-10-28-recovery/credit-custody-response-model-contract.json),
+[traceability response contract](builds/2026-10-28-recovery/traceability-response-contract.json),
+[SDK timer overflow check](builds/2026-10-28-recovery/sdk-javascript-timeout-overflow.json),
+[ARM64 schema replay through 680](builds/2026-10-28-recovery/arm64-resource-limited-schema-680.json),
+[core profile contract](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
+[impact-framework catalog audit](builds/2026-10-28-recovery/impact-framework-catalog-candidate-audit.json),
+[EBF scope](builds/2026-10-28-recovery/ebf-scorecard-location-scope.json).
+
+**Latest runtime-role boundary — migration 680 (28 October 2026):** the
+location-scoped `yield_benchmark` table is now SELECT-only for
+`kokonut_runtime`. Source review found one application caller, the read in
+`services/analytics/yield_monitoring.py::compare_benchmark`, and no application
+write path. The prior migration-679 full-schema ACL evidence showed runtime
+SELECT/INSERT/UPDATE/DELETE and disabled RLS. Migration 680 removes runtime
+table and column mutation/reference grants, restores SELECT, and leaves
+`kokonut_directus_runtime` grants unchanged; the runtime provisioner reapplies
+the same boundary after broad compatibility grants. Focused PostgreSQL 16
+disposable checks pass migration replay, a synthetic-row read, table write,
+TRUNCATE, REFERENCES, TRIGGER and column-write denials, plus Directus-grant
+preservation before and after provisioner reapplication ([migration](../schemas/postgres/680_runtime_yield_benchmark_read_only.sql);
+[evidence](builds/2026-10-28-recovery/yield-benchmark-runtime-read-only-disposable.json)).
+This is only a DML boundary: RLS remains disabled, tenant isolation is not
+established, and full-schema replay remains through 679. Candidate/legacy,
+seed, and farm data were untouched. No capability classification or MAN-CAP
+acceptance changed. Checklist: 1,351 complete / 25 open (1,376 total).
+
 **Latest parallel report-scope and Gateway contract batch (28 October 2026):**
 direct generation now requires location scope for the location-only strategy,
 Kokonut Commons, and perpetual-value-stress reports; unlineaged stakeholder
@@ -69,7 +132,7 @@ open ([evidence](builds/2026-10-28-recovery/sdk-typed-extension-query-parity.jso
 Checklist: 1,300 complete / 25 open (1,325 total); classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
-**Latest runtime-role acceptance update — migration 679 (28 October 2026):**
+**Previous runtime-role acceptance update — migration 679 (28 October 2026):**
 Migration 112 defines and seeds nine shared `quantity_unit` labels. Runtime
 SQL and source review found no relation read or application write target.
 Migration 679 and runtime provisioning keep the catalog readable but immutable

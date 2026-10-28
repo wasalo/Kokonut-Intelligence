@@ -26,6 +26,8 @@ export type {
 
 export interface PublicApiClientOptions {
   apiKey?: string;
+  /** Request deadline in milliseconds (1 through 2^31-1). Defaults to 10 seconds. */
+  timeoutMs?: number;
   fetch?: PublicFetch;
 }
 
@@ -35,10 +37,28 @@ export type PublicFetchResponse = {
   json: () => Promise<unknown>;
 };
 
+export type PublicAbortSignal = {
+  readonly aborted: boolean;
+  addEventListener: (type: 'abort', listener: () => void) => void;
+};
+
 export type PublicFetch = (
   input: string,
-  init: { headers: Record<string, string> },
+  init: { headers: Record<string, string>; signal?: PublicAbortSignal },
 ) => Promise<PublicFetchResponse>;
+
+type PublicAbortController = {
+  signal: PublicAbortSignal;
+  abort: () => void;
+};
+
+type PublicTimerHost = {
+  setTimeout: (callback: () => void, timeoutMs: number) => unknown;
+  clearTimeout: (timer: unknown) => void;
+};
+
+// Browser and Node timers clamp larger delays to a near-immediate timeout.
+const MAX_TIMEOUT_MS = 2_147_483_647;
 
 export class PublicApiError extends Error {
   constructor(
@@ -64,6 +84,7 @@ export class KokonutPublicApiClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: PublicFetch;
   private readonly apiKey?: string;
+  private readonly timeoutMs: number;
 
   public readonly locations: {
     list: () => Promise<PublicLocationV1[]>;
@@ -85,6 +106,14 @@ export class KokonutPublicApiClient {
    */
   constructor(baseUrl: string, options: PublicApiClientOptions = {}) {
     this.baseUrl = `${baseUrl.replace(/\/+$/, '')}/api/v1`;
+    this.timeoutMs = options.timeoutMs === undefined ? 10_000 : options.timeoutMs;
+    if (
+      !Number.isFinite(this.timeoutMs) ||
+      this.timeoutMs <= 0 ||
+      this.timeoutMs > MAX_TIMEOUT_MS
+    ) {
+      throw new RangeError(`timeoutMs must be finite and between 0 and ${MAX_TIMEOUT_MS} milliseconds`);
+    }
     const defaultFetch = (globalThis as typeof globalThis & { fetch?: PublicFetch }).fetch;
     if (!options.fetch && !defaultFetch) {
       throw new Error('KokonutPublicApiClient requires Fetch API support or a fetch implementation');
@@ -138,42 +167,57 @@ export class KokonutPublicApiClient {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (this.apiKey) headers['x-api-key'] = this.apiKey;
 
-    const response = await this.fetchImpl(`${this.baseUrl}${path}`, { headers });
-    let payload: unknown;
+    const globals = globalThis as unknown as {
+      AbortController?: new () => PublicAbortController;
+    } & PublicTimerHost;
+    if (typeof globals.AbortController !== 'function') {
+      throw new Error('KokonutPublicApiClient requires AbortController support');
+    }
+    const controller = new globals.AbortController();
+    const timer = globals.setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      payload = await response.json();
-    } catch {
-      if (!response.ok) {
-        throw new PublicApiError(`HTTP ${response.status}`, response.status);
+      const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        headers,
+        signal: controller.signal,
+      });
+      let payload: unknown;
+      try {
+        payload = await response.json();
+      } catch {
+        if (!response.ok) {
+          throw new PublicApiError(`HTTP ${response.status}`, response.status);
+        }
+        throw new PublicApiError('Invalid JSON response from Kokonut Gateway', response.status);
       }
-      throw new PublicApiError('Invalid JSON response from Kokonut Gateway', response.status);
-    }
 
-    if (!response.ok) {
-      const errorMessage =
-        payload && typeof payload === 'object' && 'error' in payload
-          ? payload.error
-          : undefined;
-      const message = typeof errorMessage === 'string' ? errorMessage : `HTTP ${response.status}`;
-      throw new PublicApiError(message, response.status);
-    }
+      if (!response.ok) {
+        const errorMessage =
+          payload && typeof payload === 'object' && 'error' in payload
+            ? payload.error
+            : undefined;
+        const message = typeof errorMessage === 'string' ? errorMessage : `HTTP ${response.status}`;
+        throw new PublicApiError(message, response.status);
+      }
 
-    if (
-      !payload ||
-      typeof payload !== 'object' ||
-      Array.isArray(payload) ||
-      !('data' in payload)
-    ) {
-      throw new PublicApiError('Invalid public API response envelope', response.status);
+      if (
+        !payload ||
+        typeof payload !== 'object' ||
+        Array.isArray(payload) ||
+        !('data' in payload)
+      ) {
+        throw new PublicApiError('Invalid public API response envelope', response.status);
+      }
+      const data = (payload as DataEnvelope<unknown>).data;
+      const validData =
+        dataShape === 'array'
+          ? Array.isArray(data)
+          : Boolean(data) && typeof data === 'object' && !Array.isArray(data);
+      if (!validData) {
+        throw new PublicApiError('Invalid public API response envelope', response.status);
+      }
+      return data as T;
+    } finally {
+      globals.clearTimeout(timer);
     }
-    const data = (payload as DataEnvelope<unknown>).data;
-    const validData =
-      dataShape === 'array'
-        ? Array.isArray(data)
-        : Boolean(data) && typeof data === 'object' && !Array.isArray(data);
-    if (!validData) {
-      throw new PublicApiError('Invalid public API response envelope', response.status);
-    }
-    return data as T;
   }
 }

@@ -105,6 +105,80 @@ describe('KokonutPublicApiClient', () => {
     ]);
     expect(fetch.mock.calls.every(([, init]) => init.headers.Accept === 'application/json')).toBe(true);
     expect(fetch.mock.calls.every(([, init]) => init.headers['x-api-key'] === 'test-key')).toBe(true);
+    expect(fetch.mock.calls.every(([, init]) => init.signal !== undefined)).toBe(true);
+  });
+
+  it('defaults to the Python SDK 10-second deadline and aborts a stalled fetch', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn<PublicFetch>((_input, init) => new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new Error('request aborted')));
+      }));
+      const client = new KokonutPublicApiClient('https://gateway.example', {
+        fetch,
+      });
+
+      const request = client.locations.list();
+      const aborted = expect(request).rejects.toThrow('request aborted');
+      await vi.advanceTimersByTimeAsync(9_999);
+      expect(fetch.mock.calls[0]?.[1].signal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await aborted;
+      expect(fetch.mock.calls[0]?.[1].signal?.aborted).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, 2_147_483_648])(
+    'rejects invalid timeoutMs %s',
+    (timeoutMs) => {
+      expect(
+        () => new KokonutPublicApiClient('https://gateway.example', { timeoutMs }),
+      ).toThrow('timeoutMs must be finite and between 0 and 2147483647 milliseconds');
+    },
+  );
+
+  it('rejects an explicitly null timeout instead of treating it as omitted', () => {
+    expect(
+      () =>
+        new KokonutPublicApiClient('https://gateway.example', {
+          timeoutMs: null as unknown as number,
+        }),
+    ).toThrow('timeoutMs must be finite and between 0 and 2147483647 milliseconds');
+  });
+
+  it('accepts the largest delay supported by browser and Node timers', () => {
+    expect(
+      () => new KokonutPublicApiClient('https://gateway.example', { timeoutMs: 2_147_483_647 }),
+    ).not.toThrow();
+  });
+
+  it('clears the deadline timer after a successful response', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn<PublicFetch>().mockResolvedValue(response(200, { data: [location] }));
+      const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+      await expect(client.locations.list()).resolves.toEqual([location]);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears the deadline timer after a fetch failure', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn<PublicFetch>().mockRejectedValue(new Error('network failure'));
+      const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+      await expect(client.locations.list()).rejects.toThrow('network failure');
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it.each([

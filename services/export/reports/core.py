@@ -300,6 +300,9 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
 
 def generate_environmental(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate an environmental impact report."""
+    if not location_id:
+        raise ValueError("environmental requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         # Soil carbon measurements
@@ -371,6 +374,9 @@ def generate_environmental(conn, location_id: str, period_start: str = None, per
 
 def generate_revenue_multiplier(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a revenue multiplier opportunity map report."""
+    if not location_id:
+        raise ValueError("revenue_multiplier requires an explicit location_id")
+
     from dataclasses import asdict
 
     from ...revenue_multiplier.analyzer import analyze_location
@@ -468,6 +474,8 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
 
 def generate_climate_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a climate-impact report for a location and year."""
+    if not location_id:
+        raise ValueError("climate_impact requires an explicit location_id")
     # Determine reporting year from period_start or current year
     from datetime import datetime as _dt
 

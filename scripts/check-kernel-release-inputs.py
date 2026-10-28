@@ -14,6 +14,12 @@ from pathlib import Path, PurePosixPath
 ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "config/kernel/release-input-lock.json"
 ML_BASE_TOOLING = {"pip": "24.0", "setuptools": "79.0.1", "wheel": "0.46.3"}
+CORE_BASE_TOOLING = {**ML_BASE_TOOLING, "packaging": "26.2"}
+CORE_CAPABILITY_LOCKS = (
+    "kernel-core-web3.lock",
+    "kernel-core-exports.lock",
+    "kernel-core-storage.lock",
+)
 
 
 class LockError(RuntimeError):
@@ -266,7 +272,7 @@ def _normalized_python_inventory(packages: list[dict]) -> dict[str, str]:
     return inventory
 
 
-def _ml_lock_versions(lock_path: Path = ROOT / "requirements/ml-anomaly-runtime.lock") -> dict[str, str]:
+def _lock_versions(lock_path: Path) -> dict[str, str]:
     pins = {}
     for number, raw_line in enumerate(lock_path.read_text(encoding="utf-8").splitlines(), 1):
         line = raw_line.strip()
@@ -274,15 +280,56 @@ def _ml_lock_versions(lock_path: Path = ROOT / "requirements/ml-anomaly-runtime.
             continue
         line = line.rstrip("\\").strip().split(";", 1)[0].strip()
         if "==" not in line:
-            raise LockError(f"invalid ML runtime lock entry at {lock_path}:{number}")
+            raise LockError(f"invalid runtime lock entry at {lock_path}:{number}")
         name, version = line.split("==", 1)
         normalized_name = re.sub(r"[-_.]+", "-", name).lower()
         if not normalized_name or not version or normalized_name in pins:
-            raise LockError(f"duplicate or invalid ML runtime lock pin at {lock_path}:{number}")
+            raise LockError(f"duplicate or invalid runtime lock pin at {lock_path}:{number}")
         pins[normalized_name] = version
     if not pins:
-        raise LockError(f"ML runtime lock has no package pins: {lock_path}")
+        raise LockError(f"runtime lock has no package pins: {lock_path}")
     return pins
+
+
+def _ml_lock_versions(lock_path: Path = ROOT / "requirements/ml-anomaly-runtime.lock") -> dict[str, str]:
+    return _lock_versions(lock_path)
+
+
+def _core_capability_lock_versions() -> dict[str, str]:
+    """Merge the core and all optional capability pins, rejecting drift."""
+    merged = _lock_versions(ROOT / "requirements/kernel-core.lock")
+    for filename in CORE_CAPABILITY_LOCKS:
+        for name, version in _lock_versions(ROOT / "requirements" / filename).items():
+            previous = merged.get(name)
+            if previous is not None and previous != version:
+                raise LockError(
+                    f"conflicting core capability lock pin for {name}: {previous} and {version}"
+                )
+            merged[name] = version
+    return merged
+
+
+def _verify_core_package_inventories(
+    inventories: dict[str, dict[str, str]], lock_pins: dict[str, str]
+) -> None:
+    expected_architectures = {"amd64", "arm64"}
+    if set(inventories) != expected_architectures:
+        raise LockError("core image inventory must include exactly linux/amd64 and linux/arm64")
+    expected = {**lock_pins, **CORE_BASE_TOOLING}
+    for architecture, inventory in inventories.items():
+        differences = [
+            f"{name}: installed={inventory.get(name, '<missing>')}, locked={version}"
+            for name, version in expected.items()
+            if inventory.get(name) != version
+        ]
+        undeclared = inventory.keys() - expected.keys()
+        if undeclared:
+            differences.extend(f"{name}: unexpected installed package" for name in sorted(undeclared))
+        if differences:
+            raise LockError(
+                f"{architecture} core image package inventory differs from the locked core/base contract:\n  "
+                + "\n  ".join(differences[:30])
+            )
 
 
 def _verify_ml_package_inventories(
@@ -345,6 +392,25 @@ def _verify_application(archive_path: Path) -> None:
         print(
             "Kernel app OCI build verified: linux/amd64 + linux/arm64, "
             f"{len(inventories['amd64'])} matching Python packages, index sha256:{index_digest}"
+        )
+
+
+def _verify_core_application(archive_path: Path, *, all_capabilities: bool = False) -> None:
+    with tarfile.open(archive_path, mode="r:*") as archive:
+        manifests, index_digest = _platform_manifests(archive)
+        inventories = {}
+        for architecture, manifest in manifests.items():
+            packages = json.loads(_image_file(archive, manifest, "app/python-packages.json"))
+            inventories[architecture] = _normalized_python_inventory(packages)
+        lock_pins = (
+            _core_capability_lock_versions()
+            if all_capabilities
+            else _lock_versions(ROOT / "requirements/kernel-core.lock")
+        )
+        _verify_core_package_inventories(inventories, lock_pins)
+        print(
+            f"Kernel core {'all-capabilities ' if all_capabilities else ''}OCI build verified: linux/amd64 + linux/arm64, "
+            f"{len(lock_pins)} hash-locked packages plus pinned base tooling, index sha256:{index_digest}"
         )
 
 
@@ -435,6 +501,12 @@ def _verify_postgis(archive_path: Path, lock: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--application-oci", type=Path, help="verify a multi-platform Kernel OCI archive")
+    parser.add_argument("--core-oci", type=Path, help="verify the optional minimal Kernel core OCI archive")
+    parser.add_argument(
+        "--core-capabilities-oci",
+        type=Path,
+        help="verify the core image with Web3, exports/S3, and local-media packages enabled",
+    )
     parser.add_argument("--ml-anomaly-oci", type=Path, help="verify the optional ML worker OCI archive")
     parser.add_argument("--postgis-oci", type=Path, help="verify a multi-platform PostGIS OCI archive")
     args = parser.parse_args()
@@ -444,11 +516,15 @@ def main() -> int:
         print("Kernel release inputs match config/kernel/release-input-lock.json")
         if args.application_oci:
             _verify_application(args.application_oci)
+        if args.core_oci:
+            _verify_core_application(args.core_oci)
+        if args.core_capabilities_oci:
+            _verify_core_application(args.core_capabilities_oci, all_capabilities=True)
         if args.ml_anomaly_oci:
             _verify_ml_anomaly(args.ml_anomaly_oci)
         if args.postgis_oci:
             _verify_postgis(args.postgis_oci, lock)
-        if not args.application_oci and not args.ml_anomaly_oci and not args.postgis_oci:
+        if not args.application_oci and not args.core_oci and not args.core_capabilities_oci and not args.ml_anomaly_oci and not args.postgis_oci:
             print("No OCI archives supplied; platform builds were not inspected")
     except (LockError, KeyError, OSError, tarfile.TarError, json.JSONDecodeError) as error:
         print(f"Kernel release gate failed: {error}", file=sys.stderr)

@@ -19,14 +19,53 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,350 checklist items complete and 25
-open (1,375 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,362 checklist items complete and 25
+open (1,387 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### C1 yield-benchmark runtime ACL — 28 October 2026
+
+- [x] Keep `yield_benchmark` readable but immutable to `kokonut_runtime`.
+  Migration 137 defines the location-scoped table; the only application SQL
+  caller is `services/analytics/yield_monitoring.py::compare_benchmark`, which
+  reads it. Source search found no application write path. Before migration
+  680, the latest full-schema ACL evidence through 679 showed `SELECT`,
+  `INSERT`, `UPDATE`, and `DELETE` granted, with RLS disabled. Migration 680
+  revokes table and residual column mutation/reference grants, then restores
+  `SELECT`; runtime provisioning reapplies this boundary after compatibility
+  grants. It does not alter `kokonut_directus_runtime`. The focused PostgreSQL
+  16 disposable harness passes apply/replay, reads a synthetic row as the
+  runtime role, denies INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER and
+  column-level write grants, and confirms Directus CRUD grants survive both
+  migration and provisioner reapplication. It exercises 126 synthetic tables,
+  including 45 mutation-denied and 79 private relations. This is a DML
+  boundary only: RLS stays disabled and tenant isolation is not established.
+  The full-schema replay remains through 679. Candidate/legacy databases,
+  seeds, and farm data were untouched; the temporary disposable container was
+  removed. Rollback is a reviewed forward migration restoring only the runtime
+  grants; migration history remains append-only ([migration](../schemas/postgres/680_runtime_yield_benchmark_read_only.sql);
+  [disposable evidence](builds/2026-10-28-recovery/yield-benchmark-runtime-read-only-disposable.json);
+  [prior full-schema ACL](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json)).
+  Capability classifications and MAN-CAP acceptance remain unchanged.
+  Checklist: 1,351 complete / 25 open (1,376 total); classifications remain
+  24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### C1 impact-framework catalog candidate review — 28 October 2026
+
+- [x] Audit one further family of runtime-write candidates without changing
+  grants. The seed-managed `sdg`, `pillar_of_value`, `form_of_capital`, and
+  `regeneration_principle` tables have repository readers but no application
+  DML outside their seed; their Kokonut-specific labels may still be owner-
+  customizable, and `sdg` also has signed-worker RLS policy. No table is a
+  safe revoke until its owner-managed edit path is confirmed, so runtime and
+  Directus grants remain untouched. This audit closes only the candidate
+  review, not C1's broad runtime privilege or tenant-isolation gate. No
+  database or provider was used ([candidate audit](builds/2026-10-28-recovery/impact-framework-catalog-candidate-audit.json)). Checklist: 1,358 complete / 25 open (1,383 total); capability classifications remain unchanged.
 
 ### C1 quantity-unit catalog ACL — 28 October 2026
 
@@ -4990,3 +5029,23 @@ The AST scope inventory now follows a location-filtered parent row into child re
 - [x] Publish the Delphi participant workspace service pagination contract in OpenAPI. The authenticated route enforces `limit=1..50` (default `50`) and `offset=0..10,000` (default `0`), rejecting malformed or out-of-range inputs before the service call. The focused workspace suite passes 22 tests ([route](../services/gateway/delphi_participant_routes.py); [evidence](builds/2026-10-28-recovery/delphi-participant-workspace-pagination-openapi.json)). Checklist: 1,349 complete / 25 open (1,374 total); capability classifications remain unchanged.
 
 - [x] Publish bounds for six operator list endpoints. Report review, Field Collector review, farm-activity intake/list/published, and mobile inventory now expose the existing `limit=1..100` contract (default `50`) and reject invalid values before service access. The focused operator and farm-activity selection passes 138 tests; the combined changed Gateway/operator route selection passes 732 tests ([routes](../services/gateway/operator_auth.py); [evidence](builds/2026-10-28-recovery/operator-list-pagination-openapi-bounds.json); [batch verification](builds/2026-10-28-recovery/parallel-report-gateway-contracts.json)). Checklist: 1,350 complete / 25 open (1,375 total); capability classifications remain unchanged.
+
+- [x] Make the runtime SQL inventory resolve only one unambiguous local SQL template assignment, and trace the `service_registry`, `process_benchmark`, and `farm_task_framework_step` grant candidates. The resolver supports literal and f-string fragments; dynamic identifiers, reassignment, helpers, and ambiguous expressions stay unresolved. Twelve inventory tests and 27 runtime-privilege/candidate-inventory regressions pass. `service_registry` has two application DML sites in a public analytics helper but no internal API/CLI/SDK/scheduled caller; `process_benchmark` has no repository caller or seed but is location-linked and may be externally populated. `farm_task_framework_step` is an operational cascading edge with no direct location key, and 20 of its 41 historic links have unresolved scope. No grants changed pending ownership, external-writer reconciliation, and tenant-contract decisions ([inventory](runtime-sql-inventory.json); [evidence](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json)). Checklist: 1,352 complete / 25 open (1,377 total); capability classifications remain unchanged.
+
+- [x] Publish service-aligned pagination bounds for additional Gateway list routes: data-stream post metadata (`limit=1..100`, default `20`; `offset=0..5,000`), federation nodes (`limit=1..100`, default `50`; `offset=0..10,000`), and Baal proposals (`limit=1..100`, default `50`). The attachment metadata route keeps its `1..100`/`0..5,000` contract. The federation response preserves its `nodes` field and adds exact `has_more`, `next_offset`, and offset-ceiling metadata so clients can detect partial results. Invalid pages fail before reader access and auth policies are unchanged. Focused route checks pass 3, 24, and 26 tests, plus 52 data-stream/auth checks. The JavaScript SDK now has the Python client's default 10-second request timeout; 13 JavaScript tests, 8 Python checks, and TypeScript build pass ([data stream posts](builds/2026-10-28-recovery/data-stream-post-list-pagination-openapi.json); [attachments](builds/2026-10-28-recovery/data-stream-file-list-pagination.json); [federation](builds/2026-10-28-recovery/federation-node-list-pagination.json); [Baal](builds/2026-10-28-recovery/baal-proposal-list-pagination-openapi.json); [SDK timeout](builds/2026-10-28-recovery/sdk-public-api-timeout-parity.json)). Checklist: 1,353 complete / 25 open (1,378 total); capability classifications remain unchanged.
+
+- [x] Add an aggregate-only Directus polymorphic-lineage preflight for `workflow_history` and `approval`. It maps explicit direct-location sources and the protocol intent/location relation, sanitizes unsupported labels, emits only counts, and requires an explicitly selected read-only DSN. Eight offline tests pass. A no-seed disposable replay of all 671 schema migrations through migration 680 found 29 required relations and 60 columns and executed both queries in a read-only repeatable-read transaction; cleanup was verified. Source audit confirms broad wildcard permissions expose notes/rejection reasons, but populated lineage and effective pinned-runtime permissions are unknown, so no permission was narrowed ([tool](../scripts/directus-polymorphic-lineage-preflight.py); [procedure](../docs/refactor/directus-polymorphic-lineage-preflight.md); [schema evidence](builds/2026-10-28-recovery/directus-polymorphic-lineage-schema-disposable.json)). Checklist: 1,354 complete / 25 open (1,379 total); capability classifications remain unchanged.
+
+- [x] Refresh the worker source/job contract and audit climate ingestion inputs. The 23-entry catalog remains contract-aligned, the missing sensor-contract note was corrected, and manual climate ingestion validates dataset/location before provider or database access; the scheduled path remains location-bound and default-off. Focused worker/job checks pass 40 tests and the climate/CLI/scheduler selection passes 174. No provider, database, persisted schedule, candidate, or legacy service was touched ([worker evidence](builds/2026-10-28-recovery/worker-job-source-contract-refresh.json); [operation map](worker-operation-map.md)). Checklist: 1,355 complete / 25 open (1,380 total); capability classifications remain unchanged.
+
+- [x] Require location scope for direct calls to `climate_impact`, `revenue_multiplier`, `environmental`, `ecological_modeling`, and `ebf_scorecard` reports before cursor or analyzer access. The generated report/query inventory is fresh at 94 registered types, 167 direct SQL sites, 166 positional-bind sites, and zero unresolved/bind-mismatch sites. Focused checks pass 2, 125, 2, 2, and 324 tests respectively. No database/provider/network was contacted; tenant authorization, populated semantic parity, and external dashboard ownership remain open ([climate](builds/2026-10-28-recovery/climate-impact-location-scope.json); [revenue multiplier](builds/2026-10-28-recovery/revenue-multiplier-location-scope.json); [environmental](builds/2026-10-28-recovery/environmental-report-location-scope.json); [ecological](builds/2026-10-28-recovery/ecological-modeling-location-scope.json); [EBF](builds/2026-10-28-recovery/ebf-scorecard-location-scope.json); [query inventory](report-generator-query-scope-inventory.json)). Checklist: 1,356 complete / 25 open (1,381 total); capability classifications remain unchanged.
+
+- [x] Publish a strict response model for the existing credit-custody summary result. The Gateway now validates and documents its current fields in OpenAPI while preserving authorization, JSON output, and `no-store`/`Vary` headers. Seven focused tests, Ruff, compilation, and diff checks pass; no database/provider was contacted ([route evidence](builds/2026-10-28-recovery/credit-custody-response-model-contract.json)). Checklist: 1,357 complete / 25 open (1,382 total); capability classifications remain unchanged.
+
+- [x] Publish strict response contracts for the private traceability batch list and detail routes. The models are derived from the service projections and schema enums, cap nested result lists at the reader's 100-row boundary, reject unexpected fields, and omit actor/inspector names and IDs, GPS, notes/reasons, evidence URLs, and arbitrary JSON. Existing auth, manual error responses, and `Cache-Control: no-store`/`Vary: Cookie` behavior remain intact. Eleven focused tests, Ruff, Python compilation, and diff checks pass; no database/provider was used ([routes and models](../services/gateway/traceability_routes.py); [evidence](builds/2026-10-28-recovery/traceability-response-contract.json)). Checklist: 1,359 complete / 25 open (1,384 total); capability classifications remain unchanged.
+
+- [x] Reject JavaScript SDK request deadlines that exceed the browser/Node timer limit. `timeoutMs` must be finite and within 1..2,147,483,647; explicit `null` no longer silently selects the default. This prevents Node's overflow clamp from turning a very long deadline into a 1 ms abort. Fake-timer tests cover successful responses, fetch errors, actual timeout, malformed values, and timer cleanup. The focused public API suite passes 18 tests and TypeScript builds; no DB/provider was used ([implementation](../sdk/javascript/src/public-api.ts); [evidence](builds/2026-10-28-recovery/sdk-javascript-timeout-overflow.json)). Checklist: 1,360 complete / 25 open (1,385 total); capability classifications remain unchanged.
+
+- [x] Replay the complete ordered schema chain through migration 680 on ARM64/QEMU. All 671 schemas applied in an `aarch64` PostgreSQL 16 container with networking disabled, no host ports or seeds, verified 1.5 GiB/two-CPU limits, no OOM, and successful cleanup; candidate and legacy databases were untouched. This is software-only portability evidence and did not include physical Raspberry Pi or production recovery acceptance ([evidence](builds/2026-10-28-recovery/arm64-resource-limited-schema-680.json)). Checklist: 1,361 complete / 25 open (1,386 total); capability classifications remain unchanged.
+
+- [x] Add an opt-in low-dependency `core` image without changing the existing full-capability `minimal`, `edge`, `standard`, or `analytics` profiles. The core base uses its own hash-locked kernel closure; Web3, spreadsheet/S3, and encrypted local-media packages are selected through separate Compose overlays, with the media key supplied only at runtime. The planner preserves existing profile behavior, rejects OIDC on core, and allows ARM64 only after the release gate builds core-only and all-overlays variants for both architectures. The OCI verifier checks the exact lock closure for each variant. Gateway startup succeeds with omitted libraries blocked; focused planner/import/release-gate checks pass 58 tests, release-input hashes, dependency groups, pip hash parsing, Python compilation, and shell syntax. Hosted CI remains pending; no local multiarch OCI build, DB, or provider was used ([profile contract](builds/2026-10-28-recovery/kernel-core-profile-contract.json); [selection](profile-selection.md); [release gate](kernel-release-inputs.md)). Checklist: 1,362 complete / 25 open (1,387 total); capability classifications remain unchanged.

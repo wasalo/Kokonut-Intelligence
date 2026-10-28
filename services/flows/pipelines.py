@@ -109,8 +109,9 @@ def full_pipeline():
 def scheduled_hourly():
     """Hourly tasks: anomaly detection and freshness check.
 
-    Sensor data is push/manual input. The sensor CLI has no recurring source
-    adapter, so it must not gate scheduled ingestion or monitoring workflows.
+    A source-controlled scheduled sensor adapter exists, but requires an
+    explicit location and registered driver instance. Keep it out of this
+    composite until an owner-reviewed source mapping is configured.
     """
     from .anomaly_detection import anomaly_detection_flow
     from .freshness import freshness_check_flow
