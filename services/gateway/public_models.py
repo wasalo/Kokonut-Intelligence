@@ -69,6 +69,23 @@ class PublicLocationResponse(PublicModel):
     data: PublicLocation
 
 
+class PublicDriverCatalogEntry(PublicModel):
+    """Non-sensitive public metadata for an available data-source driver."""
+
+    driver_name: str = Field(max_length=100)
+    driver_version: str = Field(max_length=20)
+    driver_type: Literal[
+        "sensor", "remote_sensing", "market", "blockchain", "weather", "climate", "gis"
+    ]
+
+
+class PublicDriverCatalogResponse(PublicModel):
+    drivers: list[PublicDriverCatalogEntry]
+    limit: int = Field(ge=1, le=50)
+    offset: int = Field(ge=0, le=5000)
+    has_more: bool
+
+
 class PublicMetricCounts(PublicModel):
     metric_count: int = Field(ge=0)
     latest_computed_at: datetime | None

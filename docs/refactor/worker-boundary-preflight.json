@@ -30,9 +30,9 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 471,
+    "execution_site_count": 472,
     "sites_with_static_operation_path": 404,
-    "sites_without_static_function_match": 67,
+    "sites_without_static_function_match": 68,
     "site_refs_for_review": [
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -300,37 +300,42 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/drivers/registry.py:183:16",
+        "site": "services/drivers/registry.py:185:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:233:16",
+        "site": "services/drivers/registry.py:235:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:274:20",
+        "site": "services/drivers/registry.py:276:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:285:20",
+        "site": "services/drivers/registry.py:287:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:327:16",
+        "site": "services/drivers/registry.py:336:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:474:16",
+        "site": "services/drivers/registry.py:380:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:487:16",
+        "site": "services/drivers/registry.py:527:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/drivers/registry.py:540:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },

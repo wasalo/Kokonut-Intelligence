@@ -71,6 +71,7 @@ _GLOBAL_PROVIDER_SECRETS = frozenset({
     "COPERNICUS_PASSWORD",
     "COPERNICUS_CLIENT_ID",
     "COPERNICUS_CLIENT_SECRET",
+    "CLICKHOUSE_PASSWORD",
     "ETH_RPC_URL",
     "OPTIMISM_RPC_URL",
     "BASE_RPC_URL",
@@ -79,6 +80,10 @@ _GLOBAL_PROVIDER_SECRETS = frozenset({
     "CELO_ALFAJORES_RPC_URL",
     "GNOSIS_RPC_URL",
 })
+_ISOLATED_WORKER_PROVIDER_SECRETS = {
+    # The outbox worker is the only isolated child that writes to ClickHouse.
+    "clickhouse_outbox": frozenset({"CLICKHOUSE_PASSWORD"}),
+}
 
 _EVENT_HANDLER_ISOLATION_FEATURES = {
     ("services.cache.events", "handle_metric_computed"): "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION",
@@ -175,6 +180,11 @@ def worker_subprocess_environment(
     marker = isolated_worker_key
     if isolated_database_credentials:
         marker = normalized_keys[0]
+    allowed_provider_secrets = frozenset(
+        name
+        for worker_key in normalized_keys
+        for name in _ISOLATED_WORKER_PROVIDER_SECRETS.get(worker_key, ())
+    )
 
     source = os.environ if environ is None else environ
     child_environment: dict[str, str] = {}
@@ -183,7 +193,11 @@ def worker_subprocess_environment(
             continue
         if isolated and name in _SHARED_DATABASE_ENV:
             continue
-        if isolated and name in _GLOBAL_PROVIDER_SECRETS:
+        if (
+            isolated
+            and name in _GLOBAL_PROVIDER_SECRETS
+            and name not in allowed_provider_secrets
+        ):
             continue
         match = _WORKER_SECRET_ENV.fullmatch(name)
         if match is None or match.group(1) in allowed:

@@ -35,11 +35,16 @@ flow is not safe to register as a scheduled job. The detailed service-health
 route now requires `service_health:read` before it probes optional dependencies;
 public `/health` liveness is unchanged. The default-off signed forecast worker
 now reads its namespaced provider key, routed through both Kernel worker
-profiles. The runtime ACL source report separates its full-schema observation
-through migration 679 from the current policy at migration 681; it shows
-`metric_definition` remains unobserved in the full replay. No additional
-catalog revoke was selected because `competency_framework` may be owner-managed.
-The latest checklist is 1,377 complete / 25 open (1,402 total).
+profiles. The runtime ACL report now uses a fresh network-disabled native
+replay through migration 681 and verifies current source policy, including the
+`metric_definition` read-only boundary. The public driver catalog returns only
+enabled display fields through bounded pagination; location-only tactical CLI
+operations require explicit scope; and the isolated ClickHouse outbox worker
+receives its dedicated password without exposing it to other isolated workers.
+The replay parser derives expected ACL counts from current policy and rejects
+stale counts. No additional catalog revoke was selected because
+`competency_framework` may be owner-managed. The latest checklist is 1,382
+complete / 25 open (1,407 total).
 Migration 681 makes `metric_definition` read-only to the general runtime and
 passes disposable PostgreSQL 16 replay, read/write denial, provisioner replay,
 and Directus-role preservation checks; tenant isolation remains unestablished.
@@ -78,6 +83,10 @@ Evidence: [Directus schema check](builds/2026-10-28-recovery/directus-polymorphi
 [detailed health route boundary](builds/2026-10-28-recovery/detailed-health-route-auth-boundary.json),
 [forecast provider-key routing](builds/2026-10-28-recovery/weather-forecast-provider-key-routing.json),
 [runtime ACL report provenance](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json),
+[full native schema and operator-scope replay through 681](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
+[public driver catalog](builds/2026-10-28-recovery/public-driver-catalog-projection.json),
+[tactical analytics CLI scope](builds/2026-10-28-recovery/analytics-tactical-cli-scope-preflight.json),
+[ClickHouse worker secret routing](builds/2026-10-28-recovery/worker-clickhouse-secret-routing.json),
 [competency framework write audit](builds/2026-10-28-recovery/competency-framework-runtime-write-audit.json),
 [impact-framework catalog audit](builds/2026-10-28-recovery/impact-framework-catalog-candidate-audit.json),
 [EBF scope](builds/2026-10-28-recovery/ebf-scorecard-location-scope.json).
@@ -99,6 +108,20 @@ This is only a DML boundary: RLS remains disabled, tenant isolation is not
 established, and full-schema replay remains through 679. Candidate/legacy,
 seed, and farm data were untouched. No capability classification or MAN-CAP
 acceptance changed. Checklist: 1,351 complete / 25 open (1,376 total).
+
+**Latest full native schema and ACL replay — migration 681 (28 October 2026):**
+all 672 ordered schema files applied in a network-disabled PostgreSQL 16
+container with verified 1.5 GiB/two-CPU limits, no host ports, seeds, or farm
+data, and successful cleanup. The runtime/operator probe passed the synthetic
+two-tenant checks, including 79 private relations, 46 mutation-denied
+relations, two append-only ledgers, and zero direct table/column privilege
+violations. The refreshed source/ACL report observes migration 681 and current
+runtime policy; `metric_definition` is now effectively SELECT-only. This is
+disposable synthetic evidence: candidate/legacy databases were untouched,
+tenant isolation is not established globally, and 992 relations still have
+table DML while RLS is disabled. Physical Raspberry Pi and production
+acceptance remain open ([replay](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json);
+[ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json)).
 
 **Latest parallel report-scope and Gateway contract batch (28 October 2026):**
 direct generation now requires location scope for the location-only strategy,

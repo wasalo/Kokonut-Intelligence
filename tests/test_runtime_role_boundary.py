@@ -57,7 +57,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
-def test_historical_acl_report_discloses_migration_681_not_in_full_schema_probe():
+def test_acl_report_observes_current_schema_and_metric_definition_boundary():
     root = Path(__file__).resolve().parents[1]
     report = json.loads(
         (
@@ -70,16 +70,23 @@ def test_historical_acl_report_discloses_migration_681_not_in_full_schema_probe(
     acceptance = report["runtime_role_acceptance"]
     assert acceptance["full_schema_replay_passed"] is True
     assert acceptance["scoped_acl_checks_passed"] is True
-    assert acceptance["acl_snapshot_latest_migration_number"] == 679
+    assert acceptance["acl_snapshot_latest_migration_number"] == 681
     assert acceptance["repository_latest_migration_number"] == 681
-    assert acceptance["current_migration_chain_observed"] is False
-    assert acceptance["current_source_policy_coverage_observed"] is False
+    assert acceptance["current_migration_chain_observed"] is True
+    assert acceptance["current_source_policy_coverage_observed"] is True
+    assert acceptance["production_or_candidate_state_established"] is False
 
     metric_definition = next(
         row for row in report["relations"] if row["relation"] == "metric_definition"
     )
-    assert metric_definition["effective_privileges"]["insert"] is True
-    assert metric_definition["dml_overlaps_explicit_revoke"] is True
+    assert metric_definition["effective_privileges"] == {
+        "select": True,
+        "insert": False,
+        "update": False,
+        "delete": False,
+        "truncate": False,
+    }
+    assert metric_definition["dml_overlaps_explicit_revoke"] is False
 
 
 def test_runtime_scoped_denials_follow_compatibility_table_grant():

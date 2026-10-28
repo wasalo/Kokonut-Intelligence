@@ -15,6 +15,7 @@ try:
     from services.gateway.public_models import (
         PublicCrispAssessment,
         PublicCrispAssessmentEnvelope,
+        PublicDriverCatalogResponse,
         PublicError,
         PublicLocationListResponse,
         PublicLocationResponse,
@@ -38,7 +39,7 @@ except ImportError:
         return default
 
     JSONResponse = None
-    PublicCrispAssessment = PublicError = PublicLocationListResponse = None
+    PublicCrispAssessment = PublicDriverCatalogResponse = PublicError = PublicLocationListResponse = None
     PublicLocationResponse = PublicLocationSummary = PublicMetricSummary = None
     PublicLocationSummaryEnvelope = PublicCrispAssessmentEnvelope = None
     PublicMetricSummaryEnvelope = None
@@ -517,14 +518,20 @@ async def list_federation_nodes(
         return _internal_error(exc)
 
 
-@router.get("/drivers")
-async def list_drivers():
-    """List registered drivers."""
+@router.get("/drivers", response_model=PublicDriverCatalogResponse)
+async def list_drivers(
+    limit: int = Query(default=50, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=5000),
+):
+    """List public driver metadata without exposing loader/registry internals."""
     try:
         from services.drivers.registry import DriverRegistry
         registry = DriverRegistry()
-        drivers = registry.list_drivers()
-        return JSONResponse(content={"drivers": drivers})
+        page = registry.list_public_drivers_page(limit=limit, offset=offset)
+        return _public_response(
+            PublicDriverCatalogResponse,
+            page,
+        )
     except Exception as exc:
         return _internal_error(exc)
 

@@ -21900,6 +21900,41 @@ acceptance is unchanged. Evidence: [detailed health boundary](builds/2026-10-28-
 [competency-framework source audit](builds/2026-10-28-recovery/competency-framework-runtime-write-audit.json),
 [Directus relation boundary](builds/2026-10-28-recovery/directus-relation-query-boundary.json).
 
+### Progress addendum — parallel CLI, Gateway, worker, and replay hardening — 28 October 2026
+
+Five additional checklist items closed without changing capability classifications.
+The anonymous driver catalog now reads a stable, enabled-only projection and
+limits each page to 50 rows with continuation metadata; registry internals are
+not exposed. Location-only tactical analytics commands require a valid
+location or an explicit all-locations mode before opening the database. The
+isolated ClickHouse outbox receives `CLICKHOUSE_PASSWORD` through an exact
+worker allowlist while other isolated workers continue to exclude it. Schema
+replay ACL expectations now derive from the current runtime-role policy and
+reject stale counts.
+
+A fresh network-disabled native PostgreSQL 16 replay applied all 672 ordered
+schema files through migration 681 under verified 1.5 GiB/two-CPU limits. It
+had zero pending or failed files, no host ports/seeds/farm data, and completed
+cleanup. The two-tenant runtime/operator probe passed with 79 private, 46
+mutation-denied, and two append-only relations; direct table/column privilege
+violations were zero. The regenerated ACL report observes current migration
+and source policy and verifies the `metric_definition` SELECT-only boundary.
+This is disposable synthetic evidence only; candidate/legacy databases and
+providers were untouched, global tenant isolation remains open, and physical
+Raspberry Pi acceptance is not claimed.
+
+The combined focused selection passes 165 tests; the refreshed ACL-report and
+runtime-role regressions pass 89 tests. Ruff, Python compilation, the
+capability validator, runtime SQL and worker inventories, dependency/provider
+boundaries, and `git diff --check` pass. The current checklist is 1,382 complete / 25
+open (1,407 total). Capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows; MAN-CAP acceptance is unchanged.
+Evidence: [public driver catalog](builds/2026-10-28-recovery/public-driver-catalog-projection.json),
+[tactical analytics CLI scope](builds/2026-10-28-recovery/analytics-tactical-cli-scope-preflight.json),
+[ClickHouse worker secret routing](builds/2026-10-28-recovery/worker-clickhouse-secret-routing.json),
+[native full schema replay through 681](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
+[runtime ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json).
+
 Evidence: [metric-definition ACL](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json),
 [ecocredit response](builds/2026-10-28-recovery/ecocredit-batch-response-contract.json),
 [Python SDK deadline](builds/2026-10-28-recovery/sdk-python-public-api-timeout-parity.json),

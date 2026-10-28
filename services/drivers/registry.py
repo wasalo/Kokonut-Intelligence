@@ -71,6 +71,8 @@ BUILTIN_DRIVER_TARGETS = MappingProxyType(
 # Third-party adapters stay extensible through installed Python packages. The
 # entry point resolves installed code; database rows only confirm its identity.
 DRIVER_PLUGIN_ENTRY_POINT_GROUP = "kokonut.drivers"
+PUBLIC_DRIVER_CATALOG_MAX_PAGE_SIZE = 50
+PUBLIC_DRIVER_CATALOG_MAX_OFFSET = 5000
 
 # Scheduled sensor pulls have a narrower code-controlled map. Adding another
 # scheduled implementation requires a reviewed source change and tests.
@@ -307,6 +309,57 @@ class DriverRegistry:
         except Exception as exc:
             logger.error("Failed to list drivers (%s)", safe_exception_class(exc))
             return []
+
+    def list_public_drivers_page(
+        self,
+        *,
+        limit: int = PUBLIC_DRIVER_CATALOG_MAX_PAGE_SIZE,
+        offset: int = 0,
+    ) -> dict:
+        """Return a bounded page of enabled catalog metadata only."""
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= PUBLIC_DRIVER_CATALOG_MAX_PAGE_SIZE
+        ):
+            raise ValueError("public driver page limit is outside the allowed range")
+        if (
+            isinstance(offset, bool)
+            or not isinstance(offset, int)
+            or not 0 <= offset <= PUBLIC_DRIVER_CATALOG_MAX_OFFSET
+        ):
+            raise ValueError("public driver page offset is outside the allowed range")
+
+        conn = self._get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT driver_name, driver_version, driver_type
+                    FROM driver_registry
+                    WHERE is_enabled = TRUE
+                    ORDER BY driver_type, driver_name
+                    LIMIT %s OFFSET %s
+                    """,
+                    (limit + 1, offset),
+                )
+                rows = cur.fetchall()
+            return {
+                "drivers": [
+                    {
+                        "driver_name": row[0],
+                        "driver_version": row[1],
+                        "driver_type": row[2],
+                    }
+                    for row in rows[:limit]
+                ],
+                "limit": limit,
+                "offset": offset,
+                "has_more": len(rows) > limit,
+            }
+        except Exception as exc:
+            logger.error("Failed to list public drivers (%s)", safe_exception_class(exc))
+            return {"drivers": [], "limit": limit, "offset": offset, "has_more": False}
 
     def list_instances(self, driver_name: str | None = None, location_id: str | None = None) -> list[dict]:
         """List driver instances."""

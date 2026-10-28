@@ -4,11 +4,11 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 49,
-    "sql_execution_sites": 471,
+    "sql_execution_sites": 472,
     "statically_reachable_site_memberships": 585,
     "unique_sites_with_static_operation_path": 404,
-    "sites_without_static_function_match": 67,
-    "unmatched_functions_absent_from_all_worker_graphs": 67,
+    "sites_without_static_function_match": 68,
+    "unmatched_functions_absent_from_all_worker_graphs": 68,
     "sites_reached_by_multiple_operations": 52
   },
   "operations": [
@@ -490,10 +490,10 @@
       "operation_ref": "scheduled_module:services.ingestion.sensor_ingester",
       "statically_reachable_sql_site_count": 17,
       "statically_reachable_sql_site_ids": [
-        "services/drivers/registry.py:368:12",
-        "services/drivers/registry.py:523:16",
-        "services/drivers/registry.py:535:20",
-        "services/drivers/registry.py:546:20",
+        "services/drivers/registry.py:421:12",
+        "services/drivers/registry.py:576:16",
+        "services/drivers/registry.py:588:20",
+        "services/drivers/registry.py:599:20",
         "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:125:12",
         "services/ingestion/sensor_ingester.py:129:12",
@@ -5433,9 +5433,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:183:16",
+      "id": "services/drivers/registry.py:185:16",
       "source": "services/drivers/registry.py",
-      "line": 183,
+      "line": 185,
       "scope": "DriverRegistry.register",
       "method": "execute",
       "expression_kind": "literal",
@@ -5454,9 +5454,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:233:16",
+      "id": "services/drivers/registry.py:235:16",
       "source": "services/drivers/registry.py",
-      "line": 233,
+      "line": 235,
       "scope": "DriverRegistry.load",
       "method": "execute",
       "expression_kind": "literal",
@@ -5474,9 +5474,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:274:20",
+      "id": "services/drivers/registry.py:276:20",
       "source": "services/drivers/registry.py",
-      "line": 274,
+      "line": 276,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
       "expression_kind": "literal",
@@ -5494,9 +5494,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:285:20",
+      "id": "services/drivers/registry.py:287:20",
       "source": "services/drivers/registry.py",
-      "line": 285,
+      "line": 287,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
       "expression_kind": "literal",
@@ -5514,9 +5514,29 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:327:16",
+      "id": "services/drivers/registry.py:336:16",
       "source": "services/drivers/registry.py",
-      "line": 327,
+      "line": 336,
+      "scope": "DriverRegistry.list_public_drivers_page",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_registry"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/drivers/registry.py:380:16",
+      "source": "services/drivers/registry.py",
+      "line": 380,
       "scope": "DriverRegistry.list_instances",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5535,9 +5555,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:368:12",
+      "id": "services/drivers/registry.py:421:12",
       "source": "services/drivers/registry.py",
-      "line": 368,
+      "line": 421,
       "scope": "DriverRegistry.get_schedulable_instance",
       "method": "execute",
       "expression_kind": "literal",
@@ -5558,9 +5578,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/drivers/registry.py:474:16",
+      "id": "services/drivers/registry.py:527:16",
       "source": "services/drivers/registry.py",
-      "line": 474,
+      "line": 527,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
       "expression_kind": "literal",
@@ -5578,9 +5598,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:487:16",
+      "id": "services/drivers/registry.py:540:16",
       "source": "services/drivers/registry.py",
-      "line": 487,
+      "line": 540,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
       "expression_kind": "literal",
@@ -5598,9 +5618,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:523:16",
+      "id": "services/drivers/registry.py:576:16",
       "source": "services/drivers/registry.py",
-      "line": 523,
+      "line": 576,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -5620,9 +5640,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/drivers/registry.py:535:20",
+      "id": "services/drivers/registry.py:588:20",
       "source": "services/drivers/registry.py",
-      "line": 535,
+      "line": 588,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -5642,9 +5662,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/drivers/registry.py:546:20",
+      "id": "services/drivers/registry.py:599:20",
       "source": "services/drivers/registry.py",
-      "line": 546,
+      "line": 599,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
       "expression_kind": "literal",

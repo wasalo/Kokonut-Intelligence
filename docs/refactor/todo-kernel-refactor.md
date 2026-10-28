@@ -1207,3 +1207,31 @@ Capability classifications remain unchanged at 67 rows (24 baseline-retained,
 7 deployed, 36 prepared); no MAN-CAP is accepted. The current checklist is
 1,350 complete / 25 open (1,375 total). Remaining human/runtime gates stay open
 ([combined evidence](builds/2026-10-28-recovery/parallel-report-gateway-contracts.json)).
+
+### Completed continuation — parallel Kernel hardening — 28 October 2026
+
+- [x] Bound the public driver catalog to enabled, display-safe entries with a
+  stable database order, a 50-row maximum page, an offset ceiling, and
+  continuation metadata. Loader paths, class names, and registration notes are
+  excluded ([evidence](builds/2026-10-28-recovery/public-driver-catalog-projection.json)).
+- [x] Require explicit location scope for location-only tactical analytics
+  CLI operations and reject malformed or contradictory scope before database
+  access ([evidence](builds/2026-10-28-recovery/analytics-tactical-cli-scope-preflight.json)).
+- [x] Pass the ClickHouse password only to the isolated `clickhouse_outbox`
+  worker while preserving the existing environment boundary for other worker
+  identities ([evidence](builds/2026-10-28-recovery/worker-clickhouse-secret-routing.json)).
+- [x] Derive operator-scope replay ACL expectations from the current runtime
+  policy lists and reject stale hard-coded counts.
+- [x] Replay all 672 ordered schema files through migration 681 on a
+  network-disabled native PostgreSQL 16 container with verified 1.5 GiB/two-CPU
+  limits, no host ports or seed/farm data, passing synthetic two-tenant checks,
+  and successful cleanup. Refresh the ACL report to the observed source and
+  migration head ([full replay](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json);
+  [report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json)).
+
+The combined focused selection passes 165 tests. This is synthetic evidence;
+candidate/legacy state, production deployment, physical Raspberry Pi behavior,
+and global tenant isolation are not established. The current checklist is
+1,382 complete / 25 open (1,407 total); capability classifications and
+MAN-CAP acceptance are unchanged. This TODO ledger now has 92 checked and 16
+open entries.

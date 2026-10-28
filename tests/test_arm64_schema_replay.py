@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from services.migration import runtime_role
+
 replay_module = runpy.run_path(
     str(Path(__file__).resolve().parents[1] / "scripts" / "check-arm64-schema-replay.py"),
     run_name="arm64_schema_replay_test_module",
@@ -166,10 +168,10 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
         "synthetic_tenant_count": 2, "synthetic_location_count": 2,
         "synthetic_operator_count": 2, "runtime_public_tables_with_dml_and_rls_disabled": 4,
         "runtime_scoped_write_policy": {
-            "private_relations_expected": 79,
-            "mutation_denied_relations_expected": 44,
-            "private_relations_verified": 79,
-            "mutation_denied_relations_verified": 44,
+            "private_relations_expected": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+            "mutation_denied_relations_expected": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "private_relations_verified": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+            "mutation_denied_relations_verified": len(runtime_role._RUNTIME_MUTATION_TABLES),
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,
@@ -198,6 +200,17 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
         },
     }
     assert parse_operator_scope_probe(json.dumps(good))["result"] == "passed"
+    stale_count = {
+        **good,
+        "runtime_scoped_write_policy": {
+            **good["runtime_scoped_write_policy"],
+            "mutation_denied_relations_verified": len(
+                runtime_role._RUNTIME_MUTATION_TABLES
+            ) - 1,
+        },
+    }
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps(stale_count))
     with pytest.raises(ValueError):
         parse_operator_scope_probe(json.dumps({**good, "synthetic_operator_count": 1}))
     with pytest.raises(ValueError):
@@ -231,10 +244,10 @@ def test_operator_probe_counts_insert_only_relations_as_effective_dml():
         "synthetic_operator_count": 2,
         "runtime_public_tables_with_dml_and_rls_disabled": 1,
         "runtime_scoped_write_policy": {
-            "private_relations_expected": 79,
-            "mutation_denied_relations_expected": 44,
-            "private_relations_verified": 79,
-            "mutation_denied_relations_verified": 44,
+            "private_relations_expected": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+            "mutation_denied_relations_expected": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "private_relations_verified": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+            "mutation_denied_relations_verified": len(runtime_role._RUNTIME_MUTATION_TABLES),
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,

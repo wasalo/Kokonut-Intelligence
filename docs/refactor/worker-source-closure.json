@@ -5295,7 +5295,7 @@
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 159,
+          "line": 161,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5466,12 +5466,12 @@
       "dynamic_import_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 123,
+          "line": 125,
           "kind": "dynamic module expression"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 425,
+          "line": 478,
           "kind": "dynamic module expression"
         },
         {
@@ -5614,7 +5614,7 @@
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 159,
+          "line": 161,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5701,12 +5701,12 @@
       "dynamic_import_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 123,
+          "line": 125,
           "kind": "dynamic module expression"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 425,
+          "line": 478,
           "kind": "dynamic module expression"
         }
       ]

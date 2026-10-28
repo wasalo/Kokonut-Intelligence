@@ -58,6 +58,11 @@ OPERATOR_PROBE_CHECKS = frozenset({
 })
 sys.path.insert(0, str(ROOT))
 
+from services.migration.runtime_role import (  # noqa: E402
+    _RUNTIME_MUTATION_TABLES,
+    _RUNTIME_PRIVATE_TABLES,
+)
+
 
 class ReplayCommandFailure(RuntimeError):
     """A failed captured replay command, retaining its output for safe parsing."""
@@ -329,10 +334,10 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
     if not isinstance(scoped_write, dict) or set(scoped_write) != expected_scoped_fields:
         raise ValueError("operator scope probe did not report the runtime scoped-write boundary")
     if (
-        scoped_write["private_relations_expected"] != 79
-        or scoped_write["mutation_denied_relations_expected"] != 44
-        or scoped_write["private_relations_verified"] != 79
-        or scoped_write["mutation_denied_relations_verified"] != 44
+        scoped_write["private_relations_expected"] != len(_RUNTIME_PRIVATE_TABLES)
+        or scoped_write["mutation_denied_relations_expected"] != len(_RUNTIME_MUTATION_TABLES)
+        or scoped_write["private_relations_verified"] != len(_RUNTIME_PRIVATE_TABLES)
+        or scoped_write["mutation_denied_relations_verified"] != len(_RUNTIME_MUTATION_TABLES)
         or scoped_write["direct_table_privilege_violations"] != 0
         or scoped_write["direct_column_privilege_violations"] != 0
         or scoped_write["farm_activity_ledger_readable"] != 1
