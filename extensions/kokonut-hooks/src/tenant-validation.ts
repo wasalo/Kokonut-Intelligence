@@ -65,8 +65,16 @@ const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
 // Keep these lookups collection-scoped: the same field names can have
 // unrelated or network-wide meanings in other tenant collections.
 const TENANT_COLLECTION_REFERENCE_LOOKUPS: Record<string, Record<string, TenantReferenceLookup>> = {
+  farm_activity: {
+    farm_task_id: (database, referenceId, locationId) => database('farm_task')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+  },
   expense_event: {
     farm_task_id: (database, referenceId, locationId) => database('farm_task')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+    weekly_plan_id: (database, referenceId, locationId) => database('weekly_plan')
       .where({ id: referenceId, location_id: locationId })
       .first('location_id'),
   },

@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from services.export.reports.core import generate_crop_noi
 
+LOCATION_ID = "11111111-1111-4111-8111-111111111111"
+
 
 class CropNoiCursor:
     def __init__(self, rows):
@@ -61,7 +63,7 @@ def test_crop_noi_report_projects_canonical_view_components_and_period_scope():
 
     report = generate_crop_noi(
         connection,
-        "location-1",
+        LOCATION_ID,
         period_start="2026-01-01",
         period_end="2026-06-30",
     )
@@ -97,7 +99,7 @@ def test_crop_noi_report_projects_canonical_view_components_and_period_scope():
     assert "from crop_cost_allocation" not in query
     assert "from financial_transaction" not in query
     assert connection.cursor_instance.params == (
-        "location-1",
+        LOCATION_ID,
         "2026-01-01",
         "2026-01-01",
         "2026-06-30",
@@ -107,7 +109,7 @@ def test_crop_noi_report_projects_canonical_view_components_and_period_scope():
 
 
 def test_crop_noi_report_returns_zero_summary_for_empty_view():
-    report = generate_crop_noi(CropNoiConnection([]), "location-1")
+    report = generate_crop_noi(CropNoiConnection([]), LOCATION_ID)
 
     assert report["crop_cycles"] == []
     assert report["summary"] == {

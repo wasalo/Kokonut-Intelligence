@@ -193,6 +193,9 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
 
 def generate_crop_noi(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a crop NOI report from the canonical crop-cycle NOI view."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("crop_noi requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute(
@@ -375,7 +378,7 @@ def generate_environmental(conn, location_id: str, period_start: str = None, per
 
 def generate_revenue_multiplier(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a revenue multiplier opportunity map report."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("revenue_multiplier requires an explicit location_id")
 
     from dataclasses import asdict

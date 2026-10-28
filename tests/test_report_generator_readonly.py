@@ -272,7 +272,13 @@ def test_revenue_multiplier_requires_location_before_analyzer(monkeypatch):
 
     monkeypatch.setattr(analyzer, "analyze_location", fail_if_analyzer_runs)
 
-    for location_id in (None, ""):
+    for location_id in (
+        None,
+        "",
+        "all",
+        "not-a-uuid",
+        "11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222",
+    ):
         with pytest.raises(
             ValueError,
             match="revenue_multiplier requires an explicit location_id",

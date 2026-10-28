@@ -8,6 +8,7 @@ import psycopg2.extras
 from services.common.errors import safe_exception_class
 
 from .common import (
+    _looks_like_uuid,
     _serialize_rows,
 )
 
@@ -30,6 +31,9 @@ def generate_pest_management(conn, location_id: str, period_start: str = None, p
 
 def generate_resource_efficiency(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe resource efficiency report with labor, energy, and water intensity."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("resource_efficiency requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

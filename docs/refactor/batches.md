@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,446 checklist items complete and 25
-open (1,471 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,455 checklist items complete and 25
+open (1,480 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5561,4 +5561,40 @@ legacy service, or live network was used. Evidence:
 
 The checklist is now 1,446 complete / 25 open (1,471 total); the TODO ledger
 has 153 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Completed parallel continuation — Directus, report scope, and review contracts — 28 October 2026
+
+- [x] Validate `farm_activity.farm_task_id` against the owning location on
+  Directus create and update.
+- [x] Validate `expense_event.weekly_plan_id` against the owning location on
+  Directus create and update.
+- [x] Reject invalid `crop_noi` location scope before opening a cursor.
+- [x] Reject invalid `resource_efficiency` location scope before opening a
+  cursor.
+- [x] Reject invalid `holistic_wellbeing` location scope before opening a
+  cursor.
+- [x] Reject invalid `revenue_multiplier` location scope before invoking its
+  analyzer.
+- [x] Add strict request-bound OpenAPI/runtime contracts for both farm-activity
+  detail routes while preserving payloads, tenant denial, and no-store headers.
+- [x] Add a strict request-bound contract for governance-role detail.
+- [x] Add a strict source-derived contract for the submitted-report review
+  queue while preserving timestamp formatting and existing cache behavior.
+
+The Directus `workflow_history` and `approval` audit remains an open gate:
+their IDs are polymorphic without a location key, so row filtering needs
+populated-lineage coverage and approval-visibility rules.
+
+The integrated focused selection passes 411 Python tests; Directus tenant
+hook tests pass 27 and the TypeScript check passes. Ruff, Python compilation,
+both report inventories, the capability matrix, and diff hygiene pass. The
+matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and now
+records 66 strict private Gateway response endpoints. No migration, database,
+provider, candidate, legacy service, or live network was used. Evidence:
+[parallel source-contract batch](builds/2026-10-28-recovery/kernel-parallel-report-and-gateway-contracts.json).
+
+The checklist is now 1,455 complete / 25 open (1,480 total); the TODO ledger
+has 162 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.

@@ -22488,3 +22488,27 @@ diff checks pass. The matrix remains 67 rows (24 baseline-retained, 7 deployed,
 checklist is 1,446 complete / 25 open; TODO is 153 checked / 16 open. No
 migration, database, provider, candidate, legacy service, or live network was
 used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-directus-report-environment-contracts.json).
+
+
+### Progress addendum — direct report scope and private response contracts — 28 October 2026
+
+Directus now validates `farm_activity.farm_task_id` and
+`expense_event.weekly_plan_id` against the owning location on create and
+update. The `crop_noi`, `resource_efficiency`, `holistic_wellbeing`, and
+`revenue_multiplier` generators reject malformed, `all`, and multi-location
+scope before opening a cursor or calling an analyzer. Farm-activity detail,
+governance-role detail, and the report-review queue now validate source-derived
+response projections and bind them to the request while retaining tenant
+denials and no-store behavior.
+
+The Directus `workflow_history` and `approval` audit found no location key on
+their polymorphic rows. Their filters remain open pending populated lineage and
+approval-visibility rules. The separate Comprehensive Status `farm_summary`
+field/lifecycle review also remains open.
+
+The integrated focused selection passes 411 Python tests and 27 Directus
+tenant-hook tests; TypeScript, Ruff, compilation, both report inventories,
+matrix validation, and diff hygiene pass. The matrix records 66 strict private
+Gateway response endpoints across 67 capabilities; checklist is 1,455 complete
+/ 25 open and TODO is 162 checked / 16 open. No migration, database, provider,
+candidate, legacy service, or live network was used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-report-and-gateway-contracts.json).

@@ -1,10 +1,19 @@
 """FastAPI route registration for Gateway-operated farm activity records."""
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    JsonValue,
+    ValidationError,
+    model_validator,
+)
 
 
 def _response_uuid(value):
@@ -45,6 +54,44 @@ _ResponseDate = Annotated[date, BeforeValidator(_response_date)]
 _ResponseDateTime = Annotated[datetime, BeforeValidator(_response_datetime)]
 
 
+def _response_decimal(value):
+    if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
+        raise ValueError("numeric value is invalid")
+    try:
+        result = Decimal(str(value))
+    except (ValueError, TypeError) as exc:
+        raise ValueError("numeric value is invalid") from exc
+    if not result.is_finite():
+        raise ValueError("numeric value is invalid")
+    return result
+
+
+_ResponseDecimal = Annotated[Decimal, BeforeValidator(_response_decimal)]
+FarmActivityStatus = Literal["draft", "submitted", "verified", "published", "rejected"]
+FarmActivityOperatorAction = Literal[
+    "draft_created",
+    "draft_edited",
+    "submitted",
+    "verified",
+    "published",
+    "rejected",
+    "rework_requested",
+    "exception_closed",
+]
+FarmActivityChangedField = Literal[
+    "plot_id",
+    "crop_cycle_id",
+    "activity_type",
+    "activity_date",
+    "description",
+    "labor_hours",
+    "labor_cost",
+    "materials_used",
+    "evidence_urls",
+    "notes",
+]
+
+
 class FarmActivitySummaryResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -54,7 +101,7 @@ class FarmActivitySummaryResponse(BaseModel):
     crop_cycle_id: _ResponseUUID | None
     activity_type: str = Field(min_length=1, max_length=100)
     activity_date: _ResponseDate
-    status: Literal["draft", "submitted", "verified", "published", "rejected"]
+    status: FarmActivityStatus
     source_system: str | None
     created_at: _ResponseDateTime | None
     updated_at: _ResponseDateTime | None
@@ -74,6 +121,47 @@ class FarmActivitySummaryListResponse(BaseModel):
             if row.source_system == "field_collector":
                 raise ValueError("Field Collector records are outside this API contract")
         return self
+
+
+class FarmActivityOperatorEventResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    action: FarmActivityOperatorAction
+    from_status: FarmActivityStatus | None
+    to_status: FarmActivityStatus
+    reason: str | None
+    actor_operator_id: _ResponseUUID
+    changed_fields: list[FarmActivityChangedField] | None
+    created_at: _ResponseDateTime
+
+
+class FarmActivityDetailResponseData(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _ResponseUUID
+    location_id: _ResponseUUID
+    plot_id: _ResponseUUID | None
+    crop_cycle_id: _ResponseUUID | None
+    activity_type: str = Field(min_length=1, max_length=100)
+    activity_date: _ResponseDate
+    description: str | None
+    labor_hours: _ResponseDecimal | None
+    labor_cost: _ResponseDecimal | None
+    materials_used: JsonValue
+    evidence_urls: list[str | None] | None
+    notes: str | None
+    status: FarmActivityStatus
+    source_system: str | None
+    created_at: _ResponseDateTime | None
+    updated_at: _ResponseDateTime | None
+    operator_events: list[FarmActivityOperatorEventResponse] = Field(max_length=100)
+
+
+class FarmActivityDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    data: FarmActivityDetailResponseData
+
 
 def register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
@@ -120,6 +208,24 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         return JSONResponse(
             status_code=404,
             content={"error": "Operator OIDC is disabled"},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    def _detail_response(result, activity_id, location_id, *, published_only):
+        try:
+            response = FarmActivityDetailResponse.model_validate({"data": result})
+            if str(response.data.id) != str(UUID(activity_id)):
+                raise ValueError("farm activity detail does not match request identifier")
+            if str(response.data.location_id) != str(UUID(location_id)):
+                raise ValueError("farm activity detail does not match request location")
+            if response.data.source_system == "field_collector":
+                raise ValueError("Field Collector records are outside this API contract")
+            if published_only and response.data.status not in {"verified", "published"}:
+                raise ValueError("published detail contains a non-verified record")
+        except (ValidationError, ValueError, TypeError) as exc:
+            return _invalid_projection(exc)
+        return JSONResponse(
+            jsonable_encoder(response.model_dump()),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
@@ -222,7 +328,10 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/farm-activity-records/published/{activity_id}")
+    @router.get(
+        "/operator/api/farm-activity-records/published/{activity_id}",
+        response_model=FarmActivityDetailResponse,
+    )
     async def published_farm_activity_record(
         request: Request, activity_id: str, location_id: str
     ):
@@ -243,12 +352,12 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
                 content={"error": "Published farm activity record not found"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
-        return JSONResponse(
-            {"data": jsonable_encoder(result)},
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
-        )
+        return _detail_response(result, activity_id, location_id, published_only=True)
 
-    @router.get("/operator/api/farm-activity-records/{activity_id}")
+    @router.get(
+        "/operator/api/farm-activity-records/{activity_id}",
+        response_model=FarmActivityDetailResponse,
+    )
     async def farm_activity_record(request: Request, activity_id: str, location_id: str):
         if provider is None:
             return _disabled()
@@ -266,10 +375,7 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
                 content={"error": "Farm activity record not found"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
-        return JSONResponse(
-            {"data": jsonable_encoder(result)},
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
-        )
+        return _detail_response(result, activity_id, location_id, published_only=False)
 
     @router.post("/operator/api/farm-activity-records")
     async def create_farm_activity_record_route(

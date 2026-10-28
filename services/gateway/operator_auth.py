@@ -3940,8 +3940,10 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     import psycopg2
     from fastapi import APIRouter, HTTPException, Query
     from fastapi.responses import JSONResponse, RedirectResponse
+    from pydantic import ValidationError
     from starlette.concurrency import run_in_threadpool
 
+    from services.gateway.operator_review_responses import ReportReviewQueueResponse
     from services.mobile.api import (
         create_operator_enrollment,
         create_participant_link,
@@ -4062,7 +4064,10 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/report-review-queue")
+    @router.get(
+        "/operator/api/report-review-queue",
+        response_model=ReportReviewQueueResponse,
+    )
     async def report_review_queue(
         request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
     ):
@@ -4097,10 +4102,28 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Report review service unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store"},
             )
+        try:
+            response = ReportReviewQueueResponse.model_validate(
+                {"data": rows, "location_id": str(UUID(location_id))}
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Report review response does not match request location")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_review").warning(
+                "Report review queue response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Report review queue unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            jsonable_encoder({"data": rows, "location_id": str(response.location_id)}),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 

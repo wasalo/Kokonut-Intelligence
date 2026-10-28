@@ -276,6 +276,70 @@ describe('tenant reference validation', () => {
     )).rejects.toThrow('farm_task_id is unavailable for this location');
   });
 
+  it('validates expense weekly plans against the expense location on create and update', async () => {
+    const createPayload = { location_id: locationId, weekly_plan_id: plotId };
+    const sameLocation = makeReferenceDatabase(locationId);
+
+    await expect(validateTenantReferences(
+      sameLocation.database,
+      'expense_event',
+      createPayload,
+    )).resolves.toBe(createPayload);
+    expect(sameLocation.database).toHaveBeenCalledWith('weekly_plan');
+
+    await expect(validateTenantReferences(
+      makeReferenceDatabase(otherLocationId).database,
+      'expense_event',
+      createPayload,
+    )).rejects.toThrow('weekly_plan_id is unavailable for this location');
+
+    const updatePayload = { weekly_plan_id: plotId };
+    await expect(validateTenantReferencesForRows(
+      makeReferenceDatabase(locationId).database,
+      'expense_event',
+      updatePayload,
+      [{ location_id: locationId }],
+    )).resolves.toBe(updatePayload);
+    await expect(validateTenantReferencesForRows(
+      makeReferenceDatabase(otherLocationId).database,
+      'expense_event',
+      updatePayload,
+      [{ location_id: locationId }],
+    )).rejects.toThrow('weekly_plan_id is unavailable for this location');
+  });
+
+  it('validates farm activity tasks against the activity location on create and update', async () => {
+    const createPayload = { location_id: locationId, farm_task_id: plotId };
+    const sameLocation = makeReferenceDatabase(locationId);
+
+    await expect(validateTenantReferences(
+      sameLocation.database,
+      'farm_activity',
+      createPayload,
+    )).resolves.toBe(createPayload);
+    expect(sameLocation.database).toHaveBeenCalledWith('farm_task');
+
+    await expect(validateTenantReferences(
+      makeReferenceDatabase(otherLocationId).database,
+      'farm_activity',
+      createPayload,
+    )).rejects.toThrow('farm_task_id is unavailable for this location');
+
+    const updatePayload = { farm_task_id: plotId };
+    await expect(validateTenantReferencesForRows(
+      makeReferenceDatabase(locationId).database,
+      'farm_activity',
+      updatePayload,
+      [{ location_id: locationId }],
+    )).resolves.toBe(updatePayload);
+    await expect(validateTenantReferencesForRows(
+      makeReferenceDatabase(otherLocationId).database,
+      'farm_activity',
+      updatePayload,
+      [{ location_id: locationId }],
+    )).rejects.toThrow('farm_task_id is unavailable for this location');
+  });
+
   it.each([
     { field: 'crop_cycle_id', table: 'crop_cycle' },
     { field: 'harvest_id', table: 'harvest_event' },

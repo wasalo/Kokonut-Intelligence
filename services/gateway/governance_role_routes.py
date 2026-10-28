@@ -1,11 +1,96 @@
 """OIDC route registration for location-scoped governance reads and actions."""
 
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+)
+
+
+def _response_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if isinstance(value, str):
+        try:
+            return UUID(value)
+        except ValueError as exc:
+            raise ValueError("UUID value is invalid") from exc
+    raise ValueError("UUID value is invalid")
+
+
+_GovernanceResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
+_ROLE_STATUS = Literal[
+    "draft", "submitted", "approved", "active", "suspended", "rejected", "retired"
+]
+_CIRCLE_STATUS = Literal["draft", "submitted", "active", "suspended", "rejected", "retired"]
+_GOVERNANCE_SCOPE = Literal[
+    "network",
+    "organization",
+    "location",
+    "farm",
+    "cooperative",
+    "value_stream",
+    "initiative",
+    "decision",
+]
+
+
+class GovernanceRoleDetailRoleResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _GovernanceResponseUUID
+    role_key: str = Field(max_length=120)
+    name: str = Field(max_length=255)
+    purpose: str
+    status: _ROLE_STATUS
+    effective_from: AwareDatetime | None
+    effective_until: AwareDatetime | None
+    review_due_at: AwareDatetime | None
+    created_at: AwareDatetime
+    circle_key: str = Field(max_length=120)
+    circle_name: str = Field(max_length=255)
+    circle_status: _CIRCLE_STATUS
+
+
+class GovernanceRoleAccountabilityResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    accountability: str
+    priority: int = Field(ge=1, le=5, strict=True)
+    required: bool = Field(strict=True)
+
+
+class GovernanceRoleAuthorityDomainResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    domain_type: str = Field(max_length=40)
+    domain_key: str = Field(max_length=160)
+    scope_type: _GOVERNANCE_SCOPE
+    authority_level: Literal["observe", "recommend", "decide", "execute"]
+    requires_human_approval: bool = Field(strict=True)
+
+
+class GovernanceRoleDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _GovernanceResponseUUID
+    role: GovernanceRoleDetailRoleResponse
+    accountabilities: list[GovernanceRoleAccountabilityResponse] = Field(max_length=100)
+    accountabilities_truncated: bool = Field(strict=True)
+    authority_domains: list[GovernanceRoleAuthorityDomainResponse] = Field(max_length=100)
+    authority_domains_truncated: bool = Field(strict=True)
+
 
 def register_governance_role_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
-    from pydantic import ValidationError
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
@@ -215,7 +300,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/governance/{location_id}/roles/{role_id}")
+    @router.get(
+        "/operator/api/governance/{location_id}/roles/{role_id}",
+        response_model=GovernanceRoleDetailResponse,
+    )
     async def location_governance_role_detail(
         request: Request,
         location_id: str,
@@ -260,7 +348,24 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance role not found"},
                 headers=headers,
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = GovernanceRoleDetailResponse.model_validate(result)
+            if response.location_id != UUID(location_id) or response.role.id != UUID(role_id):
+                raise ValueError("Governance role detail does not match request scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_operations").warning(
+                "Governance role detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance role detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.get("/operator/api/governance/{location_id}/circles/{circle_id}")
     async def location_governance_circle_detail(

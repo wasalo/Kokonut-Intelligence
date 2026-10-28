@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -31,6 +32,30 @@ def _summary(**overrides):
         "source_system": "kokonut_gateway",
         "created_at": "2026-10-15T10:00:00+00:00",
         "updated_at": "2026-10-16T10:00:00+00:00",
+    }
+    return {**result, **overrides}
+
+
+def _detail(**overrides):
+    result = {
+        **_summary(),
+        "description": "Hand weeded the north plot",
+        "labor_hours": Decimal("2.50"),
+        "labor_cost": Decimal("15.00"),
+        "materials_used": [],
+        "evidence_urls": ["https://evidence.example/photo.jpg"],
+        "notes": None,
+        "operator_events": [
+            {
+                "action": "draft_created",
+                "from_status": None,
+                "to_status": "draft",
+                "reason": None,
+                "actor_operator_id": OPERATOR_ID,
+                "changed_fields": None,
+                "created_at": "2026-10-15T10:00:00+00:00",
+            }
+        ],
     }
     return {**result, **overrides}
 
@@ -127,6 +152,104 @@ def test_published_list_uses_analyst_safe_filter_and_tenant_denial_is_forbidden(
 
 
 @pytest.mark.parametrize(
+    "path,published_only",
+    [
+        (f"/operator/api/farm-activity-records/{ACTIVITY_ID}", False),
+        (f"/operator/api/farm-activity-records/published/{ACTIVITY_ID}", True),
+    ],
+)
+def test_detail_routes_validate_projection_and_bind_request_scope(
+    monkeypatch, path, published_only
+):
+    seen = []
+
+    def get_record(*args, **kwargs):
+        seen.append((args, kwargs))
+        return _detail()
+
+    monkeypatch.setattr(farm_activity_records, "get_farm_activity_record", get_record)
+    with _client(object()) as client:
+        response = client.get(path, params={"location_id": LOCATION_ID})
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["data"]["id"] == ACTIVITY_ID
+    assert response.json()["data"]["operator_events"][0]["actor_operator_id"] == OPERATOR_ID
+    assert "source_raw" not in response.json()["data"]
+    assert seen == [
+        ((OPERATOR_ID, ACTIVITY_ID, LOCATION_ID), {"published_only": True})
+        if published_only
+        else ((OPERATOR_ID, ACTIVITY_ID, LOCATION_ID), {})
+    ]
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        _detail(location_id="99999999-9999-4999-8999-999999999999"),
+        _detail(id="99999999-9999-4999-8999-999999999999"),
+        _detail(source_system="field_collector"),
+        _detail(source_raw={"secret": "must not escape"}),
+        _detail(operator_events=[{"action": "invented"}]),
+        _detail(labor_hours="2.50"),
+    ],
+)
+def test_detail_route_rejects_invalid_or_out_of_scope_projection(monkeypatch, record):
+    monkeypatch.setattr(
+        farm_activity_records,
+        "get_farm_activity_record",
+        lambda *_args, **_kwargs: record,
+    )
+    with _client(object()) as client:
+        response = client.get(
+            f"/operator/api/farm-activity-records/{ACTIVITY_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Farm activity records are unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "must not escape" not in response.text
+
+
+def test_published_detail_rejects_nonpublished_status(monkeypatch):
+    monkeypatch.setattr(
+        farm_activity_records,
+        "get_farm_activity_record",
+        lambda *_args, **_kwargs: _detail(status="draft"),
+    )
+    with _client(object()) as client:
+        response = client.get(
+            f"/operator/api/farm-activity-records/published/{ACTIVITY_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Farm activity records are unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_detail_tenant_denial_remains_forbidden_and_uncached(monkeypatch):
+    monkeypatch.setattr(
+        farm_activity_records,
+        "get_farm_activity_record",
+        lambda *_args, **_kwargs: _raise_tenant_denied(),
+    )
+    with _client(object()) as client:
+        response = client.get(
+            f"/operator/api/farm-activity-records/{ACTIVITY_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 403
+    assert response.json() == {"error": "Tenant-qualified operator access is required"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+@pytest.mark.parametrize(
     "path,record",
     [
         ("/operator/api/farm-activity-records", _summary(private_value="must not escape")),
@@ -177,6 +300,48 @@ def test_list_routes_publish_exact_openapi_summary_contract():
     assert schema["components"]["schemas"]["FarmActivitySummaryListResponse"][
         "additionalProperties"
     ] is False
+
+
+def test_detail_routes_publish_exact_openapi_contract():
+    with _client(object()) as client:
+        schema = client.app.openapi()
+
+    for path in (
+        "/operator/api/farm-activity-records/{activity_id}",
+        "/operator/api/farm-activity-records/published/{activity_id}",
+    ):
+        operation = schema["paths"][path]["get"]
+        assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/FarmActivityDetailResponse"
+        }
+    assert schema["components"]["schemas"]["FarmActivityDetailResponse"][
+        "additionalProperties"
+    ] is False
+    assert schema["components"]["schemas"]["FarmActivityDetailResponseData"][
+        "additionalProperties"
+    ] is False
+    assert schema["components"]["schemas"]["FarmActivityOperatorEventResponse"][
+        "additionalProperties"
+    ] is False
+    assert set(schema["components"]["schemas"]["FarmActivityDetailResponseData"]["properties"]) == {
+        "id",
+        "location_id",
+        "plot_id",
+        "crop_cycle_id",
+        "activity_type",
+        "activity_date",
+        "description",
+        "labor_hours",
+        "labor_cost",
+        "materials_used",
+        "evidence_urls",
+        "notes",
+        "status",
+        "source_system",
+        "created_at",
+        "updated_at",
+        "operator_events",
+    }
 
 
 @pytest.mark.parametrize(

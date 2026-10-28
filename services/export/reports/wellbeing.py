@@ -6,6 +6,7 @@ import psycopg2
 import psycopg2.extras
 
 from .common import (
+    _looks_like_uuid,
     _serialize_rows,
 )
 from .scope import require_network_scope
@@ -65,6 +66,9 @@ def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, per
 
 def generate_holistic_wellbeing(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe holistic well-being report for a location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("holistic_wellbeing requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

@@ -1598,3 +1598,36 @@ service was used. Evidence is recorded in [the batch log](batches.md). This
 ledger has 129 checked / 16 open entries; the batches checklist records
 1,422 complete / 25 open. The matrix now records 51 strict private Gateway
 response endpoints; classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed parallel continuation — direct report scope and response contracts — 28 October 2026
+
+- [x] Validate Directus `farm_activity.farm_task_id` against the location on
+  create/update.
+- [x] Validate Directus `expense_event.weekly_plan_id` against the location on
+  create/update.
+- [x] Reject invalid `crop_noi` location scope before cursor creation.
+- [x] Reject invalid `resource_efficiency` location scope before cursor
+  creation.
+- [x] Reject invalid `holistic_wellbeing` location scope before cursor
+  creation.
+- [x] Reject invalid `revenue_multiplier` location scope before analyzer
+  access.
+- [x] Strictly validate and request-bind both farm-activity detail responses.
+- [x] Strictly validate and request-bind governance-role detail.
+- [x] Strictly validate the submitted-report review-queue projection while
+  preserving authorization, errors, timestamp formatting, and cache headers.
+
+The Directus `workflow_history` and `approval` audit remains an open gate:
+both tables have polymorphic IDs without tenant keys, and their historical
+lineage and visibility rules need populated-data review before filtering.
+
+The integrated selection passes 411 Python tests, 27 Directus tenant-hook
+tests, and the Directus TypeScript check. Ruff, compilation, report source/query
+inventories, matrix validation, and diff checks pass. No migrations, databases,
+providers, candidate, legacy service, or live network were used. See [evidence](builds/2026-10-28-recovery/kernel-parallel-report-and-gateway-contracts.json).
+
+Checklist: 1,455 complete / 25 open (1,480 total); TODO: 162 checked / 16 open.
+The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and
+records 66 strict private Gateway response endpoints. MAN-CAP acceptance and
+capability classifications are unchanged.
