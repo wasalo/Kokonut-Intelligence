@@ -19,14 +19,47 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,298 checklist items complete and 25
-open (1,323 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,299 checklist items complete and 25
+open (1,324 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### C1 quantity-unit catalog ACL — 28 October 2026
+
+- [x] Keep the schema-seeded `quantity_unit` catalog readable but immutable to
+  `kokonut_runtime`. Migration 112 defines and seeds nine shared unit labels;
+  source/runtime SQL inventories found no relation reader or application write
+  target. Migration 679 revokes table and residual column INSERT/UPDATE/
+  REFERENCES privileges and restores SELECT; runtime provisioning reapplies
+  the boundary after compatibility grants. The separate Directus administration
+  grants remain unchanged. Native and ARM64/QEMU PostgreSQL 16 checks pass
+  apply/replay, reads, write/column denial, provisioner reapplication, and
+  synthetic Directus grant preservation. A fresh network-disabled native replay
+  applies all 670 ordered schema files through 679 and passes 34 synthetic
+  two-tenant checks under verified 1.5 GiB/two-CPU limits. It verifies 126
+  controls (79 private, 44 mutation-denied, two append-only, and the API-key
+  column boundary) with zero direct table/column violations. The refreshed
+  source/ACL report has zero mismatches; 994 of 1,511 relations retain
+  effective DML while RLS is disabled, so C1 remains open. Focused
+  runtime-boundary, replay-parser, and migration suites pass 138 tests (78, 23,
+  and 37 respectively); Ruff and the capability, dependency, and provider-
+  boundary checks pass. No seeds or farm data were loaded, no ports were
+  published, no OOM occurred, and cleanup passed. Candidate/legacy databases
+  were untouched. ARM64/QEMU is software evidence only, not physical Raspberry
+  Pi acceptance. Rollback retains migration 679; restoring runtime writes
+  requires a reviewed forward migration. Capability and MAN-CAP statuses are
+  unchanged ([migration](../schemas/postgres/679_runtime_quantity_unit_read_only.sql);
+  [native ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-disposable.json);
+  [ARM64/QEMU ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json);
+  [full native replay](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json);
+  [source/ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json)).
+  Checklist: 1,299 complete / 25 open (1,324 total); capability
+  classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+  across 67 rows.
 
 ### C1 market-reference catalog ACL — 28 October 2026
 

@@ -28,7 +28,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 125
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 126
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -985,6 +985,45 @@ def test_market_reference_labels_are_read_only_to_kernel_runtime():
     assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
     assert "REVOKE ALL PRIVILEGES ON TABLE public.market_reference_data FROM kokonut_runtime" in migration
     assert "GRANT SELECT ON TABLE public.market_reference_data TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_quantity_unit_catalog_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/679_runtime_quantity_unit_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/112_regen_standards_parity.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "quantity_unit" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS quantity_unit" in schema
+    assert "INSERT INTO quantity_unit" in schema
+    assert not any(
+        "quantity_unit" in site.get("write_target_relations", [])
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?quantity_unit\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.quantity_unit FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.quantity_unit TO kokonut_runtime" in migration
     assert "REVOKE INSERT (%1$I)" in migration
     assert "REVOKE UPDATE (%1$I)" in migration
     assert "REVOKE REFERENCES (%1$I)" in migration

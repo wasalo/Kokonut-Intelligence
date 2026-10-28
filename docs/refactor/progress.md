@@ -1,3 +1,36 @@
+### Progress addendum — C1 quantity-unit catalog ACL — 28 October 2026
+
+Migration 112 defines and seeds nine shared `quantity_unit` labels. Source and
+runtime SQL inventories found no application relation reader or write target.
+Migration 679 keeps the catalog readable but immutable to `kokonut_runtime`,
+revoking table and residual column INSERT/UPDATE/REFERENCES while restoring
+SELECT. Runtime provisioning reapplies the rule after compatibility grants;
+the separate Directus administration role remains unchanged.
+
+Focused native and ARM64/QEMU PostgreSQL 16 checks pass apply/replay, reads,
+table/column write denial, provisioner reapplication, and preservation of
+synthetic Directus grants. The fresh network-disabled native replay applies all
+670 ordered schemas through 679 and passes 34 two-tenant assertions under
+verified 1.5 GiB/two-CPU limits. It verifies 126 runtime controls (79 private,
+44 mutation-denied, two append-only, plus the API-key column boundary) with
+zero direct privilege violations. The source/ACL report has zero mismatches
+across 1,511 relations; 994 retain effective DML while RLS is disabled, so C1
+remains open. Candidate and legacy databases were untouched; no optional seeds
+or farm data were loaded, no ports were published, no OOM occurred, and
+cleanup passed. ARM64/QEMU is software portability evidence, not physical
+Raspberry Pi acceptance.
+
+Rollback retains migration 679; restoring runtime writes requires a reviewed
+forward migration. Capability classifications and MAN-CAP acceptance are
+unchanged. Checklist: 1,299 complete / 25 open (1,324 total); 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+Evidence: [migration](../schemas/postgres/679_runtime_quantity_unit_read_only.sql),
+[native ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
+[full native replay and tenant probe](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
+[source/ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json).
+
 ### Progress addendum — C1 market-reference catalog ACL — 28 October 2026
 
 Schema 142 defines `market_reference_data` as shared commodity-category and

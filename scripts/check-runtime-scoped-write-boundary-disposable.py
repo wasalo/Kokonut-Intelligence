@@ -105,6 +105,9 @@ FARMER_CREDENTIAL_TYPE_MIGRATION = (
 MARKET_REFERENCE_DATA_MIGRATION = (
     ROOT / "schemas/postgres/678_runtime_market_reference_data_read_only.sql"
 )
+QUANTITY_UNIT_MIGRATION = (
+    ROOT / "schemas/postgres/679_runtime_quantity_unit_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
@@ -112,6 +115,7 @@ REFERENCE_CATALOGS = (
     "reference_class",
     "farmer_credential_type",
     "market_reference_data",
+    "quantity_unit",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
@@ -285,6 +289,7 @@ def check_boundary(
                     "reference_class",
                     "farmer_credential_type",
                     "market_reference_data",
+                    "quantity_unit",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -449,6 +454,11 @@ def check_boundary(
                 )
                 cursor.execute(market_reference_data_migration)
                 cursor.execute(market_reference_data_migration)
+                quantity_unit_migration = QUANTITY_UNIT_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(quantity_unit_migration)
+                cursor.execute(quantity_unit_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -544,6 +554,7 @@ def check_boundary(
                         "reference_class": 676,
                         "farmer_credential_type": 677,
                         "market_reference_data": 678,
+                        "quantity_unit": 679,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -644,6 +655,7 @@ def check_boundary(
                     ("reference_class", 676),
                     ("farmer_credential_type", 677),
                     ("market_reference_data", 678),
+                    ("quantity_unit", 679),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -837,6 +849,7 @@ def check_boundary(
                     "process_maturity_level", "pollinator_species_reference",
                     "reference_class", "farmer_credential_type",
                     "market_reference_data",
+                    "quantity_unit",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -1380,6 +1393,14 @@ def check_boundary(
                     "directus_role_unchanged": True,
                 },
                 "read_only_market_reference_data": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_quantity_unit": {
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,
