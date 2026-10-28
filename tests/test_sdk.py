@@ -1191,6 +1191,42 @@ def test_list_options_preserve_exact_non_page_aligned_offset():
     assert options.to_params() == {"limit": 25, "offset": 10}
 
 
+def test_typed_location_lists_forward_extension_queries_without_losing_scope():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = True
+    response.json.return_value = {"data": []}
+    client.session.get = Mock(return_value=response)
+
+    client.field_notes.list_by_location(
+        "location-1",
+        ListOptions(
+            filter={"status": {"_eq": "submitted"}},
+            limit=25,
+            extra_params={
+                "aggregate": {"count": "*"},
+                "groupBy": ["location_id"],
+                # Extension parameters cannot override scoped/typed controls.
+                "filter": {"location_id": {"_eq": "other-location"}},
+                "limit": 999,
+            },
+        ),
+    )
+
+    client.session.get.assert_called_once_with(
+        "http://localhost:8055/items/field_note",
+        params={
+            "filter": '{"status": {"_eq": "submitted"}, "location_id": {"_eq": "location-1"}}',
+            "limit": 25,
+            "aggregate": '{"count": "*"}',
+            "groupBy": "location_id",
+        },
+    )
+
+
 def test_crop_cycle_sdk_type_exposes_schema_aligned_yield_fields():
     from kokonut.types import CropCycle
 

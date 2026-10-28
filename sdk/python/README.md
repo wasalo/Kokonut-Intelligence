@@ -87,8 +87,16 @@ private transport.
 
 ```python
 from kokonut import KokonutClient
+from kokonut.types import ListOptions
 
 client = KokonutClient("http://localhost:8055", token="your-token")
+
+# Pass Directus-specific list query parameters through a typed accessor
+notes = client.field_notes.list_by_location(
+    "location-uuid",
+    ListOptions(extra_params={"search": "coconut"}),
+)
+# Standard options (including the required location filter) remain authoritative.
 
 # List locations
 locations = client.locations.list()

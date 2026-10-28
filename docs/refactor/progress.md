@@ -1,3 +1,28 @@
+### Progress addendum — C2 typed list extension query parity — 28 October 2026
+
+The Directus TypeScript SDK already retained arbitrary list query parameters
+through typed collection accessors, while Python's `ListOptions` only exposed
+the standard filter, sort, field, pagination, and meta controls. Add
+`ListOptions.extra_params` to Python and its `extraParams` counterpart to
+TypeScript. Both typed clients now forward backend-specific extensions using
+the existing Directus JSON/CSV serialization. Standard options override
+conflicting extension keys; location-scoped convenience methods still force
+their requested location filter. README examples cover the same feature in
+both SDKs.
+
+The focused Python SDK and method-parity suite passes 107 tests, the JavaScript
+suite passes 56, TypeScript builds, and targeted Ruff and `git diff --check`
+pass. Tests use mocked clients and do not contact a database, provider, or
+network. This does not establish authorization or tenant isolation and does
+not close broader SDK parity. No capability classification or MAN-CAP status
+changed. Rollback is a code/documentation revert; no migration or persistent
+data changed. Checklist: 1,300 complete / 25 open (1,325 total); capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared.
+
+Evidence: [contract and checks](builds/2026-10-28-recovery/sdk-typed-extension-query-parity.json),
+[Python README](../sdk/python/README.md),
+[JavaScript README](../sdk/javascript/README.md).
+
 ### Progress addendum — C1 quantity-unit catalog ACL — 28 October 2026
 
 Migration 112 defines and seeds nine shared `quantity_unit` labels. Source and

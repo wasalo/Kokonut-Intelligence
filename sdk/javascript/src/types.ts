@@ -2549,6 +2549,8 @@ export interface ExportLog {
 
 export interface ListOptions {
   [queryParameter: string]: unknown;
+  /** Additional backend query parameters; standard list options take precedence. */
+  extraParams?: Record<string, unknown>;
   filter?: Record<string, any>;
   sort?: string[];
   fields?: string[];

@@ -52,6 +52,12 @@ import { KokonutClient } from '@kokonut-intelligence/sdk';
 
 const client = new KokonutClient('http://localhost:8055', { token: 'your-token' });
 
+// Pass Directus-specific list query parameters through a typed accessor.
+const notes = await client.fieldNotes.listByLocation('location-uuid', {
+  extraParams: { search: 'coconut' },
+});
+// Standard options (including the required location filter) remain authoritative.
+
 // List locations
 const locations = await client.locations.list({ limit: 10 });
 

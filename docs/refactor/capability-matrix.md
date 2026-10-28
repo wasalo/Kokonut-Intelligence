@@ -1,5 +1,17 @@
 # Capability preservation matrix
 
+**Latest SDK parity update — typed list extension queries (28 October 2026):**
+Python now exposes `ListOptions.extra_params` through typed accessors, matching
+TypeScript `ListOptions.extraParams`. Both clients retain Directus-specific
+query extensions while standard list controls and the location helper's scope
+remain authoritative. The focused Python SDK/method-parity suite passes 107
+tests, JavaScript passes 56, and the TypeScript build and targeted Ruff pass;
+all client checks use mocks. This is a query-shape improvement only and does
+not establish authorization or tenant isolation. Broader SDK parity remains
+open ([evidence](builds/2026-10-28-recovery/sdk-typed-extension-query-parity.json)).
+Checklist: 1,300 complete / 25 open (1,325 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 **Latest runtime-role acceptance update — migration 679 (28 October 2026):**
 Migration 112 defines and seeds nine shared `quantity_unit` labels. Runtime
 SQL and source review found no relation read or application write target.

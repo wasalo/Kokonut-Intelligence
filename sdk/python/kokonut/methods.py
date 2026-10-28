@@ -58,6 +58,7 @@ def _list_options_with_filter(options: Optional[ListOptions], required_filter: D
         offset=options.offset if options else None,
         page=options.page if options else None,
         meta=options.meta if options else None,
+        extra_params=options.extra_params if options else None,
     )
 
 

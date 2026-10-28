@@ -27,7 +27,11 @@ describe('KokonutClient REST transport boundary', () => {
       if (method === 'DELETE') return new Response(null, { status: 204 });
 
       let data: unknown;
-      if (url.pathname === '/items/harvest_event' && url.searchParams.has('groupBy')) {
+      if (
+        url.pathname === '/items/harvest_event' &&
+        url.searchParams.has('groupBy') &&
+        !url.searchParams.has('search')
+      ) {
         data = [{ location_id: 'location-1', count: { '*': 2 } }];
       } else if (url.pathname === '/items/harvest_event') {
         data = [{ id: 'event-1' }];
@@ -59,6 +63,7 @@ describe('KokonutClient REST transport boundary', () => {
       search: 'coconut',
       aggregate: { count: '*' },
       deep: { location_id: { _filter: { status: { _eq: 'published' } } } },
+      extraParams: { groupBy: ['location_id'] },
       fields: ['id', 'location_id'],
       limit: 25,
       offset: 10,
@@ -107,6 +112,7 @@ describe('KokonutClient REST transport boundary', () => {
     expect(listUrl.searchParams.get('deep')).toBe(
       JSON.stringify({ location_id: { _filter: { status: { _eq: 'published' } } } }),
     );
+    expect(listUrl.searchParams.get('groupBy')).toBe('location_id');
     expect(listUrl.searchParams.get('fields')).toBe('id,location_id');
     expect(listUrl.searchParams.get('limit')).toBe('25');
     expect(listUrl.searchParams.get('offset')).toBe('10');
@@ -154,5 +160,39 @@ describe('KokonutClient REST transport boundary', () => {
     await expect(client.getItem('location', '..')).rejects.toThrow('path segment');
     await expect(client.listItems('')).rejects.toThrow('path segment');
     expect(fetchStub).toHaveBeenCalledTimes(requestCount);
+  });
+
+  it('forwards extension query parameters through typed location reads without weakening scope', async () => {
+    vi.resetModules();
+    const { KokonutClient } = await import('../client.js');
+    const client = new KokonutClient('https://directus.invalid');
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    await client.fieldNotes.listByLocation('location-1', {
+      filter: { status: { _eq: 'submitted' }, location_id: { _eq: 'other-location' } },
+      limit: 25,
+      extraParams: {
+        aggregate: { count: '*' },
+        groupBy: ['location_id'],
+        filter: { location_id: { _eq: 'another-location' } },
+        limit: 999,
+      },
+    });
+
+    expect(listItems).toHaveBeenCalledWith(
+      'field_note',
+      expect.objectContaining({
+        extraParams: {
+          aggregate: { count: '*' },
+          groupBy: ['location_id'],
+          filter: { location_id: { _eq: 'another-location' } },
+          limit: 999,
+        },
+        filter: {
+          status: { _eq: 'submitted' },
+          location_id: { _eq: 'location-1' },
+        },
+        limit: 25,
+      }),
+    );
   });
 });

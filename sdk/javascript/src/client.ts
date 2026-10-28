@@ -381,9 +381,21 @@ export class KokonutClient {
   }
 
   async listItems(collection: string, options?: ListOptions): Promise<any[]> {
-    const query: Record<string, any> = { ...(options ?? {}) };
+    const query: Record<string, any> = {
+      ...(options?.extraParams ?? {}),
+      ...(options ?? {}),
+    };
 
-    for (const key of ['filter', 'sort', 'fields', 'limit', 'offset', 'page', 'meta']) {
+    for (const key of [
+      'extraParams',
+      'filter',
+      'sort',
+      'fields',
+      'limit',
+      'offset',
+      'page',
+      'meta',
+    ]) {
       delete query[key];
     }
 

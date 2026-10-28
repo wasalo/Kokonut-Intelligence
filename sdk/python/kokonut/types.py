@@ -171,6 +171,8 @@ class ActivityTypeSourceOption(TypedDict):
 
 @dataclass
 class ListOptions:
+    """Shared list controls plus backend-specific Directus query parameters."""
+
     filter: Optional[Dict[str, Any]] = None
     sort: Optional[List[str]] = None
     fields: Optional[List[str]] = None
@@ -178,9 +180,14 @@ class ListOptions:
     offset: Optional[int] = None
     page: Optional[int] = None
     meta: Optional[str] = None
+    extra_params: Optional[Dict[str, Any]] = None
 
     def to_params(self) -> Dict[str, Any]:
-        params: Dict[str, Any] = {}
+        # Extension parameters support Directus features without making them
+        # mandatory SDK dependencies. The typed options below remain authoritative.
+        params: Dict[str, Any] = dict(self.extra_params or {})
+        for key in ("filter", "sort", "fields", "limit", "offset", "page", "meta"):
+            params.pop(key, None)
         if self.filter is not None:
             params["filter"] = self.filter
         if self.sort is not None:

@@ -38,6 +38,13 @@ the batch log and the affected capability/progress records are updated.
   native replay and 34-check two-tenant probe pass through all 670 schemas;
   candidate and legacy databases remain untouched. See
   [native evidence](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-disposable.json).
+- [x] Restore typed-list extension query parity across the Python and
+  JavaScript SDKs. Python `ListOptions.extra_params` now matches TypeScript
+  `ListOptions.extraParams`; representative scoped Field Note reads preserve
+  extension parameters while standard options and the required location filter
+  remain authoritative. The focused Python SDK/method-parity suite passes 107
+  tests, JavaScript passes 56, the TypeScript build and targeted Ruff pass, and
+  mocked checks use no database, provider, or network ([evidence](builds/2026-10-28-recovery/sdk-typed-extension-query-parity.json)).
 - [x] Keep calculated NOI snapshots read-only in both SDKs. Source review found
   no SDK mutation callsites; generic writes could supply final financial values
   without calculation provenance. Preserve list/detail/crop-cycle reads and
@@ -444,7 +451,10 @@ that its full source-plan phase is complete.
   672–679. The latest full native replay applies all 670 ordered schema files
   through 679 and passes 34 two-tenant assertions; no seeds or farm data were
   loaded, no host ports were published, and candidate/legacy state stayed
-  untouched. Both Kernel app images and profile selections have ARM64 build and
+  untouched. A new full-chain replay through 679 is running in an isolated
+  ARM64/QEMU database under the same 1.5 GiB/two-CPU limits; a live read shows
+  339/670 schemas applied with no pending or failed rows at the last check.
+  Both Kernel app images and profile selections have ARM64 build and
   import evidence. This remains software-only evidence: no physical Raspberry
   Pi, populated data, external provider/media, R2, whole-platform production
   recovery, or 24-hour RPO/RTO drill has been accepted.
