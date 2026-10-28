@@ -22447,6 +22447,13 @@ ceiling. Comprehensive Status validates the nested `crop_noi` report against
 its generator's SQL-backed projection and enclosing location; other section
 bodies remain JSON-compatible pending independent generator audits.
 
+The farm-summary audit found that the section uses `SELECT *` across location,
+farm, plot, and crop-cycle relations, so additive schema changes can expand its
+payload without a contract change. It also aggregates financial transactions
+without a lifecycle status while other farm-summary subqueries filter by
+verification/publication. This remains open until a reviewed field allowlist
+and consistent report-measure semantics are defined; no output was changed.
+
 The integrated focused suites pass 459 Python tests, 90 JavaScript tests, and
 24 Directus tenant-hook tests. JavaScript build and Directus TypeScript checks,
 Ruff, Python compilation, report-query inventory validation, and diff checks
@@ -22455,3 +22462,29 @@ endpoints across 67 rows (24 baseline-retained, 7 deployed, 36 prepared). The
 checklist is 1,443 complete / 25 open; TODO is 150 checked / 16 open. No
 migration, database, provider, candidate, legacy service, or live network was
 used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-tenant-report-sdk-contracts.json).
+
+
+### Progress addendum — Directus, report scope, and environmental response contracts — 28 October 2026
+
+Directus now validates `expense_event.farm_task_id` against the expense
+location on create and update; schema and migration evidence confirm a
+same-location contract. `generate_climate_impact` now rejects missing, `all`,
+malformed, and multi-location identifiers before opening a cursor or invoking
+helpers, while its shared protocol reference remains unchanged.
+
+Comprehensive Status now validates the environmental section against its four
+explicit SQL projections and the enclosing location. PostgreSQL `Decimal`
+measurements are converted to finite JSON numbers by the shared response
+validator. The generator's lifecycle filters, ignored period arguments, and
+free-text species notes/loss causes are unchanged; they need semantic and
+audience review. The farm-summary contract remains open because of its
+`SELECT *` projections and mixed lifecycle filters.
+
+Focused checks pass: 41 Python tests across climate scope, Comprehensive Status,
+environmental response, and crop-NOI; 25 Directus tenant-hook tests; Directus
+TypeScript checking, Ruff, compilation, report-query inventory validation, and
+diff checks pass. The matrix remains 67 rows (24 baseline-retained, 7 deployed,
+36 prepared) and records 63 strict private Gateway response endpoints. The
+checklist is 1,446 complete / 25 open; TODO is 153 checked / 16 open. No
+migration, database, provider, candidate, legacy service, or live network was
+used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-directus-report-environment-contracts.json).

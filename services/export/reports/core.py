@@ -478,7 +478,7 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
 
 def generate_climate_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a climate-impact report for a location and year."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("climate_impact requires an explicit location_id")
     # Determine reporting year from period_start or current year
     from datetime import datetime as _dt

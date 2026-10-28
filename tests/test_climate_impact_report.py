@@ -1,5 +1,7 @@
 """Focused contract tests for the climate-impact report's database reads."""
 
+import pytest
+
 from services.export.reports import core
 
 
@@ -53,16 +55,17 @@ class _Connection:
         return _Cursor(self)
 
 
-def test_climate_impact_rejects_missing_location_before_opening_database():
-    import pytest
-
+@pytest.mark.parametrize(
+    "location_id",
+    [None, "", "all", "not-a-uuid", "11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222"],
+)
+def test_climate_impact_rejects_non_location_scope_before_opening_database(location_id):
     class _NoDatabase:
         def cursor(self, **_kwargs):
             raise AssertionError("database must not open without a location scope")
 
-    for location_id in (None, ""):
-        with pytest.raises(ValueError, match="climate_impact requires an explicit location_id"):
-            core.generate_climate_impact(_NoDatabase(), location_id)
+    with pytest.raises(ValueError, match="climate_impact requires an explicit location_id"):
+        core.generate_climate_impact(_NoDatabase(), location_id)
 
 
 def test_climate_impact_uses_shared_protocols_without_location_parameter(monkeypatch):

@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-28",
+  "batch": "Parallel Directus, report-scope, and environmental contracts",
+  "changes": {
+    "directus_reference": {
+      "collection": "expense_event",
+      "field": "farm_task_id",
+      "target": "farm_task",
+      "same_location_on": ["create", "update"],
+      "schema_basis": [
+        "schemas/postgres/061_impact_value_chain.sql",
+        "schemas/postgres/361_farm_task_relationships.sql"
+      ]
+    },
+    "climate_impact_report": {
+      "requires_uuid_location_before_cursor_or_helpers": true,
+      "shared_operations_protocol_reference_preserved": true
+    },
+    "comprehensive_status_environmental": {
+      "strict_projection_arrays": [
+        "soil_carbon",
+        "species_observations",
+        "remote_sensing",
+        "loss_events"
+      ],
+      "bound_to_enclosing_location": true,
+      "postgres_decimal_numbers_normalized": true,
+      "semantic_follow_up": [
+        "existing lifecycle filters remain unmodified",
+        "period_start and period_end remain unused by the generator",
+        "species notes and loss causes remain in the existing projection"
+      ]
+    },
+    "comprehensive_status_farm_summary_audit": {
+      "status": "remains_open",
+      "reason": "SELECT * over location/farm/plot/crop-cycle plus mixed financial and verification lifecycle semantics",
+      "behavior_changed": false
+    }
+  },
+  "verification": {
+    "python_focused_tests": {
+      "result": "passed",
+      "count": 41,
+      "selection": [
+        "tests/test_climate_impact_report.py",
+        "tests/test_gateway_comprehensive_status_reads.py",
+        "tests/test_environmental_report_scope.py",
+        "tests/test_crop_noi_report.py"
+      ]
+    },
+    "directus_tenant_hook_tests": {"result": "passed", "count": 25},
+    "directus_typescript_check": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "report_query_inventory_check": "passed",
+    "git_diff_check": "passed",
+    "capability_matrix": {
+      "result": "valid",
+      "rows": 67,
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36,
+      "strict_private_gateway_response_endpoints": 63
+    },
+    "checklist": {"complete": 1446, "open": 25},
+    "todo_ledger": {"complete": 153, "open": 16}
+  },
+  "scope_limits": [
+    "No migration or database was used.",
+    "No provider, candidate, legacy service, or live network was used.",
+    "No capability classification or MAN-CAP acceptance changed."
+  ]
+}

@@ -62,10 +62,14 @@ const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
     .first('device_ref.location_id as location_id'),
 };
 
-// These references are meaningful only on retirement certificates. Keep them
-// collection-scoped: other tenant collections may use the same field names
-// for unrelated or network-wide concepts.
+// Keep these lookups collection-scoped: the same field names can have
+// unrelated or network-wide meanings in other tenant collections.
 const TENANT_COLLECTION_REFERENCE_LOOKUPS: Record<string, Record<string, TenantReferenceLookup>> = {
+  expense_event: {
+    farm_task_id: (database, referenceId, locationId) => database('farm_task')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+  },
   revenue_event: {
     sales_event_id: (database, referenceId, locationId) => database('sales_event')
       .where({ id: referenceId, location_id: locationId })

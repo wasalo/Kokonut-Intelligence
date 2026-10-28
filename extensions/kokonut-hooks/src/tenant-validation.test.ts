@@ -244,6 +244,38 @@ describe('tenant reference validation', () => {
     )).rejects.toThrow('financial_transaction_id is unavailable for this location');
   });
 
+  it('validates expense farm tasks against the expense location on create and update', async () => {
+    const createPayload = { location_id: locationId, farm_task_id: plotId };
+    const sameLocation = makeReferenceDatabase(locationId);
+
+    await expect(validateTenantReferences(
+      sameLocation.database,
+      'expense_event',
+      createPayload,
+    )).resolves.toBe(createPayload);
+    expect(sameLocation.database).toHaveBeenCalledWith('farm_task');
+
+    await expect(validateTenantReferences(
+      makeReferenceDatabase(otherLocationId).database,
+      'expense_event',
+      createPayload,
+    )).rejects.toThrow('farm_task_id is unavailable for this location');
+
+    const updatePayload = { farm_task_id: plotId };
+    await expect(validateTenantReferencesForRows(
+      makeReferenceDatabase(locationId).database,
+      'expense_event',
+      updatePayload,
+      [{ location_id: locationId }],
+    )).resolves.toBe(updatePayload);
+    await expect(validateTenantReferencesForRows(
+      makeReferenceDatabase(otherLocationId).database,
+      'expense_event',
+      updatePayload,
+      [{ location_id: locationId }],
+    )).rejects.toThrow('farm_task_id is unavailable for this location');
+  });
+
   it.each([
     { field: 'crop_cycle_id', table: 'crop_cycle' },
     { field: 'harvest_id', table: 'harvest_event' },

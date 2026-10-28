@@ -538,7 +538,7 @@ remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and now records
 62 strict private Gateway response endpoints. No migration, database, provider,
 candidate, or legacy service was used. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-directus-operating-report-contracts.json).
-Checklist: 1,443 complete / 25 open; TODO: 150 checked / 16 open.
+Checklist: 1,446 complete / 25 open; TODO: 153 checked / 16 open.
 - [x] Validate the `revenue_event` sales and financial-transaction references
   against the event's location for create and update. Leave optional
   global-capable treasury/value-flow references unchanged pending an explicit
@@ -555,6 +555,15 @@ Checklist: 1,443 complete / 25 open; TODO: 150 checked / 16 open.
 - [x] Validate the Comprehensive Status `crop_noi` section against the
   generator's exact nested projection and selected location; retain the
   sanitized section error contract and leave other section bodies pending audit.
+- [x] Validate `expense_event.farm_task_id` against the same location on Directus
+  create/update; schema 061 and migration 361 establish the relationship.
+- [x] Reject invalid, `all`, and multi-location IDs for direct climate-impact
+  report generation before database/helper access; keep the shared protocol
+  lookup unchanged.
+- [x] Type the Comprehensive Status environmental section from its four
+  explicit SQL projections, including PostgreSQL Decimal normalization and
+  selected-location binding. Existing unfiltered lifecycle selection, ignored
+  period arguments, and free-text notes/causes still need semantic review.
 
 This batch passes 459 focused Python tests, 90 JavaScript tests, 24 Directus
 tenant-hook tests, TypeScript builds/checks, Ruff, compilation, report-query
@@ -782,10 +791,18 @@ that its full source-plan phase is complete.
   sanitized failure for invalid projections; 18 route tests preserve its
   existing authorization/error/cache behavior
   ([evidence](builds/2026-10-28-recovery/emergency-response-summary-contract.json)).
-  Comprehensive Status now validates its one-location envelope and exact
-  canonical section set while retaining JSON-compatible section bodies pending
-  a generator audit; 20 route tests cover envelope, location, and error
-  behavior ([evidence](builds/2026-10-28-recovery/comprehensive-status-response-contract.json)).
+  Comprehensive Status validates its one-location envelope and exact canonical
+  section set, with strict typed contracts for `crop_noi` and the
+  environmental section; other section bodies remain JSON-compatible pending
+  generator audits. The environmental model binds its four explicit SQL arrays
+  to the enclosing location and accepts PostgreSQL Decimal values. It preserves
+  current lifecycle, period, and narrative-field behavior pending report review.
+  The farm-summary audit found
+  `SELECT *` over location, farm, plot, and crop-cycle tables, exposing future
+  schema fields in the response, and financial rows do not share the same
+  verification filters as other sections. Define an explicit field allowlist
+  and reconcile lifecycle semantics before making that section strict. The
+  envelope has 20 route tests ([evidence](builds/2026-10-28-recovery/comprehensive-status-response-contract.json)).
   Energy monitoring validates nested source, renewable, efficiency, and cost
   aggregates against schema values and query bounds; 23 route tests include
   request-location matching ([evidence](builds/2026-10-28-recovery/energy-summary-response-contract.json)).
@@ -1015,7 +1032,7 @@ pass. The matrix records 61 strict private Gateway response endpoints across
 database, provider, candidate, or legacy service was used. See
 [evidence](builds/2026-10-28-recovery/kernel-gateway-sdk-contract-batch.json).
 
-Checklist: 1,443 complete / 25 open (1,468 total); TODO: 150 checked / 16 open.
+Checklist: 1,446 complete / 25 open (1,471 total); TODO: 153 checked / 16 open.
 MAN-CAP acceptance and capability classifications are unchanged.
 
 ## Owner or environment gates after code work

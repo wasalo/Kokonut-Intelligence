@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,443 checklist items complete and 25
-open (1,468 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,446 checklist items complete and 25
+open (1,471 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5515,7 +5515,11 @@ acceptance remain unchanged.
   canonical generator output, including strict nested cycles, finite numeric
   measures, a redacted section-error shape, and binding to the enclosing
   location. Other section bodies remain JSON-compatible pending their own
-  generator audits.
+  generator audits. The `farm_summary` audit found `SELECT *` across location,
+  farm, plot, and crop-cycle rows, so future schema fields flow into the
+  response; financial totals also use a different lifecycle filter from other
+  sections. Its field allowlist and reporting semantics need review before a
+  strict model is safe.
 
 The integrated focused Python selection passes 459 tests; JavaScript passes 90
 tests; Directus tenant-hook tests pass 24. The JavaScript SDK build and Directus
@@ -5528,4 +5532,33 @@ legacy service, or live network was used. Evidence:
 
 The checklist is now 1,443 complete / 25 open (1,468 total); the TODO ledger
 has 150 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Completed parallel continuation — Directus, report-scope, and environmental contracts — 28 October 2026
+
+- [x] Validate `expense_event.farm_task_id` against the expense's location on
+  create and update. The farm-task schema requires a location, and migration
+  361 already rejects mismatched-location links.
+- [x] Require a UUID location for direct `climate_impact` report calls before
+  opening a cursor or invoking a helper. The deliberate shared
+  `operations_protocol` reference remains unchanged.
+- [x] Add strict schemas to the Comprehensive Status environmental section for
+  its explicit soil-carbon, species, remote-sensing, and loss-event projections;
+  bind the section location to its enclosing farm. PostgreSQL `Decimal` values
+  are normalized before JSON serialization. Existing lifecycle filters,
+  ignored period bounds, and free-text note/cause fields are preserved pending
+  semantic and audience review.
+
+Focused checks pass: climate-report scope (6), Comprehensive Status and
+environmental response contract (33), crop-NOI response (2), and Directus
+tenant-reference checks (25). Ruff, compilation, the report-query inventory,
+Directus TypeScript, and `git diff --check` pass. The matrix remains valid at
+67 rows (24 baseline-retained, 7 deployed, 36 prepared) and 63 strict private
+Gateway response endpoints. No migration, database, provider, candidate,
+legacy service, or live network was used. Evidence:
+[parallel contract batch](builds/2026-10-28-recovery/kernel-parallel-directus-report-environment-contracts.json).
+
+The checklist is now 1,446 complete / 25 open (1,471 total); the TODO ledger
+has 153 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.

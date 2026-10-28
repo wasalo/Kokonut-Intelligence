@@ -49,8 +49,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,443
-complete / 25 open (1,468 total). Sixty-three private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,446
+complete / 25 open (1,471 total). Sixty-three private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. The latest
 contracts cover farm-activity summaries, pollution-incident resolution,
@@ -59,7 +59,12 @@ Delphi draft-study inventory. The native REST SDKs validate bounded driver
 catalog shapes and requested page values; malformed HTTP error bodies use a
 stable status fallback in both SDKs. Comprehensive Status now validates its
 crop-NOI section against its generator while other section bodies remain
-JSON-compatible pending their own audits. The runtime
+JSON-compatible pending their own audits. In particular, `farm_summary` uses
+`SELECT *` on four relations and has mixed lifecycle filters, so its field
+allowlist and measure semantics need review before tightening its contract.
+The environmental section now validates all four explicit source projections;
+its current lifecycle, ignored period, and narrative-field semantics remain
+unchanged pending review. The runtime
 SQL inventory also requires explicit review for new unresolved DML/`WITH` sites;
 its existing unresolved candidates remain tracked debt and the gate does not
 change database grants.

@@ -1,5 +1,6 @@
 """Authorization and transaction contract for Comprehensive Status reads."""
 
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -74,6 +75,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
         },
         "generated_at": "2026-10-28T00:00:00+00:00",
     }
+    sections["environmental"] = _environmental_section(location_id)
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -101,6 +103,47 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
             }
         ],
         "limitations": ["Composite of canonical per-location generators."],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
+def _environmental_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "environmental",
+        "location_id": location_id,
+        "soil_carbon": [
+            {
+                "measurement_date": "2026-06-01",
+                "carbon_tonnes_per_ha": Decimal("18.75"),
+                "measurement_method": "lab_analysis",
+                "depth_cm": 30.0,
+            }
+        ],
+        "species_observations": [
+            {
+                "observation_date": "2026-06-02",
+                "count": 3,
+                "habitat_type": "forest_edge",
+                "notes": "Synthetic observation note",
+            }
+        ],
+        "remote_sensing": [
+            {
+                "observation_date": "2026-06-03",
+                "ndvi": 0.72,
+                "ndre": 0.44,
+                "cloud_cover_pct": 5.0,
+            }
+        ],
+        "loss_events": [
+            {
+                "loss_date": "2026-06-04",
+                "loss_type": "drought",
+                "quantity": 2.0,
+                "unit": "kg",
+                "cause": "Synthetic drought loss",
+            }
+        ],
         "generated_at": "2026-10-28T00:00:00+00:00",
     }
 
@@ -315,6 +358,26 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert len(crop_noi_schema["anyOf"]) == 2
     assert schemas["ComprehensiveStatusCropNoiReport"]["additionalProperties"] is False
     assert schemas["ComprehensiveStatusCropNoiCycle"]["additionalProperties"] is False
+    environmental_schema = section_schema["properties"]["environmental"]
+    assert len(environmental_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusEnvironmental"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusEnvironmentalSoilCarbon"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusEnvironmentalSpecies"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusEnvironmentalRemoteSensing"][
+        "additionalProperties"
+    ] is False
+    assert schemas["ComprehensiveStatusEnvironmentalLoss"]["additionalProperties"] is False
+    assert set(
+        schemas["ComprehensiveStatusEnvironmental"]["properties"]
+    ) == {
+        "report_type",
+        "location_id",
+        "soil_carbon",
+        "species_observations",
+        "remote_sensing",
+        "loss_events",
+        "generated_at",
+    }
 
 
 def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
@@ -323,6 +386,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     payload = _comprehensive_status_payload()
     payload["locations"][0]["sections"]["crop_noi"] = {
         "error": "report section failed (ProgrammingError)"
+    }
+    payload["locations"][0]["sections"]["environmental"] = {
+        "error": "report section failed (DataError)"
     }
     monkeypatch.setattr(
         "services.gateway.comprehensive_status_reads.get_location_comprehensive_status",
@@ -353,6 +419,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["crop_noi"] == {
         "error": "report section failed (ProgrammingError)"
     }
+    assert response.json()["locations"][0]["sections"]["environmental"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -362,6 +431,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "wrong_location", "wrong_selected_location", "negative_count",
         "crop_noi_extra", "crop_noi_cycle_extra", "crop_noi_wrong_location",
         "crop_noi_error_contract", "crop_noi_numeric_string",
+        "environmental_extra", "environmental_species_extra",
+        "environmental_wrong_location", "environmental_numeric_string",
+        "environmental_error_contract",
     ],
 )
 def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_projection):
@@ -396,6 +468,24 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         payload["locations"][0]["sections"]["crop_noi"]["crop_cycles"][0][
             "expected_yield"
         ] = "100.0"
+    elif invalid_projection == "environmental_extra":
+        payload["locations"][0]["sections"]["environmental"]["private_metadata"] = {}
+    elif invalid_projection == "environmental_species_extra":
+        payload["locations"][0]["sections"]["environmental"][
+            "species_observations"
+        ][0]["observer_id"] = str(uuid4())
+    elif invalid_projection == "environmental_wrong_location":
+        payload["locations"][0]["sections"]["environmental"]["location_id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "environmental_numeric_string":
+        payload["locations"][0]["sections"]["environmental"]["remote_sensing"][0][
+            "ndvi"
+        ] = "0.72"
+    elif invalid_projection == "environmental_error_contract":
+        payload["locations"][0]["sections"]["environmental"] = {
+            "error": "database connection failed with private SQL"
+        }
     else:
         payload["ecosystem_overview"]["total_locations"] = -1
 
