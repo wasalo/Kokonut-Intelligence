@@ -22200,3 +22200,32 @@ tenant isolation, and physical Raspberry Pi acceptance remain open. Evidence:
 [combined verification](builds/2026-10-28-recovery/gateway-private-response-contracts-batch-2.json).
 Checklist: 1,411 complete / 25 open (1,436 total); capability classifications
 remain unchanged.
+
+
+### Implementation progress — 28 October 2026 — geostatistics and pollinator responses
+
+All eight saved geostatistics GET routes now have strict response contracts,
+including cross-validation fold aggregates, variogram models, sensor-network
+designs, kriging summaries/points, and realization summaries/points. Returned
+location/run IDs, page bounds, field allowlists, source enums, finite values,
+coordinate bounds, and point numbering are checked. Pollinator review queue,
+habitat details, and hive details now publish strict OpenAPI schemas; review
+details use a record-type-discriminated union. Existing location grants and
+no-store sanitized error behavior are preserved.
+
+The affected readers stop advertising continuation when the next page would
+exceed offset 10,000. The combined geostatistics/pollinator route selection
+passes 158 tests; the runtime SQL inventory regression suite passes 24 and the
+inventory is current on Python 3.11/3.12. Two conservative geostatistics CTE
+fingerprints changed because the pagination code changed inside their lexical
+scopes. Source review confirmed both statements are SELECT-only; the ledger now
+tracks their current fingerprints as reviewed-unresolved, with no ACL approval
+or grants changed. Ruff, compilation, capability-matrix validation, and diff
+checks pass. No live database/provider, candidate, or legacy service was used.
+Live OIDC, populated-data parity, and broader tenant isolation remain open.
+
+The checklist now records 1,414 complete / 25 open (1,439 total); the TODO
+ledger has 121 checked / 16 open entries. The capability matrix records 38
+strict private Gateway response endpoints across 67 rows and remains at 24
+baseline-retained, 7 deployed, and 36 prepared. MAN-CAP acceptance is
+unchanged. Evidence: [combined Gateway contract checks](builds/2026-10-28-recovery/gateway-geostatistics-pollinator-response-contracts.json).

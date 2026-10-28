@@ -103,6 +103,46 @@ def test_review_queue_sets_review_context_and_validates_bounded_response(monkeyp
     assert connection.rollbacks == 1 and connection.closed
 
 
+@pytest.mark.parametrize(("offset", "expected_more", "expected_next"), [
+    (9975, True, 10000),
+    (10000, False, None),
+])
+def test_review_queue_stops_continuation_at_supported_offset_ceiling(
+    monkeypatch, offset, expected_more, expected_next
+):
+    item = {
+        "record_id": _RECORD,
+        "record_type": "observation",
+        "occurred_on": "2026-10-24",
+        "status": "recorded",
+        "created_at": _UPDATED_AT,
+        "updated_at": _UPDATED_AT,
+        "details": {
+            "pollinator_type": "wild_bee", "count": 10, "method": "transect",
+            "duration_minutes": 20, "species_name": "Native bee", "notes": "Field note",
+        },
+    }
+    limit = 25
+    connection = Connection({
+        "location_id": _LOCATION,
+        "limit": limit,
+        "offset": offset,
+        "items": [item] * limit,
+        "has_more": True,
+        "next_offset": offset + limit,
+        "total": offset + limit + 1,
+    })
+    monkeypatch.setattr(pollinator_health_reads, "set_operator_tenant_context", lambda *_a, **_kw: None)
+
+    result = pollinator_health_reads.list_location_pollinator_review_queue(
+        _OPERATOR, _LOCATION, limit=limit, offset=offset,
+        connection_factory=lambda: connection,
+    )
+
+    assert result["has_more"] is expected_more
+    assert result["next_offset"] == expected_next
+
+
 @pytest.mark.parametrize("limit,offset", [(0, 0), (51, 0), (1, -1), (1, 10001), (True, 0)])
 def test_review_queue_rejects_invalid_page_before_connecting(limit, offset):
     with pytest.raises(ValueError):

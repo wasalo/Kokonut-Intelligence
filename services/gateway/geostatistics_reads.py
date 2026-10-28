@@ -325,7 +325,7 @@ def list_location_cross_validation(
             "items": rows[:limit],
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= _MAX_OFFSET,
         }
     except Exception:
         connection.rollback()
@@ -389,7 +389,7 @@ def list_location_variogram_models(
             "items": rows[:limit],
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= _MAX_OFFSET,
         }
     except Exception:
         connection.rollback()
@@ -453,7 +453,7 @@ def list_location_sensor_network_designs(
             "items": rows[:limit],
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= _MAX_OFFSET,
         }
     except Exception:
         connection.rollback()
@@ -532,7 +532,7 @@ def list_location_kriging_summaries(
             "items": rows[:limit],
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= _MAX_OFFSET,
         }
     except Exception:
         connection.rollback()
@@ -653,7 +653,9 @@ def list_location_kriging_points(
             "total": total,
             "limit": limit,
             "offset": offset,
-            "has_more": offset + len(rows) < total,
+            "has_more": (
+                offset + len(rows) < total and offset + limit <= _MAX_OFFSET
+            ),
         }
     except Exception:
         connection.rollback()
@@ -734,7 +736,7 @@ def list_location_realization_summaries(
             "items": rows[:limit],
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= _MAX_OFFSET,
         }
     except Exception:
         connection.rollback()
@@ -848,7 +850,9 @@ def list_location_realization_points(
             "total": total,
             "limit": limit,
             "offset": offset,
-            "has_more": offset + len(rows) < total,
+            "has_more": (
+                offset + len(rows) < total and offset + limit <= _MAX_OFFSET
+            ),
         }
     except Exception:
         connection.rollback()

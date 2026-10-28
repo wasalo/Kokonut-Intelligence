@@ -1389,3 +1389,25 @@ unchanged. No candidate/legacy database or provider was used
 The checklist is now 1,411 complete / 25 open (1,436 total); this TODO ledger
 has 119 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.
+
+
+### Completed continuation — geostatistics and pollinator detail contracts — 28 October 2026
+
+- [x] Publish strict OpenAPI/runtime contracts for all remaining private
+  geostatistics GET routes, including nested folds, summaries, and bounded
+  point projections; bind location/run/page identity and stop continuation at
+  the offset ceiling.
+- [x] Publish strict review-queue, habitat, and hive response contracts for
+  pollinator reads; retain record-type-specific detail validation, location
+  grants, and sanitized no-store errors.
+
+The combined focused Gateway selection passes 158 tests. Ruff, Python
+compilation, capability validation, runtime-SQL inventory tests (24), current
+inventory checks on Python 3.11/3.12, and diff checks pass. The 37-candidate
+inventory keeps two source-reviewed SELECT-only `WITH` scopes in `reviewed_sites`;
+this review does not approve ACLs or change grants. No live database/provider,
+candidate, or legacy service was used ([evidence](builds/2026-10-28-recovery/gateway-geostatistics-pollinator-response-contracts.json)).
+
+The checklist is now 1,414 complete / 25 open (1,439 total); this TODO ledger
+has 121 checked and 16 open entries. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

@@ -5216,3 +5216,32 @@ The checklist is 1,411 complete / 25 open (1,436 total); the TODO ledger has
 Gateway response endpoints across 67 rows: 24 baseline-retained, 7 deployed,
 and 36 prepared. Live OIDC, populated-data parity, and broader tenant isolation
 remain open.
+
+
+### Completed continuation — geostatistics and pollinator detail response contracts — 28 October 2026
+
+- [x] Publish and enforce strict contracts for the seven remaining private
+  geostatistics GET routes: cross-validation, variogram models, sensor-network
+  designs, kriging summaries/points, and realization summaries/points. Bind
+  location, run ID, and pagination metadata to each request; constrain enums,
+  finite values, WGS84 coordinates, point order, and nested projections.
+- [x] Add strict pollinator review-queue, habitat-detail, and hive-detail
+  response contracts. Review details use a record-type discriminated union;
+  private location grants and sanitized no-store failures remain in force.
+- [x] Stop geostatistics and pollinator readers from advertising continuation
+  past offset 10,000. Source-review the two changed conservative geostatistics
+  `WITH` fingerprints in the inventory ledger; confirm both are SELECT-only
+  and make no ACL changes.
+
+The combined Gateway selection passes 158 tests. The runtime-SQL inventory
+suite passes 24; its current-source check passes on Python 3.11 and 3.12 with
+37 tracked candidates. The capability matrix validates at 67 rows (24
+baseline-retained, 7 deployed, 36 prepared); Ruff, compilation, and diff checks
+pass. No live database/provider, candidate, or legacy service was used. These
+checks establish source/API contracts only; populated-data parity, live
+OIDC/browser behavior, and broader tenant isolation remain open ([evidence](builds/2026-10-28-recovery/gateway-geostatistics-pollinator-response-contracts.json)).
+
+The checklist is now 1,414 complete / 25 open (1,439 total); the TODO ledger
+has 121 checked and 16 open entries. The matrix records 38 strict private
+Gateway response endpoints; capability classifications and MAN-CAP acceptance
+remain unchanged.

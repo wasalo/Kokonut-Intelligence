@@ -932,38 +932,22 @@ def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
 def _app(monkeypatch, reader):
     from services.gateway.geostatistics_routes import register_geostatistics_routes
 
-    monkeypatch.setattr(
-        "services.gateway.geostatistics_reads.list_location_spatial_autocorrelation",
-        reader,
-    )
-    monkeypatch.setattr(
-        "services.gateway.geostatistics_reads.list_location_cross_validation",
-        reader,
-    )
-    monkeypatch.setattr(
-        "services.gateway.geostatistics_reads.list_location_variogram_models",
-        reader,
-    )
-    monkeypatch.setattr(
-        "services.gateway.geostatistics_reads.list_location_sensor_network_designs",
-        reader,
-    )
-    monkeypatch.setattr(
-        "services.gateway.geostatistics_reads.list_location_kriging_summaries",
-        reader,
-    )
-    monkeypatch.setattr(
-        "services.gateway.geostatistics_reads.list_location_kriging_points",
-        reader,
-    )
-    monkeypatch.setattr(
-        "services.gateway.geostatistics_reads.list_location_realization_summaries",
-        reader,
-    )
-    monkeypatch.setattr(
-        "services.gateway.geostatistics_reads.list_location_realization_points",
-        reader,
-    )
+    for function_name in (
+        "list_location_spatial_autocorrelation",
+        "list_location_cross_validation",
+        "list_location_variogram_models",
+        "list_location_sensor_network_designs",
+        "list_location_kriging_summaries",
+        "list_location_kriging_points",
+        "list_location_realization_summaries",
+        "list_location_realization_points",
+    ):
+        replacement = reader.get(function_name, lambda *_args, **_kwargs: None) if isinstance(
+            reader, dict
+        ) else reader
+        monkeypatch.setattr(
+            f"services.gateway.geostatistics_reads.{function_name}", replacement
+        )
     app = FastAPI()
     router = APIRouter()
 
@@ -1146,7 +1130,13 @@ def test_kriging_points_http_route_is_no_store_and_location_scoped(monkeypatch):
         return {
             "location_id": location_id,
             "prediction_id": requested_prediction_id,
-            "prediction": {"method": "ordinary"},
+            "prediction": {
+                "property_key": "soil_carbon",
+                "method": "ordinary",
+                "grid_resolution_m": 10.0,
+                "n_points": 100,
+                "created_at": "2026-10-28T12:00:00+00:00",
+            },
             "items": [],
             "total": 0,
             "limit": limit,
@@ -1215,7 +1205,14 @@ def test_realization_points_http_route_is_no_store_and_location_scoped(monkeypat
         return {
             "location_id": location_id,
             "realization_id": requested_realization_id,
-            "realization": {"realization_number": 4},
+            "realization": {
+                "property_key": "soil_moisture",
+                "realization_number": 4,
+                "method": "sgs",
+                "grid_resolution_m": 10.0,
+                "n_points": 100,
+                "created_at": "2026-10-28T12:00:00+00:00",
+            },
             "items": [],
             "total": 0,
             "limit": limit,
@@ -1332,5 +1329,333 @@ def test_autocorrelation_service_stops_continuation_at_offset_ceiling(monkeypatc
     )
 
     assert len(result["items"]) == 1
+    assert result["has_more"] is False
+    assert connection.closed
+
+
+def _contracted_geostatistics_projections():
+    timestamp = "2026-10-28T12:00:00+00:00"
+    return {
+        "list_location_cross_validation": {
+            "location_id": LOCATION_ID,
+            "items": [{
+                "property_key": "soil_carbon",
+                "cv_strategy": "spatial_block",
+                "n_folds": 1,
+                "block_size_m": 250.0,
+                "mean_error": 0.1,
+                "mean_squared_error": 2.0,
+                "root_mean_squared_error": 1.4,
+                "mean_absolute_error": 0.9,
+                "r_squared": 0.7,
+                "computed_at": timestamp,
+                "fold_diagnostics": [{
+                    "fold": 1,
+                    "train_samples": 30,
+                    "test_samples": 5,
+                    "mean_error": 0.1,
+                    "mean_squared_error": 2.0,
+                    "rmse": 1.4,
+                    "mae": 0.9,
+                    "r_squared": 0.7,
+                }],
+            }],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+        },
+        "list_location_variogram_models": {
+            "location_id": LOCATION_ID,
+            "items": [{
+                "property_key": "soil_carbon",
+                "model_type": "spherical",
+                "sill": 0.8,
+                "range": 120.0,
+                "nugget": 0.02,
+                "partial_sill": 0.78,
+                "lag_distance": 10.0,
+                "lag_tolerance": 5.0,
+                "bandwidth": None,
+                "n_pairs": 240,
+                "r_squared": 0.85,
+                "fitted_at": timestamp,
+            }],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+        },
+        "list_location_sensor_network_designs": {
+            "location_id": LOCATION_ID,
+            "items": [{
+                "property_key": "soil_moisture",
+                "optimal_spacing_m": 25.0,
+                "coverage_radius_m": 15.0,
+                "recommended_n_sensors": 12,
+                "current_n_sensors": 8,
+                "coverage_gap_pct": 33.3,
+                "confidence_level": 0.85,
+                "computed_at": timestamp,
+            }],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+        },
+        "list_location_kriging_summaries": {
+            "location_id": LOCATION_ID,
+            "items": [{
+                "prediction_id": "55555555-5555-4555-8555-555555555555",
+                "property_key": "soil_carbon",
+                "method": "ordinary",
+                "grid_resolution_m": 10.0,
+                "n_points": 100,
+                "result_point_count": 98,
+                "mean_predicted": 0.4,
+                "mean_variance": 0.3,
+                "mean_std": 0.2,
+                "min_predicted": -0.5,
+                "max_predicted": 1.4,
+                "created_at": timestamp,
+            }],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+        },
+        "list_location_kriging_points": {
+            "location_id": LOCATION_ID,
+            "prediction_id": "55555555-5555-4555-8555-555555555555",
+            "prediction": {
+                "property_key": "soil_carbon",
+                "method": "ordinary",
+                "grid_resolution_m": 10.0,
+                "n_points": 100,
+                "created_at": timestamp,
+            },
+            "items": [{
+                "longitude": -69.9,
+                "latitude": 18.5,
+                "predicted_value": 0.4,
+                "prediction_variance": 0.25,
+                "prediction_std": 0.5,
+                "point_number": 1,
+            }],
+            "total": 1,
+            "limit": 50,
+            "offset": 0,
+            "has_more": False,
+        },
+        "list_location_realization_summaries": {
+            "location_id": LOCATION_ID,
+            "items": [{
+                "realization_id": "33333333-3333-4333-8333-333333333333",
+                "property_key": "soil_moisture",
+                "realization_number": 2,
+                "method": "sgs",
+                "grid_resolution_m": 10.0,
+                "n_points": 100,
+                "result_point_count": 99,
+                "mean_simulated_value": 0.42,
+                "stddev_simulated_value": 0.18,
+                "min_simulated_value": -0.2,
+                "max_simulated_value": 1.2,
+                "created_at": timestamp,
+            }],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+        },
+        "list_location_realization_points": {
+            "location_id": LOCATION_ID,
+            "realization_id": "33333333-3333-4333-8333-333333333333",
+            "realization": {
+                "property_key": "soil_moisture",
+                "realization_number": 2,
+                "method": "sgs",
+                "grid_resolution_m": 10.0,
+                "n_points": 100,
+                "created_at": timestamp,
+            },
+            "items": [{
+                "longitude": -69.9,
+                "latitude": 18.5,
+                "simulated_value": 0.4,
+                "point_number": 1,
+            }],
+            "total": 1,
+            "limit": 50,
+            "offset": 0,
+            "has_more": False,
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    ("reader_name", "path", "model_name"),
+    [
+        ("list_location_cross_validation", "cross-validation", "SpatialCrossValidationPage"),
+        ("list_location_variogram_models", "variogram-models", "VariogramModelPage"),
+        ("list_location_sensor_network_designs", "sensor-network-designs", "SensorNetworkDesignPage"),
+        ("list_location_kriging_summaries", "kriging-summaries", "KrigingSummaryPage"),
+        (
+            "list_location_kriging_points",
+            "kriging/55555555-5555-4555-8555-555555555555/points",
+            "KrigingPointPage",
+        ),
+        ("list_location_realization_summaries", "realization-summaries", "RealizationSummaryPage"),
+        (
+            "list_location_realization_points",
+            "realizations/33333333-3333-4333-8333-333333333333/points",
+            "RealizationPointPage",
+        ),
+    ],
+)
+def test_geostatistics_get_response_contracts_are_documented_and_validated(
+    monkeypatch, reader_name, path, model_name
+):
+    projection = _contracted_geostatistics_projections()[reader_name]
+    app = _app(monkeypatch, {reader_name: lambda *_args, **_kwargs: projection})
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/geostatistics/{LOCATION_ID}/{path}")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["location_id"] == LOCATION_ID
+    openapi_path = f"/operator/api/geostatistics/{{location_id}}/{path}"
+    openapi_path = openapi_path.replace(
+        "/55555555-5555-4555-8555-555555555555/", "/{prediction_id}/"
+    ).replace(
+        "/33333333-3333-4333-8333-333333333333/", "/{realization_id}/"
+    )
+    schema = app.openapi()["paths"][openapi_path]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith(model_name)
+
+
+@pytest.mark.parametrize(
+    ("reader_name", "path", "failure"),
+    [
+        ("list_location_cross_validation", "cross-validation", "Spatial cross-validation unavailable"),
+        ("list_location_variogram_models", "variogram-models", "Variogram model summaries unavailable"),
+        ("list_location_sensor_network_designs", "sensor-network-designs", "Sensor-network design summaries unavailable"),
+        ("list_location_kriging_summaries", "kriging-summaries", "Kriging summaries unavailable"),
+        (
+            "list_location_kriging_points",
+            "kriging/55555555-5555-4555-8555-555555555555/points",
+            "Kriging prediction points unavailable",
+        ),
+        (
+            "list_location_realization_summaries",
+            "realization-summaries",
+            "Geostatistical realization summaries unavailable",
+        ),
+        (
+            "list_location_realization_points",
+            "realizations/33333333-3333-4333-8333-333333333333/points",
+            "Geostatistical realization points unavailable",
+        ),
+    ],
+)
+def test_geostatistics_get_response_contracts_reject_undeclared_detail(
+    monkeypatch, reader_name, path, failure
+):
+    projection = _contracted_geostatistics_projections()[reader_name]
+    projection["items"][0]["private_metadata"] = {"secret": True}
+    app = _app(monkeypatch, {reader_name: lambda *_args, **_kwargs: projection})
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/geostatistics/{LOCATION_ID}/{path}")
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == {"error": failure}
+
+
+@pytest.mark.parametrize(
+    ("reader_name", "query_marker"),
+    [
+        ("list_location_cross_validation", "FROM geostat_cv_result"),
+        ("list_location_variogram_models", "FROM variogram_model"),
+        ("list_location_sensor_network_designs", "FROM sensor_network_design"),
+        ("list_location_kriging_summaries", "FROM selected_runs AS run"),
+        ("list_location_realization_summaries", "geostat_realization_point"),
+    ],
+)
+def test_geostatistics_summary_read_stops_at_offset_ceiling(
+    monkeypatch, reader_name, query_marker
+):
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+    connection = _Connection()
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        original_execute(self, query, params)
+        if query_marker in query and self.rows:
+            self.rows = tuple(self.rows[0] for _ in range(params[-2]))
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    result = globals()[reader_name](
+        OPERATOR_ID,
+        LOCATION_ID,
+        limit=25,
+        offset=9_976,
+        connection_factory=lambda: connection,
+    )
+
+    assert len(result["items"]) == 25
+    assert result["has_more"] is False
+    assert connection.closed
+
+
+@pytest.mark.parametrize(
+    ("reader_name", "query_marker", "run_id"),
+    [
+        (
+            "list_location_kriging_points",
+            "FROM kriging_point AS point",
+            "55555555-5555-4555-8555-555555555555",
+        ),
+        (
+            "list_location_realization_points",
+            "FROM geostat_realization_point AS point",
+            "33333333-3333-4333-8333-333333333333",
+        ),
+    ],
+)
+def test_geostatistics_point_read_stops_at_offset_ceiling(
+    monkeypatch, reader_name, query_marker, run_id
+):
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+    connection = _Connection()
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        original_execute(self, query, params)
+        if query_marker in query and "COUNT(*)" in query:
+            self.rows = ((10_050,),)
+        elif query_marker in query:
+            row = (
+                (-69.9, 18.5, 0.4, 0.25, 0.5)
+                if reader_name == "list_location_kriging_points"
+                else (-69.9, 18.5, 0.4)
+            )
+            self.rows = tuple(row for _ in range(params[-2]))
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    result = globals()[reader_name](
+        OPERATOR_ID,
+        LOCATION_ID,
+        run_id,
+        limit=25,
+        offset=9_976,
+        connection_factory=lambda: connection,
+    )
+
+    assert len(result["items"]) == 25
+    assert result["total"] == 10_050
     assert result["has_more"] is False
     assert connection.closed

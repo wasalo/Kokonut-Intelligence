@@ -316,7 +316,7 @@ def test_unresolved_write_ledger_requires_explicit_review_for_new_sites():
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
     current = [
         {"fingerprint": item["fingerprint"]}
-        for item in ledger["legacy_unreviewed"]
+        for item in [*ledger["legacy_unreviewed"], *ledger["reviewed_sites"]]
     ]
     new_site = {
         "fingerprint": "f" * 64,

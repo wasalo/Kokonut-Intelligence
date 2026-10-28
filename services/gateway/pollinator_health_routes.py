@@ -2,10 +2,19 @@
 
 import json
 from datetime import date
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictFloat,
+    StrictInt,
+    ValidationError,
+    model_validator,
+)
 
 _PollinatorType = Literal[
     "honeybee", "wild_bee", "butterfly", "moth", "beetle", "fly", "bird", "bat", "other"
@@ -102,6 +111,163 @@ class PollinatorHealthSummaryResponse(_PollinatorResponseModel):
     active_hive_summary: ActiveHiveSummary
 
 
+class PollinatorHabitatDetail(_PollinatorResponseModel):
+    id: UUID
+    habitat_name: str = Field(min_length=1, max_length=200)
+    habitat_type: Literal[
+        "wildflower_strip", "hedgerow", "nesting_site", "water_source",
+        "cover_crop", "native_planting", "other",
+    ]
+    area_m2: float | None = Field(strict=True)
+    condition: Literal["excellent", "good", "fair", "poor"] | None
+    status: Literal["active", "inactive", "degraded", "removed"]
+    last_maintenance: date | None
+    updated_at: AwareDatetime
+
+
+class PollinatorHiveDetail(_PollinatorResponseModel):
+    id: UUID
+    hive_id: str = Field(min_length=1, max_length=100)
+    hive_type: str | None = Field(default=None, max_length=50)
+    status: Literal["active", "inactive", "decommissioned"]
+    colony_strength: Literal["strong", "moderate", "weak", "dead"] | None
+    colony_strength_score: int | None = Field(default=None, ge=0, le=10, strict=True)
+    queen_status: Literal["present", "absent", "replaced", "unknown"] | None
+    frame_count: int | None = Field(default=None, ge=0, strict=True)
+    inspection_date: date | None
+    last_maintenance_date: date | None
+    updated_at: AwareDatetime
+
+
+class _PollinatorPage(_PollinatorResponseModel):
+    location_id: UUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10_000, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(default=None, ge=0, le=10_000, strict=True)
+
+    def validate_page(self, page_length: int):
+        if page_length > self.limit:
+            raise ValueError("page contains more items than its limit")
+        if self.has_more and page_length != self.limit:
+            raise ValueError("has_more requires a full page")
+        expected_next = self.offset + self.limit if self.has_more else None
+        if self.next_offset != expected_next:
+            raise ValueError("next_offset is inconsistent with the returned page")
+        if self.has_more and (self.next_offset is None or self.next_offset > 10_000):
+            raise ValueError("next_offset exceeds the supported offset boundary")
+        return self
+
+
+class PollinatorHabitatDetailPage(_PollinatorPage):
+    habitats: list[PollinatorHabitatDetail] = Field(max_length=50)
+
+    @model_validator(mode="after")
+    def validate_habitats_page(self):
+        return self.validate_page(len(self.habitats))
+
+
+class PollinatorHiveDetailPage(_PollinatorPage):
+    hives: list[PollinatorHiveDetail] = Field(max_length=50)
+
+    @model_validator(mode="after")
+    def validate_hives_page(self):
+        return self.validate_page(len(self.hives))
+
+
+_ReviewNumber = StrictInt | StrictFloat | None
+
+
+class PollinatorObservationReviewDetails(_PollinatorResponseModel):
+    pollinator_type: _PollinatorType | None
+    count: int | None = Field(ge=0, strict=True)
+    method: _ObservationMethod | None
+    duration_minutes: int | None = Field(ge=0, strict=True)
+    species_name: str | None = Field(max_length=200)
+    notes: str | None = Field(max_length=2000)
+
+
+class PollinatorPesticideReviewDetails(_PollinatorResponseModel):
+    product_name: str | None = Field(max_length=200)
+    active_ingredient: str | None = Field(max_length=200)
+    toxicity_class: Literal["low", "moderate", "high", "very_high"] | None
+    application_rate: _ReviewNumber
+    rate_unit: str | None = Field(max_length=100)
+    area_treated_m2: _ReviewNumber
+    bloom_stage_at_application: str | None = Field(max_length=100)
+    pollinator_distance_m: _ReviewNumber
+    pollinator_safe_period_days: int | None = Field(ge=0, strict=True)
+    mortality_observed: bool | None
+    mortality_pct: _ReviewNumber
+    notes: str | None = Field(max_length=2000)
+
+
+class PollinatorHiveInspectionReviewDetails(_PollinatorResponseModel):
+    hive_id: str = Field(min_length=1, max_length=100)
+    colony_strength: Literal["strong", "moderate", "weak", "dead"] | None
+    colony_strength_score: int | None = Field(ge=0, le=10, strict=True)
+    queen_status: Literal["present", "absent", "replaced", "unknown"] | None
+    queen_seen: bool | None
+    varroa_count: int | None = Field(ge=0, strict=True)
+    brood_pattern: str | None = Field(max_length=500)
+    honey_stores: str | None = Field(max_length=500)
+    disease_signs: str | None = Field(max_length=500)
+    temperament: str | None = Field(max_length=200)
+    population_estimate: int | None = Field(ge=0, strict=True)
+    swarm_cells: bool | None
+    notes: str | None = Field(max_length=2000)
+
+
+class PollinatorObservationReviewItem(_PollinatorResponseModel):
+    record_id: UUID
+    record_type: Literal["observation"]
+    occurred_on: date
+    status: Literal["recorded"]
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+    details: PollinatorObservationReviewDetails
+
+
+class PollinatorPesticideReviewItem(_PollinatorResponseModel):
+    record_id: UUID
+    record_type: Literal["pesticide_impact"]
+    occurred_on: date
+    status: Literal["recorded"]
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+    details: PollinatorPesticideReviewDetails
+
+
+class PollinatorHiveInspectionReviewItem(_PollinatorResponseModel):
+    record_id: UUID
+    record_type: Literal["hive_inspection"]
+    occurred_on: date
+    status: Literal["recorded"]
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+    details: PollinatorHiveInspectionReviewDetails
+
+
+PollinatorReviewItem = Annotated[
+    PollinatorObservationReviewItem
+    | PollinatorPesticideReviewItem
+    | PollinatorHiveInspectionReviewItem,
+    Field(discriminator="record_type"),
+]
+
+
+class PollinatorReviewQueuePage(_PollinatorPage):
+    items: list[PollinatorReviewItem] = Field(max_length=50)
+    total: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        self.validate_page(len(self.items))
+        if self.has_more and self.offset + len(self.items) >= self.total:
+            raise ValueError("has_more exceeds the available review rows")
+        return self
+
+
 def register_pollinator_health_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -128,6 +294,25 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
     )
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+
+    def _validated_private_response(model, result, error_message, expected):
+        try:
+            validated = model.model_validate(result)
+            if any(getattr(validated, name) != value for name, value in expected.items()):
+                raise ValueError("response does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.pollinators").warning(
+                "Pollinator response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500, content={"error": error_message}, headers=headers
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json", exclude_unset=True)),
+            headers=headers,
+        )
 
     async def bounded_payload(request: Request, *, max_bytes: int = 12 * 1024):
         content_length = request.headers.get("content-length")
@@ -221,7 +406,10 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             jsonable_encoder(validated.model_dump(mode="json")), headers=headers
         )
 
-    @router.get("/operator/api/pollinators/{location_id}/review-queue")
+    @router.get(
+        "/operator/api/pollinators/{location_id}/review-queue",
+        response_model=PollinatorReviewQueuePage,
+    )
     async def pollinator_review_queue(
         request: Request,
         location_id: str,
@@ -263,7 +451,12 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
                 content={"error": "Pollinator review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        return _validated_private_response(
+            PollinatorReviewQueuePage,
+            result,
+            "Pollinator review queue unavailable",
+            {"location_id": UUID(location_id), "limit": limit, "offset": offset},
+        )
 
     async def _review_pollinator_record(
         request: Request, location_id: str, record_type: str, record_id: str
@@ -359,7 +552,10 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
     async def review_pollinator_hive_inspection(request: Request, location_id: str, record_id: str):
         return await _review_pollinator_record(request, location_id, "hives/inspections", record_id)
 
-    @router.get("/operator/api/pollinators/{location_id}/habitats")
+    @router.get(
+        "/operator/api/pollinators/{location_id}/habitats",
+        response_model=PollinatorHabitatDetailPage,
+    )
     async def pollinator_habitat_details(
         request: Request,
         location_id: str,
@@ -402,9 +598,17 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
                 content={"error": "Pollinator habitat details unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        return _validated_private_response(
+            PollinatorHabitatDetailPage,
+            result,
+            "Pollinator habitat details unavailable",
+            {"location_id": UUID(location_id), "limit": limit, "offset": offset},
+        )
 
-    @router.get("/operator/api/pollinators/{location_id}/hives")
+    @router.get(
+        "/operator/api/pollinators/{location_id}/hives",
+        response_model=PollinatorHiveDetailPage,
+    )
     async def pollinator_hive_details(
         request: Request,
         location_id: str,
@@ -446,7 +650,12 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
                 content={"error": "Managed-hive details unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        return _validated_private_response(
+            PollinatorHiveDetailPage,
+            result,
+            "Managed-hive details unavailable",
+            {"location_id": UUID(location_id), "limit": limit, "offset": offset},
+        )
 
     @router.post("/operator/api/pollinators/{location_id}/observations")
     async def create_pollinator_observation(request: Request, location_id: str):

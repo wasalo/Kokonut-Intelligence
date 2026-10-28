@@ -1,7 +1,7 @@
 {
   "version": 1,
   "scope": "Tracks direct SQL DML and conservative WITH candidates whose target relation is unresolved. Legacy entries are acknowledged inventory debt only; they do not grant or approve ACLs. New candidates require a reviewed_sites entry with reviewer, date, decision note, and reason.",
-  "legacy_fingerprint_sha256": "33b5fbfd8d61a44b2b09a3a1440fabb3a8acb5035b003e43b655741f84038c5e",
+  "legacy_fingerprint_sha256": "b09fe6be4fb098529d04432be6d0aa12071c3c1dd75423f90e77cde3017b95cf",
   "legacy_unreviewed": [
     {
       "fingerprint": "121bdc4b3054f807d73fdec63415c04a2cd0409e41cfd1a91fe3c8aa891e550f",
@@ -85,17 +85,6 @@
       "source": "services/systems/process_control.py",
       "line": 78,
       "scope": "_fty_pct",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "2d95ab81005c1abbcc2ba297cf22d5ef0955edffadf0b05b44fe4b9044abf31f",
-      "source": "services/gateway/geostatistics_reads.py",
-      "line": 494,
-      "scope": "list_location_kriging_summaries",
       "method": "execute",
       "statement_kind": "WITH",
       "expression_kind": "literal",
@@ -187,17 +176,6 @@
       "method": "execute",
       "statement_kind": "WITH",
       "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "46f480224f1e6ada015bc3ddbe07619812e8a5b00c562d784a80448f5811cbb1",
-      "source": "services/gateway/geostatistics_reads.py",
-      "line": 694,
-      "scope": "list_location_realization_summaries",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
       "review_status": "preexisting_unreviewed",
       "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
     },
@@ -411,5 +389,20 @@
       "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
     }
   ],
-  "reviewed_sites": []
+  "reviewed_sites": [
+    {
+      "fingerprint": "4394d51bfcfc1572d8047e03b078748453442dbeb83bac6783b4eb1f5e2fc508",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed list_location_kriging_summaries: its WITH clause selects the bounded, location-filtered kriging_prediction page and aggregates kriging_point rows; no DML or mutating SQL is present. This edit only clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative manual review; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "d78ae2503389732a99dd050750419582974f2bc4b9a7066d0ed38a545c8c338f",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed list_location_realization_summaries: its WITH clause selects the bounded, location-filtered geostat_realization page and aggregates point values; no DML or mutating SQL is present. This edit only clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative manual review; this is not an ACL approval."
+    }
+  ]
 }
