@@ -21063,3 +21063,41 @@ Evidence: [migration](../schemas/postgres/672_runtime_dfs_currency_read_only.sql
 [refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
 Checklist: 1,286 complete / 25 open (1,311 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — Crop GDD configuration runtime read-only boundary — 27 October 2026
+
+Schema 134 defines the shared `crop_gdd_config` table and seed 088 supplies
+curated thresholds and crop coefficients. `services/analytics/crop_phenology.py`
+and `services/analytics/evapotranspiration.py` read the configuration; the
+runtime SQL inventory and source review found no service or extension writer.
+Migration 673 revokes table and residual column INSERT/UPDATE/REFERENCES from
+`kokonut_runtime`, restores SELECT, and the runtime provisioner reapplies the
+boundary after compatibility grants.
+
+Native and ARM64/QEMU disposable PostgreSQL 16 checks pass migration
+apply/replay, read access, table/column mutation and TRUNCATE denial, stale
+column-grant cleanup, provisioner reapplication, and preservation of synthetic
+Directus grants. A fresh native replay applied all 664 ordered schemas through
+673 and passed all 29 two-tenant scope assertions under verified 1.5 GiB/two-CPU
+limits. It loads no seeds, so the probe confirms the table can be queried but
+does not establish parity against populated GDD rows. No farm data or host ports
+were used; no OOM occurred and cleanup passed. Candidate and legacy databases
+remain untouched.
+
+The refreshed source/ACL report covers 120 declared policies with zero
+mismatches; 1,000 relations still have effective table DML while RLS is
+disabled, so C1 remains open. The runtime-role, report, and schema-replay
+regression selection passes 104 tests. Native/ARM64 ACL checks, Ruff,
+compilation, dependency/provider boundaries, SQL inventory, capability
+validation, and diff checks are recorded for this batch. Rollback retains
+migration 673; restoring runtime writes requires a reviewed forward migration.
+Physical Raspberry Pi and power-failure acceptance remain open, and this does
+not establish populated-data or production acceptance.
+
+Evidence: [migration](../schemas/postgres/673_runtime_crop_gdd_config_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/crop-gdd-config-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/crop-gdd-config-runtime-read-only-arm64-disposable.json),
+[full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-673-native-disposable.json),
+[refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,287 complete / 25 open (1,312 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

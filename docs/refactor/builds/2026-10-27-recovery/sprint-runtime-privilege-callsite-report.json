@@ -11061,31 +11061,49 @@
       ],
       "candidate_write_target_sites_by_statement": {},
       "candidate_write_target_source_files": [],
-      "configured_runtime_boundary": null,
+      "configured_runtime_boundary": "runtime_mutations_denied",
       "dml_overlaps_explicit_revoke": false,
-      "effective_dml_privileges": [
-        "DELETE",
-        "INSERT",
-        "UPDATE"
-      ],
+      "effective_dml_privileges": [],
       "effective_dml_revokes": [],
       "effective_privileges": {
-        "delete": true,
-        "insert": true,
+        "delete": false,
+        "insert": false,
         "select": true,
         "truncate": false,
-        "update": true
+        "update": false
       },
       "effective_truncate_privilege": false,
-      "expected_runtime_boundary": null,
-      "explicit_runtime_dml_revokes": [],
-      "explicit_runtime_revokes": [],
-      "has_any_dml": true,
+      "expected_runtime_boundary": "runtime_mutations_denied",
+      "explicit_runtime_dml_revokes": [
+        {
+          "migration": "673_runtime_crop_gdd_config_read_only.sql",
+          "privileges": "ALL PRIVILEGES"
+        }
+      ],
+      "explicit_runtime_revokes": [
+        {
+          "migration": "673_runtime_crop_gdd_config_read_only.sql",
+          "privileges": "ALL PRIVILEGES"
+        },
+        {
+          "migration": "673_runtime_crop_gdd_config_read_only.sql",
+          "privileges": "INSERT (%1$I)"
+        },
+        {
+          "migration": "673_runtime_crop_gdd_config_read_only.sql",
+          "privileges": "REFERENCES (%1$I)"
+        },
+        {
+          "migration": "673_runtime_crop_gdd_config_read_only.sql",
+          "privileges": "UPDATE (%1$I)"
+        }
+      ],
+      "has_any_dml": false,
       "kind": "r",
       "relation": "crop_gdd_config",
       "rls_enabled": false,
       "rls_forced": false,
-      "runtime_boundary_policy_matches_source": null
+      "runtime_boundary_policy_matches_source": true
     },
     {
       "candidate_execution_sites_by_statement": {
@@ -69475,8 +69493,8 @@
       "direct_column_privilege_violations": 0,
       "direct_table_privilege_violations": 0,
       "farm_activity_ledger_readable": 1,
-      "mutation_denied_relations_expected": 37,
-      "mutation_denied_relations_verified": 37,
+      "mutation_denied_relations_expected": 38,
+      "mutation_denied_relations_verified": 38,
       "private_relations_expected": 79,
       "private_relations_verified": 79
     },
@@ -69484,25 +69502,25 @@
   },
   "runtime_role_policy_source": {
     "path": "services/migration/runtime_role.py",
-    "sha256": "2bf33ed8c02acf35ac530fee54e416959517b872068995b412ae08725fedb988"
+    "sha256": "d00a1f62390ede493e5b8bd40c27336da2255da0dad4128d00cb91d31b0acfde"
   },
   "scope_limit": "No application rows, operator identifiers, or secrets are included. The report does not include a full column ACL inventory, sequence ACLs, object ownership, security-definer behavior, Directus, external consumers, or production state. The API-key read-only column allowlist is separately verified by the runtime provisioner. Static policy coverage and its source digest do not prove that the provisioner has executed.",
   "source_dirty": true,
-  "source_revision": "b6eb9722",
+  "source_revision": "0975fe09",
   "summary": {
     "dml_relations_matching_explicit_runtime_revoke": 0,
     "dml_relations_without_candidate_sites": 503,
     "migration_revoked_relations_missing_or_mismatched_runtime_policy": 0,
-    "migration_revoked_relations_with_runtime_policy": 119,
-    "relations_with_any_dml": 1388,
+    "migration_revoked_relations_with_runtime_policy": 120,
+    "relations_with_any_dml": 1387,
     "relations_with_candidate_execution_sites": 910,
     "relations_with_effective_truncate": 0,
     "relations_with_effective_truncate_and_rls_disabled": 0,
     "runtime_relations": 1511,
-    "tables_with_dml_and_rls_disabled": 1001,
+    "tables_with_dml_and_rls_disabled": 1000,
     "unprotected_dml_relations_matching_explicit_runtime_revoke": 0,
     "unprotected_dml_relations_without_candidate_sites": 254,
-    "unprotected_dml_relations_without_candidate_write_sites": 439
+    "unprotected_dml_relations_without_candidate_write_sites": 438
   },
   "unprotected_candidate_write_relations_by_service": {
     "abundance": 30,
@@ -69880,7 +69898,6 @@
     "crop",
     "crop_cost_allocation",
     "crop_cycle",
-    "crop_gdd_config",
     "cross_farm_portfolio",
     "cultural_context_record",
     "cultural_preservation_plan",

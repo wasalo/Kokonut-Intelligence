@@ -649,3 +649,13 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   regression modules pass 103 tests. This is software-only synthetic evidence;
   physical Pi, populated operational data, and production acceptance remain
   open ([batch](batches.md); [progress](progress.md#progress-addendum--currency-reference-catalog-runtime-read-only-boundary--27-october-2026)).
+
+- [x] Keep the shared `crop_gdd_config` reference readable but immutable to
+  `kokonut_runtime`. Migration 673 and native/ARM64 disposable PostgreSQL checks
+  cover table and column mutation denial, reads, provisioner reapplication, and
+  preservation of Directus grants. The 664-file native replay passes all 29
+  two-tenant probe assertions. It loads no seeds, so populated GDD parity is
+  still open. The three focused regression modules pass 104 tests; 120 ACL
+  policies have zero mismatches while 1,000 relations still retain effective
+  DML with RLS disabled, so C1 remains open. No candidate or legacy database
+  was touched ([batch](batches.md); [progress](progress.md#progress-addendum--crop-gdd-configuration-runtime-read-only-boundary--27-october-2026)).
