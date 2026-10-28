@@ -22335,3 +22335,25 @@ service was used ([evidence](builds/2026-10-28-recovery/kernel-governance-weekly
 
 The checklist is 1,428 complete / 25 open (1,453 total); the TODO ledger has
 135 checked / 16 open entries.
+
+
+### Progress addendum — stakeholder identity resolution read contract — 28 October 2026
+
+The private location-scoped stakeholder identity resolution route now has a
+strict OpenAPI and runtime response model. It publishes only the requested
+location, canonical party UUID, and aware resolution timestamp. Extra fields,
+invalid identifiers, and naive timestamps fail closed with a sanitized
+no-store error. The identity route family passes 31 tests; Ruff, compilation,
+diff checks, and runtime SQL inventory freshness on Python 3.11/3.12 pass.
+
+The matrix records 56 strict private Gateway response endpoints across 67
+capabilities. A C1 source audit found no safe next ACL revoke: `consent_data_type`
+is reseeded by an upsert in schema 148, has retention fields changed by
+migration 401, and is owned by Data Governance/Consent. Grants remain
+unchanged pending owner confirmation. The C6 audit likewise found that
+remaining CAP-035 through CAP-038 gaps require owner policy, populated lineage,
+or live acceptance. No migration, database, provider, candidate, or legacy
+service was used ([evidence](builds/2026-10-28-recovery/kernel-stakeholder-identity-resolution-response.json)).
+
+The checklist is 1,429 complete / 25 open (1,454 total); the TODO ledger has
+136 checked / 16 open entries.

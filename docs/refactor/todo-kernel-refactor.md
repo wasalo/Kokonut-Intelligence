@@ -10,6 +10,10 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Add a strict OpenAPI/runtime contract to the private stakeholder identity
+  resolution read. It returns only the requested location, canonical party ID,
+  and aware resolution timestamp; malformed service projections fail with a
+  sanitized no-store error.
 - [x] Add a strict OpenAPI/runtime success contract to the location-scoped
   governance-tension review queue. Validate its enums, severity bounds,
   timestamps, exact projection, descending order, location, and cursor binding;
@@ -600,7 +604,12 @@ that its full source-plan phase is complete.
   authorization data and its editor/consumer ownership is unknown; it is not a
   safe revoke candidate without that reconciliation. Preserve rollback and
   distinguish table grants from RLS, worker, Directus, and production
-  enforcement. The current report shows
+  enforcement. A fresh source audit also examined `consent_data_type`: although
+  no application callsite or Directus hook/permission seed uses it and the
+  runtime currently has DML with RLS disabled, schema 148 reseeds rows with
+  `ON CONFLICT DO UPDATE` and migration 401 changes retention fields. Its Data
+  Governance/Consent ownership means this is not a safe fixed-catalog revoke
+  without owner confirmation. No migration was added. The current report shows
   245 unprotected DML relations without an inventoried callsite and 420 without
   an inventoried write-target site; the report does not include all Directus,
   external, ownership, security-definer, column-ACL, or populated-runtime paths.
@@ -845,8 +854,9 @@ that its full source-plan phase is complete.
   CAP-036, CAP-037 and CAP-038 where code can be completed without populated
   farm records or production identity. The latest audit found no further safe
   independent source-only slice: CAP-035 sharing/tranche custody needs policy
-  decisions; CAP-036 already excludes unscoped sensitive events; CAP-037 has
-  no identified first-party workflow gap; CAP-038 needs live identity and
+  decisions; CAP-036 already excludes unscoped sensitive events and needs a
+  populated/archived corpus to establish additional subject lineage; CAP-037
+  has no identified first-party workflow gap; CAP-038 needs live identity and
   populated-source acceptance. Sources: [CAP-035](batches.md#L3484),
   [CAP-036](batches.md#L3574), [CAP-037](batches.md#L3582),
   [CAP-038](batches.md#L3652).

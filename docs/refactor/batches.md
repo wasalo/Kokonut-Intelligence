@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,428 checklist items complete and 25
-open (1,453 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,429 checklist items complete and 25
+open (1,454 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5372,4 +5372,33 @@ Evidence: [governance and weekly workflow batch](builds/2026-10-28-recovery/kern
 
 The checklist is now 1,428 complete / 25 open (1,453 total); the TODO ledger
 has 135 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Completed continuation — stakeholder identity resolution response contract — 28 October 2026
+
+- [x] Publish a strict OpenAPI/runtime success model for the private
+  stakeholder identity resolution read. The response is limited to the
+  requested location, canonical party UUID, and aware resolution timestamp;
+  malformed IDs, naive timestamps, and undeclared fields fail closed through
+  the existing sanitized no-store response.
+
+The stakeholder identity route family passes 31 tests. Ruff, compilation,
+`git diff --check`, and runtime SQL inventory freshness on Python 3.11/3.12
+pass. The runtime inventory retains the same 37 unresolved write candidates.
+The capability matrix validates at 67 rows (24 baseline-retained, 7 deployed,
+36 prepared) and now records 56 strict private Gateway response endpoints.
+No migration, database, provider, candidate, or legacy service was used.
+
+Parallel C1 review found no safe next ACL migration. `consent_data_type` is the
+strongest apparent catalog candidate, but schema 148 reseeds it with
+`ON CONFLICT DO UPDATE` and migration 401 changes retention fields; its owner
+is Data Governance/Consent. Runtime grants stay unchanged pending ownership
+confirmation. A C6 audit found remaining CAP-035 policy, CAP-036 populated
+lineage, CAP-037 populated/runtime acceptance, and CAP-038 source-snapshot and
+production-identity gates do not support a safe source-only behavior change.
+Evidence: [stakeholder response contract](builds/2026-10-28-recovery/kernel-stakeholder-identity-resolution-response.json).
+
+The checklist is now 1,429 complete / 25 open (1,454 total); the TODO ledger
+has 136 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.

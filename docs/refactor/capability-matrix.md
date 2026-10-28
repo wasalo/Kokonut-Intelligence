@@ -49,8 +49,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,428
-complete / 25 open (1,453 total). Fifty-five private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,429
+complete / 25 open (1,454 total). Fifty-six private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. Comprehensive
 Status keeps its section bodies JSON-compatible pending an audit of the
@@ -90,10 +90,14 @@ This continuation adds the strict governance-tension review-queue response
 contract and corrects the weekly Prefect flow description to match its actual
 climate-only execution. Its governance/Prefect selection passes 39 tests;
 Ruff, compilation, and runtime SQL inventory checks on Python 3.11/3.12 pass.
-The current endpoint count is 55. A source audit confirms there is no safe new
-provider job or additional Directus tenant-reference mapping to register from
-repository evidence, and remaining report gaps need owner/populated-data input.
-No capability classification or MAN-CAP acceptance changed.
+That batch recorded 55 endpoints. This continuation adds a strict minimal
+response contract for the private stakeholder identity resolution route; its
+focused three-file selection passes 31 tests, and runtime SQL inventory checks
+remain current on Python 3.11/3.12. The current endpoint count is 56. A source
+audit found no safe runtime ACL migration: `consent_data_type` remains owner-
+configurable and is updated by migrations. C6's remaining gaps still require
+policy or populated/runtime acceptance. No capability classification or
+MAN-CAP acceptance changed.
 
 The latest response-contract continuation adds strict contracts for AI-summary
 review-list, business-canvas version history, sequential-evidence summary and
