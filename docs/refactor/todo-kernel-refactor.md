@@ -659,3 +659,12 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   policies have zero mismatches while 1,000 relations still retain effective
   DML with RLS disabled, so C1 remains open. No candidate or legacy database
   was touched ([batch](batches.md); [progress](progress.md#progress-addendum--crop-gdd-configuration-runtime-read-only-boundary--27-october-2026)).
+
+- [x] Keep `pest_degree_day_config` readable but immutable to
+  `kokonut_runtime`. Migration 674 passes native and ARM64/QEMU disposable ACL
+  checks, including provisioner reapplication and Directus-grant preservation.
+  The 665-file native replay passes all 30 two-tenant assertions and reads the
+  schema-defined `fall_armyworm` default. The three focused regression modules
+  pass 105 tests; 121 ACL policies have zero mismatches while 999 relations
+  retain effective DML with RLS disabled, so C1 remains open. No candidate or
+  legacy database was touched ([batch](batches.md); [progress](progress.md#progress-addendum--pest-degree-day-configuration-runtime-read-only-boundary--27-october-2026)).

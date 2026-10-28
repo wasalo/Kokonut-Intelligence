@@ -21101,3 +21101,43 @@ Evidence: [migration](../schemas/postgres/673_runtime_crop_gdd_config_read_only.
 [refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
 Checklist: 1,287 complete / 25 open (1,312 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — Pest degree-day configuration runtime read-only boundary — 27 October 2026
+
+Schema migration 149 defines and inserts the shared `pest_degree_day_config`
+defaults. `services/analytics/pest_management.py` reads them for lifecycle
+tracking; its degree-day recording path writes the separate operational
+`degree_day_record`, and its pest-reference management function writes
+`pest_biology_reference`. The runtime SQL inventory and service/extension scan
+found no writer to the config relation. Migration 674 revokes table and
+residual column INSERT/UPDATE/REFERENCES from `kokonut_runtime`, restores
+SELECT, and the runtime provisioner reapplies that boundary after compatibility
+grants.
+
+Native and ARM64/QEMU disposable PostgreSQL 16 checks pass migration
+apply/replay, SELECT, table/column mutation and TRUNCATE denial, stale column
+grant removal, provisioner reapplication, and preservation of synthetic
+Directus grants. The fresh native full-schema replay applied all 665 ordered
+schemas through migration 674, verified 1.5 GiB/two-CPU limits, and passed all
+30 two-tenant scope assertions. The probe confirms runtime can read the
+schema-defined `fall_armyworm` default. No optional seed files or farm data were
+loaded, no ports were published, no OOM occurred, and cleanup passed; candidate
+and legacy databases remain untouched.
+
+The refreshed report covers 121 declared policies with zero mismatches; 999
+relations still have effective table DML while RLS is disabled, so C1 remains
+open. The runtime-role, report, and schema-replay selection passes 105 tests.
+Ruff, Python compilation, dependency/provider boundaries, SQL inventory,
+capability validation, and diff checks pass. Rollback retains migration 674;
+restoring runtime writes requires a reviewed forward migration. This is
+software-only synthetic acceptance; it does not establish broad populated-data
+or Directus API parity, physical Raspberry Pi acceptance, or production
+operation.
+
+Evidence: [migration](../schemas/postgres/674_runtime_pest_degree_day_config_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-arm64-disposable.json),
+[full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-674-native-disposable.json),
+[refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,288 complete / 25 open (1,313 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

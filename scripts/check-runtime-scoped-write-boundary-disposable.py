@@ -90,8 +90,12 @@ DFS_CURRENCY_MIGRATION = (
 CROP_GDD_CONFIG_MIGRATION = (
     ROOT / "schemas/postgres/673_runtime_crop_gdd_config_read_only.sql"
 )
+PEST_DEGREE_DAY_CONFIG_MIGRATION = (
+    ROOT / "schemas/postgres/674_runtime_pest_degree_day_config_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
+    "pest_degree_day_config",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
@@ -260,6 +264,7 @@ def check_boundary(
                     "expense_category", "crisp_risk_dimension",
                     "dfs_currency",
                     "crop_gdd_config",
+                    "pest_degree_day_config",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -399,6 +404,11 @@ def check_boundary(
                 )
                 cursor.execute(crop_gdd_config_migration)
                 cursor.execute(crop_gdd_config_migration)
+                pest_degree_day_config_migration = PEST_DEGREE_DAY_CONFIG_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(pest_degree_day_config_migration)
+                cursor.execute(pest_degree_day_config_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -489,6 +499,7 @@ def check_boundary(
                         "crisp_risk_dimension": 671,
                         "dfs_currency": 672,
                         "crop_gdd_config": 673,
+                        "pest_degree_day_config": 674,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -583,6 +594,7 @@ def check_boundary(
                     ("crisp_risk_dimension", 671),
                     ("dfs_currency", 672),
                     ("crop_gdd_config", 673),
+                    ("pest_degree_day_config", 674),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -1275,6 +1287,14 @@ def check_boundary(
                     "directus_role_unchanged": True,
                 },
                 "read_only_crop_gdd_config": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_pest_degree_day_config": {
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,

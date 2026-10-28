@@ -1058,7 +1058,7 @@ _RUNTIME_MUTATION_TABLES = (
     "ghg_emission_factor",
     "operations_protocol",
     "process_maturity_level",
-    "pollinator_species_reference",
+    "pollinator_species_reference", "pest_degree_day_config",
     "gri_indicator",
     "governance_framework",
     "impact_framework",
