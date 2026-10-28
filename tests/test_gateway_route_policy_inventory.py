@@ -60,7 +60,7 @@ _EXPECTED_ROUTE_POLICIES = {
     ("GET", "/api/iri/resolve"): ("iri", "read", True),
     ("GET", "/api/federation/nodes"): ("federation_node", "read", True),
     ("GET", "/api/drivers"): ("driver", "read", True),
-    ("GET", "/api/health/services"): ("service_health", "read", True),
+    ("GET", "/api/health/services"): ("service_health", "read", False),
     ("GET", "/api/mobile/app"): ("mobile_app", "read", True),
     ("GET", "/api/mobile/field-collector-vault.js"): ("mobile_app", "read", True),
     ("GET", "/api/mobile/field-collector-service-worker.js"): ("mobile_app", "read", True),

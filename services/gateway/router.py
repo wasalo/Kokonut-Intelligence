@@ -96,7 +96,10 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/iri/resolve$"), "iri", "read", True),
     ("GET", re.compile(r"^/api/federation/nodes$"), "federation_node", "read", True),
     ("GET", re.compile(r"^/api/drivers$"), "driver", "read", True),
-    ("GET", re.compile(r"^/api/health/services$"), "service_health", "read", True),
+    # Detailed dependency health reveals optional-service topology and probes
+    # PostgreSQL/ClickHouse/Directus. Keep it behind an explicit capability;
+    # the lightweight `/health` liveness endpoint remains public.
+    ("GET", re.compile(r"^/api/health/services$"), "service_health", "read", False),
     ("GET", re.compile(r"^/api/data-stream/posts$"), "data_stream_post", "read", False),
     ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/files$"), "data_stream_file", "read", False),
     ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/attestation$"), "data_stream_proof", "read", False),

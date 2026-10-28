@@ -65,9 +65,9 @@
         "services/events/bus.py:458:16",
         "services/events/cli.py:220:12",
         "services/events/cli.py:249:12",
-        "services/events/fork_detector.py:133:12",
-        "services/events/fork_detector.py:36:8",
-        "services/events/fork_detector.py:59:8",
+        "services/events/fork_detector.py:138:12",
+        "services/events/fork_detector.py:41:12",
+        "services/events/fork_detector.py:64:8",
         "services/events/insight_transfer.py:103:8",
         "services/events/insight_transfer.py:143:8",
         "services/events/insight_transfer.py:170:8",
@@ -79,19 +79,19 @@
         "services/events/notification_delivery_worker.py:49:12",
         "services/events/notification_outbox.py:346:8",
         "services/events/notification_outbox.py:357:8",
-        "services/events/notification_outbox.py:394:8",
-        "services/events/notification_outbox.py:422:12",
-        "services/events/notification_outbox.py:507:8",
-        "services/events/notification_outbox.py:531:8",
-        "services/events/notification_outbox.py:601:8",
-        "services/events/notification_outbox.py:603:8",
-        "services/events/notification_outbox.py:644:8",
-        "services/events/notification_outbox.py:674:8",
-        "services/events/notification_outbox.py:685:8",
-        "services/events/notification_outbox.py:697:8",
-        "services/events/notification_outbox.py:725:8",
-        "services/events/notification_outbox.py:736:8",
-        "services/events/notification_outbox.py:745:8"
+        "services/events/notification_outbox.py:395:8",
+        "services/events/notification_outbox.py:423:12",
+        "services/events/notification_outbox.py:508:8",
+        "services/events/notification_outbox.py:532:8",
+        "services/events/notification_outbox.py:602:8",
+        "services/events/notification_outbox.py:604:8",
+        "services/events/notification_outbox.py:645:8",
+        "services/events/notification_outbox.py:675:8",
+        "services/events/notification_outbox.py:686:8",
+        "services/events/notification_outbox.py:698:8",
+        "services/events/notification_outbox.py:726:8",
+        "services/events/notification_outbox.py:737:8",
+        "services/events/notification_outbox.py:746:8"
       ]
     },
     {
@@ -550,17 +550,17 @@
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:125:12",
-        "services/ingestion/weather_forecast.py:104:12",
-        "services/ingestion/weather_forecast.py:154:8",
-        "services/ingestion/weather_forecast.py:159:12",
-        "services/ingestion/weather_forecast.py:160:12",
-        "services/ingestion/weather_forecast.py:163:8",
-        "services/ingestion/weather_forecast.py:305:16",
-        "services/ingestion/weather_forecast.py:325:16",
-        "services/ingestion/weather_forecast.py:331:20",
-        "services/ingestion/weather_forecast.py:332:20",
-        "services/ingestion/weather_forecast.py:382:16",
-        "services/ingestion/weather_forecast.py:388:16"
+        "services/ingestion/weather_forecast.py:109:12",
+        "services/ingestion/weather_forecast.py:159:8",
+        "services/ingestion/weather_forecast.py:164:12",
+        "services/ingestion/weather_forecast.py:165:12",
+        "services/ingestion/weather_forecast.py:168:8",
+        "services/ingestion/weather_forecast.py:310:16",
+        "services/ingestion/weather_forecast.py:330:16",
+        "services/ingestion/weather_forecast.py:336:20",
+        "services/ingestion/weather_forecast.py:337:20",
+        "services/ingestion/weather_forecast.py:387:16",
+        "services/ingestion/weather_forecast.py:393:16"
       ]
     },
     {
@@ -573,8 +573,8 @@
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
         "services/common/worker_database.py:142:12",
-        "services/ingestion/weather_forecast_worker.py:44:12",
-        "services/ingestion/weather_forecast_worker.py:85:12"
+        "services/ingestion/weather_forecast_worker.py:52:12",
+        "services/ingestion/weather_forecast_worker.py:93:12"
       ]
     },
     {
@@ -6242,9 +6242,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/fork_detector.py:36:8",
+      "id": "services/events/fork_detector.py:41:12",
       "source": "services/events/fork_detector.py",
-      "line": 36,
+      "line": 41,
       "scope": "detect_fork_opportunities",
       "method": "execute",
       "expression_kind": "literal",
@@ -6263,9 +6263,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/fork_detector.py:59:8",
+      "id": "services/events/fork_detector.py:64:8",
       "source": "services/events/fork_detector.py",
-      "line": 59,
+      "line": 64,
       "scope": "detect_fork_opportunities",
       "method": "execute",
       "expression_kind": "fstring",
@@ -6284,9 +6284,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/fork_detector.py:133:12",
+      "id": "services/events/fork_detector.py:138:12",
       "source": "services/events/fork_detector.py",
-      "line": 133,
+      "line": 138,
       "scope": "propose_fork_opportunities",
       "method": "execute",
       "expression_kind": "literal",
@@ -6703,9 +6703,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:394:8",
+      "id": "services/events/notification_outbox.py:395:8",
       "source": "services/events/notification_outbox.py",
-      "line": 394,
+      "line": 395,
       "scope": "claim_batch",
       "method": "execute",
       "expression_kind": "literal",
@@ -6732,9 +6732,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:422:12",
+      "id": "services/events/notification_outbox.py:423:12",
       "source": "services/events/notification_outbox.py",
-      "line": 422,
+      "line": 423,
       "scope": "claim_batch",
       "method": "execute",
       "expression_kind": "literal",
@@ -6759,9 +6759,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:507:8",
+      "id": "services/events/notification_outbox.py:508:8",
       "source": "services/events/notification_outbox.py",
-      "line": 507,
+      "line": 508,
       "scope": "_finish_attempt",
       "method": "execute",
       "expression_kind": "literal",
@@ -6786,9 +6786,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:531:8",
+      "id": "services/events/notification_outbox.py:532:8",
       "source": "services/events/notification_outbox.py",
-      "line": 531,
+      "line": 532,
       "scope": "_finish_attempt",
       "method": "execute",
       "expression_kind": "literal",
@@ -6813,9 +6813,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:601:8",
+      "id": "services/events/notification_outbox.py:602:8",
       "source": "services/events/notification_outbox.py",
-      "line": 601,
+      "line": 602,
       "scope": "get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -6840,9 +6840,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:603:8",
+      "id": "services/events/notification_outbox.py:604:8",
       "source": "services/events/notification_outbox.py",
-      "line": 603,
+      "line": 604,
       "scope": "get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -6868,9 +6868,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:644:8",
+      "id": "services/events/notification_outbox.py:645:8",
       "source": "services/events/notification_outbox.py",
-      "line": 644,
+      "line": 645,
       "scope": "list_dead_letters",
       "method": "execute",
       "expression_kind": "literal",
@@ -6895,9 +6895,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:674:8",
+      "id": "services/events/notification_outbox.py:675:8",
       "source": "services/events/notification_outbox.py",
-      "line": 674,
+      "line": 675,
       "scope": "replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -6922,9 +6922,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:685:8",
+      "id": "services/events/notification_outbox.py:686:8",
       "source": "services/events/notification_outbox.py",
-      "line": 685,
+      "line": 686,
       "scope": "replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -6949,9 +6949,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:697:8",
+      "id": "services/events/notification_outbox.py:698:8",
       "source": "services/events/notification_outbox.py",
-      "line": 697,
+      "line": 698,
       "scope": "replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -6976,9 +6976,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:725:8",
+      "id": "services/events/notification_outbox.py:726:8",
       "source": "services/events/notification_outbox.py",
-      "line": 725,
+      "line": 726,
       "scope": "dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -7003,9 +7003,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:736:8",
+      "id": "services/events/notification_outbox.py:737:8",
       "source": "services/events/notification_outbox.py",
-      "line": 736,
+      "line": 737,
       "scope": "dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -7030,9 +7030,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:745:8",
+      "id": "services/events/notification_outbox.py:746:8",
       "source": "services/events/notification_outbox.py",
-      "line": 745,
+      "line": 746,
       "scope": "dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -10826,9 +10826,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:104:12",
+      "id": "services/ingestion/weather_forecast.py:109:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 104,
+      "line": 109,
       "scope": "insert_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10849,9 +10849,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:154:8",
+      "id": "services/ingestion/weather_forecast.py:159:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 154,
+      "line": 159,
       "scope": "insert_location_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10869,9 +10869,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:159:12",
+      "id": "services/ingestion/weather_forecast.py:164:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 159,
+      "line": 164,
       "scope": "insert_location_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10889,9 +10889,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:160:12",
+      "id": "services/ingestion/weather_forecast.py:165:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 160,
+      "line": 165,
       "scope": "insert_location_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10909,9 +10909,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:163:8",
+      "id": "services/ingestion/weather_forecast.py:168:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 163,
+      "line": 168,
       "scope": "insert_location_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10929,9 +10929,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:251:8",
+      "id": "services/ingestion/weather_forecast.py:256:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 251,
+      "line": 256,
       "scope": "get_daily_summary",
       "method": "execute",
       "expression_kind": "literal",
@@ -10949,9 +10949,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:271:8",
+      "id": "services/ingestion/weather_forecast.py:276:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 271,
+      "line": 276,
       "scope": "get_spray_windows",
       "method": "execute",
       "expression_kind": "literal",
@@ -10969,9 +10969,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:305:16",
+      "id": "services/ingestion/weather_forecast.py:310:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 305,
+      "line": 310,
       "scope": "_ingest_locations",
       "method": "execute",
       "expression_kind": "literal",
@@ -10989,9 +10989,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:325:16",
+      "id": "services/ingestion/weather_forecast.py:330:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 325,
+      "line": 330,
       "scope": "_ingest_locations",
       "method": "execute",
       "expression_kind": "literal",
@@ -11009,9 +11009,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:331:20",
+      "id": "services/ingestion/weather_forecast.py:336:20",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 331,
+      "line": 336,
       "scope": "_ingest_locations",
       "method": "execute",
       "expression_kind": "literal",
@@ -11029,9 +11029,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:332:20",
+      "id": "services/ingestion/weather_forecast.py:337:20",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 332,
+      "line": 337,
       "scope": "_ingest_locations",
       "method": "execute",
       "expression_kind": "literal",
@@ -11049,9 +11049,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:382:16",
+      "id": "services/ingestion/weather_forecast.py:387:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 382,
+      "line": 387,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -11071,9 +11071,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:388:16",
+      "id": "services/ingestion/weather_forecast.py:393:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 388,
+      "line": 393,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -11093,9 +11093,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast_worker.py:44:12",
+      "id": "services/ingestion/weather_forecast_worker.py:52:12",
       "source": "services/ingestion/weather_forecast_worker.py",
-      "line": 44,
+      "line": 52,
       "scope": "_load_location",
       "method": "execute",
       "expression_kind": "literal",
@@ -11114,9 +11114,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast_worker.py:85:12",
+      "id": "services/ingestion/weather_forecast_worker.py:93:12",
       "source": "services/ingestion/weather_forecast_worker.py",
-      "line": 85,
+      "line": 93,
       "scope": "_store_batch",
       "method": "execute",
       "expression_kind": "literal",

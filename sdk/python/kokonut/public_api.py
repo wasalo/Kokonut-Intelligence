@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Literal, Optional
@@ -227,6 +228,17 @@ class KokonutPublicApiClient:
         timeout: float = 10.0,
         session: Optional[requests.Session] = None,
     ) -> None:
+        try:
+            valid_timeout = (
+                not isinstance(timeout, bool)
+                and isinstance(timeout, (int, float))
+                and math.isfinite(timeout)
+                and timeout > 0
+            )
+        except (OverflowError, TypeError):
+            valid_timeout = False
+        if not valid_timeout:
+            raise ValueError("timeout must be a finite positive number of seconds")
         self.base_url = base_url.rstrip("/") + "/api/v1"
         self.timeout = timeout
         self.session = session or requests.Session()

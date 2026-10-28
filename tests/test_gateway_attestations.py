@@ -263,7 +263,21 @@ def test_location_attestation_route_returns_stored_metadata_no_store(
     monkeypatch.setattr(
         "services.gateway.attestations.list_location_attestations",
         lambda scoped_operator, scoped_location, limit=50: [
-            {"attestation_uid": "0x" + "1" * 64, "status": "published"}
+            {
+                "id": str(uuid4()),
+                "attestation_uid": "0x" + "1" * 64,
+                "schema_uid": "0x" + "2" * 64,
+                "schema_name": "Location outcome",
+                "claim_type": "impact",
+                "status": "published",
+                "chain": "celo",
+                "tx_hash": "0x" + "3" * 64,
+                "attested_at": "2026-10-28T10:00:00+00:00",
+                "expiration_date": None,
+                "revocation_date": None,
+                "schema_version": "1.0",
+                "created_at": "2026-10-28T10:00:00+00:00",
+            }
         ],
     )
 
@@ -277,4 +291,49 @@ def test_location_attestation_route_returns_stored_metadata_no_store(
     assert response.status_code == 200
     assert response.json()["location_id"] == location_id
     assert response.json()["data"][0]["status"] == "published"
+    assert set(response.json()["data"][0]) == {
+        "id",
+        "attestation_uid",
+        "schema_uid",
+        "schema_name",
+        "claim_type",
+        "status",
+        "chain",
+        "tx_hash",
+        "attested_at",
+        "expiration_date",
+        "revocation_date",
+        "schema_version",
+        "created_at",
+    }
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_location_attestation_response_model_is_published_and_privacy_bounded():
+    schema = create_app().openapi()
+    operation = schema["paths"]["/operator/api/attestations/{location_id}"]["get"]
+    response = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response["$ref"].endswith("/LocationAttestationsResponse")
+
+    record = schema["components"]["schemas"]["LocationAttestationRecord"]
+    page_data = schema["components"]["schemas"]["LocationAttestationsResponse"]["properties"]["data"]
+    assert page_data["maxItems"] == 100
+    assert page_data["items"]["$ref"].endswith("/LocationAttestationRecord")
+    assert set(record["properties"]) == {
+        "id",
+        "attestation_uid",
+        "schema_uid",
+        "schema_name",
+        "claim_type",
+        "status",
+        "chain",
+        "tx_hash",
+        "attested_at",
+        "expiration_date",
+        "revocation_date",
+        "schema_version",
+        "created_at",
+    }
+    assert record["additionalProperties"] is False
+    assert "claim_data" not in record["properties"]
+    assert "evidence_urls" not in record["properties"]

@@ -1,0 +1,29 @@
+{
+  "record_version": 1,
+  "date": "2026-10-28",
+  "slice": "edge-compose-resource-contract",
+  "status": "static Compose resource contract passes",
+  "profile": "docker-compose.kernel-edge.yml combined with docker-compose.kernel-candidate.yml",
+  "declared_limits": {
+    "database": {
+      "memory": "1g",
+      "cpus": 2.0
+    },
+    "app": {
+      "memory": "1g",
+      "cpus": 2.0
+    }
+  },
+  "checks": {
+    "command": "python3 -m pytest -q tests/test_kernel_profile.py::test_edge_profile_has_explicit_memory_and_cpu_caps_for_both_services",
+    "result": "passed",
+    "passed": 1,
+    "docker_daemon_used": false,
+    "physical_raspberry_pi_used": false
+  },
+  "limits_of_evidence": [
+    "This locks the Compose declarations against accidental removal or drift.",
+    "It does not measure process RSS, startup performance, thermal behavior, storage endurance, or total host memory pressure.",
+    "No Raspberry Pi hardware was available; ARM64/QEMU and static configuration checks are software evidence only."
+  ]
+}

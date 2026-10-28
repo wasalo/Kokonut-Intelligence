@@ -26,8 +26,30 @@ revoke without owner customization-path confirmation. An additive low-dependency
 `core` profile now has separately locked base dependencies and optional Web3,
 spreadsheet/S3, and local-media overlays; existing full-capability profiles
 remain unchanged. The release gate checks core-only and all-overlay images on
-AMD64 and ARM64, with hosted CI still pending. The checklist is 1,362 complete
-/ 25 open (1,387 total);
+AMD64 and ARM64, with hosted CI still pending. A strict response model now
+covers the location-scoped OIDC attestation list, while selected-location
+tactical and State-of-Kokonut report queries keep related rows within the
+requested farm and reject an empty selection. Source audits confirmed pest-
+reference DML is a current CLI customization path and the legacy Yahoo price
+flow is not safe to register as a scheduled job. The detailed service-health
+route now requires `service_health:read` before it probes optional dependencies;
+public `/health` liveness is unchanged. The default-off signed forecast worker
+now reads its namespaced provider key, routed through both Kernel worker
+profiles. The runtime ACL source report separates its full-schema observation
+through migration 679 from the current policy at migration 681; it shows
+`metric_definition` remains unobserved in the full replay. No additional
+catalog revoke was selected because `competency_framework` may be owner-managed.
+The latest checklist is 1,377 complete / 25 open (1,402 total).
+Migration 681 makes `metric_definition` read-only to the general runtime and
+passes disposable PostgreSQL 16 replay, read/write denial, provisioner replay,
+and Directus-role preservation checks; tenant isolation remains unestablished.
+The location-scoped ecocredit batch route now has a bounded response model,
+the Python public SDK rejects invalid request deadlines before networking,
+and Directus tenant reads deny unresolved relationship filters/sort/grouping.
+The legacy health-check Prefect flow remains unregistered because it assumes
+the retired full-stack topology and lacks a Kernel health contract. A static
+edge Compose check locks app/database limits at 1 GiB and two CPUs; it does
+not claim physical Pi runtime acceptance.
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows.
 
@@ -42,6 +64,21 @@ Evidence: [Directus schema check](builds/2026-10-28-recovery/directus-polymorphi
 [SDK timer overflow check](builds/2026-10-28-recovery/sdk-javascript-timeout-overflow.json),
 [ARM64 schema replay through 680](builds/2026-10-28-recovery/arm64-resource-limited-schema-680.json),
 [core profile contract](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
+[attestation response contract](builds/2026-10-28-recovery/attestation-response-model-contract.json),
+[tactical report scope](builds/2026-10-28-recovery/tactical-layer-companion-location-scope.json),
+[State of Kokonut scope](builds/2026-10-28-recovery/state-of-kokonut-selected-actor-scope.json),
+[pest-reference audit](builds/2026-10-28-recovery/pest-reference-runtime-write-audit.json),
+[Yahoo price-flow audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json),
+[metric-definition ACL](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json),
+[ecocredit response contract](builds/2026-10-28-recovery/ecocredit-batch-response-contract.json),
+[Python SDK deadline](builds/2026-10-28-recovery/sdk-python-public-api-timeout-parity.json),
+[Directus relation boundary](builds/2026-10-28-recovery/directus-relation-query-boundary.json),
+[health-check flow audit](builds/2026-10-28-recovery/prefect-health-check-contract-audit.json),
+[edge resource contract](builds/2026-10-28-recovery/edge-compose-resource-contract.json),
+[detailed health route boundary](builds/2026-10-28-recovery/detailed-health-route-auth-boundary.json),
+[forecast provider-key routing](builds/2026-10-28-recovery/weather-forecast-provider-key-routing.json),
+[runtime ACL report provenance](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json),
+[competency framework write audit](builds/2026-10-28-recovery/competency-framework-runtime-write-audit.json),
 [impact-framework catalog audit](builds/2026-10-28-recovery/impact-framework-catalog-candidate-audit.json),
 [EBF scope](builds/2026-10-28-recovery/ebf-scorecard-location-scope.json).
 

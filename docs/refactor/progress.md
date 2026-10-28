@@ -21800,6 +21800,111 @@ the hosted multi-architecture build remains pending. Core intentionally does
 not claim OIDC support until its identity/runtime composition is implemented.
 Evidence: [core profile contract](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
 [profile selection](profile-selection.md), and
-[release input gate](kernel-release-inputs.md). Checklist: 1,362 complete / 25
-open (1,387 total); matrix remains 24 baseline-retained, 7 deployed, and 36
-prepared across 67 rows.
+[release input gate](kernel-release-inputs.md).
+
+The parallel C2/C5 follow-up added a strict, privacy-bounded OIDC attestation
+response contract (20 focused Gateway checks) and closed two source-confirmed
+cross-location report leaks: tactical companion threats now remain within the
+selected location, and State-of-Kokonut actor/funding queries bind every
+selected location while empty scopes fail before reads. The focused report
+selections pass 73 and 285 tests, and helper/query inventories are current.
+C1 source review found the pest-reference tables retain service/CLI writers;
+C4 review found the legacy Yahoo flow does not persist observations, can report
+an empty fetch as success, and never runs its documented attestation step, so
+it remains unregistered. These checks closed no candidate or production gate.
+Evidence: [attestation contract](builds/2026-10-28-recovery/attestation-response-model-contract.json),
+[tactical scope](builds/2026-10-28-recovery/tactical-layer-companion-location-scope.json),
+[State of Kokonut scope](builds/2026-10-28-recovery/state-of-kokonut-selected-actor-scope.json),
+[pest-reference audit](builds/2026-10-28-recovery/pest-reference-runtime-write-audit.json),
+[Yahoo flow audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json).
+Checklist: 1,367 complete / 25 open (1,392 total); matrix remains 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — parallel Kernel-hardening batch — 28 October 2026
+
+The user-authorized parallel pass used independent agents for Gateway
+contracts, Directus policy, reporting scope, provider jobs, SDK parity, ARM64
+profiles, candidate runtime ACLs, and capability review. It closed six
+source-verifiable checklist items:
+
+- Migration 681 makes `metric_definition` read-only to `kokonut_runtime`.
+  The current service inventory has 25 SELECT sites across 15 files and no
+  write targets; curated edits remain on the admin seed/migration path.
+  Disposable PostgreSQL 16 apply/replay, runtime SELECT, denied table/column
+  writes, provisioner reapplication, and Directus-role preservation all pass.
+  The overall synthetic harness covers 127 relations: 79 private, 46
+  mutation-denied, and two append-only. This is not RLS or tenant-isolation
+  evidence, and full-schema replay remains at migration 679.
+- The location-scoped ecocredit batch route validates a bounded response model
+  and omits undeclared wallet/account fields; 13 focused route/OpenAPI checks
+  pass while auth and cache headers remain intact.
+- The Python SDK rejects invalid timeouts before networking while keeping its
+  10-second default; 17 focused tests and generated-contract checks pass.
+- Tenant-scoped Directus reads reject unresolved relationship predicates,
+  `_some`/`_none`, relation sort, and relation grouping. Twelve focused hook
+  tests and TypeScript checks pass; populated/live Directus parity stays open.
+- The legacy Prefect health-check flow remains unregistered because its probes
+  assume the legacy full-stack topology and it has no profile-aware Kernel
+  health contract.
+- The edge Compose profile's 1 GiB/two-CPU app and database limits now have an
+  offline regression. This does not measure Raspberry Pi runtime behavior.
+
+The C5 re-audit found no further safe location-scope fix beyond the report
+changes already made; C6 found no additional source-only capability work that
+avoids owner or populated-data decisions. The combined Gateway/report
+selection passes 385 tests; the focused kernel-profile regression passes one
+test; the C1 static/runtime-role pair passes two, and its disposable PostgreSQL
+acceptance passes. Ruff, Python compilation, TypeScript, SQL/report/helper
+inventory freshness, capability validation, and diff checks pass. No
+candidate/legacy database, production identity, external provider, or live
+Directus service was used.
+
+The latest checklist is 1,373 complete / 25 open (1,398 total). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; no MAN-CAP acceptance changed.
+
+### Progress addendum — parallel Kernel hardening follow-up — 28 October 2026
+
+Four more checklist items closed without changing capability classifications.
+The detailed `/api/health/services` route now requires `service_health:read`
+before probing PostgreSQL, ClickHouse, or Directus; public `/health` liveness
+remains available. The default-off signed weather-forecast worker now consumes
+its dedicated `KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY`, routed through
+the standard and portability worker profiles, and fails before database access
+when that key is missing. The full-schema runtime ACL report now separates the
+actual observation through migration 679 from current source policy at migration
+681; it shows the historical runtime DML grant on `metric_definition` and marks
+the current full-schema replay as unobserved. Source review found no next safe
+catalog revoke: `competency_framework` contains editable training policy and
+needs its curator/administration path confirmed. The TypeScript SDK audit also
+confirmed it is gRPC-only, so the REST SDK timeout contract does not justify a
+new default deadline for long-running unary or streaming calls.
+
+Integrated checks pass: 417 Gateway/report tests; 89 runtime-role/report tests;
+227 forecast-worker/scheduler contract tests; 67 Python SDK/profile tests; 121
+Directus hook tests; and the Directus TypeScript check. Changed Python Ruff and
+compilation, report/runtime SQL inventories, worker source/function/SQL
+reachability and boundary inventories, provider boundaries, release-input lock,
+requirement groups, capability matrix, and `git diff --check` pass. The
+separate migration-681 disposable PostgreSQL acceptance remains recorded in
+its evidence and verified runtime read/write denial plus Directus grant
+preservation. No candidate/legacy database, live provider, external identity,
+or production deployment was used in this follow-up.
+
+The current checklist is 1,377 complete / 25 open (1,402 total). The capability
+matrix remains 67 rows: 24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP
+acceptance is unchanged. Evidence: [detailed health boundary](builds/2026-10-28-recovery/detailed-health-route-auth-boundary.json),
+[forecast provider-key routing](builds/2026-10-28-recovery/weather-forecast-provider-key-routing.json),
+[runtime ACL report provenance](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json),
+[metric-definition disposable acceptance](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json),
+[competency-framework source audit](builds/2026-10-28-recovery/competency-framework-runtime-write-audit.json),
+[Directus relation boundary](builds/2026-10-28-recovery/directus-relation-query-boundary.json).
+
+Evidence: [metric-definition ACL](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json),
+[ecocredit response](builds/2026-10-28-recovery/ecocredit-batch-response-contract.json),
+[Python SDK deadline](builds/2026-10-28-recovery/sdk-python-public-api-timeout-parity.json),
+[Directus relation boundary](builds/2026-10-28-recovery/directus-relation-query-boundary.json),
+[health-check flow audit](builds/2026-10-28-recovery/prefect-health-check-contract-audit.json),
+[edge resource contract](builds/2026-10-28-recovery/edge-compose-resource-contract.json),
+[Yahoo price-feed audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json),
+[C5 scope evidence](builds/2026-10-28-recovery/state-of-kokonut-selected-actor-scope.json).

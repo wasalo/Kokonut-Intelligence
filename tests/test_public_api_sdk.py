@@ -55,6 +55,24 @@ class FakeSession:
         self.closed = True
 
 
+def test_public_api_uses_a_bounded_default_request_timeout() -> None:
+    session = FakeSession([FakeResponse(200, {"data": [LOCATION]})])
+    client = KokonutPublicApiClient("https://gateway.example", session=session)
+
+    client.locations.list()
+
+    assert session.calls[0][1] == {"timeout": 10.0}
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [None, 0, -1, float("nan"), float("inf"), 10**1000, True, "10"],
+)
+def test_public_api_rejects_invalid_request_timeouts(timeout: Any) -> None:
+    with pytest.raises(ValueError, match="timeout must be a finite positive number of seconds"):
+        KokonutPublicApiClient("https://gateway.example", timeout=timeout)
+
+
 def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> None:
     metric_time = "2026-10-14T12:30:00Z"
     crisp_time = "2026-10-14T12:35:00+00:00"

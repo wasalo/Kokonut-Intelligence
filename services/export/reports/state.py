@@ -155,14 +155,23 @@ def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
     return locations, composed
 
 
-def _state_of_kokonut_actors(conn, period_start, period_end):
+def _state_of_kokonut_actors(conn, period_start, period_end, *, location_ids=None):
     """Ecosystem-actor view: funding raised + participation by actor type."""
+    if location_ids is not None and not location_ids:
+        raise ValueError("selected-location actor reports require at least one location")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     period_filter = """
         AND (%s::date IS NULL OR fr.period_start IS NULL OR fr.period_start >= %s::date)
         AND (%s::date IS NULL OR fr.period_end IS NULL OR fr.period_end <= %s::date)
     """
-    params = [period_start, period_start, period_end, period_end]
+    location_filter = " AND fr.location_id = ANY(%s::uuid[])" if location_ids is not None else ""
+
+    def query_params():
+        params = [period_start, period_start, period_end, period_end]
+        if location_ids is not None:
+            params.append(list(location_ids))
+        return params
 
     try:
         cur.execute(
@@ -172,11 +181,11 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
                    COALESCE(SUM(fr.raised_amount), 0) AS total_raised,
                    fr.currency
             FROM funding_round fr
-            WHERE 1=1 {period_filter}
+            WHERE 1=1 {period_filter} {location_filter}
             GROUP BY fr.actor_type, fr.actor_name, fr.currency
             ORDER BY fr.actor_type
             """,
-            params,
+            query_params(),
         )
         by_actor = [dict(r) for r in cur.fetchall()]
 
@@ -185,11 +194,11 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
             SELECT fr.source_type, fr.currency,
                    COALESCE(SUM(fr.raised_amount), 0) AS total_raised
             FROM funding_round fr
-            WHERE 1=1 {period_filter}
+            WHERE 1=1 {period_filter} {location_filter}
             GROUP BY fr.source_type, fr.currency
             ORDER BY total_raised DESC, fr.source_type, fr.currency
             """,
-            params,
+            query_params(),
         )
         by_source = [dict(r) for r in cur.fetchall()]
 
@@ -199,11 +208,11 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
                    COUNT(*) AS count, COALESCE(SUM(pf.amount), 0) AS amount
             FROM project_funding pf
             JOIN funding_round fr ON fr.id = pf.funding_round_id
-            WHERE 1=1 {period_filter}
+            WHERE 1=1 {period_filter} {location_filter}
             GROUP BY pf.actor_type, pf.decision_status, pf.token
             ORDER BY pf.actor_type, pf.decision_status, pf.token
             """,
-            params,
+            query_params(),
         )
         participation = [dict(r) for r in cur.fetchall()]
 
@@ -213,10 +222,10 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
                    fr.raised_amount, fr.currency, fr.source_type, fr.period_start, fr.period_end,
                    fr.location_id
             FROM funding_round fr
-            WHERE 1=1 {period_filter}
+            WHERE 1=1 {period_filter} {location_filter}
             ORDER BY fr.period_start, fr.actor_type
             """,
-            params,
+            query_params(),
         )
         rounds = [dict(r) for r in cur.fetchall()]
     finally:
@@ -265,11 +274,15 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
     """
     # Normalize location selection: comma-separated list or single id.
     location_ids = None
-    if location_id and location_id.lower() != "all":
+    if location_id is not None and location_id.strip().lower() != "all":
         location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
+        if not location_ids:
+            raise ValueError("selected-location reports require at least one location_id")
 
     locations, composed = _state_of_kokonut_locations(conn, location_ids, period_start, period_end)
-    actors = _state_of_kokonut_actors(conn, period_start, period_end)
+    actors = _state_of_kokonut_actors(
+        conn, period_start, period_end, location_ids=location_ids
+    )
 
     # Lightweight ecosystem rollups from composed sections.
     total_revenue = 0.0

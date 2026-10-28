@@ -111,6 +111,9 @@ QUANTITY_UNIT_MIGRATION = (
 YIELD_BENCHMARK_MIGRATION = (
     ROOT / "schemas/postgres/680_runtime_yield_benchmark_read_only.sql"
 )
+METRIC_DEFINITION_MIGRATION = (
+    ROOT / "schemas/postgres/681_runtime_metric_definition_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
@@ -120,6 +123,7 @@ REFERENCE_CATALOGS = (
     "market_reference_data",
     "quantity_unit",
     "yield_benchmark",
+    "metric_definition",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
@@ -255,6 +259,11 @@ def check_boundary(
                     (str(uuid.uuid4()), "synthetic-yield-benchmark"),
                 )
                 cursor.execute(
+                    "INSERT INTO public.metric_definition (id, marker) "
+                    "VALUES (%s, %s)",
+                    (str(uuid.uuid4()), "synthetic-metric-definition"),
+                )
+                cursor.execute(
                     "CREATE TABLE public.data_access_log "
                     "(id uuid PRIMARY KEY, marker text NOT NULL)"
                 )
@@ -300,6 +309,7 @@ def check_boundary(
                     "market_reference_data",
                     "quantity_unit",
                     "yield_benchmark",
+                    "metric_definition",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -474,6 +484,11 @@ def check_boundary(
                 )
                 cursor.execute(yield_benchmark_migration)
                 cursor.execute(yield_benchmark_migration)
+                metric_definition_migration = METRIC_DEFINITION_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(metric_definition_migration)
+                cursor.execute(metric_definition_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -571,6 +586,7 @@ def check_boundary(
                         "market_reference_data": 678,
                         "quantity_unit": 679,
                         "yield_benchmark": 680,
+                        "metric_definition": 681,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -674,6 +690,7 @@ def check_boundary(
                     ("market_reference_data", 678),
                     ("quantity_unit", 679),
                     ("yield_benchmark", 680),
+                    ("metric_definition", 681),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES'), "
@@ -869,7 +886,7 @@ def check_boundary(
                     "process_maturity_level", "pollinator_species_reference",
                     "reference_class", "farmer_credential_type",
                     "market_reference_data",
-                    "quantity_unit", "yield_benchmark",
+                    "quantity_unit", "yield_benchmark", "metric_definition",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -947,6 +964,12 @@ def check_boundary(
                     ]:
                         raise AssertionError(
                             "runtime SELECT did not return the synthetic yield benchmark"
+                        )
+                    if table == "metric_definition" and rows != [
+                        ("synthetic-metric-definition",)
+                    ]:
+                        raise AssertionError(
+                            "runtime SELECT did not return the synthetic metric definition"
                         )
                     statements = (
                         (
@@ -1440,6 +1463,15 @@ def check_boundary(
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,
                     "synthetic_row_read": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_triggers_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_metric_definition": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
                     "insert_update_delete_truncate_denied": True,
                     "references_triggers_and_column_grants_denied": True,
                     "directus_role_unchanged": True,

@@ -360,12 +360,12 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/ingestion/weather_forecast.py:251:8",
+        "site": "services/ingestion/weather_forecast.py:256:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/ingestion/weather_forecast.py:271:8",
+        "site": "services/ingestion/weather_forecast.py:276:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       }

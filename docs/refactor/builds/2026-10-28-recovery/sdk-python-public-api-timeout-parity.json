@@ -1,0 +1,25 @@
+{
+  "check": "sdk-python-public-api-timeout-parity",
+  "date": "2026-10-28",
+  "scope": "Offline source and SDK contract check; no Gateway, database, provider, or network calls",
+  "finding": {
+    "area": "Native Gateway v1 public API client request deadline",
+    "before": "The Python constructor annotated timeout as float and defaulted to 10 seconds, but accepted None, zero, negative, non-finite, boolean, and non-numeric values at runtime. In particular, requests accepts timeout=None, which disables its request deadline.",
+    "comparison": "The JavaScript public API client validates timeoutMs as a finite positive number before making a request.",
+    "change": "Python now rejects bool, non-numeric, non-finite, and non-positive timeout values with ValueError; the default remains 10 seconds."
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_public_api_sdk.py -q",
+    "result": "17 passed",
+    "additional_checks": [
+      "ruff check sdk/python/kokonut/public_api.py tests/test_public_api_sdk.py: passed",
+      "python3 -m py_compile sdk/python/kokonut/public_api.py tests/test_public_api_sdk.py: passed",
+      "git diff --check: passed",
+      "python3 -m scripts.generate_public_api_sdk --check: generated Python and JavaScript response types and paths match the native public API OpenAPI snapshot"
+    ]
+  },
+  "limitations": [
+    "No live timeout or cancellation behavior was exercised.",
+    "This does not change Gateway routes, response models, authentication, or governed lifecycle behavior."
+  ]
+}

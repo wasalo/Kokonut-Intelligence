@@ -409,6 +409,16 @@ def test_profile_planner_selects_isolated_arm64_images_for_edge() -> None:
     assert "docker-compose.kernel-edge.yml" in result.stdout
 
 
+def test_edge_profile_has_explicit_memory_and_cpu_caps_for_both_services() -> None:
+    """Keep the edge profile's declared resource envelope reviewable offline."""
+    edge = yaml.safe_load((ROOT / "docker-compose.kernel-edge.yml").read_text())
+
+    assert set(edge["services"]) == {"database", "app"}
+    for service in edge["services"].values():
+        assert service["mem_limit"] == "1g"
+        assert service["cpus"] == 2.0
+
+
 def test_standard_arm64_profile_selects_the_arm64_worker_override() -> None:
     result = _run_planner("standard", "--target-platform", "linux/arm64")
 

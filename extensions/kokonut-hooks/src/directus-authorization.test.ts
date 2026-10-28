@@ -247,6 +247,40 @@ describe('Directus tenant authorization', () => {
     });
   });
 
+  it('rejects relation predicates and relation-based ordering/grouping', async () => {
+    const store = makeStore();
+    const relationQueries = [
+      { filter: { farm: { name: { _eq: 'Foreign farm' } } } },
+      { filter: { _and: [{ status: { _eq: 'draft' } }, { farm: { id: { _eq: rowB } } }] } },
+      { filter: { farm: { _some: { name: { _eq: 'Foreign farm' } } } } },
+      { filter: { 'farm.name': { _eq: 'Foreign farm' } } },
+      { sort: ['farm.name'] },
+      { sort: '-farm.name' },
+      { groupBy: ['farm.name'] },
+    ];
+
+    for (const query of relationQueries) {
+      await expect(authorizeDirectusRead(
+        store, accountability, issuer, 'farm_activity', query,
+      )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    }
+
+    // Scalar predicates, including structured JSON containment, remain
+    // available because the JSON operand is not interpreted as a relation.
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'farm_activity', {
+        filter: {
+          _and: [
+            { status: { _eq: 'draft' } },
+            { metadata: { _contains: { source: 'field' } } },
+          ],
+        },
+        sort: ['-created_at'],
+        groupBy: ['status'],
+      },
+    )).resolves.toMatchObject({ filter: { _and: expect.any(Array) } });
+  });
+
   it('fails closed when the user, issuer, operator, or grants are missing', async () => {
     await expect(authorizeDirectusRead(
       makeStore(), undefined, issuer, 'farm_activity', {},

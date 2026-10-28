@@ -11,6 +11,8 @@ from __future__ import annotations
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from services.export import report_generator as rg
 from services.export.reports import common as reports_common
 from services.export.reports import state as state_module
@@ -123,14 +125,26 @@ def test_composes_selected_locations_from_comma_list():
     ]
     conn = MagicMock()
     with patch.object(state_module, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
-         patch.object(state_module, "_state_of_kokonut_actors", return_value={"total_raised": 0.0}):
+         patch.object(state_module, "_state_of_kokonut_actors", return_value={"total_raised": 0.0}) as actor_view:
         report = rg.generate_state_of_kokonut(
             conn, "a0000000-0000-0000-0000-000000000001", None, None
         )
 
+    actor_view.assert_called_once_with(
+        conn, None, None, location_ids=["a0000000-0000-0000-0000-000000000001"]
+    )
     assert report["scope"] == "selected_locations"
     assert report["selected_location_ids"] == ["a0000000-0000-0000-0000-000000000001"]
     assert report["ecosystem_overview"]["total_locations"] == 1
+
+
+def test_empty_selected_location_list_fails_before_database_access():
+    conn = MagicMock()
+
+    with pytest.raises(ValueError, match="at least one location_id"):
+        rg.generate_state_of_kokonut(conn, " , ,, ")
+
+    conn.cursor.assert_not_called()
 
 
 def test_isolates_failing_section():
@@ -229,3 +243,30 @@ def test_actor_total_keeps_legacy_scalar_for_one_currency():
     assert result["total_raised"] == 12.35
     assert result["total_raised_currency"] == "USD"
     assert result["total_raised_by_currency"] == {"USD": Decimal("12.345")}
+
+
+def test_selected_location_actor_queries_bind_only_selected_funding_rows():
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    connection, cursor = _actor_view_connection([[], [], [], []])
+
+    state_module._state_of_kokonut_actors(
+        connection, None, None, location_ids=[location_id]
+    )
+
+    assert len(cursor.execute.call_args_list) == 4
+    for call in cursor.execute.call_args_list:
+        query, params = call.args
+        assert "fr.location_id = ANY(%s::uuid[])" in query
+        assert params[-1] == [location_id]
+
+
+def test_network_actor_queries_remain_unfiltered():
+    connection, cursor = _actor_view_connection([[], [], [], []])
+
+    state_module._state_of_kokonut_actors(connection, None, None, location_ids=None)
+
+    assert len(cursor.execute.call_args_list) == 4
+    assert all(
+        "fr.location_id = ANY(%s::uuid[])" not in call.args[0]
+        for call in cursor.execute.call_args_list
+    )

@@ -194,6 +194,7 @@ def isolated_audit(monkeypatch):
 
 def test_ecocredit_http_route_authenticates_then_returns_no_store_summary(isolated_audit):
     operator_id, location_id = str(uuid4()), str(uuid4())
+    batch_id, credit_class_id = str(uuid4()), str(uuid4())
     operator_session = SimpleNamespace(
         session_id=str(uuid4()),
         session_token_hash="a" * 64,
@@ -216,7 +217,30 @@ def test_ecocredit_http_route_authenticates_then_returns_no_store_summary(isolat
 
     with patch("services.gateway.operator_auth.create_provider", return_value=Provider()), patch(
         "services.gateway.ecocredits.list_location_ecocredit_batches",
-        return_value=[{"batch_code": "SYNTHETIC", "available_quantity": "3.0000"}],
+        return_value=[
+            {
+                "id": batch_id,
+                "credit_class_id": credit_class_id,
+                "class_name": "Synthetic class",
+                "credit_type": "carbon",
+                "class_status": "published",
+                "batch_code": "SYNTHETIC",
+                "vintage_year": 2026,
+                "unit": "tonneCO2e",
+                "batch_status": "published",
+                "total_quantity": "3.0000",
+                "issued_quantity": "3.0000",
+                "retired_quantity": "0.0000",
+                "cancelled_quantity": "0.0000",
+                "available_quantity": "3.0000",
+                "ledger_tradable_supply": "3.0000",
+                "ledger_retired_supply": "0.0000",
+                "ledger_escrowed_supply": "0.0000",
+                "created_at": "2026-10-28T00:00:00+00:00",
+                # A future/internal field must not escape through the API.
+                "wallet_address": "0xprivate",
+            }
+        ],
     ) as list_batches:
         with TestClient(
             create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
@@ -226,11 +250,46 @@ def test_ecocredit_http_route_authenticates_then_returns_no_store_summary(isolat
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
-    assert response.json() == {
-        "data": [{"batch_code": "SYNTHETIC", "available_quantity": "3.0000"}],
-        "location_id": location_id,
-    }
+    body = response.json()
+    assert body["location_id"] == location_id
+    assert body["data"][0]["id"] == batch_id
+    assert body["data"][0]["credit_class_id"] == credit_class_id
+    assert body["data"][0]["available_quantity"] == "3.0000"
+    assert "wallet_address" not in body["data"][0]
     list_batches.assert_called_once_with(operator_id, location_id, 50)
+
+
+def test_ecocredit_openapi_declares_only_the_projected_batch_fields(isolated_audit):
+    schema = create_app().openapi()
+
+    response = schema["paths"][
+        "/operator/api/ecocredits/{location_id}/batches"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    response_model = schema["components"]["schemas"]["LocationEcocreditBatchesResponse"]
+    item_model = schema["components"]["schemas"]["LocationEcocreditBatch"]
+    assert response["$ref"].endswith("/LocationEcocreditBatchesResponse")
+    assert set(response_model["properties"]) == {"data", "location_id"}
+    assert "wallet_address" not in item_model["properties"]
+    assert set(item_model["properties"]) == {
+        "id",
+        "credit_class_id",
+        "class_name",
+        "credit_type",
+        "class_status",
+        "batch_code",
+        "vintage_year",
+        "unit",
+        "batch_status",
+        "total_quantity",
+        "issued_quantity",
+        "retired_quantity",
+        "cancelled_quantity",
+        "available_quantity",
+        "ledger_tradable_supply",
+        "ledger_retired_supply",
+        "ledger_escrowed_supply",
+        "created_at",
+    }
 
 
 def test_ecocredit_http_route_denies_missing_location_grant_before_service(

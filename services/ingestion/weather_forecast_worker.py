@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from uuid import UUID
 
@@ -12,12 +13,19 @@ from services.common.tenant_context import set_worker_tenant_context
 from services.common.worker_database import get_worker_credential, get_worker_db
 from services.core.features import is_enabled
 from services.ingestion.base import hash_payload
-from services.ingestion.config import OPENWEATHERMAP_API_KEY
 from services.ingestion.weather_forecast import (
     build_forecast_clickhouse_projection,
     fetch_forecast_raw,
     parse_forecast_list,
 )
+
+
+def _provider_api_key() -> str:
+    """Read only the forecast worker's explicitly routed provider credential."""
+    key = os.getenv("KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("OpenWeatherMap API key is not configured")
+    return key
 
 
 def _open_scoped_connection(location_id: str, credential: str):
@@ -115,8 +123,7 @@ def _store_batch(
 def ingest(location_id: str) -> int:
     """Fetch, validate, and atomically persist one signed location's forecast."""
     canonical_location_id = str(UUID(str(location_id)))
-    if not OPENWEATHERMAP_API_KEY:
-        raise RuntimeError("OpenWeatherMap API key is not configured")
+    api_key = _provider_api_key()
     credential = get_worker_credential("weather_forecast")
 
     _, latitude, longitude = _load_location(
@@ -124,7 +131,7 @@ def ingest(location_id: str) -> int:
     )
     started = time.monotonic()
     try:
-        raw = fetch_forecast_raw(latitude, longitude)
+        raw = fetch_forecast_raw(latitude, longitude, api_key=api_key)
         records = parse_forecast_list(raw, canonical_location_id)
         projection = build_forecast_clickhouse_projection(records)
     except Exception as exc:

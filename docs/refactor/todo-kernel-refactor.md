@@ -511,7 +511,7 @@ that its full source-plan phase is complete.
   write path were found; its DML is denied to `kokonut_runtime`, while the
   optional Directus role remains unchanged. This does not establish RLS or
   tenant isolation. The conservative SQL inventory now records 4,935 execution
-  sites across 971 files, 1,223 relation candidates, and 588 write-target
+  sites across 974 files, 1,223 relation candidates, and 588 write-target
   relations. It resolves 53 SQL templates stored in one unambiguous local
   assignment; dynamic identifiers, reassigned variables, and ambiguous/helper
   expressions remain unresolved. It surfaced `service_registry` INSERT/UPDATE
@@ -532,7 +532,24 @@ that its full source-plan phase is complete.
   policy. They remain review candidates rather than safe runtime revocations
   until the management path and ownership are confirmed. These are
   heuristic/source audits, not proof that external writes are absent or
-  tenant-authorized. The source review found
+  tenant-authorized. The three pest-reference catalogs also have service
+  writers reachable from the pest-management CLI; their runtime DML remains
+  part of current customization behavior, so no read-only migration is safe
+  ([audit](builds/2026-10-28-recovery/pest-reference-runtime-write-audit.json)).
+  Migration 681 now applies a narrow read-only boundary to
+  `metric_definition`: its 25 service SQL sites across 15 files are reads,
+  while curated changes remain on the admin seed/migration path. It revokes
+  table and residual column mutation/reference privileges, restores SELECT,
+  and preserves the separate Directus role. Runtime provisioning reapplies
+  the boundary after compatibility grants. The disposable PostgreSQL 16
+  acceptance applies/replays the migration, reads a synthetic definition,
+  rejects writes and residual privileges, and verifies Directus grants remain
+  unchanged. The harness covers 127 synthetic relations (79 private, 46
+  mutation-denied, two append-only); this does not establish RLS or tenant
+  isolation. The full-schema ACL replay still ends at migration 679
+  ([migration](../schemas/postgres/681_runtime_metric_definition_read_only.sql);
+  [focused acceptance](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json)).
+  The source review found
   dynamic curriculum definitions in `competency_framework` with no source-owned
   management contract; its grants remain unchanged until the Gateway or
   optional Directus administration path is explicit. Other unresolved
@@ -562,6 +579,11 @@ that its full source-plan phase is complete.
   [quantity-unit ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
   [analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json),
   [local SQL template resolution](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json).
+  The ACL report now states that the historical full-schema observations stop
+  at 679 while repository policy is at 681; it marks current policy coverage
+  unobserved and exposes the historical `metric_definition` DML grant rather
+  than representing it as verified
+  ([report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json)).
 - [ ] **C2 — Finish Gateway and SDK contract parity.** Audit registered routes,
   auth/action/scope policy, pagination, error models and SDK behavior; close
   source-verifiable gaps without exposing generic CRUD or weakening default
@@ -585,8 +607,9 @@ that its full source-plan phase is complete.
   data-stream attachment route now publishes `limit=1..100` and
   `offset=0..5,000`; its focused Gateway/auth selection passes 52 tests.
   The public federation-node route now uses `limit=1..100` and
-  `offset=0..10,000`; 18 focused checks pass and the trusted CLI retains its
-  full-list behavior. Data-stream post lists now publish `limit=1..100`
+  `offset=0..10,000`; its `nodes` payload now includes exact continuation and
+  offset-ceiling metadata, with 36 focused route/error-redaction checks passing.
+  The trusted CLI retains its full-list behavior. Data-stream post lists now publish `limit=1..100`
   (default 20) and `offset=0..5,000` (three route checks); Baal proposal lists
   publish `limit=1..100` (default 50) and reject invalid values before reading
   (26 governance checks). The JavaScript SDK now has the Python client's default
@@ -604,7 +627,23 @@ that its full source-plan phase is complete.
   GPS, notes/reasons, evidence URLs, and arbitrary JSON. Eleven focused checks
   pass while auth and no-store error behavior stay unchanged. Authorization
   parity, authenticated live runtime behavior, and broader SDK route/auth
-  runtime parity remain open.
+  runtime parity remain open. The OIDC location-attestation list now has a
+  strict 100-record OpenAPI/runtime response model that preserves its current
+  payload and `no-store`/`Vary: Cookie` headers while excluding claim, evidence,
+  and reviewer data; the focused route selection passes 20 checks
+  ([model evidence](builds/2026-10-28-recovery/attestation-response-model-contract.json)).
+  The detailed `/api/health/services` route now requires `service_health:read`
+  before it probes optional infrastructure; anonymous access is denied while
+  public `/health` liveness remains available. Two focused auth/policy checks
+  pass ([evidence](builds/2026-10-28-recovery/detailed-health-route-auth-boundary.json)).
+  The ecocredit batch list now also has a strict bounded response contract that
+  excludes undeclared service fields while preserving tenant authorization and
+  cache headers; 13 focused route/OpenAPI tests pass
+  ([evidence](builds/2026-10-28-recovery/ecocredit-batch-response-contract.json)).
+  Python SDK timeouts now reject boolean, nonnumeric, non-finite, nonpositive,
+  and overflow-sized values before networking while preserving the 10-second
+  default; 17 focused tests pass
+  ([evidence](builds/2026-10-28-recovery/sdk-python-public-api-timeout-parity.json)).
   Export-log fields
   match the canonical table; the earlier pending-
   create API was removed because the table lacks its request fields and no
@@ -629,7 +668,14 @@ that its full source-plan phase is complete.
   permissions. Select a populated read-only copy and inspect aggregate
   unresolved/unsupported counts before designing tenant filters. Avoid
   revoking an existing operator feature based on schema-only evidence. Record
-  surfaces that cannot be proven without a live runtime separately. Sources:
+  surfaces that cannot be proven without a live runtime separately. Tenant
+  reads now also reject relationship traversal in filters, `_some`/`_none`,
+  sorting, and grouping until the related collection has a tenant contract;
+  scalar/logical filters and JSON containment remain supported. The focused
+  hook suite passes 12 tests and the TypeScript check. This closes the
+  source-level relation-query oracle but does not prove live API permissions
+  or populated-row parity
+  ([evidence](builds/2026-10-28-recovery/directus-relation-query-boundary.json)). Sources:
   [Directus parity](batches.md#L2117),
   [preflight](directus-polymorphic-lineage-preflight.md),
   [transport/Directus gates](batches.md#L3320).
@@ -639,11 +685,25 @@ that its full source-plan phase is complete.
   and active state are reconciled. The 23-entry catalog matches its generated
   contract, and five Prefect deployments use catalog-backed pipelines; the
   legacy health-check flow is undeployed and weather-forecast remains
-  default-off. A source audit of climate ingestion found manual dataset/UUID
+  default-off. The signed forecast worker now consumes its dedicated
+  `KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY`, routed through standard
+  and portability Compose profiles; live provider/scheduler acceptance remains
+  open ([evidence](builds/2026-10-28-recovery/weather-forecast-provider-key-routing.json)).
+  A source audit of climate ingestion found manual dataset/UUID
   preflight and the scheduled location-bound default-off signed worker already
   align; its 174-test climate/CLI/scheduler selection passes without contacting
-  a provider or database. No owner or production schedule was inferred. Sources:
-  [provider/job inventory](batches.md#L2288),
+  a provider or database. No owner or production schedule was inferred.
+  A follow-up inventory review found the legacy Yahoo price-feed flow is not a
+  safe new JobSpec: it writes audit rows but no `price_observation`, reports an
+  empty fetch as success, and its documented attestation step is never invoked.
+  Defer registration until persistence/retry semantics and separate human
+  attestation approval are defined ([audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json)).
+  A separate source review found the unmatched legacy health-check flow assumes
+  the full legacy PostgreSQL/Directus/ClickHouse/Docker topology and has no
+  Kernel scheduler CLI contract, so it also remains unregistered until a
+  profile-aware health contract exists
+  ([audit](builds/2026-10-28-recovery/prefect-health-check-contract-audit.json)).
+  Sources: [provider/job inventory](batches.md#L2288),
   [worker recovery](batches.md#L2358).
 - [ ] **C5 — Close source-verifiable analytics and reporting gaps.** Port
   registered queries/cards and deterministic projections, fix correctness and
@@ -663,7 +723,13 @@ that its full source-plan phase is complete.
   location-bound SQL signal were reviewed: twelve are deliberate network
   reports with explicit network-scope guards, and `business_plan` rejects
   missing scope while its all-location mode is intentional. Do not infer
-  populated-farm parity from synthetic fixtures.
+  populated-farm parity from synthetic fixtures. Tactical-layer companion
+  lookups now keep target threats within the selected location, and the
+  State-of-Kokonut actor/funding sections filter all four queries to selected
+  locations while rejecting empty selections; network-wide mode is unchanged.
+  Their focused suites pass 73 and 285 tests respectively, with report
+  inventory freshness checks ([tactical scope](builds/2026-10-28-recovery/tactical-layer-companion-location-scope.json);
+  [State of Kokonut scope](builds/2026-10-28-recovery/state-of-kokonut-selected-actor-scope.json)).
   Sources:
   [report/query parity](batches.md#L2334),
   [consumer scope](batches.md#L3139).
@@ -703,7 +769,10 @@ that its full source-plan phase is complete.
   release gate validates both core-only and all-overlays images for AMD64 and
   ARM64; local profile/import checks pass, while hosted CI remains pending.
   Existing full-capability profiles are unchanged, and core OIDC is rejected
-  until that composition is implemented.
+  until that composition is implemented. The edge Compose profile also has an
+  offline regression locking its declared 1 GiB/two-CPU app and database caps;
+  this checks configuration only and is not physical Raspberry Pi runtime
+  acceptance ([evidence](builds/2026-10-28-recovery/edge-compose-resource-contract.json)).
   Sources: [Phase 8](implementation-plan-alignment.md#L28),
   [latest native full replay](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
   [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-680.json),
@@ -716,6 +785,38 @@ that its full source-plan phase is complete.
   `batches.md`, `progress.md`, capability matrix and migration/evidence links
   consistent. Preserve the 25 open composite checklist entries until their
   individual acceptance criteria close.
+
+### Current batch — parallel Kernel hardening — 28 October 2026
+
+This batch closed ten checklist/audit items without changing capability
+classifications: the metric-definition runtime ACL, ecocredit response
+contract, Python SDK timeout preflight, Directus relation-query boundary,
+legacy health-check flow audit, edge-profile resource regression, detailed
+health-route authorization, forecast-worker provider-key routing, runtime ACL
+report provenance, and the next-catalog source review. The combined
+Gateway/report selection passes 385 tests; Directus passes 12 focused tests
+and TypeScript; the Python SDK passes 17 tests; the edge profile check passes
+one test. The disposable PostgreSQL 16 role-boundary harness passes migration
+681 apply/replay and verifies runtime read-only behavior plus preservation of
+Directus grants. The full schema/ACL report remains through migration 679, and
+no candidate or legacy database was changed.
+
+This batch also protected `/api/health/services` behind `service_health:read`
+while keeping `/health` public, fixed dedicated forecast-worker provider-key
+routing, and corrected ACL-report provenance so migration-679 observations
+are not confused with migration-681 policy. The TypeScript client is gRPC-only;
+REST deadline parity does not justify imposing a default deadline on streaming
+or long-running gRPC calls. The C5 re-audit found no additional safe
+selected-location leak outside the report fixes already closed. C4 confirms the
+legacy health-check flow is not profile-independent and remains unregistered.
+C6 found no further source-only capability change that avoids populated data,
+live identity, or owner decisions. The next C1 candidate,
+`competency_framework`, remains unchanged pending its curator and supported
+administration path. The C1 migration is a relation-specific DML restriction;
+it does not establish RLS or tenant isolation. Checklist: 1,377 complete / 25
+open (1,402 total);
+the matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows. MAN-CAP acceptance is unchanged.
 
 ## Owner or environment gates after code work
 

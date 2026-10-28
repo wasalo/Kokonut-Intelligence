@@ -3,6 +3,8 @@
 import runpy
 from pathlib import Path
 
+from services.migration import runtime_role
+
 ROOT = Path(__file__).resolve().parents[1]
 REPORTER = runpy.run_path(
     str(ROOT / "scripts" / "runtime-privilege-callsite-report.py"),
@@ -23,6 +25,7 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     assert overrides["pest_degree_day_config"] == "runtime_mutations_denied"
     assert overrides["revenue_multiplier_config"] == "runtime_mutations_denied"
     assert overrides["farmer_credential_type"] == "runtime_mutations_denied"
+    assert overrides["metric_definition"] == "runtime_mutations_denied"
 
 
 def _acl_row(
@@ -51,11 +54,12 @@ def _acl_row(
 def test_zero_grant_private_relation_stays_in_source_policy_join():
     private_relation = "ai_summary_agent_draft_request"
     mutation_relation = "ai_summary"
+    mutation_relation_count = len(runtime_role._RUNTIME_MUTATION_TABLES)
     scoped_policy = {
         "private_relations_expected": 79,
-        "mutation_denied_relations_expected": 45,
+        "mutation_denied_relations_expected": mutation_relation_count,
         "private_relations_verified": 79,
-        "mutation_denied_relations_verified": 45,
+        "mutation_denied_relations_verified": mutation_relation_count,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
@@ -280,6 +284,11 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
         "full_schema_replay_passed": True,
         "scoped_acl_checks_passed": True,
         "scoped_acl_summary": scoped_policy,
+        "current_source_policy_coverage_observed": True,
+        "acl_snapshot_latest_migration": None,
+        "acl_snapshot_latest_migration_number": None,
+        "repository_latest_migration_number": 681,
+        "current_migration_chain_observed": False,
         "api_key_column_boundary_passed": False,
         "append_only_audit_ledgers_boundary_passed": True,
         "target_scope": "isolated disposable database only",

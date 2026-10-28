@@ -6,7 +6,7 @@
     "acl_report_source_revision": "82bd48c1",
     "runtime_role_policy_sha256": "12c009849d5dd2840c0688a14284079b4882b4ed87591e65ca5874dc0618aa56",
     "sql_inventory_path": "docs/refactor/runtime-sql-inventory.json",
-    "sql_inventory_sha256": "d6db5f8cfb4b05033dd9b77ec22a62a0095d02190e9ef4c52559262764ac9c54",
+    "sql_inventory_sha256": "945d0e19d5d62967f559493397c40e65f71c2bcc383bd118f30099f03c5d0353",
     "sql_inventory_version": 2
   },
   "limitations": [

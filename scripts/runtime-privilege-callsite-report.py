@@ -61,6 +61,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "market_reference_data": "runtime_mutations_denied",
     "quantity_unit": "runtime_mutations_denied",
     "yield_benchmark": "runtime_mutations_denied",
+    "metric_definition": "runtime_mutations_denied",
     "dfs_currency": "runtime_mutations_denied",
     "ghg_emission_factor": "runtime_mutations_denied",
     "operations_protocol": "runtime_mutations_denied",
@@ -199,7 +200,16 @@ def _expected_runtime_denial(revokes: list[dict[str, str]]) -> str | None:
 
 def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, Any]:
     """Cross-reference observed ACLs, static SQL candidates and explicit revokes."""
-    expected_schema_files = len(list((ROOT / "schemas/postgres").glob("*.sql")))
+    schema_files = list((ROOT / "schemas/postgres").glob("*.sql"))
+    expected_schema_files = len(schema_files)
+    repository_latest_migration = max(
+        (
+            int(match.group(1))
+            for path in schema_files
+            if (match := re.match(r"(\d+)_", path.name)) is not None
+        ),
+        default=None,
+    )
     replay = probe
     scoped_probe = probe.get("operator_scope_probe")
     if isinstance(scoped_probe, dict):
@@ -256,10 +266,6 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         policy == "runtime_mutations_denied" for policy in runtime_boundaries.values()
     )
     expected_scoped_write = {
-        "private_relations_expected": private_relation_count,
-        "mutation_denied_relations_expected": mutation_denial_count,
-        "private_relations_verified": private_relation_count,
-        "mutation_denied_relations_verified": mutation_denial_count,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
@@ -269,9 +275,18 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         "append_only_mutations_denied": 2,
         "append_only_column_grants_denied": 2,
     }
-    runtime_role_acl_checks_passed = (
+    recorded_scoped_write_passed = (
         isinstance(scoped_write, dict)
         and all(scoped_write.get(key) == value for key, value in expected_scoped_write.items())
+        and scoped_write.get("private_relations_expected")
+        == scoped_write.get("private_relations_verified")
+        and scoped_write.get("mutation_denied_relations_expected")
+        == scoped_write.get("mutation_denied_relations_verified")
+    )
+    current_scoped_write_coverage_observed = (
+        recorded_scoped_write_passed
+        and scoped_write.get("private_relations_expected") == private_relation_count
+        and scoped_write.get("mutation_denied_relations_expected") == mutation_denial_count
     )
     api_key_policy = probe.get("runtime_api_key_policy")
     api_key_boundary_passed = api_key_policy == {
@@ -292,12 +307,32 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         "column_grants_denied": 2,
         "verified_by_provisioner": True,
     }
+    recorded_schema_files_expected = replay.get("schema_files_expected")
+    if not isinstance(recorded_schema_files_expected, int):
+        # Older probes predate the self-reported expected count. For those
+        # artifacts, preserve the prior best-effort check against the checkout.
+        recorded_schema_files_expected = expected_schema_files
     full_schema_replay_passed = (
         replay.get("result") == "passed"
-        and replay.get("schema_files_applied") == expected_schema_files
+        and replay.get("schema_files_applied") == recorded_schema_files_expected
         and replay.get("schema_files_pending") == 0
         and replay.get("schema_files_failed") == 0
         and replay.get("seeds_applied") == 0
+    )
+    observed_latest_migration = (
+        replay.get("latest_applied_migration")
+        or replay.get("latest_migration")
+        or replay.get("schema_status", {}).get("latest")
+    )
+    observed_migration_match = (
+        re.match(r"(?:schema:)?(\d+)_", observed_latest_migration)
+        if isinstance(observed_latest_migration, str)
+        else None
+    )
+    observed_latest_migration_number = (
+        int(observed_migration_match.group(1))
+        if observed_migration_match is not None
+        else None
     )
     output_rows: list[dict[str, Any]] = []
     for name, row in sorted(relations.items()):
@@ -445,8 +480,19 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         ),
         "runtime_role_acceptance": {
             "full_schema_replay_passed": full_schema_replay_passed,
-            "scoped_acl_checks_passed": runtime_role_acl_checks_passed,
+            # This describes whether the checks recorded by this historical
+            # probe passed for the migration set it actually applied. It does
+            # not claim that the snapshot includes today's source policy.
+            "scoped_acl_checks_passed": recorded_scoped_write_passed,
             "scoped_acl_summary": scoped_write if isinstance(scoped_write, dict) else None,
+            "current_source_policy_coverage_observed": current_scoped_write_coverage_observed,
+            "acl_snapshot_latest_migration": observed_latest_migration,
+            "acl_snapshot_latest_migration_number": observed_latest_migration_number,
+            "repository_latest_migration_number": repository_latest_migration,
+            "current_migration_chain_observed": (
+                observed_latest_migration_number is not None
+                and observed_latest_migration_number == repository_latest_migration
+            ),
             "api_key_column_boundary_passed": api_key_boundary_passed,
             "append_only_audit_ledgers_boundary_passed": append_only_boundary_passed,
             "target_scope": "isolated disposable database only",

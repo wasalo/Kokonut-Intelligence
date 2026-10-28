@@ -6,8 +6,8 @@
     "operation_roots": 49,
     "source_files": 138,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 1173,
-    "direct_call_edges": 1661,
+    "function_memberships": 1174,
+    "direct_call_edges": 1662,
     "callback_edges": 2,
     "dynamic_dispatch_edges": 56
   },
@@ -814,7 +814,7 @@
           "qualname": "_jsonb",
           "class_scope": null,
           "source": "services/events/fork_detector.py",
-          "line": 172
+          "line": 177
         },
         {
           "key": "services.events.fork_detector:_refs_json",
@@ -822,7 +822,7 @@
           "qualname": "_refs_json",
           "class_scope": null,
           "source": "services/events/fork_detector.py",
-          "line": 162
+          "line": 167
         },
         {
           "key": "services.events.fork_detector:detect_fork_opportunities",
@@ -838,7 +838,7 @@
           "qualname": "propose_fork_opportunities",
           "class_scope": null,
           "source": "services/events/fork_detector.py",
-          "line": 114
+          "line": 119
         },
         {
           "key": "services.events.insight_transfer:InsightTransferEngine._get_conn",
@@ -942,7 +942,7 @@
           "qualname": "_deliver",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 434
+          "line": 435
         },
         {
           "key": "services.events.notification_outbox:_finish_attempt",
@@ -950,7 +950,7 @@
           "qualname": "_finish_attempt",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 497
+          "line": 498
         },
         {
           "key": "services.events.notification_outbox:_recover_expired_leases",
@@ -966,7 +966,7 @@
           "qualname": "_retry_delay_seconds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 492
+          "line": 493
         },
         {
           "key": "services.events.notification_outbox:_storage_thresholds",
@@ -974,7 +974,7 @@
           "qualname": "_storage_thresholds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 578
+          "line": 579
         },
         {
           "key": "services.events.notification_outbox:_validate_operator",
@@ -982,7 +982,7 @@
           "qualname": "_validate_operator",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 659
+          "line": 660
         },
         {
           "key": "services.events.notification_outbox:claim_batch",
@@ -998,7 +998,7 @@
           "qualname": "deliver_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 569
+          "line": 570
         },
         {
           "key": "services.events.notification_outbox:deliver_claimed_batch",
@@ -1006,7 +1006,7 @@
           "qualname": "deliver_claimed_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 544
+          "line": 545
         },
         {
           "key": "services.events.notification_outbox:dispose_dead_letter",
@@ -1014,7 +1014,7 @@
           "qualname": "dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 709
+          "line": 710
         },
         {
           "key": "services.events.notification_outbox:get_stats",
@@ -1022,7 +1022,7 @@
           "qualname": "get_stats",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 598
+          "line": 599
         },
         {
           "key": "services.events.notification_outbox:list_dead_letters",
@@ -1030,7 +1030,7 @@
           "qualname": "list_dead_letters",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 640
+          "line": 641
         },
         {
           "key": "services.events.notification_outbox:replay_dead_letter",
@@ -1038,7 +1038,7 @@
           "qualname": "replay_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 667
+          "line": 668
         },
         {
           "key": "services.events.retention:event_retention_cleanup_enabled",
@@ -1764,19 +1764,19 @@
           "caller": "services.events.fork_detector:_refs_json",
           "callee": "services.events.fork_detector:_jsonb",
           "source": "services/events/fork_detector.py",
-          "line": 169
+          "line": 174
         },
         {
           "caller": "services.events.fork_detector:propose_fork_opportunities",
           "callee": "services.events.fork_detector:_refs_json",
           "source": "services/events/fork_detector.py",
-          "line": 146
+          "line": 151
         },
         {
           "caller": "services.events.fork_detector:propose_fork_opportunities",
           "callee": "services.events.fork_detector:detect_fork_opportunities",
           "source": "services/events/fork_detector.py",
-          "line": 122
+          "line": 127
         },
         {
           "caller": "services.events.insight_transfer:InsightTransferEngine._get_conn",
@@ -1884,79 +1884,79 @@
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.common.smtp:send_message",
           "source": "services/events/notification_outbox.py",
-          "line": 477
+          "line": 478
         },
         {
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 447
+          "line": 448
         },
         {
           "caller": "services.events.notification_outbox:_finish_attempt",
           "callee": "services.events.notification_outbox:_retry_delay_seconds",
           "source": "services/events/notification_outbox.py",
-          "line": 505
+          "line": 506
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_configured_channels",
           "source": "services/events/notification_outbox.py",
-          "line": 385
+          "line": 386
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_recover_expired_leases",
           "source": "services/events/notification_outbox.py",
-          "line": 387
+          "line": 388
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_recover_expired_leases",
           "source": "services/events/notification_outbox.py",
-          "line": 392
+          "line": 393
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:_finish_attempt",
           "source": "services/events/notification_outbox.py",
-          "line": 574
+          "line": 575
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:claim_batch",
           "source": "services/events/notification_outbox.py",
-          "line": 571
+          "line": 572
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:deliver_claimed_batch",
           "source": "services/events/notification_outbox.py",
-          "line": 572
+          "line": 573
         },
         {
           "caller": "services.events.notification_outbox:deliver_claimed_batch",
           "callee": "services.events.notification_outbox:_deliver",
           "source": "services/events/notification_outbox.py",
-          "line": 550
+          "line": 551
         },
         {
           "caller": "services.events.notification_outbox:dispose_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 719
+          "line": 720
         },
         {
           "caller": "services.events.notification_outbox:get_stats",
           "callee": "services.events.notification_outbox:_storage_thresholds",
           "source": "services/events/notification_outbox.py",
-          "line": 619
+          "line": 620
         },
         {
           "caller": "services.events.notification_outbox:replay_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 668
+          "line": 669
         },
         {
           "caller": "services.events.retention:require_event_retention_cleanup",
@@ -13018,7 +13018,7 @@
         {
           "function": "services.ingestion.weather_forecast:main",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 434
+          "line": 439
         }
       ],
       "reachable_functions": [
@@ -13108,7 +13108,7 @@
           "qualname": "_ingest_locations",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 286
+          "line": 291
         },
         {
           "key": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
@@ -13116,7 +13116,7 @@
           "qualname": "build_forecast_clickhouse_projection",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 174
+          "line": 179
         },
         {
           "key": "services.ingestion.weather_forecast:fetch_forecast_raw",
@@ -13132,7 +13132,7 @@
           "qualname": "insert_forecasts",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 92
+          "line": 97
         },
         {
           "key": "services.ingestion.weather_forecast:insert_forecasts_clickhouse",
@@ -13140,7 +13140,7 @@
           "qualname": "insert_forecasts_clickhouse",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 209
+          "line": 214
         },
         {
           "key": "services.ingestion.weather_forecast:insert_location_forecasts",
@@ -13148,7 +13148,7 @@
           "qualname": "insert_location_forecasts",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 151
+          "line": 156
         },
         {
           "key": "services.ingestion.weather_forecast:main",
@@ -13156,7 +13156,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 412
+          "line": 417
         },
         {
           "key": "services.ingestion.weather_forecast:parse_forecast_list",
@@ -13164,7 +13164,7 @@
           "qualname": "parse_forecast_list",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 49
+          "line": 54
         },
         {
           "key": "services.ingestion.weather_forecast:run",
@@ -13172,7 +13172,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 362
+          "line": 367
         }
       ],
       "direct_call_edges": [
@@ -13216,91 +13216,91 @@
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 315
+          "line": 320
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 308
+          "line": 313
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 335
+          "line": 340
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.weather_forecast:fetch_forecast_raw",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 298
+          "line": 303
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.weather_forecast:insert_forecasts_clickhouse",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 355
+          "line": 360
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.weather_forecast:insert_location_forecasts",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 307
+          "line": 312
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.weather_forecast:parse_forecast_list",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 301
+          "line": 306
         },
         {
           "caller": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 205
+          "line": 210
         },
         {
           "caller": "services.ingestion.weather_forecast:insert_forecasts_clickhouse",
           "callee": "services.ingestion.base:insert_clickhouse_rows",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 233
+          "line": 238
         },
         {
           "caller": "services.ingestion.weather_forecast:insert_forecasts_clickhouse",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 221
+          "line": 226
         },
         {
           "caller": "services.ingestion.weather_forecast:insert_forecasts_clickhouse",
           "callee": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 214
+          "line": 219
         },
         {
           "caller": "services.ingestion.weather_forecast:insert_location_forecasts",
           "callee": "services.ingestion.weather_forecast:insert_forecasts",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 156
+          "line": 161
         },
         {
           "caller": "services.ingestion.weather_forecast:main",
           "callee": "services.ingestion.weather_forecast:run",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 428
+          "line": 433
         },
         {
           "caller": "services.ingestion.weather_forecast:run",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 378
+          "line": 383
         },
         {
           "caller": "services.ingestion.weather_forecast:run",
           "callee": "services.ingestion.weather_forecast:_ingest_locations",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 397
+          "line": 402
         }
       ],
       "callback_edges": [],
@@ -13333,12 +13333,12 @@
         {
           "function": "services.common.cli:run",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 183
+          "line": 190
         },
         {
           "function": "services.ingestion.weather_forecast_worker:main",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 183
+          "line": 190
         }
       ],
       "reachable_functions": [
@@ -13436,7 +13436,7 @@
           "qualname": "build_forecast_clickhouse_projection",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 174
+          "line": 179
         },
         {
           "key": "services.ingestion.weather_forecast:fetch_forecast_raw",
@@ -13452,7 +13452,7 @@
           "qualname": "parse_forecast_list",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 49
+          "line": 54
         },
         {
           "key": "services.ingestion.weather_forecast_worker:_load_location",
@@ -13460,12 +13460,20 @@
           "qualname": "_load_location",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 39
+          "line": 47
         },
         {
           "key": "services.ingestion.weather_forecast_worker:_open_scoped_connection",
           "module": "services.ingestion.weather_forecast_worker",
           "qualname": "_open_scoped_connection",
+          "class_scope": null,
+          "source": "services/ingestion/weather_forecast_worker.py",
+          "line": 31
+        },
+        {
+          "key": "services.ingestion.weather_forecast_worker:_provider_api_key",
+          "module": "services.ingestion.weather_forecast_worker",
+          "qualname": "_provider_api_key",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast_worker.py",
           "line": 23
@@ -13476,7 +13484,7 @@
           "qualname": "_store_batch",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 61
+          "line": 69
         },
         {
           "key": "services.ingestion.weather_forecast_worker:ingest",
@@ -13484,7 +13492,7 @@
           "qualname": "ingest",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 115
+          "line": 123
         },
         {
           "key": "services.ingestion.weather_forecast_worker:main",
@@ -13492,7 +13500,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 160
+          "line": 167
         }
       ],
       "direct_call_edges": [
@@ -13530,97 +13538,103 @@
           "caller": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 205
+          "line": 210
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:_load_location",
           "callee": "services.ingestion.weather_forecast_worker:_open_scoped_connection",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 41
+          "line": 49
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:_open_scoped_connection",
           "callee": "services.common.tenant_context:set_worker_tenant_context",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 26
+          "line": 34
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:_open_scoped_connection",
           "callee": "services.common.worker_database:get_worker_db",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 24
+          "line": 32
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:_store_batch",
           "callee": "services.ingestion.weather_forecast_worker:_open_scoped_connection",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 82
+          "line": 90
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:ingest",
           "callee": "services.common.worker_database:get_worker_credential",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 120
+          "line": 127
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:ingest",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 154
+          "line": 161
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:ingest",
           "callee": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 129
+          "line": 136
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:ingest",
           "callee": "services.ingestion.weather_forecast:fetch_forecast_raw",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 127
+          "line": 134
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:ingest",
           "callee": "services.ingestion.weather_forecast:parse_forecast_list",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 128
+          "line": 135
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:ingest",
           "callee": "services.ingestion.weather_forecast_worker:_load_location",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 122
+          "line": 129
+        },
+        {
+          "caller": "services.ingestion.weather_forecast_worker:ingest",
+          "callee": "services.ingestion.weather_forecast_worker:_provider_api_key",
+          "source": "services/ingestion/weather_forecast_worker.py",
+          "line": 126
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:ingest",
           "callee": "services.ingestion.weather_forecast_worker:_store_batch",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 135
+          "line": 142
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:ingest",
           "callee": "services.ingestion.weather_forecast_worker:_store_batch",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 148
+          "line": 155
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 174
+          "line": 181
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:main",
           "callee": "services.core.features:is_enabled",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 170
+          "line": 177
         },
         {
           "caller": "services.ingestion.weather_forecast_worker:main",
           "callee": "services.ingestion.weather_forecast_worker:ingest",
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 173
+          "line": 180
         }
       ],
       "callback_edges": [],
@@ -14885,7 +14899,7 @@
         {
           "function": "services.agents.worker_cli:main",
           "source": "services/agents/worker_cli.py",
-          "line": 796
+          "line": 798
         }
       ],
       "reachable_functions": [
@@ -15391,7 +15405,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/agents/worker_cli.py",
-          "line": 796
+          "line": 798
         },
         {
           "key": "services.agents.worker_cli:resolve_synthesis_agent",
@@ -16455,25 +16469,25 @@
           "caller": "services.agents.worker_cli:main",
           "callee": "services.agents.worker_cli:resolve_synthesis_agent",
           "source": "services/agents/worker_cli.py",
-          "line": 864
+          "line": 866
         },
         {
           "caller": "services.agents.worker_cli:main",
           "callee": "services.agents.worker_cli:run_worker_summary",
           "source": "services/agents/worker_cli.py",
-          "line": 874
+          "line": 876
         },
         {
           "caller": "services.agents.worker_cli:main",
           "callee": "services.agents.worker_cli:run_worker_synthesis",
           "source": "services/agents/worker_cli.py",
-          "line": 866
+          "line": 868
         },
         {
           "caller": "services.agents.worker_cli:main",
           "callee": "services.common.errors:safe_exception_class",
           "source": "services/agents/worker_cli.py",
-          "line": 893
+          "line": 895
         },
         {
           "caller": "services.agents.worker_cli:run_worker_summary",
@@ -17481,7 +17495,7 @@
           "qualname": "_deliver",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 434
+          "line": 435
         },
         {
           "key": "services.events.notification_outbox:deliver_claimed_batch",
@@ -17489,7 +17503,7 @@
           "qualname": "deliver_claimed_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 544
+          "line": 545
         }
       ],
       "direct_call_edges": [
@@ -17581,19 +17595,19 @@
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.common.smtp:send_message",
           "source": "services/events/notification_outbox.py",
-          "line": 477
+          "line": 478
         },
         {
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 447
+          "line": 448
         },
         {
           "caller": "services.events.notification_outbox:deliver_claimed_batch",
           "callee": "services.events.notification_outbox:_deliver",
           "source": "services/events/notification_outbox.py",
-          "line": 550
+          "line": 551
         }
       ],
       "callback_edges": [],

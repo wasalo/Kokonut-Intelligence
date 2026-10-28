@@ -3,14 +3,17 @@
 
 def register_attestation_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
-    from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
+    from services.gateway.attestation_models import LocationAttestationsResponse
     from services.gateway.attestations import list_location_attestations
 
-    @router.get("/operator/api/attestations/{location_id}")
+    @router.get(
+        "/operator/api/attestations/{location_id}",
+        response_model=LocationAttestationsResponse,
+    )
     async def location_attestations(
         request: Request,
         location_id: str,
@@ -57,7 +60,8 @@ def register_attestation_routes(router, provider, run_in_threadpool, psycopg2):
                 },
             )
 
+        response = LocationAttestationsResponse(data=rows, location_id=location_id)
         return JSONResponse(
-            {"data": jsonable_encoder(rows), "location_id": location_id},
+            response.model_dump(mode="json"),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )

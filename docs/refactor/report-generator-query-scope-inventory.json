@@ -776,7 +776,7 @@
       "report_type": "capital_provider_utility",
       "callable": "generate_capital_provider_utility",
       "source_file": "services/export/reports/state.py",
-      "source_line": 548,
+      "source_line": 561,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -790,7 +790,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 552,
+          "line": 565,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -813,7 +813,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 554,
+          "line": 567,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1015,7 +1015,7 @@
       "report_type": "comprehensive_status",
       "callable": "generate_comprehensive_status",
       "source_file": "services/export/reports/state.py",
-      "source_line": 369,
+      "source_line": 382,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -1029,7 +1029,7 @@
       "helper_calls": [
         {
           "callable": "generate_capital_accounting",
-          "line": 405,
+          "line": 418,
           "location_id_name_visible_in_arguments": false
         }
       ],
@@ -4957,7 +4957,7 @@
       "report_type": "state_of_kokonut",
       "callable": "generate_state_of_kokonut",
       "source_file": "services/export/reports/state.py",
-      "source_line": 255,
+      "source_line": 264,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -4975,7 +4975,7 @@
       "report_type": "state_of_kokonut_graphs",
       "callable": "generate_state_of_kokonut_graphs",
       "source_file": "services/export/reports/state.py",
-      "source_line": 316,
+      "source_line": 329,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -4989,7 +4989,7 @@
       "helper_calls": [
         {
           "callable": "build_all",
-          "line": 329,
+          "line": 342,
           "location_id_name_visible_in_arguments": true
         }
       ],
@@ -5319,7 +5319,7 @@
       "report_type": "strategic_reserve",
       "callable": "generate_strategic_reserve",
       "source_file": "services/export/reports/state.py",
-      "source_line": 453,
+      "source_line": 466,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -5333,7 +5333,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 479,
+          "line": 492,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5356,7 +5356,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 484,
+          "line": 497,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

@@ -124,6 +124,46 @@ def test_double_check_attaches_companions():
     dc = result["double_checks"][0]
     assert dc["companion_threat_name"] == "Crop failure"
     assert dc["impact_type"] == "amplifies"
+    companion_query, companion_params = next(
+        (call.args[0], call.args[1])
+        for call in cur.execute.call_args_list
+        if "FROM threat_cross_impact ci" in call.args[0]
+    )
+    assert "t.location_id = %s" in companion_query
+    assert companion_params == ["T1", "L"]
+
+
+def test_network_double_check_keeps_cross_location_targets():
+    flags = [
+        {"id": "f1", "threat_id": "T1", "flag_name": "Drought",
+         "indicator_type": "quantitative", "threshold_warning": 7.0,
+         "threshold_critical": 10.0, "threshold_normal": 5.0,
+         "comparison_operator": "gte", "unit": "mm", "data_source": "weather",
+         "check_frequency_hours": 24, "last_checked_at": None,
+         "last_value": 9.0, "threat_name": "Drought", "threat_type": "climate",
+         "threat_severity": "high", "threat_probability": 0.7,
+         "status": "warning"},
+    ]
+    companions = [
+        {"flag_id": "f1", "source_threat_id": "T1", "target_threat_id": "T2",
+         "target_threat_name": "Crop failure", "impact_type": "amplifies",
+         "impact_magnitude": 0.7},
+    ]
+    conn, cur = _mock_conn({
+        "FROM threat_flag tf": flags,
+        "FROM threat_cross_impact ci": companions,
+    })
+
+    result = preempt.plan_preemptive_actions(conn)
+
+    assert result["double_check_count"] == 1
+    companion_query, companion_params = next(
+        (call.args[0], call.args[1])
+        for call in cur.execute.call_args_list
+        if "FROM threat_cross_impact ci" in call.args[0]
+    )
+    assert "t.location_id = %s" not in companion_query
+    assert companion_params == ["T1"]
 
 
 # --- Pin --------------------------------------------------------------------

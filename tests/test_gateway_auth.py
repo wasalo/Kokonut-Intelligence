@@ -38,6 +38,25 @@ def test_anonymous_gateway_health_is_allowed():
     assert response.json()["status"] == "ok"
 
 
+def test_anonymous_detailed_service_health_is_denied_without_probing(monkeypatch):
+    """Only the lightweight liveness route is public; dependency topology is not."""
+    from unittest.mock import MagicMock
+
+    monkeypatch.delenv("KOKONUT_API_KEYS", raising=False)
+    detailed_health = MagicMock(return_value={"services": []})
+    monkeypatch.setattr("services.core.health.overall_health", detailed_health)
+
+    with TestClient(create_app()) as client:
+        detailed = client.get("/api/health/services")
+        liveness = client.get("/health")
+
+    assert detailed.status_code == 401
+    assert detailed.json()["error"] == "Unauthorized"
+    detailed_health.assert_not_called()
+    assert liveness.status_code == 200
+    assert liveness.json()["status"] == "ok"
+
+
 def test_mobile_upload_cors_requires_allowlisted_origin_and_allows_device_headers(monkeypatch):
     monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://collector.example")
     headers = {

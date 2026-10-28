@@ -1,0 +1,44 @@
+{
+  "record_version": 1,
+  "date": "2026-10-28",
+  "slice": "competency-framework-runtime-write-audit",
+  "status": "source-reviewed; no privilege change selected",
+  "relation": "public.competency_framework",
+  "schema": {
+    "path": "schemas/postgres/084_curriculum.sql",
+    "line_start": 137,
+    "line_end": 153,
+    "editable_policy_fields": [
+      "competency_name",
+      "description",
+      "assessment_criteria",
+      "passing_score",
+      "weight",
+      "status",
+      "metadata"
+    ],
+    "lifecycle_values": ["active", "archived"]
+  },
+  "application_source_review": {
+    "visible_readers": [
+      {
+        "path": "services/analytics/curriculum.py",
+        "functions": ["compute_competency_coverage", "compute_training_roi"]
+      }
+    ],
+    "repository_writer_found_in_reviewed_paths": false,
+    "reviewed_paths": ["services", "scripts", "extensions", "schemas/postgres", "schemas/seeds"],
+    "limits": "A source search does not exclude Directus edits, external imports, operator tooling outside the repository, or populated runtime writers."
+  },
+  "decision": {
+    "runtime_privilege_migration_added": false,
+    "reason": "This relation stores mutable training policy. Its owner and supported administration surface must be confirmed before removing runtime DML."
+  },
+  "acceptance_needed_before_any_future_revoke": [
+    "identify the accountable curriculum curator and supported edit surface",
+    "reconcile Directus, external, and populated-runtime writers",
+    "if approved as read-only, test ordered migration replay, runtime SELECT, table and residual-column mutation/reference denial, provisioner reapplication, and preservation of Directus/admin grants"
+  ],
+  "database_or_provider_used": false,
+  "capability_classification_changed": false
+}

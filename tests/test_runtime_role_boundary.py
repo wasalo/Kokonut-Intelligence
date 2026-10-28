@@ -1,11 +1,21 @@
 import hashlib
 import json
 import re
+import runpy
 from pathlib import Path
 
 import pytest
 
 from services.migration import runtime_role
+
+REPORTER = runpy.run_path(
+    str(
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "runtime-privilege-callsite-report.py"
+    ),
+    run_name="runtime_privilege_callsite_report_boundary_test",
+)
 
 
 def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
@@ -25,11 +35,51 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["runtime_role_policy_source"]["sha256"] == hashlib.sha256(
         source
     ).hexdigest()
+    revokes = REPORTER["_source_revokes"]()
+    configured_boundaries, _ = REPORTER["_runtime_role_boundaries"]()
+    expected_relations = {
+        relation
+        for relation in set(revokes) | set(REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"])
+        if relation in configured_boundaries
+    }
+    reported_relations = {
+        row["relation"]
+        for row in report["relations"]
+        if row["expected_runtime_boundary"] is not None
+    }
+    assert reported_relations == expected_relations
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 127
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == len(
+        reported_relations
+    )
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
+
+
+def test_historical_acl_report_discloses_migration_681_not_in_full_schema_probe():
+    root = Path(__file__).resolve().parents[1]
+    report = json.loads(
+        (
+            root
+            / "docs/refactor/builds/2026-10-28-recovery/"
+            "sprint-runtime-privilege-callsite-report.json"
+        ).read_text()
+    )
+
+    acceptance = report["runtime_role_acceptance"]
+    assert acceptance["full_schema_replay_passed"] is True
+    assert acceptance["scoped_acl_checks_passed"] is True
+    assert acceptance["acl_snapshot_latest_migration_number"] == 679
+    assert acceptance["repository_latest_migration_number"] == 681
+    assert acceptance["current_migration_chain_observed"] is False
+    assert acceptance["current_source_policy_coverage_observed"] is False
+
+    metric_definition = next(
+        row for row in report["relations"] if row["relation"] == "metric_definition"
+    )
+    assert metric_definition["effective_privileges"]["insert"] is True
+    assert metric_definition["dml_overlaps_explicit_revoke"] is True
 
 
 def test_runtime_scoped_denials_follow_compatibility_table_grant():
@@ -1069,6 +1119,51 @@ def test_yield_benchmark_is_read_only_to_kernel_runtime():
     assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
     assert "REVOKE ALL PRIVILEGES ON TABLE public.yield_benchmark FROM kokonut_runtime" in migration
     assert "GRANT SELECT ON TABLE public.yield_benchmark TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_metric_definition_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/681_runtime_metric_definition_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/007_modeled_outputs.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    definition_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "metric_definition" in site.get("candidate_relations", [])
+    ]
+
+    assert "metric_definition" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS metric_definition" in schema
+    assert definition_sites
+    assert all(site["statement_kind"] == "SELECT" for site in definition_sites)
+    assert not any(
+        "metric_definition" in site.get("write_target_relations", [])
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?metric_definition\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.metric_definition FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.metric_definition TO kokonut_runtime" in migration
     assert "REVOKE INSERT (%1$I)" in migration
     assert "REVOKE UPDATE (%1$I)" in migration
     assert "REVOKE REFERENCES (%1$I)" in migration
