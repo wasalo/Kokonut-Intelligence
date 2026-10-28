@@ -519,6 +519,26 @@ the batch log and the affected capability/progress records are updated.
   Ruff, Python compilation, and schema parity checks pass. No provider or
   database was contacted ([exporter](../../scripts/export_public_api_openapi.py);
   [regression](../../tests/test_public_api_openapi.py)).
+- [x] Validate retirement-certificate location references for `retirement_id`,
+  `credit_id`, and `credit_batch_id` on Directus create/update; the shared
+  credit-class reference remains global. Focused tenant-hook checks pass (21)
+  and TypeScript checking passes.
+- [x] Require UUID location scope for location-required strategy reports before
+  database access while retaining network-scoped behavior. The regenerated
+  inventory covers 94 report types and 167 query sites with no unresolved or
+  bind-mismatch sites; the focused report selection passes 107 tests with four
+  database-dependent skips.
+- [x] Enforce the operating-pilot resource-category page response contract,
+  binding location and requested pagination and checking ordering, continuation,
+  and small-count suppression. The focused Gateway selection passes 15 tests.
+
+The combined batch also passes Ruff, Python compilation, report-query inventory
+validation, TypeScript checking, and `git diff --check`. The capability matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and now records
+62 strict private Gateway response endpoints. No migration, database, provider,
+candidate, or legacy service was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-directus-operating-report-contracts.json).
+Checklist: 1,438 complete / 25 open; TODO: 145 checked / 16 open.
 
 ## Code work to continue without owner input
 
@@ -974,7 +994,7 @@ pass. The matrix records 61 strict private Gateway response endpoints across
 database, provider, candidate, or legacy service was used. See
 [evidence](builds/2026-10-28-recovery/kernel-gateway-sdk-contract-batch.json).
 
-Checklist: 1,435 complete / 25 open (1,460 total); TODO: 142 checked / 16 open.
+Checklist: 1,438 complete / 25 open (1,463 total); TODO: 145 checked / 16 open.
 MAN-CAP acceptance and capability classifications are unchanged.
 
 ## Owner or environment gates after code work

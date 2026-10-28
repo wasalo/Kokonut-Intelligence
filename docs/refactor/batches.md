@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,435 checklist items complete and 25
-open (1,460 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,438 checklist items complete and 25
+open (1,463 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5451,9 +5451,9 @@ acceptance remain unchanged.
   malformed responses raise the existing sanitized SDK error and retain the
   received response object.
 
-The combined Python selection passes 92 tests across governance tension,
+The combined Python selection passes 93 tests across governance tension,
 farm-activity Gateway, waste-incident Gateway, and the public REST SDK. The
-JavaScript REST SDK selection passes 38 tests and its TypeScript build passes.
+JavaScript REST SDK selection passes 39 tests and its TypeScript build passes.
 Ruff, Python compilation, and `git diff --check` pass. The capability matrix
 remains valid at 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and
 now records 61 strict private Gateway response endpoints. No migration,
@@ -5462,4 +5462,32 @@ database, provider, candidate, or legacy service was used. Evidence:
 
 The checklist is now 1,435 complete / 25 open (1,460 total); the TODO ledger
 has 142 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Completed parallel continuation — Directus, reporting, and operating-pilot contracts — 28 October 2026
+
+- [x] Validate retirement-certificate `retirement_id`, `credit_id`, and
+  `credit_batch_id` references against the certificate location for both create
+  and update. The mapping is collection-specific; shared `credit_class_id`
+  remains global.
+- [x] Require a UUID-form location on location-required strategy report paths
+  before database access. Network-scoped report behavior is unchanged; the
+  generated report-query inventory is refreshed and remains free of unresolved
+  or bind-mismatch sites.
+- [x] Add a strict OpenAPI/runtime response contract for the operating-pilot
+  resource-category page, validating scope, requested location/page, ordering,
+  continuation, and small-count suppression semantics.
+
+Focused acceptance passes: operating-pilot resource-category tests (15),
+strategy/report selection (107 passed, 4 skipped), and Directus tenant
+reference tests (21); Directus TypeScript checking passes. Ruff, Python
+compilation, diff checks, and the report-query inventory check pass. The
+capability matrix remains valid at 67 rows (24 baseline-retained, 7 deployed,
+36 prepared) and now records 62 strict private Gateway response endpoints.
+No migration, database, provider, candidate, or legacy service was used.
+Evidence: [parallel contract batch](builds/2026-10-28-recovery/kernel-directus-operating-report-contracts.json).
+
+The checklist is now 1,438 complete / 25 open (1,463 total); the TODO ledger
+has 145 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.

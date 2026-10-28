@@ -142,6 +142,65 @@ describe('tenant reference validation', () => {
   });
 
   it.each([
+    { field: 'retirement_id', table: 'credit_retirement' },
+    { field: 'credit_id', table: 'carbon_credit' },
+    { field: 'credit_batch_id', table: 'credit_batch' },
+  ])('validates retirement certificate $field against its location', async ({ field, table }) => {
+    const reference = makeReferenceDatabase(locationId);
+    const payload = { location_id: locationId, [field]: plotId };
+
+    await expect(validateTenantReferences(
+      reference.database,
+      'retirement_certificate',
+      payload,
+    )).resolves.toBe(payload);
+    expect(reference.database).toHaveBeenCalledWith(table);
+    expect(reference.conditions).toEqual([[
+      { id: plotId, location_id: locationId },
+    ]]);
+
+    await expect(validateTenantReferences(
+      makeReferenceDatabase(otherLocationId).database,
+      'retirement_certificate',
+      payload,
+    )).rejects.toThrow(`${field} is unavailable for this location`);
+  });
+
+  it('keeps retirement certificate-only references scoped and shared credit classes global', async () => {
+    const database = vi.fn();
+    const creditId = { credit_id: plotId };
+    const creditClassId = { location_id: locationId, credit_class_id: plotId };
+
+    await expect(validateTenantReferences(database, 'farm_activity', {
+      location_id: locationId,
+      ...creditId,
+    })).resolves.toEqual({ location_id: locationId, ...creditId });
+    await expect(validateTenantReferences(database, 'retirement_certificate', creditClassId))
+      .resolves.toBe(creditClassId);
+    expect(database).not.toHaveBeenCalled();
+  });
+
+  it('validates retirement certificate references against each target row on update', async () => {
+    const payload = { credit_batch_id: plotId };
+    const sameLocation = makeReferenceDatabase(locationId);
+
+    await expect(validateTenantReferencesForRows(
+      sameLocation.database,
+      'retirement_certificate',
+      payload,
+      [{ location_id: locationId }],
+    )).resolves.toBe(payload);
+    expect(sameLocation.database).toHaveBeenCalledWith('credit_batch');
+
+    await expect(validateTenantReferencesForRows(
+      makeReferenceDatabase(otherLocationId).database,
+      'retirement_certificate',
+      payload,
+      [{ location_id: locationId }],
+    )).rejects.toThrow('credit_batch_id is unavailable for this location');
+  });
+
+  it.each([
     { field: 'crop_cycle_id', table: 'crop_cycle' },
     { field: 'harvest_id', table: 'harvest_event' },
   ])('scopes $field lookup to the requested location', async ({ field, table }) => {

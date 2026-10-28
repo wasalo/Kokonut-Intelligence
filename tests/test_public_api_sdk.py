@@ -230,6 +230,7 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
         {"drivers": [], "limit": 7, "offset": 12, "has_more": "false"},
         {"drivers": [], "limit": True, "offset": 12, "has_more": False},
         {"drivers": [], "limit": 7, "offset": 5001, "has_more": False},
+        {"drivers": [], "limit": 7, "offset": 13, "has_more": False},
         {"drivers": [], "limit": 7, "offset": 12, "has_more": False, "debug": "extra"},
         {
             "drivers": [
@@ -293,7 +294,7 @@ def test_driver_catalog_sdk_rejects_malformed_typed_response(catalog: dict[str, 
     )
 
     with pytest.raises(PublicApiError, match="Invalid public API response envelope") as exc_info:
-        client.drivers.list()
+        client.drivers.list(limit=7, offset=12)
 
     assert exc_info.value.response is response
 

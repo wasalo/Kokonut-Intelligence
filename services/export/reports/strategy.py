@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from typing import Any, Optional
+from uuid import UUID
 
 import psycopg2
 import psycopg2.extras
@@ -67,9 +68,13 @@ def generate_data_stream_summary(conn, location_id: str, period_start: str = Non
 
 
 def _require_location_scope(report_type: str, location_id: str | None) -> None:
-    """Require the location scope that the report registry assigns a report."""
-    if not location_id:
-        raise ValueError(f"{report_type} requires an explicit location_id")
+    """Require a well-formed UUID for reports the registry marks location-scoped."""
+    try:
+        if not location_id:
+            raise ValueError
+        UUID(str(location_id))
+    except (AttributeError, TypeError, ValueError):
+        raise ValueError(f"{report_type} requires an explicit location_id") from None
 
 
 def generate_business_model_canvas(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:

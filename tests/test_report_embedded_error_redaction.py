@@ -72,7 +72,9 @@ def test_simulation_reserve_clash_error_is_class_only(monkeypatch):
 
     monkeypatch.setattr(clash_examples, "stress_reserve", fail)
 
-    result = strategy.generate_simulation_wargame(object(), "location-1")
+    result = strategy.generate_simulation_wargame(
+        object(), "a0000000-0000-0000-0000-000000000001"
+    )
 
     assert result["reserve_clash"] == {"error": "reserve clash failed (RuntimeError)"}
     assert SECRET not in repr(result)

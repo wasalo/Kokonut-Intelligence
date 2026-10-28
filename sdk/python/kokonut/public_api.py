@@ -86,7 +86,9 @@ def _validate_driver_page(limit: int, offset: int) -> None:
         raise ValueError("offset must be an integer from 0 through 5000")
 
 
-def _is_driver_catalog_response(value: Any) -> bool:
+def _is_driver_catalog_response(
+    value: Any, *, expected_limit: int, expected_offset: int
+) -> bool:
     if not isinstance(value, dict):
         return False
     if set(value) != {"drivers", "limit", "offset", "has_more"}:
@@ -102,6 +104,8 @@ def _is_driver_catalog_response(value: Any) -> bool:
         or isinstance(offset, bool)
         or not isinstance(offset, int)
         or not 0 <= offset <= 5000
+        or limit != expected_limit
+        or offset != expected_offset
         or not isinstance(value.get("has_more"), bool)
     ):
         return False
@@ -281,7 +285,9 @@ class PublicDriverMethods:
         payload = self._client._get(
             f"{path}?limit={limit}&offset={offset}",
             data_shape="object",
-            data_validator=_is_driver_catalog_response,
+            data_validator=lambda value: _is_driver_catalog_response(
+                value, expected_limit=limit, expected_offset=offset
+            ),
         )["data"]
         return PublicDriverCatalogPage.from_payload(payload)
 

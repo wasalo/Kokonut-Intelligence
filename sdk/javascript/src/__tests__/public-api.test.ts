@@ -148,6 +148,7 @@ describe('KokonutPublicApiClient', () => {
     { drivers: [], limit: 7, offset: 12, has_more: 'false' },
     { drivers: [], limit: true, offset: 12, has_more: false },
     { drivers: [], limit: 7, offset: 5001, has_more: false },
+    { drivers: [], limit: 7, offset: 13, has_more: false },
     { drivers: [], limit: 7, offset: 12, has_more: false, debug: 'extra' },
     {
       drivers: [{ driver_name: 'weather', driver_version: '1', driver_type: 'unknown' }],
@@ -197,7 +198,7 @@ describe('KokonutPublicApiClient', () => {
     const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
     const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
 
-    const error = await client.drivers.list().catch((caught: unknown) => caught);
+    const error = await client.drivers.list({ limit: 7, offset: 12 }).catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(PublicApiError);
     expect(error).toMatchObject({

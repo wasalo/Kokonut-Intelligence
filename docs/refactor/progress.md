@@ -22393,10 +22393,11 @@ identity and resolved state. Governance-tension detail now has a strict safe
 projection and bounded event contract bound to the request IDs. The native
 Python and JavaScript REST clients validate public driver-catalog pages against
 the generated exact field, type, enum, and bound contract before constructing
-typed results.
+typed results. They also verify that response pagination echoes the requested
+limit and offset.
 
-Focused Python tests pass (92) across the four affected route/SDK areas; the
-JavaScript SDK tests pass (38), and its TypeScript build, Ruff, Python
+Focused Python tests pass (93) across the four affected route/SDK areas; the
+JavaScript SDK tests pass (39), and its TypeScript build, Ruff, Python
 compilation, and diff checks pass. The capability matrix records 61 strict
 private Gateway response endpoints across 67 rows (24 baseline-retained, 7
 deployed, 36 prepared). No migration, database, provider, candidate, or legacy
@@ -22405,3 +22406,24 @@ service was used ([evidence](builds/2026-10-28-recovery/kernel-gateway-sdk-contr
 The checklist is 1,435 complete / 25 open (1,460 total); the TODO ledger has
 142 checked / 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.
+
+
+### Progress addendum — Directus, report-scope, and operating-pilot contracts — 28 October 2026
+
+The optional Directus tenant hook now checks retirement-certificate retirement,
+credit, and batch references against the certificate location on create and
+update; the shared credit-class reference remains global. Location-required
+strategy report paths reject missing or malformed location UUIDs before opening
+the database, while network-scope behavior remains intact. The operating-pilot
+resource-category route now validates its exact request-bound page, ordering,
+continuation, and small-count suppression projection.
+
+Focused checks pass: 21 Directus tenant-hook tests and TypeScript checking, 107
+strategy/report tests with four database-dependent skips, and 15 operating-pilot
+resource-category tests. Ruff, Python compilation, report-query inventory
+validation (94 report types, 167 query sites, no unresolved/bind mismatches),
+and diff checks pass. The capability matrix records 62 strict private Gateway
+response endpoints across 67 rows; classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared. The checklist is 1,438 complete / 25 open; TODO is
+145 checked / 16 open. No migration, database, provider, candidate, or legacy
+service was used. Evidence: [batch](builds/2026-10-28-recovery/kernel-directus-operating-report-contracts.json).

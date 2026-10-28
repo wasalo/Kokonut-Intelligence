@@ -62,6 +62,23 @@ const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
     .first('device_ref.location_id as location_id'),
 };
 
+// These references are meaningful only on retirement certificates. Keep them
+// collection-scoped: other tenant collections may use the same field names
+// for unrelated or network-wide concepts.
+const TENANT_COLLECTION_REFERENCE_LOOKUPS: Record<string, Record<string, TenantReferenceLookup>> = {
+  retirement_certificate: {
+    retirement_id: (database, referenceId, locationId) => database('credit_retirement')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+    credit_id: (database, referenceId, locationId) => database('carbon_credit')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+    credit_batch_id: (database, referenceId, locationId) => database('credit_batch')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+  },
+};
+
 const InvalidTenantPayloadError = createError<{ message: string }>(
   'INVALID_PAYLOAD',
   ({ message }) => message,
@@ -79,10 +96,15 @@ function isUuid(value: unknown): value is string {
 
 async function validateReferencesAtLocation(
   database: any,
+  collection: string,
   locationId: string,
   payload: Record<string, any>,
 ): Promise<void> {
-  for (const [field, lookup] of Object.entries(TENANT_REFERENCE_LOOKUPS)) {
+  const lookups = {
+    ...TENANT_REFERENCE_LOOKUPS,
+    ...TENANT_COLLECTION_REFERENCE_LOOKUPS[collection],
+  };
+  for (const [field, lookup] of Object.entries(lookups)) {
     const referenceId = payload[field];
     if (referenceId === undefined || referenceId === null) continue;
     if (!isUuid(referenceId)) throw invalidTenantPayload(`Invalid ${field}`);
@@ -112,7 +134,7 @@ export async function validateTenantReferences(
   }
   if (locationId === undefined || locationId === null) return payload;
 
-  await validateReferencesAtLocation(database, locationId, payload);
+  await validateReferencesAtLocation(database, collection, locationId, payload);
 
   return payload;
 }
@@ -140,7 +162,7 @@ export async function validateTenantReferencesForRows(
   }
 
   for (const locationId of locationIds) {
-    await validateReferencesAtLocation(database, locationId, payload);
+    await validateReferencesAtLocation(database, collection, locationId, payload);
   }
 
   return payload;

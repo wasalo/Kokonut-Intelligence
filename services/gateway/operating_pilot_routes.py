@@ -1,5 +1,77 @@
 """OIDC routes for location-scoped operating-pilot reads and private drafts."""
 
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, model_validator
+
+
+def _response_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if isinstance(value, str):
+        try:
+            return UUID(value)
+        except ValueError as exc:
+            raise ValueError("UUID value is invalid") from exc
+    raise ValueError("UUID value is invalid")
+
+
+_ResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
+
+
+class OperatingPilotResourceCategoryItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    resource_category: Literal[
+        "equipment",
+        "tools",
+        "inputs",
+        "materials",
+        "infrastructure",
+        "transport",
+        "labor",
+        "training",
+        "funding",
+        "other",
+    ]
+    suppressed: bool
+    request_count: int | None = Field(ge=3, strict=True)
+
+    @model_validator(mode="after")
+    def validate_suppression(self):
+        if (self.suppressed and self.request_count is not None) or (
+            not self.suppressed and self.request_count is None
+        ):
+            raise ValueError("resource count does not match its suppression flag")
+        return self
+
+
+class OperatingPilotResourceCategoryPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    location_id: _ResponseUUID
+    scope_configured: bool
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotResourceCategoryItem] = Field(max_length=50)
+    has_more: bool
+    next_offset: int | None = Field(ge=0, le=10000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        categories = [item.resource_category for item in self.items]
+        if len(self.items) > self.limit or categories != sorted(set(categories)):
+            raise ValueError("resource category page is not ordered or bounded")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("resource category continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("resource category page has an unexpected continuation")
+        if not self.scope_configured and (self.items or self.has_more):
+            raise ValueError("unconfigured resource scope cannot contain categories")
+        return self
+
 
 def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg2):
     import json
@@ -3294,7 +3366,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/resource-categories")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/resource-categories",
+        response_model=OperatingPilotResourceCategoryPage,
+    )
     async def location_operating_pilot_resource_categories(
         request: Request,
         location_id: str,
@@ -3340,7 +3415,28 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotResourceCategoryPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Operating resource page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating resource read unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(page.model_dump(mode="json")), headers=headers
+        )
 
     @router.get("/operator/api/operating-pilot/{location_id}/work-opportunities")
     async def location_operating_pilot_work_opportunities(

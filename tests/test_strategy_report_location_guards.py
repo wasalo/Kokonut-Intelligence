@@ -30,12 +30,16 @@ LOCATION_REQUIRED_STRATEGY_REPORTS = (
 
 
 @pytest.mark.parametrize("report_type", LOCATION_REQUIRED_STRATEGY_REPORTS)
-def test_location_required_strategy_report_rejects_missing_scope_before_cursor(report_type):
+@pytest.mark.parametrize("location_id", [None, "", " ", "not-a-uuid", "all"])
+def test_location_required_strategy_report_rejects_invalid_scope_before_database_access(
+    report_type, location_id
+):
     assert report_type in REPORT_GENERATORS
     assert report_type not in NETWORK_LEVEL_REPORTS
     conn = MagicMock()
 
     with pytest.raises(ValueError, match=f"{report_type} requires an explicit location_id"):
-        REPORT_GENERATORS[report_type](conn, None)
+        REPORT_GENERATORS[report_type](conn, location_id)
 
     conn.cursor.assert_not_called()
+    conn.execute.assert_not_called()

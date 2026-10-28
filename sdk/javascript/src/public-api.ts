@@ -90,7 +90,11 @@ function encodePathSegment(value: string): string {
   );
 }
 
-function isDriverCatalogResponse(value: unknown): value is PublicDriverCatalogResponseV1 {
+function isDriverCatalogResponse(
+  value: unknown,
+  expectedLimit: number,
+  expectedOffset: number,
+): value is PublicDriverCatalogResponseV1 {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const candidate = value as Record<string, unknown>;
   if (
@@ -102,6 +106,8 @@ function isDriverCatalogResponse(value: unknown): value is PublicDriverCatalogRe
     !Number.isInteger(candidate.offset) ||
     (candidate.offset as number) < 0 ||
     (candidate.offset as number) > 5000 ||
+    candidate.limit !== expectedLimit ||
+    candidate.offset !== expectedOffset ||
     typeof candidate.has_more !== 'boolean'
   ) {
     return false;
@@ -197,7 +203,7 @@ export class KokonutPublicApiClient {
         return this.get<PublicDriverCatalogResponseV1>(
           `${publicApiPathsV1.listPublicDriversV1}?limit=${limit}&offset=${offset}`,
           'object',
-          isDriverCatalogResponse,
+          (value) => isDriverCatalogResponse(value, limit, offset),
         );
       },
     };

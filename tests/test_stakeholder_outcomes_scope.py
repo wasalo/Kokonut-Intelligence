@@ -6,6 +6,8 @@ import pytest
 
 from services.export.reports.strategy import generate_stakeholder_outcomes
 
+LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
+
 
 def _connection(fetches):
     cursor = MagicMock()
@@ -20,7 +22,7 @@ def _connection(fetches):
 def test_location_report_reads_only_selected_location_outcomes():
     conn, cursor = _connection([[{"id": "outcome-a"}]])
 
-    report = generate_stakeholder_outcomes(conn, "location-a")
+    report = generate_stakeholder_outcomes(conn, LOCATION_ID)
 
     assert report["outcomes"] == [{"id": "outcome-a"}]
     assert report["capability_and_value_stream_links"] == []
@@ -28,7 +30,7 @@ def test_location_report_reads_only_selected_location_outcomes():
     assert cursor.execute.call_count == 1
     query, params = cursor.execute.call_args.args
     assert "status IN ('verified', 'published') AND location_id = %s::uuid" in query
-    assert params == ["location-a"]
+    assert params == [LOCATION_ID]
 
 
 @pytest.mark.parametrize("location_id", [None, ""])

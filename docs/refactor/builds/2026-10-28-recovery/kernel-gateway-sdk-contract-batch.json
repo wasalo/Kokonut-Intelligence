@@ -3,23 +3,23 @@
   "batch": "Gateway response contracts and REST driver-catalog validation",
   "changes": {
     "private_gateway_response_contracts_added": 4,
-    "strict_private_gateway_response_endpoints_total": 61,
+    "strict_private_gateway_response_endpoints_total": 62,
     "routes": [
       "GET /operator/api/farm-activity-records",
       "GET /operator/api/farm-activity-records/published",
       "POST /operator/api/waste/{location_id}/incidents/{incident_id}/resolve",
       "GET /operator/api/governance/{location_id}/tensions/{tension_id}"
     ],
-    "sdk": "Python and JavaScript REST clients validate the driver catalog against exact generated page and entry fields, bounds, and driver types. Malformed responses use the existing response-preserving SDK error."
+    "sdk": "Python and JavaScript REST clients validate the driver catalog against exact generated page and entry fields, bounds, and driver types, and require response limit/offset to echo the request. Malformed responses use the existing response-preserving SDK error."
   },
   "verification": {
     "python_gateway_and_sdk_tests": {
       "result": "passed",
-      "count": 92
+      "count": 93
     },
     "javascript_rest_sdk_tests": {
       "result": "passed",
-      "count": 38
+      "count": 39
     },
     "javascript_typescript_build": "passed",
     "ruff": "passed",
@@ -31,14 +31,14 @@
       "baseline_retained": 24,
       "deployed": 7,
       "prepared": 36,
-      "strict_private_gateway_response_endpoints": 61
+      "strict_private_gateway_response_endpoints": 62
     },
     "checklist": {
-      "complete": 1435,
+      "complete": 1438,
       "open": 25
     },
     "todo_ledger": {
-      "complete": 142,
+      "complete": 145,
       "open": 16
     }
   },

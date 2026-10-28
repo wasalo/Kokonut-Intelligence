@@ -130,17 +130,18 @@ def _landscape_report_connection(rows):
 
 
 def test_location_landscape_uses_location_lineage_view():
-    row = {"location_id": "location-a", "party_id": "party-a", "active_relationship_count": 1}
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    row = {"location_id": location_id, "party_id": "party-a", "active_relationship_count": 1}
     conn, cursor = _landscape_report_connection([row])
 
-    report = generate_stakeholder_landscape(conn, location_id="location-a")
+    report = generate_stakeholder_landscape(conn, location_id=location_id)
 
     assert report["parties"] == [row]
     assert report["party_count"] == 1
     assert "v_stakeholder_landscape_by_location" in cursor.execute.call_args.args[0]
     assert "location_id = %s::uuid" in cursor.execute.call_args.args[0]
     assert "v_stakeholder_landscape " not in cursor.execute.call_args.args[0]
-    assert cursor.execute.call_args.args[1] == ["location-a"]
+    assert cursor.execute.call_args.args[1] == [location_id]
     assert any("explicit location lineage" in item for item in report["limitations"])
 
 
