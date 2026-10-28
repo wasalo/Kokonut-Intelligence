@@ -35,6 +35,9 @@ than 0 and no greater than 2,147,483,647 milliseconds, the maximum delay
 supported by browser and Node timers. The client aborts stalled Fetch requests
 at that deadline. Per-request caller-provided abort signals are not exposed by
 this client, matching the Python SDK's current cancellation surface.
+`PublicApiError` preserves the HTTP status and response object when a response
+was received; network failures without an HTTP response remain native Fetch
+errors, matching the Python client's transport-error behavior.
 
 ## Install
 

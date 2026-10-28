@@ -265,6 +265,7 @@ def test_public_api_errors_are_stable(response: FakeResponse, message: str, stat
         client.locations.list()
 
     assert exc_info.value.status_code == status
+    assert exc_info.value.response is response
 
 
 @pytest.mark.parametrize(

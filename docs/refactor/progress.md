@@ -22357,3 +22357,27 @@ service was used ([evidence](builds/2026-10-28-recovery/kernel-stakeholder-ident
 
 The checklist is 1,429 complete / 25 open (1,454 total); the TODO ledger has
 136 checked / 16 open entries.
+
+
+### Progress addendum — Delphi readiness response and REST SDK parity — 28 October 2026
+
+The location-scoped Delphi study-open-readiness route now publishes a strict
+success schema and validates the exact SQL function projection, requested study
+and location, fixed blocker order, and eligibility facts. Bad service output
+returns its sanitized no-store error. The native Python and JavaScript REST
+clients now both preserve the underlying HTTP response on HTTP, malformed-JSON,
+and invalid-envelope exceptions; transport failures remain response-less.
+
+The focused Delphi/route-policy/Python SDK selection passes 67 tests and the
+JavaScript selection passes 28; the JavaScript TypeScript build, Ruff,
+compilation, diff check, and Python 3.11/3.12 runtime SQL inventory checks pass.
+The unresolved SQL review ledger remains at 37 candidates. A second C1 source
+audit found no safe runtime ACL migration: `bio_ingredient_composition_reference`
+has a governed lifecycle and appears in the agent-write allowlist. Its grants
+remain unchanged. The matrix now records 57 strict private Gateway response
+endpoints across 67 rows (24 baseline-retained, 7 deployed, 36 prepared). No
+migration, database, provider, candidate, or legacy service was used
+([evidence](builds/2026-10-28-recovery/kernel-delphi-readiness-sdk-parity-batch.json)).
+
+The checklist is 1,431 complete / 25 open (1,456 total); the TODO ledger has
+138 checked / 16 open entries.

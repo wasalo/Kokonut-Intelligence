@@ -73,6 +73,7 @@ export class PublicApiError extends Error {
   constructor(
     message: string,
     public readonly statusCode: number,
+    public readonly response?: PublicFetchResponse,
   ) {
     super(message);
     this.name = 'PublicApiError';
@@ -213,9 +214,13 @@ export class KokonutPublicApiClient {
         payload = await response.json();
       } catch {
         if (!response.ok) {
-          throw new PublicApiError(`HTTP ${response.status}`, response.status);
+          throw new PublicApiError(`HTTP ${response.status}`, response.status, response);
         }
-        throw new PublicApiError('Invalid JSON response from Kokonut Gateway', response.status);
+        throw new PublicApiError(
+          'Invalid JSON response from Kokonut Gateway',
+          response.status,
+          response,
+        );
       }
 
       if (!response.ok) {
@@ -224,7 +229,7 @@ export class KokonutPublicApiClient {
             ? payload.error
             : undefined;
         const message = typeof errorMessage === 'string' ? errorMessage : `HTTP ${response.status}`;
-        throw new PublicApiError(message, response.status);
+        throw new PublicApiError(message, response.status, response);
       }
 
       if (
@@ -233,7 +238,7 @@ export class KokonutPublicApiClient {
         Array.isArray(payload) ||
         !('data' in payload)
       ) {
-        throw new PublicApiError('Invalid public API response envelope', response.status);
+        throw new PublicApiError('Invalid public API response envelope', response.status, response);
       }
       const data = (payload as DataEnvelope<unknown>).data;
       const validData =
@@ -241,7 +246,7 @@ export class KokonutPublicApiClient {
           ? Array.isArray(data)
           : Boolean(data) && typeof data === 'object' && !Array.isArray(data);
       if (!validData) {
-        throw new PublicApiError('Invalid public API response envelope', response.status);
+        throw new PublicApiError('Invalid public API response envelope', response.status, response);
       }
       return data as T;
     } finally {

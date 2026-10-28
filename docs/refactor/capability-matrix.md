@@ -49,8 +49,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,429
-complete / 25 open (1,454 total). Fifty-six private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,431
+complete / 25 open (1,456 total). Fifty-seven private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. Comprehensive
 Status keeps its section bodies JSON-compatible pending an audit of the
@@ -96,8 +96,15 @@ focused three-file selection passes 31 tests, and runtime SQL inventory checks
 remain current on Python 3.11/3.12. The current endpoint count is 56. A source
 audit found no safe runtime ACL migration: `consent_data_type` remains owner-
 configurable and is updated by migrations. C6's remaining gaps still require
-policy or populated/runtime acceptance. No capability classification or
-MAN-CAP acceptance changed.
+policy or populated/runtime acceptance. This continuation adds a strict
+location/study-bound response contract for Delphi study-open readiness and
+aligns Python and JavaScript REST SDK errors to retain the received HTTP
+response object. The combined Delphi/policy/SDK selection passes 67 Python
+tests and 28 JavaScript tests; the SDK TypeScript build passes. A second C1
+candidate, `bio_ingredient_composition_reference`, remains mutable under its
+governed lifecycle and agent-write allowlist, so its grants stay unchanged.
+The current endpoint count is 57. No capability classification or MAN-CAP
+acceptance changed.
 
 The latest response-contract continuation adds strict contracts for AI-summary
 review-list, business-canvas version history, sequential-evidence summary and

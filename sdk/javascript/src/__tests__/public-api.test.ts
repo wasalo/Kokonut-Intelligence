@@ -250,6 +250,20 @@ describe('KokonutPublicApiClient', () => {
   });
 
   it.each([
+    response(403, { error: 'scope denied' }),
+    response(502, undefined, true),
+    response(200, { data: null }),
+  ])('preserves the transport response on API errors', async (mockResponse) => {
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    const error = await client.locations.list().catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PublicApiError);
+    expect((error as PublicApiError).response).toBe(mockResponse);
+  });
+
+  it.each([
     ['list', { data: location }],
     ['get', { data: [location] }],
   ])('rejects the wrong top-level data shape for %s', async (method, payload) => {

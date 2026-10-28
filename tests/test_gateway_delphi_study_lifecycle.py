@@ -389,6 +389,102 @@ def test_open_readiness_route_uses_session_identity_and_no_store():
     assert calls[0][1] == (OPERATOR_ID, LOCATION_ID, STUDY_ID)
 
 
+def test_open_readiness_route_publishes_a_strict_success_contract():
+    operation = _make_app(object(), lambda *_args, **_kwargs: None).openapi()["paths"][
+        "/operator/api/delphi/{location_id}/studies/{study_id}/open-readiness"
+    ]["get"]
+
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/DelphiStudyOpenReadinessResponse"
+    }
+    schema = _make_app(object(), lambda *_args, **_kwargs: None).openapi()["components"][
+        "schemas"
+    ]["DelphiStudyOpenReadinessResponse"]
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == {
+        "study_id",
+        "location_id",
+        "status",
+        "has_question",
+        "minimum_policy_valid",
+        "consent_minimum_met",
+        "eligible_to_open",
+        "blocker_codes",
+    }
+
+
+@pytest.mark.parametrize(
+    "invalid_result",
+    [
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "status": "draft",
+            "has_question": True,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": [],
+            "private_internal_field": "must not escape",
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": str(uuid4()),
+            "status": "draft",
+            "has_question": True,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": [],
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "status": "submitted",
+            "has_question": True,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": [],
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "status": "draft",
+            "has_question": True,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": ["question_required"],
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "status": "draft",
+            "has_question": False,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": [],
+        },
+    ],
+)
+def test_open_readiness_route_sanitizes_invalid_service_projection(invalid_result):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return invalid_result
+
+    response = TestClient(_make_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/open-readiness"
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi study readiness is unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private_internal_field" not in response.text
+    assert "must not escape" not in response.text
+
+
 def test_open_readiness_route_fails_closed_when_oidc_is_disabled():
     async def run_in_threadpool(*_args, **_kwargs):
         pytest.fail("OIDC-disabled readiness must not reach the service")

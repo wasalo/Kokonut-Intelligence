@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,429 checklist items complete and 25
-open (1,454 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,431 checklist items complete and 25
+open (1,456 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5401,4 +5401,34 @@ Evidence: [stakeholder response contract](builds/2026-10-28-recovery/kernel-stak
 
 The checklist is now 1,429 complete / 25 open (1,454 total); the TODO ledger
 has 136 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Completed parallel continuation — Delphi readiness response and REST SDK error parity — 28 October 2026
+
+- [x] Add a strict OpenAPI/runtime contract to
+  `GET /operator/api/delphi/{location_id}/studies/{study_id}/open-readiness`.
+  It validates exact study/location IDs, status and boolean types, SQL-derived
+  blocker order, fixed blocker codes, and eligibility consistency; malformed
+  projections use the sanitized no-store failure.
+- [x] Align the native Python and JavaScript REST SDK error surfaces by
+  retaining the received HTTP response object on HTTP, JSON-decoding, and
+  response-envelope failures. Network/timeout failures without a response
+  remain transport errors; the standalone TypeScript SDK is gRPC-only.
+
+The combined Delphi readiness/route-policy/Python SDK selection passes 67
+tests; the JavaScript REST SDK selection passes 28 tests and its TypeScript
+build passes. Ruff, Python compilation, and `git diff --check` pass. The runtime
+SQL inventory remains current on Python 3.11 and 3.12 with the same 37
+unresolved candidates. Capability validation passes at 67 rows (24 baseline-
+retained, 7 deployed, 36 prepared) and records 57 strict private Gateway
+response endpoints. A second C1 audit rejected
+`bio_ingredient_composition_reference` as a migration candidate because its
+governed lifecycle and agent-write allowlist show that it is mutable; its
+runtime grants remain unchanged. No migration, database, provider, candidate,
+or legacy service was used. Evidence:
+[Delphi and SDK batch](builds/2026-10-28-recovery/kernel-delphi-readiness-sdk-parity-batch.json).
+
+The checklist is now 1,431 complete / 25 open (1,456 total); the TODO ledger
+has 138 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.

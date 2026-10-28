@@ -1,5 +1,72 @@
 """OIDC routes for Delphi study opening readiness and lifecycle transitions."""
 
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    model_validator,
+)
+
+
+def _strict_response_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if isinstance(value, str):
+        try:
+            return UUID(value)
+        except ValueError as exc:
+            raise ValueError("UUID value is invalid") from exc
+    raise ValueError("UUID value is invalid")
+
+
+_ResponseUUID = Annotated[UUID, BeforeValidator(_strict_response_uuid)]
+
+
+class DelphiStudyOpenReadinessResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    study_id: _ResponseUUID
+    location_id: _ResponseUUID
+    status: Literal["draft", "open", "closed"]
+    has_question: bool
+    minimum_policy_valid: bool
+    consent_minimum_met: bool
+    eligible_to_open: bool
+    blocker_codes: list[
+        Literal[
+            "study_not_draft",
+            "question_required",
+            "minimum_participants_invalid",
+            "consented_panel_below_minimum",
+        ]
+    ] = Field(max_length=4)
+
+    @model_validator(mode="after")
+    def validate_readiness(self):
+        if len(self.blocker_codes) != len(set(self.blocker_codes)):
+            raise ValueError("readiness blocker codes must be unique")
+        expected_blockers = []
+        if self.status != "draft":
+            expected_blockers.append("study_not_draft")
+        if not self.has_question:
+            expected_blockers.append("question_required")
+        if not self.minimum_policy_valid:
+            expected_blockers.append("minimum_participants_invalid")
+            if self.consent_minimum_met:
+                raise ValueError("consent minimum cannot be met with invalid policy")
+        elif not self.consent_minimum_met:
+            expected_blockers.append("consented_panel_below_minimum")
+        if self.blocker_codes != expected_blockers:
+            raise ValueError("readiness blocker codes do not match the source facts")
+        if self.eligible_to_open != (not expected_blockers):
+            raise ValueError("readiness eligibility does not match its blockers")
+        return self
+
 
 def register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, psycopg2):
     import json
@@ -83,7 +150,8 @@ def register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, 
         return JSONResponse(jsonable_encoder(result), status_code=200, headers=headers)
 
     @router.get(
-        "/operator/api/delphi/{location_id}/studies/{study_id}/open-readiness"
+        "/operator/api/delphi/{location_id}/studies/{study_id}/open-readiness",
+        response_model=DelphiStudyOpenReadinessResponse,
     )
     async def open_readiness(request: Request, location_id: str, study_id: str):
         if provider is None:
@@ -125,7 +193,27 @@ def register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, 
                 content={"error": "Delphi study readiness is unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=200, headers=headers)
+        try:
+            readiness = DelphiStudyOpenReadinessResponse.model_validate(result)
+            if (
+                readiness.location_id != UUID(location_id)
+                or readiness.study_id != UUID(study_id)
+            ):
+                raise ValueError("Delphi readiness response does not match request scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_study_lifecycle").warning(
+                "Delphi study readiness response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Delphi study readiness is unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(readiness.model_dump()), status_code=200, headers=headers
+        )
 
     @router.post("/operator/api/delphi/{location_id}/studies/{study_id}/open")
     async def open_study(request: Request, location_id: str, study_id: str):

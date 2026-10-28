@@ -10,6 +10,13 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Add a strict OpenAPI/runtime success contract for Delphi study-open
+  readiness. Bind study/location IDs, validate the fixed SQL-derived blocker
+  order and eligibility facts, and return a sanitized no-store error for
+  malformed projections.
+- [x] Align Python and JavaScript native REST SDK error objects by preserving
+  the received HTTP response for status, JSON, and envelope failures; transport
+  errors without an HTTP response remain unchanged.
 - [x] Add a strict OpenAPI/runtime contract to the private stakeholder identity
   resolution read. It returns only the requested location, canonical party ID,
   and aware resolution timestamp; malformed service projections fail with a
@@ -609,7 +616,11 @@ that its full source-plan phase is complete.
   runtime currently has DML with RLS disabled, schema 148 reseeds rows with
   `ON CONFLICT DO UPDATE` and migration 401 changes retention fields. Its Data
   Governance/Consent ownership means this is not a safe fixed-catalog revoke
-  without owner confirmation. No migration was added. The current report shows
+  without owner confirmation. A second audit rejected
+  `bio_ingredient_composition_reference`: its status lifecycle and explicit
+  agent-write allowlist contradict an immutable-catalog assumption, and
+  Directus/admin mutation paths are not proven absent. No migration was added.
+  The current report shows
   245 unprotected DML relations without an inventoried callsite and 420 without
   an inventoried write-target site; the report does not include all Directus,
   external, ownership, security-definer, column-ACL, or populated-runtime paths.
