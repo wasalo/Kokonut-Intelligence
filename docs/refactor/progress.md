@@ -1,3 +1,27 @@
+### Progress addendum — C2 SDK export-create lifecycle contract — 27 October 2026
+
+Source parity review found that TypeScript's `exports.create()` overrode the
+generic SDK writer to assign pending state and SDK attribution, while Python
+inherited the generic raw writer. The TypeScript spread also forwarded unknown
+runtime fields despite its narrower static type. Both SDKs now use the public
+`ExportCreateInput` type and explicitly project the six request fields before
+setting `status=pending` and `requested_by=sdk`. The Python convenience
+`create_export()` and TypeScript `createExport()` request contract remains
+available.
+
+The focused Python SDK and method-parity selection passes 105 tests; the full
+JavaScript SDK suite passes 57 tests. TypeScript build, Ruff, and Python
+compilation pass. Tests use mocked clients only, with no HTTP, database,
+provider, candidate, or legacy access. This closes the direct single-create
+parity gap, not all SDK payload parity or Directus runtime authorization.
+Capability classifications are unchanged. Checklist: 1,291 complete / 25
+open (1,316 total); 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows.
+
+Evidence: [SDK lifecycle contract](builds/2026-10-27-recovery/sdk-export-create-lifecycle-contract.json),
+[Python implementation](../sdk/python/kokonut/methods.py),
+[TypeScript implementation](../sdk/javascript/src/methods.ts).
+
 ### Progress addendum — C1 governed reference-class runtime ACL — 27 October 2026
 
 Source review confirms `reference_class` is a governed, versioned evidence

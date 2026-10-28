@@ -268,6 +268,7 @@ except KokonutError as e:
 | `soil_samples` | `soil_sample` | `list_by_location` |
 | `soil_carbon_measurements` | `soil_carbon_measurement` | `list_by_location` |
 | `environmental_baselines` | `environmental_baseline` | `list_by_location` |
+
 | `species_observations` | `species_observation` | `list_by_location` |
 | `remote_sensing_observations` | `remote_sensing_observation` | `list_by_location` |
 | `mrv_claims` | `mrv_claim` | `list_by_location` |
@@ -351,6 +352,11 @@ detail reads. These methods do not ingest, calculate, verify, attest,
 confirm commitments, or mutate governed lifecycle state. Stored forecast,
 metric, and trend outputs are returned without recalculation or an assertion
 that they are current or verified.
+
+`exports.create()` accepts the typed `ExportCreateInput` shape. It sends only
+export request fields and sets `status="pending"` and `requested_by="sdk"`;
+caller-supplied lifecycle or server-result fields are ignored. The positional
+`create_export()` helper remains available for the same pending-request flow.
 
 ## Examples
 

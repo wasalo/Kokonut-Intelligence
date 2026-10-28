@@ -257,6 +257,7 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `soilSamples` | `soil_sample` | `listByLocation` |
 | `soilCarbonMeasurements` | `soil_carbon_measurement` | `listByLocation` |
 | `environmentalBaselines` | `environmental_baseline` | `listByLocation` |
+
 | `speciesObservations` | `species_observation` | `listByLocation` |
 | `remoteSensingObservations` | `remote_sensing_observation` | `listByLocation` |
 | `mrvClaims` | `mrv_claim` | `listByLocation` |
@@ -340,6 +341,10 @@ only list/detail reads. These methods do not ingest, calculate,
 verify, attest, confirm commitments, or mutate governed lifecycle state. Stored
 forecast, metric, and trend outputs are returned without recalculation or an
 assertion that they are current or verified.
+
+`exports.create()` and `exports.createExport()` accept typed request fields,
+drop unrecognized fields, and set `status="pending"` and `requested_by="sdk"`
+for the new request.
 
 ## Examples
 

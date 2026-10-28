@@ -278,3 +278,25 @@ def test_python_and_typescript_export_format_literals_match():
     assert declaration is not None, "TypeScript ExportFormat union is missing"
     typescript_values = tuple(re.findall(r"'([^']+)'", declaration.group(1)))
     assert typescript_values and python_values == typescript_values
+
+
+def test_export_create_uses_the_same_typed_request_contract():
+    python_methods = ast.parse(
+        (ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8")
+    )
+    export_methods = next(
+        node for node in python_methods.body
+        if isinstance(node, ast.ClassDef) and node.name == "ExportMethods"
+    )
+    python_create = next(
+        node for node in export_methods.body
+        if isinstance(node, ast.FunctionDef) and node.name == "create"
+    )
+    assert ast.unparse(python_create.args.args[1].annotation) == "ExportCreateInput"
+    assert "class ExportCreateInput(ExportCreateRequest)" in (
+        ROOT / "sdk/python/kokonut/types.py"
+    ).read_text(encoding="utf-8")
+
+    typescript = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    assert "export interface ExportCreateInput extends ExportCreateRequest" in typescript
+    assert "create(data: ExportCreateInput): Promise<ExportLog>;" in typescript

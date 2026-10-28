@@ -336,14 +336,18 @@ export interface ReportMethods extends GenericMethods {
 
 export interface ExportCreateOptions {
   format?: ExportFormat | null;
-  entity_type?: string;
-  entity_ids?: string[];
-  target_table?: string;
-  filters?: Record<string, any>;
+  entity_type?: string | null;
+  entity_ids?: string[] | null;
+  target_table?: string | null;
+  filters?: Record<string, any> | null;
 }
 
 export interface ExportCreateRequest extends ExportCreateOptions {
   export_type: string;
+}
+
+export interface ExportCreateInput extends ExportCreateRequest {
+  format: ExportFormat;
 }
 
 export interface ExportMethods extends GenericMethods {
@@ -360,14 +364,7 @@ export interface ExportMethods extends GenericMethods {
     filters?: Record<string, any>,
   ): Promise<ExportLog>;
   /** Existing JavaScript creation method; use createExport() for Python parity. */
-  create(data: {
-    export_type: string;
-    format: ExportFormat;
-    entity_type?: string;
-    entity_ids?: string[];
-    target_table?: string;
-    filters?: Record<string, any>;
-  }): Promise<ExportLog>;
+  create(data: ExportCreateInput): Promise<ExportLog>;
   createMany(data: Partial<ExportLog>[]): Promise<ExportLog[]>;
   update(id: string, data: Record<string, any>): Promise<ExportLog>;
   delete(id: string): Promise<void>;
@@ -674,18 +671,17 @@ export function buildExportMethods(client: any): ExportMethods {
     }) as Promise<ExportLog>;
   };
 
-  const create = async (params: {
-    export_type: string;
-    format: ExportLog['format'];
-    entity_type?: string;
-    entity_ids?: string[];
-    target_table?: string;
-    filters?: Record<string, any>;
-  }): Promise<ExportLog> => client.createItem('export_log', {
-    ...params,
-    status: 'pending',
-    requested_by: 'sdk',
-  }) as Promise<ExportLog>;
+  const create = async (params: ExportCreateInput): Promise<ExportLog> =>
+    client.createItem('export_log', {
+      export_type: params.export_type,
+      format: params.format,
+      ...(params.entity_type !== undefined ? { entity_type: params.entity_type } : {}),
+      ...(params.entity_ids !== undefined ? { entity_ids: params.entity_ids } : {}),
+      ...(params.target_table !== undefined ? { target_table: params.target_table } : {}),
+      ...(params.filters !== undefined ? { filters: params.filters } : {}),
+      status: 'pending',
+      requested_by: 'sdk',
+    }) as Promise<ExportLog>;
 
   return {
     list: (options?: ListOptions) => client.listItems('export_log', options) as Promise<ExportLog[]>,

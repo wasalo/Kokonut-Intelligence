@@ -1286,10 +1286,17 @@ describe('KokonutClient', () => {
     expect(getItem).toHaveBeenCalledWith('export_log', 'export-1', ['id', 'status']);
   });
 
-  it('keeps the existing create() payload behavior', async () => {
+  it('keeps export lifecycle fields SDK-owned and allowlists create fields', async () => {
     const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-2' });
 
-    await client.exports.create({ export_type: 'farm_data', format: 'csv' });
+    await client.exports.create({
+      export_type: 'farm_data',
+      format: 'csv',
+      status: 'completed',
+      requested_by: 'untrusted-caller',
+      id: 'caller-selected-id',
+      file_url: 'https://example.invalid/forged.csv',
+    } as any);
 
     expect(createItem).toHaveBeenCalledWith('export_log', {
       export_type: 'farm_data',

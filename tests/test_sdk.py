@@ -2174,6 +2174,42 @@ def test_export_creation_preserves_target_table_without_network_calls():
     )
 
 
+def test_export_create_keeps_lifecycle_fields_sdk_owned_without_network_calls():
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    client.create_item = Mock(return_value={"id": "export-1"})
+
+    client.exports.create(
+        {
+            "export_type": "farm_data",
+            "format": "csv",
+            "entity_type": "location",
+            "entity_ids": ["location-1"],
+            "target_table": "harvest_event",
+            "filters": {"status": "verified"},
+            "status": "completed",
+            "requested_by": "untrusted-caller",
+            "id": "caller-selected-id",
+            "file_url": "https://example.invalid/forged.csv",
+        }
+    )
+
+    client.create_item.assert_called_once_with(
+        "export_log",
+        {
+            "export_type": "farm_data",
+            "format": "csv",
+            "entity_type": "location",
+            "entity_ids": ["location-1"],
+            "target_table": "harvest_event",
+            "filters": {"status": "verified"},
+            "status": "pending",
+            "requested_by": "sdk",
+        },
+    )
+
+
 def test_export_creation_accepts_positional_optional_fields_without_network_calls():
     from kokonut import KokonutClient
 

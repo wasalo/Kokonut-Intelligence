@@ -6,6 +6,8 @@ from .types import (
     AttestationRecord,
     CropCycle,
     ExpenseEvent,
+    ExportCreateInput,
+    ExportCreateRequest,
     ExportFormat,
     ExportLog,
     Farm,
@@ -616,6 +618,19 @@ class ExportMethods(GenericMethods):
     def get(self, item_id: str, fields: Optional[List[str]] = None) -> ExportLog:
         return super().get(item_id, fields)
 
+    def create(self, data: ExportCreateInput) -> ExportLog:
+        """Create a pending export while keeping lifecycle fields SDK-owned."""
+        payload: Dict[str, Any] = {
+            "export_type": data["export_type"],
+            "format": data["format"],
+            "status": "pending",
+            "requested_by": "sdk",
+        }
+        for key in ("entity_type", "entity_ids", "target_table", "filters"):
+            if key in data:
+                payload[key] = data[key]
+        return super().create(payload)
+
     def create_export(
         self,
         export_type: str,
@@ -625,14 +640,17 @@ class ExportMethods(GenericMethods):
         target_table: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
     ) -> ExportLog:
+        request: ExportCreateRequest = {
+            "export_type": export_type,
+            "format": format,
+            "entity_type": entity_type,
+            "entity_ids": entity_ids,
+            "target_table": target_table,
+            "filters": filters,
+        }
         return super().create(
             {
-                "export_type": export_type,
-                "format": format,
-                "entity_type": entity_type,
-                "entity_ids": entity_ids,
-                "target_table": target_table,
-                "filters": filters,
+                **request,
                 "status": "pending",
                 "requested_by": "sdk",
             }
