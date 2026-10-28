@@ -94,6 +94,60 @@ class GovernanceTensionReviewQueueResponse(_TensionResponseModel):
         return self
 
 
+class GovernanceTensionReviewDetail(_TensionResponseModel):
+    id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255)
+    description: str
+    tension_type: Literal[
+        "unmet_interest",
+        "unclear_accountability",
+        "authority_gap",
+        "authority_conflict",
+        "commitment_risk",
+        "representation_gap",
+        "consent_gap",
+        "evidence_gap",
+        "harm_risk",
+        "policy_gap",
+        "cross_circle_dependency",
+        "role_overload",
+    ]
+    severity: int = Field(ge=1, le=5, strict=True)
+    urgency: int = Field(ge=1, le=5, strict=True)
+    status: Literal["submitted", "triaged", "in_progress", "deferred"]
+    review_due_at: _ResponseDatetime | None
+    deferred_until: _ResponseDatetime | None
+    created_at: _ResponseDatetime
+    updated_at: _ResponseDatetime
+
+
+class GovernanceTensionReviewEvent(_TensionResponseModel):
+    from_status: Literal[
+        "draft", "submitted", "triaged", "in_progress", "resolved", "deferred", "rejected", "closed"
+    ] | None
+    to_status: Literal[
+        "draft", "submitted", "triaged", "in_progress", "resolved", "deferred", "rejected", "closed"
+    ]
+    action: str = Field(min_length=1, max_length=60)
+    created_at: _ResponseDatetime
+
+
+class GovernanceTensionReviewDetailResponse(_TensionResponseModel):
+    location_id: _ResponseUUID
+    tension: GovernanceTensionReviewDetail
+    events: list[GovernanceTensionReviewEvent] = Field(max_length=_MAX_EVENT_HISTORY)
+    events_truncated: bool
+
+    @model_validator(mode="after")
+    def validate_bounded_event_history(self):
+        timestamps = [event.created_at for event in self.events]
+        if any(left < right for left, right in zip(timestamps, timestamps[1:])):
+            raise ValueError("governance tension events are not in descending order")
+        if self.events_truncated and len(self.events) != _MAX_EVENT_HISTORY:
+            raise ValueError("truncated governance tension history must fill the page")
+        return self
+
+
 class GovernanceTensionReviewInvalid(ValueError):
     """A queue filter, cursor, or identifier is invalid."""
 

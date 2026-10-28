@@ -19,6 +19,22 @@ ACTIVITY_ID = "22222222-2222-4222-8222-222222222222"
 LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 
 
+def _summary(**overrides):
+    result = {
+        "id": ACTIVITY_ID,
+        "location_id": LOCATION_ID,
+        "plot_id": None,
+        "crop_cycle_id": None,
+        "activity_type": "weeding",
+        "activity_date": "2026-10-15",
+        "status": "published",
+        "source_system": "kokonut_gateway",
+        "created_at": "2026-10-15T10:00:00+00:00",
+        "updated_at": "2026-10-16T10:00:00+00:00",
+    }
+    return {**result, **overrides}
+
+
 def _client(provider):
     router = APIRouter()
 
@@ -81,7 +97,7 @@ def test_published_list_uses_analyst_safe_filter_and_tenant_denial_is_forbidden(
 
     def list_records(*args, **kwargs):
         seen.append((args, kwargs))
-        return [{"id": ACTIVITY_ID, "status": "published"}]
+        return [_summary()]
 
     monkeypatch.setattr(farm_activity_records, "list_farm_activity_records", list_records)
     with _client(object()) as client:
@@ -108,6 +124,59 @@ def test_published_list_uses_analyst_safe_filter_and_tenant_denial_is_forbidden(
     assert response.json()["data"][0]["status"] == "published"
     assert denied.status_code == 403
     assert denied.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "path,record",
+    [
+        ("/operator/api/farm-activity-records", _summary(private_value="must not escape")),
+        (
+            "/operator/api/farm-activity-records",
+            _summary(location_id="99999999-9999-4999-8999-999999999999"),
+        ),
+        (
+            "/operator/api/farm-activity-records",
+            _summary(source_system="field_collector"),
+        ),
+        ("/operator/api/farm-activity-records/published", _summary(status="draft")),
+    ],
+)
+def test_list_routes_reject_malformed_or_out_of_scope_service_projection(
+    monkeypatch, path, record
+):
+    monkeypatch.setattr(
+        farm_activity_records,
+        "list_farm_activity_records",
+        lambda *_args, **_kwargs: [record],
+    )
+    with _client(object()) as client:
+        response = client.get(path, params={"location_id": LOCATION_ID})
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Farm activity records are unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "must not escape" not in response.text
+
+
+def test_list_routes_publish_exact_openapi_summary_contract():
+    with _client(object()) as client:
+        schema = client.app.openapi()
+
+    for path in (
+        "/operator/api/farm-activity-records",
+        "/operator/api/farm-activity-records/published",
+    ):
+        operation = schema["paths"][path]["get"]
+        assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/FarmActivitySummaryListResponse"
+        }
+    assert schema["components"]["schemas"]["FarmActivitySummaryResponse"][
+        "additionalProperties"
+    ] is False
+    assert schema["components"]["schemas"]["FarmActivitySummaryListResponse"][
+        "additionalProperties"
+    ] is False
 
 
 @pytest.mark.parametrize(

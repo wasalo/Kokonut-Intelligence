@@ -309,7 +309,24 @@ def test_review_routes_apply_exact_read_scope_and_no_store(monkeypatch):
     monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
     queue = {"location_id": LOCATION_ID, "items": [], "next_cursor": None}
-    detail = {"location_id": LOCATION_ID, "tension": {"id": TENSION_ID}, "events": []}
+    detail = {
+        "location_id": LOCATION_ID,
+        "tension": {
+            "id": TENSION_ID,
+            "title": "Consent follow-up",
+            "description": "A reviewer should inspect the approved policy.",
+            "tension_type": "consent_gap",
+            "severity": 2,
+            "urgency": 1,
+            "status": "submitted",
+            "review_due_at": None,
+            "deferred_until": None,
+            "created_at": "2026-10-18T00:00:00Z",
+            "updated_at": "2026-10-18T00:00:00Z",
+        },
+        "events": [],
+        "events_truncated": False,
+    }
     with (
         patch(
             "services.gateway.governance_tension_review.list_location_governance_tensions",
@@ -366,6 +383,9 @@ def test_queue_route_publishes_strict_success_contract(monkeypatch):
 
         def authenticate_request(self, _request):
             return session
+
+        def csrf_valid(self, *_args):
+            return True
 
         def has_scope(self, *_scope):
             return True
@@ -441,10 +461,163 @@ def test_queue_route_sanitizes_invalid_success_projection(monkeypatch):
             client.cookies.set("kokonut_operator_session", "synthetic-session", path="/operator")
             response = client.get(f"/operator/api/governance/{LOCATION_ID}/tensions")
 
-    assert response.status_code == 500
+    assert response.status_code == 500, response.text
     assert response.json() == {"error": "Governance tension review unavailable"}
     assert response.headers["cache-control"] == "no-store"
     assert "must not escape" not in response.text
+
+
+def test_detail_route_publishes_strict_success_contract(monkeypatch):
+    class InMemoryAudit:
+        def __init__(self):
+            pass
+
+        def replay_pending(self, _limit=100):
+            return 0
+
+        def log(self, **_event):
+            return None
+
+        def capture_status(self):
+            return "ok"
+
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="g" * 64,
+        operator=SimpleNamespace(operator_id=OPERATOR_ID),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, *_scope):
+            return True
+
+        def list_scopes(self, _operator_id):
+            return []
+
+        def revoke_session(self, _session_id):
+            return None
+
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    with TestClient(create_app(), base_url="https://operator.example") as client:
+        schema = client.app.openapi()
+
+    operation = schema["paths"][
+        "/operator/api/governance/{location_id}/tensions/{tension_id}"
+    ]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/GovernanceTensionReviewDetailResponse"
+    }
+    response_schema = schema["components"]["schemas"][
+        "GovernanceTensionReviewDetailResponse"
+    ]
+    assert response_schema["additionalProperties"] is False
+    assert set(response_schema["required"]) == {
+        "location_id", "tension", "events", "events_truncated"
+    }
+
+
+@pytest.mark.parametrize(
+    "invalid_detail",
+    [
+        {
+            "location_id": LOCATION_ID,
+            "tension": {
+                "id": TENSION_ID,
+                "title": "Consent follow-up",
+                "description": "Safe text",
+                "tension_type": "consent_gap",
+                "severity": 2,
+                "urgency": 1,
+                "status": "submitted",
+                "review_due_at": None,
+                "deferred_until": None,
+                "created_at": "2026-10-18T00:00:00Z",
+                "updated_at": "2026-10-18T00:00:00Z",
+                "reported_by_party_id": str(uuid4()),
+            },
+            "events": [],
+            "events_truncated": False,
+        },
+        {
+            "location_id": str(uuid4()),
+            "tension": {
+                "id": TENSION_ID,
+                "title": "Consent follow-up",
+                "description": "Safe text",
+                "tension_type": "consent_gap",
+                "severity": 2,
+                "urgency": 1,
+                "status": "submitted",
+                "review_due_at": None,
+                "deferred_until": None,
+                "created_at": "2026-10-18T00:00:00Z",
+                "updated_at": "2026-10-18T00:00:00Z",
+            },
+            "events": [],
+            "events_truncated": False,
+        },
+    ],
+)
+def test_detail_route_sanitizes_invalid_success_projection(monkeypatch, invalid_detail):
+    class InMemoryAudit:
+        def __init__(self):
+            pass
+
+        def replay_pending(self, _limit=100):
+            return 0
+
+        def log(self, **_event):
+            return None
+
+        def capture_status(self):
+            return "ok"
+
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="a" * 64,
+        operator=SimpleNamespace(operator_id=OPERATOR_ID),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def csrf_valid(self, *_args):
+            return True
+
+        def has_scope(self, *_scope):
+            return True
+
+        def list_scopes(self, _operator_id):
+            return []
+
+        def revoke_session(self, _session_id):
+            return None
+
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    with patch(
+        "services.gateway.governance_tension_review.get_location_governance_tension",
+        return_value=invalid_detail,
+    ):
+        with TestClient(create_app(), base_url="https://operator.example") as client:
+            client.cookies.set("kokonut_operator_session", "synthetic-session", path="/operator")
+            response = client.get(
+                f"/operator/api/governance/{LOCATION_ID}/tensions/{TENSION_ID}"
+            )
+
+    assert response.status_code == 500, response.text
+    assert response.json() == {"error": "Governance tension review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "reported_by_party_id" not in response.text
 
 
 def test_review_route_policy_matches_only_exact_location_reads():

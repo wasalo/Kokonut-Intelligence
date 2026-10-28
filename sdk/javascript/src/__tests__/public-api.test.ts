@@ -145,6 +145,69 @@ describe('KokonutPublicApiClient', () => {
   });
 
   it.each([
+    { drivers: [], limit: 7, offset: 12, has_more: 'false' },
+    { drivers: [], limit: true, offset: 12, has_more: false },
+    { drivers: [], limit: 7, offset: 5001, has_more: false },
+    { drivers: [], limit: 7, offset: 12, has_more: false, debug: 'extra' },
+    {
+      drivers: [{ driver_name: 'weather', driver_version: '1', driver_type: 'unknown' }],
+      limit: 7,
+      offset: 12,
+      has_more: false,
+    },
+    {
+      drivers: [{ driver_name: 4, driver_version: '1', driver_type: 'weather' }],
+      limit: 7,
+      offset: 12,
+      has_more: false,
+    },
+    {
+      drivers: [{ driver_name: 'weather', driver_version: '1', driver_type: [] }],
+      limit: 7,
+      offset: 12,
+      has_more: false,
+    },
+    {
+      drivers: [
+        {
+          driver_name: 'weather',
+          driver_version: '1',
+          driver_type: 'weather',
+          private: 'extra',
+        },
+      ],
+      limit: 7,
+      offset: 12,
+      has_more: false,
+    },
+    {
+      drivers: [{ driver_name: 'w'.repeat(101), driver_version: '1', driver_type: 'weather' }],
+      limit: 7,
+      offset: 12,
+      has_more: false,
+    },
+    {
+      drivers: [{ driver_name: 'weather', driver_version: 'v'.repeat(21), driver_type: 'weather' }],
+      limit: 7,
+      offset: 12,
+      has_more: false,
+    },
+  ])('rejects malformed driver catalog payloads', async (catalog) => {
+    const mockResponse = response(200, { data: catalog });
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    const error = await client.drivers.list().catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PublicApiError);
+    expect(error).toMatchObject({
+      message: 'Invalid public API response envelope',
+      statusCode: 200,
+    });
+    expect((error as PublicApiError).response).toBe(mockResponse);
+  });
+
+  it.each([
     [0, 0],
     [51, 0],
     [1.5, 0],

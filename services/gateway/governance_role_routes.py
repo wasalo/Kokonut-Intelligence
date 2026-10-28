@@ -64,6 +64,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         submit_governance_tension,
     )
     from services.gateway.governance_tension_review import (
+        GovernanceTensionReviewDetailResponse,
         GovernanceTensionReviewInvalid,
         GovernanceTensionReviewNotFound,
         GovernanceTensionReviewQueueResponse,
@@ -1221,7 +1222,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(page.model_dump(mode="json")), headers=headers
         )
 
-    @router.get("/operator/api/governance/{location_id}/tensions/{tension_id}")
+    @router.get(
+        "/operator/api/governance/{location_id}/tensions/{tension_id}",
+        response_model=GovernanceTensionReviewDetailResponse,
+    )
     async def location_governance_tension_detail(
         request: Request, location_id: str, tension_id: str
     ):
@@ -1246,7 +1250,29 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             psycopg2.Error,
         ) as exc:
             return error_response(exc, headers=headers)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            from uuid import UUID
+
+            detail = GovernanceTensionReviewDetailResponse.model_validate(result)
+            if (
+                detail.location_id != UUID(location_id)
+                or detail.tension.id != UUID(tension_id)
+            ):
+                raise ValueError("governance tension detail does not match request scope")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_tensions").warning(
+                "Governance tension detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance tension review unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(detail.model_dump(mode="json")), headers=headers
+        )
 
     @router.post("/operator/api/governance/{location_id}/tensions", status_code=201)
     async def create_governance_tension(request: Request, location_id: str):

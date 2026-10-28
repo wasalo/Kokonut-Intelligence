@@ -90,6 +90,46 @@ function encodePathSegment(value: string): string {
   );
 }
 
+function isDriverCatalogResponse(value: unknown): value is PublicDriverCatalogResponseV1 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  if (
+    Object.keys(candidate).length !== 4 ||
+    !Array.isArray(candidate.drivers) ||
+    !Number.isInteger(candidate.limit) ||
+    (candidate.limit as number) < 1 ||
+    (candidate.limit as number) > 50 ||
+    !Number.isInteger(candidate.offset) ||
+    (candidate.offset as number) < 0 ||
+    (candidate.offset as number) > 5000 ||
+    typeof candidate.has_more !== 'boolean'
+  ) {
+    return false;
+  }
+  const driverTypes = new Set([
+    'sensor',
+    'remote_sensing',
+    'market',
+    'blockchain',
+    'weather',
+    'climate',
+    'gis',
+  ]);
+  return candidate.drivers.every((driver: unknown) => {
+    if (!driver || typeof driver !== 'object' || Array.isArray(driver)) return false;
+    const entry = driver as Record<string, unknown>;
+    return (
+      Object.keys(entry).length === 3 &&
+      typeof entry.driver_name === 'string' &&
+      entry.driver_name.length <= 100 &&
+      typeof entry.driver_version === 'string' &&
+      entry.driver_version.length <= 20 &&
+      typeof entry.driver_type === 'string' &&
+      driverTypes.has(entry.driver_type)
+    );
+  });
+}
+
 export class KokonutPublicApiClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: PublicFetch;
@@ -157,6 +197,7 @@ export class KokonutPublicApiClient {
         return this.get<PublicDriverCatalogResponseV1>(
           `${publicApiPathsV1.listPublicDriversV1}?limit=${limit}&offset=${offset}`,
           'object',
+          isDriverCatalogResponse,
         );
       },
     };
@@ -192,7 +233,11 @@ export class KokonutPublicApiClient {
     };
   }
 
-  private async get<T>(path: string, dataShape: 'array' | 'object'): Promise<T> {
+  private async get<T>(
+    path: string,
+    dataShape: 'array' | 'object',
+    dataValidator?: (value: unknown) => boolean,
+  ): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (this.apiKey) headers['x-api-key'] = this.apiKey;
 
@@ -245,7 +290,7 @@ export class KokonutPublicApiClient {
         dataShape === 'array'
           ? Array.isArray(data)
           : Boolean(data) && typeof data === 'object' && !Array.isArray(data);
-      if (!validData) {
+      if (!validData || (dataValidator && !dataValidator(data))) {
         throw new PublicApiError('Invalid public API response envelope', response.status, response);
       }
       return data as T;

@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 from urllib.parse import quote
 
 import requests
@@ -84,6 +84,47 @@ def _validate_driver_page(limit: int, offset: int) -> None:
         raise ValueError("limit must be an integer from 1 through 50")
     if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 5000:
         raise ValueError("offset must be an integer from 0 through 5000")
+
+
+def _is_driver_catalog_response(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if set(value) != {"drivers", "limit", "offset", "has_more"}:
+        return False
+    drivers = value.get("drivers")
+    limit = value.get("limit")
+    offset = value.get("offset")
+    if (
+        not isinstance(drivers, list)
+        or isinstance(limit, bool)
+        or not isinstance(limit, int)
+        or not 1 <= limit <= 50
+        or isinstance(offset, bool)
+        or not isinstance(offset, int)
+        or not 0 <= offset <= 5000
+        or not isinstance(value.get("has_more"), bool)
+    ):
+        return False
+    driver_types = {
+        "sensor",
+        "remote_sensing",
+        "market",
+        "blockchain",
+        "weather",
+        "climate",
+        "gis",
+    }
+    return all(
+        isinstance(row, dict)
+        and set(row) == {"driver_name", "driver_version", "driver_type"}
+        and isinstance(row.get("driver_name"), str)
+        and len(row["driver_name"]) <= 100
+        and isinstance(row.get("driver_version"), str)
+        and len(row["driver_version"]) <= 20
+        and isinstance(row.get("driver_type"), str)
+        and row["driver_type"] in driver_types
+        for row in drivers
+    )
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
@@ -238,7 +279,9 @@ class PublicDriverMethods:
         _validate_driver_page(limit, offset)
         path = PUBLIC_API_PATHS_V1["listPublicDriversV1"]
         payload = self._client._get(
-            f"{path}?limit={limit}&offset={offset}", data_shape="object"
+            f"{path}?limit={limit}&offset={offset}",
+            data_shape="object",
+            data_validator=_is_driver_catalog_response,
         )["data"]
         return PublicDriverCatalogPage.from_payload(payload)
 
@@ -326,6 +369,7 @@ class KokonutPublicApiClient:
         path: str,
         *,
         data_shape: Literal["array", "object"],
+        data_validator: Optional[Callable[[Any], bool]] = None,
     ) -> dict[str, Any]:
         response = self.session.get(f"{self.base_url}{path}", timeout=self.timeout)
         if not response.ok:
@@ -351,6 +395,6 @@ class KokonutPublicApiClient:
             raise PublicApiError("Invalid public API response envelope", response.status_code, response)
         data = body.get("data")
         valid_data = isinstance(data, list) if data_shape == "array" else isinstance(data, dict)
-        if not valid_data:
+        if not valid_data or (data_validator is not None and not data_validator(data)):
             raise PublicApiError("Invalid public API response envelope", response.status_code, response)
         return body

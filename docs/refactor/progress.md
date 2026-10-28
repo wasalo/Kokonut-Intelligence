@@ -22381,3 +22381,27 @@ migration, database, provider, candidate, or legacy service was used
 
 The checklist is 1,431 complete / 25 open (1,456 total); the TODO ledger has
 138 checked / 16 open entries.
+
+
+### Progress addendum — Gateway response and SDK catalog contracts — 28 October 2026
+
+Private farm-activity summary and published-summary routes now expose strict
+OpenAPI/runtime contracts, validate the requested location, exclude Field
+Collector records, and limit the published view to verified or published
+rows. Pollution incident resolution now validates its exact location/incident
+identity and resolved state. Governance-tension detail now has a strict safe
+projection and bounded event contract bound to the request IDs. The native
+Python and JavaScript REST clients validate public driver-catalog pages against
+the generated exact field, type, enum, and bound contract before constructing
+typed results.
+
+Focused Python tests pass (92) across the four affected route/SDK areas; the
+JavaScript SDK tests pass (38), and its TypeScript build, Ruff, Python
+compilation, and diff checks pass. The capability matrix records 61 strict
+private Gateway response endpoints across 67 rows (24 baseline-retained, 7
+deployed, 36 prepared). No migration, database, provider, candidate, or legacy
+service was used ([evidence](builds/2026-10-28-recovery/kernel-gateway-sdk-contract-batch.json)).
+
+The checklist is 1,435 complete / 25 open (1,460 total); the TODO ledger has
+142 checked / 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.

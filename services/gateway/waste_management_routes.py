@@ -153,6 +153,14 @@ class PollutionIncidentReviewQueueResponse(_WasteResponseModel):
         return self
 
 
+class PollutionIncidentResolutionResponse(_WasteResponseModel):
+    incident_id: UUID
+    location_id: UUID
+    resolution_date: date
+    status: Literal["resolved"]
+    replayed: bool
+
+
 def register_waste_management_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -603,7 +611,10 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
             jsonable_encoder(queue.model_dump(mode="json")), headers=headers
         )
 
-    @router.post("/operator/api/waste/{location_id}/incidents/{incident_id}/resolve")
+    @router.post(
+        "/operator/api/waste/{location_id}/incidents/{incident_id}/resolve",
+        response_model=PollutionIncidentResolutionResponse,
+    )
     async def resolve_pollution_incident(request: Request, location_id: str, incident_id: str):
         if provider is None:
             return JSONResponse(
@@ -660,4 +671,26 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
                 content={"error": "Incident resolution unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=200, headers=headers)
+        try:
+            resolution = PollutionIncidentResolutionResponse.model_validate(result)
+            if (
+                resolution.location_id != UUID(location_id)
+                or resolution.incident_id != UUID(incident_id)
+            ):
+                raise ValueError("Incident resolution scope does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.waste").warning(
+                "Incident resolution response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Incident resolution unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(resolution.model_dump(mode="json")),
+            status_code=200,
+            headers=headers,
+        )

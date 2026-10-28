@@ -1,5 +1,80 @@
 """FastAPI route registration for Gateway-operated farm activity records."""
 
+from datetime import date, datetime
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, model_validator
+
+
+def _response_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if isinstance(value, str):
+        try:
+            return UUID(value)
+        except ValueError as exc:
+            raise ValueError("UUID value is invalid") from exc
+    raise ValueError("UUID value is invalid")
+
+
+def _response_date(value):
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("date value is invalid") from exc
+    raise ValueError("date value is invalid")
+
+
+def _response_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("timestamp value is invalid") from exc
+    raise ValueError("timestamp value is invalid")
+
+
+_ResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
+_ResponseDate = Annotated[date, BeforeValidator(_response_date)]
+_ResponseDateTime = Annotated[datetime, BeforeValidator(_response_datetime)]
+
+
+class FarmActivitySummaryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _ResponseUUID
+    location_id: _ResponseUUID
+    plot_id: _ResponseUUID | None
+    crop_cycle_id: _ResponseUUID | None
+    activity_type: str = Field(min_length=1, max_length=100)
+    activity_date: _ResponseDate
+    status: Literal["draft", "submitted", "verified", "published", "rejected"]
+    source_system: str | None
+    created_at: _ResponseDateTime | None
+    updated_at: _ResponseDateTime | None
+
+
+class FarmActivitySummaryListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    data: list[FarmActivitySummaryResponse]
+    location_id: _ResponseUUID
+
+    @model_validator(mode="after")
+    def validate_location_scope(self):
+        for row in self.data:
+            if row.location_id != self.location_id:
+                raise ValueError("farm activity summary location does not match request scope")
+            if row.source_system == "field_collector":
+                raise ValueError("Field Collector records are outside this API contract")
+        return self
+
 def register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -16,6 +91,18 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         list_farm_activity_records,
         transition_farm_activity_record,
     )
+
+    def _invalid_projection(exc):
+        from services.common.logging import get_logger
+
+        get_logger("gateway.farm_activity_records").warning(
+            "Farm activity summary response rejected (%s)", type(exc).__name__
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Farm activity records are unavailable"},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
 
     def _unavailable(exc):
         from services.common.logging import get_logger
@@ -72,7 +159,10 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
                 )
             return _unavailable(exc)
 
-    @router.get("/operator/api/farm-activity-records")
+    @router.get(
+        "/operator/api/farm-activity-records",
+        response_model=FarmActivitySummaryListResponse,
+    )
     async def farm_activity_records(
         request: Request,
         location_id: str,
@@ -88,12 +178,21 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         )
         if isinstance(result, JSONResponse):
             return result
+        try:
+            response = FarmActivitySummaryListResponse.model_validate(
+                {"data": result, "location_id": location_id}
+            )
+        except (ValidationError, ValueError, TypeError) as exc:
+            return _invalid_projection(exc)
         return JSONResponse(
-            {"data": jsonable_encoder(result), "location_id": location_id},
+            jsonable_encoder(response.model_dump()),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/farm-activity-records/published")
+    @router.get(
+        "/operator/api/farm-activity-records/published",
+        response_model=FarmActivitySummaryListResponse,
+    )
     async def published_farm_activity_records(
         request: Request,
         location_id: str,
@@ -110,8 +209,16 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         )
         if isinstance(result, JSONResponse):
             return result
+        try:
+            response = FarmActivitySummaryListResponse.model_validate(
+                {"data": result, "location_id": location_id}
+            )
+            if any(row.status not in {"verified", "published"} for row in response.data):
+                raise ValueError("published summary contains a non-verified record")
+        except (ValidationError, ValueError, TypeError) as exc:
+            return _invalid_projection(exc)
         return JSONResponse(
-            {"data": jsonable_encoder(result), "location_id": location_id},
+            jsonable_encoder(response.model_dump()),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 

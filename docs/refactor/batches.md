@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,431 checklist items complete and 25
-open (1,456 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,435 checklist items complete and 25
+open (1,460 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5431,4 +5431,35 @@ or legacy service was used. Evidence:
 
 The checklist is now 1,431 complete / 25 open (1,456 total); the TODO ledger
 has 138 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Completed parallel continuation — Gateway response contracts and SDK catalog validation — 28 October 2026
+
+- [x] Add strict OpenAPI/runtime response contracts to the farm-activity
+  summary and published-summary reads. Validate exact service fields and
+  location, reject Field Collector rows, and ensure the published projection
+  contains only verified/published records.
+- [x] Add a strict response contract to pollution-incident resolution, binding
+  returned incident and location IDs to the request and rejecting undeclared
+  fields or non-resolved status through a sanitized no-store error.
+- [x] Add a strict response contract to governance-tension detail. Keep the
+  existing bounded projection, validate its location and tension IDs, enum and
+  event-history fields, and reject extra identity/evidence payload fields.
+- [x] Validate the public driver-catalog page against its generated contract
+  in both native REST SDKs, including exact fields, bounds, and driver types;
+  malformed responses raise the existing sanitized SDK error and retain the
+  received response object.
+
+The combined Python selection passes 92 tests across governance tension,
+farm-activity Gateway, waste-incident Gateway, and the public REST SDK. The
+JavaScript REST SDK selection passes 38 tests and its TypeScript build passes.
+Ruff, Python compilation, and `git diff --check` pass. The capability matrix
+remains valid at 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and
+now records 61 strict private Gateway response endpoints. No migration,
+database, provider, candidate, or legacy service was used. Evidence:
+[Gateway and SDK batch](builds/2026-10-28-recovery/kernel-gateway-sdk-contract-batch.json).
+
+The checklist is now 1,435 complete / 25 open (1,460 total); the TODO ledger
+has 142 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.

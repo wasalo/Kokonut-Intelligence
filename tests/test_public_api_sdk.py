@@ -225,6 +225,80 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
 
 
 @pytest.mark.parametrize(
+    "catalog",
+    [
+        {"drivers": [], "limit": 7, "offset": 12, "has_more": "false"},
+        {"drivers": [], "limit": True, "offset": 12, "has_more": False},
+        {"drivers": [], "limit": 7, "offset": 5001, "has_more": False},
+        {"drivers": [], "limit": 7, "offset": 12, "has_more": False, "debug": "extra"},
+        {
+            "drivers": [
+                {"driver_name": "weather", "driver_version": "1", "driver_type": "unknown"}
+            ],
+            "limit": 7,
+            "offset": 12,
+            "has_more": False,
+        },
+        {
+            "drivers": [
+                {"driver_name": 4, "driver_version": "1", "driver_type": "weather"}
+            ],
+            "limit": 7,
+            "offset": 12,
+            "has_more": False,
+        },
+        {
+            "drivers": [
+                {"driver_name": "weather", "driver_version": "1", "driver_type": []}
+            ],
+            "limit": 7,
+            "offset": 12,
+            "has_more": False,
+        },
+        {
+            "drivers": [
+                {
+                    "driver_name": "weather",
+                    "driver_version": "1",
+                    "driver_type": "weather",
+                    "private": "extra",
+                }
+            ],
+            "limit": 7,
+            "offset": 12,
+            "has_more": False,
+        },
+        {
+            "drivers": [
+                {"driver_name": "w" * 101, "driver_version": "1", "driver_type": "weather"}
+            ],
+            "limit": 7,
+            "offset": 12,
+            "has_more": False,
+        },
+        {
+            "drivers": [
+                {"driver_name": "weather", "driver_version": "v" * 21, "driver_type": "weather"}
+            ],
+            "limit": 7,
+            "offset": 12,
+            "has_more": False,
+        },
+    ],
+)
+def test_driver_catalog_sdk_rejects_malformed_typed_response(catalog: dict[str, Any]) -> None:
+    response = FakeResponse(200, {"data": catalog})
+    client = KokonutPublicApiClient(
+        "https://gateway.example", session=FakeSession([response])
+    )
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope") as exc_info:
+        client.drivers.list()
+
+    assert exc_info.value.response is response
+
+
+@pytest.mark.parametrize(
     ("limit", "offset"),
     [(0, 0), (51, 0), (1.5, 0), (True, 0), (1, -1), (1, 5001), (1, 0.5)],
 )

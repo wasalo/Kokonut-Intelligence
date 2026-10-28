@@ -10,6 +10,17 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Add strict OpenAPI/runtime response contracts for farm-activity list and
+  published-list reads, including exact location, source-system, and published
+  lifecycle checks.
+- [x] Validate pollution-incident resolution results against the requested
+  incident and location, with a fixed resolved status and no undeclared fields.
+- [x] Add a strict private governance-tension detail contract for its
+  location/tension identity, bounded event history, and safe reviewer
+  projection.
+- [x] Validate driver-catalog responses against the generated page and entry
+  contracts in both native REST SDKs, rejecting malformed types, bounds, and
+  undeclared fields while retaining the HTTP response on SDK errors.
 - [x] Add a strict OpenAPI/runtime success contract for Delphi study-open
   readiness. Bind study/location IDs, validate the fixed SQL-derived blocker
   order and eligibility facts, and return a sanitized no-store error for
@@ -949,6 +960,22 @@ it does not establish RLS or tenant isolation. Checklist: 1,377 complete / 25
 open (1,402 total);
 the matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows. MAN-CAP acceptance is unchanged.
+
+### Completed continuation — Gateway response and SDK catalog contracts — 28 October 2026
+
+The private farm-activity summary routes, pollution incident resolution, and
+governance-tension detail now validate their exact source projection and
+request scope before returning a response. The native Python and JavaScript
+REST SDKs now validate the public driver catalog against its generated bounds,
+enum, and exact fields. The 92-test Python selection and 38-test JavaScript
+selection pass; TypeScript build, Ruff, Python compilation, and diff checks
+pass. The matrix records 61 strict private Gateway response endpoints across
+67 capabilities (24 baseline-retained, 7 deployed, 36 prepared). No migration,
+database, provider, candidate, or legacy service was used. See
+[evidence](builds/2026-10-28-recovery/kernel-gateway-sdk-contract-batch.json).
+
+Checklist: 1,435 complete / 25 open (1,460 total); TODO: 142 checked / 16 open.
+MAN-CAP acceptance and capability classifications are unchanged.
 
 ## Owner or environment gates after code work
 

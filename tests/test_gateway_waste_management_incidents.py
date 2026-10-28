@@ -334,6 +334,7 @@ def test_http_incident_review_and_resolution_routes(monkeypatch):
         lambda operator, location, incident, payload: {
             "incident_id": incident,
             "location_id": location,
+            "resolution_date": date.today().isoformat(),
             "status": "resolved",
             "replayed": False,
         },
@@ -355,7 +356,59 @@ def test_http_incident_review_and_resolution_routes(monkeypatch):
     ].endswith("PollutionIncidentReviewQueueResponse")
     assert resolved.status_code == 200
     assert resolved.json()["status"] == "resolved"
+    resolve_operation = client.app.openapi()["paths"][
+        "/operator/api/waste/{location_id}/incidents/{incident_id}/resolve"
+    ]["post"]
+    assert resolve_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("PollutionIncidentResolutionResponse")
     assert resolved.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {
+            "incident_id": _INCIDENT,
+            "location_id": _LOCATION,
+            "resolution_date": date.today().isoformat(),
+            "status": "resolved",
+            "replayed": False,
+            "private_note": "must not leak",
+        },
+        {
+            "incident_id": str(uuid4()),
+            "location_id": _LOCATION,
+            "resolution_date": date.today().isoformat(),
+            "status": "resolved",
+            "replayed": False,
+        },
+        {
+            "incident_id": _INCIDENT,
+            "location_id": _LOCATION,
+            "resolution_date": date.today().isoformat(),
+            "status": "open",
+            "replayed": False,
+        },
+    ],
+)
+def test_http_incident_resolution_rejects_malformed_or_mismatched_result(monkeypatch, result):
+    monkeypatch.setattr(
+        incidents,
+        "resolve_location_pollution_incident",
+        lambda *_args, **_kwargs: result,
+    )
+    response = _app(monkeypatch).post(
+        f"/operator/api/waste/{_LOCATION}/incidents/{_INCIDENT}/resolve",
+        json=_resolution_payload(),
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Incident resolution unavailable"}
+    assert "private_note" not in response.text
+    assert "must not leak" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
 
 
 def test_incident_review_route_rejects_mismatched_scope_and_private_fields(monkeypatch):

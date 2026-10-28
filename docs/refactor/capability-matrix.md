@@ -49,10 +49,13 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,431
-complete / 25 open (1,456 total). Fifty-seven private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,435
+complete / 25 open (1,460 total). Sixty-one private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
-while preserving existing authorization and cache behavior. Comprehensive
+while preserving existing authorization and cache behavior. The latest
+contracts cover farm-activity summaries, pollution-incident resolution, and
+governance-tension detail; both native REST SDKs now validate the bounded
+driver catalog against its generated shape. Comprehensive
 Status keeps its section bodies JSON-compatible pending an audit of the
 individual generators. The runtime
 SQL inventory also requires explicit review for new unresolved DML/`WITH` sites;
