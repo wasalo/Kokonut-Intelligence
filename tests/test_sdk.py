@@ -1464,6 +1464,59 @@ def test_report_snapshot_type_exposes_location_freeze_and_public_fields():
     assert report.negative_findings == [{"finding": "finding-1"}]
 
 
+def test_report_methods_are_read_only_and_preserve_typed_queries_without_network_calls():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[{"id": "report-1"}])
+    client.get_item = Mock(return_value={"id": "report-1", "status": "submitted"})
+
+    assert client.reports.list_by_type(
+        "impact", ListOptions(filter={"status": {"_eq": "submitted"}}, limit=5)
+    ) == [{"id": "report-1"}]
+    assert client.reports.get("report-1", fields=["id", "status"]) == {
+        "id": "report-1", "status": "submitted"
+    }
+    client.list_items.assert_called_once_with(
+        "report_snapshot",
+        ListOptions(filter={"status": {"_eq": "submitted"}, "report_type": {"_eq": "impact"}}, limit=5),
+    )
+    client.get_item.assert_called_once_with("report_snapshot", "report-1", ["id", "status"])
+
+    assert not hasattr(client.reports, "create")
+    assert not hasattr(client.reports, "create_many")
+    assert not hasattr(client.reports, "update")
+    assert not hasattr(client.reports, "delete")
+
+
+def test_attestation_methods_are_read_only_and_preserve_governed_reads_without_network_calls():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[{"id": "attestation-1"}])
+    client.get_item = Mock(return_value={"id": "attestation-1", "status": "published"})
+
+    assert client.attestations.list_pending(
+        ListOptions(filter={"chain": {"_eq": "celo"}}, limit=5)
+    ) == [{"id": "attestation-1"}]
+    assert client.attestations.get("attestation-1", fields=["id", "status"]) == {
+        "id": "attestation-1", "status": "published"
+    }
+    client.list_items.assert_called_once_with(
+        "attestation_record",
+        ListOptions(
+            filter={"chain": {"_eq": "celo"}, "status": {"_in": ["draft", "submitted"]}},
+            limit=5,
+        ),
+    )
+    client.get_item.assert_called_once_with("attestation_record", "attestation-1", ["id", "status"])
+
+    for name in ("create", "create_many", "update", "delete"):
+        assert not hasattr(client.attestations, name)
+
+
 def test_export_log_type_exposes_canonical_export_table_fields():
     from dataclasses import fields
 

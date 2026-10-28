@@ -105,22 +105,9 @@ async function main() {
   });
   console.log(`  Sale created: ${sale.id}`);
 
-  console.log('\n6. Creating attestation record...');
-  const attestation = await client.attestations.create({
-    entity_type: 'harvest_event',
-    entity_id: harvest.id,
-    claim_type: 'verified_harvest',
-    claim_data: {
-      crop_cycle_id: cropCycleId,
-      quantity: 1420,
-      unit: 'kg',
-      quality_grade: 'A',
-      loss_rate_pct: 5.33,
-      verified_by: 'field-supervisor-001',
-    },
-    status: 'draft',
-  });
-  console.log(`  Attestation created: ${attestation.id}`);
+  console.log('\n6. Reading indexed attestation records...');
+  const attestations = await client.attestations.listByEntity('harvest_event', harvest.id);
+  console.log(`  Indexed attestations: ${attestations.length}`);
 
   console.log('\nWorkflow complete!');
 }

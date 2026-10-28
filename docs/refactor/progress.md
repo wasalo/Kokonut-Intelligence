@@ -1,3 +1,49 @@
+### Progress addendum — C2 attestation record SDK boundary — 27 October 2026
+
+The `attestation_record` table stores governed lifecycle rows and projections
+created by chain indexers. Direct SDK inserts could make a database row appear
+to be an attestation without on-chain publication or independent review. Both
+SDKs now expose list/detail and the existing pending/entity-filtered reads only.
+The Python and JavaScript workflow examples now read indexed records; EAS
+publication and revocation stay in the dedicated EAS service and governed
+signing workflow.
+
+The focused Python SDK, method-parity, and report-governance selection passes
+109 tests; JavaScript passes 54; TypeScript builds; Ruff and Python compilation
+pass. Calls are mocked, with no database or provider access. Capability
+classifications and MAN-CAP acceptance are unchanged. Checklist: 1,295 complete
+/ 25 open (1,320 total); 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.
+
+Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-attestation-read-only-contract.json),
+[Python SDK](../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../sdk/javascript/src/methods.ts).
+
+### Progress addendum — C2 report snapshot SDK boundary — 27 October 2026
+
+The report generator stores report snapshots as hashed, unfrozen drafts with
+public-interest context. Review and publication are governed lifecycle
+transitions. Both SDKs previously inherited generic create/bulk-create/update/
+delete methods, although no service calls those SDK mutations and the
+authenticated Gateway report-review routes are read-only. The Python and
+TypeScript report helpers now expose only list, detail, and report-type-filtered
+reads. Generation remains available through the exporter service; the report
+review console remains read-only until authorized transition endpoints are
+implemented.
+
+The focused Python SDK, method-parity, and report-governance selection passes
+107 tests; JavaScript passes 53 tests; and TypeScript builds. Ruff, Python
+compilation, and diff checks pass. Calls are mocked, with no database or
+provider access. The SDK schema-parity check is recorded in the batch evidence.
+Capability classifications and MAN-CAP acceptance are unchanged. No migration,
+candidate/legacy service, or report data was used. Checklist: 1,294 complete /
+25 open (1,319 total); 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows.
+
+Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-report-snapshot-read-only-contract.json),
+[Python SDK](../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../sdk/javascript/src/methods.ts).
+
 ### Progress addendum — C2 canonical export-log SDK contract — 27 October 2026
 
 Review against `schemas/postgres/008_governance.sql` found that the SDK's

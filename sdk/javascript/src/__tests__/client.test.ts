@@ -230,6 +230,10 @@ describe('KokonutClient', () => {
     expect(typeof client.attestations.listPending).toBe('function');
     expect(typeof client.attestations.listByEntity).toBe('function');
     expect(typeof client.reports.listByType).toBe('function');
+    expect('create' in client.reports).toBe(false);
+    expect('createMany' in client.reports).toBe(false);
+    expect('update' in client.reports).toBe(false);
+    expect('delete' in client.reports).toBe(false);
     expect(typeof client.noi.listByCropCycle).toBe('function');
     expect(typeof client.exports.list).toBe('function');
     expect(typeof client.exports.get).toBe('function');
@@ -1232,6 +1236,23 @@ describe('KokonutClient', () => {
 
     expect(result).toEqual([{ id: 'export-1' }]);
     expect(listItems).toHaveBeenCalledWith('export_log', { limit: 10 });
+  });
+
+  it('keeps attestation records read-only while preserving governed reads', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([{ id: 'attestation-1' }]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'attestation-1', status: 'published' });
+
+    await client.attestations.listByEntity('location', 'location-1');
+    expect(listItems).toHaveBeenCalledWith('attestation_record', {
+      filter: { subject_type: { _eq: 'location' }, subject_id: { _eq: 'location-1' } },
+    });
+    await client.attestations.get('attestation-1', ['id', 'status']);
+    expect(getItem).toHaveBeenCalledWith('attestation_record', 'attestation-1', ['id', 'status']);
+
+    expect(client.attestations).not.toHaveProperty('create');
+    expect(client.attestations).not.toHaveProperty('createMany');
+    expect(client.attestations).not.toHaveProperty('update');
+    expect(client.attestations).not.toHaveProperty('delete');
   });
 
   it('keeps required convenience filters authoritative and forwards list options', async () => {

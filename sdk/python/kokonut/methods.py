@@ -553,27 +553,27 @@ class WalletProfileMethods(GenericMethods):
         return results[0] if results else None
 
 
-class AttestationMethods(GenericMethods):
+class AttestationMethods:
+    """Read stored attestation records; publication is handled by EAS flows.
+
+    A row in ``attestation_record`` is a projection of governed workflow or
+    indexed chain state. Direct SDK writes can make database state look like
+    an attestation without an on-chain submission or governed signing workflow.
+    """
+
     def __init__(self, client: KokonutClient) -> None:
-        super().__init__(client, "attestation_record")
+        self._client = client
 
     def list(self, options: Optional[ListOptions] = None) -> List[AttestationRecord]:
-        return super().list(options)
+        return self._client.list_items("attestation_record", options)
 
     def get(self, item_id: str, fields: Optional[List[str]] = None) -> AttestationRecord:
-        return super().get(item_id, fields)
-
-    def create(self, data: Dict[str, Any]) -> AttestationRecord:
-        return super().create(data)
-
-    def create_many(self, data: List[Dict[str, Any]]) -> List[AttestationRecord]:
-        return super().create_many(data)
-
-    def update(self, item_id: str, data: Dict[str, Any]) -> AttestationRecord:
-        return super().update(item_id, data)
+        return self._client.get_item("attestation_record", item_id, fields)
 
     def list_pending(self, options: Optional[ListOptions] = None) -> List[AttestationRecord]:
-        return super().list(_list_options_with_filter(options, {"status": {"_in": ["draft", "submitted"]}}))
+        return self.list(
+            _list_options_with_filter(options, {"status": {"_in": ["draft", "submitted"]}})
+        )
 
     def list_by_entity(self, subject_type: str, subject_id: str) -> List[AttestationRecord]:
         return self._client.list_items(
@@ -582,27 +582,27 @@ class AttestationMethods(GenericMethods):
         )
 
 
-class ReportMethods(GenericMethods):
+class ReportMethods:
+    """Read-only access to generated report snapshots.
+
+    Snapshot generation and governed lifecycle transitions belong to the
+    report generator and authorized review surfaces, not generic SDK CRUD.
+    """
+
     def __init__(self, client: KokonutClient) -> None:
-        super().__init__(client, "report_snapshot")
+        self._client = client
 
     def list(self, options: Optional[ListOptions] = None) -> List[ReportSnapshot]:
-        return super().list(options)
+        return self._client.list_items("report_snapshot", options)
 
     def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReportSnapshot:
-        return super().get(item_id, fields)
-
-    def create(self, data: Dict[str, Any]) -> ReportSnapshot:
-        return super().create(data)
-
-    def create_many(self, data: List[Dict[str, Any]]) -> List[ReportSnapshot]:
-        return super().create_many(data)
-
-    def update(self, item_id: str, data: Dict[str, Any]) -> ReportSnapshot:
-        return super().update(item_id, data)
+        return self._client.get_item("report_snapshot", item_id, fields)
 
     def list_by_type(self, report_type: str, options: Optional[ListOptions] = None) -> List[ReportSnapshot]:
-        return super().list(_list_options_with_filter(options, {"report_type": {"_eq": report_type}}))
+        return self._client.list_items(
+            "report_snapshot",
+            _list_options_with_filter(options, {"report_type": {"_eq": report_type}}),
+        )
 
 
 class ExportMethods:

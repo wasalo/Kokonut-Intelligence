@@ -314,22 +314,17 @@ export interface WalletProfileMethods extends GenericMethods {
   findByAddress(address: string): Promise<WalletProfile | null>;
 }
 
-export interface AttestationMethods extends GenericMethods {
+/** Read stored attestation records; publication is handled by governed EAS flows. */
+export interface AttestationMethods {
   list(options?: ListOptions): Promise<AttestationRecord[]>;
   get(id: string, fields?: string[]): Promise<AttestationRecord>;
-  create(data: Partial<AttestationRecord>): Promise<AttestationRecord>;
-  createMany(data: Partial<AttestationRecord>[]): Promise<AttestationRecord[]>;
-  update(id: string, data: Partial<AttestationRecord>): Promise<AttestationRecord>;
   listPending(options?: ListOptions): Promise<AttestationRecord[]>;
   listByEntity(entityType: string, entityId: string): Promise<AttestationRecord[]>;
 }
 
-export interface ReportMethods extends GenericMethods {
+export interface ReportMethods {
   list(options?: ListOptions): Promise<ReportSnapshot[]>;
   get(id: string, fields?: string[]): Promise<ReportSnapshot>;
-  create(data: Partial<ReportSnapshot>): Promise<ReportSnapshot>;
-  createMany(data: Partial<ReportSnapshot>[]): Promise<ReportSnapshot[]>;
-  update(id: string, data: Partial<ReportSnapshot>): Promise<ReportSnapshot>;
   listByType(reportType: string, options?: ListOptions): Promise<ReportSnapshot[]>;
 }
 
@@ -565,14 +560,9 @@ export function buildWalletProfileMethods(client: any): WalletProfileMethods {
 }
 
 export function buildAttestationMethods(client: any): AttestationMethods {
-  const base = createGenericMethods(client, 'attestation_record');
   return {
-    ...base,
     list: (options?: ListOptions) => client.listItems('attestation_record', options) as Promise<AttestationRecord[]>,
     get: (id: string, fields?: string[]) => client.getItem('attestation_record', id, fields) as Promise<AttestationRecord>,
-    create: (data: Partial<AttestationRecord>) => client.createItem('attestation_record', data) as Promise<AttestationRecord>,
-    createMany: (data: Partial<AttestationRecord>[]) => client.createItems('attestation_record', data) as Promise<AttestationRecord[]>,
-    update: (id: string, data: Partial<AttestationRecord>) => client.updateItem('attestation_record', id, data) as Promise<AttestationRecord>,
     listPending: (options?: ListOptions) =>
       client.listItems('attestation_record', {
         ...options,
@@ -586,14 +576,9 @@ export function buildAttestationMethods(client: any): AttestationMethods {
 }
 
 export function buildReportMethods(client: any): ReportMethods {
-  const base = createGenericMethods(client, 'report_snapshot');
   return {
-    ...base,
     list: (options?: ListOptions) => client.listItems('report_snapshot', options) as Promise<ReportSnapshot[]>,
     get: (id: string, fields?: string[]) => client.getItem('report_snapshot', id, fields) as Promise<ReportSnapshot>,
-    create: (data: Partial<ReportSnapshot>) => client.createItem('report_snapshot', data) as Promise<ReportSnapshot>,
-    createMany: (data: Partial<ReportSnapshot>[]) => client.createItems('report_snapshot', data) as Promise<ReportSnapshot[]>,
-    update: (id: string, data: Partial<ReportSnapshot>) => client.updateItem('report_snapshot', id, data) as Promise<ReportSnapshot>,
     listByType: (reportType: string, options?: ListOptions) =>
       client.listItems('report_snapshot', {
         ...options,

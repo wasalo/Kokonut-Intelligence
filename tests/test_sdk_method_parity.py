@@ -307,3 +307,54 @@ def test_export_sdk_is_read_only_and_models_match_canonical_table_columns():
     assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
         "list", "get"
     ]
+
+
+def test_report_sdk_exposes_reads_without_generic_mutation():
+    python_methods = ast.parse(
+        (ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8")
+    )
+    report_methods = next(
+        node for node in python_methods.body
+        if isinstance(node, ast.ClassDef) and node.name == "ReportMethods"
+    )
+    python_names = {
+        node.name for node in report_methods.body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    }
+    assert python_names == {"list", "get", "list_by_type"}
+    assert not any(isinstance(base, ast.Name) and base.id == "GenericMethods" for base in report_methods.bases)
+
+    typescript_methods = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"export interface ReportMethods(.*?)\n\}", typescript_methods, re.DOTALL)
+    assert declaration is not None
+    assert "extends GenericMethods" not in declaration.group(1)
+    assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
+        "list", "get", "listByType"
+    ]
+
+
+def test_attestation_sdk_exposes_governed_reads_without_generic_mutation():
+    python_methods = ast.parse(
+        (ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8")
+    )
+    attestation_methods = next(
+        node for node in python_methods.body
+        if isinstance(node, ast.ClassDef) and node.name == "AttestationMethods"
+    )
+    python_names = {
+        node.name for node in attestation_methods.body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    }
+    assert python_names == {"list", "get", "list_pending", "list_by_entity"}
+    assert not any(
+        isinstance(base, ast.Name) and base.id == "GenericMethods"
+        for base in attestation_methods.bases
+    )
+
+    typescript_methods = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"export interface AttestationMethods(.*?)\n\}", typescript_methods, re.DOTALL)
+    assert declaration is not None
+    assert "extends GenericMethods" not in declaration.group(1)
+    assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
+        "list", "get", "listPending", "listByEntity"
+    ]
