@@ -1,6 +1,6 @@
 # Capability preservation matrix
 
-**Latest parallel continuation — report, CLI, Governance API, and Directus reads (28 October 2026):** direct capital-provider report calls now reject invalid location scope before database access; traceability batch/certificate commands preflight location UUIDs; the private Governance roles page validates its exact projection and pagination; and optional Directus reads now apply fail-closed location scope to `noi_snapshot` and `water_access`, with writes denied. The integrated checks pass 459 Python tests (3 skipped) and 140 Directus extension tests; build/typecheck, Ruff, compilation, report inventories, matrix validation, and diff checks pass. These source checks do not prove live Directus permissions or populated-data parity ([evidence](builds/2026-10-28-recovery/kernel-parallel-report-cli-governance-directus-reads.json)). Checklist: 1,469 complete / 25 open (1,494 total); strict private Gateway response endpoints: 70.
+**Latest parallel continuation — report scope, crop CLI, retirement page, and Directus reads (28 October 2026):** direct cultural-preservation reports reject invalid location scope before database access; crop-rotation commands preflight required location UUIDs; the private solution-retirement candidates page validates its request-bound projection and continuation; and Directus tenant reads now apply fail-closed location scope to `capex_breakdown`, with writes denied. The integrated checks pass 551 Python tests and 141 Directus extension tests; build/typecheck, Ruff, compilation, report inventories, matrix validation, and diff checks pass. These source checks do not prove live Directus permissions or populated-data parity ([evidence](builds/2026-10-28-recovery/kernel-parallel-culture-crop-solution-capex-boundaries.json)). Checklist: 1,473 complete / 25 open (1,498 total); strict private Gateway response endpoints: 71.
 
 **Latest parallel continuation — report scope and tenant response boundaries (28 October 2026):** direct `generate_gnh_alignment` calls reject invalid location scope before database access; the private mobile operations inventory now has a strict request-bound response contract; and the optional Directus hook applies fail-closed, read-only location scope to `forecast_output`. The integrated focused selection passes 422 Python tests and 138 Directus extension tests; the extension build/typecheck, Ruff, compilation, report inventories, matrix validation, and diff checks pass. This is source-level acceptance only; live Directus behavior and historical forecast lineage remain open ([evidence](builds/2026-10-28-recovery/kernel-parallel-gnh-mobile-inventory-forecast-output-boundary.json)). Checklist: 1,464 complete / 25 open (1,489 total); strict private Gateway response endpoints: 69.
 
@@ -53,8 +53,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,469
-complete / 25 open (1,494 total). Seventy private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,473
+complete / 25 open (1,498 total). Seventy-one private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. The latest
 contracts cover farm-activity summaries, pollution-incident resolution,

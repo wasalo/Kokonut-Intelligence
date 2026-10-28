@@ -1,5 +1,53 @@
 """OIDC routes for location-scoped solution lifecycle reads."""
 
+from typing import Annotated
+from uuid import UUID
+
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, model_validator
+
+
+def _solution_response_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if isinstance(value, str):
+        try:
+            return UUID(value)
+        except ValueError as exc:
+            raise ValueError("UUID value is invalid") from exc
+    raise ValueError("UUID value is invalid")
+
+
+_SolutionResponseUUID = Annotated[UUID, BeforeValidator(_solution_response_uuid)]
+
+
+class SolutionRetirementCandidateItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: str = Field(max_length=80)
+    current_stage: str = Field(max_length=80)
+    solution_status: str = Field(max_length=80)
+
+
+class SolutionRetirementCandidatesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    solutions: list[SolutionRetirementCandidateItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more:
+            if not self.solutions or self.next_offset != self.offset + len(self.solutions):
+                raise ValueError("Retirement candidate continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal retirement candidate page cannot continue")
+        return self
+
 
 def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
@@ -3646,7 +3694,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/retirement-candidates")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/retirement-candidates",
+        response_model=SolutionRetirementCandidatesResponse,
+    )
     async def location_solution_retirement_candidates(
         request: Request,
         location_id: str,
@@ -3693,6 +3744,26 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 status_code=503,
                 content={"error": "Solution retirement candidate read unavailable"},
                 headers={**headers, "Retry-After": "30"},
+            )
+        try:
+            page = SolutionRetirementCandidatesResponse.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.offset != offset
+                or len(page.solutions) > limit
+                or (page.has_more and len(page.solutions) != limit)
+            ):
+                raise ValueError("Retirement candidate page does not match request bounds")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution retirement candidate response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution retirement candidate read unavailable"},
+                headers=headers,
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 

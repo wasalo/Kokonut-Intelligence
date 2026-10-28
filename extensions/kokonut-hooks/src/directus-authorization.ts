@@ -11,6 +11,7 @@ export const TENANT_SCOPED_COLLECTIONS = [
   'forecast_scenario',
   'forecast_output',
   'water_access',
+  'capex_breakdown',
   'report_snapshot',
   'noi_snapshot',
   'dashboard_dataset',
@@ -35,6 +36,7 @@ export const READ_ONLY_TENANT_SCOPED_COLLECTIONS = [
   'forecast_output',
   'noi_snapshot',
   'water_access',
+  'capex_breakdown',
 ] as const;
 
 export type TenantScopedCollection = (typeof TENANT_SCOPED_COLLECTIONS)[number];

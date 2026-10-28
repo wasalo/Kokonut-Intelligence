@@ -8,6 +8,7 @@ queries/business logic. Reachable via:
 
 import json
 from datetime import date
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .crop_rotation import (
@@ -146,6 +147,22 @@ cli.subcommand("dashboard", "Rotation dashboard") \
 
 
 def main(argv=None):
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    required_location_commands = {
+        "create-plan",
+        "list-plans",
+        "family-usage",
+        "recommend",
+        "dashboard",
+    }
+    if args.command in required_location_commands or (
+        args.command == "record-impact" and args.location_id is not None
+    ):
+        try:
+            UUID(args.location_id)
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
     cli.run(argv)
 
 

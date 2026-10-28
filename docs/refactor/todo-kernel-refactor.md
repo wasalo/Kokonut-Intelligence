@@ -1678,6 +1678,26 @@ with 69 strict private Gateway response endpoints. These checks do not prove
 live Directus role behavior or historical forecast lineage.
 
 
+### Completed parallel continuation — reports, CLI, retirement reads, and Directus scope — 28 October 2026
+
+- [x] Reject invalid direct cultural-preservation report location scope before
+  opening a cursor.
+- [x] Preflight crop-rotation CLI location arguments before database setup.
+- [x] Enforce the exact request-bound retirement-candidate response and page
+  continuation contract.
+- [x] Scope Directus `capex_breakdown` reads to operator grants and deny
+  Directus mutations.
+
+The integrated selection passes 551 Python tests and 141 Directus extension
+tests; extension build/typecheck, Ruff, compilation, report inventories,
+matrix validation, and diff checks pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-culture-crop-solution-capex-boundaries.json).
+Checklist: 1,473 complete / 25 open (1,498 total); TODO: 180 checked / 16 open.
+The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared)
+with 71 strict private Gateway response endpoints. The optional Directus hook
+now covers 26 scoped collections; runtime behavior remains unverified.
+
+
 ### Completed parallel continuation — reports, CLI, Governance API, and Directus reads — 28 October 2026
 
 - [x] Reject invalid direct capital-provider report location scope before

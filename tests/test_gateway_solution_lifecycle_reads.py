@@ -315,7 +315,13 @@ def test_http_retirement_candidates_are_no_store_and_operator_authenticated(monk
 
     monkeypatch.setattr(
         "services.gateway.solution_lifecycle_reads.list_location_solution_retirement_candidates",
-        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "solutions": []},
+        lambda *_args, **_kwargs: {
+            "location_id": LOCATION_ID,
+            "offset": 0,
+            "solutions": [],
+            "has_more": False,
+            "next_offset": None,
+        },
     )
     app = FastAPI()
     router = APIRouter()

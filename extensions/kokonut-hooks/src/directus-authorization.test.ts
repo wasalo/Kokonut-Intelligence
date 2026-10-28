@@ -50,6 +50,7 @@ describe('Directus tenant authorization', () => {
       'forecast_scenario',
       'forecast_output',
       'water_access',
+      'capex_breakdown',
       'report_snapshot',
       'noi_snapshot',
       'dashboard_dataset',
@@ -72,6 +73,7 @@ describe('Directus tenant authorization', () => {
       'forecast_output',
       'noi_snapshot',
       'water_access',
+      'capex_breakdown',
     ]);
 
     const store = makeStore();
@@ -232,6 +234,35 @@ describe('Directus tenant authorization', () => {
     )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
     await expect(authorizeDirectusRows(
       store, accountability, issuer, 'water_access', 'delete', [rowA],
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+
+  it('scopes CAPEX breakdown reads to the granted location and denies Directus writes', async () => {
+    const store = makeStore();
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'capex_breakdown', {
+        fields: ['id', 'location_id', 'category', 'amount_usd'],
+      },
+    )).resolves.toEqual({
+      fields: ['id', 'location_id', 'category', 'amount_usd'],
+      filter: { location_id: { _in: [locationA] } },
+    });
+    expect(store.authorizedLocations).toHaveBeenCalledWith(
+      operatorId, 'capex_breakdown', 'read',
+    );
+
+    await expect(authorizeDirectusReadResult(
+      store, accountability, issuer, 'capex_breakdown', { id: rowB },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+
+    await expect(authorizeDirectusCreate(
+      store, accountability, issuer, 'capex_breakdown', { location_id: locationA },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'capex_breakdown', 'update', [rowA], {},
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'capex_breakdown', 'delete', [rowA],
     )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
   });
 

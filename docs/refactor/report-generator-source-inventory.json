@@ -745,7 +745,7 @@
       "callable": "generate_foundational_wellbeing",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 162,
+      "source_line": 165,
       "parameters": [
         "conn",
         "location_id",
@@ -1306,7 +1306,7 @@
       "callable": "generate_renewable_energy",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 88,
+      "source_line": 91,
       "parameters": [
         "conn",
         "location_id",
@@ -2010,7 +2010,7 @@
       "callable": "generate_vulnerable_access",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 126,
+      "source_line": 129,
       "parameters": [
         "conn",
         "location_id",

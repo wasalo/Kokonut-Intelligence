@@ -22582,3 +22582,25 @@ enforcement and populated parity remain unverified. Checklist: 1,469 complete
 / 25 open; TODO: 176 checked / 16 open. No database, provider, live Directus
 runtime, candidate, legacy service, or live network was used. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-governance-directus-reads.json).
+
+
+### Progress addendum — cultural report scope, crop CLI, retirement page, and Directus capex reads — 28 October 2026
+
+Direct `generate_cultural_preservation` calls now reject invalid location UUIDs
+before cursor creation. Crop-rotation CLI commands validate required location
+arguments, and validate the optional `record-impact` location when supplied,
+before the shared command runner can open PostgreSQL. The solution-retirement
+candidate GET now has a strict OpenAPI/runtime response model bound to the
+requested location, offset, page size, and continuation state. The optional
+Directus hook now grant-scopes `capex_breakdown` and denies its mutations.
+
+The integrated focused selection passes 551 Python tests and 141 Directus
+extension tests. Extension build/typecheck, Ruff, compilation, report
+inventories, matrix validation, and diff hygiene pass. The capability matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and now records
+71 strict private Gateway response endpoints. The Directus adapter covers 26
+location-scoped collections, all source-validated; live runtime and populated
+data parity remain open. Checklist: 1,473 complete / 25 open; TODO: 180
+checked / 16 open. No database, provider, Directus runtime, candidate, legacy
+service, or live network was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-culture-crop-solution-capex-boundaries.json).

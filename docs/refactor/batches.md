@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,469 checklist items complete and 25
-open (1,494 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,473 checklist items complete and 25
+open (1,498 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -79,6 +79,31 @@ runtime enforcement and populated parity remain open. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-governance-directus-reads.json).
 
 Checklist: 1,469 complete / 25 open (1,494 total); TODO: 176 checked / 16
+open. MAN-CAP acceptance and capability classifications are unchanged.
+
+
+### Completed parallel continuation — report scope, crop CLI, retirement page, and Directus reads — 28 October 2026
+
+- [x] Reject invalid direct `generate_cultural_preservation` location scope
+  before cursor creation.
+- [x] Preflight location UUIDs for the crop-rotation CLI's required scoped
+  commands and any supplied optional `record-impact --location-id`.
+- [x] Add a strict request-bound response contract for the solution-retirement
+  candidates page, including offset, result bound, and continuation checks.
+- [x] Add read-only, grant-filtered Directus tenant access for
+  `capex_breakdown`.
+
+The integrated focused selection passes 551 Python tests and 141 Directus
+extension tests. Extension build/typecheck, Ruff, Python compilation, report
+source/query inventories, capability-matrix validation, and diff checks pass.
+The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared),
+with 71 strict private Gateway response endpoints. The Directus source adapter
+covers 26 location-scoped collections. No database, provider, Directus runtime,
+candidate, legacy service, or live network was used. Runtime permissions and
+populated-data parity remain open. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-culture-crop-solution-capex-boundaries.json).
+
+Checklist: 1,473 complete / 25 open (1,498 total); TODO: 180 checked / 16
 open. MAN-CAP acceptance and capability classifications are unchanged.
 
 ### C1 yield-benchmark runtime ACL — 28 October 2026
