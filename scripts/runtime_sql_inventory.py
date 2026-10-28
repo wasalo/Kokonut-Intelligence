@@ -418,6 +418,9 @@ def _validate_write_review_ledger(
     reviewed_set = set(reviewed_fingerprints)
     if legacy_set & reviewed_set:
         errors.append("a fingerprint cannot be both legacy-unreviewed and reviewed")
+    current_fingerprints = [site["fingerprint"] for site in current_candidates]
+    if len(set(current_fingerprints)) != len(current_fingerprints):
+        errors.append("current unresolved-write fingerprints must be unique")
     current_by_fingerprint = {
         site["fingerprint"]: site for site in current_candidates
     }

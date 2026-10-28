@@ -43,6 +43,7 @@ check "Directus permission source inventory" "python3 $SCRIPT_DIR/directus_permi
 check "Report generator source inventory" "python3 $SCRIPT_DIR/report_generator_inventory.py --check $PROJECT_DIR/docs/refactor/report-generator-source-inventory.json"
 check "Report generator query-scope inventory" "python3 $SCRIPT_DIR/report_generator_query_scope_inventory.py --check $PROJECT_DIR/docs/refactor/report-generator-query-scope-inventory.json"
 check "Report generator helper-scope inventory" "python3 $SCRIPT_DIR/report_generator_helper_scope_inventory.py --check $PROJECT_DIR/docs/refactor/report-generator-helper-scope-inventory.json"
+check "Runtime SQL inventory and unresolved-write review ledger" "python3 $SCRIPT_DIR/runtime_sql_inventory.py --check $PROJECT_DIR/docs/refactor/runtime-sql-inventory.json"
 check "FastAPI dependencies" "python3 -c 'import fastapi; from fastapi.testclient import TestClient; print(fastapi.__version__)'"
 check "Import services.ingestion.base" "python3 -c 'import services.ingestion.base'"
 check "Import services.forecast.engine" "python3 -c 'import services.forecast.engine'"

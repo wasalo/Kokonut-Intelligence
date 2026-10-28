@@ -319,6 +319,36 @@ def test_unresolved_write_ledger_rejects_unhashable_fingerprints_cleanly():
         )
 
 
+def test_unresolved_write_ledger_rejects_duplicate_current_fingerprints():
+    ledger_path = Path("docs/refactor/runtime-sql-unresolved-write-review.json")
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    current = [
+        {"fingerprint": item["fingerprint"]}
+        for item in ledger["legacy_unreviewed"]
+    ]
+    duplicate = {
+        "fingerprint": "c" * 64,
+        "source": "services/example.py",
+        "line": 12,
+        "scope": "persist",
+        "statement_kind": "UPDATE",
+    }
+
+    errors = _validate_write_review_ledger([*current, duplicate, duplicate.copy()], ledger)
+
+    assert "current unresolved-write fingerprints must be unique" in errors
+
+
+def test_ci_check_script_wires_runtime_sql_inventory_gate():
+    script = Path("scripts/ci-check.sh").read_text(encoding="utf-8")
+
+    assert (
+        'check "Runtime SQL inventory and unresolved-write review ledger" '
+        '"python3 $SCRIPT_DIR/runtime_sql_inventory.py --check '
+        '$PROJECT_DIR/docs/refactor/runtime-sql-inventory.json"'
+    ) in script
+
+
 def test_reviewed_unresolved_site_requires_all_review_metadata():
     ledger_path = Path("docs/refactor/runtime-sql-unresolved-write-review.json")
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))

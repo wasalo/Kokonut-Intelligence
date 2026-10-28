@@ -21,13 +21,14 @@
     "relation_candidates": 1223,
     "write_target_relations": 588,
     "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
-    "result": "passed"
+    "result": "passed",
+    "ci_check": "scripts/ci-check.sh now invokes this inventory and ledger validation."
   },
   "checks": [
     {
       "command": "python3 -m pytest tests/test_runtime_sql_inventory.py -q",
       "result": "passed",
-      "passed": 20
+      "passed": 22
     },
     {
       "command": "python3 -m ruff check scripts/runtime_sql_inventory.py tests/test_runtime_sql_inventory.py",
@@ -35,6 +36,10 @@
     },
     {
       "command": "python3 -m compileall -q scripts/runtime_sql_inventory.py tests/test_runtime_sql_inventory.py",
+      "result": "passed"
+    },
+    {
+      "command": "bash -n scripts/ci-check.sh",
       "result": "passed"
     }
   ],

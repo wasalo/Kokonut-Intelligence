@@ -22012,11 +22012,11 @@ remain unchanged.
 The runtime SQL inventory check now enforces an explicit review ledger for
 unresolved direct DML and conservative `WITH` candidates. Its 37 pre-existing
 entries (eight unresolved DML targets and 29 `WITH` statements) are tracked by
-a pinned baseline; new candidates fail the CI inventory check until reviewed
+a pinned baseline; the hosted `ci-check.sh` inventory check now fails new candidates
 with metadata that explicitly says review is not ACL approval. Scope-AST
 fingerprints with per-scope ordinals catch same-scope binding edits and
-duplicate call sites while ignoring line movement. Twenty focused inventory
-tests pass, and the combined C1/C2/C7/driver-catalog selection passes 103
+duplicate call sites while ignoring line movement. Twenty-two focused inventory
+tests pass, and the combined C1/C2/C7/driver-catalog selection passes 119
 tests. The refreshed 4,936-site inventory and ledger checks pass. Ruff and
 compilation pass; no database or Docker was used. This detects source drift but
 does not reduce broad runtime grants or prove query reachability/RLS. Values
@@ -22025,4 +22025,19 @@ fingerprint.
 
 Evidence: [unresolved-write drift gate](builds/2026-10-28-recovery/runtime-sql-unresolved-write-drift-gate.json).
 Checklist: 1,389 complete / 25 open (1,414 total); capability classifications
+remain unchanged.
+
+### Progress addendum — yield-monitoring response contract — 28 October 2026
+
+The private location-scoped yield-monitoring summary now publishes strict
+OpenAPI response models for its aggregate groups and bounded recent-harvest
+projection. The route validates the service result before constructing
+`JSONResponse`; extra or malformed values return a sanitized no-store 500.
+Fourteen focused tests cover the schema, exact success projection, malformed
+fields, and unchanged authorization, database, and cache behavior. The
+combined C1/C2/C7/driver-catalog selection passes 119 tests. No database or
+provider was used; live OIDC and populated-data parity remain open.
+
+Evidence: [yield summary response contract](builds/2026-10-28-recovery/yield-summary-response-contract.json).
+Checklist: 1,390 complete / 25 open (1,415 total); capability classifications
 remain unchanged.

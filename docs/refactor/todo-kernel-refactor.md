@@ -530,9 +530,9 @@ that its full source-plan phase is complete.
   (eight unresolved direct DML targets and 29 conservative `WITH` statements).
   Its legacy fingerprint set is pinned in source. Scope-AST fingerprints and
   per-scope ordinals catch same-scope source-binding edits and distinguish
-  duplicate calls; the CI inventory check fails when a new candidate lacks
-  reviewed metadata that explicitly disclaims ACL approval. Twenty scanner
-  tests pass. Parameter, import, mutable-global, and helper-provided values
+  duplicate calls; hosted `ci-check.sh` invokes the inventory gate and fails
+  when a new candidate lacks reviewed metadata that explicitly disclaims ACL
+  approval. Twenty-two scanner tests pass. Parameter, import, mutable-global, and helper-provided values
   remain beyond fingerprint reach. This is source drift detection only: it
   does not change grants, classify existing debt as safe, or establish
   tenant isolation
@@ -672,6 +672,11 @@ that its full source-plan phase is complete.
   model and validates the projection before returning its raw response; its
   ten-test selection covers undeclared fields and preserved error/cache
   contracts ([evidence](builds/2026-10-28-recovery/cooperative-summary-response-contract.json)).
+  The yield-monitoring summary now has the same explicit boundary for its
+  grouped aggregates and bounded recent-harvest projection; fourteen route
+  tests verify its OpenAPI schema, malformed-field rejection, and unchanged
+  authorization/error headers
+  ([evidence](builds/2026-10-28-recovery/yield-summary-response-contract.json)).
   Export-log fields
   match the canonical table; the earlier pending-
   create API was removed because the table lacks its request fields and no
@@ -1280,7 +1285,8 @@ open entries.
 - [x] Replay the full schema on ARM64/QEMU through migration 681 with verified 1.5 GiB/two-CPU limits, network disabled, no seeds or host ports, and cleanup success. The optional operator-scope probe did not run, and no physical Raspberry Pi was used ([evidence](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json)).
 - [x] Keep driver catalog database failures distinct from an empty catalog: failures propagate to a generic no-store Gateway 500. The 47-test Gateway/OpenAPI/Python-SDK selection, Ruff, compilation, and diff checks pass with fake database/transport behavior ([evidence](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json)).
 - [x] Require source review for new unresolved direct SQL DML/`WITH` candidates through the runtime inventory check. Existing candidates remain explicitly tracked and the fingerprint baseline is pinned; this does not reduce the observed broad grants ([evidence](builds/2026-10-28-recovery/runtime-sql-unresolved-write-drift-gate.json)).
+- [x] Publish and validate a strict success model for the private yield-monitoring summary, preserving the existing auth and error/cache contracts ([evidence](builds/2026-10-28-recovery/yield-summary-response-contract.json)).
 
-The batches checklist is 1,389 complete / 25 open (1,414 total). This TODO
-ledger now has 99 checked and 16 open entries; capability classifications and
+The batches checklist is 1,390 complete / 25 open (1,415 total). This TODO
+ledger now has 100 checked and 16 open entries; capability classifications and
 MAN-CAP acceptance remain unchanged.
