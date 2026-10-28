@@ -6,6 +6,7 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_traceability --help
 """
 
+import sys
 from uuid import UUID
 
 from ..common.commands import CommandLine
@@ -214,13 +215,20 @@ cli.subcommand("cold-chain", "Get cold chain log") \
 
 def main(argv=None):
     parser = cli.build_parser()
-    args = parser.parse_args(argv)
-    if args.command in {"create-batch", "certs"}:
+    command_argv = list(argv if argv is not None else sys.argv[1:])
+    args = parser.parse_args(command_argv)
+    if args.command in {"create-batch", "certs", "list"} and args.location_id is not None:
         try:
-            UUID(args.location_id)
+            location_id = str(UUID(args.location_id))
         except (AttributeError, TypeError, ValueError):
             parser.error(f"--location-id must be a valid UUID for {args.command}")
-    return cli.run(argv)
+
+        for index, token in enumerate(command_argv):
+            if token == "--location-id" and index + 1 < len(command_argv):
+                command_argv[index + 1] = location_id
+            elif token.startswith("--location-id="):
+                command_argv[index] = f"--location-id={location_id}"
+    return cli.run(command_argv)
 
 
 if __name__ == "__main__":

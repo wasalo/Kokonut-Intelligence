@@ -229,7 +229,7 @@
       "callable": "generate_business_plan_report",
       "source_module": "services.export.reports.business_plan",
       "source_file": "services/export/reports/business_plan.py",
-      "source_line": 6,
+      "source_line": 9,
       "parameters": [
         "conn",
         "location_id",
@@ -355,7 +355,7 @@
       "callable": "generate_capital_provider_utility",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 579,
+      "source_line": 608,
       "parameters": [
         "conn",
         "location_id",
@@ -420,7 +420,7 @@
       "callable": "generate_comprehensive_status",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 400,
+      "source_line": 431,
       "parameters": [
         "conn",
         "location_id",
@@ -1732,7 +1732,7 @@
       "callable": "generate_state_of_kokonut",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 282,
+      "source_line": 309,
       "parameters": [
         "conn",
         "location_id",
@@ -1753,7 +1753,7 @@
       "callable": "generate_state_of_kokonut_graphs",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 347,
+      "source_line": 371,
       "parameters": [
         "conn",
         "location_id",
@@ -1796,7 +1796,7 @@
       "callable": "generate_strategic_reserve",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 484,
+      "source_line": 514,
       "parameters": [
         "conn",
         "location_id",

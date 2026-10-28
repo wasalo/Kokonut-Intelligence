@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from uuid import UUID
 
 from services.analytics.stakeholder_grievances import (
     acknowledge_case,
@@ -138,6 +139,11 @@ def main():
     if not hasattr(args, "func"):
         parser.print_help()
         sys.exit(1)
+    if getattr(args, "location_id", None) is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
     conn = get_db()
     try:
         _out(args.func(conn, args))

@@ -1219,7 +1219,15 @@ def test_http_capacity_page_is_no_store_scoped_and_bounded(monkeypatch):
     from services.gateway.operating_pilot_routes import register_operating_pilot_routes
 
     calls = []
-    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    page = {
+        "location_id": LOCATION_ID,
+        "scope_configured": True,
+        "limit": 7,
+        "offset": 14,
+        "items": [],
+        "has_more": False,
+        "next_offset": None,
+    }
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_capacity_periods",
         lambda *args, **kwargs: calls.append((args, kwargs)) or page,
@@ -1731,7 +1739,15 @@ def test_http_work_claim_page_is_no_store_scoped_and_bounded(monkeypatch):
     from services.gateway.operating_pilot_routes import register_operating_pilot_routes
 
     calls = []
-    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    page = {
+        "location_id": LOCATION_ID,
+        "scope_configured": True,
+        "limit": 7,
+        "offset": 14,
+        "items": [],
+        "has_more": False,
+        "next_offset": None,
+    }
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_work_claims",
         lambda *args, **kwargs: calls.append((args, kwargs)) or page,

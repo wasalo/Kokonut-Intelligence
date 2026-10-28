@@ -8,7 +8,7 @@ SECRET = "private farm row and database-password=synthetic"
 def test_state_of_kokonut_sections_redact_source_errors(monkeypatch):
     cursor = MagicMock()
     cursor.fetchall.return_value = [{
-        "id": "location-1",
+        "id": "a0000000-0000-4000-8000-000000000001",
         "name": "Synthetic farm",
         "slug": "synthetic",
         "country": "DO",
@@ -67,7 +67,8 @@ def test_graph_report_redacts_descriptor_errors(monkeypatch, capsys):
 
 
 def test_comprehensive_status_redacts_section_failures(monkeypatch):
-    composed = [{"location_id": "location-1", "sections": {}}]
+    location_id = "a0000000-0000-4000-8000-000000000001"
+    composed = [{"location_id": location_id, "sections": {}}]
     monkeypatch.setattr(state, "_state_of_kokonut_locations", lambda *_args: ([{}], composed))
     monkeypatch.setattr(
         state,
@@ -81,7 +82,7 @@ def test_comprehensive_status_redacts_section_failures(monkeypatch):
         lambda *_args: (_ for _ in ()).throw(ValueError(SECRET)),
     )
 
-    report = state.generate_comprehensive_status(MagicMock(), location_id="location-1")
+    report = state.generate_comprehensive_status(MagicMock(), location_id=location_id)
 
     sections = report["locations"][0]["sections"]
     assert sections["foundational_wellbeing"]["error"] == (
@@ -95,7 +96,8 @@ def test_comprehensive_status_redacts_section_failures(monkeypatch):
 
 def test_strategic_reserve_redacts_seed_vault_error(monkeypatch):
     cursor = MagicMock()
-    cursor.fetchall.return_value = [{"id": "location-1", "name": "Synthetic farm"}]
+    location_id = "a0000000-0000-4000-8000-000000000001"
+    cursor.fetchall.return_value = [{"id": location_id, "name": "Synthetic farm"}]
     conn = MagicMock()
     conn.cursor.return_value = cursor
     from services.strategic_reserve import health
@@ -107,7 +109,7 @@ def test_strategic_reserve_redacts_seed_vault_error(monkeypatch):
         lambda *_args: (_ for _ in ()).throw(RuntimeError(SECRET)),
     )
 
-    report = state.generate_strategic_reserve(conn, location_id="location-1")
+    report = state.generate_strategic_reserve(conn, location_id=location_id)
 
     assert report["locations"][0]["seed_vault"]["error"] == (
         "seed-vault health failed (RuntimeError)"

@@ -3,6 +3,7 @@
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from uuid import UUID
 
 import psycopg2
 import psycopg2.extras
@@ -39,6 +40,32 @@ def _report_error_summary(operation: str, exc: Exception) -> str:
     if not name.isascii() or not name.isidentifier() or len(name) > 64:
         name = "Exception"
     return f"{operation} failed ({name})"
+
+
+def _normalize_report_location_scope(report_type: str, location_id):
+    """Validate selected UUID scopes while preserving network sentinels."""
+    if location_id is None:
+        return None
+    if not isinstance(location_id, str):
+        raise ValueError(f"{report_type} location scope must be 'all' or valid UUIDs")
+
+    selection = location_id.strip()
+    if not selection:
+        raise ValueError(
+            f"{report_type} requires at least one location_id (valid UUIDs) or 'all' scope"
+        )
+    if selection.lower() == "all":
+        return "all"
+
+    tokens = [token.strip() for token in selection.split(",")]
+    if any(not token for token in tokens):
+        raise ValueError(
+            f"{report_type} requires at least one location_id and only valid UUIDs or 'all' scope"
+        )
+    try:
+        return [str(UUID(token)) for token in tokens]
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError(f"{report_type} location scope must be 'all' or valid UUIDs") from exc
 
 
 @contextmanager
@@ -290,12 +317,9 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
 
     Read-only; never modifies governed data.
     """
-    # Normalize location selection: comma-separated list or single id.
-    location_ids = None
-    if location_id is not None and location_id.strip().lower() != "all":
-        location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
-        if not location_ids:
-            raise ValueError("selected-location reports require at least one location_id")
+    # Normalize a selected UUID list while preserving the network-wide modes.
+    normalized_scope = _normalize_report_location_scope("state_of_kokonut", location_id)
+    location_ids = None if normalized_scope in (None, "all") else normalized_scope
 
     locations, composed = _state_of_kokonut_locations(conn, location_ids, period_start, period_end)
     actors = _state_of_kokonut_actors(
@@ -357,7 +381,14 @@ def generate_state_of_kokonut_graphs(
 
     Read-only; never modifies governed data.
     """
-    descriptors = build_all(conn, location_id=location_id, period_start=period_start, period_end=period_end)
+    normalized_scope = _normalize_report_location_scope("state_of_kokonut_graphs", location_id)
+    if isinstance(normalized_scope, list):
+        graph_location_scope = ",".join(normalized_scope)
+    else:
+        graph_location_scope = normalized_scope
+    descriptors = build_all(
+        conn, location_id=graph_location_scope, period_start=period_start, period_end=period_end
+    )
     graphs = []
     for desc in descriptors:
         try:
@@ -383,8 +414,8 @@ def generate_state_of_kokonut_graphs(
 
     return {
         "report_type": "state_of_kokonut_graphs",
-        "scope": "all_locations" if location_id in (None, "all") else "selected_locations",
-        "selected_location_ids": None if location_id in (None, "all") else location_id,
+        "scope": "all_locations" if normalized_scope in (None, "all") else "selected_locations",
+        "selected_location_ids": None if normalized_scope in (None, "all") else graph_location_scope,
         "period_start": period_start,
         "period_end": period_end,
         "graphs": graphs,
@@ -413,9 +444,8 @@ def generate_comprehensive_status(
 
     Read-only; never modifies governed data.
     """
-    location_ids = None
-    if location_id and location_id.lower() != "all":
-        location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
+    normalized_scope = _normalize_report_location_scope("comprehensive_status", location_id)
+    location_ids = None if normalized_scope in (None, "all") else normalized_scope
 
     # Reuse the per-location composition helper from state_of_kokonut, then
     # extend the section set with wellbeing/stakeholder outcomes.
@@ -500,9 +530,8 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
     """
     from services.strategic_reserve import health as srh
 
-    location_ids = None
-    if location_id and location_id.lower() != "all":
-        location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
+    normalized_scope = _normalize_report_location_scope("strategic_reserve", location_id)
+    location_ids = None if normalized_scope in (None, "all") else normalized_scope
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:

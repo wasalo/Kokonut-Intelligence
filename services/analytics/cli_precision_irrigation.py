@@ -9,6 +9,7 @@ queries/business logic. Reachable via:
 import argparse
 import json
 from datetime import datetime
+from uuid import UUID
 
 from ..common.cli import print_json
 from .precision_irrigation import (
@@ -159,6 +160,12 @@ def main():
     if args.command is None:
         parser.print_help()
         return
+
+    if getattr(args, "location_id", None) is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
 
     db = get_db()
     try:

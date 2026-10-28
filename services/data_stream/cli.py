@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from uuid import UUID
 
 from services.common.cli import print_json
 from services.common.database import get_connection
@@ -233,6 +234,11 @@ def main():
     if not args.command:
         parser.print_help()
         sys.exit(1)
+    if getattr(args, "location_id", None) is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
     args.func(args)
 
 

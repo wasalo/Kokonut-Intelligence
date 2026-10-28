@@ -1,6 +1,7 @@
 """OIDC routes for location-scoped operating-pilot reads and private drafts."""
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -56,6 +57,71 @@ _ResponseDate = Annotated[date, BeforeValidator(_response_date)]
 _ResponseDateTime = Annotated[AwareDatetime, BeforeValidator(_response_datetime)]
 
 
+def _response_decimal(value):
+    if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
+        raise ValueError("numeric value is invalid")
+    try:
+        result = Decimal(str(value))
+    except (ValueError, TypeError) as exc:
+        raise ValueError("numeric value is invalid") from exc
+    if not result.is_finite() or max(0, -result.as_tuple().exponent) > 2:
+        raise ValueError("numeric value is invalid")
+    return result
+
+
+_ResponseDecimal = Annotated[Decimal, BeforeValidator(_response_decimal)]
+
+
+class OperatingPilotCapacityPeriodItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    suppressed: bool
+    available_hours: _ResponseDecimal | None = Field(ge=0, strict=True)
+    committed_hours: _ResponseDecimal | None = Field(ge=0, strict=True)
+    protected_hours: _ResponseDecimal | None = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_capacity_period(self):
+        if self.period_end < self.period_start:
+            raise ValueError("capacity period is reversed")
+        hours = (self.available_hours, self.committed_hours, self.protected_hours)
+        if self.suppressed and any(value is not None for value in hours):
+            raise ValueError("suppressed capacity hours must be hidden")
+        if not self.suppressed and any(value is None for value in hours):
+            raise ValueError("unsuppressed capacity hours must be present")
+        if not self.suppressed and self.committed_hours + self.protected_hours > self.available_hours:
+            raise ValueError("capacity commitments exceed available hours")
+        return self
+
+
+class OperatingPilotCapacityPeriodsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    location_id: _ResponseUUID
+    scope_configured: bool
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotCapacityPeriodItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        periods = [(item.period_start, item.period_end) for item in self.items]
+        if len(self.items) > self.limit or periods != sorted(set(periods)):
+            raise ValueError("capacity-period page is not ordered or bounded")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("capacity-period continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("capacity-period page has an unexpected continuation")
+        if not self.scope_configured and (self.items or self.has_more):
+            raise ValueError("unconfigured capacity scope cannot contain periods")
+        return self
+
+
 class OperatingPilotResourceCategoryItem(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -80,6 +146,60 @@ class OperatingPilotResourceCategoryItem(BaseModel):
             not self.suppressed and self.request_count is None
         ):
             raise ValueError("resource count does not match its suppression flag")
+        return self
+
+
+class OperatingPilotWorkClaimItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    work_type: Literal[
+        "general",
+        "planting",
+        "harvest",
+        "irrigation",
+        "monitoring",
+        "maintenance",
+        "tree-care",
+        "agroforestry",
+        "soil-health",
+        "water-management",
+        "other",
+    ]
+    suppressed: bool
+    claim_count: int | None = Field(ge=3, strict=True)
+
+    @model_validator(mode="after")
+    def validate_suppression(self):
+        if (self.suppressed and self.claim_count is not None) or (
+            not self.suppressed and self.claim_count is None
+        ):
+            raise ValueError("work claim count does not match its suppression flag")
+        return self
+
+
+class OperatingPilotWorkClaimsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    location_id: _ResponseUUID
+    scope_configured: bool
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotWorkClaimItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        work_types = [item.work_type for item in self.items]
+        if len(self.items) > self.limit or work_types != sorted(set(work_types)):
+            raise ValueError("work-claim page is not ordered or bounded")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("work-claim continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("work-claim page has an unexpected continuation")
+        if not self.scope_configured and (self.items or self.has_more):
+            raise ValueError("unconfigured work-claim scope cannot contain claims")
         return self
 
 
@@ -2022,7 +2142,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/capacity-periods")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/capacity-periods",
+        response_model=OperatingPilotCapacityPeriodsPage,
+    )
     async def location_operating_pilot_capacity_periods(
         request: Request,
         location_id: str,
@@ -2068,6 +2191,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating capacity read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            page = OperatingPilotCapacityPeriodsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Capacity-period page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating capacity-period response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating capacity read unavailable"},
+                headers=headers,
+            )
+        # Keep PostgreSQL's JSON numeric representation (numbers, not Decimal strings).
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
@@ -3584,7 +3727,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/work-claims")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/work-claims",
+        response_model=OperatingPilotWorkClaimsPage,
+    )
     async def location_operating_pilot_work_claims(
         request: Request,
         location_id: str,
@@ -3630,7 +3776,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotWorkClaimsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Work-claim page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-claim response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating work-claim read unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
 
     @router.get(
         "/operator/api/operating-pilot/{location_id}/resource-categories",

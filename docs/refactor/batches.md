@@ -5871,3 +5871,33 @@ open. No database, provider, candidate, legacy service, or live network was
 used. These UUID guards do not establish tenant isolation, and the Gateway
 response contract was exercised through mocks rather than a live OIDC/database
 deployment.
+
+
+### Completed parallel continuation — operating-pilot response, report scope, and CLI preflight — 28 October 2026
+
+- [x] Add strict request-bound OpenAPI/runtime response contracts for the
+  private operating-pilot capacity-period and work-claim pages, including
+  migration-derived suppression, ordering, page bounds, and location binding.
+- [x] Reject invalid selected location UUIDs before query/helper access in the
+  business-plan adapter and State-of-Kokonut status, graph, comprehensive, and
+  strategic-reserve report paths; preserve intentional network-wide modes.
+- [x] Preflight and canonicalize supplied location UUIDs across Data Stream,
+  Security verification, Precision Irrigation, stakeholder grievances,
+  Treasury, Cooperative, and Traceability CLIs. Preserve supported unfiltered
+  modes when optional scope is omitted.
+- [x] Regenerate report source/helper/query inventories and record the focused
+  batch evidence.
+
+The integrated regression selection passes 961 tests; adjacent grievance,
+Treasury, Cooperative, and Traceability checks pass 94 tests with 2 skips and 4
+passing subtests. Ruff, Python compilation, all report inventory checks,
+capability-matrix validation, and `git diff --check` pass. The capability
+matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); strict
+private Gateway response endpoints now total 79, and 24 CLI groups have
+location UUID preflight. No database, provider, candidate, legacy service, or
+live network was used. Broader tenant isolation and live OIDC/database
+acceptance remain open. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-response-report-cli-boundaries.json).
+
+Checklist: 1,498 complete / 25 open (1,523 total); TODO: 204 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
