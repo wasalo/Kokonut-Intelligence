@@ -90,6 +90,9 @@ def generate_cultural_preservation(conn, location_id: str, period_start: str = N
 
 def generate_renewable_energy(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe renewable energy report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("renewable_energy requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

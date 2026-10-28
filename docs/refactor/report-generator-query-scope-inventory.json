@@ -2157,7 +2157,7 @@
       "report_type": "foundational_wellbeing",
       "callable": "generate_foundational_wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 165,
+      "source_line": 168,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -2171,7 +2171,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 169,
+          "line": 172,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2194,7 +2194,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 171,
+          "line": 174,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3604,7 +3604,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 95,
+          "line": 98,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3627,7 +3627,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 97,
+          "line": 100,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5914,7 +5914,7 @@
       "report_type": "vulnerable_access",
       "callable": "generate_vulnerable_access",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 129,
+      "source_line": 132,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -5928,7 +5928,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 133,
+          "line": 136,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5951,7 +5951,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 135,
+          "line": 138,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

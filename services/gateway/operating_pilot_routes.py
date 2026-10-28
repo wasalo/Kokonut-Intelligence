@@ -1,9 +1,18 @@
 """OIDC routes for location-scoped operating-pilot reads and private drafts."""
 
+from datetime import date, datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    model_validator,
+)
 
 
 def _response_uuid(value):
@@ -18,6 +27,32 @@ def _response_uuid(value):
 
 
 _ResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
+
+
+def _response_date(value):
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("date value is invalid") from exc
+    raise ValueError("date value is invalid")
+
+
+def _response_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("timestamp value is invalid") from exc
+    raise ValueError("timestamp value is invalid")
+
+
+_ResponseDate = Annotated[date, BeforeValidator(_response_date)]
+_ResponseDateTime = Annotated[AwareDatetime, BeforeValidator(_response_datetime)]
 
 
 class OperatingPilotResourceCategoryItem(BaseModel):
@@ -70,6 +105,52 @@ class OperatingPilotResourceCategoryPage(BaseModel):
             raise ValueError("resource category page has an unexpected continuation")
         if not self.scope_configured and (self.items or self.has_more):
             raise ValueError("unconfigured resource scope cannot contain categories")
+        return self
+
+
+class OperatingPilotOwnCapacityProfileResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    profile_id: _ResponseUUID
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    available_hours: float = Field(ge=0, strict=True)
+    committed_hours: float = Field(ge=0, strict=True)
+    protected_hours: float = Field(ge=0, strict=True)
+    notes: str | None
+    source: Literal["self_reported", "manager_reviewed", "system_derived", "field_coordinator"]
+    status: Literal["draft", "submitted", "approved", "superseded"]
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_capacity(self):
+        if self.period_end < self.period_start:
+            raise ValueError("capacity profile period is reversed")
+        if self.committed_hours + self.protected_hours > self.available_hours:
+            raise ValueError("capacity commitments exceed available hours")
+        return self
+
+
+class OperatingPilotOwnCapacityProfilesPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotOwnCapacityProfileResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if len(self.items) > self.limit:
+            raise ValueError("capacity profile page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("capacity profile continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal capacity profile page cannot continue")
         return self
 
 
@@ -1870,7 +1951,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-capacity-profiles")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-capacity-profiles",
+        response_model=OperatingPilotOwnCapacityProfilesPage,
+    )
     async def location_operating_pilot_own_capacity_profiles(
         request: Request,
         location_id: str,
@@ -1928,6 +2012,25 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 status_code=503,
                 content={"error": "Own operating capacity read unavailable"},
                 headers={**headers, "Retry-After": "30"},
+            )
+        try:
+            page = OperatingPilotOwnCapacityProfilesPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own capacity page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Own operating capacity response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own operating capacity read unavailable"},
+                headers=headers,
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 

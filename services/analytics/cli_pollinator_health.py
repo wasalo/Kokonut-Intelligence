@@ -6,6 +6,8 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_pollinator_health --help
 """
 
+from uuid import UUID
+
 from ..common.commands import CommandLine
 from .pollinator_health import (
     get_habitat_inventory,
@@ -166,6 +168,20 @@ cli.subcommand("dashboard", "Pollinator dashboard") \
 
 
 def main(argv=None):
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    database_reads = {
+        "summary",
+        "habitat-inventory",
+        "pesticide-risk",
+        "hive-status",
+        "dashboard",
+    }
+    if args.command in database_reads:
+        try:
+            UUID(args.location_id)
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
     cli.run(argv)
 
 

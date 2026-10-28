@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,473 checklist items complete and 25
-open (1,498 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,477 checklist items complete and 25
+open (1,502 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -104,6 +104,32 @@ populated-data parity remain open. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-culture-crop-solution-capex-boundaries.json).
 
 Checklist: 1,473 complete / 25 open (1,498 total); TODO: 180 checked / 16
+open. MAN-CAP acceptance and capability classifications are unchanged.
+
+
+### Completed parallel continuation — renewable report, pollinator CLI, capacity page, and Directus attestation — 28 October 2026
+
+- [x] Reject invalid direct `generate_renewable_energy` location scope before
+  opening a cursor.
+- [x] Preflight location UUIDs for the pollinator CLI's five active
+  database-backed read commands; leave retired writes unchanged.
+- [x] Add a strict OpenAPI/runtime response contract for own operating-capacity
+  profiles, bound to the signed operator, requested location, and page state.
+- [x] Add grant-filtered, read-only Directus tenant access for
+  `attestation_plan`.
+
+The integrated focused selection passes 573 Python tests; the Directus
+extension suite passes 142 tests. Extension build/typecheck, Ruff, Python
+compilation, report source/query inventories, capability-matrix validation,
+and diff checks pass. The matrix remains 67 rows (24 baseline-retained, 7
+deployed, 36 prepared), with 72 strict private Gateway response endpoints. The
+optional Directus adapter now covers 27 location-scoped collections. No
+database, provider, live Directus runtime, candidate, legacy service, or live
+network was used. Runtime enforcement and populated parity remain open.
+Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-renewable-pollinator-capacity-attestation.json).
+
+Checklist: 1,477 complete / 25 open (1,502 total); TODO: 184 checked / 16
 open. MAN-CAP acceptance and capability classifications are unchanged.
 
 ### C1 yield-benchmark runtime ACL — 28 October 2026

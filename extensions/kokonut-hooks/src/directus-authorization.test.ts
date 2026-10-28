@@ -51,6 +51,7 @@ describe('Directus tenant authorization', () => {
       'forecast_output',
       'water_access',
       'capex_breakdown',
+      'attestation_plan',
       'report_snapshot',
       'noi_snapshot',
       'dashboard_dataset',
@@ -74,6 +75,7 @@ describe('Directus tenant authorization', () => {
       'noi_snapshot',
       'water_access',
       'capex_breakdown',
+      'attestation_plan',
     ]);
 
     const store = makeStore();
@@ -263,6 +265,35 @@ describe('Directus tenant authorization', () => {
     )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
     await expect(authorizeDirectusRows(
       store, accountability, issuer, 'capex_breakdown', 'delete', [rowA],
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+
+  it('scopes attestation-plan reads to the granted location and denies Directus writes', async () => {
+    const store = makeStore();
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'attestation_plan', {
+        fields: ['id', 'location_id', 'attestation_type', 'status'],
+      },
+    )).resolves.toEqual({
+      fields: ['id', 'location_id', 'attestation_type', 'status'],
+      filter: { location_id: { _in: [locationA] } },
+    });
+    expect(store.authorizedLocations).toHaveBeenCalledWith(
+      operatorId, 'attestation_plan', 'read',
+    );
+
+    await expect(authorizeDirectusReadResult(
+      store, accountability, issuer, 'attestation_plan', { id: rowB },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+
+    await expect(authorizeDirectusCreate(
+      store, accountability, issuer, 'attestation_plan', { location_id: locationA },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'attestation_plan', 'update', [rowA], {},
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'attestation_plan', 'delete', [rowA],
     )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
   });
 

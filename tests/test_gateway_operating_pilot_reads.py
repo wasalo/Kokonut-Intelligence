@@ -1276,8 +1276,23 @@ def test_http_own_capacity_page_is_no_store_and_uses_exact_operator_scope(monkey
     calls = []
     page = {
         "location_id": LOCATION_ID,
-        "items": [{"status": "draft", "notes": "only this operator's note"}],
+        "limit": 7,
+        "offset": 14,
+        "items": [{
+            "profile_id": "d0000000-0000-4000-8000-000000000001",
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "available_hours": 24.0,
+            "committed_hours": 8.0,
+            "protected_hours": 4.0,
+            "notes": "only this operator's note",
+            "source": "self_reported",
+            "status": "draft",
+            "created_at": "2026-10-28T10:00:00Z",
+            "updated_at": "2026-10-28T10:00:00Z",
+        }],
         "has_more": False,
+        "next_offset": None,
     }
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_own_capacity_profiles",

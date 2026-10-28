@@ -1716,3 +1716,23 @@ Checklist: 1,469 complete / 25 open (1,494 total); TODO: 176 checked / 16 open.
 The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared)
 with 70 strict private Gateway response endpoints. Directus runtime acceptance
 and populated parity remain open.
+
+
+### Completed parallel continuation — renewable report, pollinator CLI, capacity page, and attestation — 28 October 2026
+
+- [x] Reject invalid direct renewable-energy report location scope before
+  database access.
+- [x] Preflight the pollinator health CLI's active location-scoped read
+  commands before database setup.
+- [x] Enforce the exact signed own-capacity response and pagination contract.
+- [x] Add a fail-closed, read-only Directus tenant boundary for
+  `attestation_plan`.
+
+The integrated selection passes 573 Python tests and 142 Directus extension
+tests; extension build/typecheck, Ruff, compilation, report inventories,
+capability-matrix validation, and diff checks pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-renewable-pollinator-capacity-attestation.json).
+Checklist: 1,477 complete / 25 open (1,502 total); TODO: 184 checked / 16 open.
+The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared)
+with 72 strict private Gateway response endpoints. The optional Directus hook
+covers 27 location-scoped collections; live runtime parity remains open.

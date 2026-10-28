@@ -22604,3 +22604,26 @@ data parity remain open. Checklist: 1,473 complete / 25 open; TODO: 180
 checked / 16 open. No database, provider, Directus runtime, candidate, legacy
 service, or live network was used. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-culture-crop-solution-capex-boundaries.json).
+
+
+### Progress addendum — renewable report, pollinator CLI, own-capacity page, and Directus attestation — 28 October 2026
+
+Direct `generate_renewable_energy` calls now reject malformed location scope
+before opening a cursor. The pollinator health CLI validates the location UUID
+for its five active database-backed reads before connecting; retired write
+commands remain unchanged. The private own-capacity page now validates the
+migration-554 projection, source/status enums, period and capacity invariants,
+requested location, and pagination against its signed own-operator query. The
+optional Directus hook now scopes `attestation_plan` reads to operator grants
+and denies mutations.
+
+The integrated focused selection passes 573 Python tests and 142 Directus
+extension tests. Extension build/typecheck, Ruff, compilation, report
+inventories, matrix validation, and diff hygiene pass. The capability matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and records 72
+strict private Gateway response endpoints. The Directus source adapter covers
+27 location-scoped collections; live runtime enforcement and populated parity
+remain open. Checklist: 1,477 complete / 25 open; TODO: 184 checked / 16 open.
+No database, provider, live Directus runtime, candidate, legacy service, or
+live network was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-renewable-pollinator-capacity-attestation.json).
