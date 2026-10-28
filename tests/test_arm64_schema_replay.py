@@ -21,6 +21,7 @@ run = replay_module["run"]
 operator_scope_probe_command = replay_module["operator_scope_probe_command"]
 parse_operator_scope_probe = replay_module["parse_operator_scope_probe"]
 ensure_disposable_project_unused = replay_module["ensure_disposable_project_unused"]
+resource_limit_values = replay_module["resource_limit_values"]
 
 probe_module = runpy.run_path(
     str(Path(__file__).resolve().parents[1] / "scripts" / "fixtures" / "sprint_operator_scope_probe.py"),
@@ -102,6 +103,21 @@ def test_migration_command_preserves_batch_order_and_exact_migration_ids():
         "--only-migration",
         "schema:648_last.sql",
     ]
+
+
+@pytest.mark.parametrize(
+    ("cpu_limit", "expected_nano_cpus"),
+    [(0.5, 500_000_000), (2.0, 2_000_000_000)],
+)
+def test_resource_limit_values_converts_positive_cpu_budgets(
+    cpu_limit, expected_nano_cpus
+):
+    assert resource_limit_values(None, cpu_limit) == (None, expected_nano_cpus)
+
+
+def test_resource_limit_values_rejects_cpu_budget_that_rounds_to_zero():
+    with pytest.raises(ValueError, match="at least one nanocpu"):
+        resource_limit_values(None, 1e-12)
 
 
 def test_safe_error_summary_keeps_only_bounded_postgres_diagnostics():

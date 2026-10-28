@@ -512,7 +512,7 @@ that its full source-plan phase is complete.
   `yield_benchmark`: one location-scoped analytics reader and no application
   write path were found; its DML is denied to `kokonut_runtime`, while the
   optional Directus role remains unchanged. This does not establish RLS or
-  tenant isolation. The conservative SQL inventory now records 4,935 execution
+  tenant isolation. The conservative SQL inventory now records 4,936 execution
   sites across 974 files, 1,223 relation candidates, and 588 write-target
   relations. It resolves 53 SQL templates stored in one unambiguous local
   assignment; dynamic identifiers, reassigned variables, and ambiguous/helper
@@ -526,6 +526,17 @@ that its full source-plan phase is complete.
   `farm_task_framework_step` relation is an operational many-to-many edge with
   cascades and no direct location key; historic reconciliation found 20
   unresolved scope edges among 41 links, and the owner deferred those links.
+  A separate unresolved-write review ledger now tracks 37 existing candidates
+  (eight unresolved direct DML targets and 29 conservative `WITH` statements).
+  Its legacy fingerprint set is pinned in source. Scope-AST fingerprints and
+  per-scope ordinals catch same-scope source-binding edits and distinguish
+  duplicate calls; the CI inventory check fails when a new candidate lacks
+  reviewed metadata that explicitly disclaims ACL approval. Twenty scanner
+  tests pass. Parameter, import, mutable-global, and helper-provided values
+  remain beyond fingerprint reach. This is source drift detection only: it
+  does not change grants, classify existing debt as safe, or establish
+  tenant isolation
+  ([evidence](builds/2026-10-28-recovery/runtime-sql-unresolved-write-drift-gate.json)).
   It cannot be treated as a static catalog. A follow-up source audit also
   reviewed the seed-managed `sdg`, `pillar_of_value`, `form_of_capital`, and
   `regeneration_principle` tables. Repository code reads these labels but does
@@ -652,6 +663,15 @@ that its full source-plan phase is complete.
   and overflow-sized values before networking while preserving the 10-second
   default; 17 focused tests pass
   ([evidence](builds/2026-10-28-recovery/sdk-python-public-api-timeout-parity.json)).
+  The enabled driver catalog now also has a versioned `/api/v1/drivers`
+  contract with generated typed Python/TypeScript clients, bounded pagination,
+  and a generic no-store 500 on registry failure; it no longer reports a false
+  empty page. The 47-test Gateway/OpenAPI/Python-SDK selection and full 73-test
+  JavaScript SDK suite pass ([evidence](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json)).
+  The private cooperative summary now publishes a strict OpenAPI success
+  model and validates the projection before returning its raw response; its
+  ten-test selection covers undeclared fields and preserved error/cache
+  contracts ([evidence](builds/2026-10-28-recovery/cooperative-summary-response-contract.json)).
   Export-log fields
   match the canonical table; the earlier pending-
   create API was removed because the table lacks its request fields and no
@@ -786,6 +806,10 @@ that its full source-plan phase is complete.
   offline regression locking its declared 1 GiB/two-CPU app and database caps;
   this checks configuration only and is not physical Raspberry Pi runtime
   acceptance ([evidence](builds/2026-10-28-recovery/edge-compose-resource-contract.json)).
+  Resource-limit preflight now also rejects a positive CPU value that rounds to
+  zero nanocpus before creating a disposable database container; normal 0.5 and
+  2 CPU conversions retain exact Docker units. The focused runner selection
+  passes 26 tests ([evidence](builds/2026-10-28-recovery/arm64-resource-limit-nanocpu-preflight.json)).
   Sources: [Phase 8](implementation-plan-alignment.md#L28),
   [latest native full replay](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
   [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json),
@@ -1254,7 +1278,9 @@ open entries.
 - [x] Add the stable versioned public driver catalog route and typed Python/TypeScript SDK methods. Generated OpenAPI/SDK parity, pagination bounds, response allowlist, and mocked transport checks pass ([evidence](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json)).
 - [x] Make Directus writable-reference lookups location-qualified and conceal whether a valid UUID is missing or belongs to another location. Fourteen focused predicate/non-disclosure tests, the full 124-test extension suite, and the extension build/type check pass ([evidence](builds/2026-10-28-recovery/directus-tenant-reference-nondisclosure.json)). Live Directus role/field/row parity remains open.
 - [x] Replay the full schema on ARM64/QEMU through migration 681 with verified 1.5 GiB/two-CPU limits, network disabled, no seeds or host ports, and cleanup success. The optional operator-scope probe did not run, and no physical Raspberry Pi was used ([evidence](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json)).
+- [x] Keep driver catalog database failures distinct from an empty catalog: failures propagate to a generic no-store Gateway 500. The 47-test Gateway/OpenAPI/Python-SDK selection, Ruff, compilation, and diff checks pass with fake database/transport behavior ([evidence](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json)).
+- [x] Require source review for new unresolved direct SQL DML/`WITH` candidates through the runtime inventory check. Existing candidates remain explicitly tracked and the fingerprint baseline is pinned; this does not reduce the observed broad grants ([evidence](builds/2026-10-28-recovery/runtime-sql-unresolved-write-drift-gate.json)).
 
-The batches checklist is 1,385 complete / 25 open (1,410 total). This TODO
-ledger now has 95 checked and 16 open entries; capability classifications and
+The batches checklist is 1,389 complete / 25 open (1,414 total). This TODO
+ledger now has 99 checked and 16 open entries; capability classifications and
 MAN-CAP acceptance remain unchanged.

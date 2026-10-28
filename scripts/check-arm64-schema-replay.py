@@ -246,6 +246,8 @@ def resource_limit_values(memory_limit: str | None, cpu_limit: float | None) -> 
         if not math.isfinite(cpu_limit) or cpu_limit <= 0 or cpu_limit > 64:
             raise ValueError("CPU limit must be greater than 0 and at most 64")
         nano_cpus = round(cpu_limit * 1_000_000_000)
+        if nano_cpus < 1:
+            raise ValueError("CPU limit must round to at least one nanocpu")
     return memory_bytes, nano_cpus
 
 

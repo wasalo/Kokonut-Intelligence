@@ -1,7 +1,13 @@
 import json
 from pathlib import Path
 
-from scripts.runtime_sql_inventory import _scan_source, _serialize, build_inventory
+from scripts.runtime_sql_inventory import (
+    _fingerprint_digest,
+    _scan_source,
+    _serialize,
+    _validate_write_review_ledger,
+    build_inventory,
+)
 
 
 def test_runtime_sql_inventory_scans_api_worker_and_cli_sources():
@@ -114,6 +120,225 @@ def reassigned(conn, enabled):
     assert reassigned["candidate_relations"] == []
     assert reassigned["write_target_relations"] == []
     assert "local_query_resolution" not in reassigned
+
+
+def test_unresolved_write_fingerprint_is_stable_across_line_moves_and_contains_no_sql(tmp_path: Path):
+    first = tmp_path / "first.py"
+    second = tmp_path / "second.py"
+    first.write_text(
+        'def persist(conn, table):\n    conn.execute(f"UPDATE {table} SET value = %s", (1,))\n',
+        encoding="utf-8",
+    )
+    second.write_text(
+        '\n\n\ndef persist(conn, table):\n    conn.execute(f"UPDATE {table} SET value = %s", (1,))\n',
+        encoding="utf-8",
+    )
+
+    first_site = _scan_source(
+        "services/example.py", first, [], include_review_fingerprints=True
+    )[0]
+    second_site = _scan_source(
+        "services/example.py", second, [], include_review_fingerprints=True
+    )[0]
+
+    assert first_site["write_review_fingerprint"] == second_site["write_review_fingerprint"]
+    assert first_site["write_target_relations"] == []
+    assert "sql" not in first_site
+    assert "query" not in first_site
+
+
+def test_unresolved_write_fingerprint_changes_when_same_scope_binding_changes(tmp_path: Path):
+    first = tmp_path / "first_binding.py"
+    second = tmp_path / "second_binding.py"
+    first.write_text(
+        'def persist(conn):\n'
+        '    table = "first_target"\n'
+        '    sql = f"UPDATE {table} SET value = %s"\n'
+        '    conn.execute(sql)\n',
+        encoding="utf-8",
+    )
+    second.write_text(
+        'def persist(conn):\n'
+        '    table = "second_target"\n'
+        '    sql = f"UPDATE {table} SET value = %s"\n'
+        '    conn.execute(sql)\n',
+        encoding="utf-8",
+    )
+
+    first_site = _scan_source(
+        "services/example.py", first, [], include_review_fingerprints=True
+    )[0]
+    second_site = _scan_source(
+        "services/example.py", second, [], include_review_fingerprints=True
+    )[0]
+
+    assert first_site["write_review_fingerprint"] != second_site["write_review_fingerprint"]
+
+
+def test_duplicate_unresolved_calls_have_distinct_fingerprints_and_new_duplicate_is_flagged(
+    tmp_path: Path,
+):
+    path = tmp_path / "duplicates.py"
+    source = "services/example.py"
+    one_call = (
+        'def persist(conn, table):\n'
+        '    conn.execute(f"UPDATE {table} SET value = %s")\n'
+    )
+    two_calls = one_call + '    conn.execute(f"UPDATE {table} SET value = %s")\n'
+    path.write_text(one_call, encoding="utf-8")
+    first = _scan_source(source, path, [], include_review_fingerprints=True)[0]
+    first_fingerprint = first["write_review_fingerprint"]
+
+    ledger_path = Path("docs/refactor/runtime-sql-unresolved-write-review.json")
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    baseline_candidates = [
+        dict(item)
+        for item in ledger["legacy_unreviewed"]
+    ]
+    ledger["reviewed_sites"].append({
+        "fingerprint": first_fingerprint,
+        "review_status": "reviewed_unresolved",
+        "reviewed_by": "test@example.invalid",
+        "reviewed_on": "2026-10-28",
+        "reason": "Synthetic gate test; this is not an ACL approval.",
+    })
+
+    path.write_text(two_calls, encoding="utf-8")
+    duplicate_sites = _scan_source(source, path, [], include_review_fingerprints=True)
+    duplicate_fingerprints = [site["write_review_fingerprint"] for site in duplicate_sites]
+    assert len(set(duplicate_fingerprints)) == 2
+
+    candidates = [
+        *baseline_candidates,
+        *(
+            {
+                "fingerprint": site["write_review_fingerprint"],
+                "source": site["source"],
+                "line": site["line"],
+                "scope": site["scope"],
+                "statement_kind": site["statement_kind"],
+            }
+            for site in duplicate_sites
+        ),
+    ]
+    errors = _validate_write_review_ledger(candidates, ledger)
+    assert sum("new unresolved SQL write candidate requires explicit review" in error for error in errors) == 2
+
+
+def test_unresolved_module_level_execute_resolves_assignment_and_is_reviewed(tmp_path: Path):
+    path = tmp_path / "module_sql.py"
+    path.write_text(
+        'sql = f"UPDATE {table} SET value = %s"\nconn.execute(sql)\n',
+        encoding="utf-8",
+    )
+
+    site = _scan_source(
+        "services/example.py", path, [], include_review_fingerprints=True
+    )[0]
+
+    assert site["statement_kind"] == "UPDATE"
+    assert site["scope"] == "module"
+    assert site["write_target_relations"] == []
+    assert site["write_review_fingerprint"]
+
+
+def test_unresolved_write_ledger_requires_explicit_review_for_new_sites():
+    ledger_path = Path("docs/refactor/runtime-sql-unresolved-write-review.json")
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    current = [
+        {"fingerprint": item["fingerprint"]}
+        for item in ledger["legacy_unreviewed"]
+    ]
+    new_site = {
+        "fingerprint": "f" * 64,
+        "source": "services/example.py",
+        "line": 10,
+        "scope": "persist",
+        "method": "execute",
+        "statement_kind": "UPDATE",
+        "expression_kind": "fstring",
+    }
+    errors = _validate_write_review_ledger([*current, new_site], ledger)
+    assert any("new unresolved SQL write candidate requires explicit review" in error for error in errors)
+
+    ledger["reviewed_sites"].append({
+        "fingerprint": new_site["fingerprint"],
+        "review_status": "reviewed_unresolved",
+        "reviewed_by": "reviewer@example.test",
+        "reviewed_on": "2026-10-28",
+        "reason": "Keep tracked for a later source fix; this is not an ACL approval.",
+    })
+    assert _validate_write_review_ledger([*current, new_site], ledger) == []
+
+
+def test_unresolved_write_ledger_rejects_silent_legacy_baseline_growth():
+    ledger_path = Path("docs/refactor/runtime-sql-unresolved-write-review.json")
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    current = [
+        {"fingerprint": item["fingerprint"]}
+        for item in ledger["legacy_unreviewed"]
+    ]
+    new_fingerprint = "e" * 64
+    ledger["legacy_unreviewed"].append({
+        "fingerprint": new_fingerprint,
+        "review_status": "preexisting_unreviewed",
+        "reason": "Injected baseline entry; this is not an ACL approval.",
+    })
+    ledger["legacy_fingerprint_sha256"] = _fingerprint_digest(
+        [item["fingerprint"] for item in ledger["legacy_unreviewed"]]
+    )
+
+    errors = _validate_write_review_ledger(
+        [*current, {"fingerprint": new_fingerprint}],
+        ledger,
+    )
+    assert any("legacy unresolved-write baseline changed" in error for error in errors)
+
+
+def test_unresolved_write_ledger_rejects_unhashable_fingerprints_cleanly():
+    ledger_path = Path("docs/refactor/runtime-sql-unresolved-write-review.json")
+    original = json.loads(ledger_path.read_text(encoding="utf-8"))
+    current = [
+        {"fingerprint": item["fingerprint"]}
+        for item in original["legacy_unreviewed"]
+    ]
+
+    for malformed_fingerprint in ([], {"unexpected": "object"}):
+        ledger = json.loads(json.dumps(original))
+        ledger["legacy_unreviewed"].append({
+            "fingerprint": malformed_fingerprint,
+            "review_status": "preexisting_unreviewed",
+            "reason": "Malformed test entry; this is not an ACL approval.",
+        })
+
+        errors = _validate_write_review_ledger(current, ledger)
+
+        assert any(
+            "legacy unresolved-write entries require SHA-256 fingerprints" in error
+            for error in errors
+        )
+
+
+def test_reviewed_unresolved_site_requires_all_review_metadata():
+    ledger_path = Path("docs/refactor/runtime-sql-unresolved-write-review.json")
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    current = [
+        {"fingerprint": item["fingerprint"]}
+        for item in ledger["legacy_unreviewed"]
+    ]
+    fingerprint = "d" * 64
+    ledger["reviewed_sites"].append({
+        "fingerprint": fingerprint,
+        "review_status": "reviewed_unresolved",
+        "reason": "This is not an ACL approval.",
+    })
+
+    errors = _validate_write_review_ledger(
+        [*current, {"fingerprint": fingerprint}],
+        ledger,
+    )
+    assert any("requires reviewed_by" in error for error in errors)
+    assert any("requires reviewed_on" in error for error in errors)
 
 
 def test_runtime_sql_inventory_detects_service_catalog_insert_and_update_writers():

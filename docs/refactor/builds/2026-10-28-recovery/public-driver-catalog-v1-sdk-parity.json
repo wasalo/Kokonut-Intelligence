@@ -1,6 +1,6 @@
 {
   "date": "2026-10-28",
-  "source_revision": "6c84b4aa",
+  "source_revision": "23e5bf8c",
   "working_tree_dirty": true,
   "scope": "Versioned, read-only public driver catalog API and Python/TypeScript SDK parity.",
   "route": {
@@ -36,6 +36,7 @@
     "continuation_field": "has_more",
     "continuation_semantics": "true only when the next offset remains within the 5000 ceiling"
   },
+  "failure_behavior": "Database read failures propagate to the Gateway's generic no-store 500 response instead of becoming a successful empty catalog page.",
   "sdk": {
     "python": "Typed PublicDriverCatalogPage and PublicDriverCatalogEntry; validates bounds before transport.",
     "typescript": "Generated OpenAPI response types and drivers.list({limit, offset}); validates bounds before fetch.",
@@ -46,7 +47,7 @@
     {
       "command": "python3 -m pytest tests/test_gateway_public_driver_catalog.py tests/test_gateway_route_policy_inventory.py tests/test_public_api_openapi.py tests/test_public_api_sdk.py -q",
       "result": "passed",
-      "passed": 45
+      "passed": 47
     },
     {
       "command": "cd sdk/javascript && npm test -- --run src/__tests__/public-api.test.ts",

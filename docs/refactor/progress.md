@@ -21950,10 +21950,11 @@ The native Gateway now exposes the enabled driver catalog as a versioned,
 anonymous GET with bounded pagination and a generated OpenAPI envelope. Python
 and TypeScript clients expose typed pagination, validate limits before making
 requests, and use the checked-in generated route/schema. `has_more` is false
-when the next page offset would exceed the advertised ceiling. The focused
-Python Gateway/OpenAPI/SDK selection passes 45 tests; the JavaScript public API
-suite passes 25 tests and the full JavaScript SDK suite passes 73; TypeScript
-build and generated SDK freshness checks pass.
+when the next page offset would exceed the advertised ceiling. Database
+failures now propagate to a generic no-store 500 instead of an empty page. The
+focused Python Gateway/OpenAPI/SDK selection passes 47 tests; the JavaScript
+public API suite passes 25 tests and the full JavaScript SDK suite passes 73;
+TypeScript build and generated SDK freshness checks pass.
 
 The optional Directus tenant hook now places the requested location in each
 writable-reference lookup and returns the same unavailable error for missing
@@ -21968,8 +21969,60 @@ surface. A separate network-disabled ARM64/QEMU replay applied all 672 ordered
 schema files through migration 681 under verified 1.5 GiB/two-CPU limits; it
 did not run the optional operator-scope probe, so it is schema portability
 evidence only. Cleanup completed without OOM or candidate/legacy access. The
-current checklist is 1,385 complete / 25 open (1,410 total); the
+current checklist is 1,386 complete / 25 open (1,411 total); the
 67 capability rows remain 24 baseline-retained, 7 deployed, and 36 prepared,
 with MAN-CAP acceptance unchanged. Evidence: [driver API/SDK](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json),
 [Directus reference boundary](builds/2026-10-28-recovery/directus-tenant-reference-nondisclosure.json),
 [ARM64/QEMU schema replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json).
+
+### Progress addendum — ARM64 resource-limit preflight — 28 October 2026
+
+The ARM64 schema replay runner now rejects a positive CPU budget that rounds
+to zero nanocpus during argument parsing. Previously it could pass the
+positive-finite check and fail later at `docker update --cpus 0`, after creating
+the disposable database. The focused runner suite passes 26 tests, including
+exact 0.5- and 2-CPU conversions and rejection of `1e-12`; the CLI smoke check
+returns its argument error before any Docker command. Ruff, compilation,
+capability-matrix validation, and diff checks pass. No Docker or database was
+used, and no candidate/legacy state changed. This improves failure handling
+only; ARM64 runtime, physical Pi, and production recovery gates remain open.
+
+Evidence: [resource-limit preflight](builds/2026-10-28-recovery/arm64-resource-limit-nanocpu-preflight.json).
+Checklist: 1,387 complete / 25 open (1,412 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows, with
+MAN-CAP acceptance unchanged.
+
+### Progress addendum — cooperative management response contract — 28 October 2026
+
+The private location-scoped cooperative summary now publishes a strict
+OpenAPI success response model and explicitly validates its projection before
+constructing `JSONResponse`. Extra fields fail closed to a generic no-store
+500; existing 403, 404, 400, and 503 responses retain their payloads and cache
+headers. Ten focused route tests, Ruff, compilation, and diff checks pass with
+fakes; no database, candidate, legacy service, or provider was used. This
+closes one response-contract slice, not live authorization or populated-data
+parity.
+
+Evidence: [cooperative summary response contract](builds/2026-10-28-recovery/cooperative-summary-response-contract.json).
+Checklist: 1,388 complete / 25 open (1,413 total); capability classifications
+remain unchanged.
+
+### Progress addendum — unresolved SQL write review gate — 28 October 2026
+
+The runtime SQL inventory check now enforces an explicit review ledger for
+unresolved direct DML and conservative `WITH` candidates. Its 37 pre-existing
+entries (eight unresolved DML targets and 29 `WITH` statements) are tracked by
+a pinned baseline; new candidates fail the CI inventory check until reviewed
+with metadata that explicitly says review is not ACL approval. Scope-AST
+fingerprints with per-scope ordinals catch same-scope binding edits and
+duplicate call sites while ignoring line movement. Twenty focused inventory
+tests pass, and the combined C1/C2/C7/driver-catalog selection passes 103
+tests. The refreshed 4,936-site inventory and ledger checks pass. Ruff and
+compilation pass; no database or Docker was used. This detects source drift but
+does not reduce broad runtime grants or prove query reachability/RLS. Values
+from parameters, imports, mutable globals, and helper calls are outside the
+fingerprint.
+
+Evidence: [unresolved-write drift gate](builds/2026-10-28-recovery/runtime-sql-unresolved-write-drift-gate.json).
+Checklist: 1,389 complete / 25 open (1,414 total); capability classifications
+remain unchanged.

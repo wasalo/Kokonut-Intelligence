@@ -185,6 +185,25 @@ def test_public_driver_registry_rejects_out_of_range_pages(limit, offset):
         DriverRegistry(conn=object()).list_public_drivers_page(limit=limit, offset=offset)
 
 
+def test_public_driver_registry_propagates_database_failure():
+    class Cursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc):
+            return False
+
+        def execute(self, *_args):
+            raise RuntimeError("sensitive database diagnostic")
+
+    class Connection:
+        def cursor(self):
+            return Cursor()
+
+    with pytest.raises(RuntimeError, match="sensitive database diagnostic"):
+        DriverRegistry(conn=Connection()).list_public_drivers_page()
+
+
 def test_versioned_public_driver_catalog_uses_stable_envelope_and_policy(monkeypatch):
     monkeypatch.delenv("KOKONUT_API_KEYS", raising=False)
 
@@ -258,3 +277,43 @@ def test_versioned_public_driver_catalog_uses_stable_envelope_and_policy(monkeyp
     assert spec["paths"]["/api/v1/drivers"]["get"]["operationId"] == (
         "listPublicDriversV1"
     )
+
+
+def test_versioned_driver_catalog_does_not_turn_database_errors_into_empty_pages(
+    monkeypatch,
+):
+    monkeypatch.delenv("KOKONUT_API_KEYS", raising=False)
+
+    class NoopAudit:
+        def log(self, **_kwargs):
+            return None
+
+        def replay_pending(self, _limit):
+            return 0
+
+        def capture_status(self):
+            return {"pending": 0}
+
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit", NoopAudit)
+
+    def fail_registry_read(_registry, *, limit, offset):
+        raise RuntimeError("sensitive database diagnostic")
+
+    monkeypatch.setattr(
+        "services.drivers.registry.DriverRegistry.list_public_drivers_page",
+        fail_registry_read,
+    )
+    app = create_app(
+        rate_limiter=SimpleNamespace(
+            check=lambda _caller: True,
+            retry_after=lambda _caller: 0,
+        )
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/drivers")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Gateway request failed"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "sensitive database diagnostic" not in response.text

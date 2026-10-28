@@ -23,7 +23,10 @@ ARM64/QEMU PostgreSQL schema replay now passes all 672 schema files through
 migration 681 under verified 1.5 GiB/two-CPU limits, with network disabled,
 zero seeds, and cleanup complete. That run did not include the optional
 operator-scope probe; physical-device and production recovery acceptance remain
-open. A further framework-catalog review found no safe grant
+open. The ARM64 replay runner now rejects CPU limits that round to zero before
+creating the disposable database; a tiny positive value previously passed
+preflight and became an invalid zero-nanocpu Docker update. A further
+framework-catalog review found no safe grant
 revoke without owner customization-path confirmation. An additive low-dependency
 `core` profile now has separately locked base dependencies and optional Web3,
 spreadsheet/S3, and local-media overlays; existing full-capability profiles
@@ -40,13 +43,19 @@ now reads its namespaced provider key, routed through both Kernel worker
 profiles. The runtime ACL report now uses a fresh network-disabled native
 replay through migration 681 and verifies current source policy, including the
 `metric_definition` read-only boundary. The public driver catalog returns only
-enabled display fields through bounded pagination; location-only tactical CLI
+enabled display fields through bounded pagination and now propagates database
+failures to a generic Gateway error; location-only tactical CLI
 operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,385
-complete / 25 open (1,410 total).
+`competency_framework` may be owner-managed. The latest checklist is 1,389
+complete / 25 open (1,414 total). The private cooperative summary now has an
+OpenAPI success model that rejects undeclared projection fields while
+preserving existing authorization and cache behavior. The runtime SQL
+inventory also requires explicit review for new unresolved DML/`WITH` sites;
+its existing unresolved candidates remain tracked debt and the gate does not
+change database grants.
 Migration 681 makes `metric_definition` read-only to the general runtime and
 passes disposable PostgreSQL 16 replay, read/write denial, provisioner replay,
 and Directus-role preservation checks; tenant isolation remains unestablished.
@@ -66,7 +75,7 @@ The optional Directus tenant hook also scopes writable-reference lookups by the
 requested location and uses one generic unavailable response for missing and
 foreign-location references. These are source/API contract checks; they do not
 establish live Directus role/field/row parity or populated-data parity.
-Checklist: 1,385 complete / 25 open (1,410 total).
+Checklist: 1,389 complete / 25 open (1,414 total).
 
 Evidence: [Directus schema check](builds/2026-10-28-recovery/directus-polymorphic-lineage-schema-disposable.json),
 [report query inventory](report-generator-query-scope-inventory.json),

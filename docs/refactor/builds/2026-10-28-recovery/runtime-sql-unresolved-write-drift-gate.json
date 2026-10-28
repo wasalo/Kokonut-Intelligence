@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "23e5bf8c",
+  "working_tree_dirty": true,
+  "scope": "CI drift gate for direct SQL DML and conservative WITH execution sites whose target relation is unresolved.",
+  "review_ledger": {
+    "path": "docs/refactor/runtime-sql-unresolved-write-review.json",
+    "tracked_candidates": 37,
+    "existing_unreviewed_candidates": 37,
+    "candidate_breakdown": {
+      "unresolved_dml_targets": 8,
+      "conservative_with_statements": 29
+    },
+    "legacy_fingerprint_set_pinned": true,
+    "fingerprint_strategy": "Enclosing function/module AST with source locations excluded, plus a source-order ordinal for identical calls in one scope.",
+    "new_candidate_requirement": "A new candidate fails inventory check until explicitly reviewed with status, reviewer, date, and rationale stating that the review is not an ACL approval."
+  },
+  "inventory": {
+    "execution_sites": 4936,
+    "source_files": 974,
+    "relation_candidates": 1223,
+    "write_target_relations": 588,
+    "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+    "result": "passed"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_runtime_sql_inventory.py -q",
+      "result": "passed",
+      "passed": 20
+    },
+    {
+      "command": "python3 -m ruff check scripts/runtime_sql_inventory.py tests/test_runtime_sql_inventory.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m compileall -q scripts/runtime_sql_inventory.py tests/test_runtime_sql_inventory.py",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This is a source-change review gate, not a runtime grant allowlist or ACL approval.",
+    "It does not reduce the 992 relations with effective DML while RLS is disabled, prove query reachability, resolve arbitrary runtime identifiers, or prove tenant isolation.",
+    "Existing unreviewed entries remain explicit debt; the gate requires new sites to be recorded but does not make their target relation safe.",
+    "Fingerprinting cannot capture values passed through parameters, imports, mutable globals, or helper calls."
+  ]
+}

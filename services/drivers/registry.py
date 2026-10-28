@@ -362,7 +362,7 @@ class DriverRegistry:
             }
         except Exception as exc:
             logger.error("Failed to list public drivers (%s)", safe_exception_class(exc))
-            return {"drivers": [], "limit": limit, "offset": offset, "has_more": False}
+            raise
 
     def list_instances(self, driver_name: str | None = None, location_id: str | None = None) -> list[dict]:
         """List driver instances."""
