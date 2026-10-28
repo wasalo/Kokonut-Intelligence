@@ -254,7 +254,7 @@ except KokonutError as e:
 | `wallet_profiles` | `wallet_profile` | `find_by_address` |
 | `attestations` | `attestation_record` | `list_pending`, `list_by_entity` |
 | `reports` | `report_snapshot` | `list_by_type` |
-| `exports` | `export_log` | `create_export` |
+| `exports` | `export_log` | read-only `list`, `get` |
 | `noi` | `noi_snapshot` | `list_by_crop_cycle` |
 | `carbon_credits` | `carbon_credit` | `list_by_location` |
 | `credit_adjustments` | `credit_adjustment` | `list_by_location` |
@@ -353,10 +353,9 @@ confirm commitments, or mutate governed lifecycle state. Stored forecast,
 metric, and trend outputs are returned without recalculation or an assertion
 that they are current or verified.
 
-`exports.create()` accepts the typed `ExportCreateInput` shape. It sends only
-export request fields and sets `status="pending"` and `requested_by="sdk"`;
-caller-supplied lifecycle or server-result fields are ignored. The positional
-`create_export()` helper remains available for the same pending-request flow.
+`exports` exposes read-only access to canonical export audit records. Export
+generation runs through `services.export.exporter`; the SDK does not create
+pending rows because `export_log` is an audit table, not a request queue.
 
 ## Examples
 

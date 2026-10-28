@@ -258,8 +258,5 @@ export type {
   AttestationMethods,
   ReportMethods,
   ExportMethods,
-  ExportCreateInput,
-  ExportCreateOptions,
-  ExportCreateRequest,
   NoiMethods,
 } from './methods.js';

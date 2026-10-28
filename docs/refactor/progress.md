@@ -1,3 +1,29 @@
+### Progress addendum — C2 canonical export-log SDK contract — 27 October 2026
+
+Review against `schemas/postgres/008_governance.sql` found that the SDK's
+pending export request payload used four columns absent from `export_log`:
+`format`, `entity_type`, `entity_ids`, and `requested_by`. The repository has
+no worker that claims pending rows; `services.export.exporter` generates a
+file and then writes its audit record. Keeping the former API would therefore
+send invalid requests and imply an asynchronous workflow that does not exist.
+
+Both SDKs now expose only `list` and `get` for export logs, and their `ExportLog`
+models contain exactly the canonical ten columns. The exporter CLI remains the
+supported file-generation path. The focused Python SDK and method-parity
+selection passes 100 tests; JavaScript passes 53 tests; the TypeScript build
+and the 109-model/2,150-column schema-parity check pass. Ruff, compilation,
+and diff checks pass. Tests use mocked client methods; no database, provider,
+candidate, or legacy service was used. The earlier export-create lifecycle
+entry below is superseded. An authenticated Gateway request path, caller
+attribution, and durable asynchronous worker remain open C2 work. Capability
+classifications are unchanged. Checklist: 1,293 complete / 25 open
+(1,318 total); 24 baseline-retained, 7 deployed, and 36 prepared across 67
+rows.
+
+Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-export-audit-read-only-contract.json),
+[Python SDK](../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../sdk/javascript/src/methods.ts).
+
 ### Progress addendum — C1 farmer credential-type catalog ACL — 27 October 2026
 
 The seeded `farmer_credential_type` catalog has no application SQL readers or

@@ -323,24 +323,26 @@ that its full source-plan phase is complete.
   through migration 671 and focused ACL checks through 677; this is software
   portability evidence only.
 
-  Migration 676 now keeps governed `reference_class` readable but immutable to
-  `kokonut_runtime`; source review found prediction readers but no application
-  writer. The migration and role provisioner preserve the distinct
-  Directus/admin grant path. Native and ARM64/QEMU disposable ACL checks pass
-  apply/replay, table and residual-column denial, provisioner reapplication,
-  and Directus-grant preservation. The target-aware analytics inventory covers
+  Migrations 676 and 677 keep governed `reference_class` and seeded
+  `farmer_credential_type` guidance readable but immutable to
+  `kokonut_runtime`; source review found prediction readers but no reference-
+  class writer, and credential records keep their type as free text. Both
+  migrations and role provisioning preserve the separate Directus/admin grant
+  path. Native and ARM64/QEMU disposable ACL checks pass apply/replay, table
+  and residual-column denial, provisioner reapplication, and Directus-grant
+  preservation. The target-aware analytics inventory covers
   273 relations and 425 static write-target sites across 89 files, with no
   unmatched candidate targets; this is heuristic source evidence, not proof
   that each write is reachable or tenant-authorized. The next source review
-  found dynamic curriculum definitions in `competency_framework` and a seeded
-  credential-type catalog, but no source-owned management contract for either;
-  keep their grants unchanged until the Gateway or optional Directus admin path
-  is explicit. Review remaining callers and management paths before changing
-  grants. Do not blanket-revoke based on static absence. Preserve rollback and
+  found dynamic curriculum definitions in `competency_framework` with no
+  source-owned management contract; its grants remain unchanged until the
+  Gateway or optional Directus administration path is explicit. Review
+  remaining callers and management paths before changing grants. Do not
+  blanket-revoke based on static absence. Preserve rollback and
   distinguish table grants from RLS, worker, Directus, and production
   enforcement.
-  Sources: [runtime boundary](batches.md#L4810),
-  [full-schema replay](builds/2026-10-27-recovery/runtime-role-full-schema-676-native-disposable.json),
+  Sources: [runtime boundary](batches.md#L4814),
+  [full-schema replay](builds/2026-10-27-recovery/runtime-role-full-schema-677-native-disposable.json),
   [ARM64 full replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json),
   [analytics candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
 - [ ] **C2 — Finish Gateway and SDK contract parity.** Audit registered routes,
@@ -348,9 +350,12 @@ that its full source-plan phase is complete.
   source-verifiable gaps without exposing generic CRUD or weakening default
   denial. The public OpenAPI exporter now excludes private policy routes and
   allows only public GET/read operations in the generated contract. Python and
-  TypeScript export `create` now share a typed request shape, allowlist request
-  fields, and reserve initial lifecycle fields for the SDK; broader route and
-  SDK parity remains open. Sources: [API/SDK gates](batches.md#L3226),
+  TypeScript export-log SDK surfaces now expose read-only list/detail methods
+  matching the canonical table. The earlier pending-create API was removed:
+  the table lacks its request fields and the repository has no worker that
+  consumes pending rows. Export generation remains available through the
+  exporter CLI. A Gateway-backed, authenticated export-request workflow and
+  broader route/SDK parity remain open. Sources: [API/SDK gates](batches.md#L3226),
   [Phase 7](implementation-plan-alignment.md#L27).
 - [ ] **C3 — Finish the optional Directus adapter boundary.** Close code-verifiable
   role, field, row and hook gaps for collections still retained; keep native
@@ -488,13 +493,12 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   behavior, broader SDK/runtime parity, live OIDC, and populated acceptance.
   See the [batch record](batches.md) and
   [progress evidence](progress.md#sdk-parameter-name-parity-contract--27-october-2026).
-- [x] Align the Python `ExportFormat` type with the TypeScript union and use it
-  for the export model and `create_export` helper. The focused SDK selection
-  passes 98 tests, including a source comparison of the Python `Literal` and
-  actual TypeScript union; the schema guard covers 109 models / 2,150 columns.
-  Ruff, compilation, and diff checks pass. This fixes one concrete static typing
-  mismatch; other create/update payloads and runtime behavior remain outside
-  this subgate ([batch record](batches.md); [progress](progress.md#export-format-typing-parity--27-october-2026)).
+- [x] Historical interim step: align the Python `ExportFormat` type with the
+  TypeScript union. A subsequent schema audit found `format` absent from the
+  canonical table and no process consuming pending requests, so that type and
+  create helper were then removed as part of the current read-only SDK contract
+  ([current record](#current-continuation--c2-canonical-export-log-sdk-contract);
+  [earlier batch history](batches.md#L4766)).
 
 ### Current continuation — C1 full-schema runtime-role revalidation
 
@@ -660,17 +664,20 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   skipped. No seeds, farm data, candidate, or legacy state was used ([batch](batches.md#L4810);
   [progress](progress.md); [native replay evidence](builds/2026-10-27-recovery/runtime-role-full-schema-676-native-disposable.json)).
 
-### Current continuation — C2 SDK export-create lifecycle contract
+### Current continuation — C2 canonical export-log SDK contract
 
-- [x] Align the Python and TypeScript `exports.create` input and lifecycle
-  behavior. Both SDKs now accept `ExportCreateInput`, pass only allowlisted
-  request fields, and force `status=pending` and `requested_by=sdk`; caller
-  lifecycle or server-result fields cannot be forwarded through this method.
-  The focused Python SDK/method-parity selection passes 105 tests, the
-  JavaScript SDK suite passes 57 tests, and TypeScript build, Ruff, and Python
-  compilation pass. All transports are mocked; no HTTP, database, provider,
-  candidate, or legacy service was used. The broader SDK and route parity gate
-  remains open ([batch](batches.md); [evidence](builds/2026-10-27-recovery/sdk-export-create-lifecycle-contract.json)).
+- [x] Remove unsupported export-log mutation from both SDKs and match the
+  model to all ten canonical `export_log` columns. Source audit found the
+  previously advertised request payload included columns absent from the
+  schema, and no worker consumes pending requests; the established exporter
+  writes audit rows after generating files. The SDK now offers only `list` and
+  `get`, while file generation remains available through the exporter CLI.
+  Python/method-parity tests pass 100, JavaScript tests pass 53, TypeScript
+  builds, and the 109-model/2,150-column SDK schema guard passes. Ruff,
+  compilation and diff checks pass; calls were mocked, with no database or
+  provider. The earlier C2 export-create lifecycle note is superseded. A
+  Gateway-backed request queue, authenticated attribution and async processing
+  remain open ([batch](batches.md); [evidence](builds/2026-10-27-recovery/sdk-export-audit-read-only-contract.json)).
 
 ### Current continuation — C1 farmer credential-type catalog boundary
 

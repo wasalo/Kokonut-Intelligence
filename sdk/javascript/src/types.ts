@@ -2534,12 +2534,10 @@ export interface AiSummary {
   created_by_worker_id?: string | null;
 }
 
-export type ExportFormat = 'csv' | 'json' | 'xlsx' | 'pdf' | 'parquet';
-
 export interface ExportLog {
   id: string;
-  export_type: string;
   user_id?: string | null;
+  export_type: string;
   target_table?: string | null;
   filters?: JSONObject | null;
   row_count?: number | null;
@@ -2547,14 +2545,6 @@ export interface ExportLog {
   file_url?: string | null;
   status?: ExportStatus | null;
   created_at?: string | null;
-  format?: ExportFormat | null;
-  entity_type?: string | null;
-  entity_ids?: string[] | null;
-  file_path?: string | null;
-  file_size?: number | null;
-  requested_by?: string | null;
-  error_message?: string | null;
-  completed_at?: string | null;
 }
 
 export interface ListOptions {

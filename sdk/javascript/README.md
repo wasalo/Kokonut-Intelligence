@@ -243,7 +243,7 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `walletProfiles` | `wallet_profile` | `findByAddress` |
 | `attestations` | `attestation_record` | `listPending`, `listByEntity` |
 | `reports` | `report_snapshot` | `listByType` |
-| `exports` | `export_log` | `createExport` (Python-parity method); existing `create` remains available |
+| `exports` | `export_log` | read-only `list`, `get` |
 | `noi` | `noi_snapshot` | `listByCropCycle` |
 | `carbonCredits` | `carbon_credit` | `listByLocation` |
 | `creditAdjustments` | `credit_adjustment` | `listByLocation` |
@@ -342,9 +342,9 @@ verify, attest, confirm commitments, or mutate governed lifecycle state. Stored
 forecast, metric, and trend outputs are returned without recalculation or an
 assertion that they are current or verified.
 
-`exports.create()` and `exports.createExport()` accept typed request fields,
-drop unrecognized fields, and set `status="pending"` and `requested_by="sdk"`
-for the new request.
+`exports` exposes read-only access to canonical export audit records. Export
+generation runs through `services.export.exporter`; the SDK does not create
+pending rows because `export_log` is an audit table, not a request queue.
 
 ## Examples
 

@@ -6,9 +6,6 @@ from .types import (
     AttestationRecord,
     CropCycle,
     ExpenseEvent,
-    ExportCreateInput,
-    ExportCreateRequest,
-    ExportFormat,
     ExportLog,
     Farm,
     FieldNote,
@@ -608,53 +605,22 @@ class ReportMethods(GenericMethods):
         return super().list(_list_options_with_filter(options, {"report_type": {"_eq": report_type}}))
 
 
-class ExportMethods(GenericMethods):
+class ExportMethods:
+    """Read-only access to export audit records.
+
+    Export generation is performed by the exporter service. The canonical
+    ``export_log`` table is an audit record, not a durable request queue, so
+    SDK clients must not create, mutate, or delete rows directly.
+    """
+
     def __init__(self, client: KokonutClient) -> None:
-        super().__init__(client, "export_log")
+        self._client = client
 
     def list(self, options: Optional[ListOptions] = None) -> List[ExportLog]:
-        return super().list(options)
+        return self._client.list_items("export_log", options)
 
     def get(self, item_id: str, fields: Optional[List[str]] = None) -> ExportLog:
-        return super().get(item_id, fields)
-
-    def create(self, data: ExportCreateInput) -> ExportLog:
-        """Create a pending export while keeping lifecycle fields SDK-owned."""
-        payload: Dict[str, Any] = {
-            "export_type": data["export_type"],
-            "format": data["format"],
-            "status": "pending",
-            "requested_by": "sdk",
-        }
-        for key in ("entity_type", "entity_ids", "target_table", "filters"):
-            if key in data:
-                payload[key] = data[key]
-        return super().create(payload)
-
-    def create_export(
-        self,
-        export_type: str,
-        format: Optional[ExportFormat] = None,
-        entity_type: Optional[str] = None,
-        entity_ids: Optional[List[str]] = None,
-        target_table: Optional[str] = None,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> ExportLog:
-        request: ExportCreateRequest = {
-            "export_type": export_type,
-            "format": format,
-            "entity_type": entity_type,
-            "entity_ids": entity_ids,
-            "target_table": target_table,
-            "filters": filters,
-        }
-        return super().create(
-            {
-                **request,
-                "status": "pending",
-                "requested_by": "sdk",
-            }
-        )
+        return self._client.get_item("export_log", item_id, fields)
 
 
 class NoiMethods(GenericMethods):

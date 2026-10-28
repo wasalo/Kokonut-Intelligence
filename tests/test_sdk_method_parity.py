@@ -253,34 +253,39 @@ def test_python_and_typescript_sdk_argument_names_match_or_use_reviewed_aliases(
             )
 
 
-def test_python_and_typescript_export_format_literals_match():
+def test_export_sdk_is_read_only_and_models_match_canonical_table_columns():
+    schema = (ROOT / "schemas/postgres/008_governance.sql").read_text(encoding="utf-8")
+    table = re.search(
+        r"CREATE TABLE IF NOT EXISTS export_log\s*\((.*?)\n\);", schema, re.DOTALL
+    )
+    assert table is not None
+    sql_columns = tuple(
+        line.strip().split()[0].rstrip(",")
+        for line in table.group(1).splitlines()
+        if line.strip() and not line.strip().startswith("--")
+    )
+
     python_types = ast.parse(
         (ROOT / "sdk/python/kokonut/types.py").read_text(encoding="utf-8")
     )
-    alias = next(
-        statement.value
-        for statement in python_types.body
-        if isinstance(statement, ast.Assign)
-        and any(
-            isinstance(target, ast.Name) and target.id == "ExportFormat"
-            for target in statement.targets
-        )
+    export_log = next(
+        node for node in python_types.body
+        if isinstance(node, ast.ClassDef) and node.name == "ExportLog"
     )
-    assert isinstance(alias, ast.Subscript) and isinstance(alias.value, ast.Name)
-    assert alias.value.id == "Literal"
-    python_values = tuple(
-        ast.literal_eval(value)
-        for value in (alias.slice.elts if isinstance(alias.slice, ast.Tuple) else [alias.slice])
+    python_columns = tuple(
+        node.target.id for node in export_log.body
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)
     )
 
-    typescript = (ROOT / "sdk/javascript/src/types.ts").read_text(encoding="utf-8")
-    declaration = re.search(r"export type ExportFormat\s*=\s*([^;]+);", typescript)
-    assert declaration is not None, "TypeScript ExportFormat union is missing"
-    typescript_values = tuple(re.findall(r"'([^']+)'", declaration.group(1)))
-    assert typescript_values and python_values == typescript_values
+    typescript_types = (ROOT / "sdk/javascript/src/types.ts").read_text(encoding="utf-8")
+    interface = re.search(r"export interface ExportLog\s*\{(.*?)\n\}", typescript_types, re.DOTALL)
+    assert interface is not None
+    typescript_columns = tuple(
+        re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\??:", interface.group(1), re.MULTILINE)
+    )
+    assert set(python_columns) == set(sql_columns)
+    assert typescript_columns == sql_columns
 
-
-def test_export_create_uses_the_same_typed_request_contract():
     python_methods = ast.parse(
         (ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8")
     )
@@ -288,15 +293,17 @@ def test_export_create_uses_the_same_typed_request_contract():
         node for node in python_methods.body
         if isinstance(node, ast.ClassDef) and node.name == "ExportMethods"
     )
-    python_create = next(
-        node for node in export_methods.body
-        if isinstance(node, ast.FunctionDef) and node.name == "create"
-    )
-    assert ast.unparse(python_create.args.args[1].annotation) == "ExportCreateInput"
-    assert "class ExportCreateInput(ExportCreateRequest)" in (
-        ROOT / "sdk/python/kokonut/types.py"
-    ).read_text(encoding="utf-8")
+    python_names = {
+        node.name for node in export_methods.body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    }
+    assert python_names == {"list", "get"}
+    assert not any(isinstance(base, ast.Name) and base.id == "GenericMethods" for base in export_methods.bases)
 
-    typescript = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
-    assert "export interface ExportCreateInput extends ExportCreateRequest" in typescript
-    assert "create(data: ExportCreateInput): Promise<ExportLog>;" in typescript
+    typescript_methods = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"export interface ExportMethods(.*?)\n\}", typescript_methods, re.DOTALL)
+    assert declaration is not None
+    assert "extends GenericMethods" not in declaration.group(1)
+    assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
+        "list", "get"
+    ]

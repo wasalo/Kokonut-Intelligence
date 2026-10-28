@@ -231,7 +231,12 @@ describe('KokonutClient', () => {
     expect(typeof client.attestations.listByEntity).toBe('function');
     expect(typeof client.reports.listByType).toBe('function');
     expect(typeof client.noi.listByCropCycle).toBe('function');
-    expect(typeof client.exports.createExport).toBe('function');
+    expect(typeof client.exports.list).toBe('function');
+    expect(typeof client.exports.get).toBe('function');
+    expect('create' in client.exports).toBe(false);
+    expect('createMany' in client.exports).toBe(false);
+    expect('update' in client.exports).toBe(false);
+    expect('delete' in client.exports).toBe(false);
     expect(typeof client.lossEvents.listByLocation).toBe('function');
     expect(typeof client.laborEvents.listByLocation).toBe('function');
     expect(typeof client.fieldNotes.listByLocation).toBe('function');
@@ -1208,72 +1213,6 @@ describe('KokonutClient', () => {
     expect(event.approved_by).toBe('reviewer-1');
   });
 
-  it('preserves Python SDK export inputs through createExport()', async () => {
-    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-1' });
-    const request = {
-      export_type: 'farm_data',
-      target_table: 'harvest_event',
-      entity_type: 'location',
-      entity_ids: ['location-1'],
-      filters: { status: 'published' },
-    };
-
-    await client.exports.createExport(request);
-
-    expect(createItem).toHaveBeenNthCalledWith(1, 'export_log', {
-      ...request,
-      format: null,
-      status: 'pending',
-      requested_by: 'sdk',
-    });
-  });
-
-  it('supports Python-style export type plus optional request fields', async () => {
-    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-2' });
-
-    await client.exports.createExport('farm_data', {
-      entity_type: 'location',
-      entity_ids: ['location-1'],
-      target_table: 'harvest_event',
-      filters: { status: 'published' },
-    });
-
-    expect(createItem).toHaveBeenCalledWith('export_log', {
-      export_type: 'farm_data',
-      format: null,
-      entity_type: 'location',
-      entity_ids: ['location-1'],
-      target_table: 'harvest_event',
-      filters: { status: 'published' },
-      status: 'pending',
-      requested_by: 'sdk',
-    });
-  });
-
-  it('supports the Python export positional parameter contract', async () => {
-    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-3' });
-
-    await client.exports.createExport(
-      'farm_data',
-      'csv',
-      'location',
-      ['location-1'],
-      'harvest_event',
-      { status: 'published' },
-    );
-
-    expect(createItem).toHaveBeenCalledWith('export_log', {
-      export_type: 'farm_data',
-      format: 'csv',
-      entity_type: 'location',
-      entity_ids: ['location-1'],
-      target_table: 'harvest_event',
-      filters: { status: 'published' },
-      status: 'pending',
-      requested_by: 'sdk',
-    });
-  });
-
   it('forwards export field projections like the Python SDK', async () => {
     const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({
       id: 'export-1',
@@ -1286,40 +1225,13 @@ describe('KokonutClient', () => {
     expect(getItem).toHaveBeenCalledWith('export_log', 'export-1', ['id', 'status']);
   });
 
-  it('keeps export lifecycle fields SDK-owned and allowlists create fields', async () => {
-    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-2' });
+  it('lists export logs through the canonical read-only collection', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([{ id: 'export-1' }]);
 
-    await client.exports.create({
-      export_type: 'farm_data',
-      format: 'csv',
-      status: 'completed',
-      requested_by: 'untrusted-caller',
-      id: 'caller-selected-id',
-      file_url: 'https://example.invalid/forged.csv',
-    } as any);
+    const result = await client.exports.list({ limit: 10 });
 
-    expect(createItem).toHaveBeenCalledWith('export_log', {
-      export_type: 'farm_data',
-      format: 'csv',
-      status: 'pending',
-      requested_by: 'sdk',
-    });
-  });
-
-  it('supports export createMany with the same raw batch semantics as Python', async () => {
-    const createItems = vi.spyOn(client, 'createItems').mockResolvedValue([
-      { id: 'export-1' },
-      { id: 'export-2' },
-    ]);
-    const requests = [
-      { export_type: 'farm_data', status: 'pending' },
-      { export_type: 'metric_data', status: 'pending' },
-    ];
-
-    const result = await client.exports.createMany(requests);
-
-    expect(result).toEqual([{ id: 'export-1' }, { id: 'export-2' }]);
-    expect(createItems).toHaveBeenCalledWith('export_log', requests);
+    expect(result).toEqual([{ id: 'export-1' }]);
+    expect(listItems).toHaveBeenCalledWith('export_log', { limit: 10 });
   });
 
   it('keeps required convenience filters authoritative and forwards list options', async () => {

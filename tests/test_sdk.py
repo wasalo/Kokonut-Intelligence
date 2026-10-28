@@ -1465,11 +1465,18 @@ def test_report_snapshot_type_exposes_location_freeze_and_public_fields():
 
 
 def test_export_log_type_exposes_canonical_export_table_fields():
+    from dataclasses import fields
+
     from kokonut.types import ExportLog
+
+    assert {field.name for field in fields(ExportLog)} == {
+        "id", "user_id", "export_type", "target_table", "filters",
+        "row_count", "file_size_bytes", "file_url", "status", "created_at",
+    }
 
     export_log = ExportLog(
         id="export-1",
-        export_type="farm_data",
+        export_type="csv",
         user_id="user-1",
         target_table="harvest_event",
         filters={"status": "published"},
@@ -1482,19 +1489,6 @@ def test_export_log_type_exposes_canonical_export_table_fields():
     assert export_log.user_id == "user-1"
     assert export_log.row_count == 42
     assert export_log.status == "generating"
-
-
-def test_python_export_format_type_is_public_and_used_by_export_fields():
-    from typing import Optional, get_args, get_type_hints
-
-    from kokonut import ExportFormat
-    from kokonut.methods import ExportMethods
-    from kokonut.types import ExportLog
-
-    expected = ("csv", "json", "xlsx", "pdf", "parquet")
-    assert get_args(ExportFormat) == expected
-    assert get_type_hints(ExportMethods.create_export)["format"] == Optional[ExportFormat]
-    assert get_type_hints(ExportLog)["format"] == Optional[ExportFormat]
 
 
 def test_export_get_forwards_requested_fields_without_network_calls():
@@ -2144,100 +2138,24 @@ def test_kokonut_methods_import():
     assert HarvestEventMethods is not None
 
 
-def test_export_creation_preserves_target_table_without_network_calls():
+def test_export_methods_expose_only_read_access_without_network_calls():
     from kokonut import KokonutClient
 
     client = KokonutClient("http://localhost:8055")
-    client.create_item = Mock(return_value={"id": "export-1"})
+    client.list_items = Mock(return_value=[{"id": "export-1"}])
+    client.get_item = Mock(return_value={"id": "export-1", "status": "completed"})
 
-    result = client.exports.create_export(
-        "farm_data",
-        entity_type="location",
-        entity_ids=["location-1"],
-        target_table="harvest_event",
-        filters={"status": "published"},
-    )
+    assert client.exports.list() == [{"id": "export-1"}]
+    assert client.exports.get("export-1", fields=["id", "status"]) == {
+        "id": "export-1", "status": "completed"
+    }
+    client.list_items.assert_called_once_with("export_log", None)
+    client.get_item.assert_called_once_with("export_log", "export-1", ["id", "status"])
 
-    assert result == {"id": "export-1"}
-    client.create_item.assert_called_once_with(
-        "export_log",
-        {
-            "export_type": "farm_data",
-            "format": None,
-            "entity_type": "location",
-            "entity_ids": ["location-1"],
-            "target_table": "harvest_event",
-            "filters": {"status": "published"},
-            "status": "pending",
-            "requested_by": "sdk",
-        },
-    )
-
-
-def test_export_create_keeps_lifecycle_fields_sdk_owned_without_network_calls():
-    from kokonut import KokonutClient
-
-    client = KokonutClient("http://localhost:8055")
-    client.create_item = Mock(return_value={"id": "export-1"})
-
-    client.exports.create(
-        {
-            "export_type": "farm_data",
-            "format": "csv",
-            "entity_type": "location",
-            "entity_ids": ["location-1"],
-            "target_table": "harvest_event",
-            "filters": {"status": "verified"},
-            "status": "completed",
-            "requested_by": "untrusted-caller",
-            "id": "caller-selected-id",
-            "file_url": "https://example.invalid/forged.csv",
-        }
-    )
-
-    client.create_item.assert_called_once_with(
-        "export_log",
-        {
-            "export_type": "farm_data",
-            "format": "csv",
-            "entity_type": "location",
-            "entity_ids": ["location-1"],
-            "target_table": "harvest_event",
-            "filters": {"status": "verified"},
-            "status": "pending",
-            "requested_by": "sdk",
-        },
-    )
-
-
-def test_export_creation_accepts_positional_optional_fields_without_network_calls():
-    from kokonut import KokonutClient
-
-    client = KokonutClient("http://localhost:8055")
-    client.create_item = Mock(return_value={"id": "export-1"})
-
-    client.exports.create_export(
-        "farm_data",
-        "csv",
-        "location",
-        ["location-1"],
-        "harvest_event",
-        {"status": "published"},
-    )
-
-    client.create_item.assert_called_once_with(
-        "export_log",
-        {
-            "export_type": "farm_data",
-            "format": "csv",
-            "entity_type": "location",
-            "entity_ids": ["location-1"],
-            "target_table": "harvest_event",
-            "filters": {"status": "published"},
-            "status": "pending",
-            "requested_by": "sdk",
-        },
-    )
+    assert not hasattr(client.exports, "create")
+    assert not hasattr(client.exports, "create_many")
+    assert not hasattr(client.exports, "update")
+    assert not hasattr(client.exports, "delete")
 
 
 def test_login_returns_directus_auth_payload_and_stores_access_token_without_network_calls():
@@ -2526,22 +2444,6 @@ def test_generic_crud_helpers_reject_empty_and_dot_path_segments_before_request(
         client.list_items(segment)
 
     client.session.get.assert_not_called()
-
-
-def test_export_create_many_delegates_to_directus_batch_without_network_calls():
-    from kokonut import KokonutClient
-
-    client = KokonutClient("http://localhost:8055")
-    client.create_items = Mock(return_value=[{"id": "export-1"}, {"id": "export-2"}])
-    requests = [
-        {"export_type": "farm_data", "status": "pending"},
-        {"export_type": "metric_data", "status": "pending"},
-    ]
-
-    result = client.exports.create_many(requests)
-
-    assert result == [{"id": "export-1"}, {"id": "export-2"}]
-    client.create_items.assert_called_once_with("export_log", requests)
 
 
 def test_scoped_list_filter_wins_and_preserves_list_options_without_network_calls():

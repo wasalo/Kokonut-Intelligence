@@ -14,7 +14,6 @@ import type {
   AttestationRecord,
   ReportSnapshot,
   ExportLog,
-  ExportFormat,
   NoiSnapshot,
   ListOptions,
 } from './types.js';
@@ -334,40 +333,9 @@ export interface ReportMethods extends GenericMethods {
   listByType(reportType: string, options?: ListOptions): Promise<ReportSnapshot[]>;
 }
 
-export interface ExportCreateOptions {
-  format?: ExportFormat | null;
-  entity_type?: string | null;
-  entity_ids?: string[] | null;
-  target_table?: string | null;
-  filters?: Record<string, any> | null;
-}
-
-export interface ExportCreateRequest extends ExportCreateOptions {
-  export_type: string;
-}
-
-export interface ExportCreateInput extends ExportCreateRequest {
-  format: ExportFormat;
-}
-
-export interface ExportMethods extends GenericMethods {
+export interface ExportMethods {
   list(options?: ListOptions): Promise<ExportLog[]>;
   get(id: string, fields?: string[]): Promise<ExportLog>;
-  createExport(data: ExportCreateRequest): Promise<ExportLog>;
-  createExport(exportType: string, options?: ExportCreateOptions): Promise<ExportLog>;
-  createExport(
-    exportType: string,
-    format?: ExportFormat | null,
-    entityType?: string,
-    entityIds?: string[],
-    targetTable?: string,
-    filters?: Record<string, any>,
-  ): Promise<ExportLog>;
-  /** Existing JavaScript creation method; use createExport() for Python parity. */
-  create(data: ExportCreateInput): Promise<ExportLog>;
-  createMany(data: Partial<ExportLog>[]): Promise<ExportLog[]>;
-  update(id: string, data: Record<string, any>): Promise<ExportLog>;
-  delete(id: string): Promise<void>;
 }
 
 export function buildLocationMethods(client: any): LocationMethods {
@@ -635,62 +603,9 @@ export function buildReportMethods(client: any): ReportMethods {
 }
 
 export function buildExportMethods(client: any): ExportMethods {
-  const createExport = async (
-    requestOrType: ExportCreateRequest | string,
-    optionsOrFormat?: ExportCreateOptions | ExportFormat | null,
-    entityType?: string,
-    entityIds?: string[],
-    targetTable?: string,
-    filters?: Record<string, any>,
-  ): Promise<ExportLog> => {
-    let params: ExportCreateRequest;
-    if (typeof requestOrType === 'string') {
-      const options = typeof optionsOrFormat === 'object' && optionsOrFormat !== null
-        ? optionsOrFormat
-        : {
-            format: optionsOrFormat,
-            entity_type: entityType,
-            entity_ids: entityIds,
-            target_table: targetTable,
-            filters,
-          };
-      params = { ...options, export_type: requestOrType };
-    } else {
-      params = requestOrType;
-    }
-
-    return client.createItem('export_log', {
-      export_type: params.export_type,
-      format: params.format ?? null,
-      entity_type: params.entity_type ?? null,
-      entity_ids: params.entity_ids ?? null,
-      target_table: params.target_table ?? null,
-      filters: params.filters ?? null,
-      status: 'pending',
-      requested_by: 'sdk',
-    }) as Promise<ExportLog>;
-  };
-
-  const create = async (params: ExportCreateInput): Promise<ExportLog> =>
-    client.createItem('export_log', {
-      export_type: params.export_type,
-      format: params.format,
-      ...(params.entity_type !== undefined ? { entity_type: params.entity_type } : {}),
-      ...(params.entity_ids !== undefined ? { entity_ids: params.entity_ids } : {}),
-      ...(params.target_table !== undefined ? { target_table: params.target_table } : {}),
-      ...(params.filters !== undefined ? { filters: params.filters } : {}),
-      status: 'pending',
-      requested_by: 'sdk',
-    }) as Promise<ExportLog>;
-
   return {
     list: (options?: ListOptions) => client.listItems('export_log', options) as Promise<ExportLog[]>,
     get: (id: string, fields?: string[]) => client.getItem('export_log', id, fields) as Promise<ExportLog>,
-    createExport,
-    create,
-    createMany: (data: Partial<ExportLog>[]) => client.createItems('export_log', data) as Promise<ExportLog[]>,
-    update: (id: string, data: Record<string, any>) => client.updateItem('export_log', id, data) as Promise<ExportLog>,
-    delete: (id: string) => client.deleteItem('export_log', id),
   };
 }
 

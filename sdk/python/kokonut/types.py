@@ -14,31 +14,6 @@ PaymentStatus = Literal["pending", "partial", "paid", "overdue", "cancelled"]
 SensorSeverity = Literal["info", "warning", "critical"]
 AlertLifecycle = Literal["open", "acknowledged", "resolved", "false_positive"]
 ExportStatus = Literal["pending", "generating", "completed", "failed"]
-ExportFormat = Literal["csv", "json", "xlsx", "pdf", "parquet"]
-
-
-class ExportCreateOptions(TypedDict, total=False):
-    """Optional caller-supplied fields for creating an export request."""
-
-    format: Optional[ExportFormat]
-    entity_type: Optional[str]
-    entity_ids: Optional[List[str]]
-    target_table: Optional[str]
-    filters: Optional[Dict[str, Any]]
-
-
-class ExportCreateRequest(ExportCreateOptions):
-    """Export request shape accepted by the cross-language createExport API."""
-
-    export_type: str
-
-
-class ExportCreateInput(ExportCreateRequest):
-    """Direct `create` input; lifecycle fields are set by the SDK."""
-
-    format: ExportFormat
-
-
 OrganizationType = Literal["cooperative", "nonprofit", "dao", "enterprise", "collective", "other"]
 OrganizationStatus = Literal["active", "inactive", "dissolved"]
 OrganizationMembershipType = Literal["owned", "affiliated", "sponsored", "partner"]
@@ -2787,9 +2762,6 @@ class AiSummary:
 class ExportLog:
     id: str
     export_type: str
-    format: Optional[ExportFormat] = None
-    entity_type: Optional[str] = None
-    entity_ids: Optional[List[str]] = None
     user_id: Optional[str] = None
     target_table: Optional[str] = None
     filters: Optional[JSONObject] = None
