@@ -1,3 +1,40 @@
+### Progress addendum — C1 farmer credential-type catalog ACL — 27 October 2026
+
+The seeded `farmer_credential_type` catalog has no application SQL readers or
+writers. `farmer_credential.credential_type` remains free text with no catalog
+foreign key, so runtime write revocation does not change the current credential
+creation contract. Migration 677 keeps the catalog readable to
+`kokonut_runtime`, denies table and residual column mutation/reference grants,
+and leaves the distinct Directus grant path intact. Runtime provisioning
+reapplies the boundary after its compatibility grant.
+
+Focused native and ARM64/QEMU PostgreSQL 16 checks pass migration replay,
+catalog reads, mutation/TRUNCATE/REFERENCES and column-grant denial,
+provisioner reapplication, and preservation of synthetic Directus grants. The
+full network-disabled native replay applies all 668 ordered schemas through
+677 and passes 32 two-tenant assertions under verified 1.5 GiB/two-CPU limits;
+the runtime can query the migration-seeded catalog. It verifies 124 runtime
+controls (79 private relations, 42 mutation-denied relations, two append-only
+relations, and the API-key read-only column boundary) with zero direct
+privilege violations. The refreshed source/ACL report has zero policy
+mismatches across all 1,511 relations; 996 relations still retain effective
+DML while RLS is disabled, so C1 remains open. A stale 41-relation expectation
+in the probe parser was updated to 42; the focused parser, report, and
+migration-runner selection passes 68 tests. Ruff, compilation, and diff checks
+pass. No optional seeds or farm data were loaded, no ports were published, no
+OOM occurred, and cleanup succeeded. Candidate and legacy databases were
+untouched. The ACL result is synthetic software acceptance, not populated
+credential-data, Directus API, physical Raspberry Pi, or production
+acceptance. Capability classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows. Checklist: 1,292 complete / 25 open
+(1,317 total).
+
+Evidence: [migration](../schemas/postgres/677_runtime_farmer_credential_type_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-arm64-disposable.json),
+[full schema and tenant probe](builds/2026-10-27-recovery/runtime-role-full-schema-677-native-disposable.json),
+[source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+
 ### Progress addendum — C2 SDK export-create lifecycle contract — 27 October 2026
 
 Source parity review found that TypeScript's `exports.create()` overrode the

@@ -99,11 +99,15 @@ REVENUE_MULTIPLIER_CONFIG_MIGRATION = (
 REFERENCE_CLASS_MIGRATION = (
     ROOT / "schemas/postgres/676_runtime_reference_class_read_only.sql"
 )
+FARMER_CREDENTIAL_TYPE_MIGRATION = (
+    ROOT / "schemas/postgres/677_runtime_farmer_credential_type_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
     "revenue_multiplier_config",
     "reference_class",
+    "farmer_credential_type",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
@@ -275,6 +279,7 @@ def check_boundary(
                     "pest_degree_day_config",
                     "revenue_multiplier_config",
                     "reference_class",
+                    "farmer_credential_type",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -429,6 +434,11 @@ def check_boundary(
                 )
                 cursor.execute(reference_class_migration)
                 cursor.execute(reference_class_migration)
+                farmer_credential_type_migration = FARMER_CREDENTIAL_TYPE_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(farmer_credential_type_migration)
+                cursor.execute(farmer_credential_type_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -522,6 +532,7 @@ def check_boundary(
                         "pest_degree_day_config": 674,
                         "revenue_multiplier_config": 675,
                         "reference_class": 676,
+                        "farmer_credential_type": 677,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -577,6 +588,7 @@ def check_boundary(
                     "gri_indicator", "governance_framework",
                     "impact_framework", "impact_dimension",
                     "expense_category", "crisp_risk_dimension", "reference_class",
+                    "farmer_credential_type",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -619,6 +631,7 @@ def check_boundary(
                     ("pest_degree_day_config", 674),
                     ("revenue_multiplier_config", 675),
                     ("reference_class", 676),
+                    ("farmer_credential_type", 677),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -810,7 +823,7 @@ def check_boundary(
             with connection.cursor() as cursor:
                 for table in (
                     "process_maturity_level", "pollinator_species_reference",
-                    "reference_class",
+                    "reference_class", "farmer_credential_type",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -1338,6 +1351,14 @@ def check_boundary(
                     "directus_role_unchanged": True,
                 },
                 "read_only_reference_class": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_farmer_credential_type": {
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,

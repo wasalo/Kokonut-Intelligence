@@ -1,26 +1,28 @@
 # Capability preservation matrix
 
 **Runtime-role acceptance update (27 October 2026):** Focused native and
-ARM64/QEMU disposable PostgreSQL 16 checks pass migrations 673–676. A fresh
-native AMD64 replay of all 667 ordered schema files through migration 676 passes
-the full provisioner and all 31 two-tenant operator-scope checks under verified
-1.5 GiB memory/swap and two-CPU database limits. The probe verifies 123
-declared runtime-role controls: 79 private relations, 41 mutation-denied
+ARM64/QEMU disposable PostgreSQL 16 checks pass migrations 673–677. A fresh
+native AMD64 replay of all 668 ordered schema files through migration 677 passes
+the full provisioner and all 32 two-tenant operator-scope checks under verified
+1.5 GiB memory/swap and two-CPU database limits. The probe verifies 124
+declared runtime-role controls: 79 private relations, 42 mutation-denied
 relations, two append-only relations, and the API-key read-only column
 boundary. It reports zero direct table or column privilege violations across
-1,511 public relations; 997 relations retain effective table-level DML while
+1,511 public relations; 996 relations retain effective table-level DML while
 RLS is disabled. Broad compatibility DML and non-universal application-table
-RLS remain open C1 concerns. The replay loaded no seed files or farm data,
-published no ports, was not OOM-killed, and removed temporary resources. It
-read the USD currency inserted by the ordered finance migration and the
-schema-defined `fall_armyworm` degree-day default. Optional seeds 015, 069, and
-088 and other seed-dependent catalogs were not loaded, so revenue-multiplier
-configuration and crop GDD seed parity remain unverified. Focused ACL checks
-use synthetic relations and verify grants, not general populated-data parity.
-This is synthetic
-software-portability evidence, not candidate/production state, universal
-tenant isolation, populated-data acceptance, or physical Raspberry Pi
-acceptance ([full native schema and scope evidence through 676](builds/2026-10-27-recovery/runtime-role-full-schema-676-native-disposable.json);
+RLS remain open C1 concerns. The replay loaded no optional seed files or farm
+data, published no ports, was not OOM-killed, and removed temporary resources.
+It read the USD currency inserted by the ordered finance migration, the
+schema-defined `fall_armyworm` degree-day default, and the seeded farmer
+credential-type guidance catalog. Optional seeds 015, 069, and 088 and other
+seed-dependent catalogs were not loaded, so revenue-multiplier configuration
+and crop GDD seed parity remain unverified. Focused ACL checks use synthetic
+relations and verify grants, not general populated-data parity. This is
+synthetic software-portability evidence, not candidate/production state,
+universal tenant isolation, populated-data acceptance, or physical Raspberry
+Pi acceptance ([full native schema and scope evidence through 677](builds/2026-10-27-recovery/runtime-role-full-schema-677-native-disposable.json);
+[farmer credential-type native ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-disposable.json);
+[farmer credential-type ARM64/QEMU ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-arm64-disposable.json);
 [native revenue-multiplier ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-disposable.json);
 [ARM64/QEMU revenue-multiplier ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-arm64-disposable.json);
 [native pest degree-day ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-disposable.json);
@@ -32,10 +34,11 @@ acceptance ([full native schema and scope evidence through 676](builds/2026-10-2
 [expense-category native ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-disposable.json);
 [CRISP-dimension native ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-disposable.json);
 [CRISP-dimension ARM64/QEMU ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-arm64-disposable.json);
-[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
-No seeds or farm data were loaded, no ports were published, temporary resources
-were removed, and no physical Raspberry Pi acceptance is claimed; these are
-software-portability results only.
+[updated policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
+No optional seed files or farm data were loaded, no ports were published,
+temporary resources were removed, and no physical Raspberry Pi acceptance is
+claimed; these are software-portability results only. Schema-defined rows from
+migrations, including the credential-type guidance catalog, were applied.
 The current base and ClickHouse-superset Kernel app OCI targets build for
 AMD64/ARM64 with 72 and 75 matching locked Python packages, respectively.
 Offline ARM64 smokes import the Gateway/runtime-role policy and optional

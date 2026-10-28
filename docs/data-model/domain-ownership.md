@@ -23,6 +23,11 @@ Key tables:
 
 Key services: `services/analytics/farmer_identity.py`
 
+`farmer_credential_type` is a seeded guidance catalog for curated credential
+administration. `farmer_credential.credential_type` remains free text and is
+not constrained by a foreign key to that catalog; runtime application writes
+do not manage the catalog.
+
 Key migrations: `001_locations.sql`, `064_organization.sql`,
 `148_farmer_identity.sql`
 

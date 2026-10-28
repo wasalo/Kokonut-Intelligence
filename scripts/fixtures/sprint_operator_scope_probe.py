@@ -381,6 +381,12 @@ def run_probe() -> dict[str, object]:
             PROBE_STAGE = "signed_tenant_context"
             with runtime.cursor() as cur:
                 scoped_acl = _assert_scoped_runtime_acl(cur)
+                cur.execute("SELECT count(*) FROM public.farmer_credential_type")
+                if cur.fetchone()[0] < 1:
+                    raise AssertionError(
+                        "runtime could not read the seeded farmer credential type catalog"
+                    )
+                checks.append("runtime can read seeded farmer credential type guidance")
                 for index in range(2):
                     expected = [(organizations[index], locations[index], operators[index], "operator")]
                     if _context(cur, session_hashes[index], operators[index], locations[index]) != expected:

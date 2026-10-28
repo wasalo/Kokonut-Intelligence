@@ -313,14 +313,14 @@ that its full source-plan phase is complete.
 - [ ] **C1 — Replace broad runtime database privileges with scoped contracts.**
   Initial pre-provisioning inventory remains a historical baseline: 1,101
   relations had runtime DML and RLS disabled. The latest native, network-
-  disabled replay applies all 667 ordered schema files through migration 676
-  and passes 31 synthetic two-tenant scope checks. It verifies 123 declared
-  controls (79 private relations, 41 mutation-denied relations, two append-only
+  disabled replay applies all 668 ordered schema files through migration 677
+  and passes 32 synthetic two-tenant scope checks. It verifies 124 declared
+  controls (79 private relations, 42 mutation-denied relations, two append-only
   relations, and the API-key read-only column boundary), with zero direct table
-  or column violations. The probe still reports 997 relations with effective
+  or column violations. The probe still reports 996 relations with effective
   DML while RLS is disabled, so broad runtime access and universal application
   tenant isolation remain open. ARM64/QEMU has full-schema replay evidence
-  through migration 671 and focused ACL checks through 676; this is software
+  through migration 671 and focused ACL checks through 677; this is software
   portability evidence only.
 
   Migration 676 now keeps governed `reference_class` readable but immutable to
@@ -671,3 +671,27 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   compilation pass. All transports are mocked; no HTTP, database, provider,
   candidate, or legacy service was used. The broader SDK and route parity gate
   remains open ([batch](batches.md); [evidence](builds/2026-10-27-recovery/sdk-export-create-lifecycle-contract.json)).
+
+### Current continuation — C1 farmer credential-type catalog boundary
+
+- [x] Keep seeded `farmer_credential_type` guidance readable but immutable to
+  `kokonut_runtime`. Schema migration 148 seeds the catalog; farmer credential
+  records store `credential_type` as free text, with no foreign key or
+  application SQL callsite using the guidance table. Migration 677 removes
+  runtime table and residual column INSERT/UPDATE/REFERENCES grants, restores
+  SELECT, and the role provisioner reapplies the boundary after compatibility
+  grants. Native and ARM64/QEMU PostgreSQL 16 acceptance passes migration
+  replay, read access, mutation/TRUNCATE/REFERENCES and column-grant denial,
+  provisioner reapplication, and preservation of synthetic Directus grants.
+  The full native schema replay through 677 passes all 32 two-tenant checks and
+  reads the schema-seeded catalog row. The refreshed ACL report has zero
+  mismatches across 124 controls; 996 relations still retain effective DML
+  while RLS is disabled, so C1 remains open. The focused parser/migration tests
+  pass 68 tests. No optional seeds or farm data were loaded; candidate and
+  legacy databases were untouched. Directus API parity, populated credential
+  records, physical Raspberry Pi, and production acceptance remain open
+  ([batch](batches.md#L4814); [migration](../schemas/postgres/677_runtime_farmer_credential_type_read_only.sql);
+  [native ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-disposable.json);
+  [ARM64 ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-arm64-disposable.json);
+  [full schema and tenant probe](builds/2026-10-27-recovery/runtime-role-full-schema-677-native-disposable.json);
+  [source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
