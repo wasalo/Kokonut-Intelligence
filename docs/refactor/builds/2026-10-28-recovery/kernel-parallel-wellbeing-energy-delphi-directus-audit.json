@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "9a61002c",
+  "working_tree_dirty": true,
+  "scope": "Parallel code-only batch: direct report location preflight for vulnerable_access and foundational_wellbeing, energy-monitoring add-source CLI UUID preflight, Delphi participant workspace response contract, and bounded Directus required-location source audit.",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_vulnerable_access_report_scope.py tests/test_foundational_wellbeing_report_scope.py tests/test_report_state_cursor_cleanup.py tests/test_gnh_alignment.py tests/test_gnh_alignment_report_scope.py tests/test_renewable_energy_report_scope.py tests/test_cli_energy_monitoring_scope.py tests/test_energy_monitoring.py tests/test_gateway_delphi_participant_workspace.py tests/test_gateway_delphi_participant_workspace_response.py tests/test_gateway_route_policy_inventory.py tests/test_gateway_delphi_participant_acceptance.py tests/test_gateway_delphi_participant_minority_reports.py -q",
+      "result": "passed",
+      "passed": 437
+    },
+    {
+      "command": "ruff check changed Python implementation and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile changed Python implementation and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_inventory.py --check docs/refactor/report-generator-source-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_query_scope_inventory.py --check docs/refactor/report-generator-query-scope-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "directus_runtime_used": false,
+    "live_network_used": false
+  },
+  "limitations": [
+    "Direct report and CLI checks establish scope rejection before database access; no live query behavior was exercised.",
+    "The Delphi participant workspace contract is source and ASGI-tested only; no live OIDC or Gateway database was used.",
+    "The Directus audit covers only tables with a direct required location UUID and managed read permission; it does not establish field, relationship, hook, schedule, effective runtime, or populated-data parity."
+  ]
+}

@@ -8,6 +8,7 @@ queries/business logic. Reachable via:
 
 import json
 from datetime import date
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .energy_monitoring import (
@@ -139,6 +140,13 @@ cli.subcommand("cost-analysis", "Energy cost analysis") \
 
 
 def main(argv=None):
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    if args.command == "add-source":
+        try:
+            UUID(args.location_id)
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID for add-source")
     cli.run(argv)
 
 

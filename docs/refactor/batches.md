@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,477 checklist items complete and 25
-open (1,502 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,482 checklist items complete and 25
+open (1,507 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5382,7 +5382,6 @@ private Gateway response endpoints across 67 rows: 24 baseline-retained,
 7 deployed, and 36 prepared. Capability classifications and MAN-CAP
 acceptance remain unchanged.
 
-
 ### Completed parallel continuation — Delphi, stakeholder, and incident response contracts — 28 October 2026
 
 - [x] Publish strict location-bound response contracts for Delphi consent
@@ -5754,3 +5753,31 @@ used. Evidence:
 The checklist is now 1,461 complete / 25 open (1,486 total); the TODO ledger
 has 168 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.
+
+### Completed parallel continuation — wellbeing reports, energy CLI, Delphi workspace, and Directus source audit — 28 October 2026
+
+- [x] Reject malformed direct `generate_vulnerable_access` location scope
+  before opening a database cursor.
+- [x] Reject malformed direct `generate_foundational_wellbeing` location
+  scope before opening a database cursor.
+- [x] Preflight the energy-monitoring `add-source` location UUID before the
+  shared CLI runner can open PostgreSQL.
+- [x] Enforce a strict, session-derived Delphi participant workspace
+  projection, including the migration-642 collection-consent scope allowlist
+  and request-bound pagination.
+- [x] Audit all schema-defined collections with a direct required
+  `location_id` and a managed Directus read permission; all 12 candidates are
+  already covered by the optional 27-collection tenant adapter.
+
+The integrated focused selection passes 437 Python tests. Ruff, Python
+compilation, report source/query inventories, capability-matrix validation,
+and `git diff --check` pass. The capability matrix remains 67 rows (24
+baseline-retained, 7 deployed, 36 prepared), with 73 strict private Gateway
+response endpoints. The Directus result is a bounded source audit only; live
+runtime role/field/row parity, relationship coverage, hook/schedule behavior,
+and populated-data parity remain open. No migration, database, provider,
+Directus runtime, candidate, legacy service, or live network was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-wellbeing-energy-delphi-directus-audit.json).
+
+Checklist: 1,482 complete / 25 open (1,507 total); TODO: 188 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

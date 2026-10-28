@@ -2157,7 +2157,7 @@
       "report_type": "foundational_wellbeing",
       "callable": "generate_foundational_wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 168,
+      "source_line": 171,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -2171,7 +2171,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 172,
+          "line": 178,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2194,7 +2194,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 174,
+          "line": 180,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5928,7 +5928,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 136,
+          "line": 139,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5951,7 +5951,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 138,
+          "line": 141,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

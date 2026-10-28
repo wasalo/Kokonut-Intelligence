@@ -22627,3 +22627,10 @@ remain open. Checklist: 1,477 complete / 25 open; TODO: 184 checked / 16 open.
 No database, provider, live Directus runtime, candidate, legacy service, or
 live network was used. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-renewable-pollinator-capacity-attestation.json).
+
+
+### Local-only progress addendum — wellbeing reports, energy CLI, Delphi workspace, and Directus source audit — 28 October 2026
+
+Direct vulnerable-access and foundational-wellbeing report calls now reject malformed location scope before opening a cursor. The energy-monitoring `add-source` CLI validates its location UUID before database setup. The Delphi participant workspace has a strict session-derived response contract, including the exact consent-scope allowlist and request-bound pagination. A bounded Directus source audit found all twelve collections with a direct required location key and a managed read permission are already covered by the 27-collection tenant adapter; broader runtime, relationship, field, hook/schedule, and populated-data parity remain open.
+
+The integrated focused Python selection passes 437 tests. Ruff, compilation, report inventories, capability-matrix validation, and diff checks pass. Checklist: 1,482 complete / 25 open; TODO: 188 checked / 16 open. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), with 73 strict private Gateway response endpoints. No migration, database, provider, Directus runtime, candidate, legacy service, or live network was used. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-parallel-wellbeing-energy-delphi-directus-audit.json`.

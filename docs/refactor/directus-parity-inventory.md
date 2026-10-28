@@ -351,6 +351,18 @@ read-only, so the hook denies create, update, and delete. Focused authorization
 tests and the extension build/typecheck pass. Live Directus enforcement and
 populated attestation parity remain open.
 
+**Direct required-location source audit (28 October 2026):** a source-only
+intersection of PostgreSQL `CREATE TABLE` definitions containing a direct
+`location_id UUID NOT NULL` column with `config/directus/permissions.sql`
+entries granting `read` found twelve collections: `expense_event`,
+`field_note`, `harvest_event`, `labor_event`, `loss_event`, `mrv_claim`,
+`noi_snapshot`, `revenue_event`, `sales_event`, `water_access`,
+`capex_breakdown`, and `attestation_plan`. All twelve are already present in
+the 27-collection tenant adapter. This bounded inventory does not close
+broader Directus parity; it makes no claim about collections without a direct
+required location key, relationship scope, field privacy, hook or schedule
+behavior, or enforcement by a running Directus API/runtime identity.
+
 The SQL still grants `fields = '*'` on many read rules, so a row predicate does
 not establish field privacy. The Auditor policy deliberately has unfiltered
 reads for collections beyond the twenty-seven-collection tenant-hook list,

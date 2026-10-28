@@ -131,6 +131,9 @@ def generate_renewable_energy(conn, location_id: str, period_start: str = None, 
 
 def generate_vulnerable_access(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe vulnerable group access report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("vulnerable_access requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -167,6 +170,9 @@ def generate_vulnerable_access(conn, location_id: str, period_start: str = None,
 
 def generate_foundational_wellbeing(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe foundational well-being report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("foundational_wellbeing requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

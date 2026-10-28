@@ -163,7 +163,20 @@ def test_participant_assets_are_private_same_origin_and_self_hosted():
 
 def test_workspace_route_requires_session_and_returns_no_store_payload():
     calls = []
-    expected = {"study": {"title": "Water resilience", "status": "draft"}, "items": []}
+    expected = {
+        "study": {
+            "study_id": "44444444-4444-4444-8444-444444444444",
+            "title": "Water resilience",
+            "status": "open",
+            "opened_at": None,
+            "closed_at": None,
+        },
+        "items": [],
+        "has_more": False,
+        "limit": 20,
+        "offset": 40,
+        "collection_scopes": ["questionnaire_responses", "minority_reports"],
+    }
 
     async def run_in_threadpool(func, *args, **kwargs):
         calls.append((func, args, kwargs))

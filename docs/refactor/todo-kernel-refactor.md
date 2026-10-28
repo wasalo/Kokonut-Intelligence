@@ -1736,3 +1736,20 @@ Checklist: 1,477 complete / 25 open (1,502 total); TODO: 184 checked / 16 open.
 The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared)
 with 72 strict private Gateway response endpoints. The optional Directus hook
 covers 27 location-scoped collections; live runtime parity remains open.
+
+
+### Local continuation — wellbeing scope, energy CLI, Delphi response, and Directus source audit
+
+- [x] Fail closed on invalid direct vulnerable-access and
+  foundational-wellbeing report location scope before database access.
+- [x] Preflight the energy-monitoring source-registration CLI location UUID
+  before database setup.
+- [x] Validate the private Delphi participant workspace against its exact
+  session-derived projection, consent scopes, and requested page.
+- [x] Complete the source-only audit of direct-required-location collections
+  with managed Directus read rules; all twelve are covered by the existing
+  tenant adapter. Broader runtime and relationship parity remain open.
+
+Checklist: 1,482 complete / 25 open (1,507 total); TODO: 188 checked / 16
+open. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared), with 73 strict private Gateway response endpoints.
