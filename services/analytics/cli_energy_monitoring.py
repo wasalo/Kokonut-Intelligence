@@ -29,6 +29,17 @@ from .energy_monitoring import (
 
 cli = CommandLine("energy_monitoring", "Energy monitoring")
 
+_LOCATION_SCOPED_COMMANDS = {
+    "add-source",
+    "add-renewable",
+    "consumption",
+    "efficiency",
+    "renewable-summary",
+    "dashboard",
+    "carbon-intensity",
+    "cost-analysis",
+}
+
 
 def _render(result, args, human):
     print(json.dumps(result, indent=2, default=str) if args.json else human(result))
@@ -142,12 +153,12 @@ cli.subcommand("cost-analysis", "Energy cost analysis") \
 def main(argv=None):
     parser = cli.build_parser()
     args = parser.parse_args(argv)
-    if args.command == "add-source":
+    if args.command in _LOCATION_SCOPED_COMMANDS:
         try:
             UUID(args.location_id)
         except (AttributeError, TypeError, ValueError):
-            parser.error("--location-id must be a valid UUID for add-source")
-    cli.run(argv)
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
+    return cli.run(argv)
 
 
 # ============================================================

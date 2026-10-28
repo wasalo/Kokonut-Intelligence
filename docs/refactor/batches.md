@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,482 checklist items complete and 25
-open (1,507 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,487 checklist items complete and 25
+open (1,512 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5780,4 +5780,35 @@ Directus runtime, candidate, legacy service, or live network was used. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-wellbeing-energy-delphi-directus-audit.json).
 
 Checklist: 1,482 complete / 25 open (1,507 total); TODO: 188 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed parallel continuation — report scope, CLI preflight, private response contracts, and Directus reads — 28 October 2026
+
+- [x] Reject malformed location UUIDs before cursor or analyzer access across
+  eleven operations reports plus ecological-modeling, trophic-pyramid, and
+  adaptive-stewardship reports.
+- [x] Preflight location UUIDs before database setup for cooperative creation,
+  credit enrollment listing, spreadsheet export, energy monitoring, digital
+  finance, marketplace, extension, pest management, data governance, and
+  optional farmer-identity location filters.
+- [x] Enforce strict request-bound success projections for the private
+  Governance tactical-item queue and Data Stream attestation read. Review
+  also aligned action-text bounds with migration 445.
+- [x] Add `digital_lego_usage` as a read-only grant-scoped collection in the
+  optional Directus tenant adapter; unassigned/out-of-grant rows fail closed.
+- [x] Regenerate the report source and query-scope inventories after the new
+  direct-call guards shifted source lines.
+
+The combined focused selection passes 715 Python tests; the Directus extension
+suite passes 143 tests and its bundle/TypeScript build succeeds. Ruff,
+Python compilation, both report inventories, capability-matrix validation,
+and `git diff --check` pass. The capability matrix remains 67 rows (24
+baseline-retained, 7 deployed, 36 prepared); strict private Gateway response
+endpoints now total 75 and the optional Directus adapter covers 28
+location-scoped collections. Directus effective permissions/populated parity,
+live OIDC, and live database behavior remain open. No database, provider,
+Directus runtime, candidate, legacy service, or live network was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-gateway-directus-guards.json).
+
+Checklist: 1,487 complete / 25 open (1,512 total); TODO: 193 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

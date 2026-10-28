@@ -10,6 +10,7 @@ from pydantic import (
     ConfigDict,
     Field,
     ValidationError,
+    field_validator,
 )
 
 
@@ -113,6 +114,59 @@ class GovernanceRoleListResponse(BaseModel):
     location_id: _GovernanceResponseUUID
     items: list[GovernanceRoleListItemResponse] = Field(max_length=100)
     next_cursor: _GovernanceResponseUUID | None
+
+
+class GovernanceTacticalItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _GovernanceResponseUUID
+    requested_next_action: str = Field(min_length=1, max_length=4000)
+    priority: int = Field(ge=1, le=5, strict=True)
+    due_at: AwareDatetime | None
+    status: Literal["open", "in_progress"]
+    created_at: AwareDatetime
+    session_type: Literal[
+        "weekly_review",
+        "stakeholder_health",
+        "relationship_review",
+        "risk_triage",
+        "governance_followup",
+    ]
+    session_title: str = Field(max_length=255)
+    scheduled_at: AwareDatetime | None
+    session_status: Literal["planned", "active", "completed"]
+    owner_role_key: str | None = Field(max_length=120)
+
+    @field_validator("requested_next_action")
+    @classmethod
+    def _requested_action_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("requested_next_action must not be blank")
+        return value
+
+
+class GovernanceTacticalItemPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _GovernanceResponseUUID
+    items: list[GovernanceTacticalItemResponse] = Field(max_length=100)
+    next_cursor: _GovernanceResponseUUID | None
+
+    def validate_request(self, *, location_id: str, limit: int, cursor: str | None):
+        if self.location_id != UUID(location_id) or len(self.items) > limit:
+            raise ValueError("Governance tactical page does not match request bounds")
+        if self.next_cursor is not None:
+            if (
+                not self.items
+                or len(self.items) != limit
+                or self.next_cursor != self.items[-1].id
+            ):
+                raise ValueError("Governance tactical cursor does not match the page")
+        if cursor is not None:
+            input_cursor = UUID(cursor)
+            if input_cursor in {item.id for item in self.items} or self.next_cursor == input_cursor:
+                raise ValueError("Governance tactical page repeats its input cursor")
+        return self
 
 
 def register_governance_role_routes(router, provider, run_in_threadpool, psycopg2):
@@ -985,7 +1039,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             name=f"transition_governance_role_{role_action}",
         )
 
-    @router.get("/operator/api/governance/{location_id}/tactical-items")
+    @router.get(
+        "/operator/api/governance/{location_id}/tactical-items",
+        response_model=GovernanceTacticalItemPageResponse,
+    )
     async def location_governance_tactical_items(
         request: Request,
         location_id: str,
@@ -1025,6 +1082,20 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 status_code=503,
                 content={"error": "Governance tactical queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
+            )
+        try:
+            response = GovernanceTacticalItemPageResponse.model_validate(result)
+            response.validate_request(location_id=location_id, limit=limit, cursor=cursor)
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_operations").warning(
+                "Governance tactical page response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance tactical queue unavailable"},
+                headers=headers,
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 

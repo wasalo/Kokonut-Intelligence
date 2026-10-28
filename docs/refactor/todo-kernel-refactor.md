@@ -570,6 +570,31 @@ tenant-hook tests, TypeScript builds/checks, Ruff, compilation, report-query
 inventory validation, and diff checks. Evidence:
 [parallel contract batch](builds/2026-10-28-recovery/kernel-parallel-tenant-report-sdk-contracts.json).
 
+- [x] Reject malformed location UUIDs before cursor or analyzer access across
+  eleven operations reports plus ecological-modeling, trophic-pyramid, and
+  adaptive-stewardship reports.
+- [x] Preflight location UUIDs before database setup for cooperative creation,
+  credit enrollment listing, spreadsheet export, energy monitoring, digital
+  finance, marketplace, extension, pest management, data governance, and
+  optional farmer-identity location filters.
+- [x] Enforce strict request-bound success projections for the private
+  Governance tactical-item queue and Data Stream attestation read; align
+  action-text bounds with migration 445.
+- [x] Add read-only, grant-scoped Directus tenant handling for
+  `digital_lego_usage`; unassigned/out-of-grant rows fail closed.
+- [x] Regenerate report source and query-scope inventories after source-line
+  changes from the report preflight guards.
+
+This parallel batch passes 715 focused Python tests and 143 Directus extension
+tests. Build/typecheck, Ruff, Python compilation, report inventories,
+capability-matrix validation, and diff checks pass. Checklist: 1,487 complete /
+25 open; TODO: 193 checked / 16 open. The matrix remains 67 rows (24
+baseline-retained, 7 deployed, 36 prepared) with 75 strict private Gateway
+response endpoints; the optional Directus adapter covers 28 location-scoped
+collections. No database, provider, live Directus runtime, candidate, legacy
+service, or live network was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-gateway-directus-guards.json).
+
 ## Code work to continue without owner input
 
 Work in this order. Each item is a bounded implementation batch, not a claim

@@ -1214,7 +1214,7 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
         for query in report["queries"]
         if query["positional_bind_arity"] is None
     ]
-    assert unresolved_arity == [("data_stream_summary", 30)]
+    assert unresolved_arity == [("data_stream_summary", 31)]
     assert reports["data_stream_summary"]["queries"][0]["named_bind_contract"]["mismatch"] is False
     assert reports["stakeholder_trust"]["network_scope_guards"][0]["location_id_parameter"] is True
     assert reports["adoption_barriers"]["classification"] == "all_direct_queries_show_bound_location_scope"

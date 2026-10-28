@@ -7,6 +7,7 @@ queries/business logic. Reachable via:
 """
 
 import json
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .digital_finance import (
@@ -29,6 +30,16 @@ from .digital_finance import (
 # ============================================================
 
 cli = CommandLine("digital_finance", "Digital financial services")
+
+_LOCATION_SCOPED_COMMANDS = {
+    "create-account",
+    "list",
+    "create-insurance",
+    "create-loan",
+    "portfolio",
+    "premium",
+    "eligibility",
+}
 
 
 def _cmd_create_account(db, a):
@@ -192,7 +203,14 @@ cli.subcommand("eligibility", "Evaluate loan eligibility") \
 
 
 def main(argv=None):
-    cli.run(argv)
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    if args.command in _LOCATION_SCOPED_COMMANDS:
+        try:
+            UUID(args.location_id)
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
+    return cli.run(argv)
 
 
 if __name__ == "__main__":

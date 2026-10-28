@@ -13,6 +13,7 @@ export const TENANT_SCOPED_COLLECTIONS = [
   'water_access',
   'capex_breakdown',
   'attestation_plan',
+  'digital_lego_usage',
   'report_snapshot',
   'noi_snapshot',
   'dashboard_dataset',
@@ -39,6 +40,7 @@ export const READ_ONLY_TENANT_SCOPED_COLLECTIONS = [
   'water_access',
   'capex_breakdown',
   'attestation_plan',
+  'digital_lego_usage',
 ] as const;
 
 export type TenantScopedCollection = (typeof TENANT_SCOPED_COLLECTIONS)[number];

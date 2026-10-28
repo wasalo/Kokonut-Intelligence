@@ -52,6 +52,7 @@ describe('Directus tenant authorization', () => {
       'water_access',
       'capex_breakdown',
       'attestation_plan',
+      'digital_lego_usage',
       'report_snapshot',
       'noi_snapshot',
       'dashboard_dataset',
@@ -76,6 +77,7 @@ describe('Directus tenant authorization', () => {
       'water_access',
       'capex_breakdown',
       'attestation_plan',
+      'digital_lego_usage',
     ]);
 
     const store = makeStore();
@@ -294,6 +296,42 @@ describe('Directus tenant authorization', () => {
     )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
     await expect(authorizeDirectusRows(
       store, accountability, issuer, 'attestation_plan', 'delete', [rowA],
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+
+  it('scopes digital-lego usage to the granted location and hides unassigned rows', async () => {
+    const store = makeStore();
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'digital_lego_usage', {
+        fields: ['id', 'location_id', 'protocol_id', 'usage_date', 'action_type'],
+      },
+    )).resolves.toEqual({
+      fields: ['id', 'location_id', 'protocol_id', 'usage_date', 'action_type'],
+      filter: { location_id: { _in: [locationA] } },
+    });
+    expect(store.authorizedLocations).toHaveBeenCalledWith(
+      operatorId, 'digital_lego_usage', 'read',
+    );
+
+    await expect(authorizeDirectusReadResult(
+      store, accountability, issuer, 'digital_lego_usage', { id: rowB },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+
+    const unassigned = makeStore({
+      loadRows: vi.fn().mockResolvedValue([{ id: rowA, location_id: null }]),
+    });
+    await expect(authorizeDirectusReadResult(
+      unassigned, accountability, issuer, 'digital_lego_usage', { id: rowA },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+
+    await expect(authorizeDirectusCreate(
+      store, accountability, issuer, 'digital_lego_usage', { location_id: locationA },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'digital_lego_usage', 'update', [rowA], {},
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'digital_lego_usage', 'delete', [rowA],
     )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
   });
 

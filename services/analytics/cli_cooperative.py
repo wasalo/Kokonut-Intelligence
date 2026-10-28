@@ -8,6 +8,7 @@ focused on queries/business logic. Reachable via:
 
 
 import json
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .cooperative import (
@@ -397,6 +398,13 @@ cli.subcommand("member-dashboard", "Member dashboard") \
 
 
 def main(argv=None):
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    if args.command == "create-coop":
+        try:
+            UUID(args.location_id)
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID for create-coop")
     return cli.run(argv)
 
 

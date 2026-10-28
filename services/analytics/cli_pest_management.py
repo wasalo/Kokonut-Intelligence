@@ -7,6 +7,7 @@ focused on queries/business logic. Reachable via:
 """
 
 from datetime import date
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .pest_management import (
@@ -597,6 +598,14 @@ cli.subcommand("generate-audit", "Generate IPM audit report") \
 
 
 def main(argv=None):
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    location_id = getattr(args, "location_id", None)
+    if location_id is not None:
+        try:
+            UUID(location_id)
+        except (TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
     return cli.run(argv)
 
 

@@ -8,6 +8,7 @@ queries/business logic. Reachable via:
 
 import sys
 from datetime import datetime
+from uuid import UUID
 
 from ..common.cli import run
 from ..common.commands import CommandLine
@@ -340,6 +341,14 @@ cli.subcommand("governance-summary", "Aggregated governance metrics") \
 
 def main(argv=None):
     tokens = list(sys.argv[1:] if argv is None else argv)
+    parser = cli.build_parser()
+    args = parser.parse_args(tokens)
+    location_id = getattr(args, "location_id", None)
+    if location_id is not None:
+        try:
+            UUID(location_id)
+        except (TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
     if (
         tokens
         and tokens[0] == "enforce-retention"

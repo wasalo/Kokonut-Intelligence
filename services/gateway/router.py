@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+from typing import Literal
+from uuid import UUID
 
 from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
@@ -10,6 +12,7 @@ from services.common.logging import get_logger
 try:
     from fastapi import APIRouter, Query, Request
     from fastapi.responses import JSONResponse
+    from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, ValidationError
 
     from services.gateway.federation_models import FederationNodesPage
     from services.gateway.public_models import (
@@ -25,6 +28,30 @@ try:
         PublicMetricSummary,
         PublicMetricSummaryEnvelope,
     )
+
+    class _DataStreamAttestationRecord(BaseModel):
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        post_id: UUID
+        location_id: UUID
+        post_content_hash: str | None = Field(max_length=128)
+        is_anchored: bool | None = Field(strict=True)
+        attestation_uid: str | None = Field(max_length=66)
+        chain: str | None = Field(max_length=50)
+        anchored_at: AwareDatetime | None
+        request_status: Literal[
+            "pending", "submitted", "confirmed", "failed", "cancelled"
+        ] | None
+        tx_hash: str | None = Field(max_length=66)
+        block_number: int | None = Field(strict=True)
+        confirmed_at: AwareDatetime | None
+        request_created_at: AwareDatetime | None
+
+    class _DataStreamAttestationEnvelope(BaseModel):
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        data: _DataStreamAttestationRecord
+
 except ImportError:
     # Stub for environments without FastAPI
     class APIRouter:
@@ -45,6 +72,8 @@ except ImportError:
     PublicLocationSummaryEnvelope = PublicCrispAssessmentEnvelope = None
     PublicMetricSummaryEnvelope = None
     FederationNodesPage = None
+    _DataStreamAttestationEnvelope = None
+    ValidationError = None
 
 router = APIRouter()
 logger = get_logger("gateway.router")
@@ -429,9 +458,13 @@ async def list_data_stream_post_files(
         return _internal_error(exc)
 
 
-@router.get("/data-stream/posts/{post_id}/attestation")
+@router.get(
+    "/data-stream/posts/{post_id}/attestation",
+    response_model=_DataStreamAttestationEnvelope,
+)
 async def get_data_stream_post_attestation(post_id: str, request: Request):
     """Read stored attestation metadata without caching or querying the chain."""
+    from fastapi.encoders import jsonable_encoder
     from starlette.concurrency import run_in_threadpool
 
     try:
@@ -445,7 +478,16 @@ async def get_data_stream_post_attestation(post_id: str, request: Request):
         )
         if row is None:
             return _private_response({"error": "Data Stream post not found"}, status_code=404)
-        return _private_response({"data": row})
+        try:
+            response = _DataStreamAttestationEnvelope.model_validate({"data": row})
+            if (
+                response.data.post_id != UUID(post_id)
+                or response.data.location_id != UUID(request.query_params.get("location_id"))
+            ):
+                raise ValueError("Data Stream attestation scope does not match request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            return _internal_error(exc, "Data Stream attestation unavailable")
+        return _private_response({"data": jsonable_encoder(row)})
     except ValueError as exc:
         return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:

@@ -9,6 +9,7 @@ queries/business logic. Reachable via:
 import argparse
 import json
 from datetime import date
+from uuid import UUID
 
 from .marketplace import (
     create_buyer_profile,
@@ -30,7 +31,7 @@ from .marketplace import (
 # CLI
 # ============================================================
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Digital marketplace for agricultural produce")
     sub = parser.add_subparsers(dest="command")
 
@@ -138,13 +139,21 @@ def main():
     ev.add_argument("--listing-id", required=True)
     ev.add_argument("--json", action="store_true")
 
-    args = parser.parse_args()
-
-    from ..ingestion.base import get_db
+    args = parser.parse_args(argv)
 
     if not args.command:
         parser.print_help()
         return
+
+    if args.command in {"create-listing", "market-overview", "create-alert"} or (
+        args.command == "list-active" and args.location_id is not None
+    ):
+        try:
+            UUID(args.location_id)
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
+
+    from ..ingestion.base import get_db
 
     db = get_db()
 

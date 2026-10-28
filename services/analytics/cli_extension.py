@@ -7,6 +7,7 @@ queries/business logic. Reachable via:
 """
 
 import argparse
+from uuid import UUID
 
 from ..common.cli import print_json
 from .extension import (
@@ -30,7 +31,7 @@ from .extension import (
 # CLI
 # ============================================================
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Digital extension services")
     sub = parser.add_subparsers(dest="command")
 
@@ -146,13 +147,19 @@ def main():
     rc.add_argument("--location-id", required=True)
     rc.add_argument("--json", action="store_true")
 
-    args = parser.parse_args()
-
-    from ..ingestion.base import get_db
+    args = parser.parse_args(argv)
 
     if args.command is None:
         parser.print_help()
         return
+
+    if getattr(args, "location_id", None) is not None:
+        try:
+            UUID(args.location_id)
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
+
+    from ..ingestion.base import get_db
 
     db = get_db()
 

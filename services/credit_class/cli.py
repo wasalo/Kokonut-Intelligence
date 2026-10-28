@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from uuid import UUID
 
 from services.common.cli import print_json
 from services.common.database import get_connection
@@ -418,6 +419,11 @@ def main():
     if not args.command:
         parser.print_help()
         sys.exit(1)
+    if args.command == "enrollment" and args.subcommand == "list-by-project":
+        try:
+            UUID(args.location_id)
+        except ValueError:
+            parser.error("--location-id must be a valid UUID")
     args.func(args)
 
 

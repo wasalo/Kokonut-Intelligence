@@ -53,7 +53,9 @@ def test_reward_calibration_advisory_error_is_class_only(monkeypatch):
     cur.fetchone.return_value = {"name": "Synthetic location"}
     cur.fetchall.return_value = []
 
-    result = operations.generate_reward_calibration(conn, "location-1")
+    result = operations.generate_reward_calibration(
+        conn, "a0000000-0000-0000-0000-000000000001"
+    )
 
     assert result["overjustification_risk"] == {
         "error": "overjustification analysis failed (RuntimeError)"

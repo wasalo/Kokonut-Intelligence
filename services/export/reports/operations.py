@@ -19,6 +19,9 @@ def generate_pest_management(conn, location_id: str, period_start: str = None, p
     Analysis lives in the pest_management domain module
     (get_pest_management_report); this generator just routes to it.
     """
+    if not _looks_like_uuid(location_id):
+        raise ValueError("pest_management requires an explicit location_id")
+
     from ...analytics.pest_management import get_pest_management_report
 
     return get_pest_management_report(conn, location_id, period_start, period_end)
@@ -102,6 +105,9 @@ def generate_resource_efficiency(conn, location_id: str, period_start: str = Non
 
 def generate_training_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe training impact report with participation and improvement metrics."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("training_impact requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -144,6 +150,9 @@ def generate_training_impact(conn, location_id: str, period_start: str = None, p
 
 def generate_revenue_streams(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe revenue streams report showing contribution to profitability."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("revenue_streams requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -184,6 +193,9 @@ def generate_revenue_streams(conn, location_id: str, period_start: str = None, p
 
 def generate_model_validation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe model validation report with prediction accuracy and feature importance."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("model_validation requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -235,6 +247,9 @@ def generate_model_validation(conn, location_id: str, period_start: str = None, 
 
 def generate_livestock_feed(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe livestock feed report with intake, conversion ratio, and per-animal metrics."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("livestock_feed requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -286,6 +301,9 @@ def generate_livestock_feed(conn, location_id: str, period_start: str = None, pe
 
 def generate_token_rewards(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe token rewards report with distribution, epoch totals, and metric correlation."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("token_rewards requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -339,6 +357,9 @@ def generate_token_rewards(conn, location_id: str, period_start: str = None, per
 
 def generate_reward_calibration(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe reward calibration report with calibration model outputs and sensitivity."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("reward_calibration requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -405,6 +426,9 @@ def generate_organic_certification_readiness(
     conn, location_id: str, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe organic certification readiness report with composite score and sub-dimensions."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("organic_certification_readiness requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -473,6 +497,9 @@ def generate_organic_transition_progress(
     conn, location_id: str, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe organic transition progress report with timeline, milestones, and barriers."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("organic_transition_progress requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -523,6 +550,9 @@ def generate_organic_transition_progress(
 
 def generate_organic_input_audit(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe organic input audit report with full input trail, organic/prohibited flags, and compliance."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("organic_input_audit requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -582,6 +612,9 @@ def generate_statement_of_work(conn, location_id: str, period_start: str = None,
     Pulls objectives, tasks, phases, steps, financials, staff, partners, and
     SOW-specific tables to produce a comprehensive project document.
     """
+    if not _looks_like_uuid(location_id):
+        raise ValueError("statement_of_work requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
 

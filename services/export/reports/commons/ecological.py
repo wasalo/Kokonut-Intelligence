@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 
 
 def generate_ecological_modeling(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe ecological modeling report with interactions, model runs, and population dynamics."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("ecological_modeling requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -105,6 +105,9 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
 
 def generate_trophic_pyramid(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe trophic pyramid report showing energy flow across trophic levels."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("trophic_pyramid requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

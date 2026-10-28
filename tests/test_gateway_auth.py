@@ -3,6 +3,7 @@
 import hashlib
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 import pytest
 
@@ -365,7 +366,20 @@ def test_data_stream_file_and_attestation_routes_use_separate_read_scopes(monkey
         ) as list_files,
         patch(
             "services.gateway.data_stream.get_gateway_data_stream_attestation",
-            return_value={"post_id": post_id, "request_status": "confirmed"},
+            return_value={
+                "post_id": UUID(post_id),
+                "location_id": UUID(location_id),
+                "post_content_hash": None,
+                "is_anchored": False,
+                "attestation_uid": None,
+                "chain": "celo",
+                "anchored_at": None,
+                "request_status": "confirmed",
+                "tx_hash": None,
+                "block_number": None,
+                "confirmed_at": None,
+                "request_created_at": None,
+            },
         ) as read_attestation,
     ):
         with TestClient(create_app()) as client:
@@ -384,7 +398,22 @@ def test_data_stream_file_and_attestation_routes_use_separate_read_scopes(monkey
     assert files.json() == {"data": [{"id": "file-1", "file_name": "field-note.jpg"}]}
     assert files.headers["cache-control"] == "no-store"
     assert proof.status_code == 200
-    assert proof.json() == {"data": {"post_id": post_id, "request_status": "confirmed"}}
+    assert proof.json() == {
+        "data": {
+            "post_id": post_id,
+            "location_id": location_id,
+            "post_content_hash": None,
+            "is_anchored": False,
+            "attestation_uid": None,
+            "chain": "celo",
+            "anchored_at": None,
+            "request_status": "confirmed",
+            "tx_hash": None,
+            "block_number": None,
+            "confirmed_at": None,
+            "request_created_at": None,
+        }
+    }
     assert proof.headers["cache-control"] == "no-store"
     assert list_files.call_args.args[1] == location_id
     assert list_files.call_args.args[2]["resource"] == "data_stream_file"

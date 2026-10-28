@@ -124,6 +124,9 @@ def generate_replication_readiness(
 
 def generate_adaptive_stewardship(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe adaptive stewardship report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("adaptive_stewardship requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

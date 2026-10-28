@@ -7,6 +7,7 @@ queries/business logic. Reachable via:
 """
 
 from datetime import date, datetime
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .farmer_identity import (
@@ -320,7 +321,22 @@ cli.subcommand("directory", "Get farmer directory") \
 
 
 def main(argv=None):
-    cli.run(argv)
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    location_commands = {
+        "create-profile",
+        "list-farmers",
+        "assign-role",
+        "register-device",
+        "access-matrix",
+        "directory",
+    }
+    if args.command in location_commands and args.location_id is not None:
+        try:
+            UUID(args.location_id)
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
+    return cli.run(argv)
 
 
 if __name__ == "__main__":
