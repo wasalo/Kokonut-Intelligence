@@ -1,5 +1,44 @@
 """OIDC routes for saved, location-scoped geostatistics outputs."""
 
+from typing import Literal
+from uuid import UUID
+
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+
+class _SpatialAutocorrelationResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class SpatialAutocorrelationStatistic(_SpatialAutocorrelationResponseModel):
+    property_key: str = Field(max_length=100)
+    metric: Literal["morans_i", "gearys_c", "join_count"]
+    statistic_value: float | None = Field(strict=True)
+    expected_value: float | None = Field(strict=True)
+    p_value: float | None = Field(strict=True)
+    z_score: float | None = Field(strict=True)
+    n_samples: int = Field(ge=0, strict=True)
+    spatial_weights_type: Literal["queen", "rook", "distance", "knn"] | None
+    distance_threshold: float | None = Field(strict=True)
+    k_neighbors: int | None = Field(default=None, strict=True)
+    computed_at: AwareDatetime
+
+
+class SpatialAutocorrelationPage(_SpatialAutocorrelationResponseModel):
+    location_id: UUID
+    items: list[SpatialAutocorrelationStatistic] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10_000, strict=True)
+    has_more: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) < self.limit and self.has_more:
+            raise ValueError("has_more is inconsistent with the returned page")
+        if self.has_more and self.offset + self.limit > 10_000:
+            raise ValueError("has_more exceeds the supported offset boundary")
+        return self
+
 
 def register_geostatistics_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
@@ -23,7 +62,10 @@ def register_geostatistics_routes(router, provider, run_in_threadpool, psycopg2)
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
-    @router.get("/operator/api/geostatistics/{location_id}/autocorrelation")
+    @router.get(
+        "/operator/api/geostatistics/{location_id}/autocorrelation",
+        response_model=SpatialAutocorrelationPage,
+    )
     async def spatial_autocorrelation(
         request: Request,
         location_id: str,
@@ -63,7 +105,28 @@ def register_geostatistics_routes(router, provider, run_in_threadpool, psycopg2)
                 content={"error": "Spatial autocorrelation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SpatialAutocorrelationPage.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Spatial autocorrelation response does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.geostatistics").warning(
+                "Spatial autocorrelation response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Spatial autocorrelation unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")), headers=headers
+        )
 
     @router.get("/operator/api/geostatistics/{location_id}/cross-validation")
     async def spatial_cross_validation(

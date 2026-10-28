@@ -907,3 +907,192 @@ def test_invalid_trend_page_bounds_fail_before_service(monkeypatch, path, query)
         response = client.get(f"/operator/api/trends/{LOCATION_ID}/{path}?{query}")
     assert response.status_code == 422
     assert not called
+
+
+_TREND_TIMESTAMP = "2026-03-03T12:00:00+00:00"
+_TREND_READ_PROJECTIONS = {
+    "estimates": {
+        "location_id": LOCATION_ID,
+        "items": [{
+            "metric_key": "soil_carbon",
+            "period_start": "2026-01-01T00:00:00+00:00",
+            "period_end": "2026-03-01T00:00:00+00:00",
+            "data_points": 10,
+            "slope": 0.1,
+            "intercept": 1.0,
+            "r_squared": 0.8,
+            "standard_error": 0.01,
+            "slope_p_value": 0.02,
+            "direction": "improving",
+            "confidence_level": "high",
+            "slope_ci_lower": 0.08,
+            "slope_ci_upper": 0.12,
+            "time_unit": "day",
+            "computed_at": _TREND_TIMESTAMP,
+        }],
+        "limit": 1,
+        "offset": 0,
+        "has_more": False,
+    },
+    "smoothing": {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "items": [{
+            "metric_key": "soil_carbon",
+            "smoothing_type": "exponential",
+            "timestamp": _TREND_TIMESTAMP,
+            "original_value": 4.0,
+            "smoothed_value": 3.5,
+            "computed_at": _TREND_TIMESTAMP,
+        }],
+    },
+    "change-points": {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "items": [{
+            "metric_key": "soil_carbon",
+            "detection_method": "cusum",
+            "change_point_index": 14,
+            "change_point_timestamp": _TREND_TIMESTAMP,
+            "magnitude": 0.7,
+            "direction": "increase",
+            "confidence": 0.9,
+            "segment_count": 2,
+            "status": "confirmed",
+            "detected_at": _TREND_TIMESTAMP,
+        }],
+    },
+    "decomposition": {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "item": {
+            "metric_key": "soil_carbon",
+            "decomposition_method": "stl",
+            "period": 12,
+            "trend_component": [1.0, 2.0, None],
+            "seasonal_component": [0.2, 0.3, 0.4],
+            "residual_component": [None, -0.1, None],
+            "seasonal_strength": 0.7,
+            "trend_strength": 0.8,
+            "residual_variance": 0.05,
+            "data_points": 240,
+            "trend_component_points": 240,
+            "seasonal_component_points": 240,
+            "residual_component_points": 240,
+            "truncated": True,
+            "computed_at": _TREND_TIMESTAMP,
+        },
+    },
+    "forecast": {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "item": {
+            "metric_key": "soil_carbon",
+            "model_type": "arima",
+            "forecast_values": [4.2],
+            "intervals": [{"step": 1, "forecast": 4.2, "lower": 3.8, "upper": 4.6}],
+            "interval_confidence": 0.95,
+            "forecast_horizon": 1,
+            "time_unit": "day",
+            "training_points": 30,
+            "status": "active",
+            "truncated": False,
+            "forecast_at": _TREND_TIMESTAMP,
+        },
+    },
+}
+
+
+def _trend_response_app(monkeypatch, route_name, result):
+    def empty_estimates(*_args, **_kwargs):
+        return {
+            "location_id": LOCATION_ID,
+            "items": [],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+        }
+
+    def selected(name):
+        def read(*_args, **_kwargs):
+            if route_name == name:
+                return result
+            if name == "estimates":
+                return empty_estimates()
+            return {
+                "location_id": LOCATION_ID,
+                "metric_key": "soil_carbon",
+                "items": [],
+            }
+
+        return read
+
+    return _register_route(
+        monkeypatch,
+        selected("estimates"),
+        smoothing_reader=selected("smoothing"),
+        change_points_reader=selected("change-points"),
+        decomposition_reader=selected("decomposition"),
+        forecast_reader=selected("forecast"),
+    )
+
+
+@pytest.mark.parametrize(
+    ("route_name", "query"),
+    [
+        ("estimates", "?limit=1&offset=0"),
+        ("smoothing", "?metric_key=soil_carbon&limit=1"),
+        ("change-points", "?metric_key=soil_carbon&limit=1"),
+        ("decomposition", "?metric_key=soil_carbon"),
+        ("forecast", "?metric_key=soil_carbon"),
+    ],
+)
+def test_saved_trend_read_response_models_accept_safe_projections(
+    monkeypatch, route_name, query
+):
+    app = _trend_response_app(monkeypatch, route_name, _TREND_READ_PROJECTIONS[route_name])
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/trends/{LOCATION_ID}/{route_name}{query}")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["location_id"] == LOCATION_ID
+
+
+@pytest.mark.parametrize(
+    ("route_name", "query"),
+    [
+        ("estimates", "?limit=1&offset=0"),
+        ("smoothing", "?metric_key=soil_carbon&limit=1"),
+        ("change-points", "?metric_key=soil_carbon&limit=1"),
+        ("decomposition", "?metric_key=soil_carbon"),
+        ("forecast", "?metric_key=soil_carbon"),
+    ],
+)
+def test_saved_trend_read_rejects_unknown_projection_fields_without_leaking(
+    monkeypatch, route_name, query
+):
+    result = dict(_TREND_READ_PROJECTIONS[route_name])
+    result["unselected_private_payload"] = "must not be returned"
+    app = _trend_response_app(monkeypatch, route_name, result)
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/trends/{LOCATION_ID}/{route_name}{query}")
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    expected_error = {
+        "estimates": "Trend estimates unavailable",
+        "smoothing": "Trend smoothing unavailable",
+        "change-points": "Trend change-point read unavailable",
+        "decomposition": "Trend decomposition unavailable",
+        "forecast": "Trend forecast unavailable",
+    }
+    assert response.json() == {"error": expected_error[route_name]}
+
+
+def test_saved_trend_get_routes_publish_success_models_in_openapi(monkeypatch):
+    app = _trend_response_app(monkeypatch, "estimates", _TREND_READ_PROJECTIONS["estimates"])
+    paths = app.openapi()["paths"]
+    for route_name in _TREND_READ_PROJECTIONS:
+        path = f"/operator/api/trends/{{location_id}}/{route_name}"
+        assert "schema" in paths[path]["get"]["responses"]["200"]["content"]["application/json"]

@@ -128,7 +128,7 @@ def get_location_crop_simulation_runs(
             "total_runs": total_runs,
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= _MAX_OFFSET,
             "runs": runs,
         }
     finally:
@@ -262,7 +262,9 @@ def get_location_crop_simulation_run_detail(
             "total_states": total_states,
             "limit": limit,
             "offset": offset,
-            "has_more": len(state_rows) > limit,
+            "has_more": (
+                len(state_rows) > limit and offset + limit <= _MAX_OFFSET
+            ),
             "states": states,
         }
     finally:

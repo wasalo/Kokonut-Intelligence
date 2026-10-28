@@ -22164,3 +22164,39 @@ response](builds/2026-10-28-recovery/nutrient-balances-response-contract.json),
 [combined verification](builds/2026-10-28-recovery/gateway-nutrient-strategy-competitive-response-contract-batch.json).
 Checklist: 1,405 complete / 25 open (1,430 total); capability classifications
 remain unchanged.
+
+
+### Progress addendum — six more private Gateway response families — 28 October 2026
+
+The crop-simulation run list and detail routes now validate strict nested
+responses and request identity while excluding raw run configuration, errors,
+costs, and metadata. Their service readers and response models now stop
+advertising another page when it would exceed offset 10,000; regressions cover
+offsets 9,975, 9,976, and 10,000. The geostatistics autocorrelation read now
+publishes a schema-derived model with strict enums, finite numeric values, and
+location/pagination binding. All five trend-analysis GET routes publish
+strict nested response schemas and bind location, metric, and page values.
+
+Management-work summaries now expose only schema-derived counts and the latest
+event time. Business-planning canvas reads validate the nine canonical content
+blocks and stop continuation at the offset ceiling. Planning-budget reads
+validate financial summary types and status, omit plan narrative, vendor,
+transaction, scenario-assumption, and evidence detail, and stop continuation
+at the same cap.
+
+The combined Gateway selection passes 188 tests and the crop module passes 36,
+including the offset-boundary cases. Ruff, compilation, capability-matrix
+validation, evidence JSON parsing, runtime SQL inventory checks on Python
+3.11/3.12, and diff checks pass; the 37-entry unresolved-write ledger remains
+unchanged. No live database/provider, candidate, or legacy service was used. These are
+source/API contracts only; populated-data parity, live OIDC/browser behavior,
+tenant isolation, and physical Raspberry Pi acceptance remain open. Evidence:
+[crop](builds/2026-10-28-recovery/crop-simulation-response-contract.json),
+[geostatistics](builds/2026-10-28-recovery/geostatistics-autocorrelation-response-contract.json),
+[trend](builds/2026-10-28-recovery/trend-analysis-get-response-contracts.json),
+[management](builds/2026-10-28-recovery/management-work-summary-response-contract.json),
+[business planning](builds/2026-10-28-recovery/business-planning-canvas-response-contract.json),
+[planning budget](builds/2026-10-28-recovery/planning-budget-summary-response-contract.json),
+[combined verification](builds/2026-10-28-recovery/gateway-private-response-contracts-batch-2.json).
+Checklist: 1,411 complete / 25 open (1,436 total); capability classifications
+remain unchanged.

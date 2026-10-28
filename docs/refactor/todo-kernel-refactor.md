@@ -1365,3 +1365,27 @@ and providers were not used ([evidence](builds/2026-10-28-recovery/gateway-nutri
 The checklist is now 1,405 complete / 25 open (1,430 total); this TODO ledger
 has 113 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance are unchanged.
+
+### Completed parallel continuation — six private Gateway response families — 28 October 2026
+
+- [x] Add strict source-derived response models and request binding for crop
+  simulation run list/detail; correct `has_more` at the 10,000 offset ceiling.
+- [x] Add the spatial-autocorrelation response model with source enums,
+  numeric bounds, and request-bound location/page metadata.
+- [x] Enforce response contracts for the five private trend-analysis GET
+  endpoints, including metric and pagination identity.
+- [x] Validate the management workload summary's SQL projection, counts,
+  timestamp, privacy allowlist, and location.
+- [x] Validate business-planning canvas list content and bounded continuation.
+- [x] Validate planning-budget summaries and stop pagination beyond the
+  supported offset ceiling.
+
+The combined selection passes 188 tests; crop-specific offset-boundary tests
+pass at 9,975, 9,976, and 10,000. Ruff, compilation, capability-matrix
+validation, JSON evidence parsing, runtime SQL inventory checks on Python
+3.11/3.12, and diff checks pass. The 37-entry unresolved-write ledger is
+unchanged. No candidate/legacy database or provider was used
+([evidence](builds/2026-10-28-recovery/gateway-private-response-contracts-batch-2.json)).
+The checklist is now 1,411 complete / 25 open (1,436 total); this TODO ledger
+has 119 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.

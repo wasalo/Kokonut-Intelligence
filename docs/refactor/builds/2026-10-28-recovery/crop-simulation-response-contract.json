@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "9cf98338",
+  "working_tree_dirty": true,
+  "scope": "Publish and enforce strict response contracts for the private crop simulation run list and run-detail routes.",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/operator/api/crop-simulations/{location_id}/runs",
+      "response_model": "CropSimulationRunsResponse",
+      "contract": [
+        "Strict nested allowlist for run identifiers, names, timestamps, duration, yield, water, nitrogen, and soil carbon.",
+        "Strict counts and request-bound location, limit, and offset.",
+        "The page length and has_more flag must agree with total_runs, requested page size, and the 10,000 next-offset ceiling."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/operator/api/crop-simulations/{location_id}/runs/{run_id}",
+      "response_model": "CropSimulationRunDetailResponse",
+      "contract": [
+        "Strict nested run and daily-state allowlists aligned with the SELECT projection and schema.",
+        "Raw run parameters, configuration, metadata, errors, cost/revenue/margin, and state IDs remain excluded.",
+        "The response must match requested location, run, limit, and offset; page length and has_more must agree with total_states and the 10,000 next-offset ceiling."
+      ]
+    }
+  ],
+  "error_behavior": "Existing OIDC-disabled, tenant-denial, invalid-input, not-found, and sanitized database errors are preserved. Malformed successful projections return a generic no-store 500 with Vary: Cookie.",
+  "checks": [
+    {
+      "command": "python3 -m pytest -q tests/test_gateway_crop_simulations.py",
+      "result": "passed",
+      "passed": 36
+    },
+    {
+      "command": "ruff check services/gateway/crop_simulation_routes.py tests/test_gateway_crop_simulations.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/crop_simulation_routes.py tests/test_gateway_crop_simulations.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_called": false,
+    "candidate_or_legacy_touched": false
+  },
+  "limitations": [
+    "These tests validate response schema and fake-backed route behavior; they do not establish populated-data parity, live OIDC/browser behavior, or agronomic correctness.",
+    "Continuation is intentionally not advertised when a full next page would begin beyond the supported 10,000 offset ceiling."
+  ]
+}

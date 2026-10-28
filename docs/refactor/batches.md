@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,405 checklist items complete and 25
-open (1,430 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,411 checklist items complete and 25
+open (1,436 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5178,4 +5178,41 @@ and compilation were verified on 3.12 ([combined evidence](builds/2026-10-28-rec
 The checklist is 1,405 complete / 25 open (1,430 total); capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows. Live OIDC, populated-data parity, and broader tenant isolation
+remain open.
+
+### Completed parallel continuation — six private Gateway response families — 28 October 2026
+
+- [x] Publish strict response contracts for crop-simulation run list and
+  detail, including source-field allowlists, request identity, and bounded
+  states; stop `has_more` at the 10,000-offset ceiling
+  ([evidence](builds/2026-10-28-recovery/crop-simulation-response-contract.json)).
+- [x] Publish and enforce a strict response contract for spatial
+  autocorrelation with source enums, numeric constraints, requested-location
+  binding, and bounded continuation
+  ([evidence](builds/2026-10-28-recovery/geostatistics-autocorrelation-response-contract.json)).
+- [x] Add strict OpenAPI/runtime models to all five private trend-analysis
+  reads and bind the returned location, metric, and page to the request
+  ([evidence](builds/2026-10-28-recovery/trend-analysis-get-response-contracts.json)).
+- [x] Validate the management-work summary against its SQL projection, strict
+  counts, timestamp type, privacy allowlist, and requested location
+  ([evidence](builds/2026-10-28-recovery/management-work-summary-response-contract.json)).
+- [x] Validate the business-planning canvas list and its nine content blocks;
+  stop continuation beyond the supported offset ceiling
+  ([evidence](builds/2026-10-28-recovery/business-planning-canvas-response-contract.json)).
+- [x] Publish and enforce the planning-budget projection, protecting financial
+  and counterparty detail while validating schema statuses, finite amounts,
+  location binding, and pagination
+  ([evidence](builds/2026-10-28-recovery/planning-budget-summary-response-contract.json)).
+
+The combined focused selection passes 188 tests, including crop pagination
+boundary cases at offsets 9,975, 9,976, and 10,000. Ruff, compilation, JSON
+evidence parsing, capability validation, runtime SQL inventory checks on
+Python 3.11/3.12, and diff checks pass; the 37-entry unresolved-write ledger
+is unchanged. No database, provider, candidate, or legacy service was used
+([combined evidence](builds/2026-10-28-recovery/gateway-private-response-contracts-batch-2.json)).
+
+The checklist is 1,411 complete / 25 open (1,436 total); the TODO ledger has
+119 checked and 16 open entries. The capability matrix now records 28 private
+Gateway response endpoints across 67 rows: 24 baseline-retained, 7 deployed,
+and 36 prepared. Live OIDC, populated-data parity, and broader tenant isolation
 remain open.

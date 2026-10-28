@@ -51,6 +51,8 @@ def test_openapi_publishes_planning_budget_reader_page_bounds():
         "type": "integer",
         "default": 0,
     }
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("PlanningBudgetSummaryPage")
 
 
 @pytest.mark.parametrize(

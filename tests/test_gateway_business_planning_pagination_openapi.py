@@ -16,9 +16,15 @@ def _app(monkeypatch):
     location_id = str(uuid4())
     calls = []
 
-    def reader(*_args, **_kwargs):
+    def reader(*_args, **kwargs):
         calls.append(True)
-        return {"location_id": location_id, "canvases": []}
+        return {
+            "location_id": location_id,
+            "offset": kwargs.get("offset", 0),
+            "canvases": [],
+            "has_more": False,
+            "next_offset": None,
+        }
 
     monkeypatch.setattr(
         "services.gateway.business_planning_reads.list_location_business_model_canvases",
@@ -54,6 +60,9 @@ def test_business_planning_canvas_list_publishes_service_bounds(monkeypatch):
     assert parameters["offset"]["schema"]["default"] == 0
     assert parameters["offset"]["schema"]["minimum"] == 0
     assert parameters["offset"]["schema"]["maximum"] == 10000
+    assert schema["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "BusinessCanvasListResponse"
+    )
 
     with TestClient(app) as client:
         response = client.get(f"/operator/api/business-planning/{location_id}/canvases")

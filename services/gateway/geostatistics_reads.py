@@ -223,7 +223,9 @@ def list_location_spatial_autocorrelation(
             "items": rows[:limit],
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": (
+                len(rows) > limit and offset + limit <= _MAX_OFFSET
+            ),
         }
     except Exception:
         connection.rollback()

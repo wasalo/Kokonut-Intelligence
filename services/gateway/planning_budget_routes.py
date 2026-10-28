@@ -1,5 +1,50 @@
 """OIDC routes for location-scoped planning budget summaries."""
 
+from datetime import date
+from typing import Literal
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+
+class _PlanningBudgetResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class PlanningBudgetSummary(_PlanningBudgetResponseModel):
+    financial_plan_id: UUID
+    plan_status: Literal["draft", "approved", "active", "closed", "cancelled"]
+    currency: str = Field(min_length=1, max_length=10)
+    period_start: date
+    period_end: date
+    has_objective: bool = Field(strict=True)
+    budget_line_count: int = Field(ge=1, strict=True)
+    planned_amount: float
+    verified_expense_amount: float
+    budget_variance: float
+    nonmatching_currency_expense_count: int = Field(ge=0, strict=True)
+    planning_scenario_count: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        if self.period_end < self.period_start:
+            raise ValueError("planning period end precedes start")
+        return self
+
+
+class PlanningBudgetSummaryPage(_PlanningBudgetResponseModel):
+    location_id: UUID
+    offset: int = Field(ge=0, le=10_000, strict=True)
+    plans: list[PlanningBudgetSummary] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(default=None, ge=0, le=10_000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more != (self.next_offset is not None):
+            raise ValueError("has_more and next_offset are inconsistent")
+        return self
+
 
 def register_planning_budget_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
@@ -15,7 +60,10 @@ def register_planning_budget_routes(router, provider, run_in_threadpool, psycopg
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
-    @router.get("/operator/api/planning/{location_id}/budgets")
+    @router.get(
+        "/operator/api/planning/{location_id}/budgets",
+        response_model=PlanningBudgetSummaryPage,
+    )
     async def location_planning_budgets(
         request: Request,
         location_id: str,
@@ -61,4 +109,28 @@ def register_planning_budget_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Planning budget read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = PlanningBudgetSummaryPage.model_validate(result)
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.offset != offset
+                or len(validated.plans) > limit
+                or (validated.has_more and expected_next_offset > 10_000)
+                or validated.next_offset != expected_next_offset
+            ):
+                raise ValueError("Planning budget response does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.planning_budget").warning(
+                "Planning budget response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Planning budget read unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")), headers=headers
+        )

@@ -1247,3 +1247,90 @@ def test_realization_points_http_route_hides_unowned_run(monkeypatch):
         )
     assert response.status_code == 404
     assert response.headers["cache-control"] == "no-store"
+
+
+def _autocorrelation_projection(location_id=LOCATION_ID, *, limit=25, offset=0):
+    return {
+        "location_id": location_id,
+        "items": [
+            {
+                "property_key": "soil_carbon",
+                "metric": "morans_i",
+                "statistic_value": 0.7,
+                "expected_value": 0.1,
+                "p_value": 0.03,
+                "z_score": 2.1,
+                "n_samples": 30,
+                "spatial_weights_type": "knn",
+                "distance_threshold": None,
+                "k_neighbors": 8,
+                "computed_at": "2026-10-28T12:00:00+00:00",
+            }
+        ],
+        "limit": limit,
+        "offset": offset,
+        "has_more": False,
+    }
+
+
+def test_autocorrelation_http_contract_is_documented_and_validated(monkeypatch):
+    app = _app(monkeypatch, lambda *_args, **_kwargs: _autocorrelation_projection())
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/autocorrelation"
+        )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["items"][0]["metric"] == "morans_i"
+    schema = app.openapi()["paths"][
+        "/operator/api/geostatistics/{location_id}/autocorrelation"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("SpatialAutocorrelationPage")
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result["items"][0].update(private_metadata={"secret": True}),
+        lambda result: result["items"][0].update(metric="unregistered_metric"),
+        lambda result: result["items"][0].update(n_samples=True),
+        lambda result: result["items"][0].update(statistic_value="0.7"),
+        lambda result: result.update(location_id="33333333-3333-4333-8333-333333333333"),
+        lambda result: result.update(limit=24),
+        lambda result: result.update(has_more=True),
+    ],
+)
+def test_autocorrelation_http_rejects_malformed_projection(monkeypatch, mutate):
+    result = _autocorrelation_projection()
+    mutate(result)
+    app = _app(monkeypatch, lambda *_args, **_kwargs: result)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/autocorrelation"
+        )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == {"error": "Spatial autocorrelation unavailable"}
+
+
+def test_autocorrelation_service_stops_continuation_at_offset_ceiling(monkeypatch):
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+    connection = _Connection()
+    result = list_location_spatial_autocorrelation(
+        OPERATOR_ID,
+        LOCATION_ID,
+        limit=1,
+        offset=10_000,
+        connection_factory=lambda: connection,
+    )
+
+    assert len(result["items"]) == 1
+    assert result["has_more"] is False
+    assert connection.closed
