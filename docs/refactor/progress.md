@@ -1,3 +1,21 @@
+### Progress addendum — Kernel release-input lock repair — 28 October 2026
+
+PR #71 CI failed because `Dockerfile.kernel` changed when the optional OIDC
+image added `requirements/http-client.txt`, but the release-input lock retained
+the old Dockerfile hash and did not hash either OIDC manifest. The lock now
+records the Dockerfile, `requirements/oidc.txt`, and
+`requirements/http-client.txt` hashes. The local release-input gate and 36
+focused Kernel profile/release-gate tests pass. Hosted Security passed on the
+failed head; a fresh hosted CI run remains necessary to verify the repair.
+No image was built or inspected as part of this lock-only correction.
+
+Capability classifications and MAN-CAP acceptance are unchanged. Checklist:
+1,297 complete / 25 open (1,322 total); 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows.
+
+Evidence: [failure and repair record](builds/2026-10-28-recovery/ci-kernel-release-lock-repair.json),
+[release lock](../config/kernel/release-input-lock.json).
+
 ### Progress addendum — C2 calculated NOI snapshot SDK boundary — 27 October 2026
 
 `noi_snapshot` contains calculated outputs, source inputs, calculation version,

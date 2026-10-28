@@ -1,6 +1,6 @@
 # Kokonut Kernel refactor TODO
 
-Updated: 27 October 2026. This is the active cross-phase work queue for the
+Updated: 28 October 2026. This is the active cross-phase work queue for the
 owner-provided [architecture implementation plan](implementation-plan-alignment.md).
 The detailed, historically preserved acceptance records remain in
 [batches.md](batches.md); this file groups their remaining gates into work that
@@ -10,6 +10,14 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Repair the Kernel release-input lock after the OIDC Dockerfile added its
+  shared HTTP client requirement. The hash gate now covers the updated
+  `Dockerfile.kernel` plus `requirements/oidc.txt` and
+  `requirements/http-client.txt`. The local release-input check and 36 focused
+  Kernel profile/release-gate tests pass. Hosted CI #71 failed on the stale
+  Dockerfile hash; Security passed. A new hosted CI run is still required to
+  confirm the repair. See
+  [evidence](builds/2026-10-28-recovery/ci-kernel-release-lock-repair.json).
 - [x] Keep calculated NOI snapshots read-only in both SDKs. Source review found
   no SDK mutation callsites; generic writes could supply final financial values
   without calculation provenance. Preserve list/detail/crop-cycle reads and
@@ -740,6 +748,13 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   passes 111 tests; JavaScript passes 55; TypeScript builds; Ruff and compilation
   pass. No database/provider was used. This does not establish tenant isolation
   or change capability/MAN-CAP status ([batch](batches.md); [evidence](builds/2026-10-27-recovery/sdk-noi-snapshot-read-only-contract.json)).
+
+### Current continuation — CI Kernel release-input lock repair
+
+- [x] Update the Kernel release input lock to match the existing OIDC Dockerfile
+  dependency change and hash both OIDC requirement manifests. The local lock
+  gate and 36 focused profile/release tests pass; the failed hosted run has not
+  yet been rerun on the repaired commit ([batch](batches.md); [evidence](builds/2026-10-28-recovery/ci-kernel-release-lock-repair.json)).
 
 ### Current continuation — C1 farmer credential-type catalog boundary
 
