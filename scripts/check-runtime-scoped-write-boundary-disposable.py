@@ -96,10 +96,14 @@ PEST_DEGREE_DAY_CONFIG_MIGRATION = (
 REVENUE_MULTIPLIER_CONFIG_MIGRATION = (
     ROOT / "schemas/postgres/675_runtime_revenue_multiplier_config_read_only.sql"
 )
+REFERENCE_CLASS_MIGRATION = (
+    ROOT / "schemas/postgres/676_runtime_reference_class_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
     "revenue_multiplier_config",
+    "reference_class",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
@@ -270,6 +274,7 @@ def check_boundary(
                     "crop_gdd_config",
                     "pest_degree_day_config",
                     "revenue_multiplier_config",
+                    "reference_class",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -419,6 +424,11 @@ def check_boundary(
                 )
                 cursor.execute(revenue_multiplier_config_migration)
                 cursor.execute(revenue_multiplier_config_migration)
+                reference_class_migration = REFERENCE_CLASS_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(reference_class_migration)
+                cursor.execute(reference_class_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -511,6 +521,7 @@ def check_boundary(
                         "crop_gdd_config": 673,
                         "pest_degree_day_config": 674,
                         "revenue_multiplier_config": 675,
+                        "reference_class": 676,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -565,7 +576,7 @@ def check_boundary(
                     "process_maturity_level", "pollinator_species_reference",
                     "gri_indicator", "governance_framework",
                     "impact_framework", "impact_dimension",
-                    "expense_category", "crisp_risk_dimension",
+                    "expense_category", "crisp_risk_dimension", "reference_class",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -607,6 +618,7 @@ def check_boundary(
                     ("crop_gdd_config", 673),
                     ("pest_degree_day_config", 674),
                     ("revenue_multiplier_config", 675),
+                    ("reference_class", 676),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -796,7 +808,10 @@ def check_boundary(
                         "migration 666 or runtime provisioner changed the Directus role"
                     )
             with connection.cursor() as cursor:
-                for table in ("process_maturity_level", "pollinator_species_reference"):
+                for table in (
+                    "process_maturity_level", "pollinator_species_reference",
+                    "reference_class",
+                ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
                         "has_table_privilege('kokonut_directus_runtime', %s, 'INSERT'), "
@@ -1315,6 +1330,14 @@ def check_boundary(
                     "directus_role_unchanged": True,
                 },
                 "read_only_revenue_multiplier_config": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_reference_class": {
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,

@@ -56,6 +56,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "crop_gdd_config": "runtime_mutations_denied",
     "pest_degree_day_config": "runtime_mutations_denied",
     "revenue_multiplier_config": "runtime_mutations_denied",
+    "reference_class": "runtime_mutations_denied",
     "dfs_currency": "runtime_mutations_denied",
     "ghg_emission_factor": "runtime_mutations_denied",
     "operations_protocol": "runtime_mutations_denied",

@@ -52,9 +52,9 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
     mutation_relation = "ai_summary"
     scoped_policy = {
         "private_relations_expected": 79,
-        "mutation_denied_relations_expected": 40,
+        "mutation_denied_relations_expected": 41,
         "private_relations_verified": 79,
-        "mutation_denied_relations_verified": 40,
+        "mutation_denied_relations_verified": 41,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
@@ -192,6 +192,13 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
                     update=False,
                     delete=False,
                 ),
+                _acl_row(
+                    "reference_class",
+                    select=True,
+                    insert=False,
+                    update=False,
+                    delete=False,
+                ),
             ],
             "runtime_scoped_write_policy": scoped_policy,
             "runtime_append_only_policy": {
@@ -257,6 +264,9 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
     assert rows["carbon_benchmark"]["expected_runtime_boundary"] == "runtime_mutations_denied"
     assert rows["carbon_benchmark"]["configured_runtime_boundary"] == "runtime_mutations_denied"
     assert rows["carbon_benchmark"]["runtime_boundary_policy_matches_source"] is True
+    assert rows["reference_class"]["expected_runtime_boundary"] == "runtime_mutations_denied"
+    assert rows["reference_class"]["configured_runtime_boundary"] == "runtime_mutations_denied"
+    assert rows["reference_class"]["runtime_boundary_policy_matches_source"] is True
     assert report["summary"]["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == 0
     assert report["runtime_role_acceptance"] == {
         "full_schema_replay_passed": True,

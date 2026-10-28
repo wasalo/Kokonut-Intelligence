@@ -1,3 +1,47 @@
+### Progress addendum — C1 governed reference-class runtime ACL — 27 October 2026
+
+Source review confirms `reference_class` is a governed, versioned evidence
+registry. Prediction comparison reads only verified or published classes; the
+CLI does not create them, and no service or extension source writes the table.
+Migration 676 now leaves SELECT available to `kokonut_runtime` while denying
+its table and column mutation/reference privileges. The role provisioner
+reapplies the boundary after compatibility grants, and the separate
+Directus/admin role is unaffected.
+
+Native and ARM64/QEMU PostgreSQL 16 disposable checks pass migration
+apply/replay, read access, mutation/TRUNCATE/REFERENCES and stale-column
+denial, provisioner reapplication, and synthetic Directus grant preservation.
+The corrected native full replay applies all 667 ordered schema migrations and
+passes the provisioner plus all 31 two-tenant checks under verified 1.5 GiB /
+two-CPU limits. It verifies 123 controls (79 private, 41 mutation-denied, two
+append-only, and the API-key read-only column boundary), zero direct table or
+column privilege violations, and 997 relations with effective DML while RLS is
+disabled. The replay used no seeds or farm data and published no ports; it was
+not OOM-killed, cleanup succeeded, and candidate/legacy state was untouched.
+The first replay exposed stale 40-relation expectations in the scope-probe
+parser; the parser and fixtures now expect 41, and the corrected full replay
+passes. The refreshed source/ACL report has zero policy mismatches.
+
+The `data_freshness_config` review did not produce a privilege change. Its
+active thresholds and location scope are operational controls; no replacement
+operator write path is present in service source. Keep that configuration
+manageable through the existing administrative path until a dedicated Kernel
+management contract is available, then revisit the broad runtime grant.
+
+The combined runtime-role, report, migration-runner, ARM64-parser, SQL-inventory,
+reference-class, and prediction-calibration selection reports 173 passed and one skipped. Ruff, compilation, dependency/provider boundaries, and diff
+checks pass. No capability classification or MAN-CAP acceptance changed. This
+is synthetic ACL/schema evidence, not populated reference-class parity, live
+Directus API parity, physical Raspberry Pi, or production acceptance. Checklist:
+1,290 complete / 25 open (1,315 total); classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+Evidence: [migration](../schemas/postgres/676_runtime_reference_class_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/reference-class-runtime-read-only-disposable.json),
+[ARM64 ACL](builds/2026-10-27-recovery/reference-class-runtime-read-only-arm64-disposable.json),
+[full schema and tenant probe](builds/2026-10-27-recovery/runtime-role-full-schema-676-native-disposable.json),
+[source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+
 ### Progress addendum — C1 capability-access audit ledger ACL — 27 October 2026
 
 Source review found `AuditLogger` inserts and queries `access_audit_log`; no

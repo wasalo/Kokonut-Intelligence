@@ -28,7 +28,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 122
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 123
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -900,6 +900,53 @@ def test_revenue_multiplier_config_is_read_only_to_kernel_runtime():
     assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
     assert "REVOKE ALL PRIVILEGES ON TABLE public.revenue_multiplier_config FROM kokonut_runtime" in migration
     assert "GRANT SELECT ON TABLE public.revenue_multiplier_config TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_governed_reference_classes_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/676_runtime_reference_class_read_only.sql"
+    ).read_text()
+    schema = (
+        root / "schemas/postgres/169_prediction_calibration_outside_view.sql"
+    ).read_text()
+    prediction_service = (root / "services/predictions/service.py").read_text()
+    product_contract = (
+        root / "docs/prediction-calibration-and-outside-view.md"
+    ).read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "reference_class" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "reference_class" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS reference_class" in schema
+    assert "rc.status IN ('verified','published')" in prediction_service
+    assert "does not create one" in product_contract
+    assert not any(
+        "reference_class" in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?reference_class\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.reference_class FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.reference_class TO kokonut_runtime" in migration
     assert "REVOKE INSERT (%1$I)" in migration
     assert "REVOKE UPDATE (%1$I)" in migration
     assert "REVOKE REFERENCES (%1$I)" in migration
