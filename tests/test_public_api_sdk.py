@@ -15,6 +15,8 @@ sys.path.insert(0, str(SDK_PATH))
 from kokonut.public_api import (  # noqa: E402
     KokonutPublicApiClient,
     PublicApiError,
+    PublicDriverCatalogEntry,
+    PublicDriverCatalogPage,
     PublicLocation,
 )
 
@@ -173,6 +175,69 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
     ]
     assert all(kwargs == {"timeout": 4.5} for _, kwargs in session.calls)
     assert session.headers == {"Accept": "application/json", "x-api-key": "test-key"}
+
+
+def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> None:
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "data": {
+                        "drivers": [
+                            {
+                                "driver_name": "weather_openweathermap",
+                                "driver_version": "1.2.0",
+                                "driver_type": "weather",
+                            }
+                        ],
+                        "limit": 7,
+                        "offset": 12,
+                        "has_more": True,
+                    }
+                },
+            )
+        ]
+    )
+    client = KokonutPublicApiClient("https://gateway.example", session=session)
+
+    page = client.drivers.list(limit=7, offset=12)
+
+    assert isinstance(page, PublicDriverCatalogPage)
+    assert page == PublicDriverCatalogPage(
+        drivers=[
+            PublicDriverCatalogEntry(
+                driver_name="weather_openweathermap",
+                driver_version="1.2.0",
+                driver_type="weather",
+            )
+        ],
+        limit=7,
+        offset=12,
+        has_more=True,
+    )
+    assert session.calls == [
+        (
+            "https://gateway.example/api/v1/drivers?limit=7&offset=12",
+            {"timeout": 10.0},
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("limit", "offset"),
+    [(0, 0), (51, 0), (1.5, 0), (True, 0), (1, -1), (1, 5001), (1, 0.5)],
+)
+def test_driver_catalog_sdk_rejects_invalid_pages_before_transport(
+    limit: Any, offset: Any
+) -> None:
+    session = FakeSession([])
+    client = KokonutPublicApiClient("https://gateway.example", session=session)
+
+    with pytest.raises(ValueError):
+        client.drivers.list(limit=limit, offset=offset)
+
+    assert session.calls == []
 
 
 @pytest.mark.parametrize(

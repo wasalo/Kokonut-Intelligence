@@ -24,6 +24,23 @@ export interface PublicCrispAssessmentEnvelopeV1 {
   data: PublicCrispAssessmentV1;
 }
 
+export interface PublicDriverCatalogEntryV1 {
+  driver_name: string;
+  driver_type: "sensor" | "remote_sensing" | "market" | "blockchain" | "weather" | "climate" | "gis";
+  driver_version: string;
+}
+
+export interface PublicDriverCatalogEnvelopeV1 {
+  data: PublicDriverCatalogResponseV1;
+}
+
+export interface PublicDriverCatalogResponseV1 {
+  drivers: PublicDriverCatalogEntryV1[];
+  has_more: boolean;
+  limit: number;
+  offset: number;
+}
+
 export interface PublicErrorV1 {
   error: string;
 }
@@ -84,5 +101,6 @@ export const publicApiPathsV1 = {
   getPublicLocationSummaryV1: "/analytics/{location_id}/summary",
   getPublicLocationV1: "/locations/{location_id}",
   getPublicMetricSummaryV1: "/metrics/{location_id}",
+  listPublicDriversV1: "/drivers",
   listPublicLocationsV1: "/locations",
 } as const;

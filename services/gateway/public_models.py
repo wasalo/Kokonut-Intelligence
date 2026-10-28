@@ -86,6 +86,10 @@ class PublicDriverCatalogResponse(PublicModel):
     has_more: bool
 
 
+class PublicDriverCatalogEnvelope(PublicModel):
+    data: PublicDriverCatalogResponse
+
+
 class PublicMetricCounts(PublicModel):
     metric_count: int = Field(ge=0)
     latest_computed_at: datetime | None

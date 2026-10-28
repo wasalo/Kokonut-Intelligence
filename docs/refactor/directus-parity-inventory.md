@@ -250,6 +250,18 @@ Directus surface has been replaced.
 | Schema metadata | [`tests/test_directus_metadata.py`](../../tests/test_directus_metadata.py) and [`schemas/directus/snapshots/schema_latest.json`](../../schemas/directus/snapshots/schema_latest.json) | The checker compares snapshot sort fields and physical field metadata, and can query the local Compose database when it is running. | Permission parity, API response shape, current runtime identity, or whether the optional Directus profile is deployed. |
 | Native replacement surface | [`services/gateway/router.py`](../../services/gateway/router.py), [`services/gateway/operator_auth.py`](../../services/gateway/operator_auth.py), [`services/gateway/farm_activity_roles.py`](../../services/gateway/farm_activity_roles.py), and the [Gateway farm-activity contract](gateway-farm-activity-operations.md) | Native routes cover a bounded public read surface and selected authenticated reviewer, Field Collector, and farm-activity operations. Farm-activity templates expand into explicit tenant-qualified grants; Analyst reads are verified/published-only. Migration 404 adds a separate append-only operator event ledger for non-Field-Collector operations. | This is scoped support for the native Field Collector workflow and non-Field-Collector `farm_activity` records, not every Directus collection/field/relation, administrative UI, hook side effects, or schedules. Migration rollout and historical-row reconciliation are open. |
 
+**Tenant-reference lookup hardening (28 October 2026):** create/update hooks now
+include the authorized `location_id` in each known farm, plot-through-farm,
+crop-cycle, harvest, staff-assignment/membership, scenario-parent, and
+infrastructure-asset reference lookup. A valid UUID that is absent or belongs
+to another location returns the same field-specific unavailable response.
+Fourteen focused mocked tests assert the tenant predicates and
+missing/foreign equivalence; the full 124-test extension suite, bundle build,
+and TypeScript check pass. This removes the reference-existence oracle from this
+hook path only; pinned Directus runtime permissions, populated parity, and
+other relation/hook effects remain unverified
+([evidence](builds/2026-10-28-recovery/directus-tenant-reference-nondisclosure.json)).
+
 The 13 October pinned-image probe found that the archived `directus_users`
 table had no `location_id` column while staff filters referenced it. Synthetic
 Field Worker requests were denied and exposed no rows, which was fail-closed

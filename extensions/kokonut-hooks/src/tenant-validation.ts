@@ -28,27 +28,27 @@ async function lookupStaffAtLocation(
 }
 
 const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
-  farm_id: (database, referenceId) => database('farm')
-    .where('id', referenceId)
+  farm_id: (database, referenceId, locationId) => database('farm')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
-  plot_id: (database, referenceId) => database('plot as plot_ref')
+  plot_id: (database, referenceId, locationId) => database('plot as plot_ref')
     .join('farm as farm_ref', 'plot_ref.farm_id', 'farm_ref.id')
-    .where('plot_ref.id', referenceId)
+    .where({ 'plot_ref.id': referenceId, 'farm_ref.location_id': locationId })
     .first('farm_ref.location_id as location_id'),
-  crop_cycle_id: (database, referenceId) => database('crop_cycle')
-    .where('id', referenceId)
+  crop_cycle_id: (database, referenceId, locationId) => database('crop_cycle')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
-  harvest_id: (database, referenceId) => database('harvest_event')
-    .where('id', referenceId)
+  harvest_id: (database, referenceId, locationId) => database('harvest_event')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
   staff_id: lookupStaffAtLocation,
   reviewed_by: lookupStaffAtLocation,
   reviewer_id: lookupStaffAtLocation,
-  parent_scenario_id: (database, referenceId) => database('forecast_scenario')
-    .where('id', referenceId)
+  parent_scenario_id: (database, referenceId, locationId) => database('forecast_scenario')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
-  infrastructure_asset_id: (database, referenceId) => database('infrastructure_asset')
-    .where('id', referenceId)
+  infrastructure_asset_id: (database, referenceId, locationId) => database('infrastructure_asset')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
 };
 
@@ -78,9 +78,9 @@ async function validateReferencesAtLocation(
     if (!isUuid(referenceId)) throw invalidTenantPayload(`Invalid ${field}`);
 
     const reference = await lookup(database, referenceId, locationId);
-    if (!reference) throw invalidTenantPayload(`Unknown ${field}`);
+    if (!reference) throw invalidTenantPayload(`${field} is unavailable for this location`);
     if (reference.location_id !== locationId) {
-      throw invalidTenantPayload(`${field} belongs to a different location`);
+      throw invalidTenantPayload(`${field} is unavailable for this location`);
     }
   }
 }

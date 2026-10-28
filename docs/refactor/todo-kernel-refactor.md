@@ -482,16 +482,18 @@ that its full source-plan phase is complete.
 - [ ] **C1 — Replace broad runtime database privileges with scoped contracts.**
   Initial pre-provisioning inventory remains a historical baseline: 1,101
   relations had runtime DML and RLS disabled. The latest native, network-
-  disabled replay applies all 670 ordered schema files through migration 679
-  and passes 34 synthetic two-tenant scope checks. It verifies 126 declared
-  controls (79 private relations, 44 mutation-denied relations, two append-only
-  relations, and the API-key read-only column boundary), with zero direct table
-  or column violations. The probe still reports 994 relations with effective
-  DML while RLS is disabled, so broad runtime access and universal application
-  tenant isolation remain open. ARM64/QEMU has full-schema replay evidence
-  through migration 679 and focused ACL checks through 679; this is software
-  portability evidence only. The latest full native report counts 994
-  relations with effective DML while RLS is disabled.
+  disabled replay applies all 672 ordered schema files through migration 681
+  and passes the synthetic two-tenant/operator scope probe. It verifies 128
+  declared controls (79 private relations, 46 mutation-denied relations, two
+  append-only relations, plus the API-key column boundary), with zero direct
+  table/column privilege violations. The observed report still has 992
+  relations with effective DML while RLS is disabled, so broad runtime access
+  and universal application tenant isolation remain open. ARM64/QEMU now also
+  replays all 672 schema files through migration 681 under network-disabled
+  1.5 GiB/two-CPU limits, with zero pending/failed files and cleanup complete.
+  That run did not execute the optional operator-scope probe; it is
+  schema/portability evidence only, not ARM64 ACL-probe or physical Raspberry
+  Pi evidence.
 
   Migrations 676 and 677 keep governed `reference_class` and seeded
   `farmer_credential_type` guidance readable but immutable to
@@ -546,9 +548,10 @@ that its full source-plan phase is complete.
   rejects writes and residual privileges, and verifies Directus grants remain
   unchanged. The harness covers 127 synthetic relations (79 private, 46
   mutation-denied, two append-only); this does not establish RLS or tenant
-  isolation. The full-schema ACL replay still ends at migration 679
+  isolation. The fresh native full-schema ACL replay now reaches migration 681
   ([migration](../schemas/postgres/681_runtime_metric_definition_read_only.sql);
-  [focused acceptance](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json)).
+  [focused acceptance](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json);
+  [full-schema replay](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json)).
   The source review found
   dynamic curriculum definitions in `competency_framework` with no source-owned
   management contract; its grants remain unchanged until the Gateway or
@@ -557,9 +560,13 @@ that its full source-plan phase is complete.
   `process_benchmark`, `farm_task_framework_step`, and governed reference data
   without complete caller/consumer ownership proof. Review remaining callers
   and management paths before changing grants. Do not blanket-revoke based on
-  static absence. Preserve rollback and distinguish table grants from RLS,
-  worker, Directus, and production enforcement. The current report shows
-  245 unprotected DML relations without an inventoried callsite and 422 without
+  static absence. A 28 October follow-up also found that `app_role` has only a
+  read callsite in the source inventory, but it stores application
+  authorization data and its editor/consumer ownership is unknown; it is not a
+  safe revoke candidate without that reconciliation. Preserve rollback and
+  distinguish table grants from RLS, worker, Directus, and production
+  enforcement. The current report shows
+  245 unprotected DML relations without an inventoried callsite and 420 without
   an inventoried write-target site; the report does not include all Directus,
   external, ownership, security-definer, column-ACL, or populated-runtime paths.
   Trace signed-context/write boundaries for the remaining 281 analytics and 25
@@ -573,16 +580,17 @@ that its full source-plan phase is complete.
   DML could break deployed clients, so no code change is safe until the
   contract is reconciled.
   Sources: [runtime boundary](batches.md#c1-market-reference-catalog-acl--28-october-2026),
-  [full-schema replay](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
-  [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-679.json),
+  [full native schema replay through 681](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
+  [ARM64 schema replay through 681](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json),
   [market-reference ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
   [quantity-unit ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
   [analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json),
   [local SQL template resolution](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json).
-  The ACL report now states that the historical full-schema observations stop
-  at 679 while repository policy is at 681; it marks current policy coverage
-  unobserved and exposes the historical `metric_definition` DML grant rather
-  than representing it as verified
+  The refreshed ACL report observes the full schema and source policy through
+  migration 681, including the `metric_definition` read-only boundary. It
+  records 128 migration-backed controls and 992 relations retaining DML while
+  RLS is disabled; external writers, populated tenant isolation, and
+  production state remain outside the report
   ([report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json)).
 - [ ] **C2 — Finish Gateway and SDK contract parity.** Audit registered routes,
   auth/action/scope policy, pagination, error models and SDK behavior; close
@@ -675,7 +683,12 @@ that its full source-plan phase is complete.
   hook suite passes 12 tests and the TypeScript check. This closes the
   source-level relation-query oracle but does not prove live API permissions
   or populated-row parity
-  ([evidence](builds/2026-10-28-recovery/directus-relation-query-boundary.json)). Sources:
+  ([evidence](builds/2026-10-28-recovery/directus-relation-query-boundary.json)).
+  The known writable-reference lookups now carry the requested location and
+  return the same unavailable error for missing and foreign valid UUIDs; 14
+  focused predicate/non-disclosure tests and the extension build pass
+  ([evidence](builds/2026-10-28-recovery/directus-tenant-reference-nondisclosure.json)).
+  Pinned-runtime permissions and populated-row parity remain open. Sources:
   [Directus parity](batches.md#L2117),
   [preflight](directus-polymorphic-lineage-preflight.md),
   [transport/Directus gates](batches.md#L3320).
@@ -744,13 +757,13 @@ that its full source-plan phase is complete.
   [CAP-036](batches.md#L3574), [CAP-037](batches.md#L3582),
   [CAP-038](batches.md#L3652).
 - [ ] **C7 — Finish software-only ARM64 and recovery evidence.** The full
-  ARM64/QEMU schema replay now passes through migration 680 under a verified
-  1.5 GiB/two-CPU database budget. Focused native and ARM64/QEMU checks cover
-  migrations 672–680. The prior full native replay through 679 passes 34
-  two-tenant assertions; no seeds or farm data were loaded, no host ports were
-  published, and candidate/legacy state stayed untouched. The new ARM64 full-
-  chain replay applied all 671 schemas through 680, zero pending/failed, with
-  network disabled, no seeds or OOM, and verified cleanup. A separate
+  ARM64/QEMU schema replay now passes all 672 files through migration 681
+  under a verified 1.5 GiB/two-CPU database budget. The network was disabled,
+  no ports, seeds, or farm data were used, no OOM occurred, and cleanup passed.
+  That replay did not enable its optional operator-scope probe. The native full
+  replay through 681 separately passes the synthetic two-tenant/operator
+  assertions; candidate and legacy state stayed untouched. Focused native and
+  ARM64/QEMU ACL checks cover migrations 672–680. A separate
   network-disabled schema check replayed all 671 schema files through migration
   680 and executed both Directus lineage queries; this demonstrates SQL/schema
   compatibility only, not ARM64 behavior, populated lineage, RLS, or effective
@@ -774,8 +787,8 @@ that its full source-plan phase is complete.
   this checks configuration only and is not physical Raspberry Pi runtime
   acceptance ([evidence](builds/2026-10-28-recovery/edge-compose-resource-contract.json)).
   Sources: [Phase 8](implementation-plan-alignment.md#L28),
-  [latest native full replay](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
-  [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-680.json),
+  [latest native full replay](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
+  [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json),
   [core profile](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
   [multiarch profile gate](kernel-release-inputs.md),
   [migration 679 ARM64 ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
@@ -1235,3 +1248,13 @@ and global tenant isolation are not established. The current checklist is
 1,382 complete / 25 open (1,407 total); capability classifications and
 MAN-CAP acceptance are unchanged. This TODO ledger now has 92 checked and 16
 open entries.
+
+### Completed continuation — public driver and tenant-reference contracts — 28 October 2026
+
+- [x] Add the stable versioned public driver catalog route and typed Python/TypeScript SDK methods. Generated OpenAPI/SDK parity, pagination bounds, response allowlist, and mocked transport checks pass ([evidence](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json)).
+- [x] Make Directus writable-reference lookups location-qualified and conceal whether a valid UUID is missing or belongs to another location. Fourteen focused predicate/non-disclosure tests, the full 124-test extension suite, and the extension build/type check pass ([evidence](builds/2026-10-28-recovery/directus-tenant-reference-nondisclosure.json)). Live Directus role/field/row parity remains open.
+- [x] Replay the full schema on ARM64/QEMU through migration 681 with verified 1.5 GiB/two-CPU limits, network disabled, no seeds or host ports, and cleanup success. The optional operator-scope probe did not run, and no physical Raspberry Pi was used ([evidence](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json)).
+
+The batches checklist is 1,385 complete / 25 open (1,410 total). This TODO
+ledger now has 95 checked and 16 open entries; capability classifications and
+MAN-CAP acceptance remain unchanged.

@@ -355,7 +355,10 @@ class DriverRegistry:
                 ],
                 "limit": limit,
                 "offset": offset,
-                "has_more": len(rows) > limit,
+                "has_more": (
+                    len(rows) > limit
+                    and offset + limit <= PUBLIC_DRIVER_CATALOG_MAX_OFFSET
+                ),
             }
         except Exception as exc:
             logger.error("Failed to list public drivers (%s)", safe_exception_class(exc))

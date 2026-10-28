@@ -21943,3 +21943,33 @@ Evidence: [metric-definition ACL](builds/2026-10-28-recovery/runtime-scoped-writ
 [edge resource contract](builds/2026-10-28-recovery/edge-compose-resource-contract.json),
 [Yahoo price-feed audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json),
 [C5 scope evidence](builds/2026-10-28-recovery/state-of-kokonut-selected-actor-scope.json).
+
+### Progress addendum — public driver SDK and Directus reference scoping — 28 October 2026
+
+The native Gateway now exposes the enabled driver catalog as a versioned,
+anonymous GET with bounded pagination and a generated OpenAPI envelope. Python
+and TypeScript clients expose typed pagination, validate limits before making
+requests, and use the checked-in generated route/schema. `has_more` is false
+when the next page offset would exceed the advertised ceiling. The focused
+Python Gateway/OpenAPI/SDK selection passes 45 tests; the JavaScript public API
+suite passes 25 tests and the full JavaScript SDK suite passes 73; TypeScript
+build and generated SDK freshness checks pass.
+
+The optional Directus tenant hook now places the requested location in each
+writable-reference lookup and returns the same unavailable error for missing
+and foreign-location UUIDs. Fourteen focused tests verify the SQL predicates
+and non-disclosure behavior; the full extension suite passes 124 tests, and
+the extension bundle and TypeScript check pass.
+This narrows the source-level adapter boundary only; live Directus permissions,
+effective role/field/row parity, and populated data remain open.
+
+Ruff, Python compilation, and `git diff --check` pass for the changed Python
+surface. A separate network-disabled ARM64/QEMU replay applied all 672 ordered
+schema files through migration 681 under verified 1.5 GiB/two-CPU limits; it
+did not run the optional operator-scope probe, so it is schema portability
+evidence only. Cleanup completed without OOM or candidate/legacy access. The
+current checklist is 1,385 complete / 25 open (1,410 total); the
+67 capability rows remain 24 baseline-retained, 7 deployed, and 36 prepared,
+with MAN-CAP acceptance unchanged. Evidence: [driver API/SDK](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json),
+[Directus reference boundary](builds/2026-10-28-recovery/directus-tenant-reference-nondisclosure.json),
+[ARM64/QEMU schema replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json).

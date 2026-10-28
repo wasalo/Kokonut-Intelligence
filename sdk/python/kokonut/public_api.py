@@ -13,6 +13,7 @@ import requests
 from .generated_public_api import (
     PUBLIC_API_PATHS_V1,
     ApiPublicCrispAssessment,
+    ApiPublicDriverCatalogResponse,
     ApiPublicLocation,
     ApiPublicLocationSummary,
     ApiPublicMetric,
@@ -37,6 +38,52 @@ class PublicLocation:
             region=payload.get("region"),
             status=payload["status"],
         )
+
+
+@dataclass(frozen=True)
+class PublicDriverCatalogEntry:
+    driver_name: str
+    driver_version: str
+    driver_type: Literal[
+        "sensor", "remote_sensing", "market", "blockchain", "weather", "climate", "gis"
+    ]
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "PublicDriverCatalogEntry":
+        return cls(
+            driver_name=str(payload["driver_name"]),
+            driver_version=str(payload["driver_version"]),
+            driver_type=payload["driver_type"],
+        )
+
+
+@dataclass(frozen=True)
+class PublicDriverCatalogPage:
+    drivers: list[PublicDriverCatalogEntry]
+    limit: int
+    offset: int
+    has_more: bool
+
+    @classmethod
+    def from_payload(
+        cls, payload: ApiPublicDriverCatalogResponse
+    ) -> "PublicDriverCatalogPage":
+        return cls(
+            drivers=[
+                PublicDriverCatalogEntry.from_payload(row)
+                for row in payload["drivers"]
+            ],
+            limit=int(payload["limit"]),
+            offset=int(payload["offset"]),
+            has_more=bool(payload["has_more"]),
+        )
+
+
+def _validate_driver_page(limit: int, offset: int) -> None:
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
+        raise ValueError("limit must be an integer from 1 through 50")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 5000:
+        raise ValueError("offset must be an integer from 0 through 5000")
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
@@ -183,6 +230,19 @@ class PublicLocationMethods:
         return PublicLocation.from_payload(payload)
 
 
+class PublicDriverMethods:
+    def __init__(self, client: "KokonutPublicApiClient") -> None:
+        self._client = client
+
+    def list(self, *, limit: int = 50, offset: int = 0) -> PublicDriverCatalogPage:
+        _validate_driver_page(limit, offset)
+        path = PUBLIC_API_PATHS_V1["listPublicDriversV1"]
+        payload = self._client._get(
+            f"{path}?limit={limit}&offset={offset}", data_shape="object"
+        )["data"]
+        return PublicDriverCatalogPage.from_payload(payload)
+
+
 class PublicMetricMethods:
     def __init__(self, client: "KokonutPublicApiClient") -> None:
         self._client = client
@@ -246,6 +306,7 @@ class KokonutPublicApiClient:
         if api_key:
             self.session.headers["x-api-key"] = api_key
         self.locations = PublicLocationMethods(self)
+        self.drivers = PublicDriverMethods(self)
         self.metrics = PublicMetricMethods(self)
         self.crisp = PublicCrispMethods(self)
         self.analytics = PublicAnalyticsMethods(self)

@@ -258,6 +258,14 @@ plain text by clients. Large share, loot, and vote quantities are returned as
 decimal strings to preserve exact values. OIDC location grants do not imply
 global DAO access.
 
+The versioned public read API also exposes the enabled driver catalog at
+`GET /api/v1/drivers`. It returns only driver name, version, and type, ordered
+by type and name. `limit` is bounded to 1–50 and `offset` to 0–5000; the
+`data` envelope includes `has_more` only while another bounded page can be
+requested. Loader paths, configuration, credentials, and disabled drivers are
+not returned. The route is an explicit anonymous read policy and has no write
+methods.
+
 ## Modules
 
 - `app` — Gateway application — FastAPI app with auth, routing, rate limiting, and audit.

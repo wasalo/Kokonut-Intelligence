@@ -45,6 +45,7 @@ _EXPECTED_ROUTE_POLICIES = {
     ("GET", "/api/v1/metrics/{location_id}"): ("metric", "read", True),
     ("GET", "/api/v1/crisp/{location_id}"): ("crisp_risk_assessment", "read", True),
     ("GET", "/api/v1/analytics/{location_id}/summary"): ("analytics", "read", True),
+    ("GET", "/api/v1/drivers"): ("driver", "read", True),
     ("GET", "/api/v1/governance/baal/config"): ("governance", "read", False),
     ("GET", "/api/v1/governance/baal/proposals"): ("governance", "read", False),
     ("GET", "/api/v1/governance/baal/proposals/{proposal_id}"): ("governance", "read", False),

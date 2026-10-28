@@ -108,6 +108,57 @@ describe('KokonutPublicApiClient', () => {
     expect(fetch.mock.calls.every(([, init]) => init.signal !== undefined)).toBe(true);
   });
 
+  it('lists the bounded public driver catalog through the generated v1 route', async () => {
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(
+      response(200, {
+        data: {
+          drivers: [
+            {
+              driver_name: 'weather_openweathermap',
+              driver_version: '1.2.0',
+              driver_type: 'weather',
+            },
+          ],
+          limit: 7,
+          offset: 12,
+          has_more: true,
+        },
+      }),
+    );
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    await expect(client.drivers.list({ limit: 7, offset: 12 })).resolves.toEqual({
+      drivers: [
+        {
+          driver_name: 'weather_openweathermap',
+          driver_version: '1.2.0',
+          driver_type: 'weather',
+        },
+      ],
+      limit: 7,
+      offset: 12,
+      has_more: true,
+    });
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      'https://gateway.example/api/v1/drivers?limit=7&offset=12',
+    );
+  });
+
+  it.each([
+    [0, 0],
+    [51, 0],
+    [1.5, 0],
+    [1, -1],
+    [1, 5001],
+    [1, 0.5],
+  ])('rejects invalid driver catalog page %s/%s before transport', (limit, offset) => {
+    const fetch = vi.fn<PublicFetch>();
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    expect(() => client.drivers.list({ limit, offset })).toThrow(RangeError);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('defaults to the Python SDK 10-second deadline and aborts a stalled fetch', async () => {
     vi.useFakeTimers();
     try {

@@ -15,6 +15,7 @@ try:
     from services.gateway.public_models import (
         PublicCrispAssessment,
         PublicCrispAssessmentEnvelope,
+        PublicDriverCatalogEnvelope,
         PublicDriverCatalogResponse,
         PublicError,
         PublicLocationListResponse,
@@ -39,7 +40,7 @@ except ImportError:
         return default
 
     JSONResponse = None
-    PublicCrispAssessment = PublicDriverCatalogResponse = PublicError = PublicLocationListResponse = None
+    PublicCrispAssessment = PublicDriverCatalogEnvelope = PublicDriverCatalogResponse = PublicError = PublicLocationListResponse = None
     PublicLocationResponse = PublicLocationSummary = PublicMetricSummary = None
     PublicLocationSummaryEnvelope = PublicCrispAssessmentEnvelope = None
     PublicMetricSummaryEnvelope = None
@@ -86,6 +87,7 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/v1/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/v1/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
     ("GET", re.compile(r"^/api/v1/analytics/([^/]+)/summary$"), "analytics", "read", True),
+    ("GET", re.compile(r"^/api/v1/drivers$"), "driver", "read", True),
     ("GET", re.compile(r"^/api/v1/governance/baal/config$"), "governance", "read", False),
     ("GET", re.compile(r"^/api/v1/governance/baal/proposals$"), "governance", "read", False),
     ("GET", re.compile(r"^/api/v1/governance/baal/proposals/[^/]+$"), "governance", "read", False),
@@ -532,6 +534,25 @@ async def list_drivers(
             PublicDriverCatalogResponse,
             page,
         )
+    except Exception as exc:
+        return _internal_error(exc)
+
+
+@router.get(
+    "/v1/drivers",
+    response_model=PublicDriverCatalogEnvelope,
+    operation_id="listPublicDriversV1",
+)
+async def list_public_drivers_v1(
+    limit: int = Query(default=50, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=5000),
+):
+    """List an enabled, bounded driver catalog through the stable v1 envelope."""
+    try:
+        from services.drivers.registry import DriverRegistry
+
+        page = DriverRegistry().list_public_drivers_page(limit=limit, offset=offset)
+        return _public_response(PublicDriverCatalogEnvelope, {"data": page})
     except Exception as exc:
         return _internal_error(exc)
 

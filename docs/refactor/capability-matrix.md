@@ -19,9 +19,11 @@ credit-custody summary and private traceability list/detail routes now publish
 strict service-derived response models; traceability preserves existing JSON
 number/datetime formats and omits sensitive unneeded fields. The JavaScript SDK
 rejects timer-overflow deadlines and verifies abort-timer cleanup. The full
-ARM64/QEMU PostgreSQL schema replay now passes all 671 schema files through
-migration 680 under bounded resources; physical-device and production recovery
-acceptance remain open. A further framework-catalog review found no safe grant
+ARM64/QEMU PostgreSQL schema replay now passes all 672 schema files through
+migration 681 under verified 1.5 GiB/two-CPU limits, with network disabled,
+zero seeds, and cleanup complete. That run did not include the optional
+operator-scope probe; physical-device and production recovery acceptance remain
+open. A further framework-catalog review found no safe grant
 revoke without owner customization-path confirmation. An additive low-dependency
 `core` profile now has separately locked base dependencies and optional Web3,
 spreadsheet/S3, and local-media overlays; existing full-capability profiles
@@ -43,8 +45,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,382
-complete / 25 open (1,407 total).
+`competency_framework` may be owner-managed. The latest checklist is 1,385
+complete / 25 open (1,410 total).
 Migration 681 makes `metric_definition` read-only to the general runtime and
 passes disposable PostgreSQL 16 replay, read/write denial, provisioner replay,
 and Directus-role preservation checks; tenant isolation remains unestablished.
@@ -58,6 +60,14 @@ not claim physical Pi runtime acceptance.
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows.
 
+The enabled public driver catalog now has a stable versioned `/api/v1/drivers`
+read with bounded pagination and generated typed Python/TypeScript clients.
+The optional Directus tenant hook also scopes writable-reference lookups by the
+requested location and uses one generic unavailable response for missing and
+foreign-location references. These are source/API contract checks; they do not
+establish live Directus role/field/row parity or populated-data parity.
+Checklist: 1,385 complete / 25 open (1,410 total).
+
 Evidence: [Directus schema check](builds/2026-10-28-recovery/directus-polymorphic-lineage-schema-disposable.json),
 [report query inventory](report-generator-query-scope-inventory.json),
 [runtime SQL resolution](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json),
@@ -67,7 +77,7 @@ Evidence: [Directus schema check](builds/2026-10-28-recovery/directus-polymorphi
 [credit-custody response contract](builds/2026-10-28-recovery/credit-custody-response-model-contract.json),
 [traceability response contract](builds/2026-10-28-recovery/traceability-response-contract.json),
 [SDK timer overflow check](builds/2026-10-28-recovery/sdk-javascript-timeout-overflow.json),
-[ARM64 schema replay through 680](builds/2026-10-28-recovery/arm64-resource-limited-schema-680.json),
+[ARM64 schema replay through 681](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json),
 [core profile contract](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
 [attestation response contract](builds/2026-10-28-recovery/attestation-response-model-contract.json),
 [tactical report scope](builds/2026-10-28-recovery/tactical-layer-companion-location-scope.json),
@@ -89,7 +99,9 @@ Evidence: [Directus schema check](builds/2026-10-28-recovery/directus-polymorphi
 [ClickHouse worker secret routing](builds/2026-10-28-recovery/worker-clickhouse-secret-routing.json),
 [competency framework write audit](builds/2026-10-28-recovery/competency-framework-runtime-write-audit.json),
 [impact-framework catalog audit](builds/2026-10-28-recovery/impact-framework-catalog-candidate-audit.json),
-[EBF scope](builds/2026-10-28-recovery/ebf-scorecard-location-scope.json).
+[EBF scope](builds/2026-10-28-recovery/ebf-scorecard-location-scope.json),
+[versioned driver API/SDK parity](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json),
+[Directus tenant-reference non-disclosure](builds/2026-10-28-recovery/directus-tenant-reference-nondisclosure.json).
 
 **Latest runtime-role boundary — migration 680 (28 October 2026):** the
 location-scoped `yield_benchmark` table is now SELECT-only for

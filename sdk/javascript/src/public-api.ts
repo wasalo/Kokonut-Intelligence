@@ -3,6 +3,7 @@
 import { publicApiPathsV1 } from './generated/public-api-v1.js';
 import type {
   PublicCrispAssessmentV1,
+  PublicDriverCatalogResponseV1,
   PublicLocationV1,
   PublicLocationSummaryV1,
   PublicMetricSummaryV1,
@@ -12,6 +13,9 @@ export type {
   PublicAttestationCountsV1,
   PublicCrispAssessmentEnvelopeV1,
   PublicCrispAssessmentV1,
+  PublicDriverCatalogEntryV1,
+  PublicDriverCatalogEnvelopeV1,
+  PublicDriverCatalogResponseV1,
   PublicErrorV1,
   PublicLocationListResponseV1,
   PublicLocationResponseV1,
@@ -29,6 +33,11 @@ export interface PublicApiClientOptions {
   /** Request deadline in milliseconds (1 through 2^31-1). Defaults to 10 seconds. */
   timeoutMs?: number;
   fetch?: PublicFetch;
+}
+
+export interface PublicDriverListOptions {
+  limit?: number;
+  offset?: number;
 }
 
 export type PublicFetchResponse = {
@@ -90,6 +99,9 @@ export class KokonutPublicApiClient {
     list: () => Promise<PublicLocationV1[]>;
     get: (locationId: string) => Promise<PublicLocationV1>;
   };
+  public readonly drivers: {
+    list: (options?: PublicDriverListOptions) => Promise<PublicDriverCatalogResponseV1>;
+  };
   public readonly metrics: {
     get: (locationId: string) => Promise<PublicMetricSummaryV1>;
   };
@@ -130,6 +142,22 @@ export class KokonutPublicApiClient {
           ),
           'object',
         ),
+    };
+    this.drivers = {
+      list: (options: PublicDriverListOptions = {}) => {
+        const limit = options.limit ?? 50;
+        const offset = options.offset ?? 0;
+        if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+          throw new RangeError('limit must be an integer from 1 through 50');
+        }
+        if (!Number.isInteger(offset) || offset < 0 || offset > 5000) {
+          throw new RangeError('offset must be an integer from 0 through 5000');
+        }
+        return this.get<PublicDriverCatalogResponseV1>(
+          `${publicApiPathsV1.listPublicDriversV1}?limit=${limit}&offset=${offset}`,
+          'object',
+        );
+      },
     };
     this.metrics = {
       get: (locationId: string) =>
