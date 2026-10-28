@@ -380,7 +380,7 @@ See [AGENTS.md](AGENTS.md) for the full command catalogue and [CHANGELOG.md](CHA
 
 ## CI And Contributing
 
-CI and security checks run through GitHub Actions on pull requests to `main` and pushes to `main`. The `CI` workflow runs the complete suite, dependency and static-analysis gates, Solidity and Directus hook checks, and locked AMD64/ARM64 builds. The `Security` workflow scans tracked source and full Git history with Gitleaks. See [the GitHub Actions operations guide](docs/github-actions.md) for deployment setup and required repository settings.
+CI and security checks run through GitHub Actions on pull requests targeting, and pushes to, both `develop` and `main`. Feature work is reviewed into `develop`; release batches are promoted from `develop` to `main` by a separate pull request. The `CI` workflow runs the complete suite, dependency and static-analysis gates, Solidity and Directus hook checks, and locked AMD64/ARM64 builds. The `Security` workflow scans tracked source and full Git history with Gitleaks. See [the GitHub Actions operations guide](docs/github-actions.md) for deployment setup and required repository settings.
 
 1. **Supply-chain gates**: Secret scanning (`check-tracked-secrets.sh`) and image digest pinning (`check-image-digests.sh`).
 2. **Fast-fail steps** (fail immediately, no Docker needed):
@@ -401,7 +401,7 @@ Contributing guidelines:
 
 > [!IMPORTANT]
 > - `AGENTS.md` is the canonical command reference and contributing workflow — update it when adding commands, env vars, or conventions.
-> - Branch from `main` (`feat/...`, `fix/...`, `chore/...`), open a GitHub pull request, and merge after review and required checks pass. Never push directly to `main` except for hotfixes.
+> - Branch from `develop` (`feat/...`, `fix/...`, `chore/...`) and open a pull request to `develop` using squash or rebase; promote release batches to `main` with a separate reviewed pull request, using a merge commit when preserving release ancestry is desired. Never push directly to either protected branch.
 > - Seed files must be idempotent with `ON CONFLICT` guards and `psql -v ON_ERROR_STOP=1`.
 
 ---
