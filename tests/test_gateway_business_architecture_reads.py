@@ -9,10 +9,12 @@ import pytest
 
 from services.common.tenant_context import TenantContextDenied
 from services.gateway import business_architecture_reads as reads
+from services.gateway.business_architecture_routes import register_business_architecture_routes
 from services.gateway.operator_auth import auth_route_policy
 
 pytest.importorskip("fastapi")
 from fastapi import APIRouter, FastAPI  # noqa: E402
+from fastapi.encoders import jsonable_encoder  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 OPERATOR_ID = str(uuid4())
@@ -26,6 +28,44 @@ MAPPING_COLUMNS = (
     "strategy_perspective",
 )
 MISSION_COLUMNS = ("statement_type", "statement_text", "effective_date", "review_date")
+
+
+def _summary_payload(location_id=LOCATION_ID, *, offset=0, limit=25, has_more=False):
+    mapping = dict(zip(MAPPING_COLUMNS, _mapping_row()))
+    mission = dict(zip(
+        MISSION_COLUMNS,
+        ("mission", "Restore living soils with our community.", date(2026, 1, 1), date(2027, 1, 1)),
+    ))
+    return {
+        "location_id": location_id,
+        "offset": offset,
+        "missions": [mission],
+        "mappings": [mapping],
+        "has_more": has_more,
+        "next_offset": offset + limit if has_more else None,
+    }
+
+
+def _route_test_app(provider=object(), database_error=Exception):
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_business_architecture_routes(
+        router, provider, run_in_threadpool, SimpleNamespace(Error=database_error)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
 
 
 class _Connection:
@@ -180,34 +220,127 @@ def test_route_policy_requires_exact_location_business_architecture_read_grant()
 
 
 def test_http_projection_is_no_store_and_requires_operator_session(monkeypatch):
-    from services.gateway.business_architecture_routes import register_business_architecture_routes
-
     monkeypatch.setattr(
         "services.gateway.business_architecture_reads.get_location_business_architecture_summary",
-        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "missions": [], "mappings": []},
+        lambda *_args, **_kwargs: _summary_payload(),
     )
-    app = FastAPI()
-    router = APIRouter()
-
-    async def run_in_threadpool(function, *args, **kwargs):
-        return function(*args, **kwargs)
-
-    register_business_architecture_routes(
-        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
-    )
-    app.include_router(router)
-
-    @app.middleware("http")
-    async def add_operator(request, call_next):
-        request.state.operator_session = SimpleNamespace(
-            operator=SimpleNamespace(operator_id=OPERATOR_ID)
-        )
-        return await call_next(request)
-
+    app = _route_test_app()
     with TestClient(app) as client:
         response = client.get(f"/operator/api/business-architecture/{LOCATION_ID}/summary")
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["location_id"] == LOCATION_ID
+    assert response.json() == jsonable_encoder(_summary_payload())
+
+
+def test_business_architecture_response_schema_is_published_and_strict():
+    schema = _route_test_app().openapi()
+    operation = schema["paths"][
+        "/operator/api/business-architecture/{location_id}/summary"
+    ]["get"]
+    response = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response == {"$ref": "#/components/schemas/BusinessArchitectureSummaryResponse"}
+    components = schema["components"]["schemas"]
+    for name in (
+        "BusinessArchitectureSummaryResponse",
+        "BusinessArchitectureMissionResponse",
+        "BusinessArchitectureMappingResponse",
+    ):
+        assert components[name]["additionalProperties"] is False
+    assert components["BusinessArchitectureSummaryResponse"]["properties"]["mappings"]["maxItems"] == 50
+    assert components["BusinessArchitectureSummaryResponse"]["properties"]["missions"]["maxItems"] == 3
+
+
+@pytest.mark.parametrize(
+    "invalid_field",
+    [
+        "extra",
+        "nested_extra",
+        "invalid_mission_type",
+        "negative_priority",
+        "too_many_mappings",
+        "wrong_location",
+        "wrong_offset",
+        "wrong_next_offset",
+    ],
+)
+def test_business_architecture_route_rejects_invalid_projection(monkeypatch, invalid_field):
+    payload = _summary_payload()
+    if invalid_field == "extra":
+        payload["source_ids"] = [str(uuid4())]
+    elif invalid_field == "nested_extra":
+        payload["missions"][0]["approved_by"] = "private"
+    elif invalid_field == "invalid_mission_type":
+        payload["missions"][0]["statement_type"] = "platform"
+    elif invalid_field == "negative_priority":
+        payload["mappings"][0]["priority"] = 0
+    elif invalid_field == "too_many_mappings":
+        payload["mappings"] = [payload["mappings"][0]] * 51
+    elif invalid_field == "wrong_location":
+        payload["location_id"] = str(uuid4())
+    elif invalid_field == "wrong_offset":
+        payload["offset"] = 1
+    else:
+        payload["has_more"] = True
+        payload["next_offset"] = 50
+    monkeypatch.setattr(
+        "services.gateway.business_architecture_reads.get_location_business_architecture_summary",
+        lambda *_args, **_kwargs: payload,
+    )
+
+    with TestClient(_route_test_app()) as client:
+        response = client.get(f"/operator/api/business-architecture/{LOCATION_ID}/summary")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Business architecture read unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+class _SyntheticDatabaseError(Exception):
+    def __init__(self, message, pgcode=None):
+        super().__init__(message)
+        self.pgcode = pgcode
+
+
+@pytest.mark.parametrize(
+    ("provider", "error", "status_code", "body", "retry_after"),
+    [
+        (None, None, 404, {"error": "Operator OIDC is disabled"}, None),
+        (
+            object(), TenantContextDenied("denied"), 403,
+            {"error": "Tenant-qualified business architecture access is required"}, None,
+        ),
+        (
+            object(), reads.BusinessArchitectureReadInvalid("Invalid location identifier"),
+            400, {"error": "Invalid location identifier"}, None,
+        ),
+        (
+            object(), _SyntheticDatabaseError("database error"), 503,
+            {"error": "Business architecture read unavailable"}, "30",
+        ),
+    ],
+)
+def test_business_architecture_route_preserves_error_contract(
+    monkeypatch, provider, error, status_code, body, retry_after
+):
+    if error is not None:
+        def fail(*_args, **_kwargs):
+            raise error
+
+        monkeypatch.setattr(
+            "services.gateway.business_architecture_reads.get_location_business_architecture_summary",
+            fail,
+        )
+    with TestClient(_route_test_app(provider, _SyntheticDatabaseError)) as client:
+        response = client.get(f"/operator/api/business-architecture/{LOCATION_ID}/summary")
+
+    assert response.status_code == status_code
+    assert response.json() == body
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    if retry_after is None:
+        assert "retry-after" not in response.headers
+    else:
+        assert response.headers["retry-after"] == retry_after

@@ -1,6 +1,127 @@
 """OIDC routes for location-scoped waste summaries and capture."""
 
 import json
+from typing import Literal
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+_WASTE_TYPES = Literal[
+    "crop_residue", "processing_waste", "packaging", "chemical_container",
+    "organic_waste", "wastewater", "other",
+]
+_DISPOSAL_METHODS = Literal[
+    "composting", "burning", "landfill", "recycling", "animal_feed",
+    "biogas", "mulching", "other",
+]
+_COMPOST_FEEDSTOCK = Literal[
+    "crop_residue", "manure", "food_waste", "green_waste", "mixed", "other",
+]
+_COMPOST_METHOD = Literal["heap", "pit", "vermiculture", "bokashi", "other"]
+_CAPTURE_STATUS = Literal["recorded", "verified", "archived"]
+
+
+class _WasteResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class WasteAggregateByType(_WasteResponseModel):
+    waste_type: _WASTE_TYPES
+    total_kg: float
+    record_count: int = Field(ge=1, strict=True)
+
+
+class WasteAggregateByDisposalMethod(_WasteResponseModel):
+    disposal_method: _DISPOSAL_METHODS | None
+    total_kg: float
+    record_count: int = Field(ge=1, strict=True)
+
+
+class WastePeriodSummary(_WasteResponseModel):
+    period_days: int = Field(ge=1, le=3650, strict=True)
+    total_waste_kg: float
+    total_records: int = Field(ge=0, strict=True)
+    by_type: list[WasteAggregateByType] = Field(max_length=7)
+    by_disposal_method: list[WasteAggregateByDisposalMethod] = Field(max_length=9)
+
+
+class WasteStreamAggregate(_WasteResponseModel):
+    waste_type: _WASTE_TYPES
+    disposal_method: _DISPOSAL_METHODS | None
+    quantity_unit: str | None
+    record_count: int = Field(ge=1, strict=True)
+    total_quantity: float
+    first_date: str | None
+    last_date: str | None
+
+
+class CompostingAggregate(_WasteResponseModel):
+    feedstock_type: _COMPOST_FEEDSTOCK
+    compost_method: _COMPOST_METHOD
+    record_count: int = Field(ge=1, strict=True)
+    feedstock_kg: float
+    total_output_kg: float
+    weighted_yield_pct: float | None
+    mean_batch_yield_pct: float | None
+    mean_duration_days: float | None
+    mean_temperature_c: float | None
+    mean_moisture_pct: float | None
+    graded_batches: int = Field(ge=0, strict=True)
+    first_date: str | None
+    last_date: str | None
+
+
+class CompostingMethodAggregate(_WasteResponseModel):
+    compost_method: _COMPOST_METHOD
+    batches: int = Field(ge=1, strict=True)
+    avg_yield_pct: float | None
+    avg_feedstock_kg: float | None
+    avg_output_kg: float | None
+    avg_duration_days: float | None
+
+
+class CompostQualityPoint(_WasteResponseModel):
+    ph: float | None
+    moisture_pct: float | None
+    temperature_c: float | None
+    output_yield_pct: float | None
+    recorded_at: str
+
+
+class CompostingEfficiencySummary(_WasteResponseModel):
+    location_id: UUID
+    total_batches: int = Field(ge=0, strict=True)
+    total_feedstock_kg: float
+    total_output_kg: float
+    overall_yield_pct: float | None
+    by_method: list[CompostingMethodAggregate] = Field(max_length=5)
+    recent_quality: list[CompostQualityPoint] = Field(max_length=10)
+
+
+class RecyclingAggregate(_WasteResponseModel):
+    material_type: Literal["plastic", "metal", "glass", "paper", "organic", "other"]
+    record_count: int = Field(ge=1, strict=True)
+    quantity_kg: float
+    first_date: str | None
+    last_date: str | None
+
+
+class PollutionIncidentAggregate(_WasteResponseModel):
+    severity: Literal["low", "medium", "high", "critical"]
+    status: Literal["open", "investigating", "remediation", "resolved", "closed"]
+    record_count: int = Field(ge=1, strict=True)
+    first_date: str | None
+    last_date: str | None
+
+
+class WasteSummaryResponse(_WasteResponseModel):
+    location_id: UUID
+    waste_summary: WastePeriodSummary
+    waste_streams: list[WasteStreamAggregate]
+    composting: list[CompostingAggregate] = Field(max_length=30)
+    composting_efficiency: CompostingEfficiencySummary
+    recycling: list[RecyclingAggregate] = Field(max_length=6)
+    pollution_incidents: list[PollutionIncidentAggregate] = Field(max_length=20)
 
 
 def register_waste_management_routes(router, provider, run_in_threadpool, psycopg2):
@@ -67,7 +188,10 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
             )
         return payload, None
 
-    @router.get("/operator/api/waste/{location_id}/summary")
+    @router.get(
+        "/operator/api/waste/{location_id}/summary",
+        response_model=WasteSummaryResponse,
+    )
     async def waste_summary(
         request: Request,
         location_id: str,
@@ -119,7 +243,28 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
                 content={"error": "Waste summary unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = WasteSummaryResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.composting_efficiency.location_id != UUID(location_id)
+                or validated.waste_summary.period_days != period_days
+            ):
+                raise ValueError("Waste summary scope does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.waste").warning(
+                "Waste summary response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Waste summary unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")), headers=headers
+        )
 
     @router.post("/operator/api/waste/{location_id}/records")
     async def create_waste_record(request: Request, location_id: str):

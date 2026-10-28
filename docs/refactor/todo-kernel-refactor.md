@@ -696,6 +696,16 @@ that its full source-plan phase is complete.
   True-cost validates all six nested aggregate sections, schema categories,
   finite numeric values, extra-field rejection, and request-location matching;
   12 route tests pass ([evidence](builds/2026-10-28-recovery/true-cost-summary-response-contract.json)).
+  Business architecture now validates mission/mapping fields, schema enums,
+  nullability and page continuation; 31 route/pagination tests pass
+  ([evidence](builds/2026-10-28-recovery/business-architecture-summary-response-contract.json)).
+  Extension learning now validates both the module catalog and its aggregate
+  summary, including enum-derived bounds and requested location identity; 20
+  route/pagination tests pass
+  ([evidence](builds/2026-10-28-recovery/extension-learning-response-contract.json)).
+  Waste management now validates all nested summary sections, domain enums,
+  count/finite-number rules, period and location identity; 22 route tests pass
+  ([evidence](builds/2026-10-28-recovery/waste-summary-response-contract.json)).
   Export-log fields
   match the canonical table; the earlier pending-
   create API was removed because the table lacks its request fields and no
@@ -1310,7 +1320,10 @@ open entries.
 - [x] Validate the Comprehensive Status location envelope, canonical section names, and existing response-size bound ([evidence](builds/2026-10-28-recovery/comprehensive-status-response-contract.json)).
 - [x] Publish and validate the nested energy summary response against source schema and query bounds ([evidence](builds/2026-10-28-recovery/energy-summary-response-contract.json)).
 - [x] Publish and validate the nested true-cost summary response and requested-location identity ([evidence](builds/2026-10-28-recovery/true-cost-summary-response-contract.json)).
+- [x] Publish and validate the location-scoped business-architecture summary and pagination contract ([evidence](builds/2026-10-28-recovery/business-architecture-summary-response-contract.json)).
+- [x] Publish strict response contracts for the extension-learning module catalog and aggregate summary ([evidence](builds/2026-10-28-recovery/extension-learning-response-contract.json)).
+- [x] Publish and validate the nested waste-management summary response ([evidence](builds/2026-10-28-recovery/waste-summary-response-contract.json)).
 
-The batches checklist is 1,395 complete / 25 open (1,420 total). This TODO
-ledger now has 103 checked and 16 open entries; capability classifications and
+The batches checklist is 1,398 complete / 25 open (1,423 total). This TODO
+ledger now has 106 checked and 16 open entries; capability classifications and
 MAN-CAP acceptance remain unchanged.

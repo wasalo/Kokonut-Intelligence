@@ -22087,3 +22087,25 @@ Evidence: [Comprehensive Status](builds/2026-10-28-recovery/comprehensive-status
 [combined regression batch](builds/2026-10-28-recovery/private-summary-contract-batch.json).
 Checklist: 1,395 complete / 25 open (1,420 total); capability classifications
 remain unchanged.
+
+### Progress addendum — three more private Gateway summaries — 28 October 2026
+
+Business architecture now publishes strict mission and roadmap mapping models,
+including schema enums, nullable joins, bounded records, and request-matched
+pagination. Extension learning publishes strict catalog and aggregate summary
+contracts with enum-derived bounds and location matching. Waste management now
+validates its nested waste, composting, recycling, and incident aggregates,
+including schema enums, count/finite-number constraints, requested period, and
+location identity. Existing authorization, database, cache, and Retry-After
+behavior remains intact. These slices pass 73 focused tests; the combined
+C1/C2/C7/driver selection passes 281 tests. Ruff, compilation, inventory and
+matrix gates, generated SDK parity, worker-job inventory, JSON parsing, and
+diff checks pass. No database or provider was used. Live OIDC, populated-data
+parity, and broader tenant isolation remain open.
+
+Evidence: [business architecture](builds/2026-10-28-recovery/business-architecture-summary-response-contract.json),
+[extension learning](builds/2026-10-28-recovery/extension-learning-response-contract.json),
+[waste summary](builds/2026-10-28-recovery/waste-summary-response-contract.json),
+[combined route batch](builds/2026-10-28-recovery/gateway-route-response-contract-batch.json).
+Checklist: 1,398 complete / 25 open (1,423 total); capability classifications
+remain unchanged.
