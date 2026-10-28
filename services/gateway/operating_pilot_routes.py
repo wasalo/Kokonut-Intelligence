@@ -11,6 +11,7 @@ from pydantic import (
     ConfigDict,
     Field,
     ValidationError,
+    field_validator,
     model_validator,
 )
 
@@ -151,6 +152,65 @@ class OperatingPilotOwnCapacityProfilesPage(BaseModel):
                 raise ValueError("capacity profile continuation does not match its page")
         elif self.next_offset is not None:
             raise ValueError("terminal capacity profile page cannot continue")
+        return self
+
+
+class OperatingPilotOwnResourceRequestItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    draft_id: _ResponseUUID
+    resource_type: str = Field(
+        min_length=1,
+        max_length=50,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9 _./-]{0,49}$",
+    )
+    description: str = Field(min_length=1, max_length=2000)
+    urgency: Literal["low", "medium", "high", "critical"]
+    requested_by: _ResponseDate
+    status: Literal["draft", "superseded", "submitted"]
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @field_validator("description")
+    @classmethod
+    def _description_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("description must not be blank")
+        return value
+
+
+class OperatingPilotOwnResourceRequestsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotOwnResourceRequestItemResponse] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+    total: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own resource page exceeds its limit")
+        if self.has_more != (self.total > self.offset + self.limit):
+            raise ValueError("own resource continuation does not match its total")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("own resource continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own resource page cannot continue")
+
+        ids = [item.draft_id for item in self.items]
+        if len(ids) != len(set(ids)):
+            raise ValueError("own resource page contains duplicate draft IDs")
+        if any(
+            (previous.updated_at, previous.draft_id.int)
+            < (current.updated_at, current.draft_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own resource page is not in descending SQL order")
         return self
 
 
@@ -2341,7 +2401,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-resource-requests")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-resource-requests",
+        response_model=OperatingPilotOwnResourceRequestsPage,
+    )
     async def location_operating_pilot_own_resource_requests(
         request: Request,
         location_id: str,
@@ -2399,6 +2462,25 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 status_code=503,
                 content={"error": "Own operating resource read unavailable"},
                 headers={**headers, "Retry-After": "30"},
+            )
+        try:
+            page = OperatingPilotOwnResourceRequestsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own resource page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Own operating resource response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own operating resource read unavailable"},
+                headers=headers,
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 

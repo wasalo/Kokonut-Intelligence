@@ -5,11 +5,14 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 
 
 def generate_time_liberation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe time liberation report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("time_liberation requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -47,6 +50,9 @@ def generate_time_liberation(conn, location_id: str, period_start: str = None, p
 
 def generate_capital_alignment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital alignment report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("capital_alignment requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -87,7 +93,7 @@ def generate_governance_inclusion(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe governance inclusion report for one location."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("governance_inclusion requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -126,6 +132,9 @@ def generate_governance_inclusion(
 
 def generate_land_stewardship(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe land stewardship report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("land_stewardship requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

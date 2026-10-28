@@ -595,6 +595,28 @@ collections. No database, provider, live Directus runtime, candidate, legacy
 service, or live network was used. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-gateway-directus-guards.json).
 
+- [x] Reject malformed location UUID scope before cursor access across the 19
+  remaining registered location-scoped report generators in Bio Factory,
+  Liberation, Stewardship, Scaling, Wellbeing, and Core Environmental reports.
+- [x] Add a strict request-bound OpenAPI/runtime response contract for the
+  private operating-pilot own-resource-request history page, matching the
+  migration 567/568 field bounds, item order, location, and continuation.
+- [x] Audit the optional Directus adapter after adding `digital_lego_usage`;
+  no further managed-read collection with direct location lineage is safe to
+  add. Polymorphic approval, workflow-history, and file-like collections still
+  need a verified source-lineage contract.
+- [x] Regenerate report source and query-scope inventories after report guard
+  changes shifted registered source locations.
+
+The combined focused report and Gateway selection passes 712 Python tests
+with 7 skips. Ruff, compilation, inventories, capability-matrix validation,
+and diff checks pass. Checklist: 1,491 complete / 25 open; TODO: 197 checked /
+16 open. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared) with 76 strict private Gateway response endpoints; the optional
+Directus adapter covers 28 location-scoped collections. No database, provider,
+live Directus runtime, candidate, legacy service, or live network was used.
+Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-report-gateway-acceptance.json).
+
 ## Code work to continue without owner input
 
 Work in this order. Each item is a bounded implementation batch, not a claim
@@ -883,8 +905,12 @@ that its full source-plan phase is complete.
   A follow-up audit confirms the typed direct-location references now have
   explicit validators, including the recent MRV sensor-device and sensor-alert
   mappings; polymorphic `source_record_ids` remains unresolvable without a
-  discriminator. No further safe field mapping was found. Pinned-runtime
-  permissions and populated-row parity remain open. Sources:
+  discriminator. A 28 October collection audit found no further safe managed
+  read candidate with direct location lineage: all such collections are in the
+  28-collection adapter. `approval`, `workflow_history`, and file-like reads
+  still rely on polymorphic source links without a verified tenant join. No
+  further safe field mapping was found. Pinned-runtime permissions and
+  populated-row parity remain open. Sources:
   [Directus parity](batches.md#L2117),
   [preflight](directus-polymorphic-lineage-preflight.md),
   [transport/Directus gates](batches.md#L3320).

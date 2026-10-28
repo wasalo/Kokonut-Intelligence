@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,487 checklist items complete and 25
-open (1,512 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,491 checklist items complete and 25
+open (1,516 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5811,4 +5811,33 @@ Directus runtime, candidate, legacy service, or live network was used. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-gateway-directus-guards.json).
 
 Checklist: 1,487 complete / 25 open (1,512 total); TODO: 193 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed parallel continuation — remaining report scope, operating-pilot response, and Directus candidate audit — 28 October 2026
+
+- [x] Reject malformed location UUID scope before cursor access across the 19
+  remaining registered location-scoped report generators in Bio Factory,
+  Liberation, Stewardship, Scaling, Wellbeing, and Core Environmental reports.
+- [x] Add a strict request-bound OpenAPI/runtime response contract for the
+  private operating-pilot own-resource-request history page, matching the
+  migration 567/568 field bounds, item order, location, and page continuation.
+- [x] Audit the optional Directus adapter after adding `digital_lego_usage`;
+  no further managed-read collection with direct location lineage is safe to
+  add. Approval, workflow-history, and file-like collections still need a
+  verified polymorphic source-lineage contract.
+- [x] Regenerate report source and query-scope inventories after report guard
+  changes shifted registered source locations.
+
+The combined focused report and Gateway selection passes 712 Python tests
+with 7 skips. Ruff, Python compilation, both report inventories,
+capability-matrix validation, and `git diff --check` pass. The capability
+matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); strict
+private Gateway response endpoints now total 76, and the optional Directus
+adapter covers 28 location-scoped collections. No database, provider,
+Directus runtime, candidate, legacy service, or live network was used. Broader
+report query/tenant semantics, live OIDC, populated Directus parity, and
+polymorphic lineage remain open. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-gateway-acceptance.json).
+
+Checklist: 1,491 complete / 25 open (1,516 total); TODO: 197 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

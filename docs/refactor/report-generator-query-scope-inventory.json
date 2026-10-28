@@ -183,7 +183,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 18,
+          "line": 21,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -206,7 +206,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 20,
+          "line": 23,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -234,7 +234,7 @@
       "report_type": "bio_input_provenance",
       "callable": "generate_bio_input_provenance",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 54,
+      "source_line": 57,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -248,7 +248,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 58,
+          "line": 64,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -271,7 +271,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 60,
+          "line": 66,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -299,7 +299,7 @@
       "report_type": "bio_quality_test",
       "callable": "generate_bio_quality_test",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 151,
+      "source_line": 157,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -313,7 +313,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 155,
+          "line": 164,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -336,7 +336,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 157,
+          "line": 166,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -364,7 +364,7 @@
       "report_type": "bio_recipe_library",
       "callable": "generate_bio_recipe_library",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 109,
+      "source_line": 115,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -378,7 +378,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 118,
+          "line": 124,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -406,7 +406,7 @@
       "report_type": "bio_regional_input",
       "callable": "generate_bio_regional_input",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 192,
+      "source_line": 201,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -418,7 +418,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 196,
+          "line": 205,
           "report_type": "bio_regional_input",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -427,7 +427,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 197,
+          "line": 206,
           "method": "query",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -623,7 +623,7 @@
       "report_type": "capital_alignment",
       "callable": "generate_capital_alignment",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 48,
+      "source_line": 51,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -637,7 +637,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 52,
+          "line": 58,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -660,7 +660,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 54,
+          "line": 60,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -688,7 +688,7 @@
       "report_type": "capital_efficiency",
       "callable": "generate_capital_efficiency",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 272,
+      "source_line": 278,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
       "static_positional_arity_site_count": 3,
@@ -702,7 +702,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 276,
+          "line": 285,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -725,7 +725,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 278,
+          "line": 287,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -748,7 +748,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 290,
+          "line": 299,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1221,7 +1221,7 @@
       "report_type": "dao_proposal_history",
       "callable": "generate_dao_proposal_history",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 359,
+      "source_line": 368,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -1233,7 +1233,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 368,
+          "line": 377,
           "report_type": "dao_proposal_history",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -1242,7 +1242,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 371,
+          "line": 380,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1265,7 +1265,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 401,
+          "line": 410,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1999,7 +1999,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 145,
+          "line": 148,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2022,7 +2022,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 147,
+          "line": 150,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2428,7 +2428,7 @@
       "report_type": "governance_inclusion",
       "callable": "generate_governance_inclusion",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 86,
+      "source_line": 92,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -2442,7 +2442,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 95,
+          "line": 101,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2470,7 +2470,7 @@
       "report_type": "governance_throughput",
       "callable": "generate_governance_throughput",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 319,
+      "source_line": 328,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -2484,7 +2484,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 328,
+          "line": 337,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2512,7 +2512,7 @@
       "report_type": "green_paper_publication_status",
       "callable": "generate_green_paper_publication_status",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 243,
+      "source_line": 249,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -2524,7 +2524,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 247,
+          "line": 253,
           "report_type": "green_paper_publication_status",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -2533,7 +2533,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 250,
+          "line": 256,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2672,7 +2672,7 @@
       "report_type": "land_stewardship",
       "callable": "generate_land_stewardship",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 127,
+      "source_line": 133,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -2686,7 +2686,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 131,
+          "line": 140,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2709,7 +2709,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 133,
+          "line": 142,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3956,7 +3956,7 @@
       "report_type": "risk_mitigation",
       "callable": "generate_risk_mitigation",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 175,
+      "source_line": 178,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -3970,7 +3970,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 179,
+          "line": 185,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3993,7 +3993,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 181,
+          "line": 187,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4109,7 +4109,7 @@
       "report_type": "scaling_roadmap",
       "callable": "generate_scaling_roadmap",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 209,
+      "source_line": 215,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -4123,7 +4123,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 216,
+          "line": 222,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5550,7 +5550,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 15,
+          "line": 18,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5573,7 +5573,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 17,
+          "line": 20,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

@@ -371,6 +371,13 @@ closed. Mutations are denied. The 143-test Directus extension suite and bundle
 build/typecheck pass. This is source/unit evidence only; effective API
 permissions, populated-data parity, and pinned-runtime behavior remain open.
 
+A follow-up source audit found no further safe collection to add using a direct
+location column: all managed reads with that lineage are already covered,
+including the nullable-location cases. Remaining `approval`, `workflow_history`,
+and file-like reads depend on polymorphic source references without a verified
+location join; they need a lineage contract or populated-source evidence before
+tenant filtering can be designed. No additional Directus policy was changed.
+
 The SQL still grants `fields = '*'` on many read rules, so a row predicate does
 not establish field privacy. The Auditor policy deliberately has unfiltered
 reads for collections beyond the twenty-eight-collection tenant-hook list,

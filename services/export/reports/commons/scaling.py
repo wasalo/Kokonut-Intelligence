@@ -7,7 +7,7 @@ import psycopg2.extras
 
 from services.common.database import query
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 from ..scope import require_network_scope
 
 
@@ -76,7 +76,7 @@ def generate_scaling_economics(conn, location_id: str = None, period_start: str 
 
 def generate_adoption_barriers(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe barrier report with an explicit location scope."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("adoption_barriers requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -116,7 +116,7 @@ def generate_perpetual_value_stress(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate public-safe downside stress-test report."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("perpetual_value_stress requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)

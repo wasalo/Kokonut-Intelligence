@@ -121,7 +121,7 @@
       "callable": "generate_bio_input_provenance",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 54,
+      "source_line": 57,
       "parameters": [
         "conn",
         "location_id",
@@ -143,7 +143,7 @@
       "callable": "generate_bio_quality_test",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 151,
+      "source_line": 157,
       "parameters": [
         "conn",
         "location_id",
@@ -165,7 +165,7 @@
       "callable": "generate_bio_recipe_library",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 109,
+      "source_line": 115,
       "parameters": [
         "conn",
         "location_id",
@@ -186,7 +186,7 @@
       "callable": "generate_bio_regional_input",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 192,
+      "source_line": 201,
       "parameters": [
         "conn",
         "location_id",
@@ -311,7 +311,7 @@
       "callable": "generate_capital_alignment",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 48,
+      "source_line": 51,
       "parameters": [
         "conn",
         "location_id",
@@ -333,7 +333,7 @@
       "callable": "generate_capital_efficiency",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 272,
+      "source_line": 278,
       "parameters": [
         "conn",
         "location_id",
@@ -506,7 +506,7 @@
       "callable": "generate_dao_proposal_history",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 359,
+      "source_line": 368,
       "parameters": [
         "conn",
         "location_id",
@@ -810,7 +810,7 @@
       "callable": "generate_governance_inclusion",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 86,
+      "source_line": 92,
       "parameters": [
         "conn",
         "location_id",
@@ -831,7 +831,7 @@
       "callable": "generate_governance_throughput",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 319,
+      "source_line": 328,
       "parameters": [
         "conn",
         "location_id",
@@ -852,7 +852,7 @@
       "callable": "generate_green_paper_publication_status",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 243,
+      "source_line": 249,
       "parameters": [
         "conn",
         "location_id",
@@ -895,7 +895,7 @@
       "callable": "generate_land_stewardship",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 127,
+      "source_line": 133,
       "parameters": [
         "conn",
         "location_id",
@@ -1437,7 +1437,7 @@
       "callable": "generate_risk_mitigation",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 175,
+      "source_line": 178,
       "parameters": [
         "conn",
         "location_id",
@@ -1480,7 +1480,7 @@
       "callable": "generate_scaling_roadmap",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 209,
+      "source_line": 215,
       "parameters": [
         "conn",
         "location_id",

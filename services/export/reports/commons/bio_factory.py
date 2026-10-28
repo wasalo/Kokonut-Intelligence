@@ -7,12 +7,15 @@ import psycopg2.extras
 
 from services.common.database import query
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 from ..scope import require_network_scope
 
 
 def generate_bio_factory_batch(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe bio-organic fertilizer batch report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("bio_factory_batch requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -53,6 +56,9 @@ def generate_bio_factory_batch(conn, location_id: str, period_start: str = None,
 
 def generate_bio_input_provenance(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe bio-input provenance report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("bio_input_provenance requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -110,7 +116,7 @@ def generate_bio_recipe_library(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe recipe report for an explicit location."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("bio_recipe_library requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -150,6 +156,9 @@ def generate_bio_recipe_library(
 
 def generate_bio_quality_test(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe bio-factory quality test report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("bio_quality_test requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

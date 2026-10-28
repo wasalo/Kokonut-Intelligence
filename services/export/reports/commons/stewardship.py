@@ -52,7 +52,7 @@ def generate_community_governance(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe community governance report for one location."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("community_governance requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -88,7 +88,7 @@ def generate_replication_readiness(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe replication readiness report for one location."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("replication_readiness requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)

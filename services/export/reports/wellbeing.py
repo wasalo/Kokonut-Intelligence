@@ -14,7 +14,7 @@ from .scope import require_network_scope
 
 def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe EBF scorecard report for a location."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("ebf_scorecard requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -140,6 +140,9 @@ def generate_holistic_wellbeing(conn, location_id: str, period_start: str = None
 
 def generate_financial_sustainability(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe financial sustainability report for a location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("financial_sustainability requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -174,6 +177,9 @@ def generate_financial_sustainability(conn, location_id: str, period_start: str 
 
 def generate_risk_mitigation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe risk mitigation report for a location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("risk_mitigation requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -208,7 +214,7 @@ def generate_risk_mitigation(conn, location_id: str, period_start: str = None, p
 
 def generate_scaling_roadmap(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe scaling roadmap report for one location."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("scaling_roadmap requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -271,6 +277,9 @@ def generate_green_paper_publication_status(
 
 def generate_capital_efficiency(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital efficiency and regenerative ROI scenario report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("capital_efficiency requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -320,7 +329,7 @@ def generate_governance_throughput(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe governance throughput report for one location."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("governance_throughput requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)

@@ -307,7 +307,7 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
 
 def generate_environmental(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate an environmental impact report."""
-    if not location_id:
+    if not _looks_like_uuid(location_id):
         raise ValueError("environmental requires an explicit location_id")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
