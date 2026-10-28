@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,438 checklist items complete and 25
-open (1,463 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,443 checklist items complete and 25
+open (1,468 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5490,4 +5490,42 @@ Evidence: [parallel contract batch](builds/2026-10-28-recovery/kernel-directus-o
 
 The checklist is now 1,438 complete / 25 open (1,463 total); the TODO ledger
 has 145 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Completed parallel continuation — tenant, report, SDK, and Gateway contracts — 28 October 2026
+
+- [x] Validate `revenue_event.sales_event_id` and
+  `financial_transaction_id` against the event's location on Directus create
+  and update. The optional `treasury_event_id` and `value_flow_id` references
+  remain unrestricted because their tables permit null/global location scope;
+  equality would reject valid source records without an owner-defined policy.
+- [x] Require a valid location UUID before the forecast report opens a database
+  cursor. Its three SQL reads already bind that location; the generated report
+  inventory remains current at 94 types and 167 query sites.
+- [x] Align malformed Directus HTTP error envelopes in the Python REST SDK with
+  JavaScript: use the stable `HTTP <status>` fallback instead of exposing
+  arbitrary raw response text. Valid server-provided error messages and
+  response preservation remain unchanged.
+- [x] Add a strict response model to the Delphi draft-study inventory. Bind
+  location, requested offset and page size, validate the migration-backed study
+  projection and status/timestamp fields, and stop advertising continuation
+  when the next page would exceed the 10,000 offset ceiling.
+- [x] Type the `crop_noi` section within Comprehensive Status against the
+  canonical generator output, including strict nested cycles, finite numeric
+  measures, a redacted section-error shape, and binding to the enclosing
+  location. Other section bodies remain JSON-compatible pending their own
+  generator audits.
+
+The integrated focused Python selection passes 459 tests; JavaScript passes 90
+tests; Directus tenant-hook tests pass 24. The JavaScript SDK build and Directus
+TypeScript check pass, as do Ruff, report-query inventory validation, Python
+compilation, and diff checks. The capability matrix remains valid at 67 rows
+(24 baseline-retained, 7 deployed, 36 prepared) and now records 63 strict
+private Gateway response endpoints. No migration, database, provider, candidate,
+legacy service, or live network was used. Evidence:
+[parallel contract batch](builds/2026-10-28-recovery/kernel-parallel-tenant-report-sdk-contracts.json).
+
+The checklist is now 1,443 complete / 25 open (1,468 total); the TODO ledger
+has 150 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.

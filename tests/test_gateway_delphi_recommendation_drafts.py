@@ -1,5 +1,6 @@
 """Focused contracts for location-scoped Delphi facilitator draft creation."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -101,6 +102,30 @@ def test_study_listing_sets_signed_draft_scope_before_bounded_query_and_cleans_u
     assert len(result["studies"]) == 1 and result["has_more"] is True
     assert connection.rolled_back and connection.closed
     assert not connection.committed
+
+
+@pytest.mark.parametrize(
+    ("offset", "expected_has_more"),
+    [(9980, True), (9990, False), (10000, False)],
+)
+def test_study_listing_only_advertises_pages_within_offset_ceiling(
+    offset, expected_has_more
+):
+    connection = _Connection(
+        [(str(uuid4()), f"Study {index}", "open", None) for index in range(21)]
+    )
+    with patch.object(drafts, "set_operator_tenant_context", _set_context):
+        result = drafts.list_location_delphi_draftable_studies(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit=20,
+            offset=offset,
+            connection_factory=lambda: connection,
+        )
+
+    assert len(result["studies"]) == 20
+    assert result["has_more"] is expected_has_more
+    assert connection.rolled_back and connection.closed
 
 
 @pytest.mark.parametrize(
@@ -254,7 +279,7 @@ def _make_app(provider, run_in_threadpool, psycopg2_errors=None):
 
 def test_draft_routes_are_no_store_and_forward_actor_location_and_paging():
     calls = []
-    expected = {"location_id": LOCATION_ID, "studies": [], "offset": 0, "has_more": False}
+    expected = {"location_id": LOCATION_ID, "studies": [], "offset": 60, "has_more": False}
 
     async def run_in_threadpool(func, *args, **kwargs):
         calls.append((func, args, kwargs))
@@ -284,6 +309,85 @@ def test_draft_study_list_publishes_service_bounds_in_openapi():
     assert parameters["offset"]["schema"]["default"] == 0
     assert parameters["offset"]["schema"]["minimum"] == 0
     assert parameters["offset"]["schema"]["maximum"] == 10000
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DelphiDraftStudyPage")
+
+
+@pytest.mark.parametrize(
+    "projection",
+    [
+        {"location_id": str(uuid4()), "studies": [], "offset": 0, "has_more": False},
+        {"location_id": LOCATION_ID, "studies": [], "offset": 1, "has_more": False},
+        {
+            "location_id": LOCATION_ID,
+            "studies": [
+                {
+                    "study_id": str(uuid4()),
+                    "title": "Open study",
+                    "status": "draft",
+                    "updated_at": None,
+                }
+            ],
+            "offset": 0,
+            "has_more": False,
+        },
+        {
+            "location_id": LOCATION_ID,
+            "studies": [],
+            "offset": 0,
+            "has_more": True,
+        },
+        {
+            "location_id": LOCATION_ID,
+            "studies": [],
+            "offset": 0,
+            "has_more": False,
+            "extra": "not in the source projection",
+        },
+    ],
+)
+def test_draft_study_list_rejects_invalid_or_unbound_service_projection(projection):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return projection
+
+    client = TestClient(_make_app(object(), run_in_threadpool))
+    response = client.get(f"/operator/api/delphi/{LOCATION_ID}/draft-studies")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi draft-study list unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_draft_study_list_accepts_source_projection_and_binds_page_to_request():
+    study_id = str(uuid4())
+    expected = {
+        "location_id": LOCATION_ID,
+        "studies": [
+            {
+                "study_id": study_id,
+                "title": "Open study",
+                "status": "open",
+                "updated_at": datetime(2026, 10, 28, 12, tzinfo=timezone.utc),
+            }
+        ],
+        "offset": 10,
+        "has_more": False,
+    }
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return expected
+
+    client = TestClient(_make_app(object(), run_in_threadpool))
+    response = client.get(
+        f"/operator/api/delphi/{LOCATION_ID}/draft-studies?limit=20&offset=10"
+    )
+
+    expected["studies"][0]["updated_at"] = "2026-10-28T12:00:00Z"
+    assert response.status_code == 200 and response.json() == expected
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
 
 
 @pytest.mark.parametrize("query", ["limit=0", "limit=51", "offset=-1", "offset=10001"])

@@ -22427,3 +22427,31 @@ response endpoints across 67 rows; classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared. The checklist is 1,438 complete / 25 open; TODO is
 145 checked / 16 open. No migration, database, provider, candidate, or legacy
 service was used. Evidence: [batch](builds/2026-10-28-recovery/kernel-directus-operating-report-contracts.json).
+
+
+### Progress addendum — tenant, report, SDK, and Gateway contracts — 28 October 2026
+
+Directus now validates the `revenue_event` sales-event and financial-transaction
+references against the event's location on create and update. Two optional
+treasury/value-flow references were deliberately left unchanged: their source
+tables allow null locations, so enforcing equality would require an owner
+decision about legitimate network-wide references. The forecast report now
+requires a UUID location before opening a cursor; its report reads already bind
+that location. Python SDK malformed Directus error envelopes now use the same
+stable `HTTP <status>` fallback as JavaScript, avoiding arbitrary raw-body
+disclosure.
+
+The Delphi draft-study list now has an exact location/page-bound response model
+and suppresses `has_more` when the next request would exceed the 10,000 offset
+ceiling. Comprehensive Status validates the nested `crop_noi` report against
+its generator's SQL-backed projection and enclosing location; other section
+bodies remain JSON-compatible pending independent generator audits.
+
+The integrated focused suites pass 459 Python tests, 90 JavaScript tests, and
+24 Directus tenant-hook tests. JavaScript build and Directus TypeScript checks,
+Ruff, Python compilation, report-query inventory validation, and diff checks
+pass. The capability matrix records 63 strict private Gateway response
+endpoints across 67 rows (24 baseline-retained, 7 deployed, 36 prepared). The
+checklist is 1,443 complete / 25 open; TODO is 150 checked / 16 open. No
+migration, database, provider, candidate, legacy service, or live network was
+used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-tenant-report-sdk-contracts.json).

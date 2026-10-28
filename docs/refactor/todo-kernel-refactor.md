@@ -538,7 +538,28 @@ remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and now records
 62 strict private Gateway response endpoints. No migration, database, provider,
 candidate, or legacy service was used. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-directus-operating-report-contracts.json).
-Checklist: 1,438 complete / 25 open; TODO: 145 checked / 16 open.
+Checklist: 1,443 complete / 25 open; TODO: 150 checked / 16 open.
+- [x] Validate the `revenue_event` sales and financial-transaction references
+  against the event's location for create and update. Leave optional
+  global-capable treasury/value-flow references unchanged pending an explicit
+  cross-scope contract.
+- [x] Require an explicit UUID location for direct forecast-report calls before
+  cursor creation; report query inventory remains at zero unresolved or
+  bind-mismatch sites.
+- [x] Make malformed Python Directus error responses use the JavaScript SDK's
+  stable `HTTP <status>` fallback rather than arbitrary response text; retain
+  valid server messages and attached response metadata.
+- [x] Add strict request-bound response validation for Delphi draft-study pages
+  and suppress `has_more` when pagination cannot continue within the 10,000
+  offset ceiling.
+- [x] Validate the Comprehensive Status `crop_noi` section against the
+  generator's exact nested projection and selected location; retain the
+  sanitized section error contract and leave other section bodies pending audit.
+
+This batch passes 459 focused Python tests, 90 JavaScript tests, 24 Directus
+tenant-hook tests, TypeScript builds/checks, Ruff, compilation, report-query
+inventory validation, and diff checks. Evidence:
+[parallel contract batch](builds/2026-10-28-recovery/kernel-parallel-tenant-report-sdk-contracts.json).
 
 ## Code work to continue without owner input
 
@@ -994,7 +1015,7 @@ pass. The matrix records 61 strict private Gateway response endpoints across
 database, provider, candidate, or legacy service was used. See
 [evidence](builds/2026-10-28-recovery/kernel-gateway-sdk-contract-batch.json).
 
-Checklist: 1,438 complete / 25 open (1,463 total); TODO: 145 checked / 16 open.
+Checklist: 1,443 complete / 25 open (1,468 total); TODO: 150 checked / 16 open.
 MAN-CAP acceptance and capability classifications are unchanged.
 
 ## Owner or environment gates after code work

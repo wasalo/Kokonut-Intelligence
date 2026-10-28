@@ -23,6 +23,15 @@ describe('KokonutClient REST transport boundary', () => {
           headers: { 'Content-Type': 'application/json' },
         });
       }
+      if (url.pathname.startsWith('/items/malformed-')) {
+        const body = url.pathname.includes('/malformed-empty/')
+          ? JSON.stringify({ errors: [{ message: '' }] })
+          : 'not-json';
+        return new Response(body, {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
 
       if (method === 'DELETE') return new Response(null, { status: 204 });
 
@@ -57,7 +66,7 @@ describe('KokonutClient REST transport boundary', () => {
     vi.stubGlobal('fetch', fetchStub);
 
     const { KokonutClient } = await import('../client.js');
-    const { ForbiddenError } = await import('../errors.js');
+    const { ForbiddenError, NotFoundError } = await import('../errors.js');
     const client = new KokonutClient('https://directus.invalid');
     const rows = await client.listItems('harvest_event', {
       search: 'coconut',
@@ -160,6 +169,12 @@ describe('KokonutClient REST transport boundary', () => {
     await expect(client.getItem('location', '..')).rejects.toThrow('path segment');
     await expect(client.listItems('')).rejects.toThrow('path segment');
     expect(fetchStub).toHaveBeenCalledTimes(requestCount);
+
+    for (const kind of ['empty', 'invalid']) {
+      const error = await client.getItem(`malformed-${kind}`, 'item').catch((caught) => caught);
+      expect(error).toBeInstanceOf(NotFoundError);
+      expect(error).toMatchObject({ message: 'HTTP 404', statusCode: 404 });
+    }
   });
 
   it('forwards extension query parameters through typed location reads without weakening scope', async () => {

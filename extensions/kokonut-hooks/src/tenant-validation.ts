@@ -66,6 +66,14 @@ const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
 // collection-scoped: other tenant collections may use the same field names
 // for unrelated or network-wide concepts.
 const TENANT_COLLECTION_REFERENCE_LOOKUPS: Record<string, Record<string, TenantReferenceLookup>> = {
+  revenue_event: {
+    sales_event_id: (database, referenceId, locationId) => database('sales_event')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+    financial_transaction_id: (database, referenceId, locationId) => database('financial_transaction')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+  },
   retirement_certificate: {
     retirement_id: (database, referenceId, locationId) => database('credit_retirement')
       .where({ id: referenceId, location_id: locationId })

@@ -1,42 +1,151 @@
 """OIDC routes for location-scoped Comprehensive Status reports."""
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     JsonValue,
     ValidationError,
-    field_validator,
     model_validator,
 )
+
+
+def _crop_noi_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if not isinstance(value, str):
+        raise ValueError("Crop NOI identifiers must be UUID strings")
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise ValueError("Crop NOI identifier is invalid") from exc
+
+
+def _crop_noi_date(value):
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        raise ValueError("Crop NOI dates must be ISO strings")
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError("Crop NOI date is invalid") from exc
+    if parsed.isoformat() != value:
+        raise ValueError("Crop NOI date is not canonical")
+    return parsed
+
+
+def _crop_noi_datetime(value):
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("Crop NOI timestamp is invalid") from exc
+        if parsed.isoformat() != value:
+            raise ValueError("Crop NOI timestamp is not canonical")
+    else:
+        raise ValueError("Crop NOI timestamps must be ISO strings")
+    if parsed.utcoffset() is None:
+        raise ValueError("Crop NOI timestamp must include a timezone")
+    return parsed
+
+
+def _crop_noi_number(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("Crop NOI measures must be numeric values")
+    return float(value)
+
+
+CropNoiUuid = Annotated[UUID, BeforeValidator(_crop_noi_uuid)]
+CropNoiDate = Annotated[date, BeforeValidator(_crop_noi_date)]
+CropNoiDateTime = Annotated[datetime, BeforeValidator(_crop_noi_datetime)]
+CropNoiNumber = Annotated[float, BeforeValidator(_crop_noi_number)]
 
 
 class _ComprehensiveStatusModel(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
 
-_COMPREHENSIVE_STATUS_SECTIONS = frozenset(
-    {
-        "farm_summary",
-        "crop_noi",
-        "environmental",
-        "climate_impact",
-        "financial_sustainability",
-        "capital_efficiency",
-        "holistic_wellbeing",
-        "community_governance",
-        "gnh_alignment",
-        "training_impact",
-        "regenerative_outcomes",
-        "foundational_wellbeing",
-        "stakeholder_outcomes",
-        "capital_accounting",
-    }
-)
+class ComprehensiveStatusCropNoiCycle(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    cycle_id: CropNoiUuid
+    cycle_name: str | None
+    crop_name: str
+    plot_name: str
+    status: str | None
+    planting_date: CropNoiDate | None
+    actual_harvest_date: CropNoiDate | None
+    expected_yield: CropNoiNumber
+    actual_yield: CropNoiNumber
+    expected_revenue: CropNoiNumber
+    actual_revenue: CropNoiNumber
+    allocated_cost: CropNoiNumber
+    gross_revenue: CropNoiNumber
+    returns_and_discounts: CropNoiNumber
+    net_revenue: CropNoiNumber
+    direct_crop_costs: CropNoiNumber
+    allocated_shared_costs: CropNoiNumber
+    total_costs: CropNoiNumber
+    crop_noi: CropNoiNumber
+    operating_margin_pct: CropNoiNumber
+    loss_rate_pct: CropNoiNumber
+
+
+class ComprehensiveStatusCropNoiSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_revenue: CropNoiNumber
+    total_gross_revenue: CropNoiNumber
+    total_returns_and_discounts: CropNoiNumber
+    total_direct_crop_costs: CropNoiNumber
+    total_allocated_shared_costs: CropNoiNumber
+    total_cost: CropNoiNumber
+    total_noi: CropNoiNumber
+    overall_margin_pct: CropNoiNumber
+
+
+class ComprehensiveStatusCropNoiReport(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["crop_noi"]
+    location_id: CropNoiUuid
+    crop_cycles: list[ComprehensiveStatusCropNoiCycle]
+    summary: ComprehensiveStatusCropNoiSummary
+    generated_at: CropNoiDateTime
+
+
+class ComprehensiveStatusSectionError(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    error: str = Field(
+        max_length=100,
+        pattern=r"^report section failed \([A-Za-z_][A-Za-z0-9_]{0,63}\)$",
+    )
+
+
+class ComprehensiveStatusSections(_ComprehensiveStatusModel):
+    farm_summary: JsonValue
+    crop_noi: ComprehensiveStatusCropNoiReport | ComprehensiveStatusSectionError
+    environmental: JsonValue
+    climate_impact: JsonValue
+    financial_sustainability: JsonValue
+    capital_efficiency: JsonValue
+    holistic_wellbeing: JsonValue
+    community_governance: JsonValue
+    gnh_alignment: JsonValue
+    training_impact: JsonValue
+    regenerative_outcomes: JsonValue
+    foundational_wellbeing: JsonValue
+    stakeholder_outcomes: JsonValue
+    capital_accounting: JsonValue
 
 
 class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
@@ -45,14 +154,17 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
     slug: str | None
     country: str | None
     region: str | None
-    sections: dict[str, JsonValue] = Field(min_length=14, max_length=14)
+    sections: ComprehensiveStatusSections
 
-    @field_validator("sections")
-    @classmethod
-    def require_canonical_sections(cls, value):
-        if value.keys() != _COMPREHENSIVE_STATUS_SECTIONS:
-            raise ValueError("Comprehensive Status sections are incomplete or unknown")
-        return value
+    @model_validator(mode="after")
+    def keep_crop_noi_in_location_scope(self):
+        section = self.sections.crop_noi
+        if (
+            isinstance(section, ComprehensiveStatusCropNoiReport)
+            and section.location_id != self.location_id
+        ):
+            raise ValueError("Crop NOI section is outside the composed location scope")
+        return self
 
 
 class ComprehensiveStatusOverview(_ComprehensiveStatusModel):

@@ -2342,6 +2342,7 @@ def test_directus_http_errors_map_status_and_preserve_server_message(status, err
         ["unexpected JSON array"],
         {"errors": {"message": "unexpected object"}},
         {"errors": [{"message": None}]},
+        {"errors": [{"message": ""}]},
         {"errors": []},
     ],
 )
@@ -2357,7 +2358,7 @@ def test_directus_http_errors_fall_back_for_malformed_error_envelopes(body):
     response.json.return_value = body
     client.session.get = Mock(return_value=response)
 
-    with pytest.raises(NotFoundError, match="fallback response text"):
+    with pytest.raises(NotFoundError, match="HTTP 404"):
         client.get_item("location", "missing-location")
 
 
@@ -2373,7 +2374,7 @@ def test_directus_http_errors_fall_back_for_invalid_json():
     response.json.side_effect = ValueError("invalid json")
     client.session.get = Mock(return_value=response)
 
-    with pytest.raises(NotFoundError, match="not json"):
+    with pytest.raises(NotFoundError, match="HTTP 404"):
         client.get_item("location", "missing-location")
 
 

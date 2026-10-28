@@ -7,6 +7,7 @@ import psycopg2
 import psycopg2.extras
 
 from .common import (
+    _looks_like_uuid,
     _serialize_rows,
     _serialize_value,
 )
@@ -395,6 +396,9 @@ def generate_revenue_multiplier(conn, location_id: str, period_start: str = None
 
 def generate_forecast_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a forecast summary report across all scenarios."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("forecast requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         # Get all scenarios for this location

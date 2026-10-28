@@ -185,6 +185,22 @@ describe('KokonutClient', () => {
     });
   });
 
+  it.each([
+    { errors: [], response: { status: 404 } },
+    { errors: [{ message: null }], response: { status: 404 } },
+    { response: { status: 404 } },
+  ])('uses a stable HTTP fallback for malformed Directus error envelopes', async (failure) => {
+    const directus = (client as any).directus as {
+      request: (command: unknown) => Promise<unknown>;
+    };
+    vi.spyOn(directus, 'request').mockRejectedValueOnce(failure);
+
+    const error = await client.getItem('location', 'missing').catch((result) => result);
+
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error).toMatchObject({ message: 'HTTP 404', statusCode: 404 });
+  });
+
   it('preserves native network errors without an HTTP response', async () => {
     const directus = (client as any).directus as {
       request: (command: unknown) => Promise<unknown>;

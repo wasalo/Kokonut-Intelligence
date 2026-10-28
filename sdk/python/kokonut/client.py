@@ -513,7 +513,10 @@ class KokonutClient:
         if resp.ok:
             return
         status = resp.status_code
-        message = resp.text or f"HTTP {status}"
+        # Keep malformed-envelope behavior aligned with the JavaScript SDK.
+        # Returning arbitrary response bodies here can also expose server detail
+        # that is not part of the public error contract.
+        message = f"HTTP {status}"
         try:
             body = resp.json()
         except ValueError:

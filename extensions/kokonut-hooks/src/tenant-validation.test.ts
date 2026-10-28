@@ -201,6 +201,50 @@ describe('tenant reference validation', () => {
   });
 
   it.each([
+    { field: 'sales_event_id', table: 'sales_event' },
+    { field: 'financial_transaction_id', table: 'financial_transaction' },
+  ])('validates revenue_event $field against its location', async ({ field, table }) => {
+    const reference = makeReferenceDatabase(locationId);
+    const payload = { location_id: locationId, [field]: plotId };
+
+    await expect(validateTenantReferences(
+      reference.database,
+      'revenue_event',
+      payload,
+    )).resolves.toBe(payload);
+    expect(reference.database).toHaveBeenCalledWith(table);
+    expect(reference.conditions).toEqual([[
+      { id: plotId, location_id: locationId },
+    ]]);
+
+    await expect(validateTenantReferences(
+      makeReferenceDatabase(otherLocationId).database,
+      'revenue_event',
+      payload,
+    )).rejects.toThrow(`${field} is unavailable for this location`);
+  });
+
+  it('validates changed revenue references against each authorized update row', async () => {
+    const payload = { financial_transaction_id: plotId };
+    const sameLocation = makeReferenceDatabase(locationId);
+
+    await expect(validateTenantReferencesForRows(
+      sameLocation.database,
+      'revenue_event',
+      payload,
+      [{ location_id: locationId }],
+    )).resolves.toBe(payload);
+    expect(sameLocation.database).toHaveBeenCalledWith('financial_transaction');
+
+    await expect(validateTenantReferencesForRows(
+      makeReferenceDatabase(otherLocationId).database,
+      'revenue_event',
+      payload,
+      [{ location_id: locationId }],
+    )).rejects.toThrow('financial_transaction_id is unavailable for this location');
+  });
+
+  it.each([
     { field: 'crop_cycle_id', table: 'crop_cycle' },
     { field: 'harvest_id', table: 'harvest_event' },
   ])('scopes $field lookup to the requested location', async ({ field, table }) => {

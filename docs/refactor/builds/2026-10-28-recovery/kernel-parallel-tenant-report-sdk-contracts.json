@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-28",
+  "batch": "Parallel tenant, report, SDK, and Gateway contracts",
+  "changes": {
+    "directus_tenant_references": {
+      "collection": "revenue_event",
+      "same_location_fields": [
+        "sales_event_id",
+        "financial_transaction_id"
+      ],
+      "operations": ["create", "update"],
+      "unmapped_nullable_global_references": [
+        "treasury_event_id",
+        "value_flow_id"
+      ]
+    },
+    "forecast_report": {
+      "requires_uuid_location_before_cursor": true,
+      "inventory": {
+        "report_types": 94,
+        "query_sites": 167,
+        "unresolved_sites": 0,
+        "bind_mismatches": 0
+      }
+    },
+    "rest_sdk_error_parity": {
+      "malformed_directus_error_fallback": "HTTP <status>",
+      "raw_untrusted_body_fallback_removed": true
+    },
+    "delphi_draft_study_response": {
+      "request_bound_fields": ["location_id", "offset", "limit"],
+      "status_enum": ["open", "closed"],
+      "offset_ceiling": 10000,
+      "unreachable_continuation_suppressed": true
+    },
+    "comprehensive_status": {
+      "strict_nested_section": "crop_noi",
+      "binds_section_to_enclosing_location": true,
+      "other_section_bodies_remain_json_compatible": true
+    }
+  },
+  "verification": {
+    "integrated_python_focused_tests": {"result": "passed", "count": 459},
+    "javascript_focused_tests": {"result": "passed", "count": 90},
+    "directus_tenant_hook_tests": {"result": "passed", "count": 24},
+    "javascript_typescript_build": "passed",
+    "directus_typescript_check": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "report_query_inventory_check": "passed",
+    "git_diff_check": "passed",
+    "capability_matrix": {
+      "result": "valid",
+      "rows": 67,
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36,
+      "strict_private_gateway_response_endpoints": 63
+    },
+    "checklist": {"complete": 1443, "open": 25},
+    "todo_ledger": {"complete": 150, "open": 16}
+  },
+  "scope_limits": [
+    "No migration or database was used.",
+    "No provider, candidate, legacy service, or live network was used.",
+    "No capability classification or MAN-CAP acceptance changed."
+  ]
+}

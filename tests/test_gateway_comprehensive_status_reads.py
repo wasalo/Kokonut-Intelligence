@@ -33,6 +33,47 @@ COMPREHENSIVE_STATUS_SECTIONS = (
 
 
 def _comprehensive_status_payload(location_id=LOCATION_ID):
+    sections = {section: {} for section in COMPREHENSIVE_STATUS_SECTIONS}
+    sections["crop_noi"] = {
+        "report_type": "crop_noi",
+        "location_id": location_id,
+        "crop_cycles": [
+            {
+                "cycle_id": str(uuid4()),
+                "cycle_name": "Wet season",
+                "crop_name": "Plantain",
+                "plot_name": "North plot",
+                "status": "completed",
+                "planting_date": "2026-01-01",
+                "actual_harvest_date": "2026-06-01",
+                "expected_yield": 100.0,
+                "actual_yield": 90.0,
+                "expected_revenue": 1400.0,
+                "actual_revenue": 1150.0,
+                "allocated_cost": 400.0,
+                "gross_revenue": 1200.0,
+                "returns_and_discounts": 50.0,
+                "net_revenue": 1150.0,
+                "direct_crop_costs": 300.0,
+                "allocated_shared_costs": 100.0,
+                "total_costs": 400.0,
+                "crop_noi": 750.0,
+                "operating_margin_pct": 65.2174,
+                "loss_rate_pct": 5.0,
+            }
+        ],
+        "summary": {
+            "total_revenue": 1150.0,
+            "total_gross_revenue": 1200.0,
+            "total_returns_and_discounts": 50.0,
+            "total_direct_crop_costs": 300.0,
+            "total_allocated_shared_costs": 100.0,
+            "total_cost": 400.0,
+            "total_noi": 750.0,
+            "overall_margin_pct": 750 / 1150 * 100,
+        },
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -56,7 +97,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
                 "slug": "kokonut-adelphi",
                 "country": "DO",
                 "region": "North",
-                "sections": {section: {} for section in COMPREHENSIVE_STATUS_SECTIONS},
+                "sections": sections,
             }
         ],
         "limitations": ["Composite of canonical per-location generators."],
@@ -267,9 +308,51 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     schemas = app.openapi()["components"]["schemas"]
     assert schemas["ComprehensiveStatusResponse"]["additionalProperties"] is False
     assert schemas["ComprehensiveStatusLocation"]["additionalProperties"] is False
-    section_schema = schemas["ComprehensiveStatusLocation"]["properties"]["sections"]
-    assert section_schema["minProperties"] == 14
-    assert section_schema["maxProperties"] == 14
+    section_schema = schemas["ComprehensiveStatusSections"]
+    assert section_schema["additionalProperties"] is False
+    assert set(section_schema["properties"]) == set(COMPREHENSIVE_STATUS_SECTIONS)
+    crop_noi_schema = section_schema["properties"]["crop_noi"]
+    assert len(crop_noi_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusCropNoiReport"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusCropNoiCycle"]["additionalProperties"] is False
+
+
+def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
+    from services.gateway.comprehensive_status_routes import register_comprehensive_status_routes
+
+    payload = _comprehensive_status_payload()
+    payload["locations"][0]["sections"]["crop_noi"] = {
+        "error": "report section failed (ProgrammingError)"
+    }
+    monkeypatch.setattr(
+        "services.gateway.comprehensive_status_reads.get_location_comprehensive_status",
+        lambda *_args, **_kwargs: payload,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_comprehensive_status_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/comprehensive-status/{LOCATION_ID}")
+
+    assert response.status_code == 200
+    assert response.json()["locations"][0]["sections"]["crop_noi"] == {
+        "error": "report section failed (ProgrammingError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -277,6 +360,8 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     [
         "extra", "network_scope", "nested_extra", "missing_section",
         "wrong_location", "wrong_selected_location", "negative_count",
+        "crop_noi_extra", "crop_noi_cycle_extra", "crop_noi_wrong_location",
+        "crop_noi_error_contract", "crop_noi_numeric_string",
     ],
 )
 def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_projection):
@@ -295,6 +380,22 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         other_location_id = str(uuid4())
         payload["selected_location_ids"] = [other_location_id]
         payload["locations"][0]["location_id"] = other_location_id
+    elif invalid_projection == "crop_noi_extra":
+        payload["locations"][0]["sections"]["crop_noi"]["private_source_ids"] = []
+    elif invalid_projection == "crop_noi_cycle_extra":
+        payload["locations"][0]["sections"]["crop_noi"]["crop_cycles"][0][
+            "private_notes"
+        ] = "must not escape"
+    elif invalid_projection == "crop_noi_wrong_location":
+        payload["locations"][0]["sections"]["crop_noi"]["location_id"] = str(uuid4())
+    elif invalid_projection == "crop_noi_error_contract":
+        payload["locations"][0]["sections"]["crop_noi"] = {
+            "error": "database connection failed with private SQL"
+        }
+    elif invalid_projection == "crop_noi_numeric_string":
+        payload["locations"][0]["sections"]["crop_noi"]["crop_cycles"][0][
+            "expected_yield"
+        ] = "100.0"
     else:
         payload["ecosystem_overview"]["total_locations"] = -1
 
