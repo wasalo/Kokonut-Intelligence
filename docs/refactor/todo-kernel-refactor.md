@@ -1657,3 +1657,42 @@ Checklist: 1,461 complete / 25 open (1,486 total); TODO: 168 checked / 16 open.
 The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and
 records 68 strict private Gateway response endpoints. MAN-CAP acceptance and
 capability classifications are unchanged.
+
+
+### Completed parallel continuation — GNH, mobile inventory, and forecast scope — 28 October 2026
+
+- [x] Reject invalid direct `generate_gnh_alignment` location scope before
+  database access.
+- [x] Enforce a strict request-location-bound response contract for the private
+  mobile operations inventory.
+- [x] Add fail-closed tenant reads and read-only enforcement for Directus
+  `forecast_output` rows.
+
+The integrated selection passes 422 Python tests and 138 Directus extension
+tests; extension build/typecheck, Ruff, compilation, report inventories,
+matrix validation, and diff checks pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-gnh-mobile-inventory-forecast-output-boundary.json).
+Checklist: 1,464 complete / 25 open (1,489 total); TODO: 171 checked / 16 open.
+The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared)
+with 69 strict private Gateway response endpoints. These checks do not prove
+live Directus role behavior or historical forecast lineage.
+
+
+### Completed parallel continuation — reports, CLI, Governance API, and Directus reads — 28 October 2026
+
+- [x] Reject invalid direct capital-provider report location scope before
+  database access.
+- [x] Enforce a strict request-bound Governance roles page response contract.
+- [x] Add a fail-closed read-only Directus tenant boundary for `noi_snapshot`.
+- [x] Add a fail-closed read-only Directus tenant boundary for `water_access`.
+- [x] Reject invalid traceability `create-batch` and `certs` location UUIDs
+  before the CLI opens PostgreSQL.
+
+The integrated selection passes 459 Python tests (3 skipped) and 140 Directus
+extension tests. Build/typecheck, Ruff, compilation, report inventories,
+capability-matrix validation, and diff checks pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-governance-directus-reads.json).
+Checklist: 1,469 complete / 25 open (1,494 total); TODO: 176 checked / 16 open.
+The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared)
+with 70 strict private Gateway response endpoints. Directus runtime acceptance
+and populated parity remain open.

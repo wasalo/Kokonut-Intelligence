@@ -48,7 +48,10 @@ describe('Directus tenant authorization', () => {
       'labor_event',
       'field_note',
       'forecast_scenario',
+      'forecast_output',
+      'water_access',
       'report_snapshot',
+      'noi_snapshot',
       'dashboard_dataset',
       'farm_registry_record',
       'inventory_event',
@@ -66,6 +69,9 @@ describe('Directus tenant authorization', () => {
     expect(READ_ONLY_TENANT_SCOPED_COLLECTIONS).toEqual([
       'retirement_certificate',
       'metric_value',
+      'forecast_output',
+      'noi_snapshot',
+      'water_access',
     ]);
 
     const store = makeStore();
@@ -151,6 +157,81 @@ describe('Directus tenant authorization', () => {
     });
     await expect(authorizeDirectusReadResult(
       unassigned, accountability, issuer, 'metric_value', { id: rowA },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+
+  it('scopes forecast-output reads and rejects rows without a direct location', async () => {
+    const store = makeStore();
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'forecast_output', { fields: ['id', 'location_id', 'value'] },
+    )).resolves.toEqual({
+      fields: ['id', 'location_id', 'value'],
+      filter: { location_id: { _in: [locationA] } },
+    });
+
+    const unassigned = makeStore({
+      loadRows: vi.fn().mockResolvedValue([{ id: rowA, location_id: null }]),
+    });
+    await expect(authorizeDirectusReadResult(
+      unassigned, accountability, issuer, 'forecast_output', { id: rowA },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+
+  it('scopes NOI snapshot reads by exact location and keeps the collection read-only', async () => {
+    const store = makeStore();
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'noi_snapshot', {
+        fields: ['id', 'location_id', 'period_start', 'period_end', 'noi'],
+      },
+    )).resolves.toEqual({
+      fields: ['id', 'location_id', 'period_start', 'period_end', 'noi'],
+      filter: { location_id: { _in: [locationA] } },
+    });
+    expect(store.authorizedLocations).toHaveBeenCalledWith(
+      operatorId, 'noi_snapshot', 'read',
+    );
+
+    await expect(authorizeDirectusReadResult(
+      store, accountability, issuer, 'noi_snapshot', { id: rowB },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+
+    await expect(authorizeDirectusCreate(
+      store, accountability, issuer, 'noi_snapshot', { location_id: locationA },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'noi_snapshot', 'update', [rowA], {},
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'noi_snapshot', 'delete', [rowA],
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+
+  it('scopes water-access reads by exact location and denies Directus writes', async () => {
+    const store = makeStore();
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'water_access', {
+        fields: ['id', 'location_id', 'source_type', 'status'],
+      },
+    )).resolves.toEqual({
+      fields: ['id', 'location_id', 'source_type', 'status'],
+      filter: { location_id: { _in: [locationA] } },
+    });
+    expect(store.authorizedLocations).toHaveBeenCalledWith(
+      operatorId, 'water_access', 'read',
+    );
+
+    await expect(authorizeDirectusReadResult(
+      store, accountability, issuer, 'water_access', { id: rowB },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+
+    await expect(authorizeDirectusCreate(
+      store, accountability, issuer, 'water_access', { location_id: locationA },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'water_access', 'update', [rowA], {},
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRows(
+      store, accountability, issuer, 'water_access', 'delete', [rowA],
     )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
   });
 

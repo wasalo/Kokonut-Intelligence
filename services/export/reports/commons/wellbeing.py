@@ -5,11 +5,14 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 
 
 def generate_gnh_alignment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe GNH alignment report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("gnh_alignment requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

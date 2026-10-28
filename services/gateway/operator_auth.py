@@ -3949,6 +3949,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.mobile_collection_review_responses import (
         MobileCollectionReviewQueueResponse,
     )
+    from services.gateway.mobile_operations_inventory_responses import (
+        MobileOperationsInventoryResponse,
+    )
     from services.gateway.operator_review_responses import ReportReviewQueueResponse
     from services.mobile.api import (
         create_operator_enrollment,
@@ -5154,7 +5157,10 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
         )
 
-    @router.get("/operator/api/mobile/locations/{location_id}/inventory")
+    @router.get(
+        "/operator/api/mobile/locations/{location_id}/inventory",
+        response_model=MobileOperationsInventoryResponse,
+    )
     async def operator_mobile_inventory(
         location_id: UUID, request: Request, device_limit: int = Query(default=50, ge=1, le=100)
     ):
@@ -5190,6 +5196,22 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Mobile operations inventory unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store"},
             )
+        try:
+            response = MobileOperationsInventoryResponse.model_validate(result)
+            if response.location_id != location_id or len(response.devices) > device_limit:
+                raise ValueError("Mobile inventory does not match request scope or device bound")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile operations inventory response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile operations inventory unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(

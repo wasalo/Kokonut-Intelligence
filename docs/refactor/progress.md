@@ -22541,3 +22541,44 @@ response endpoints across 67 capabilities (24 baseline-retained, 7 deployed,
 36 prepared). Checklist: 1,461 complete / 25 open; TODO: 168 checked / 16 open.
 No migration, database, provider, Directus runtime, candidate, legacy service,
 or live network was used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-directus-mobile-report-scope-contracts.json).
+
+
+### Progress addendum — GNH scope, mobile inventory contract, and forecast tenant reads — 28 October 2026
+
+Direct calls to `generate_gnh_alignment` now validate a single location UUID
+before cursor creation. The private mobile operations inventory publishes a
+strict, request-bound success model and checks queue counters and device-limit
+values without exposing collection content. The optional Directus tenant
+adapter now treats `forecast_output` as location-scoped and read-only: the
+grant filter and returned-row check deny unassigned outputs.
+
+The integrated selection passes 422 Python tests and 138 Directus extension
+tests; extension build/typecheck, Ruff, Python compilation, report
+source/query inventories, capability-matrix validation, and diff hygiene
+pass. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared) and records 69 strict private Gateway response endpoints. Checklist:
+1,464 complete / 25 open; TODO: 171 checked / 16 open. No migration, database,
+provider, live Directus runtime, candidate, legacy service, or live network was
+used. Runtime permissions and historical forecast lineage remain unverified.
+Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-gnh-mobile-inventory-forecast-output-boundary.json).
+
+
+### Progress addendum — report, CLI, Governance API, and Directus reads — 28 October 2026
+
+The capital-provider utility report now validates its required location UUID
+before opening a cursor. The traceability `create-batch` and `certs` commands
+reject malformed location UUIDs before the shared CLI opens PostgreSQL. The
+private Governance roles page now validates its exact service projection,
+requested location, page bound, and continuation cursor. Directus tenant reads
+now also cover `noi_snapshot` and `water_access`; both use required direct
+location keys and read-only grants, so writes are denied.
+
+The integrated selection passes 459 Python tests with three skipped and 140
+Directus extension tests. The extension build/typecheck, Ruff, Python
+compilation, report inventories, matrix validation, and diff checks pass. The
+matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and
+records 70 strict private Gateway response endpoints. Directus runtime
+enforcement and populated parity remain unverified. Checklist: 1,469 complete
+/ 25 open; TODO: 176 checked / 16 open. No database, provider, live Directus
+runtime, candidate, legacy service, or live network was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-governance-directus-reads.json).

@@ -355,7 +355,7 @@
       "callable": "generate_capital_provider_utility",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 578,
+      "source_line": 579,
       "parameters": [
         "conn",
         "location_id",
@@ -420,7 +420,7 @@
       "callable": "generate_comprehensive_status",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 399,
+      "source_line": 400,
       "parameters": [
         "conn",
         "location_id",
@@ -484,7 +484,7 @@
       "callable": "generate_cultural_preservation",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 49,
+      "source_line": 52,
       "parameters": [
         "conn",
         "location_id",
@@ -745,7 +745,7 @@
       "callable": "generate_foundational_wellbeing",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 159,
+      "source_line": 162,
       "parameters": [
         "conn",
         "location_id",
@@ -1306,7 +1306,7 @@
       "callable": "generate_renewable_energy",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 85,
+      "source_line": 88,
       "parameters": [
         "conn",
         "location_id",
@@ -1732,7 +1732,7 @@
       "callable": "generate_state_of_kokonut",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 281,
+      "source_line": 282,
       "parameters": [
         "conn",
         "location_id",
@@ -1753,7 +1753,7 @@
       "callable": "generate_state_of_kokonut_graphs",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 346,
+      "source_line": 347,
       "parameters": [
         "conn",
         "location_id",
@@ -1796,7 +1796,7 @@
       "callable": "generate_strategic_reserve",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 483,
+      "source_line": 484,
       "parameters": [
         "conn",
         "location_id",
@@ -2010,7 +2010,7 @@
       "callable": "generate_vulnerable_access",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 123,
+      "source_line": 126,
       "parameters": [
         "conn",
         "location_id",

@@ -9,7 +9,10 @@ export const TENANT_SCOPED_COLLECTIONS = [
   'labor_event',
   'field_note',
   'forecast_scenario',
+  'forecast_output',
+  'water_access',
   'report_snapshot',
+  'noi_snapshot',
   'dashboard_dataset',
   'farm_registry_record',
   'inventory_event',
@@ -29,6 +32,9 @@ export const TENANT_SCOPED_COLLECTIONS = [
 export const READ_ONLY_TENANT_SCOPED_COLLECTIONS = [
   'retirement_certificate',
   'metric_value',
+  'forecast_output',
+  'noi_snapshot',
+  'water_access',
 ] as const;
 
 export type TenantScopedCollection = (typeof TENANT_SCOPED_COLLECTIONS)[number];

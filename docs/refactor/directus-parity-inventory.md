@@ -1,7 +1,7 @@
 # Directus parity inventory
 
-**Review date:** 26 October 2026
-**Status:** source inventory, the fail-closed 22-collection tenant
+**Review date:** 28 October 2026
+**Status:** source inventory, the fail-closed 25-collection tenant
 authorization adapter, and an organization/location permission seed repair
 are implemented. Pinned
 Directus 12.1.1 acceptance confirms grant-scoped Field Note reads, but the
@@ -246,7 +246,7 @@ Directus surface has been replaced.
 | API roles and CRUD rules | [`config/directus/permissions.sql`](../../config/directus/permissions.sql) | Staff policies define other collection actions, writable fields, and business filters. `farm_activity` is intentionally omitted from all nine repository-managed policies; the seed deletes stale managed rows. The Gateway has explicit operator-grant templates for the native Field Collector workflow and a separate `/operator/api/farm-activity-records` contract for non-Field-Collector reads, drafts, and human lifecycle operations. The Directus dashboard hook also prevents query operators from using archived SQL and redacts it from API responses. | Fresh pinned-runtime seed apply/replay under `kokonut_directus_runtime` passes and leaves zero managed `farm_activity` rules while retaining other role permissions. Migration 404 is source/disposable-DB verified, not candidate deployed. Historical rows without Gateway audit provenance fail closed for lifecycle transitions. Other collections/fields, field privacy, expanded relations, and retained hook effects remain open. |
 | Database identity | [`optional-database-roles.md`](optional-database-roles.md) | The Directus service can bootstrap with an owner-backed one-shot operation and run under a non-owner DML role. The runtime role is separate from the native API and analytics roles. | Directus API enforcement under that runtime identity; the role alone does not enforce collection, field, or tenant policy. |
 | Lifecycle and accountability hooks | [`extensions/kokonut-hooks/src/workflow.ts`](../../extensions/kokonut-hooks/src/workflow.ts), [`index.ts`](../../extensions/kokonut-hooks/src/index.ts), [`roles.ts`](../../extensions/kokonut-hooks/src/roles.ts) | Thirty-five collections use the shared lifecycle transition map. Hook code resolves role slugs from server accountability, validates selected payloads and tenant references, records transitions, applies domain calculations, and defines two scheduled jobs. Twenty-one scoped collections also use the fail-closed operator mapping/grant adapter described below; create and update payloads validate known farm, plot-through-farm, crop-cycle, harvest, staff, scenario-parent, and infrastructure-asset references using the request database context. Retirement-certificate writes are denied by its collection-specific read-only scope policy. | Hook-by-hook parity against native service paths, execution/retry behavior under the deployed Directus image, and authenticated before/after database evidence. |
-| Tenant and Field Collector gates | Permission SQL plus [`directus-authorization.ts`](../../extensions/kokonut-hooks/src/directus-authorization.ts) and [`tests/test_directus_tenant_permissions.py`](../../tests/test_directus_tenant_permissions.py) | The hook maps the authenticated Directus user’s `external_identifier` to an enabled Kokonut operator by exact configured OIDC issuer and subject. For twenty-two location-scoped collections, including `revenue_event` and read-only `metric_value`, it adds a grant-derived location predicate before reads and checks mutable targets using the request transaction; certificate and metric-value mutations are denied. The Auditor metric-value field list omits source IDs, metadata, reviewer identity, and notes. It rejects `deep` query objects and nested/wildcard relation fields until each related collection has an explicit scope contract. Field Collector-origin farm-activity reads remain excluded from Directus. | Pinned-image behavior under `kokonut_directus_runtime`, remaining role/field parity, effective denial of nested relations, bulk-query cases, live issuer/identity/grants, revocation/transfer concurrency, and confirmation every Field Collector path stays on Gateway. This hook check is not PostgreSQL RLS or a signed tenant-context boundary. |
+| Tenant and Field Collector gates | Permission SQL plus [`directus-authorization.ts`](../../extensions/kokonut-hooks/src/directus-authorization.ts) and [`tests/test_directus_tenant_permissions.py`](../../tests/test_directus_tenant_permissions.py) | The hook maps the authenticated Directus user’s `external_identifier` to an enabled Kokonut operator by exact configured OIDC issuer and subject. For twenty-five location-scoped collections, including `revenue_event`, read-only `metric_value`, `forecast_output`, `noi_snapshot`, and `water_access`, it adds a grant-derived location predicate before reads and checks returned rows against their stored locations; mutable targets use the request transaction. Certificate, metric-value, forecast-output, NOI-snapshot, and water-access mutations are denied. The Auditor metric-value field list omits source IDs, metadata, reviewer identity, and notes. It rejects `deep` query objects and nested/wildcard relation fields until each related collection has an explicit scope contract. Field Collector-origin farm-activity reads remain excluded from Directus. | Pinned-image behavior under `kokonut_directus_runtime`, remaining role/field parity, effective denial of nested relations, bulk-query cases, live issuer/identity/grants, revocation/transfer concurrency, and confirmation every Field Collector path stays on Gateway. This hook check is not PostgreSQL RLS or a signed tenant-context boundary. |
 | Schema metadata | [`tests/test_directus_metadata.py`](../../tests/test_directus_metadata.py) and [`schemas/directus/snapshots/schema_latest.json`](../../schemas/directus/snapshots/schema_latest.json) | The checker compares snapshot sort fields and physical field metadata, and can query the local Compose database when it is running. | Permission parity, API response shape, current runtime identity, or whether the optional Directus profile is deployed. |
 | Native replacement surface | [`services/gateway/router.py`](../../services/gateway/router.py), [`services/gateway/operator_auth.py`](../../services/gateway/operator_auth.py), [`services/gateway/farm_activity_roles.py`](../../services/gateway/farm_activity_roles.py), and the [Gateway farm-activity contract](gateway-farm-activity-operations.md) | Native routes cover a bounded public read surface and selected authenticated reviewer, Field Collector, and farm-activity operations. Farm-activity templates expand into explicit tenant-qualified grants; Analyst reads are verified/published-only. Migration 404 adds a separate append-only operator event ledger for non-Field-Collector operations. | This is scoped support for the native Field Collector workflow and non-Field-Collector `farm_activity` records, not every Directus collection/field/relation, administrative UI, hook side effects, or schedules. Migration rollout and historical-row reconciliation are open. |
 
@@ -277,7 +277,7 @@ Gateway ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-
 The source hook now resolves `directus_users.external_identifier` as the OIDC
 subject and requires an exact `KOKONUT_OPERATOR_OIDC_ISSUER` match to an enabled
 `operator_identity`; Directus receives the same issuer setting as the Gateway.
-For each of the twenty-two location-scoped collections, it adds
+For each of the twenty-five location-scoped collections, it adds
 the active organization-qualified `operator_scope_grant_allows` locations to
 the `items.query` filter and checks returned `items.read` IDs against their
 stored locations, even when the caller did not request the `location_id` field;
@@ -319,9 +319,26 @@ location-scoped operator grant. The directus-specific grants and provider
 mapping still require isolated API acceptance; nullable historical rows remain
 subject to each collection's policy and cannot be created by this hook.
 
+**Forecast output tenant read boundary (28 October 2026):** `forecast_output`
+now uses the adapter's grant-derived `location_id` filter, returned-row check,
+and read-only mutation denial. Its nullable location means unassigned rows fail
+closed. Focused adapter tests cover an owned-location filter, unassigned-row
+denial, and write denial; the extension test suite and build/typecheck pass.
+This is source acceptance only and does not prove the optional Directus runtime
+loaded the hook or that historical rows have consistent scenario lineage.
+
+**NOI snapshot and water-access tenant read boundaries (28 October 2026):**
+`noi_snapshot` and `water_access` now use the same grant-derived location
+filter and returned-row check. Both schemas require `location_id`, and the
+managed Directus permissions are read-only, so the hook denies create, update,
+and delete. Focused authorization tests cover owned-location filters,
+cross-location row denial, and all write denials; the full extension suite and
+build/typecheck pass. This is source-level evidence; live Directus enforcement
+and populated-data parity remain open.
+
 The SQL still grants `fields = '*'` on many read rules, so a row predicate does
 not establish field privacy. The Auditor policy deliberately has unfiltered
-reads for collections beyond the twenty-two-collection tenant-hook list,
+reads for collections beyond the twenty-five-collection tenant-hook list,
 including reporting and governance records. `metric_value` is now an exception:
 Auditor reads require an exact location grant, writes are denied, and the
 managed permission exposes only result fields, not source IDs, metadata, or

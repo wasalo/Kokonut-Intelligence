@@ -19,14 +19,67 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,461 checklist items complete and 25
-open (1,486 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,469 checklist items complete and 25
+open (1,494 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### Completed continuation — GNH scope, mobile inventory contract, and forecast tenant reads — 28 October 2026
+
+- [x] Reject malformed, missing, and aggregate location scope in direct
+  `generate_gnh_alignment` calls before opening a database cursor.
+- [x] Publish a strict, requested-location-bound response contract for the
+  private mobile operations inventory, including bounded device-limit values
+  and content-free queue counters.
+- [x] Add `forecast_output` to the optional Directus tenant read adapter,
+  enforcing grant-derived location filters, returned-row checks, and
+  read-only mutations; unassigned rows fail closed.
+
+The integrated focused selection passes 422 Python tests and 138 Directus
+extension tests. The extension build/typecheck, Ruff, Python compilation,
+report source/query inventories, capability-matrix validation, and diff checks
+pass. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared), and the mobile inventory contract brings strict private Gateway
+response endpoints to 69. No migration, database, provider, Directus runtime,
+candidate, legacy service, or live network was used. This is source-level
+Directus and Gateway acceptance; runtime permission parity and historical
+forecast lineage remain open. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-gnh-mobile-inventory-forecast-output-boundary.json).
+
+Checklist: 1,464 complete / 25 open (1,489 total); TODO: 171 checked / 16
+open. MAN-CAP acceptance and capability classifications are unchanged.
+
+
+### Completed parallel continuation — reports, CLI, Governance API, and Directus tenant reads — 28 October 2026
+
+- [x] Reject invalid location UUIDs in direct `generate_capital_provider_utility`
+  calls before opening a database cursor.
+- [x] Add a strict request-bound response contract to the private Governance
+  roles page, validating projection, page size, and cursor consistency.
+- [x] Scope Directus `noi_snapshot` reads to active operator grants and deny
+  all Directus mutations.
+- [x] Scope Directus `water_access` reads to active operator grants and deny
+  all Directus mutations.
+- [x] Validate `create-batch` and `certs` traceability CLI location UUIDs
+  before the shared CLI can open PostgreSQL.
+
+The integrated selection passes 459 Python tests with three skipped and 140
+Directus extension tests. The extension build/typecheck, Ruff, Python
+compilation, report source/query inventories, capability-matrix validation,
+and diff checks pass. Strict private Gateway response endpoints now total 70;
+the optional Directus adapter covers 25 location-scoped collections, including
+three read-only output/catalog collections added in this work across the two
+parallel batches. No database, provider, Directus runtime, candidate, legacy
+service, or live network was used. The new Directus policies are source-level;
+runtime enforcement and populated parity remain open. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-governance-directus-reads.json).
+
+Checklist: 1,469 complete / 25 open (1,494 total); TODO: 176 checked / 16
+open. MAN-CAP acceptance and capability classifications are unchanged.
 
 ### C1 yield-benchmark runtime ACL — 28 October 2026
 

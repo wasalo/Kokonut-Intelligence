@@ -6,6 +6,8 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_traceability --help
 """
 
+from uuid import UUID
+
 from ..common.commands import CommandLine
 from .traceability import (
     create_produce_batch,
@@ -211,6 +213,13 @@ cli.subcommand("cold-chain", "Get cold chain log") \
 
 
 def main(argv=None):
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    if args.command in {"create-batch", "certs"}:
+        try:
+            UUID(args.location_id)
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
     return cli.run(argv)
 
 

@@ -1287,8 +1287,22 @@ def test_mobile_operations_inventory_requires_both_grants_and_returns_no_store(m
     )
     inventory = {
         "location_id": LOCATION_ID,
-        "devices": [{"device_id": "collector-7", "status": "active"}],
-        "queue_summary": {"pending_sync_count": 2},
+        "devices": [
+            {
+                "device_id": "collector-7",
+                "status": "active",
+                "last_seen_at": "2026-10-28T10:00:00+00:00",
+                "last_sync_at": "2026-10-28T09:00:00+00:00",
+            }
+        ],
+        "queue_summary": {
+            "device_count": 2,
+            "active_device_count": 1,
+            "pending_sync_count": 2,
+            "synced_record_count": 8,
+            "form_review_required_count": 3,
+            "ineligible_synced_count": 1,
+        },
     }
     reader = MagicMock(return_value=inventory)
     monkeypatch.setattr(

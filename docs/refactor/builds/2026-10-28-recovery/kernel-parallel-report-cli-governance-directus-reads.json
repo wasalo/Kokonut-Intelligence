@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "6360fc0c",
+  "working_tree_dirty": true,
+  "scope": "Parallel code-only batch: pre-database report and CLI scope validation, strict private Governance roles response contract, and read-only Directus tenant boundaries for NOI snapshots and water-access records.",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_operator_auth.py tests/test_operator_mobile_review_contract.py tests/test_operator_farm_activity_intake_contract.py tests/test_operator_mobile_operations_inventory_contract.py tests/test_operator_route_policy_inventory.py tests/test_farm_activity_workflow.py tests/test_consent_privacy_p0.py tests/test_directus_permission_inventory.py tests/test_farm_summary_report_scope.py tests/test_report_state_cursor_cleanup.py tests/test_regenerative_outcomes_scope.py tests/test_regenerative_outcomes.py tests/test_gnh_alignment_report_scope.py tests/test_gnh_alignment.py tests/test_capital_provider_utility_report_scope.py tests/test_cli_traceability_scope.py tests/test_gateway_governance_role_response_contract.py tests/test_gateway_governance_role_pagination_openapi.py tests/test_gateway_governance_role_detail_response.py tests/test_gateway_governance_roles.py tests/test_governance_roles.py -q",
+      "result": "passed",
+      "passed": 459,
+      "skipped": 3
+    },
+    {
+      "command": "npm test",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "passed": 140
+    },
+    {
+      "command": "npm run build",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "details": "Directus extension bundle and TypeScript no-emit check"
+    },
+    {
+      "command": "Ruff check and Python compilation for changed Python source and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_inventory.py --check docs/refactor/report-generator-source-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_query_scope_inventory.py --check docs/refactor/report-generator-query-scope-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "directus_runtime_used": false
+  },
+  "limitations": [
+    "The Directus tenant boundaries were tested in the hook and are not live API or runtime-role acceptance.",
+    "No populated report, Governance role, NOI, or water-access parity comparison was performed.",
+    "CLI validation confirms malformed IDs fail before the database runner; it does not verify a live database operation."
+  ]
+}

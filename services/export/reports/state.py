@@ -9,6 +9,7 @@ import psycopg2.extras
 
 from ..kokonut_graphs import build_all
 from .common import (
+    _looks_like_uuid,
     _serialize_rows,
 )
 from .commons import (
@@ -577,6 +578,9 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
 
 def generate_capital_provider_utility(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital-provider utility scenario report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("capital_provider_utility requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))

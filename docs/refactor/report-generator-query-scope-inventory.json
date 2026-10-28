@@ -776,7 +776,7 @@
       "report_type": "capital_provider_utility",
       "callable": "generate_capital_provider_utility",
       "source_file": "services/export/reports/state.py",
-      "source_line": 578,
+      "source_line": 579,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -790,7 +790,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 582,
+          "line": 586,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -813,7 +813,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 584,
+          "line": 588,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1015,7 +1015,7 @@
       "report_type": "comprehensive_status",
       "callable": "generate_comprehensive_status",
       "source_file": "services/export/reports/state.py",
-      "source_line": 399,
+      "source_line": 400,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -1029,7 +1029,7 @@
       "helper_calls": [
         {
           "callable": "generate_capital_accounting",
-          "line": 435,
+          "line": 436,
           "location_id_name_visible_in_arguments": false
         }
       ],
@@ -1156,7 +1156,7 @@
       "report_type": "cultural_preservation",
       "callable": "generate_cultural_preservation",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 49,
+      "source_line": 52,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -1170,7 +1170,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 53,
+          "line": 56,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1193,7 +1193,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 55,
+          "line": 58,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2157,7 +2157,7 @@
       "report_type": "foundational_wellbeing",
       "callable": "generate_foundational_wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 159,
+      "source_line": 162,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -2171,7 +2171,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 163,
+          "line": 166,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2194,7 +2194,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 165,
+          "line": 168,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2236,7 +2236,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 15,
+          "line": 18,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2259,7 +2259,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 17,
+          "line": 20,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3590,7 +3590,7 @@
       "report_type": "renewable_energy",
       "callable": "generate_renewable_energy",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 85,
+      "source_line": 88,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -3604,7 +3604,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 89,
+          "line": 92,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3627,7 +3627,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 91,
+          "line": 94,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4957,7 +4957,7 @@
       "report_type": "state_of_kokonut",
       "callable": "generate_state_of_kokonut",
       "source_file": "services/export/reports/state.py",
-      "source_line": 281,
+      "source_line": 282,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -4975,7 +4975,7 @@
       "report_type": "state_of_kokonut_graphs",
       "callable": "generate_state_of_kokonut_graphs",
       "source_file": "services/export/reports/state.py",
-      "source_line": 346,
+      "source_line": 347,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -4989,7 +4989,7 @@
       "helper_calls": [
         {
           "callable": "build_all",
-          "line": 359,
+          "line": 360,
           "location_id_name_visible_in_arguments": true
         }
       ],
@@ -5319,7 +5319,7 @@
       "report_type": "strategic_reserve",
       "callable": "generate_strategic_reserve",
       "source_file": "services/export/reports/state.py",
-      "source_line": 483,
+      "source_line": 484,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -5333,7 +5333,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 509,
+          "line": 510,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5356,7 +5356,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 514,
+          "line": 515,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5914,7 +5914,7 @@
       "report_type": "vulnerable_access",
       "callable": "generate_vulnerable_access",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 123,
+      "source_line": 126,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -5928,7 +5928,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 127,
+          "line": 130,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5951,7 +5951,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 129,
+          "line": 132,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

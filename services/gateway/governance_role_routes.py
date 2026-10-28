@@ -87,6 +87,34 @@ class GovernanceRoleDetailResponse(BaseModel):
     authority_domains_truncated: bool = Field(strict=True)
 
 
+class GovernanceRoleListItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _GovernanceResponseUUID
+    role_key: str = Field(max_length=120)
+    name: str = Field(max_length=255)
+    purpose: str
+    status: _ROLE_STATUS
+    effective_from: AwareDatetime | None
+    effective_until: AwareDatetime | None
+    review_due_at: AwareDatetime | None
+    created_at: AwareDatetime
+    circle_key: str = Field(max_length=120)
+    circle_name: str = Field(max_length=255)
+    circle_status: _CIRCLE_STATUS
+    active_accountability_count: int = Field(ge=0, strict=True)
+    current_assignment_count: int = Field(ge=0, strict=True)
+    applicable_authority_domain_count: int = Field(ge=0, strict=True)
+
+
+class GovernanceRoleListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _GovernanceResponseUUID
+    items: list[GovernanceRoleListItemResponse] = Field(max_length=100)
+    next_cursor: _GovernanceResponseUUID | None
+
+
 def register_governance_role_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -255,7 +283,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
 
         return JSONResponse(jsonable_encoder(summary), headers=headers)
 
-    @router.get("/operator/api/governance/{location_id}/roles")
+    @router.get(
+        "/operator/api/governance/{location_id}/roles",
+        response_model=GovernanceRoleListResponse,
+    )
     async def location_governance_roles(
         request: Request,
         location_id: str,
@@ -297,6 +328,25 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 status_code=503,
                 content={"error": "Governance role registry unavailable"},
                 headers={**headers, "Retry-After": "30"},
+            )
+        try:
+            response = GovernanceRoleListResponse.model_validate(result)
+            if response.location_id != UUID(location_id) or len(response.items) > limit:
+                raise ValueError("Governance role page does not match request bounds")
+            if response.next_cursor is not None and (
+                not response.items or response.next_cursor != response.items[-1].id
+            ):
+                raise ValueError("Governance role cursor does not match the page")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_roles").warning(
+                "Governance role page response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance role registry unavailable"},
+                headers=headers,
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
