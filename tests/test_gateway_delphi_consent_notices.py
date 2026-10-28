@@ -1,5 +1,6 @@
 """Contracts for versioned, independently reviewed Delphi consent notices."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -18,6 +19,7 @@ LOCATION_ID = str(uuid4())
 STUDY_ID = str(uuid4())
 NOTICE_ID = str(uuid4())
 REQUEST_ID = str(uuid4())
+CREATED_AT = datetime(2026, 10, 28, 12, 0, tzinfo=timezone.utc)
 
 
 class _Connection:
@@ -182,6 +184,37 @@ def test_review_queue_sets_consent_review_context_and_bounds_rows():
         }
     ]
     assert connection.closed
+
+
+@pytest.mark.parametrize(("offset", "limit", "expected"), [(9999, 1, True), (10000, 1, False)])
+def test_review_queue_has_more_only_when_another_page_is_addressable(offset, limit, expected):
+    rows = [
+        (
+            str(uuid4()),
+            str(uuid4()),
+            "Study",
+            "v1",
+            "Participation is voluntary.",
+            "ab" * 32,
+            CREATED_AT,
+            True,
+            [],
+            ["questionnaire_responses"],
+        )
+        for _ in range(2)
+    ]
+    connection = _Connection(rows=rows)
+
+    with patch.object(notices, "set_operator_tenant_context", _context):
+        result = notices.list_location_delphi_consent_notices(
+            REVIEWER_ID,
+            LOCATION_ID,
+            limit=limit,
+            offset=offset,
+            connection_factory=lambda: connection,
+        )
+
+    assert result["has_more"] is expected
 
 
 def test_review_decision_sets_independent_review_context_and_calls_bounded_function():
@@ -407,6 +440,9 @@ def test_consent_notice_list_openapi_publishes_service_page_bounds():
     operation = _app(object(), run_in_threadpool).openapi()["paths"][
         "/operator/api/delphi/{location_id}/consent-notices"
     ]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "ConsentNoticeReviewPage"
+    )
     parameters = {
         parameter["name"]: parameter["schema"]
         for parameter in operation["parameters"]
@@ -442,3 +478,99 @@ def test_consent_notice_list_rejects_invalid_page_before_service(query):
     )
 
     assert response.status_code == 422
+
+
+def _valid_review_page(**overrides):
+    result = {
+        "location_id": LOCATION_ID,
+        "offset": 0,
+        "notices": [
+            {
+                "notice_id": NOTICE_ID,
+                "study_id": STUDY_ID,
+                "study_title": "Water resilience",
+                "version": "v1.0",
+                "notice_text": "Participation is voluntary.",
+                "notice_digest": "ab" * 32,
+                "created_at": CREATED_AT,
+                "review_ready": False,
+                "blocked_reasons": ["self_review"],
+                "collection_scopes": ["questionnaire_responses"],
+            }
+        ],
+        "has_more": False,
+    }
+    result.update(overrides)
+    return result
+
+
+def test_consent_notice_list_validates_and_returns_private_projection():
+    calls = []
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        calls.append((func, args, kwargs))
+        return _valid_review_page()
+
+    response = TestClient(_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/consent-notices"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["notices"][0]["notice_text"] == "Participation is voluntary."
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert calls[0][1] == (OPERATOR_ID, LOCATION_ID)
+    assert calls[0][2] == {"limit": 50, "offset": 0}
+
+
+@pytest.mark.parametrize(
+    "projection",
+    [
+        _valid_review_page(location_id=str(uuid4())),
+        _valid_review_page(notices=[{"notice_id": NOTICE_ID}]),
+        _valid_review_page(
+            notices=[
+                {
+                    **_valid_review_page()["notices"][0],
+                    "participant_ref_id": str(uuid4()),
+                }
+            ]
+        ),
+        _valid_review_page(
+            notices=[
+                {
+                    **_valid_review_page()["notices"][0],
+                    "review_ready": True,
+                }
+            ]
+        ),
+    ],
+)
+def test_consent_notice_list_rejects_mismatched_or_private_projection(projection):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return projection
+
+    response = TestClient(_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/consent-notices"
+    )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert "participant_ref_id" not in response.text
+
+
+def test_consent_notice_list_enforces_request_pagination_binding():
+    async def run_in_threadpool(_func, _operator_id, location_id, **kwargs):
+        return _valid_review_page(
+            location_id=location_id,
+            offset=kwargs["offset"],
+            notices=[],
+            has_more=True,
+        )
+
+    response = TestClient(_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/consent-notices?limit=2&offset=9"
+    )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"

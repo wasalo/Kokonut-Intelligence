@@ -1,5 +1,6 @@
 """Focused tenant and privacy contract for Delphi consultation reads."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -16,6 +17,34 @@ from starlette.testclient import TestClient  # noqa: E402
 OPERATOR_ID = str(uuid4())
 LOCATION_ID = str(uuid4())
 STUDY_ID = str(uuid4())
+CREATED_AT = datetime(2026, 10, 28, 12, 0, tzinfo=timezone.utc)
+
+
+def _study_projection(**overrides):
+    study = {
+        "study_id": STUDY_ID,
+        "title": "Water resilience",
+        "description": None,
+        "variation": "real_time",
+        "status": "open",
+        "opened_at": None,
+        "closed_at": None,
+        "created_at": CREATED_AT,
+        "items": [],
+    }
+    study.update(overrides)
+    return study
+
+
+def _consultation_page(**overrides):
+    page = {
+        "location_id": LOCATION_ID,
+        "offset": 0,
+        "studies": [_study_projection()],
+        "has_more": False,
+    }
+    page.update(overrides)
+    return page
 
 
 class _Connection:
@@ -162,6 +191,27 @@ def test_listing_returns_only_requested_page_and_has_more_flag():
     assert projection == (LOCATION_ID, 3, 2)
 
 
+@pytest.mark.parametrize(("offset", "limit", "expected"), [(9999, 1, True), (10000, 1, False)])
+def test_listing_has_more_only_when_another_page_is_addressable(offset, limit, expected):
+    connection = _Connection(
+        [
+            (str(uuid4()), f"Study {index}", None, "real_time", "open", None, None, None, [])
+            for index in range(2)
+        ]
+    )
+
+    with patch.object(consultation, "set_operator_tenant_context"):
+        result = consultation.list_location_delphi_consultations(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit=limit,
+            offset=offset,
+            connection_factory=lambda: connection,
+        )
+
+    assert result["has_more"] is expected
+
+
 def test_database_tenant_denial_rolls_back_and_closes_connection():
     connection = _Connection()
     with patch.object(
@@ -204,21 +254,32 @@ def test_route_returns_no_store_scoped_projection():
     async def run_in_threadpool(func, *args, **kwargs):
         return list_func(*args, **kwargs)
 
-    expected = {
-        "location_id": LOCATION_ID,
-        "offset": 0,
-        "studies": [{"study_id": STUDY_ID, "items": []}],
-        "has_more": False,
-    }
+    expected = _consultation_page()
     def list_func(*_args, **_kwargs):
         return expected
 
     client = TestClient(_make_app(object(), list_func, run_in_threadpool))
     response = client.get(f"/operator/api/delphi/{LOCATION_ID}/studies")
     assert response.status_code == 200
-    assert response.json() == expected
+    payload = response.json()
+    created_at = CREATED_AT.isoformat().replace("+00:00", "Z")
+    assert payload["studies"][0]["created_at"] == created_at
+    assert payload["studies"] == [
+        {**expected["studies"][0], "created_at": created_at}
+    ]
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
+
+
+def test_route_openapi_declares_strict_consultation_projection():
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("OpenAPI inspection reached the consultation service")
+
+    operation = _make_app(object(), lambda *_args, **_kwargs: None, run_in_threadpool).openapi()[
+        "paths"
+    ]["/operator/api/delphi/{location_id}/studies"]["get"]
+    schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("DelphiConsultationPage")
 
 
 def test_route_fails_closed_when_oidc_is_disabled():
@@ -235,7 +296,7 @@ def test_route_openapi_publishes_service_page_bounds():
         return list_func(*args, **kwargs)
 
     def list_func(*_args, **_kwargs):
-        return {"location_id": LOCATION_ID, "offset": 0, "studies": [], "has_more": False}
+        return _consultation_page(studies=[])
 
     app = _make_app(object(), list_func, run_in_threadpool)
     parameters = {
@@ -259,7 +320,7 @@ def test_route_rejects_out_of_bounds_paging_before_service(query):
 
     async def run_in_threadpool(func, *args, **kwargs):
         service_calls.append((args, kwargs))
-        return {"location_id": LOCATION_ID, "offset": kwargs["offset"], "studies": [], "has_more": False}
+        return _consultation_page(offset=kwargs["offset"], studies=[])
 
     client = TestClient(
         _make_app(object(), lambda *_args, **_kwargs: None, run_in_threadpool)
@@ -275,7 +336,7 @@ def test_route_forwards_validated_page_values_to_service():
 
     async def run_in_threadpool(func, *args, **kwargs):
         service_calls.append((args, kwargs))
-        return {"location_id": LOCATION_ID, "offset": kwargs["offset"], "studies": [], "has_more": False}
+        return _consultation_page(offset=kwargs["offset"], studies=[])
 
     client = TestClient(
         _make_app(object(), lambda *_args, **_kwargs: None, run_in_threadpool)
@@ -284,3 +345,92 @@ def test_route_forwards_validated_page_values_to_service():
 
     assert response.status_code == 200
     assert service_calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 30, "offset": 400})]
+
+
+def test_route_rejects_private_fields_and_inconsistent_privacy_projection():
+    valid_item = {
+        "item_id": str(uuid4()),
+        "label": "Water security",
+        "description": None,
+        "item_type": "issue",
+        "scale": "desirability",
+        "minimum": -1.0,
+        "maximum": 1.0,
+        "results_available": False,
+        "participant_count": None,
+        "median": None,
+        "mean": None,
+        "interquartile_range": None,
+        "standard_deviation": None,
+        "weighted_median": None,
+        "coefficient_of_variation": None,
+        "consensus_reached": None,
+        "computed_at": None,
+    }
+    cases = [
+        _consultation_page(
+            studies=[_study_projection(items=[{**valid_item, "participant_ref_id": str(uuid4())}])]
+        ),
+        _consultation_page(
+            studies=[_study_projection(items=[{**valid_item, "participant_count": 2, "mean": 0.5}])]
+        ),
+    ]
+    for projection in cases:
+        async def run_in_threadpool(*_args, **_kwargs):
+            return projection
+
+        response = TestClient(
+            _make_app(object(), lambda *_args, **_kwargs: None, run_in_threadpool)
+        ).get(f"/operator/api/delphi/{LOCATION_ID}/studies")
+
+        assert response.status_code == 500
+        assert response.headers["cache-control"] == "no-store"
+        assert "participant_ref_id" not in response.text
+
+
+def test_route_accepts_only_aggregates_above_the_privacy_floor():
+    item = {
+        "item_id": str(uuid4()),
+        "label": "Water security",
+        "description": None,
+        "item_type": "issue",
+        "scale": "desirability",
+        "minimum": -1.0,
+        "maximum": 1.0,
+        "results_available": True,
+        "participant_count": 3,
+        "median": 0.4,
+        "mean": 0.3,
+        "interquartile_range": 0.2,
+        "standard_deviation": 0.1,
+        "weighted_median": 0.4,
+        "coefficient_of_variation": 0.3333,
+        "consensus_reached": True,
+        # The database function returns nested item projections through JSONB,
+        # which serializes timestamps before the Python route receives them.
+        "computed_at": CREATED_AT.isoformat(),
+    }
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return _consultation_page(studies=[_study_projection(items=[item])])
+
+    response = TestClient(
+        _make_app(object(), lambda *_args, **_kwargs: None, run_in_threadpool)
+    ).get(f"/operator/api/delphi/{LOCATION_ID}/studies")
+
+    assert response.status_code == 200
+    assert response.json()["studies"][0]["items"][0]["participant_count"] == 3
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_route_enforces_location_and_pagination_response_binding():
+    async def run_in_threadpool(*_args, **kwargs):
+        return _consultation_page(location_id=str(uuid4()), offset=kwargs["offset"], studies=[])
+
+    response = TestClient(
+        _make_app(object(), lambda *_args, **_kwargs: None, run_in_threadpool)
+    ).get(f"/operator/api/delphi/{LOCATION_ID}/studies?limit=2&offset=8")
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"

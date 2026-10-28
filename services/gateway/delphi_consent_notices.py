@@ -185,7 +185,7 @@ def list_location_delphi_consent_notices(
             "location_id": location_id,
             "offset": page_offset,
             "notices": notices,
-            "has_more": len(rows) > page_size,
+            "has_more": len(rows) > page_size and page_offset + page_size <= 10000,
         }
     except Exception:
         connection.rollback()

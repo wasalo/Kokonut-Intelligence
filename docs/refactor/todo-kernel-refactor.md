@@ -1432,3 +1432,23 @@ regression pass. Evidence is recorded in [the batch log](batches.md). This
 ledger now has 125 checked / 16 open entries; the batches checklist records
 1,418 complete / 25 open. Capability classifications and MAN-CAP acceptance
 remain unchanged.
+
+
+### Completed continuation — private Delphi, stakeholder, and incident reads — 28 October 2026
+
+- [x] Add strict request-bound response validation for private Delphi consent
+  notices and consultation reads, including nested aggregate privacy.
+- [x] Add bounded response and continuation checks for the Delphi independent
+  minority-report and recommendation review queues.
+- [x] Add cursor-order and exact location/party binding for stakeholder
+  identity and trust review pages.
+- [x] Add the exact bounded response contract for the pollution-incident
+  review queue and parse the nested Delphi JSONB timestamp wire value.
+
+The combined focused Gateway selection passes 198 tests. Ruff, compilation,
+capability-matrix validation, runtime SQL inventory freshness on Python
+3.11/3.12, and diff checks pass. No database, provider, candidate, or legacy
+service was used. Evidence is recorded in [the batch log](batches.md). This
+ledger has 129 checked / 16 open entries; the batches checklist records
+1,422 complete / 25 open. The matrix now records 51 strict private Gateway
+response endpoints; classifications and MAN-CAP acceptance remain unchanged.

@@ -22256,3 +22256,29 @@ has 125 checked / 16 open entries, and the matrix records 44 strict private
 Gateway response endpoints across 67 rows. Capability classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP acceptance is
 unchanged.
+
+
+### Progress addendum — Delphi, stakeholder, and incident response contracts — 28 October 2026
+
+Seven additional private GET route templates now publish bounded response
+schemas and validate their runtime projections: Delphi consent notices,
+consultation studies, minority reports and recommendations; stakeholder
+identity cases and trust evidence; and pollution incidents. Request location,
+party, page, and cursor identities are checked. Delphi consultation results
+retain the minimum-participant privacy floor, and independent-review queues
+preserve their readiness blockers. JSONB item timestamps accept only an aware
+ISO timestamp representation.
+
+The combined focused Gateway selection passes 198 tests; Ruff, Python
+compilation, capability validation, runtime SQL inventory freshness on Python
+3.11/3.12, and diff checks pass. The runtime inventory contains the same 37
+unresolved write candidates; no grant or migration changed. No database,
+provider, candidate, or legacy service was used. Live OIDC/browser behavior,
+populated-data parity, and broader tenant isolation remain open. Evidence:
+[batch evidence](builds/2026-10-28-recovery/gateway-delphi-stakeholder-incident-response-contracts.json).
+
+The checklist now records 1,422 complete / 25 open (1,447 total); the TODO
+ledger has 129 checked / 16 open entries. The capability matrix records 51
+strict private Gateway response endpoints across 67 rows. Classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP acceptance
+is unchanged.

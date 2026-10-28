@@ -113,7 +113,7 @@ def list_location_delphi_minority_reports(
             "location_id": location_id,
             "offset": page_offset,
             "reports": reports,
-            "has_more": len(rows) > page_size,
+            "has_more": len(rows) > page_size and page_offset + page_size <= 10_000,
         }
     except Exception:
         connection.rollback()

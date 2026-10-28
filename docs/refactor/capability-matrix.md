@@ -49,8 +49,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,418
-complete / 25 open (1,443 total). Forty-four private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,422
+complete / 25 open (1,447 total). Fifty-one private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. Comprehensive
 Status keeps its section bodies JSON-compatible pending an audit of the
@@ -69,7 +69,14 @@ the retired full-stack topology and lacks a Kernel health contract. A static
 edge Compose check locks app/database limits at 1 GiB and two CPUs; it does
 not claim physical Pi runtime acceptance.
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36
-prepared across 67 rows.
+prepared across 67 rows. The latest private-read continuation adds response
+contracts for Delphi consent and consultation, independent Delphi review,
+stakeholder identity/trust pages, and the waste incident review queue. Cursor
+ordering, blockers, pagination ceilings, and source-backed nested projections
+are checked at runtime; the consultation JSONB timestamp parser requires an
+explicit UTC offset. The combined focused selection passes 198 tests and the
+SQL inventory remains current on Python 3.11/3.12. No grants, classifications,
+or MAN-CAP acceptance changed ([evidence](builds/2026-10-28-recovery/gateway-delphi-stakeholder-incident-response-contracts.json)).
 
 The latest response-contract continuation adds strict contracts for AI-summary
 review-list, business-canvas version history, sequential-evidence summary and

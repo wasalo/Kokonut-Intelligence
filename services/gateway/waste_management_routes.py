@@ -1,10 +1,11 @@
 """OIDC routes for location-scoped waste summaries and capture."""
 
 import json
+from datetime import date
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 _WASTE_TYPES = Literal[
     "crop_residue", "processing_waste", "packaging", "chemical_container",
@@ -122,6 +123,34 @@ class WasteSummaryResponse(_WasteResponseModel):
     composting_efficiency: CompostingEfficiencySummary
     recycling: list[RecyclingAggregate] = Field(max_length=6)
     pollution_incidents: list[PollutionIncidentAggregate] = Field(max_length=20)
+
+
+class PollutionIncidentReviewItem(_WasteResponseModel):
+    incident_id: UUID
+    incident_date: date
+    incident_type: Literal[
+        "chemical_spill", "runoff", "air_emission", "water_contamination",
+        "waste_dumping", "other",
+    ]
+    severity: Literal["low", "medium", "high", "critical"]
+    description: str = Field(max_length=2500)
+    affected_area: str | None = Field(max_length=200)
+    status: Literal["open", "investigating", "remediation"]
+
+
+class PollutionIncidentReviewQueueResponse(_WasteResponseModel):
+    location_id: UUID
+    offset: int = Field(ge=0, le=1_000_000, strict=True)
+    incidents: list[PollutionIncidentReviewItem] = Field(max_length=100)
+    has_more: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more and (
+            len(self.incidents) != 100 or self.offset + 100 > 1_000_000
+        ):
+            raise ValueError("Incident review continuation exceeds its page bounds")
+        return self
 
 
 def register_waste_management_routes(router, provider, run_in_threadpool, psycopg2):
@@ -514,7 +543,10 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
             headers=headers,
         )
 
-    @router.get("/operator/api/waste/{location_id}/incidents")
+    @router.get(
+        "/operator/api/waste/{location_id}/incidents",
+        response_model=PollutionIncidentReviewQueueResponse,
+    )
     async def pollution_incident_review_queue(
         request: Request,
         location_id: str,
@@ -552,7 +584,24 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
                 content={"error": "Incident review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            queue = PollutionIncidentReviewQueueResponse.model_validate(result)
+            if queue.location_id != UUID(location_id) or queue.offset != offset:
+                raise ValueError("Incident queue scope does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.waste").warning(
+                "Incident review queue response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Incident review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(queue.model_dump(mode="json")), headers=headers
+        )
 
     @router.post("/operator/api/waste/{location_id}/incidents/{incident_id}/resolve")
     async def resolve_pollution_incident(request: Request, location_id: str, incident_id: str):

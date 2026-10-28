@@ -106,6 +106,28 @@ def test_queue_sets_signed_location_context_before_query_and_omits_identity():
     assert not connection.committed
 
 
+def test_queue_closes_pagination_at_the_maximum_offset():
+    rows = [
+        (REPORT_ID, str(uuid4()), "Soil priorities", None, None, "Minority position",
+         "Preserve native cover", "Evidence and rationale", None, None, None),
+        (str(uuid4()), str(uuid4()), "Water priorities", None, None, "Another position",
+         "Protect wetlands", "Evidence and rationale", None, None, None),
+    ]
+    connection = _Connection(rows)
+    with patch.object(review, "set_operator_tenant_context", _set_context):
+        result = review.list_location_delphi_minority_reports(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit=1,
+            offset=10_000,
+            connection_factory=lambda: connection,
+        )
+
+    assert len(result["reports"]) == 1
+    assert result["offset"] == 10_000
+    assert result["has_more"] is False
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [("operator_id", "bad"), ("location_id", "bad"), ("limit", 0),
@@ -193,7 +215,7 @@ def test_routes_are_private_no_store_and_reject_extra_payload_fields():
     async def run_in_threadpool(func, *args, **kwargs):
         return funcs[func](*args, **kwargs)
 
-    expected = {"location_id": LOCATION_ID, "reports": [], "has_more": False}
+    expected = {"location_id": LOCATION_ID, "offset": 0, "reports": [], "has_more": False}
     funcs = {review.list_location_delphi_minority_reports: lambda *_a, **_k: expected}
     client = TestClient(_make_app(object(), funcs, run_in_threadpool))
     response = client.get(f"/operator/api/delphi/{LOCATION_ID}/minority-reports")
@@ -201,12 +223,81 @@ def test_routes_are_private_no_store_and_reject_extra_payload_fields():
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
 
+    schema_ref = client.app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/minority-reports"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    assert schema_ref.endswith("/DelphiMinorityReportReviewPage")
+
     response = client.post(
         f"/operator/api/delphi/{LOCATION_ID}/minority-reports/{REPORT_ID}/decision",
         json={"decision": "rejected", "request_id": REQUEST_ID,
               "reason_code": "other", "participant_note": "unexpected"},
     )
     assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_list_route_returns_only_the_bounded_private_review_projection():
+    study_id = str(uuid4())
+    expected = {
+        "location_id": LOCATION_ID,
+        "offset": 0,
+        "reports": [
+            {
+                "report_id": REPORT_ID,
+                "study_id": study_id,
+                "study_title": "Study",
+                "item_id": None,
+                "item_label": None,
+                "title": "Minority position",
+                "position_summary": "Preserve native cover",
+                "rationale": "Evidence and rationale",
+                "implications": None,
+                "submitted_at": None,
+                "created_at": None,
+            }
+        ],
+        "has_more": False,
+    }
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        return {review.list_location_delphi_minority_reports: lambda *_a, **_k: expected}[
+            func
+        ](*args, **kwargs)
+
+    response = TestClient(_make_app(object(), {}, run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/minority-reports?limit=1"
+    )
+    assert response.status_code == 200
+    assert response.json() == expected
+    assert set(response.json()["reports"][0]) == set(expected["reports"][0])
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "invalid_page",
+    [
+        {"offset": 1},
+        {"location_id": str(uuid4())},
+        {"reports": [{"report_id": REPORT_ID, "participant_id": str(uuid4())}]},
+        {"reports": [{"report_id": REPORT_ID}]},
+        {"has_more": True},
+    ],
+)
+def test_list_route_fails_closed_on_invalid_or_private_projection(invalid_page):
+    valid = {"location_id": LOCATION_ID, "offset": 0, "reports": [], "has_more": False}
+    valid.update(invalid_page)
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        return {review.list_location_delphi_minority_reports: lambda *_a, **_k: valid}[func](
+            *args, **kwargs
+        )
+
+    response = TestClient(_make_app(object(), {}, run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/minority-reports"
+    )
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi minority-report review unavailable"}
     assert response.headers["cache-control"] == "no-store"
 
 

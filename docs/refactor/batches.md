@@ -5277,3 +5277,34 @@ has 125 checked and 16 open entries. The capability matrix records 44 strict
 private Gateway response endpoints across 67 rows: 24 baseline-retained,
 7 deployed, and 36 prepared. Capability classifications and MAN-CAP
 acceptance remain unchanged.
+
+
+### Completed parallel continuation — Delphi, stakeholder, and incident response contracts — 28 October 2026
+
+- [x] Publish strict location-bound response contracts for Delphi consent
+  notices and study consultation reads, retaining consent scopes, aggregate-
+  only statistics, and the minimum-participant privacy gate.
+- [x] Publish strict bounded contracts for the independently reviewed Delphi
+  minority-report and recommendation queues, preserving blocker/readiness
+  consistency and preventing continuation beyond the service page ceiling.
+- [x] Publish private cursor-page contracts for stakeholder identity cases
+  and trust evidence, binding canonical network identities to location-scoped
+  review and validating cursor order and continuation.
+- [x] Publish the location-scoped pollution-incident review queue contract,
+  validating its exact projection, source enums, request scope, and page cap.
+
+The combined focused Gateway selection passes 198 tests. Ruff, Python
+compilation, capability-matrix validation, runtime SQL inventory freshness on
+Python 3.11/3.12, and diff checks pass. A JSONB-backed Delphi timestamp is
+validated from its serialized ISO representation while requiring an explicit
+UTC offset. Runtime SQL inventory source locations were refreshed; the
+37-candidate unresolved-write ledger and database grants are unchanged. No
+database, provider, candidate, or legacy service was used. These source/API
+contracts do not close live OIDC/browser behavior, populated-data parity, or
+broader tenant isolation ([evidence](builds/2026-10-28-recovery/gateway-delphi-stakeholder-incident-response-contracts.json)).
+
+The checklist is now 1,422 complete / 25 open (1,447 total); the TODO ledger
+has 129 checked and 16 open entries. The capability matrix records 51 strict
+private Gateway response endpoints across 67 rows. Classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP acceptance is
+unchanged.

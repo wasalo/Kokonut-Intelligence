@@ -1,5 +1,78 @@
 """OIDC routes for drafting and independently reviewing Delphi consent notices."""
 
+import re
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    model_validator,
+)
+
+
+def _strict_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if not isinstance(value, str):
+        raise ValueError("UUID values must be strings")
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise ValueError("UUID value is invalid") from exc
+
+
+_StrictUuid = Annotated[UUID, BeforeValidator(_strict_uuid)]
+_VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,39}$")
+_DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+
+
+class _ConsentNoticeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class _ConsentNoticeReviewItem(_ConsentNoticeResponse):
+    notice_id: _StrictUuid
+    study_id: _StrictUuid
+    study_title: str = Field(max_length=255)
+    version: str = Field(max_length=40, pattern=_VERSION_PATTERN.pattern)
+    notice_text: str = Field(min_length=1, max_length=12000)
+    notice_digest: str = Field(pattern=_DIGEST_PATTERN.pattern)
+    created_at: AwareDatetime
+    review_ready: bool
+    blocked_reasons: list[Literal["self_review"]] = Field(max_length=1)
+    # Empty scopes are valid for legacy notices created before migration 641.
+    collection_scopes: list[Literal["questionnaire_responses", "minority_reports"]] = Field(
+        max_length=2
+    )
+
+    @model_validator(mode="after")
+    def validate_review_state(self):
+        if not self.notice_text.strip():
+            raise ValueError("Consent notice text must not be blank")
+        if len(set(self.collection_scopes)) != len(self.collection_scopes):
+            raise ValueError("Consent collection scopes must be unique")
+        if self.review_ready != (not self.blocked_reasons):
+            raise ValueError("Consent review readiness must match its blockers")
+        return self
+
+
+class _ConsentNoticeReviewPage(_ConsentNoticeResponse):
+    location_id: _StrictUuid
+    offset: int = Field(ge=0, le=10000)
+    notices: list[_ConsentNoticeReviewItem] = Field(max_length=50)
+    has_more: bool
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if self.has_more and (not self.notices or self.offset >= 10000):
+            raise ValueError("Consent notice continuation is outside the page bounds")
+        return self
+
 
 def register_delphi_consent_notice_routes(router, provider, run_in_threadpool, psycopg2):
     import json
@@ -123,7 +196,10 @@ def register_delphi_consent_notice_routes(router, provider, run_in_threadpool, p
             jsonable_encoder(result), status_code=200 if result["replayed"] else 201, headers=headers
         )
 
-    @router.get("/operator/api/delphi/{location_id}/consent-notices")
+    @router.get(
+        "/operator/api/delphi/{location_id}/consent-notices",
+        response_model=_ConsentNoticeReviewPage,
+    )
     async def list_notices(
         request: Request,
         location_id: str,
@@ -152,7 +228,32 @@ def register_delphi_consent_notice_routes(router, provider, run_in_threadpool, p
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = _ConsentNoticeReviewPage.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.offset != offset
+                or len(validated.notices) > limit
+                or (
+                    validated.has_more
+                    and (len(validated.notices) != limit or offset + limit > 10000)
+                )
+            ):
+                raise ValueError("Consent notice response does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_consent_notice").warning(
+                "Delphi consent notice response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Delphi consent notice service unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
         "/operator/api/delphi/{location_id}/consent-notices/{notice_id}/decision"

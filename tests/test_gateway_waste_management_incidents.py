@@ -187,6 +187,39 @@ def test_review_queue_uses_exact_review_context_and_returns_bounded_projection(m
     assert connection.closed
 
 
+def test_review_queue_stops_advertising_continuation_at_offset_ceiling(monkeypatch):
+    queue = {
+        "location_id": _LOCATION,
+        "offset": 1_000_000,
+        "incidents": [
+            {
+                "incident_id": str(uuid4()),
+                "incident_date": date.today().isoformat(),
+                "incident_type": "air_emission",
+                "severity": "high",
+                "description": "Synthetic report",
+                "affected_area": None,
+                "status": "open",
+            }
+            for _ in range(100)
+        ],
+        "has_more": True,
+    }
+    connection = Connection(row=(queue,))
+    monkeypatch.setattr(incidents, "set_operator_tenant_context", lambda *_a, **_k: None)
+
+    result = incidents.list_location_pollution_incidents(
+        _OPERATOR,
+        _LOCATION,
+        offset=1_000_000,
+        connection_factory=lambda: connection,
+    )
+
+    assert result["offset"] == 1_000_000
+    assert result["has_more"] is False
+    assert len(result["incidents"]) == 100
+
+
 def test_resolve_uses_separate_review_grant_and_validates_location(monkeypatch):
     connection = Connection(row=({
         "incident_id": _INCIDENT,
@@ -314,9 +347,38 @@ def test_http_incident_review_and_resolution_routes(monkeypatch):
     assert queue.status_code == 200
     assert queue.json()["location_id"] == _LOCATION
     assert queue.headers["cache-control"] == "no-store"
+    operation = client.app.openapi()["paths"][
+        "/operator/api/waste/{location_id}/incidents"
+    ]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("PollutionIncidentReviewQueueResponse")
     assert resolved.status_code == 200
     assert resolved.json()["status"] == "resolved"
     assert resolved.headers["cache-control"] == "no-store"
+
+
+def test_incident_review_route_rejects_mismatched_scope_and_private_fields(monkeypatch):
+    monkeypatch.setattr(
+        incidents,
+        "list_location_pollution_incidents",
+        lambda operator, location, offset=0: {
+            "location_id": "44444444-4444-4444-8444-444444444444",
+            "offset": offset,
+            "incidents": [],
+            "has_more": False,
+            "private_review_note": "must not leak",
+        },
+    )
+    response = _app(monkeypatch).get(
+        f"/operator/api/waste/{_LOCATION}/incidents"
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Incident review queue unavailable"}
+    assert "must not leak" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
 
 
 def test_incident_review_offset_openapi_matches_service_bounds(monkeypatch):

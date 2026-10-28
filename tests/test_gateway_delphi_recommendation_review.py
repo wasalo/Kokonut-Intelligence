@@ -106,6 +106,28 @@ def test_review_queue_sets_exact_signed_scope_before_query_and_cleans_up():
     assert not connection.committed
 
 
+def test_review_queue_closes_pagination_at_the_maximum_offset():
+    rows = [
+        (RECOMMENDATION_ID, str(uuid4()), "Soil priorities", "open", None,
+         "Increase perennial cover", None, True, []),
+        (str(uuid4()), str(uuid4()), "Water priorities", "closed", None,
+         "Protect wetlands", None, True, []),
+    ]
+    connection = _Connection(rows)
+    with patch.object(review, "set_operator_tenant_context", _set_context):
+        result = review.list_location_delphi_recommendation_reviews(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit=1,
+            offset=10_000,
+            connection_factory=lambda: connection,
+        )
+
+    assert len(result["recommendations"]) == 1
+    assert result["offset"] == 10_000
+    assert result["has_more"] is False
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
@@ -240,7 +262,12 @@ def test_review_routes_are_no_store_and_pass_actor_and_location():
     async def run_in_threadpool(func, *args, **kwargs):
         return funcs[func](*args, **kwargs)
 
-    expected = {"location_id": LOCATION_ID, "recommendations": [], "has_more": False}
+    expected = {
+        "location_id": LOCATION_ID,
+        "offset": 0,
+        "recommendations": [],
+        "has_more": False,
+    }
     funcs = {review.list_location_delphi_recommendation_reviews: lambda *_a, **_k: expected}
     client = TestClient(_make_app(object(), funcs, run_in_threadpool))
     response = client.get(f"/operator/api/delphi/{LOCATION_ID}/recommendations")
@@ -248,6 +275,98 @@ def test_review_routes_are_no_store_and_pass_actor_and_location():
     assert response.json() == expected
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
+
+    schema_ref = client.app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/recommendations"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    assert schema_ref.endswith("/DelphiRecommendationReviewPage")
+
+
+def test_review_list_route_returns_only_bounded_draft_review_projection():
+    expected = {
+        "location_id": LOCATION_ID,
+        "offset": 0,
+        "recommendations": [
+            {
+                "recommendation_id": RECOMMENDATION_ID,
+                "study_id": str(uuid4()),
+                "study_title": "Study",
+                "study_status": "open",
+                "summary": "Evidence summary",
+                "recommendation_text": "Increase perennial cover",
+                "created_at": None,
+                "review_ready": False,
+                "blocked_reasons": ["diversity_assessment_required"],
+            }
+        ],
+        "has_more": False,
+    }
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        return {review.list_location_delphi_recommendation_reviews: lambda *_a, **_k: expected}[
+            func
+        ](*args, **kwargs)
+
+    response = TestClient(_make_app(object(), {}, run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/recommendations?limit=1"
+    )
+    assert response.status_code == 200
+    assert response.json() == expected
+    assert set(response.json()["recommendations"][0]) == set(
+        expected["recommendations"][0]
+    )
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "invalid_page",
+    [
+        {"offset": 1},
+        {"location_id": str(uuid4())},
+        {
+            "recommendations": [
+                {"recommendation_id": RECOMMENDATION_ID, "participant_id": str(uuid4())}
+            ]
+        },
+        {"recommendations": [{"recommendation_id": RECOMMENDATION_ID}]},
+        {
+            "recommendations": [
+                {
+                    "recommendation_id": RECOMMENDATION_ID,
+                    "study_id": str(uuid4()),
+                    "study_title": "Study",
+                    "study_status": "open",
+                    "summary": None,
+                    "recommendation_text": "Recommendation",
+                    "created_at": None,
+                    "review_ready": True,
+                    "blocked_reasons": ["self_review"],
+                }
+            ]
+        },
+        {"has_more": True},
+    ],
+)
+def test_review_list_route_fails_closed_on_invalid_or_private_projection(invalid_page):
+    valid = {
+        "location_id": LOCATION_ID,
+        "offset": 0,
+        "recommendations": [],
+        "has_more": False,
+    }
+    valid.update(invalid_page)
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        return {review.list_location_delphi_recommendation_reviews: lambda *_a, **_k: valid}[
+            func
+        ](*args, **kwargs)
+
+    response = TestClient(_make_app(object(), {}, run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/recommendations"
+    )
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi recommendation review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_review_list_route_publishes_and_enforces_reader_pagination_bounds():
