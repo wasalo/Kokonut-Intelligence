@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import hashlib
 import json
 import re
@@ -192,6 +193,37 @@ def _candidate_relations_from_template(query: str) -> list[str]:
     return sorted(set(candidates))
 
 
+def _stable_ast_dump(node: ast.AST) -> str:
+    """Dump an AST without fields added by newer Python grammar versions.
+
+    Python 3.12 added ``type_params`` to function and class AST nodes. The
+    empty list changed every unresolved-write fingerprint even though source
+    semantics were unchanged. Match Python 3.11's ``ast.dump`` representation
+    by omitting only empty ``type_params`` fields while preserving non-empty
+    type declarations and the standard dump format.
+    """
+    def has_empty_type_params(child: ast.AST) -> bool:
+        return (
+            "type_params" in getattr(child, "_fields", ())
+            and getattr(child, "type_params", None) == []
+        )
+
+    if (
+        "type_params" not in getattr(ast.FunctionDef, "_fields", ())
+        and "type_params" not in getattr(node, "_fields", ())
+    ):
+        return ast.dump(node, annotate_fields=True, include_attributes=False)
+    if not any(has_empty_type_params(child) for child in ast.walk(node)):
+        return ast.dump(node, annotate_fields=True, include_attributes=False)
+
+    # Work on a copy so the parser tree remains untouched for the scanner.
+    stable_node = copy.deepcopy(node)
+    for child in ast.walk(stable_node):
+        if has_empty_type_params(child):
+            delattr(child, "type_params")
+    return ast.dump(stable_node, annotate_fields=True, include_attributes=False)
+
+
 def _write_review_fingerprint(
     source: str,
     site: dict,
@@ -212,17 +244,9 @@ def _write_review_fingerprint(
         "scope": site["scope"],
         "method": site["method"],
         "statement_kind": site["statement_kind"],
-        "scope_ast": ast.dump(
-            scope_node,
-            annotate_fields=True,
-            include_attributes=False,
-        ),
+        "scope_ast": _stable_ast_dump(scope_node),
         "occurrence_ordinal": occurrence_ordinal,
-        "query_expression_ast": ast.dump(
-            query_expression,
-            annotate_fields=True,
-            include_attributes=False,
-        ),
+        "query_expression_ast": _stable_ast_dump(query_expression),
     }
     serialized = json.dumps(identity, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

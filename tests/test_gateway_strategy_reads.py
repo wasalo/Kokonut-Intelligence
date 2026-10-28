@@ -114,8 +114,36 @@ def test_summary_read_sets_signed_context_and_calls_the_bounded_projection():
     assert connection.rolled_back and connection.closed
 
 
+@pytest.mark.parametrize(
+    ("offset", "limit", "row_count", "expected_has_more", "expected_next_offset"),
+    [
+        (9_950, 50, 51, True, 10_000),
+        (9_975, 50, 51, False, None),
+        (9_999, 1, 2, True, 10_000),
+        (10_000, 1, 2, False, None),
+    ],
+)
+def test_pagination_never_advertises_offsets_above_ceiling(
+    offset, limit, row_count, expected_has_more, expected_next_offset
+):
+    connection = _Connection([_row(str(uuid4())) for _ in range(row_count)])
+    with patch.object(reads, "set_operator_tenant_context"):
+        result = reads.list_location_strategy_plan_summaries(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit=limit,
+            offset=offset,
+            connection_factory=lambda: connection,
+        )
+
+    assert result["has_more"] is expected_has_more
+    assert result["next_offset"] == expected_next_offset
+    assert expected_next_offset is None or expected_next_offset <= 10_000
+
+
 @pytest.mark.parametrize("kwargs", [
     {"limit": "0"},
+    {"limit": "51"},
     {"limit": "101"},
     {"limit": "many"},
     {"limit": True},
@@ -190,7 +218,13 @@ def test_http_projection_is_no_store_and_does_not_claim_execution_authority(monk
     location = LOCATION_ID
     monkeypatch.setattr(
         "services.gateway.strategy_reads.list_location_strategy_plan_summaries",
-        lambda *_args, **_kwargs: {"location_id": location, "plans": [], "has_more": False},
+        lambda *_args, **_kwargs: {
+            "location_id": location,
+            "offset": 0,
+            "plans": [],
+            "has_more": False,
+            "next_offset": None,
+        },
     )
     router_app = FastAPI()
     router = APIRouter()
@@ -247,13 +281,14 @@ def test_http_pagination_documents_bounds_and_rejects_invalid_values_before_serv
     parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
     assert parameters["limit"]["schema"]["default"] == 50
     assert parameters["limit"]["schema"]["minimum"] == 1
-    assert parameters["limit"]["schema"]["maximum"] == 100
+    assert parameters["limit"]["schema"]["maximum"] == 50
     assert parameters["offset"]["schema"]["default"] == 0
     assert parameters["offset"]["schema"]["minimum"] == 0
     assert parameters["offset"]["schema"]["maximum"] == 10000
 
     with TestClient(router_app) as client:
         assert client.get(request_path, params={"limit": 0}).status_code == 422
+        assert client.get(request_path, params={"limit": 51}).status_code == 422
         assert client.get(request_path, params={"limit": 101}).status_code == 422
         assert client.get(request_path, params={"offset": -1}).status_code == 422
         assert client.get(request_path, params={"offset": 10001}).status_code == 422

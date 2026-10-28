@@ -22133,3 +22133,34 @@ Evidence: [irrigation](builds/2026-10-28-recovery/irrigation-status-response-con
 [combined selection](builds/2026-10-28-recovery/irrigation-landscape-pollinator-response-contract-batch.json).
 Checklist: 1,401 complete / 25 open (1,426 total); capability classifications
 remain unchanged.
+
+
+### Progress addendum — nutrient, strategy, competitive landscape, and CI inventory portability — 28 October 2026
+
+The private nutrient-balance route now rejects malformed aggregate projections
+and pagination totals, including invalid continuation past the 10,000-offset
+cap. The location-scoped strategy-plan response matches the migration 452
+query bounds and excludes rationale, party identities, private amounts, and
+execution authority. Competitive-landscape results expose only validated
+aggregates and omit identity and evidence fields. All three preserve their
+authorization, sanitized error, and cache contracts.
+
+The hosted CI failure on the runtime SQL review gate was caused by Python 3.12
+including an empty `type_params` AST field in fingerprints. The scanner now
+normalizes that version-only field from a copied tree while retaining generic
+parameters; both supported Python runtimes pass the inventory gate without
+changing the unresolved-write ledger or its pinned digest.
+
+The combined Gateway response selection passes 182 tests; the runtime SQL
+inventory suite passes 24. Ruff, compilation, matrix validation, fresh
+inventory checks on Python 3.11 and 3.12, and diff checks pass. The Python 3.12
+interpreter lacks pytest, so its inventory gate and compilation were verified
+there while the inventory regression suite ran on Python 3.11. No live
+database/provider, candidate, or legacy service was used. Evidence: [nutrient
+response](builds/2026-10-28-recovery/nutrient-balances-response-contract.json),
+[strategy response](builds/2026-10-28-recovery/strategy-plan-response-contract.json),
+[competitive-landscape response](builds/2026-10-28-recovery/competitive-landscape-response-contract.json),
+[Python-version fingerprint repair](builds/2026-10-28-recovery/runtime-sql-inventory-python312-ast-normalization.json),
+[combined verification](builds/2026-10-28-recovery/gateway-nutrient-strategy-competitive-response-contract-batch.json).
+Checklist: 1,405 complete / 25 open (1,430 total); capability classifications
+remain unchanged.

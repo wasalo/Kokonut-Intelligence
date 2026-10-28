@@ -1346,3 +1346,22 @@ The checklist is now 1,401 complete / 25 open (1,426 total). This TODO ledger
 has 109 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged; live OIDC, populated-data parity, and broader
 tenant isolation remain open.
+
+### Completed continuation — nutrient, strategy, and competitive-landscape response contracts — 28 October 2026
+
+- [x] Validate nutrient-balance projections, including strict aggregates,
+  request binding, and safe pagination at the 10,000-offset ceiling.
+- [x] Add a schema-aligned, privacy-limited response model for location-scoped
+  strategy plans and enforce SQL-consistent page and offset bounds.
+- [x] Add a strict aggregate-only competitive-landscape response contract
+  that excludes participant identities and private evidence/content fields.
+- [x] Make runtime-SQL review fingerprints stable across Python 3.11 and 3.12
+  without changing the pinned digest or existing unresolved-write ledger.
+
+The combined Gateway response selection passes 182 tests and the runtime SQL
+inventory suite passes 24. Ruff, compilation, capability-matrix validation,
+and inventory freshness on Python 3.11/3.12 pass. Candidate/legacy databases
+and providers were not used ([evidence](builds/2026-10-28-recovery/gateway-nutrient-strategy-competitive-response-contract-batch.json)).
+The checklist is now 1,405 complete / 25 open (1,430 total); this TODO ledger
+has 113 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance are unchanged.

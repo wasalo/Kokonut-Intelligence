@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,401 checklist items complete and 25
-open (1,426 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,405 checklist items complete and 25
+open (1,430 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5148,3 +5148,34 @@ The checklist is 1,401 complete / 25 open (1,426 total); the TODO ledger has
 109 checked and 16 open entries. Capability classifications remain 24
 baseline-retained, 7 deployed, and 36 prepared across 67 rows. Live OIDC,
 populated-data parity, and broader tenant isolation remain open.
+
+### Completed continuation — nutrient, strategy, and competitive-landscape response contracts — 28 October 2026
+
+- [x] Validate the private nutrient-balance response against strict field,
+  count, finite-number, location, and pagination contracts. The service and
+  route now agree at the terminal 10,000-offset boundary, and impossible page
+  totals fail closed ([evidence](builds/2026-10-28-recovery/nutrient-balances-response-contract.json)).
+- [x] Publish a strict location-scoped strategy-plan response model aligned
+  with migration 452, including schema enums, the bounded 50-row query page,
+  privacy exclusions, and the 10,000 offset ceiling
+  ([evidence](builds/2026-10-28-recovery/strategy-plan-response-contract.json)).
+- [x] Publish a strict aggregate-only competitive-landscape response model,
+  preserving the bounded page contract and excluding party identities,
+  evidence, signal content, positions, and outcome values
+  ([evidence](builds/2026-10-28-recovery/competitive-landscape-response-contract.json)).
+- [x] Repair the CI runtime-SQL fingerprint mismatch across Python 3.11 and
+  3.12 by normalizing only empty AST `type_params`; preserve non-empty type
+  parameters, the 37-candidate review ledger, and the pinned digest
+  ([diagnosis](builds/2026-10-28-recovery/runtime-sql-inventory-python312-ast-normalization.json)).
+
+The combined response-contract selection passes 182 tests; the inventory
+regression suite passes 24. Ruff, compilation, matrix validation, inventory
+checks on Python 3.11 and 3.12, and diff checks pass. No database/provider,
+candidate, or legacy service was used. Python 3.12 pytest is unavailable, so
+the inventory regression suite ran under Python 3.11 while the inventory gate
+and compilation were verified on 3.12 ([combined evidence](builds/2026-10-28-recovery/gateway-nutrient-strategy-competitive-response-contract-batch.json)).
+
+The checklist is 1,405 complete / 25 open (1,430 total); capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows. Live OIDC, populated-data parity, and broader tenant isolation
+remain open.

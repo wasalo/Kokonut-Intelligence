@@ -1,3 +1,4 @@
+import ast
 import json
 from pathlib import Path
 
@@ -5,7 +6,9 @@ from scripts.runtime_sql_inventory import (
     _fingerprint_digest,
     _scan_source,
     _serialize,
+    _stable_ast_dump,
     _validate_write_review_ledger,
+    _write_review_fingerprint,
     build_inventory,
 )
 
@@ -145,6 +148,72 @@ def test_unresolved_write_fingerprint_is_stable_across_line_moves_and_contains_n
     assert first_site["write_target_relations"] == []
     assert "sql" not in first_site
     assert "query" not in first_site
+
+
+def test_stable_ast_dump_matches_python_311_ast_dump_without_location_attributes():
+    tree = ast.parse(
+        'def persist(conn, target):\n'
+        '    sql = f"UPDATE {target} SET value = %s"\n'
+        '    conn.execute(sql, (1,))\n'
+    )
+
+    assert _stable_ast_dump(tree) == (
+        "Module(body=[FunctionDef(name='persist', "
+        "args=arguments(posonlyargs=[], args=[arg(arg='conn'), arg(arg='target')], "
+        "kwonlyargs=[], kw_defaults=[], defaults=[]), "
+        "body=[Assign(targets=[Name(id='sql', ctx=Store())], "
+        "value=JoinedStr(values=[Constant(value='UPDATE '), "
+        "FormattedValue(value=Name(id='target', ctx=Load()), conversion=-1), "
+        "Constant(value=' SET value = %s')])), "
+        "Expr(value=Call(func=Attribute(value=Name(id='conn', ctx=Load()), "
+        "attr='execute', ctx=Load()), args=[Name(id='sql', ctx=Load()), "
+        "Tuple(elts=[Constant(value=1)], ctx=Load())], keywords=[]))], "
+        "decorator_list=[])], type_ignores=[])"
+    )
+
+
+def test_unresolved_write_fingerprint_ignores_python_312_type_params_field():
+    tree = ast.parse(
+        'def persist(conn, target):\n'
+        '    conn.execute(f"UPDATE {target} SET value = %s", (1,))\n'
+    )
+    function = tree.body[0]
+    query_expression = function.body[0].value.args[0]
+    site = {
+        "scope": "persist",
+        "method": "execute",
+        "statement_kind": "UPDATE",
+    }
+
+    # Python 3.12 adds an empty type_params field to function nodes. Simulate
+    # that AST shape on the test interpreter and prove the fingerprint remains
+    # identical to the Python 3.11 representation used by the pinned ledger.
+    FunctionDef312 = type(
+        "FunctionDef",
+        (ast.FunctionDef,),
+        {
+            "_fields": (
+                *[field for field in ast.FunctionDef._fields if field != "type_params"],
+                "type_params",
+            )
+        },
+    )
+    function_312 = FunctionDef312()
+    for field in ast.FunctionDef._fields:
+        setattr(function_312, field, getattr(function, field))
+    function_312.type_params = []
+
+    assert _stable_ast_dump(function_312) == _stable_ast_dump(function)
+    assert _write_review_fingerprint(
+        "services/example.py", site, query_expression, function, 1
+    ) == _write_review_fingerprint(
+        "services/example.py", site, query_expression, function_312, 1
+    )
+
+    function_312.type_params = [ast.Name(id="T", ctx=ast.Load())]
+    assert "type_params=[Name(id='T', ctx=Load())]" in _stable_ast_dump(
+        function_312
+    )
 
 
 def test_unresolved_write_fingerprint_changes_when_same_scope_binding_changes(tmp_path: Path):

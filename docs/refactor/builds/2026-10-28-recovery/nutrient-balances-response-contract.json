@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "08f852d2",
+  "working_tree_dirty": true,
+  "scope": "Strict response contract for the private location-scoped nutrient balance aggregate endpoint.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/nutrients/{location_id}/balances",
+    "response_model": "NutrientBalancesResponse",
+    "projection": [
+      "location_id",
+      "total_summaries",
+      "limit",
+      "offset",
+      "has_more",
+      "balances[].season",
+      "balances[].crop_name",
+      "balances[].budget_count",
+      "balances[].area_ha",
+      "balances[].nitrogen",
+      "balances[].phosphorus",
+      "balances[].potassium"
+    ],
+    "constraints": {
+      "extra_fields": "forbidden at each response object level",
+      "season_and_crop_name": "maximum 100 characters as defined by nutrient_budget schema",
+      "budget_count": "strict integer of at least 1",
+      "aggregate_counts": "strict nonnegative integer",
+      "page_size": "1 through 50; at most 50 response groups",
+      "offset": "0 through 10000",
+      "numbers": "finite; null retained for absent aggregate values; signed semantics preserved",
+      "request_binding": "response location_id, limit, and offset must match the request",
+      "pagination": "has_more must agree with total_summaries, offset, and returned group count",
+      "validation": "Explicitly validate the service projection before returning JSONResponse"
+    }
+  },
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "database_failure": "existing sanitized 503 and Retry-After preserved",
+    "invalid_projection": "sanitized 500 with Cache-Control: no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_nutrient_balances.py tests/test_gateway_nutrient_pagination_openapi.py -q",
+      "result": "passed",
+      "passed": 35
+    },
+    {
+      "command": "ruff check services/gateway/nutrient_balance_routes.py tests/test_gateway_nutrient_balances.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/nutrient_balance_routes.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes the balances endpoint contract only; soil-test and nutrient-event response contracts and live populated-data parity remain separate work."
+  ]
+}

@@ -1,5 +1,38 @@
 """OIDC route registration for location-scoped nutrient reads."""
 
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+
+class _NutrientBalanceResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class NutrientQuantitiesResponse(_NutrientBalanceResponseModel):
+    input_kg: float | None
+    removal_kg: float | None
+    surplus_kg: float | None
+
+
+class NutrientBalanceGroupResponse(_NutrientBalanceResponseModel):
+    season: str = Field(max_length=100)
+    crop_name: str | None = Field(max_length=100)
+    budget_count: int = Field(ge=1, strict=True)
+    area_ha: float | None
+    nitrogen: NutrientQuantitiesResponse
+    phosphorus: NutrientQuantitiesResponse
+    potassium: NutrientQuantitiesResponse
+
+
+class NutrientBalancesResponse(_NutrientBalanceResponseModel):
+    location_id: UUID
+    total_summaries: int = Field(ge=0, strict=True)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10_000, strict=True)
+    has_more: bool = Field(strict=True)
+    balances: list[NutrientBalanceGroupResponse] = Field(max_length=50)
+
 
 def register_nutrient_balance_routes(router, provider, run_in_threadpool, psycopg2):
     from typing import Literal
@@ -14,7 +47,10 @@ def register_nutrient_balance_routes(router, provider, run_in_threadpool, psycop
     from services.gateway.nutrient_events import get_location_nutrient_events
     from services.gateway.nutrient_soil_tests import get_location_soil_tests
 
-    @router.get("/operator/api/nutrients/{location_id}/balances")
+    @router.get(
+        "/operator/api/nutrients/{location_id}/balances",
+        response_model=NutrientBalancesResponse,
+    )
     async def nutrient_balances(
         request: Request,
         location_id: str,
@@ -62,8 +98,34 @@ def register_nutrient_balance_routes(router, provider, run_in_threadpool, psycop
                     "Vary": "Cookie",
                 },
             )
+        try:
+            validated = NutrientBalancesResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+                or len(validated.balances) > limit
+                or offset + len(validated.balances) > validated.total_summaries
+                or validated.has_more
+                != (
+                    validated.total_summaries > offset + len(validated.balances)
+                    and offset + limit <= 10_000
+                )
+            ):
+                raise ValueError("Nutrient balance scope does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.nutrient_balances").warning(
+                "Nutrient balances response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Nutrient balances unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         return JSONResponse(
-            jsonable_encoder(result),
+            jsonable_encoder(validated.model_dump(mode="json")),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
