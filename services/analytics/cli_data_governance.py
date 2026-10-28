@@ -346,9 +346,14 @@ def main(argv=None):
     location_id = getattr(args, "location_id", None)
     if location_id is not None:
         try:
-            UUID(location_id)
+            location_id = str(UUID(location_id))
         except (TypeError, ValueError):
             parser.error("--location-id must be a valid UUID")
+        for index, token in enumerate(tokens):
+            if token == "--location-id" and index + 1 < len(tokens):
+                tokens[index + 1] = location_id
+            elif token.startswith("--location-id="):
+                tokens[index] = f"--location-id={location_id}"
     if (
         tokens
         and tokens[0] == "enforce-retention"

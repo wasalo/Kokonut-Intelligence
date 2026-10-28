@@ -1829,6 +1829,39 @@ open. Live tenant isolation and authenticated Gateway/database acceptance
 remain separate gates.
 
 
+### Completed parallel continuation — work opportunities, governance detail, and CLI normalization — 28 October 2026
+
+- [x] Add a strict request-bound response contract to the private
+  operating-pilot work-opportunities page, validating the migration projection,
+  own-claim consistency, ordering, bounds, location, and continuation.
+- [x] Add a strict request-bound response contract to private governance-circle
+  detail, matching the seven-field query projection and requested location and
+  circle IDs.
+- [x] Validate and canonicalize supplied CRISP location UUIDs before its
+  database branches, including persisted rating; preserve mode-specific
+  missing-location errors.
+- [x] Canonicalize already-validated Data Governance location filters before
+  dispatch in both `--location-id VALUE` and `--location-id=VALUE` forms.
+- [x] Audit all 94 registered report generators for pre-query location-scope
+  validation; all are covered inline or through a checked pre-cursor helper.
+
+The combined operating-pilot/Gateway/CLI regression selection passes 262 tests;
+the adjacent governance selection passes 44 tests with 5 skips. Additional
+focused CRISP and Data Governance selections pass 97 and 9 tests respectively;
+the work-opportunity and governance-circle response selections pass 110 and 39
+tests. These focused selections overlap. Ruff, Python compilation, the report
+source inventory check, capability-matrix validation, and `git diff --check`
+pass. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); strict private Gateway response endpoints now total 81, and 25 CLI
+groups have location UUID preflight. No database, provider, candidate, legacy
+service, or live network was used. Live OIDC, tenant isolation, and populated
+parity remain separate gates. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-governance-work-opportunity-boundaries.json).
+
+Checklist: 1,503 complete / 25 open (1,528 total); TODO: 209 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
 ### Completed parallel continuation — operating-pilot response, report scope, and CLI preflight — 28 October 2026
 
 - [x] Add strict request-bound OpenAPI/runtime response contracts for the

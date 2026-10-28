@@ -3602,7 +3602,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Bound gRPC API-key lookup, request-interceptor, and optional-service import failures to exception classes while preserving generic auth failures, exception propagation, and optional service behavior. The 32-test gRPC/auth/policy suite passes with Ruff and compilation on mocked boundaries; no database or RPC provider was contacted ([evidence](builds/2026-10-17-recovery/grpc-auth-request-error-redaction.json)).
 - [x] Redact metadata batch-anchor and threatcasting trend-analysis failures without changing their skip/no-score fallbacks. Two mocked regressions pass with Ruff, compilation, and diff checks; no database or provider was contacted ([evidence](builds/2026-10-17-recovery/metadata-trend-error-redaction.json)).
 - [x] Redact demo sensor-reading insert failures so sensor names, timestamps, and database details are not emitted; preserve per-reading continuation and database cleanup. One mocked regression passes; test lint, source import/syntax checks, compilation, and diff checks pass. No database or provider was used ([evidence](builds/2026-10-17-recovery/mock-sensor-error-redaction.json)).
-- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On pushed source `4682069a`, Security succeeded and CI failed at the Kernel release-input guard: commit `d5f0e2a4` added the participant app to `Dockerfile.kernel`, but its locked SHA-256 was not refreshed. The release-input hash now matches the reviewed Dockerfile and `python3 scripts/check-kernel-release-inputs.py` passes locally. Repair commit `6b9bb0dc` is pushed; Security passes on that exact SHA and CI is still running. Keep this gate open until both checks pass on the same head ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
+- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On the prior pushed source `bfeec998b6021573821c3162e7d4b197c7282a97` for PR #71, Security run #645 passed while CI run #921 remained in progress; the next pushed batch must be checked on its exact head. Keep this gate open until both required contexts pass on the same SHA ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
 - [x] Align the active `Main branch protection` ruleset (ID `18234835`) with `CI / ci` and `Security / gitleaks`. GitHub API verification confirms the obsolete `Python checks`, `Directus hooks`, and `Foundry contracts` contexts were removed; pull-request/review, CODEOWNERS, thread-resolution, strict up-to-date, linear-history, deletion, force-push, and bypass settings remain. The separate active version-tag ruleset (ID `18234836`) was not changed ([settings audit](../github-actions.md#current-required-check-audit--14-october-2026)).
 - [x] Make encrypted checkpoints provider-aware: PostgreSQL-only backup/restore works without ClickHouse credentials or a running ClickHouse service; ClickHouse-enabled backup fails before creating partial artifacts if its service is unavailable, and restore preflights required services before database writes. The manifest explicitly records provider inclusion and exact archives; fake Compose acceptance covers both profiles and preflight ([evidence](builds/2026-10-14-recovery/provider-aware-backup-restore.json)).
 - [ ] Execute the reviewed cutover and retire dependencies only after the readiness gates close. The owner has approved cutover once ready; no gate may be skipped.
@@ -5900,4 +5900,37 @@ acceptance remain open. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-response-report-cli-boundaries.json).
 
 Checklist: 1,498 complete / 25 open (1,523 total); TODO: 204 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed parallel continuation — work opportunities, governance detail, and CLI normalization — 28 October 2026
+
+- [x] Add a strict request-bound response contract to the private
+  operating-pilot work-opportunities page, validating the migration projection,
+  own-claim consistency, ordering, bounds, location, and continuation.
+- [x] Add a strict request-bound response contract to private governance-circle
+  detail, matching the seven-field query projection and requested location and
+  circle IDs.
+- [x] Validate and canonicalize supplied CRISP location UUIDs before its
+  database branches, including persisted rating; preserve mode-specific
+  missing-location errors.
+- [x] Canonicalize already-validated Data Governance location filters before
+  dispatch in both `--location-id VALUE` and `--location-id=VALUE` forms.
+- [x] Audit all 94 registered report generators for pre-query location-scope
+  validation; all are covered inline or through a checked pre-cursor helper.
+
+The combined operating-pilot/Gateway/CLI regression selection passes 262 tests;
+the adjacent governance selection passes 44 tests with 5 skips. Additional
+focused CRISP and Data Governance selections pass 97 and 9 tests respectively;
+the work-opportunity and governance-circle response selections pass 110 and 39
+tests. These focused selections overlap. Ruff, Python compilation, the report
+source inventory check, capability-matrix validation, and `git diff --check`
+pass. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); strict private Gateway response endpoints now total 81, and 25 CLI
+groups have location UUID preflight. No database, provider, candidate, legacy
+service, or live network was used. Live OIDC, tenant isolation, and populated
+parity remain separate gates. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-governance-work-opportunity-boundaries.json).
+
+Checklist: 1,503 complete / 25 open (1,528 total); TODO: 209 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

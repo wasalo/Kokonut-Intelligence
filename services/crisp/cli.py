@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from uuid import UUID
 
 from services.common.cli import print_json
 
@@ -39,6 +40,12 @@ def main() -> None:
     parser.add_argument("--ex-ante", type=float, help="Ex-ante carbon yield estimate for yield risk")
     parser.add_argument("--methodology-version", help="Override methodology version")
     args = parser.parse_args()
+
+    if args.location_id is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
 
     if args.carbon_yield:
         if not args.location_id:

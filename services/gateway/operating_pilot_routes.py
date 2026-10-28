@@ -203,6 +203,70 @@ class OperatingPilotWorkClaimsPage(BaseModel):
         return self
 
 
+class OperatingPilotWorkOpportunityItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    work_item_id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    work_type: str = Field(min_length=1, max_length=50, strict=True)
+    priority: Literal["low", "medium", "high", "critical"]
+    status: Literal["draft", "assigned", "in_progress", "blocked"]
+    selection_mode: Literal["self_selected", "delegated", "volunteer", "rotational"]
+    estimated_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    due_at: _ResponseDateTime | None
+    allocation_status: Literal["open", "claimed"]
+    has_own_claim: bool = Field(strict=True)
+    own_claim_status: Literal["proposed", "accepted", "rejected", "withdrawn"] | None
+
+    @model_validator(mode="after")
+    def validate_own_claim_state(self):
+        if self.has_own_claim != (self.own_claim_status is not None):
+            raise ValueError("own-claim state does not match its status")
+        return self
+
+
+class OperatingPilotWorkOpportunitiesPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    location_id: _ResponseUUID
+    scope_configured: bool = Field(strict=True)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotWorkOpportunityItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if not self.scope_configured:
+            raise ValueError("work-opportunity scope must be configured")
+        rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+        item_ids = [item.work_item_id for item in self.items]
+        page_order = [
+            (
+                -rank[item.priority],
+                item.due_at is None,
+                item.due_at,
+                item.work_item_id,
+            )
+            for item in self.items
+        ]
+        if (
+            len(self.items) > self.limit
+            or len(item_ids) != len(set(item_ids))
+            or page_order != sorted(page_order)
+        ):
+            raise ValueError("work-opportunity page is not ordered or bounded")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("work-opportunity continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("work-opportunity page has an unexpected continuation")
+        return self
+
+
 class OperatingPilotResourceCategoryPage(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -3869,7 +3933,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(page.model_dump(mode="json")), headers=headers
         )
 
-    @router.get("/operator/api/operating-pilot/{location_id}/work-opportunities")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/work-opportunities",
+        response_model=OperatingPilotWorkOpportunitiesPage,
+    )
     async def location_operating_pilot_work_opportunities(
         request: Request,
         location_id: str,
@@ -3928,6 +3995,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-opportunity read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            page = OperatingPilotWorkOpportunitiesPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Work-opportunity page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-opportunity response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating work-opportunity read unavailable"},
+                headers=headers,
+            )
+        # Keep PostgreSQL's JSON numeric representation (numbers, not Decimal strings).
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(

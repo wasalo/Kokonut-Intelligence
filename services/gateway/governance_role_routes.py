@@ -88,6 +88,25 @@ class GovernanceRoleDetailResponse(BaseModel):
     authority_domains_truncated: bool = Field(strict=True)
 
 
+class GovernanceCircleDetailItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _GovernanceResponseUUID
+    circle_key: str = Field(max_length=120, strict=True)
+    name: str = Field(max_length=255, strict=True)
+    purpose: str = Field(strict=True)
+    description: str | None = Field(strict=True)
+    parent_circle_id: _GovernanceResponseUUID | None
+    status: _CIRCLE_STATUS
+
+
+class GovernanceCircleDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _GovernanceResponseUUID
+    circle: GovernanceCircleDetailItemResponse
+
+
 class GovernanceRoleListItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -471,7 +490,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(response.model_dump(mode="json")), headers=headers
         )
 
-    @router.get("/operator/api/governance/{location_id}/circles/{circle_id}")
+    @router.get(
+        "/operator/api/governance/{location_id}/circles/{circle_id}",
+        response_model=GovernanceCircleDetailResponse,
+    )
     async def location_governance_circle_detail(
         request: Request,
         location_id: str,
@@ -516,7 +538,27 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance circle not found"},
                 headers=headers,
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = GovernanceCircleDetailResponse.model_validate(result)
+            if (
+                response.location_id != UUID(location_id)
+                or response.circle.id != UUID(circle_id)
+            ):
+                raise ValueError("Governance circle detail does not match request scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_operations").warning(
+                "Governance circle detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance circle detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.get(
         "/operator/api/governance/{location_id}/assignment-proposals"

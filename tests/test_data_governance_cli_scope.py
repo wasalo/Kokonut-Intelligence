@@ -53,3 +53,30 @@ def test_unscoped_retention_inventory_is_still_allowed(monkeypatch):
         limit=100,
     )
     connection.close.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("location_args", "expected_location_args"),
+    [
+        (
+            ["--location-id", "A0000000-0000-4000-8000-000000000001"],
+            ["--location-id", "a0000000-0000-4000-8000-000000000001"],
+        ),
+        (
+            ["--location-id=A0000000-0000-4000-8000-000000000001"],
+            ["--location-id=a0000000-0000-4000-8000-000000000001"],
+        ),
+    ],
+)
+def test_valid_location_filter_is_canonicalized_before_runner(
+    monkeypatch, location_args, expected_location_args
+):
+    runner = Mock()
+    monkeypatch.setattr(cli_data_governance, "run", runner)
+
+    cli_data_governance.main(["retention-policies", *location_args])
+
+    runner.assert_called_once_with(
+        cli_data_governance.cli.main,
+        ["retention-policies", *expected_location_args],
+    )
