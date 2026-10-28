@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "caa1ba4a",
+  "working_tree_dirty": true,
+  "scope": "Strict location-scoped response envelope for the Comprehensive Status Gateway route.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/comprehensive-status/{location_id}",
+    "response_model": "ComprehensiveStatusResponse",
+    "constraints": {
+      "extra_fields": "forbidden at envelope and location entry levels",
+      "scope": "selected_locations only; exactly one selected location identifier",
+      "location_entries": "zero or one; when present it must match the selected location identifier",
+      "request_path": "selected location identifier must match the location in the route path",
+      "section_names": "exactly the 14 canonical report sections",
+      "section_values": "JSON-compatible nested projection values",
+      "response_size": "existing 512 KiB serialized response bound is preserved"
+    }
+  },
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "oversized_report": "existing 413 preserved",
+    "database_failure": "existing sanitized 503 with Retry-After: 30 preserved",
+    "invalid_projection": "sanitized no-store 500 with Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_comprehensive_status_reads.py -q",
+      "result": "passed",
+      "passed": 20
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/comprehensive_status_routes.py tests/test_gateway_comprehensive_status_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/comprehensive_status_routes.py tests/test_gateway_comprehensive_status_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "The 14 section payload bodies remain JSON-compatible domain projections rather than field-by-field strict models; changing them needs a source audit across all section generators to avoid dropping legacy capabilities.",
+    "This source/API contract does not establish live OIDC behavior, populated-data parity, or broader tenant isolation."
+  ]
+}

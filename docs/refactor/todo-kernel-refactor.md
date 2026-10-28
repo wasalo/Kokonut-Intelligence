@@ -686,6 +686,16 @@ that its full source-plan phase is complete.
   sanitized failure for invalid projections; 18 route tests preserve its
   existing authorization/error/cache behavior
   ([evidence](builds/2026-10-28-recovery/emergency-response-summary-contract.json)).
+  Comprehensive Status now validates its one-location envelope and exact
+  canonical section set while retaining JSON-compatible section bodies pending
+  a generator audit; 20 route tests cover envelope, location, and error
+  behavior ([evidence](builds/2026-10-28-recovery/comprehensive-status-response-contract.json)).
+  Energy monitoring validates nested source, renewable, efficiency, and cost
+  aggregates against schema values and query bounds; 23 route tests include
+  request-location matching ([evidence](builds/2026-10-28-recovery/energy-summary-response-contract.json)).
+  True-cost validates all six nested aggregate sections, schema categories,
+  finite numeric values, extra-field rejection, and request-location matching;
+  12 route tests pass ([evidence](builds/2026-10-28-recovery/true-cost-summary-response-contract.json)).
   Export-log fields
   match the canonical table; the earlier pending-
   create API was removed because the table lacks its request fields and no
@@ -1297,7 +1307,10 @@ open entries.
 - [x] Publish and validate a strict success model for the private yield-monitoring summary, preserving the existing auth and error/cache contracts ([evidence](builds/2026-10-28-recovery/yield-summary-response-contract.json)).
 - [x] Publish and validate a strict success model for the migration-458 coordination-governance summary, preserving its tenant and error/cache contracts ([evidence](builds/2026-10-28-recovery/coordination-governance-response-contract.json)).
 - [x] Publish and validate a strict success model for the emergency-response aggregate summary, preserving its tenant and error/cache contracts ([evidence](builds/2026-10-28-recovery/emergency-response-summary-contract.json)).
+- [x] Validate the Comprehensive Status location envelope, canonical section names, and existing response-size bound ([evidence](builds/2026-10-28-recovery/comprehensive-status-response-contract.json)).
+- [x] Publish and validate the nested energy summary response against source schema and query bounds ([evidence](builds/2026-10-28-recovery/energy-summary-response-contract.json)).
+- [x] Publish and validate the nested true-cost summary response and requested-location identity ([evidence](builds/2026-10-28-recovery/true-cost-summary-response-contract.json)).
 
-The batches checklist is 1,392 complete / 25 open (1,417 total). This TODO
-ledger now has 100 checked and 16 open entries; capability classifications and
+The batches checklist is 1,395 complete / 25 open (1,420 total). This TODO
+ledger now has 103 checked and 16 open entries; capability classifications and
 MAN-CAP acceptance remain unchanged.

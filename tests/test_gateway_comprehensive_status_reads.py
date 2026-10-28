@@ -14,6 +14,54 @@ from services.gateway.operator_auth import auth_route_policy
 
 OPERATOR_ID = str(uuid4())
 LOCATION_ID = str(uuid4())
+COMPREHENSIVE_STATUS_SECTIONS = (
+    "farm_summary",
+    "crop_noi",
+    "environmental",
+    "climate_impact",
+    "financial_sustainability",
+    "capital_efficiency",
+    "holistic_wellbeing",
+    "community_governance",
+    "gnh_alignment",
+    "training_impact",
+    "regenerative_outcomes",
+    "foundational_wellbeing",
+    "stakeholder_outcomes",
+    "capital_accounting",
+)
+
+
+def _comprehensive_status_payload(location_id=LOCATION_ID):
+    return {
+        "report_type": "comprehensive_status",
+        "scope": "selected_locations",
+        "selected_location_ids": [location_id],
+        "period_start": None,
+        "period_end": None,
+        "ecosystem_overview": {
+            "total_locations": 1,
+            "locations_with_financial_data": 1,
+            "total_revenue_usd": 1200.0,
+            "total_expenses_usd": 750.0,
+            "net_income_usd": 450.0,
+            "total_harvest_quantity": 12.0,
+            "total_harvest_quantity_unit": "kg",
+            "total_harvest_quantity_by_unit": {"kg": 12.0},
+        },
+        "locations": [
+            {
+                "location_id": location_id,
+                "name": "Kokonut Adelphi",
+                "slug": "kokonut-adelphi",
+                "country": "DO",
+                "region": "North",
+                "sections": {section: {} for section in COMPREHENSIVE_STATUS_SECTIONS},
+            }
+        ],
+        "limitations": ["Composite of canonical per-location generators."],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
 
 
 class _Connection:
@@ -181,10 +229,7 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
 
     monkeypatch.setattr(
         "services.gateway.comprehensive_status_reads.get_location_comprehensive_status",
-        lambda *_args, **_kwargs: {
-            "report_type": "comprehensive_status",
-            "locations": [{"location_id": LOCATION_ID}],
-        },
+        lambda *_args, **_kwargs: _comprehensive_status_payload(),
     )
     app = FastAPI()
     router = APIRouter()
@@ -211,6 +256,79 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["report_type"] == "comprehensive_status"
+    assert response.json()["locations"][0]["location_id"] == LOCATION_ID
+
+    response_schema = app.openapi()["paths"][
+        "/operator/api/comprehensive-status/{location_id}"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema == {
+        "$ref": "#/components/schemas/ComprehensiveStatusResponse"
+    }
+    schemas = app.openapi()["components"]["schemas"]
+    assert schemas["ComprehensiveStatusResponse"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusLocation"]["additionalProperties"] is False
+    section_schema = schemas["ComprehensiveStatusLocation"]["properties"]["sections"]
+    assert section_schema["minProperties"] == 14
+    assert section_schema["maxProperties"] == 14
+
+
+@pytest.mark.parametrize(
+    "invalid_projection",
+    [
+        "extra", "network_scope", "nested_extra", "missing_section",
+        "wrong_location", "wrong_selected_location", "negative_count",
+    ],
+)
+def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_projection):
+    payload = _comprehensive_status_payload()
+    if invalid_projection == "extra":
+        payload["source_ids"] = [str(uuid4())]
+    elif invalid_projection == "network_scope":
+        payload["scope"] = "all_locations"
+    elif invalid_projection == "nested_extra":
+        payload["locations"][0]["private_note"] = "should not be returned"
+    elif invalid_projection == "missing_section":
+        payload["locations"][0]["sections"].pop("capital_accounting")
+    elif invalid_projection == "wrong_location":
+        payload["locations"][0]["location_id"] = str(uuid4())
+    elif invalid_projection == "wrong_selected_location":
+        other_location_id = str(uuid4())
+        payload["selected_location_ids"] = [other_location_id]
+        payload["locations"][0]["location_id"] = other_location_id
+    else:
+        payload["ecosystem_overview"]["total_locations"] = -1
+
+    monkeypatch.setattr(
+        "services.gateway.comprehensive_status_reads.get_location_comprehensive_status",
+        lambda *_args, **_kwargs: payload,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    from services.gateway.comprehensive_status_routes import register_comprehensive_status_routes
+
+    register_comprehensive_status_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/comprehensive-status/{LOCATION_ID}")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Comprehensive Status read unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
 
 
 def test_http_route_returns_404_when_oidc_is_disabled():
@@ -276,7 +394,7 @@ def test_http_route_caps_final_encoded_response(monkeypatch):
     monkeypatch.setattr(reads, "MAX_COMPREHENSIVE_STATUS_BYTES", 8)
     monkeypatch.setattr(
         "services.gateway.comprehensive_status_reads.get_location_comprehensive_status",
-        lambda *_args, **_kwargs: {"large": "payload"},
+        lambda *_args, **_kwargs: _comprehensive_status_payload(),
     )
     app = FastAPI()
     router = APIRouter()

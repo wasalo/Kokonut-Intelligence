@@ -22063,3 +22063,27 @@ Evidence: [coordination summary contract](builds/2026-10-28-recovery/coordinatio
 [combined response-contract batch](builds/2026-10-28-recovery/response-contract-batch.json).
 Checklist: 1,392 complete / 25 open (1,417 total); capability classifications
 remain unchanged.
+
+### Progress addendum — three private Gateway summary contracts — 28 October 2026
+
+Comprehensive Status now publishes a one-location response envelope with the
+exact 14 canonical sections and preserves its existing 512 KiB cap. The
+individual section bodies remain JSON-compatible until their generators have
+been audited, so this does not claim strict nested parity. Energy monitoring
+now validates nested source, renewable, efficiency, and cost aggregates against
+schema values and query-derived bounds. True-cost accounting now validates all
+six nested aggregate sections, enum values, finite numeric fields, and the
+requested location identity. The routes preserve existing auth and error/cache
+behavior. These three modules pass 55 focused route tests with fakes; no
+database or provider was used. The comprehensive C1/C2/C7/driver selection
+passes 208 tests including these three route modules. Ruff, compilation, the
+runtime SQL inventory/ledger, capability-matrix validator, generated SDK
+parity, worker-job inventory, shell syntax, JSON parsing, and diff checks pass.
+Live OIDC, populated-data parity, and broader tenant isolation remain open.
+
+Evidence: [Comprehensive Status](builds/2026-10-28-recovery/comprehensive-status-response-contract.json),
+[energy](builds/2026-10-28-recovery/energy-summary-response-contract.json),
+[true-cost](builds/2026-10-28-recovery/true-cost-summary-response-contract.json),
+[combined regression batch](builds/2026-10-28-recovery/private-summary-contract-batch.json).
+Checklist: 1,395 complete / 25 open (1,420 total); capability classifications
+remain unchanged.
