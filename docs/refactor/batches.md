@@ -5841,3 +5841,33 @@ polymorphic lineage remain open. Evidence:
 
 Checklist: 1,491 complete / 25 open (1,516 total); TODO: 197 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed continuation — scope preflight and private competency response — 28 October 2026
+
+- [x] Reject malformed location UUIDs before database/helper access across the
+  remaining mixed-scope Kokonut governance, scaling-economics, and value-stream
+  report paths while preserving network-wide modes.
+- [x] Add a strict OpenAPI/runtime contract for the private own competency
+  assessment history, binding its location and page to the request and checking
+  migration-backed fields, ordering, and continuation.
+- [x] Preflight location UUIDs before database access across 17 CLI groups:
+  Capital, Certificates, Drivers, Events, Finance, Forecast, Fortune500,
+  Geostatistics, Graph Projection, Management, Office, Planning, RDF, Revenue
+  Multiplier, Sandbox, Strategic Reserve, and Threatcasting. Omitted optional
+  locations retain their global behavior.
+
+The combined route/report/CLI regression selection passes 745 tests with 2
+skips. Ruff passes on changed files; Graph Projection passes the import and
+undefined-name Ruff rules because its legacy compact formatting has pre-existing
+E701/E702 findings. Python compilation, report source/query inventory checks,
+capability-matrix validation, and `git diff --check` pass. The capability matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); strict private
+Gateway response endpoints now total 77. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-scope-preflight-competency-response.json).
+
+Checklist: 1,494 complete / 25 open (1,519 total); TODO: 200 checked / 16
+open. No database, provider, candidate, legacy service, or live network was
+used. These UUID guards do not establish tenant isolation, and the Gateway
+response contract was exercised through mocks rather than a live OIDC/database
+deployment.

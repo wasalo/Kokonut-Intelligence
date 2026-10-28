@@ -1564,7 +1564,7 @@ def test_database_backed_threatcasting_list_output_matches_and_closes_resources(
     arguments = [
         "list-threats",
         "--location-id",
-        "synthetic-location",
+        "b0000000-0000-4000-8000-000000000001",
         "--type",
         "climate",
     ]
@@ -1592,7 +1592,7 @@ def test_database_backed_threatcasting_list_output_matches_and_closes_resources(
     assert all("location_id = %s" in connection.fake_cursor.query for connection in connections)
     assert all("threat_type = %s" in connection.fake_cursor.query for connection in connections)
     assert all(
-        connection.fake_cursor.parameters == ["synthetic-location", "climate"]
+        connection.fake_cursor.parameters == ["b0000000-0000-4000-8000-000000000001", "climate"]
         for connection in connections
     )
     assert unified.stderr == ""

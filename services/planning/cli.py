@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import argparse
 import sys
+from uuid import UUID
 
+from services.common.cli import print_json
 from services.common.database import get_db
 from services.planning import budget, performance, portfolio, sandop
-from services.common.cli import print_json
+
 
 def _dump(rows):
     if rows is None:
@@ -405,6 +407,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.group == "plan" and args.action == "add-line" and args.location_id is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
     args.func(args)
     return 0
 

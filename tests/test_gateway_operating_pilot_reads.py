@@ -1350,8 +1350,11 @@ def test_http_own_competency_history_is_no_store_and_uses_exact_operator_scope(m
     calls = []
     page = {
         "location_id": LOCATION_ID,
-        "items": [{"competency_key": "facilitation", "evidence_note": "private note"}],
+        "limit": 7,
+        "offset": 14,
+        "items": [],
         "has_more": False,
+        "next_offset": None,
     }
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_own_competency_drafts",

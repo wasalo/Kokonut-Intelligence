@@ -1,13 +1,14 @@
 """Graph projection command line interface."""
 
 import argparse
+from uuid import UUID
 
 from services.common.cli import print_json
 from services.common.database import get_db
 
 from .kernel import PROJECTION_KEY, PROJECTION_VERSION, rebuild, validate_generation
 from .query import query_graph
-from services.common.cli import print_json
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Governed graph projection")
@@ -16,7 +17,13 @@ def main(argv=None):
     sub.add_parser("status")
     validate_parser = sub.add_parser("validate"); validate_parser.add_argument("--generation-id")
     query_parser = sub.add_parser("query"); query_parser.add_argument("--entity-key", required=True); query_parser.add_argument("--depth", type=int, default=1); query_parser.add_argument("--node-cap", type=int, default=100); query_parser.add_argument("--edge-type", action="append"); query_parser.add_argument("--location-id"); query_parser.add_argument("--audience", choices=("internal", "public"), default="internal")
-    args = parser.parse_args(argv); conn = get_db()
+    args = parser.parse_args(argv)
+    if args.command == "query" and args.location_id is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
+    conn = get_db()
     try:
         if args.command == "rebuild": result = rebuild(conn, args.actor)
         elif args.command == "validate": result = validate_generation(conn, args.generation_id)

@@ -163,12 +163,13 @@ def test_kokonut_commons_report_generators_registered_and_public_safe() -> None:
             return Cursor()
 
     conn = Conn()
-    assert generate_anti_capture_governance(conn, "x")["community_veto_count"] == 1
-    assert generate_redistribution_policy(conn, "x")["scenario_policy_count"] == 1
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    assert generate_anti_capture_governance(conn, location_id)["community_veto_count"] == 1
+    assert generate_redistribution_policy(conn, location_id)["scenario_policy_count"] == 1
     federation = generate_federation_mutual_aid(conn)
     assert federation["permissionless_forking_count"] == 1
     assert federation["location_id"] is None
-    assert generate_algorithmic_redistribution(conn, "x")["report_type"] == "algorithmic_redistribution"
+    assert generate_algorithmic_redistribution(conn, location_id)["report_type"] == "algorithmic_redistribution"
     participatory = generate_participatory_signal(conn)
     assert participatory["advisory_count"] == 1
     assert participatory["location_id"] is None
@@ -200,6 +201,32 @@ def test_location_required_commons_reports_reject_missing_scope_before_cursor(
     conn = Conn()
     with pytest.raises(ValueError, match="requires an explicit location_id"):
         generator(conn, location_id)
+    assert not conn.cursor_called
+
+
+@pytest.mark.parametrize(
+    "report_type,generator",
+    [
+        ("anti_capture_governance", generate_anti_capture_governance),
+        ("redistribution_policy", generate_redistribution_policy),
+        ("algorithmic_redistribution", generate_algorithmic_redistribution),
+    ],
+)
+@pytest.mark.parametrize("location_id", ["x", "not-a-uuid", "a0000000-0000-0000-0000-000000000001,all"])
+def test_location_required_commons_reports_reject_malformed_scope_before_cursor(
+    report_type, generator, location_id
+) -> None:
+    class Conn:
+        cursor_called = False
+
+        def cursor(self, cursor_factory=None):
+            self.cursor_called = True
+            raise AssertionError("malformed location must fail before opening a cursor")
+
+    conn = Conn()
+    with pytest.raises(ValueError, match="requires a valid location_id"):
+        generator(conn, location_id)
+    assert report_type in REPORT_GENERATORS
     assert not conn.cursor_called
 
 

@@ -1804,3 +1804,26 @@ covers 27 location-scoped collections; live runtime parity remains open.
 Checklist: 1,482 complete / 25 open (1,507 total); TODO: 188 checked / 16
 open. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
 prepared), with 73 strict private Gateway response endpoints.
+
+
+### Completed continuation — scope preflight and private competency response — 28 October 2026
+
+- [x] Reject malformed location UUIDs before cursor/helper access for the
+  three Kokonut governance reports, scaling economics, and value-stream map;
+  preserve documented network-wide modes.
+- [x] Add a strict, request-bound response model for the private
+  operating-pilot own competency assessment history page.
+- [x] Preflight location UUIDs across Capital, Certificates, Drivers, Events,
+  Finance, Forecast, Fortune500, Geostatistics, Graph Projection, Management,
+  Office, Planning, RDF, Revenue Multiplier, Sandbox, Strategic Reserve, and
+  Threatcasting CLIs while preserving intentional global modes.
+
+The combined focused route/report/CLI selection passes 745 tests (2 skipped).
+Ruff, Python compilation, report source/query inventories, capability-matrix
+validation, and diff checks pass. The strict private Gateway response count is
+77. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-scope-preflight-competency-response.json).
+
+Checklist: 1,494 complete / 25 open (1,519 total); TODO: 200 checked / 16
+open. Live tenant isolation and authenticated Gateway/database acceptance
+remain separate gates.

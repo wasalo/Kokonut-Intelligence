@@ -333,6 +333,48 @@ def test_scaling_economics_network_scope_includes_network_targets() -> None:
     assert "v_public_network_scaling_target" in conn.queries[1][0]
 
 
+@pytest.mark.parametrize("location_id", ["", "x", "not-a-uuid", "all,location"])
+def test_scaling_economics_rejects_malformed_location_before_database_access(location_id):
+    conn = Mock()
+
+    with pytest.raises(ValueError, match="scaling_economics requires a valid location_id"):
+        generate_scaling_economics(conn, location_id)
+
+    conn.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize("location_id", [None, "all"])
+def test_scaling_economics_keeps_explicit_network_scope(location_id):
+    class Cursor:
+        def __init__(self, queries):
+            self.queries = queries
+
+        def execute(self, query, params=None):
+            self.queries.append((query, params))
+
+        def fetchall(self):
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.queries = []
+
+        def cursor(self, cursor_factory=None):
+            return Cursor(self.queries)
+
+    conn = Conn()
+    report = generate_scaling_economics(conn, location_id)
+
+    assert report["scope"] == "network"
+    assert report["location_id"] is None
+    assert report["total_target_capital_usd"] == 0
+    assert len(conn.queries) == 2
+    assert "v_public_network_scaling_target" in conn.queries[1][0]
+
+
 if __name__ == "__main__":
     test_open_source_capitalist_schema_defines_records_and_public_views()
     test_open_source_capitalist_seed_and_dashboards_exist()

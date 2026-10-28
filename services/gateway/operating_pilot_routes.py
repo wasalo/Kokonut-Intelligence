@@ -155,6 +155,65 @@ class OperatingPilotOwnCapacityProfilesPage(BaseModel):
         return self
 
 
+class OperatingPilotOwnCompetencyAssessmentResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    draft_id: _ResponseUUID
+    competency_key: str = Field(
+        min_length=1,
+        max_length=120,
+        pattern=r"^[a-z][a-z0-9_.-]{0,119}$",
+    )
+    current_level: float = Field(ge=0, le=5, strict=True)
+    target_level: float = Field(ge=0, le=5, strict=True)
+    evidence_note: str | None = Field(max_length=2000)
+    status: Literal["draft", "superseded", "submitted", "rejected", "verified"]
+    review_reason: str | None = Field(max_length=2000)
+    reviewed_at: _ResponseDateTime | None
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_assessment(self):
+        if self.target_level < self.current_level:
+            raise ValueError("target competency level is below current level")
+        if self.status == "rejected" and not (self.review_reason or "").strip():
+            raise ValueError("rejected competency assessment requires a review reason")
+        return self
+
+
+class OperatingPilotOwnCompetencyAssessmentsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotOwnCompetencyAssessmentResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own competency page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("own competency continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own competency page cannot continue")
+
+        draft_ids = [item.draft_id for item in self.items]
+        if len(draft_ids) != len(set(draft_ids)):
+            raise ValueError("own competency page contains duplicate draft IDs")
+        if any(
+            (previous.created_at, previous.draft_id.int)
+            < (current.created_at, current.draft_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own competency page is not in descending SQL order")
+        return self
+
+
 class OperatingPilotOwnResourceRequestItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -2094,7 +2153,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-competency-assessments")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-competency-assessments",
+        response_model=OperatingPilotOwnCompetencyAssessmentsPage,
+    )
     async def location_operating_pilot_own_competency_drafts(
         request: Request,
         location_id: str,
@@ -2153,7 +2215,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own competency history unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotOwnCompetencyAssessmentsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own competency page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Own competency response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own competency history unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
 
     @router.get("/operator/api/operating-pilot/{location_id}/my-learning-plans")
     async def location_operating_pilot_own_learning_plans(

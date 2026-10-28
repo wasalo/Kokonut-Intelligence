@@ -14,6 +14,9 @@ from ..scope import require_network_scope
 def generate_scaling_economics(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Generate public-safe scaling economics and unit-cost report."""
     network_scope = location_id in (None, "all")
+    if not network_scope and not _looks_like_uuid(location_id):
+        raise ValueError("scaling_economics requires a valid location_id or network scope")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         if network_scope:

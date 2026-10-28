@@ -12,18 +12,18 @@ Usage:
 """
 
 import argparse
-import sys
+from uuid import UUID
 
+from services.common.cli import print_json
 from services.common.database import get_db
 from services.office import (
     get_alerts,
     get_run_status,
     run_bounty_cycle,
-    run_funding_cycle,
     run_full_cycle,
+    run_funding_cycle,
     run_landscape_refresh,
 )
-from services.common.cli import print_json
 
 
 def get_pg():
@@ -42,6 +42,12 @@ def main():
 
     if not args.run and not args.status and not args.alerts:
         parser.error("Specify --run, --status, or --alerts")
+
+    if args.location_id is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
 
     conn = get_pg()
     try:

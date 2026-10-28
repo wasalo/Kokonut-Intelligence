@@ -23,12 +23,23 @@ import argparse
 import os
 import sys
 import time
+from uuid import UUID
 
 from services.common.cli import print_json
 from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("events.cli")
+
+
+def _preflight_fork_location(parser: argparse.ArgumentParser, args) -> None:
+    """Validate a supplied fork location before opening the event DB connection."""
+    if args.location_id is None:
+        return
+    try:
+        args.location_id = str(UUID(args.location_id))
+    except (AttributeError, TypeError, ValueError):
+        parser.error("--location-id must be a valid UUID")
 
 
 def cmd_process(args):
@@ -468,8 +479,10 @@ def main():
             )
         rc = cmd_notification_dispose_dead_letter(args)
     elif args.fork_opportunities:
+        _preflight_fork_location(parser, args)
         rc = cmd_fork_opportunities(args)
     elif args.propose_fork:
+        _preflight_fork_location(parser, args)
         rc = cmd_propose_fork(args)
     elif args.process_event:
         if not (args.source_domain and args.event_type):

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 from ..scope import require_network_scope
 
 
@@ -22,6 +22,9 @@ def _fetch_public_view(
 
     if network_scope and location_id:
         raise ValueError(f"{view_name} cannot combine network and location scope")
+
+    if not network_scope and not _looks_like_uuid(location_id):
+        raise ValueError(f"{view_name} requires a valid location_id")
 
     # Validate identifiers to prevent SQL injection
     import re

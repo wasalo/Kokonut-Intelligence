@@ -91,7 +91,7 @@
       "report_type": "adoption_barriers",
       "callable": "generate_adoption_barriers",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 77,
+      "source_line": 80,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -105,7 +105,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 84,
+          "line": 87,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -133,7 +133,7 @@
       "report_type": "algorithmic_redistribution",
       "callable": "generate_algorithmic_redistribution",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 124,
+      "source_line": 127,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -151,7 +151,7 @@
       "report_type": "anti_capture_governance",
       "callable": "generate_anti_capture_governance",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 51,
+      "source_line": 54,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -1960,7 +1960,7 @@
       "report_type": "federation_mutual_aid",
       "callable": "generate_federation_mutual_aid",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 97,
+      "source_line": 100,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -1972,7 +1972,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 100,
+          "line": 103,
           "report_type": "federation_mutual_aid",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -2913,7 +2913,7 @@
       "report_type": "open_source_impact",
       "callable": "generate_open_source_impact",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 159,
+      "source_line": 162,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -2925,7 +2925,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 163,
+          "line": 166,
           "report_type": "open_source_impact",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -2934,7 +2934,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 164,
+          "line": 167,
           "method": "query",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3272,7 +3272,7 @@
       "report_type": "participatory_signal",
       "callable": "generate_participatory_signal",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 151,
+      "source_line": 154,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -3284,7 +3284,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 154,
+          "line": 157,
           "report_type": "participatory_signal",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -3297,7 +3297,7 @@
       "report_type": "perpetual_value_stress",
       "callable": "generate_perpetual_value_stress",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 115,
+      "source_line": 118,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -3311,7 +3311,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 124,
+          "line": 127,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3489,7 +3489,7 @@
       "report_type": "redistribution_policy",
       "callable": "generate_redistribution_policy",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 74,
+      "source_line": 77,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,
@@ -4035,7 +4035,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 20,
+          "line": 23,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4058,7 +4058,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 22,
+          "line": 25,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4081,7 +4081,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 35,
+          "line": 38,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5896,7 +5896,7 @@
       "report_type": "value_stream_map",
       "callable": "generate_value_stream_map",
       "source_file": "services/analytics/value_stream.py",
-      "source_line": 274,
+      "source_line": 275,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,

@@ -36,7 +36,7 @@
       "callable": "generate_adoption_barriers",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 77,
+      "source_line": 80,
       "parameters": [
         "conn",
         "location_id",
@@ -57,7 +57,7 @@
       "callable": "generate_algorithmic_redistribution",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 124,
+      "source_line": 127,
       "parameters": [
         "conn",
         "location_id",
@@ -78,7 +78,7 @@
       "callable": "generate_anti_capture_governance",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 51,
+      "source_line": 54,
       "parameters": [
         "conn",
         "location_id",
@@ -659,7 +659,7 @@
       "callable": "generate_federation_mutual_aid",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 97,
+      "source_line": 100,
       "parameters": [
         "conn",
         "location_id",
@@ -961,7 +961,7 @@
       "callable": "generate_open_source_impact",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 159,
+      "source_line": 162,
       "parameters": [
         "conn",
         "location_id",
@@ -1048,7 +1048,7 @@
       "callable": "generate_participatory_signal",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 151,
+      "source_line": 154,
       "parameters": [
         "conn",
         "location_id",
@@ -1069,7 +1069,7 @@
       "callable": "generate_perpetual_value_stress",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 115,
+      "source_line": 118,
       "parameters": [
         "conn",
         "location_id",
@@ -1241,7 +1241,7 @@
       "callable": "generate_redistribution_policy",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 74,
+      "source_line": 77,
       "parameters": [
         "conn",
         "location_id",
@@ -1989,7 +1989,7 @@
       "callable": "generate_value_stream_map",
       "source_module": "services.analytics.value_stream",
       "source_file": "services/analytics/value_stream.py",
-      "source_line": 274,
+      "source_line": 275,
       "parameters": [
         "conn",
         "location_id",
