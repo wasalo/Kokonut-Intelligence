@@ -1,6 +1,6 @@
 {
   "date": "2026-10-28",
-  "source_revision": "23e5bf8c",
+  "source_revision": "a119c36f",
   "working_tree_dirty": true,
   "scope": "CI drift gate for direct SQL DML and conservative WITH execution sites whose target relation is unresolved.",
   "review_ledger": {

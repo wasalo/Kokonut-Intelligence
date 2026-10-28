@@ -22041,3 +22041,25 @@ provider was used; live OIDC and populated-data parity remain open.
 Evidence: [yield summary response contract](builds/2026-10-28-recovery/yield-summary-response-contract.json).
 Checklist: 1,390 complete / 25 open (1,415 total); capability classifications
 remain unchanged.
+
+### Progress addendum — coordination and emergency response contracts — 28 October 2026
+
+The location-scoped coordination-governance and emergency-response aggregate
+routes now publish strict OpenAPI success models and validate service
+projections before returning JSON. Coordination requires its exact location
+identifier and 19 strict nonnegative count fields. Emergency response uses the
+database-constrained incident/severity values, strict nonnegative counts,
+bounded percentages, and maximum group sizes. Invalid projections fail with a
+sanitized no-store response; the existing authorization, input, database, and
+Retry-After contracts are preserved. Focused route selections pass 16 and 18
+tests respectively with fakes. The combined C1/C2/C7/driver-contract selection
+passes 153 tests. Ruff, compilation, the runtime SQL inventory/ledger, the
+capability-matrix validator, generated SDK parity, shell syntax, JSON parsing,
+and diff checks pass. No database or provider was used. Live OIDC,
+populated-data parity, and broader tenant isolation remain open.
+
+Evidence: [coordination summary contract](builds/2026-10-28-recovery/coordination-governance-response-contract.json),
+[emergency-response summary contract](builds/2026-10-28-recovery/emergency-response-summary-contract.json),
+[combined response-contract batch](builds/2026-10-28-recovery/response-contract-batch.json).
+Checklist: 1,392 complete / 25 open (1,417 total); capability classifications
+remain unchanged.

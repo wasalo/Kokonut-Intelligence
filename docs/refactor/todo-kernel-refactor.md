@@ -677,6 +677,15 @@ that its full source-plan phase is complete.
   tests verify its OpenAPI schema, malformed-field rejection, and unchanged
   authorization/error headers
   ([evidence](builds/2026-10-28-recovery/yield-summary-response-contract.json)).
+  The coordination-governance summary now publishes its migration-458 schema
+  with 19 strict nonnegative counts; 16 route tests cover projection, OpenAPI,
+  and existing auth/error/cache behavior
+  ([evidence](builds/2026-10-28-recovery/coordination-governance-response-contract.json)).
+  The emergency-response summary now publishes bounded aggregate models with
+  schema-backed incident/severity enums, strict counts and percentages, and
+  sanitized failure for invalid projections; 18 route tests preserve its
+  existing authorization/error/cache behavior
+  ([evidence](builds/2026-10-28-recovery/emergency-response-summary-contract.json)).
   Export-log fields
   match the canonical table; the earlier pending-
   create API was removed because the table lacks its request fields and no
@@ -1286,7 +1295,9 @@ open entries.
 - [x] Keep driver catalog database failures distinct from an empty catalog: failures propagate to a generic no-store Gateway 500. The 47-test Gateway/OpenAPI/Python-SDK selection, Ruff, compilation, and diff checks pass with fake database/transport behavior ([evidence](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json)).
 - [x] Require source review for new unresolved direct SQL DML/`WITH` candidates through the runtime inventory check. Existing candidates remain explicitly tracked and the fingerprint baseline is pinned; this does not reduce the observed broad grants ([evidence](builds/2026-10-28-recovery/runtime-sql-unresolved-write-drift-gate.json)).
 - [x] Publish and validate a strict success model for the private yield-monitoring summary, preserving the existing auth and error/cache contracts ([evidence](builds/2026-10-28-recovery/yield-summary-response-contract.json)).
+- [x] Publish and validate a strict success model for the migration-458 coordination-governance summary, preserving its tenant and error/cache contracts ([evidence](builds/2026-10-28-recovery/coordination-governance-response-contract.json)).
+- [x] Publish and validate a strict success model for the emergency-response aggregate summary, preserving its tenant and error/cache contracts ([evidence](builds/2026-10-28-recovery/emergency-response-summary-contract.json)).
 
-The batches checklist is 1,390 complete / 25 open (1,415 total). This TODO
+The batches checklist is 1,392 complete / 25 open (1,417 total). This TODO
 ledger now has 100 checked and 16 open entries; capability classifications and
 MAN-CAP acceptance remain unchanged.

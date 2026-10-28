@@ -1,5 +1,36 @@
 """OIDC routes for location-scoped coordination governance summaries."""
 
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+
+class CoordinationGovernanceSummaryResponse(BaseModel):
+    """Aggregate-only response returned by migration 458's scoped function."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    location_id: UUID
+    alliance_count: int = Field(ge=0, strict=True)
+    draft_alliance_count: int = Field(ge=0, strict=True)
+    proposed_alliance_count: int = Field(ge=0, strict=True)
+    approved_alliance_count: int = Field(ge=0, strict=True)
+    active_alliance_count: int = Field(ge=0, strict=True)
+    paused_alliance_count: int = Field(ge=0, strict=True)
+    completed_alliance_count: int = Field(ge=0, strict=True)
+    dissolved_alliance_count: int = Field(ge=0, strict=True)
+    rejected_alliance_count: int = Field(ge=0, strict=True)
+    overdue_review_count: int = Field(ge=0, strict=True)
+    open_conflict_declaration_count: int = Field(ge=0, strict=True)
+    unreviewed_harm_analysis_count: int = Field(ge=0, strict=True)
+    open_appeal_count: int = Field(ge=0, strict=True)
+    open_remedy_count: int = Field(ge=0, strict=True)
+    preserved_minority_view_count: int = Field(ge=0, strict=True)
+    completed_knowledge_exchange_count: int = Field(ge=0, strict=True)
+    open_learning_link_count: int = Field(ge=0, strict=True)
+    draft_metric_observation_count: int = Field(ge=0, strict=True)
+    rejected_metric_observation_count: int = Field(ge=0, strict=True)
+
 
 def register_coordination_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi.encoders import jsonable_encoder
@@ -14,7 +45,10 @@ def register_coordination_routes(router, provider, run_in_threadpool, psycopg2):
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
-    @router.get("/operator/api/coordination/{location_id}/summary")
+    @router.get(
+        "/operator/api/coordination/{location_id}/summary",
+        response_model=CoordinationGovernanceSummaryResponse,
+    )
     async def location_coordination_summary(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -53,4 +87,20 @@ def register_coordination_routes(router, provider, run_in_threadpool, psycopg2):
                 content={"error": "Coordination summary unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = CoordinationGovernanceSummaryResponse.model_validate(result)
+        except ValidationError as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.coordination").warning(
+                "Coordination summary response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Coordination summary unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")),
+            headers=headers,
+        )

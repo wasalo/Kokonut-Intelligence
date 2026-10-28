@@ -49,10 +49,11 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,390
-complete / 25 open (1,415 total). The private cooperative and yield-monitoring
-summaries now have OpenAPI success models that reject undeclared projection
-fields while preserving existing authorization and cache behavior. The runtime
+`competency_framework` may be owner-managed. The latest checklist is 1,392
+complete / 25 open (1,417 total). The private cooperative, yield-monitoring,
+coordination-governance, and emergency-response summaries now have OpenAPI
+success models that reject undeclared projection fields while preserving
+existing authorization and cache behavior. The runtime
 SQL inventory also requires explicit review for new unresolved DML/`WITH` sites;
 its existing unresolved candidates remain tracked debt and the gate does not
 change database grants.
@@ -75,7 +76,7 @@ The optional Directus tenant hook also scopes writable-reference lookups by the
 requested location and uses one generic unavailable response for missing and
 foreign-location references. These are source/API contract checks; they do not
 establish live Directus role/field/row parity or populated-data parity.
-Checklist: 1,390 complete / 25 open (1,415 total).
+Checklist: 1,392 complete / 25 open (1,417 total).
 
 Evidence: [Directus schema check](builds/2026-10-28-recovery/directus-polymorphic-lineage-schema-disposable.json),
 [report query inventory](report-generator-query-scope-inventory.json),

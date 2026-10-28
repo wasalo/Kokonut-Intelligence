@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "a119c36f",
+  "working_tree_dirty": true,
+  "scope": "Strict success response contract for the private location-scoped coordination-governance summary backed by migration 458.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/coordination/{location_id}/summary",
+    "response_fields": [
+      "location_id",
+      "alliance_count",
+      "draft_alliance_count",
+      "proposed_alliance_count",
+      "approved_alliance_count",
+      "active_alliance_count",
+      "paused_alliance_count",
+      "completed_alliance_count",
+      "dissolved_alliance_count",
+      "rejected_alliance_count",
+      "overdue_review_count",
+      "open_conflict_declaration_count",
+      "unreviewed_harm_analysis_count",
+      "open_appeal_count",
+      "open_remedy_count",
+      "preserved_minority_view_count",
+      "completed_knowledge_exchange_count",
+      "open_learning_link_count",
+      "draft_metric_observation_count",
+      "rejected_metric_observation_count"
+    ],
+    "count_constraints": "All 19 aggregate counts use strict nonnegative integer validation.",
+    "extra_fields": "forbidden",
+    "validation": "The service projection is explicitly validated before returning JSONResponse."
+  },
+  "error_contract": {
+    "authorization": "existing tenant denial and SQLSTATE 42501 responses preserved",
+    "disabled_oidc": "existing 404 response preserved",
+    "invalid_input": "existing 400 response preserved",
+    "database_failure": "existing sanitized 503 and Retry-After: 30 preserved",
+    "invalid_projection": "sanitized 500 with no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_coordination_reads.py -q",
+      "result": "passed",
+      "passed": 16
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/coordination_routes.py tests/test_gateway_coordination_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/coordination_routes.py tests/test_gateway_coordination_reads.py",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes one aggregate response-contract slice only; it does not establish live OIDC behavior, populated-data parity, or broader tenant isolation."
+  ]
+}
