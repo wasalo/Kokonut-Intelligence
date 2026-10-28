@@ -1327,3 +1327,22 @@ open entries.
 The batches checklist is 1,398 complete / 25 open (1,423 total). This TODO
 ledger now has 106 checked and 16 open entries; capability classifications and
 MAN-CAP acceptance remain unchanged.
+
+
+### Completed in the current continuation — three private Gateway summaries
+
+- [x] Add a strict irrigation status response contract, including nested row
+  allowlists, schema-backed state values, requested-location identity, and
+  consistent bounded pagination.
+- [x] Add strict landscape-conservation and pollinator aggregate contracts
+  with nested allowlists, bounded groups, source-aligned enums, finite numeric
+  values, and requested-location identity.
+- [x] Refresh the shared route fixtures and run the combined selection: 77
+  tests pass; Ruff, Python compilation, capability-matrix validation, and diff
+  checks pass. No database or provider was used. Evidence is recorded in
+  [the batch log](batches.md).
+
+The checklist is now 1,401 complete / 25 open (1,426 total). This TODO ledger
+has 109 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged; live OIDC, populated-data parity, and broader
+tenant isolation remain open.

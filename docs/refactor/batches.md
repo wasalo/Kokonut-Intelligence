@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,382 checklist items complete and 25
-open (1,407 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,401 checklist items complete and 25
+open (1,426 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5121,3 +5121,30 @@ The AST scope inventory now follows a location-filtered parent row into child re
 - [x] Publish strict response contracts for the extension-learning module catalog and summary. Module fields and aggregate groups now match schema values, counts, and category products; both responses must match the requested location. Twenty focused route/pagination tests pass with Ruff/compilation; no database/provider was used ([evidence](builds/2026-10-28-recovery/extension-learning-response-contract.json)). Checklist: 1,397 complete / 25 open (1,422 total); capability classifications remain unchanged.
 
 - [x] Publish and validate the nested waste-management summary contract. It checks waste, composting, recycling, and pollution aggregates against schema enums, strict counts, finite numbers, query bounds, period, and location identity. Twenty-two focused route checks pass with Ruff/compilation; no database/provider was used ([evidence](builds/2026-10-28-recovery/waste-summary-response-contract.json)). Checklist: 1,398 complete / 25 open (1,423 total); capability classifications remain unchanged.
+
+
+### Completed continuation — irrigation, landscape, and pollinator response contracts — 28 October 2026
+
+- [x] Publish a strict success response contract for the private irrigation
+  status route. Zone rows, status enums, counts, requested location, paging
+  identity, and continuation metadata are validated against the service query;
+  device identifiers and arbitrary metadata remain outside the response
+  ([evidence](builds/2026-10-28-recovery/irrigation-status-response-contract.json)).
+- [x] Publish a strict nested aggregate response contract for landscape
+  conservation, with schema-backed categories, bounded groups, finite metrics,
+  requested-location matching, and sanitized no-store projection failures
+  ([evidence](builds/2026-10-28-recovery/landscape-summary-response-contract.json)).
+- [x] Publish a strict aggregate-only pollinator summary contract with
+  schema-backed categories, bounded groups, finite numbers, location matching,
+  and sanitized no-store projection failures
+  ([evidence](builds/2026-10-28-recovery/pollinator-summary-response-contract.json)).
+The shared route fixture now represents the complete service projections.
+The combined Gateway selection passes 77 tests; Ruff, Python compilation, the
+capability-matrix validator, and diff checks pass. No live database/provider,
+candidate, or legacy service was used
+([combined evidence](builds/2026-10-28-recovery/irrigation-landscape-pollinator-response-contract-batch.json)).
+
+The checklist is 1,401 complete / 25 open (1,426 total); the TODO ledger has
+109 checked and 16 open entries. Capability classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows. Live OIDC,
+populated-data parity, and broader tenant isolation remain open.

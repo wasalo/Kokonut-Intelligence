@@ -49,8 +49,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,398
-complete / 25 open (1,423 total). Eleven private Gateway summary/catalog
+`competency_framework` may be owner-managed. The latest checklist is 1,401
+complete / 25 open (1,426 total). Fourteen private Gateway summary/catalog
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. Comprehensive
 Status keeps its section bodies JSON-compatible pending an audit of the
@@ -77,7 +77,9 @@ The optional Directus tenant hook also scopes writable-reference lookups by the
 requested location and uses one generic unavailable response for missing and
 foreign-location references. These are source/API contract checks; they do not
 establish live Directus role/field/row parity or populated-data parity.
-Checklist: 1,398 complete / 25 open (1,423 total).
+Checklist: 1,401 complete / 25 open (1,426 total).
+
+**Latest parallel batch — irrigation, landscape, and pollinator response contracts (28 October 2026):** the private irrigation status route now publishes and enforces a strict nested response model, including zone-state enums, requested-location identity, and query-consistent pagination. Landscape conservation and pollinator health summaries now validate their nested aggregate projections against source enums, bounded group dimensions, strict counts, finite values, and the requested location. All three preserve existing authorization and cache/error behavior and return sanitized no-store errors for invalid projections. The combined route selection passes 77 tests; Ruff, compilation, capability-matrix validation, and diff checks pass. No live database/provider was used. This closes source/API contracts only; live OIDC, populated-data parity, and tenant isolation remain open ([irrigation evidence](builds/2026-10-28-recovery/irrigation-status-response-contract.json); [landscape evidence](builds/2026-10-28-recovery/landscape-summary-response-contract.json); [pollinator evidence](builds/2026-10-28-recovery/pollinator-summary-response-contract.json); [combined evidence](builds/2026-10-28-recovery/irrigation-landscape-pollinator-response-contract-batch.json)). Checklist: 1,401 complete / 25 open (1,426 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 Evidence: [Directus schema check](builds/2026-10-28-recovery/directus-polymorphic-lineage-schema-disposable.json),
 [report query inventory](report-generator-query-scope-inventory.json),

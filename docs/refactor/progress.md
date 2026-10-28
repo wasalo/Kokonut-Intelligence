@@ -22109,3 +22109,27 @@ Evidence: [business architecture](builds/2026-10-28-recovery/business-architectu
 [combined route batch](builds/2026-10-28-recovery/gateway-route-response-contract-batch.json).
 Checklist: 1,398 complete / 25 open (1,423 total); capability classifications
 remain unchanged.
+
+
+### Progress addendum — irrigation, landscape, and pollinator response contracts — 28 October 2026
+
+The private irrigation status route now validates the service projection with
+a strict response model, including nested zone fields, active/pending status
+values, positive grouped counts, requested-location identity, and pagination
+consistent with the requested page. The landscape conservation and pollinator
+health summaries now enforce strict nested aggregate contracts with
+schema-aligned enums, bounded groups, count and finite-number checks, and
+location identity. Existing auth and error/cache behavior is preserved; invalid
+service projections return sanitized no-store errors. Updating the shared test
+fixtures restored full success-path coverage across the routes. The combined
+selection passes 77 tests; Ruff, Python compilation, the capability-matrix
+validator, and diff checks pass. No database/provider was used, and candidate
+and legacy services were untouched. This does not establish live OIDC,
+populated-data parity, or broader tenant isolation.
+
+Evidence: [irrigation](builds/2026-10-28-recovery/irrigation-status-response-contract.json),
+[landscape](builds/2026-10-28-recovery/landscape-summary-response-contract.json),
+[pollinator](builds/2026-10-28-recovery/pollinator-summary-response-contract.json),
+[combined selection](builds/2026-10-28-recovery/irrigation-landscape-pollinator-response-contract-batch.json).
+Checklist: 1,401 complete / 25 open (1,426 total); capability classifications
+remain unchanged.
