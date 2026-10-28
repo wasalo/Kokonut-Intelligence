@@ -22282,3 +22282,31 @@ ledger has 129 checked / 16 open entries. The capability matrix records 51
 strict private Gateway response endpoints across 67 rows. Classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP acceptance
 is unchanged.
+
+
+### Progress addendum — parallel read-contract and source-scope batch — 28 October 2026
+
+The Delphi participant-invite inventory and threatcasting backcast-plan
+list/detail routes now publish strict OpenAPI success schemas and validate
+their runtime projections against requested scope, order, cursor, and bounded
+pagination. The invite projection excludes private tokens; threatcasting stays
+advisory-only. The optional Directus tenant hook now validates MRV sensor-device
+and sensor-alert references against their owning device's location. Its
+polymorphic source-record list remains unresolved because source table identity
+is absent from the payload. Four State-of-Kokonut funding/actor queries now use
+static named parameters for both the selected-location and explicit network
+rollup paths. The report helper inventory resolves 169/169 sites.
+
+The focused Python selection passes 279 tests; Directus tenant validation
+passes 16 tests and the extension bundle/typecheck succeeds. Ruff, Python
+compilation, capability-matrix validation, report-inventory checks, runtime SQL
+inventory checks on Python 3.11/3.12, and diff checks pass. The runtime SQL
+unresolved-write ledger remains at 37 candidates. No migration, database,
+provider, candidate, or legacy service was used. The matrix records 54 strict
+private Gateway response endpoints across 67 rows (24 baseline-retained, 7
+deployed, 36 prepared); no capability classification or MAN-CAP acceptance
+changed. Live Directus API/field/row parity, OIDC/browser behavior,
+populated-data parity, and broader tenant isolation remain open ([evidence](batches.md)).
+
+The checklist is 1,426 complete / 25 open (1,451 total); the TODO ledger has
+133 checked / 16 open entries.

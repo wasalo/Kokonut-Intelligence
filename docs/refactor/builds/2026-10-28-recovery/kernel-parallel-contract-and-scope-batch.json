@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-28",
+  "batch": "parallel Delphi invite, threatcasting, Directus MRV, and report-query continuation",
+  "changes": {
+    "gateway_private_response_contracts_added": 3,
+    "directus_mrv_location_references_validated": [
+      "mrv_claim.sensor_device_id",
+      "mrv_claim.sensor_alert_id via sensor_device.location_id"
+    ],
+    "state_of_kokonut_queries_staticified": 4,
+    "report_helper_query_sites_resolved": 169,
+    "report_helper_unresolved_query_sites": 0
+  },
+  "verification": {
+    "python_focused_tests": {
+      "result": "passed",
+      "count": 279
+    },
+    "directus_tenant_validation_tests": {
+      "result": "passed",
+      "count": 16
+    },
+    "directus_extension_build_and_typescript_check": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed",
+    "report_generator_helper_inventory": "current",
+    "report_generator_query_inventory": "current",
+    "runtime_sql_inventory": {
+      "python_3_11": "current",
+      "python_3_12": "current",
+      "unresolved_write_candidates": 37
+    },
+    "capability_matrix": {
+      "result": "valid",
+      "rows": 67,
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36,
+      "strict_private_gateway_response_endpoints": 54
+    },
+    "checklist": {
+      "complete": 1426,
+      "open": 25
+    },
+    "todo_ledger": {
+      "complete": 133,
+      "open": 16
+    }
+  },
+  "scope_limits": [
+    "No migration or database was used.",
+    "No provider, candidate, or legacy service was used.",
+    "The Directus source_record_ids array remains unresolved because the payload lacks a table discriminator.",
+    "Live Directus role/field/row parity, live OIDC/browser behavior, populated-data parity, and broader tenant isolation remain open.",
+    "Capability classifications and MAN-CAP acceptance did not change."
+  ]
+}

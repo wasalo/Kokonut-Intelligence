@@ -10,6 +10,22 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Add a strict, location/study/page-bound contract for the Delphi
+  participant-invite inventory. Private invite tokens and participant identity
+  remain outside the projection; continuation stops at the existing offset
+  ceiling.
+- [x] Validate `mrv_claim.sensor_device_id` and `sensor_alert_id` through the
+  referenced device's location in the optional Directus tenant hook. The
+  polymorphic source-record array remains unresolved because it has no table
+  discriminator; no broader Directus parity is claimed.
+- [x] Convert all four State-of-Kokonut funding/actor queries from conditional
+  SQL fragments to static named-bind predicates. Explicit selected-location
+  calls remain location-bound; `None` preserves the deliberate network rollup.
+  The helper inventory now resolves 169/169 query sites with zero unresolved
+  SQL sources.
+- [x] Add strict location, ordering, cursor, count, and projection contracts
+  for threatcasting backcast-plan list/detail reads while retaining their
+  advisory-only semantics.
 - [x] Repair the Kernel release-input lock after the OIDC Dockerfile added its
   shared HTTP client requirement. The hash gate now covers the updated
   `Dockerfile.kernel` plus `requirements/oidc.txt` and

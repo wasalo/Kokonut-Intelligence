@@ -26,8 +26,8 @@ function makeReferenceDatabase(referenceLocationId: string | null) {
         const scopedLocation = conditions
           .map(([condition]) => (
             condition !== null && typeof condition === 'object'
-              ? (condition as Record<string, unknown>)['location_id'] ??
-                (condition as Record<string, unknown>)['farm_ref.location_id']
+              ? Object.entries(condition as Record<string, unknown>)
+                .find(([field]) => field === 'location_id' || field.endsWith('.location_id'))?.[1]
               : undefined
           ))
           .find((value) => value !== undefined);
@@ -233,6 +233,39 @@ describe('tenant reference validation', () => {
       'maintenance_event',
       maintenancePayload,
     )).rejects.toThrow('infrastructure_asset_id is unavailable for this location');
+  });
+
+  it.each([
+    {
+      field: 'sensor_device_id',
+      table: 'sensor_device',
+      joins: [],
+      where: { id: plotId, location_id: locationId },
+    },
+    {
+      field: 'sensor_alert_id',
+      table: 'sensor_alert as alert_ref',
+      joins: [['sensor_device as device_ref', 'alert_ref.sensor_device_id', 'device_ref.id']],
+      where: { 'alert_ref.id': plotId, 'device_ref.location_id': locationId },
+    },
+  ])('validates $field against the MRV claim location', async ({ field, table, joins, where }) => {
+    const reference = makeReferenceDatabase(locationId);
+    const payload = { location_id: locationId, [field]: plotId };
+
+    await expect(validateTenantReferences(
+      reference.database,
+      'mrv_claim',
+      payload,
+    )).resolves.toBe(payload);
+    expect(reference.database).toHaveBeenCalledWith(table);
+    expect(reference.joins).toEqual(joins);
+    expect(reference.conditions).toEqual([[where]]);
+
+    await expect(validateTenantReferences(
+      makeReferenceDatabase(otherLocationId).database,
+      'mrv_claim',
+      payload,
+    )).rejects.toThrow(`${field} is unavailable for this location`);
   });
 
   it('rejects cross-location references on update when the payload omits location_id', async () => {

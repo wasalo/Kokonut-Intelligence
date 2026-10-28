@@ -417,8 +417,22 @@ def test_reachable_helper_inventory_resolves_public_view_wrapper_identifiers():
                 "generate_algorithmic_redistribution",
                 "generate_participatory_signal",
             }
-        location_query = queries[0]
-        network_query = queries[1]
+        location_query = next(
+            site
+            for site in queries
+            if all(
+                item["placeholder_count"] == item["supplied_count"] == 1
+                for item in site["positional_bind_arity"]["variants"]
+            )
+        )
+        network_query = next(
+            site
+            for site in queries
+            if all(
+                item["placeholder_count"] == item["supplied_count"] == 0
+                for item in site["positional_bind_arity"]["variants"]
+            )
+        )
         assert all(
             item["placeholder_count"] == item["supplied_count"] == 1
             for item in location_query["positional_bind_arity"]["variants"]

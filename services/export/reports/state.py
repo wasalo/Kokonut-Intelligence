@@ -162,16 +162,25 @@ def _state_of_kokonut_actors(conn, period_start, period_end, *, location_ids=Non
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     period_filter = """
-        AND (%s::date IS NULL OR fr.period_start IS NULL OR fr.period_start >= %s::date)
-        AND (%s::date IS NULL OR fr.period_end IS NULL OR fr.period_end <= %s::date)
+        AND (%(period_start)s::date IS NULL OR fr.period_start IS NULL OR fr.period_start >= %(period_start)s::date)
+        AND (%(period_end)s::date IS NULL OR fr.period_end IS NULL OR fr.period_end <= %(period_end)s::date)
     """
-    location_filter = " AND fr.location_id = ANY(%s::uuid[])" if location_ids is not None else ""
+    # Keep the report SQL statically auditable. A NULL location array is the
+    # explicit network-rollup mode; selected-location calls always bind their
+    # array to the same predicate.
+    location_filter = """
+        AND (
+            %(location_ids)s::uuid[] IS NULL
+            OR fr.location_id = ANY(%(location_ids)s::uuid[])
+        )
+    """
 
     def query_params():
-        params = [period_start, period_start, period_end, period_end]
-        if location_ids is not None:
-            params.append(list(location_ids))
-        return params
+        return {
+            "period_start": period_start,
+            "period_end": period_end,
+            "location_ids": list(location_ids) if location_ids is not None else None,
+        }
 
     try:
         cur.execute(
@@ -181,7 +190,9 @@ def _state_of_kokonut_actors(conn, period_start, period_end, *, location_ids=Non
                    COALESCE(SUM(fr.raised_amount), 0) AS total_raised,
                    fr.currency
             FROM funding_round fr
-            WHERE 1=1 {period_filter} {location_filter}
+            WHERE 1=1
+            {period_filter}
+            {location_filter}
             GROUP BY fr.actor_type, fr.actor_name, fr.currency
             ORDER BY fr.actor_type
             """,
@@ -194,7 +205,9 @@ def _state_of_kokonut_actors(conn, period_start, period_end, *, location_ids=Non
             SELECT fr.source_type, fr.currency,
                    COALESCE(SUM(fr.raised_amount), 0) AS total_raised
             FROM funding_round fr
-            WHERE 1=1 {period_filter} {location_filter}
+            WHERE 1=1
+            {period_filter}
+            {location_filter}
             GROUP BY fr.source_type, fr.currency
             ORDER BY total_raised DESC, fr.source_type, fr.currency
             """,
@@ -208,7 +221,9 @@ def _state_of_kokonut_actors(conn, period_start, period_end, *, location_ids=Non
                    COUNT(*) AS count, COALESCE(SUM(pf.amount), 0) AS amount
             FROM project_funding pf
             JOIN funding_round fr ON fr.id = pf.funding_round_id
-            WHERE 1=1 {period_filter} {location_filter}
+            WHERE 1=1
+            {period_filter}
+            {location_filter}
             GROUP BY pf.actor_type, pf.decision_status, pf.token
             ORDER BY pf.actor_type, pf.decision_status, pf.token
             """,
@@ -222,7 +237,9 @@ def _state_of_kokonut_actors(conn, period_start, period_end, *, location_ids=Non
                    fr.raised_amount, fr.currency, fr.source_type, fr.period_start, fr.period_end,
                    fr.location_id
             FROM funding_round fr
-            WHERE 1=1 {period_filter} {location_filter}
+            WHERE 1=1
+            {period_filter}
+            {location_filter}
             ORDER BY fr.period_start, fr.actor_type
             """,
             query_params(),

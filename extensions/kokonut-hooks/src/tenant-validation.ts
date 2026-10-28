@@ -50,6 +50,16 @@ const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
   infrastructure_asset_id: (database, referenceId, locationId) => database('infrastructure_asset')
     .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
+  sensor_device_id: (database, referenceId, locationId) => database('sensor_device')
+    .where({ id: referenceId, location_id: locationId })
+    .first('location_id'),
+  sensor_alert_id: (database, referenceId, locationId) => database('sensor_alert as alert_ref')
+    .join('sensor_device as device_ref', 'alert_ref.sensor_device_id', 'device_ref.id')
+    .where({
+      'alert_ref.id': referenceId,
+      'device_ref.location_id': locationId,
+    })
+    .first('device_ref.location_id as location_id'),
 };
 
 const InvalidTenantPayloadError = createError<{ message: string }>(

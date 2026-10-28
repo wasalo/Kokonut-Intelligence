@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,411 checklist items complete and 25
-open (1,436 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,426 checklist items complete and 25
+open (1,451 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5308,3 +5308,39 @@ has 129 checked and 16 open entries. The capability matrix records 51 strict
 private Gateway response endpoints across 67 rows. Classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP acceptance is
 unchanged.
+
+
+### Completed parallel continuation — Delphi invites, threatcasting, MRV references, and report query staticification — 28 October 2026
+
+- [x] Add strict OpenAPI/runtime contracts for the location-scoped Delphi
+  participant-invite list. Bind study and paging metadata to the request,
+  validate ordered identifiers and aware timestamps, exclude private invite
+  tokens, and stop continuation at the existing offset ceiling.
+- [x] Extend the optional Directus tenant-reference hook to validate the
+  location of MRV sensor-device and sensor-alert references through their
+  owning device. Polymorphic `source_record_ids` remain unresolved because
+  the payload has no table discriminator; no ACL/role changes were made.
+- [x] Replace four conditional State-of-Kokonut funding query fragments with
+  static named-bind predicates. Selected locations remain filtered, and the
+  explicit `None` mode retains the network-level aggregate. The report helper
+  inventory now resolves all 169 reachable query sites; unresolved sources
+  decrease from four to zero.
+- [x] Add strict threatcasting backcast list/detail response contracts for
+  request-location and plan binding, nested projection allowlists, ordered
+  keyset pages, cursor consistency, and advisory-only semantics.
+
+The focused Python selection passes 279 tests. Directus tenant validation
+passes 16 tests; the extension build and TypeScript check pass. Ruff,
+compilation, and `git diff --check` pass. Report query/helper inventories are
+current; the runtime SQL inventory is current on Python 3.11 and 3.12 with the
+same 37 unresolved candidates. Capability validation passes at 67 rows (24
+baseline-retained, 7 deployed, 36 prepared); strict private Gateway response
+contracts increase from 51 to 54. No migration, database, provider, candidate,
+or legacy service was used. These are source/API and hook checks only; live
+Directus permissions, live OIDC/browser behavior, populated-data parity, and
+broader tenant isolation remain open. Evidence:
+[parallel batch](builds/2026-10-28-recovery/kernel-parallel-contract-and-scope-batch.json).
+
+The checklist is now 1,426 complete / 25 open (1,451 total); the TODO ledger
+has 133 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.

@@ -49,8 +49,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,422
-complete / 25 open (1,447 total). Fifty-one private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,426
+complete / 25 open (1,451 total). Fifty-four private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. Comprehensive
 Status keeps its section bodies JSON-compatible pending an audit of the
@@ -75,8 +75,18 @@ stakeholder identity/trust pages, and the waste incident review queue. Cursor
 ordering, blockers, pagination ceilings, and source-backed nested projections
 are checked at runtime; the consultation JSONB timestamp parser requires an
 explicit UTC offset. The combined focused selection passes 198 tests and the
-SQL inventory remains current on Python 3.11/3.12. No grants, classifications,
-or MAN-CAP acceptance changed ([evidence](builds/2026-10-28-recovery/gateway-delphi-stakeholder-incident-response-contracts.json)).
+SQL inventory remains current on Python 3.11/3.12. This parallel batch adds
+strict private list/detail response contracts for Delphi participant invites
+and threatcasting backcast plans, closes the two typed MRV sensor references in
+the optional Directus tenant hook, and makes four State-of-Kokonut funding
+queries statically auditable with named scope binds. The focused Python
+selection passes 279 tests; the Directus tenant-hook suite passes 16 tests and
+its extension build/typecheck succeeds. Report inventories are current, and
+the runtime SQL inventory is current on Python 3.11/3.12 with the same 37
+unresolved candidates. No database, provider, candidate, or legacy service was
+used. The matrix now records 54 strict private Gateway response endpoints
+across 67 rows; classifications and MAN-CAP acceptance remain unchanged
+([evidence](builds/2026-10-28-recovery/kernel-parallel-contract-and-scope-batch.json)).
 
 The latest response-contract continuation adds strict contracts for AI-summary
 review-list, business-canvas version history, sequential-evidence summary and

@@ -7,8 +7,8 @@
     "reports_with_resolved_helper_query_sites": 32,
     "reachable_helper_query_sites_per_report": 169,
     "helper_query_sites_with_location_scope_signal": 82,
-    "helper_query_sites_with_static_sql_source": 165,
-    "helper_query_sites_with_unresolved_sql_source": 4,
+    "helper_query_sites_with_static_sql_source": 169,
+    "helper_query_sites_with_unresolved_sql_source": 0,
     "helper_query_sites_with_static_positional_arity": 144,
     "helper_query_sites_with_positional_arity_mismatch": 0,
     "helper_query_sites_with_static_named_bind_contract": 8,
@@ -3301,7 +3301,7 @@
         {
           "caller": "generate_capital_provider_utility",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 583,
+          "line": 600,
           "depth": 1
         },
         {
@@ -3669,37 +3669,37 @@
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_state_of_kokonut_locations",
-          "line": 404,
+          "line": 421,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_run_composite_section",
-          "line": 413,
+          "line": 430,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_composite_section_savepoint",
-          "line": 417,
+          "line": 434,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/strategy.py:generate_capital_accounting",
-          "line": 418,
+          "line": 435,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 423,
+          "line": 440,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_harvest_quantity_overview",
-          "line": 440,
+          "line": 457,
           "depth": 1
         },
         {
@@ -8688,19 +8688,19 @@
         {
           "caller": "generate_state_of_kokonut",
           "callee": "services/export/reports/state.py:_state_of_kokonut_locations",
-          "line": 282,
+          "line": 299,
           "depth": 1
         },
         {
           "caller": "generate_state_of_kokonut",
           "callee": "services/export/reports/state.py:_state_of_kokonut_actors",
-          "line": 283,
+          "line": 300,
           "depth": 1
         },
         {
           "caller": "generate_state_of_kokonut",
           "callee": "services/export/reports/state.py:_harvest_quantity_overview",
-          "line": 300,
+          "line": 317,
           "depth": 1
         },
         {
@@ -8712,25 +8712,25 @@
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 254,
+          "line": 271,
           "depth": 2
         },
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 255,
+          "line": 272,
           "depth": 2
         },
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 256,
+          "line": 273,
           "depth": 2
         },
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 257,
+          "line": 274,
           "depth": 2
         },
         {
@@ -8901,9 +8901,11 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_actors",
-          "line": 177,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 186,
+          "relations": [
+            "funding_round"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
@@ -8919,9 +8921,11 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_actors",
-          "line": 192,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 203,
+          "relations": [
+            "funding_round"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
@@ -8937,9 +8941,12 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_actors",
-          "line": 205,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 218,
+          "relations": [
+            "funding_round",
+            "project_funding"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
@@ -8955,9 +8962,11 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_actors",
-          "line": 219,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 234,
+          "relations": [
+            "funding_round"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
@@ -8973,8 +8982,8 @@
       ],
       "helper_query_site_count": 10,
       "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 6,
-      "helper_query_sites_with_unresolved_sql_source": 4,
+      "helper_query_sites_with_static_sql_source": 10,
+      "helper_query_sites_with_unresolved_sql_source": 0,
       "helper_query_sites_with_static_positional_arity": 6,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
@@ -8998,13 +9007,13 @@
         {
           "caller": "generate_state_of_kokonut_graphs",
           "callee": "services/export/kokonut_graphs.py:build_all",
-          "line": 342,
+          "line": 359,
           "depth": 1
         },
         {
           "caller": "generate_state_of_kokonut_graphs",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 362,
+          "line": 379,
           "depth": 1
         },
         {
@@ -9348,19 +9357,19 @@
         {
           "caller": "generate_strategic_reserve",
           "callee": "services/strategic_reserve/health.py:reserve_health",
-          "line": 504,
+          "line": 521,
           "depth": 1
         },
         {
           "caller": "generate_strategic_reserve",
           "callee": "services/strategic_reserve/health.py:seed_vault_health",
-          "line": 511,
+          "line": 528,
           "depth": 1
         },
         {
           "caller": "generate_strategic_reserve",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 513,
+          "line": 530,
           "depth": 1
         },
         {

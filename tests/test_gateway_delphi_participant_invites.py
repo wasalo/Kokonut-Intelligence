@@ -143,6 +143,31 @@ def test_list_invites_uses_signed_location_scope_and_safe_bounded_projection():
     assert connection.committed and connection.closed
 
 
+def test_list_invites_closes_unaddressable_continuation_at_offset_ceiling():
+    projection = {
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "invites": [],
+        "has_more": True,
+        "limit": 50,
+        "offset": 10000,
+    }
+    connection = _Connection(row=(projection,))
+    with patch.object(invites, "set_operator_tenant_context", _context):
+        result = invites.list_location_delphi_participant_invites(
+            OPERATOR_ID,
+            LOCATION_ID,
+            STUDY_ID,
+            limit=50,
+            offset=10000,
+            connection_factory=lambda: connection,
+        )
+
+    assert result["has_more"] is False
+    assert result["offset"] == 10000
+    assert connection.committed and connection.closed
+
+
 @pytest.mark.parametrize("field,value", [("limit", "51"), ("limit", True), ("offset", "10001"), ("offset", "-1")])
 def test_invalid_invite_page_fails_before_database(field, value):
     arguments = {field: value}
@@ -308,7 +333,14 @@ def test_list_route_forwards_location_study_and_page_without_caching():
 
 def test_list_route_publishes_service_pagination_bounds_in_openapi():
     async def run_in_threadpool(*_args, **_kwargs):
-        return {"location_id": LOCATION_ID, "study_id": STUDY_ID, "invites": []}
+        return {
+            "location_id": LOCATION_ID,
+            "study_id": STUDY_ID,
+            "invites": [],
+            "has_more": False,
+            "limit": 50,
+            "offset": 0,
+        }
 
     app = _app(object(), run_in_threadpool)
     operation = app.openapi()["paths"][
@@ -330,6 +362,101 @@ def test_list_route_publishes_service_pagination_bounds_in_openapi():
         "default": 0,
         "title": "Offset",
     }
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("ParticipantInviteListResponse")
+
+
+def test_list_route_validates_jsonb_wire_values_and_request_binding():
+    expected = {
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "invites": [{
+            "invite_id": INVITE_ID,
+            "study_id": STUDY_ID,
+            "notice_version": "v2",
+            "status": "pending",
+            "created_at": "2026-10-25T12:00:00+00:00",
+            "expires_at": "2026-10-26T12:00:00+00:00",
+        }],
+        "has_more": False,
+        "limit": 50,
+        "offset": 0,
+    }
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return expected
+
+    response = TestClient(_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["location_id"] == LOCATION_ID
+    assert payload["study_id"] == STUDY_ID
+    assert payload["invites"][0]["invite_id"] == INVITE_ID
+    assert payload["invites"][0]["created_at"].startswith("2026-10-25T12:00:00")
+    assert payload["invites"][0]["expires_at"].startswith("2026-10-26T12:00:00")
+    assert payload["has_more"] is False and payload["limit"] == 50 and payload["offset"] == 0
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+@pytest.mark.parametrize(
+    "projection",
+    [
+        {"location_id": str(uuid4())},
+        {"study_id": str(uuid4())},
+        {"invites": [{
+            "invite_id": INVITE_ID,
+            "study_id": STUDY_ID,
+            "notice_version": "v2",
+            "status": "pending",
+            "created_at": "2026-10-25T12:00:00+00:00",
+            "expires_at": "2026-10-26T12:00:00+00:00",
+            "invite_token": "must-not-leak",
+        }]},
+        {"invites": [{
+            "invite_id": INVITE_ID,
+            "study_id": str(uuid4()),
+            "notice_version": "v2",
+            "status": "pending",
+            "created_at": "2026-10-25T12:00:00+00:00",
+            "expires_at": "2026-10-26T12:00:00+00:00",
+        }]},
+        {"invites": [{
+            "invite_id": INVITE_ID,
+            "study_id": STUDY_ID,
+            "notice_version": "v2",
+            "status": "pending",
+            "created_at": "2026-10-25T12:00:00",
+            "expires_at": "2026-10-26T12:00:00+00:00",
+        }]},
+        {"has_more": True, "invites": []},
+    ],
+)
+def test_list_route_rejects_mismatched_or_unbounded_projection(projection):
+    valid = {
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "invites": [],
+        "has_more": False,
+        "limit": 50,
+        "offset": 0,
+    }
+    valid.update(projection)
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return valid
+
+    response = TestClient(_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites"
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi invite service unavailable"}
+    assert "must-not-leak" not in response.text
+    assert response.headers["cache-control"] == "no-store"
 
 
 @pytest.mark.parametrize(

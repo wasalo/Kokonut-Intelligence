@@ -256,8 +256,9 @@ def test_selected_location_actor_queries_bind_only_selected_funding_rows():
     assert len(cursor.execute.call_args_list) == 4
     for call in cursor.execute.call_args_list:
         query, params = call.args
-        assert "fr.location_id = ANY(%s::uuid[])" in query
-        assert params[-1] == [location_id]
+        assert "fr.location_id = ANY(%(location_ids)s::uuid[])" in query
+        assert "%(location_ids)s::uuid[] IS NULL" in query
+        assert params["location_ids"] == [location_id]
 
 
 def test_network_actor_queries_remain_unfiltered():
@@ -266,7 +267,7 @@ def test_network_actor_queries_remain_unfiltered():
     state_module._state_of_kokonut_actors(connection, None, None, location_ids=None)
 
     assert len(cursor.execute.call_args_list) == 4
-    assert all(
-        "fr.location_id = ANY(%s::uuid[])" not in call.args[0]
-        for call in cursor.execute.call_args_list
-    )
+    for call in cursor.execute.call_args_list:
+        query, params = call.args
+        assert "fr.location_id = ANY(%(location_ids)s::uuid[])" in query
+        assert params["location_ids"] is None

@@ -1,5 +1,94 @@
 """OIDC operator routes for issuing and revoking pseudonymous Delphi invites."""
 
+import re
+from datetime import datetime
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    model_validator,
+)
+
+
+def _strict_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if not isinstance(value, str):
+        raise ValueError("UUID values must be strings")
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise ValueError("UUID value is invalid") from exc
+
+
+def _strict_aware_datetime(value):
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("datetime value is invalid") from exc
+    else:
+        raise ValueError("datetime values must be ISO strings or datetime objects")
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("datetime values must include a UTC offset")
+    return parsed
+
+
+_StrictUuid = Annotated[UUID, BeforeValidator(_strict_uuid)]
+_StrictAwareDatetime = Annotated[AwareDatetime, BeforeValidator(_strict_aware_datetime)]
+_NOTICE_VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,39}$")
+
+
+class _ParticipantInviteResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+
+class _ParticipantInviteListItem(_ParticipantInviteResponseModel):
+    invite_id: _StrictUuid
+    study_id: _StrictUuid
+    notice_version: str = Field(
+        min_length=1, max_length=40, pattern=_NOTICE_VERSION_PATTERN.pattern
+    )
+    status: Literal["pending", "accepted", "revoked", "expired"]
+    created_at: _StrictAwareDatetime
+    expires_at: _StrictAwareDatetime
+
+    @model_validator(mode="after")
+    def validate_expiry(self):
+        if self.expires_at <= self.created_at:
+            raise ValueError("Invite expiry must follow creation")
+        return self
+
+
+class ParticipantInviteListResponse(_ParticipantInviteResponseModel):
+    location_id: _StrictUuid
+    study_id: _StrictUuid
+    invites: list[_ParticipantInviteListItem] = Field(max_length=50)
+    has_more: bool
+    limit: int = Field(ge=1, le=50)
+    offset: int = Field(ge=0, le=10000)
+
+    @model_validator(mode="after")
+    def validate_projection(self):
+        if any(invite.study_id != self.study_id for invite in self.invites):
+            raise ValueError("Invite belongs to a different study")
+        keys = [(invite.created_at, invite.invite_id) for invite in self.invites]
+        if any(left <= right for left, right in zip(keys, keys[1:])):
+            raise ValueError("Invites are not in canonical descending order")
+        if self.has_more and (
+            len(self.invites) != self.limit or self.offset + self.limit > 10000
+        ):
+            raise ValueError("Invite continuation exceeds its page bounds")
+        return self
+
 
 def register_delphi_participant_invite_routes(router, provider, run_in_threadpool, psycopg2):
     import json
@@ -81,7 +170,8 @@ def register_delphi_participant_invite_routes(router, provider, run_in_threadpoo
         return payload, None
 
     @router.get(
-        "/operator/api/delphi/{location_id}/studies/{study_id}/invites"
+        "/operator/api/delphi/{location_id}/studies/{study_id}/invites",
+        response_model=ParticipantInviteListResponse,
     )
     async def list_invites(
         request: Request,
@@ -113,7 +203,29 @@ def register_delphi_participant_invite_routes(router, provider, run_in_threadpoo
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = ParticipantInviteListResponse.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.study_id != UUID(study_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Invite page does not match request scope")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_participant_invite").warning(
+                "Delphi invite inventory response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Delphi invite service unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(page.model_dump(mode="json")), headers=headers
+        )
 
     @router.post("/operator/api/delphi/{location_id}/studies/{study_id}/invites")
     async def issue_invite(request: Request, location_id: str, study_id: str):
