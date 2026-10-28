@@ -166,10 +166,11 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000005' AND collection = 'stakeholder_feedback' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('stakeholder_feedback', 'read', '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000005');
+        ('stakeholder_feedback', 'read', '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}', '{}', 'id,location_id,farm_id,feedback_type,stakeholder_group,feedback_date,sentiment,themes,public_summary,evidence_maturity', 'b1000000-0000-0000-0000-000000000005');
 END IF;
 UPDATE directus_permissions
-SET permissions = '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}'
+SET permissions = '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}',
+    fields = 'id,location_id,farm_id,feedback_type,stakeholder_group,feedback_date,sentiment,themes,public_summary,evidence_maturity'
 WHERE policy = 'b1000000-0000-0000-0000-000000000005'
   AND collection = 'stakeholder_feedback'
   AND action = 'read';

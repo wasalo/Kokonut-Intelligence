@@ -106,9 +106,9 @@ _CASES = [
     *((commons_wellbeing.generate_foundational_wellbeing, ("location-1",), ("execute", index)) for index in range(1, 3)),
     (commons_wellbeing.generate_foundational_wellbeing, ("location-1",), ("fetchone", 1)),
     (commons_wellbeing.generate_foundational_wellbeing, ("location-1",), ("fetchall", 1)),
-    *((commons_stewardship.generate_regenerative_outcomes, ("location-1",), ("execute", index)) for index in range(1, 3)),
-    (commons_stewardship.generate_regenerative_outcomes, ("location-1",), ("fetchone", 1)),
-    (commons_stewardship.generate_regenerative_outcomes, ("location-1",), ("fetchall", 1)),
+    *((commons_stewardship.generate_regenerative_outcomes, ("11111111-1111-4111-8111-111111111111",), ("execute", index)) for index in range(1, 3)),
+    (commons_stewardship.generate_regenerative_outcomes, ("11111111-1111-4111-8111-111111111111",), ("fetchone", 1)),
+    (commons_stewardship.generate_regenerative_outcomes, ("11111111-1111-4111-8111-111111111111",), ("fetchall", 1)),
     (commons_stewardship.generate_community_governance, ("location-1",), ("execute", 1)),
     (commons_stewardship.generate_community_governance, ("location-1",), ("fetchall", 1)),
     (commons_stewardship.generate_replication_readiness, ("location-1",), ("execute", 1)),
@@ -149,9 +149,9 @@ _CASES = [
     *((core.generate_climate_impact, ("11111111-1111-4111-8111-111111111111",), ("execute", index)) for index in range(1, 5)),
     *((core.generate_climate_impact, ("11111111-1111-4111-8111-111111111111",), ("fetchone", index)) for index in range(1, 3)),
     *((core.generate_climate_impact, ("11111111-1111-4111-8111-111111111111",), ("fetchall", index)) for index in range(1, 3)),
-    *((core.generate_farm_summary, ("location-1",), ("execute", index)) for index in range(1, 10)),
-    *((core.generate_farm_summary, ("location-1",), ("fetchall", index)) for index in range(1, 6)),
-    *((core.generate_farm_summary, ("location-1",), ("fetchone", index)) for index in range(1, 5)),
+    *((core.generate_farm_summary, ("11111111-1111-4111-8111-111111111111",), ("execute", index)) for index in range(1, 10)),
+    *((core.generate_farm_summary, ("11111111-1111-4111-8111-111111111111",), ("fetchall", index)) for index in range(1, 6)),
+    *((core.generate_farm_summary, ("11111111-1111-4111-8111-111111111111",), ("fetchone", index)) for index in range(1, 5)),
     (state._state_of_kokonut_locations, (None, None, None), ("execute", 1)),
     (state._state_of_kokonut_locations, (None, None, None), ("fetchall", 1)),
     *((state._state_of_kokonut_actors, (None, None), ("execute", index)) for index in range(1, 5)),
@@ -214,8 +214,8 @@ def test_farm_summary_closes_cursor_when_location_is_missing():
     cursor = _FailingCursor(None, fetchone_results=[None])
     conn = _Connection(cursor)
 
-    with pytest.raises(ValueError, match="Location location-1 not found"):
-        core.generate_farm_summary(conn, "location-1")
+    with pytest.raises(ValueError, match="Location 11111111-1111-4111-8111-111111111111 not found"):
+        core.generate_farm_summary(conn, "11111111-1111-4111-8111-111111111111")
 
     assert cursor.closed
 

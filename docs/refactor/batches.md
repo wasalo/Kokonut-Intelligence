@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,455 checklist items complete and 25
-open (1,480 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,461 checklist items complete and 25
+open (1,486 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5597,4 +5597,56 @@ provider, candidate, legacy service, or live network was used. Evidence:
 
 The checklist is now 1,455 complete / 25 open (1,480 total); the TODO ledger
 has 162 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Completed parallel continuation — Directus privacy, report scope, and private Gateway contracts — 28 October 2026
+
+- [x] Restrict the curated Analyst `stakeholder_feedback` read permission to
+  the public-safe identity/scope, type/group/date, sentiment, themes, summary,
+  and evidence-maturity fields. Preserve its existing status, public, consent,
+  and party-presence row filters; this is a seed-source change, not proof of
+  effective permissions in a running Directus instance.
+- [x] Require an explicit location UUID in direct `farm_summary` generation
+  before cursor creation. Its SQL projections, existing output, and measures
+  remain unchanged.
+- [x] Publish a strict, location-bound OpenAPI response contract for the
+  private mobile-collection review queue. Validate the exact SQL projection,
+  review state, eligibility reason, and ineligible queue membership while
+  preserving tenant denial and no-store behavior.
+- [x] Require a valid location UUID for direct `regenerative_outcomes` report
+  calls before opening a cursor; retain the existing report query and output.
+- [x] Publish a strict, request-location-bound OpenAPI response contract for
+  the private farm-activity intake queue. Reject undeclared fields and invalid
+  source form/version, activity projection, or eligibility state while
+  preserving authorization and no-store behavior.
+- [x] Audit remaining Analyst/Auditor wildcard read projections. Keep the
+  Auditor's all-status forensic permission unchanged because the repository
+  does not define a safe narrower private-field contract; broader row/field
+  parity remains open.
+
+The source audit found that current `farm_summary` output contains 33 location,
+28 farm, 24 plot, and 30 crop-cycle keys. No keys were removed or narrowed:
+the broad stakeholder audience still needs a reviewed field allowlist, and
+financial/lifecycle measures need consistent semantics before a stricter
+Comprehensive Status contract is safe. The Directus permission narrows fields
+only; it does not establish runtime role, row, relationship, or tenant parity.
+Other Analyst operational projections still expose evidence or source fields,
+and workflow-history/approval rows still lack tenant lineage. The new report
+scope guard does not close the broader reporting semantics or tenant-isolation
+gates.
+
+The integrated focused Python selection passes 400 tests. The two added queue
+contracts also passed their initial focused runs (28 each), and the
+regenerative-outcomes report selection passed 18. Ruff, Python compilation,
+the report source/query inventories, Directus permission-source inventory,
+capability-matrix validation, and `git diff --check` pass. The capability
+matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and now
+records 68 strict private Gateway response endpoints. No migration, database,
+provider, Directus runtime, candidate, legacy service, or live network was
+used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-directus-mobile-report-scope-contracts.json).
+
+The checklist is now 1,461 complete / 25 open (1,486 total); the TODO ledger
+has 168 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.

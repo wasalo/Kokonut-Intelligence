@@ -616,7 +616,18 @@ def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatc
     provider = _FarmActivityProvider(allowed_scopes={("farm_activity", "read")})
     monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
     monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
-    queue_reader = MagicMock(return_value=[{"id": "collection-id", "activity_type": "weeding"}])
+    queue_record = {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "location_id": LOCATION_ID,
+        "form_id": "farm_activity_v1",
+        "form_version": "1.2.0",
+        "collected_at": "2026-10-28T10:00:00+00:00",
+        "synced_at": "2026-10-28T11:00:00+00:00",
+        "activity_type": "weeding",
+        "activity_date": "2026-10-27",
+        "eligible_for_use": True,
+    }
+    queue_reader = MagicMock(return_value=[queue_record])
     monkeypatch.setattr(
         "services.gateway.farm_activity_workflow.list_farm_activity_intake",
         queue_reader,
@@ -633,7 +644,7 @@ def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatc
     assert response.status_code == 200, response.text
     assert response.headers["cache-control"] == "no-store"
     assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
-    assert response.json()["data"] == [{"id": "collection-id", "activity_type": "weeding"}]
+    assert response.json()["data"] == [queue_record]
     queue_reader.assert_called_once_with(OPERATOR_ID, LOCATION_ID, 9)
     assert provider.scopes_seen == [(OPERATOR_ID, "farm_activity", "read", LOCATION_ID)]
 
@@ -1211,7 +1222,25 @@ def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkey
         "services.gateway.audit.GatewayAudit.log",
         lambda _self, **record: audit_records.append(record),
     )
-    queue_reader = MagicMock(return_value=[{"id": "collection-id", "payload": None}])
+    queue_record = {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "location_id": LOCATION_ID,
+        "form_id": "field_activity",
+        "form_version": "2.1.0",
+        "collection_type": "farm_activity",
+        "collected_at": "2026-10-28T10:00:00+00:00",
+        "synced_at": "2026-10-28T11:00:00+00:00",
+        "form_validation_status": "active",
+        "consent_validation_status": "granted",
+        "form_review_required": True,
+        "form_revision_id": "33333333-3333-4333-8333-333333333333",
+        "form_name": "Field Activity",
+        "form_revision_status": "active",
+        "eligible_for_use": False,
+        "eligibility_reason": "review_required",
+        "review_state": "pending_review",
+    }
+    queue_reader = MagicMock(return_value=[queue_record])
     monkeypatch.setattr(
         "services.gateway.operator_mobile_review.list_mobile_collections",
         queue_reader,
@@ -1234,7 +1263,7 @@ def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkey
     assert response.headers["access-control-allow-credentials"] == "true"
     assert response.headers["cache-control"] == "no-store"
     assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
-    assert response.json()["data"] == [{"id": "collection-id", "payload": None}]
+    assert response.json()["data"] == [queue_record]
     queue_reader.assert_called_once_with(OPERATOR_ID, LOCATION_ID, 7)
     assert provider.scopes_seen == [
         (OPERATOR_ID, "mobile_collection_review", "read", LOCATION_ID)

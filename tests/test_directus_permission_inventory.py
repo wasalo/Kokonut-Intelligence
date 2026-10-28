@@ -44,8 +44,8 @@ def test_inventory_counts_literal_wildcard_rules_and_keeps_limits_explicit() -> 
     inventory = build_inventory(root / "config/directus/permissions.sql", root)
 
     assert inventory["summary"]["literal_permission_rows"] == 175
-    assert inventory["summary"]["wildcard_field_rows"] == 123
-    assert inventory["summary"]["explicit_field_rows"] == 52
+    assert inventory["summary"]["wildcard_field_rows"] == 122
+    assert inventory["summary"]["explicit_field_rows"] == 53
     assert inventory["summary"]["declared_farm_activity_rules"] == 0
     assert inventory["summary"]["update_statements"] == 6
     assert inventory["summary"]["delete_statements"] == 1
@@ -54,6 +54,19 @@ def test_inventory_counts_literal_wildcard_rules_and_keeps_limits_explicit() -> 
     delete = next(item for item in inventory["source_mutations"] if item["operation"] == "delete")
     assert "collection = 'farm_activity'" in delete["statement"]
     assert "policy IN" in delete["statement"]
+
+    analyst_feedback = next(
+        rule
+        for rule in inventory["rules"]
+        if rule["policy"] == "Analyst Policy"
+        and rule["collection"] == "stakeholder_feedback"
+        and rule["action"] == "read"
+    )
+    assert analyst_feedback["field_access"] == "explicit"
+    assert analyst_feedback["fields"] == [
+        "id", "location_id", "farm_id", "feedback_type", "stakeholder_group",
+        "feedback_date", "sentiment", "themes", "public_summary", "evidence_maturity",
+    ]
 
     dashboard = next(
         rule

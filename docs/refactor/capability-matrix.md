@@ -49,8 +49,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,455
-complete / 25 open (1,480 total). Sixty-six private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,461
+complete / 25 open (1,486 total). Sixty-eight private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. The latest
 contracts cover farm-activity summaries, pollution-incident resolution,
@@ -64,9 +64,12 @@ JSON-compatible pending their own audits. In particular, `farm_summary` uses
 allowlist and measure semantics need review before tightening its contract.
 The environmental section now validates all four explicit source projections;
 its current lifecycle, ignored period, and narrative-field semantics remain
-unchanged pending review. Farm-activity detail, governance-role detail, and
-report-review queue responses also have strict contracts. Four single-location
-report generators now reject invalid IDs before database or analyzer access.
+unchanged pending review. Farm-activity detail, governance-role detail,
+report-review queue, Field Collector review queue, and farm-activity intake
+queue responses have strict contracts. Four single-location report generators
+now reject invalid IDs before database or analyzer access; direct `farm_summary`
+and `regenerative_outcomes` calls also reject invalid location scope before
+cursor creation.
 The runtime
 SQL inventory also requires explicit review for new unresolved DML/`WITH` sites;
 its existing unresolved candidates remain tracked debt and the gate does not

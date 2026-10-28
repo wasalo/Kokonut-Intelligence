@@ -20,7 +20,7 @@
         "action_result",
         "metadata"
       ],
-      "line": 602,
+      "line": 603,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -36,7 +36,7 @@
       "fields": [
         "*"
       ],
-      "line": 603,
+      "line": 604,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -55,7 +55,7 @@
         "metadata",
         "operator_wallet"
       ],
-      "line": 598,
+      "line": 599,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -71,7 +71,7 @@
       "fields": [
         "*"
       ],
-      "line": 597,
+      "line": 598,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -91,7 +91,7 @@
         "subject_type",
         "requested_by"
       ],
-      "line": 600,
+      "line": 601,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -107,7 +107,7 @@
       "fields": [
         "*"
       ],
-      "line": 599,
+      "line": 600,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -125,7 +125,7 @@
         "output",
         "error_message"
       ],
-      "line": 601,
+      "line": 602,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -148,7 +148,7 @@
         "model_version",
         "confidence"
       ],
-      "line": 604,
+      "line": 605,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -164,7 +164,7 @@
       "fields": [
         "*"
       ],
-      "line": 605,
+      "line": 606,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -180,7 +180,7 @@
       "fields": [
         "*"
       ],
-      "line": 609,
+      "line": 610,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -199,7 +199,7 @@
         "event_type",
         "location_id"
       ],
-      "line": 611,
+      "line": 612,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -215,7 +215,7 @@
       "fields": [
         "*"
       ],
-      "line": 610,
+      "line": 611,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -231,7 +231,7 @@
       "fields": [
         "*"
       ],
-      "line": 613,
+      "line": 614,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -262,7 +262,7 @@
         "crop_cycle_id",
         "location_id"
       ],
-      "line": 591,
+      "line": 592,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -278,7 +278,7 @@
       "fields": [
         "*"
       ],
-      "line": 590,
+      "line": 591,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -302,7 +302,7 @@
         "crop_cycle_id",
         "location_id"
       ],
-      "line": 596,
+      "line": 597,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -318,7 +318,7 @@
       "fields": [
         "*"
       ],
-      "line": 595,
+      "line": 596,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -334,7 +334,7 @@
       "fields": [
         "*"
       ],
-      "line": 608,
+      "line": 609,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -350,7 +350,7 @@
       "fields": [
         "*"
       ],
-      "line": 607,
+      "line": 608,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -379,7 +379,7 @@
         "crop_cycle_id",
         "location_id"
       ],
-      "line": 589,
+      "line": 590,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -395,7 +395,7 @@
       "fields": [
         "*"
       ],
-      "line": 588,
+      "line": 589,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -411,7 +411,7 @@
       "fields": [
         "*"
       ],
-      "line": 606,
+      "line": 607,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -433,7 +433,7 @@
         "location_id",
         "plot_id"
       ],
-      "line": 593,
+      "line": 594,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -449,7 +449,7 @@
       "fields": [
         "*"
       ],
-      "line": 592,
+      "line": 593,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -466,7 +466,7 @@
         "status",
         "review_notes"
       ],
-      "line": 594,
+      "line": 595,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -482,7 +482,7 @@
       "fields": [
         "*"
       ],
-      "line": 612,
+      "line": 613,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -498,7 +498,7 @@
       "fields": [
         "*"
       ],
-      "line": 549,
+      "line": 550,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -514,7 +514,7 @@
       "fields": [
         "*"
       ],
-      "line": 550,
+      "line": 551,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -530,7 +530,7 @@
       "fields": [
         "*"
       ],
-      "line": 551,
+      "line": 552,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -546,7 +546,7 @@
       "fields": [
         "*"
       ],
-      "line": 548,
+      "line": 549,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -562,7 +562,7 @@
       "fields": [
         "*"
       ],
-      "line": 542,
+      "line": 543,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -578,7 +578,7 @@
       "fields": [
         "*"
       ],
-      "line": 546,
+      "line": 547,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -594,7 +594,7 @@
       "fields": [
         "*"
       ],
-      "line": 554,
+      "line": 555,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -610,7 +610,7 @@
       "fields": [
         "*"
       ],
-      "line": 553,
+      "line": 554,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -626,7 +626,7 @@
       "fields": [
         "*"
       ],
-      "line": 541,
+      "line": 542,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -642,7 +642,7 @@
       "fields": [
         "*"
       ],
-      "line": 545,
+      "line": 546,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -658,7 +658,7 @@
       "fields": [
         "*"
       ],
-      "line": 544,
+      "line": 545,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -674,7 +674,7 @@
       "fields": [
         "*"
       ],
-      "line": 552,
+      "line": 553,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -690,7 +690,7 @@
       "fields": [
         "*"
       ],
-      "line": 547,
+      "line": 548,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -706,7 +706,7 @@
       "fields": [
         "*"
       ],
-      "line": 543,
+      "line": 544,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -728,7 +728,7 @@
         "action_result",
         "metadata"
       ],
-      "line": 571,
+      "line": 572,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -744,7 +744,7 @@
       "fields": [
         "*"
       ],
-      "line": 572,
+      "line": 573,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -763,7 +763,7 @@
         "metadata",
         "operator_wallet"
       ],
-      "line": 567,
+      "line": 568,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -779,7 +779,7 @@
       "fields": [
         "*"
       ],
-      "line": 566,
+      "line": 567,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -799,7 +799,7 @@
         "subject_type",
         "requested_by"
       ],
-      "line": 569,
+      "line": 570,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -815,7 +815,7 @@
       "fields": [
         "*"
       ],
-      "line": 568,
+      "line": 569,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -833,7 +833,7 @@
         "output",
         "error_message"
       ],
-      "line": 570,
+      "line": 571,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -856,7 +856,7 @@
         "model_version",
         "confidence"
       ],
-      "line": 573,
+      "line": 574,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -872,7 +872,7 @@
       "fields": [
         "*"
       ],
-      "line": 574,
+      "line": 575,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -888,7 +888,7 @@
       "fields": [
         "*"
       ],
-      "line": 579,
+      "line": 580,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -912,7 +912,7 @@
         "crop_cycle_id",
         "location_id"
       ],
-      "line": 564,
+      "line": 565,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -928,7 +928,7 @@
       "fields": [
         "*"
       ],
-      "line": 565,
+      "line": 566,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -944,7 +944,7 @@
       "fields": [
         "*"
       ],
-      "line": 577,
+      "line": 578,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -960,7 +960,7 @@
       "fields": [
         "*"
       ],
-      "line": 576,
+      "line": 577,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -976,7 +976,7 @@
       "fields": [
         "*"
       ],
-      "line": 578,
+      "line": 579,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -992,7 +992,7 @@
       "fields": [
         "*"
       ],
-      "line": 575,
+      "line": 576,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -1014,7 +1014,7 @@
         "location_id",
         "plot_id"
       ],
-      "line": 562,
+      "line": 563,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -1030,7 +1030,7 @@
       "fields": [
         "*"
       ],
-      "line": 563,
+      "line": 564,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -1046,7 +1046,7 @@
       "fields": [
         "*"
       ],
-      "line": 580,
+      "line": 581,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -1062,7 +1062,7 @@
       "fields": [
         "*"
       ],
-      "line": 420,
+      "line": 421,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1078,7 +1078,7 @@
       "fields": [
         "*"
       ],
-      "line": 421,
+      "line": 422,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1094,7 +1094,7 @@
       "fields": [
         "*"
       ],
-      "line": 412,
+      "line": 413,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1110,7 +1110,7 @@
       "fields": [
         "*"
       ],
-      "line": 416,
+      "line": 417,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1126,7 +1126,7 @@
       "fields": [
         "*"
       ],
-      "line": 411,
+      "line": 412,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1142,7 +1142,7 @@
       "fields": [
         "*"
       ],
-      "line": 415,
+      "line": 416,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1158,7 +1158,7 @@
       "fields": [
         "*"
       ],
-      "line": 414,
+      "line": 415,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1174,7 +1174,7 @@
       "fields": [
         "*"
       ],
-      "line": 418,
+      "line": 419,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1190,7 +1190,7 @@
       "fields": [
         "*"
       ],
-      "line": 417,
+      "line": 418,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1206,7 +1206,7 @@
       "fields": [
         "*"
       ],
-      "line": 413,
+      "line": 414,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1218,9 +1218,18 @@
     {
       "action": "read",
       "collection": "stakeholder_feedback",
-      "field_access": "wildcard",
+      "field_access": "explicit",
       "fields": [
-        "*"
+        "id",
+        "location_id",
+        "farm_id",
+        "feedback_type",
+        "stakeholder_group",
+        "feedback_date",
+        "sentiment",
+        "themes",
+        "public_summary",
+        "evidence_maturity"
       ],
       "line": 169,
       "policy": "Analyst Policy",
@@ -1238,7 +1247,7 @@
       "fields": [
         "*"
       ],
-      "line": 419,
+      "line": 420,
       "policy": "Analyst Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000005",
       "roles": [
@@ -1254,7 +1263,7 @@
       "fields": [
         "*"
       ],
-      "line": 456,
+      "line": 457,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1270,7 +1279,7 @@
       "fields": [
         "*"
       ],
-      "line": 454,
+      "line": 455,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1286,7 +1295,7 @@
       "fields": [
         "*"
       ],
-      "line": 455,
+      "line": 456,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1302,7 +1311,7 @@
       "fields": [
         "*"
       ],
-      "line": 442,
+      "line": 443,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1318,7 +1327,7 @@
       "fields": [
         "*"
       ],
-      "line": 453,
+      "line": 454,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1334,7 +1343,7 @@
       "fields": [
         "*"
       ],
-      "line": 444,
+      "line": 445,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1350,7 +1359,7 @@
       "fields": [
         "*"
       ],
-      "line": 452,
+      "line": 453,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1366,7 +1375,7 @@
       "fields": [
         "*"
       ],
-      "line": 458,
+      "line": 459,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1394,7 +1403,7 @@
         "updated_at",
         "updated_by"
       ],
-      "line": 446,
+      "line": 447,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1410,7 +1419,7 @@
       "fields": [
         "*"
       ],
-      "line": 457,
+      "line": 458,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1426,7 +1435,7 @@
       "fields": [
         "*"
       ],
-      "line": 443,
+      "line": 444,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1442,7 +1451,7 @@
       "fields": [
         "*"
       ],
-      "line": 433,
+      "line": 434,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1458,7 +1467,7 @@
       "fields": [
         "*"
       ],
-      "line": 437,
+      "line": 438,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1474,7 +1483,7 @@
       "fields": [
         "*"
       ],
-      "line": 449,
+      "line": 450,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1490,7 +1499,7 @@
       "fields": [
         "*"
       ],
-      "line": 448,
+      "line": 449,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1506,7 +1515,7 @@
       "fields": [
         "*"
       ],
-      "line": 432,
+      "line": 433,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1522,7 +1531,7 @@
       "fields": [
         "*"
       ],
-      "line": 436,
+      "line": 437,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1538,7 +1547,7 @@
       "fields": [
         "*"
       ],
-      "line": 435,
+      "line": 436,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1554,7 +1563,7 @@
       "fields": [
         "*"
       ],
-      "line": 439,
+      "line": 440,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1580,7 +1589,7 @@
         "verified",
         "verified_at"
       ],
-      "line": 440,
+      "line": 441,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1596,7 +1605,7 @@
       "fields": [
         "*"
       ],
-      "line": 445,
+      "line": 446,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1612,7 +1621,7 @@
       "fields": [
         "*"
       ],
-      "line": 438,
+      "line": 439,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1628,7 +1637,7 @@
       "fields": [
         "*"
       ],
-      "line": 447,
+      "line": 448,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1644,7 +1653,7 @@
       "fields": [
         "*"
       ],
-      "line": 450,
+      "line": 451,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1660,7 +1669,7 @@
       "fields": [
         "*"
       ],
-      "line": 434,
+      "line": 435,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1676,7 +1685,7 @@
       "fields": [
         "*"
       ],
-      "line": 181,
+      "line": 182,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1692,7 +1701,7 @@
       "fields": [
         "*"
       ],
-      "line": 451,
+      "line": 452,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1708,7 +1717,7 @@
       "fields": [
         "*"
       ],
-      "line": 441,
+      "line": 442,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -1719,22 +1728,6 @@
     },
     {
       "action": "create",
-      "collection": "approval",
-      "field_access": "wildcard",
-      "fields": [
-        "*"
-      ],
-      "line": 324,
-      "policy": "Field Worker Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000001",
-      "roles": [
-        "Field Worker"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "read",
       "collection": "approval",
       "field_access": "wildcard",
       "fields": [
@@ -1751,12 +1744,28 @@
     },
     {
       "action": "read",
-      "collection": "expense_category",
+      "collection": "approval",
       "field_access": "wildcard",
       "fields": [
         "*"
       ],
       "line": 326,
+      "policy": "Field Worker Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000001",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "read",
+      "collection": "expense_category",
+      "field_access": "wildcard",
+      "fields": [
+        "*"
+      ],
+      "line": 327,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -1790,7 +1799,7 @@
         "source_id",
         "source_raw"
       ],
-      "line": 211,
+      "line": 212,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -1806,7 +1815,7 @@
       "fields": [
         "*"
       ],
-      "line": 218,
+      "line": 219,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -1836,7 +1845,7 @@
         "plot_id",
         "crop_cycle_id"
       ],
-      "line": 225,
+      "line": 226,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -1863,7 +1872,7 @@
         "source_id",
         "source_raw"
       ],
-      "line": 299,
+      "line": 300,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -1879,7 +1888,7 @@
       "fields": [
         "*"
       ],
-      "line": 306,
+      "line": 307,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -1905,7 +1914,7 @@
         "source_id",
         "source_raw"
       ],
-      "line": 313,
+      "line": 314,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -1916,22 +1925,6 @@
     },
     {
       "action": "create",
-      "collection": "file_upload",
-      "field_access": "wildcard",
-      "fields": [
-        "*"
-      ],
-      "line": 321,
-      "policy": "Field Worker Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000001",
-      "roles": [
-        "Field Worker"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "read",
       "collection": "file_upload",
       "field_access": "wildcard",
       "fields": [
@@ -1947,6 +1940,22 @@
       "validation": "{}"
     },
     {
+      "action": "read",
+      "collection": "file_upload",
+      "field_access": "wildcard",
+      "fields": [
+        "*"
+      ],
+      "line": 323,
+      "policy": "Field Worker Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000001",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
       "action": "create",
       "collection": "harvest_event",
       "field_access": "explicit",
@@ -1969,7 +1978,7 @@
         "source_id",
         "source_raw"
       ],
-      "line": 189,
+      "line": 190,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -1985,7 +1994,7 @@
       "fields": [
         "*"
       ],
-      "line": 196,
+      "line": 197,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2013,7 +2022,7 @@
         "plot_id",
         "crop_cycle_id"
       ],
-      "line": 203,
+      "line": 204,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2043,7 +2052,7 @@
         "source_id",
         "source_raw"
       ],
-      "line": 277,
+      "line": 278,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2059,7 +2068,7 @@
       "fields": [
         "*"
       ],
-      "line": 284,
+      "line": 285,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2085,7 +2094,7 @@
         "plot_id",
         "crop_cycle_id"
       ],
-      "line": 291,
+      "line": 292,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2118,7 +2127,7 @@
         "source_id",
         "source_raw"
       ],
-      "line": 255,
+      "line": 256,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2134,7 +2143,7 @@
       "fields": [
         "*"
       ],
-      "line": 262,
+      "line": 263,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2163,7 +2172,7 @@
         "harvest_id",
         "plot_id"
       ],
-      "line": 269,
+      "line": 270,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2246,7 +2255,7 @@
         "source_id",
         "source_raw"
       ],
-      "line": 233,
+      "line": 234,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2262,7 +2271,7 @@
       "fields": [
         "*"
       ],
-      "line": 240,
+      "line": 241,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2296,7 +2305,7 @@
         "crop_cycle_id",
         "partner_id"
       ],
-      "line": 247,
+      "line": 248,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2364,7 +2373,7 @@
       "fields": [
         "*"
       ],
-      "line": 323,
+      "line": 324,
       "policy": "Field Worker Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000001",
       "roles": [
@@ -2380,22 +2389,6 @@
       "fields": [
         "*"
       ],
-      "line": 398,
-      "policy": "Finance Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000004",
-      "roles": [
-        "Finance"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "read",
-      "collection": "expense_category",
-      "field_access": "wildcard",
-      "fields": [
-        "*"
-      ],
       "line": 399,
       "policy": "Finance Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000004",
@@ -2407,104 +2400,7 @@
     },
     {
       "action": "read",
-      "collection": "expense_event",
-      "field_access": "wildcard",
-      "fields": [
-        "*"
-      ],
-      "line": 387,
-      "policy": "Finance Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000004",
-      "roles": [
-        "Finance"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "update",
-      "collection": "expense_event",
-      "field_access": "explicit",
-      "fields": [
-        "status",
-        "rejection_reason"
-      ],
-      "line": 388,
-      "policy": "Finance Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000004",
-      "roles": [
-        "Finance"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "read",
-      "collection": "field_note",
-      "field_access": "wildcard",
-      "fields": [
-        "*"
-      ],
-      "line": 396,
-      "policy": "Finance Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000004",
-      "roles": [
-        "Finance"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "read",
-      "collection": "harvest_event",
-      "field_access": "wildcard",
-      "fields": [
-        "*"
-      ],
-      "line": 393,
-      "policy": "Finance Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000004",
-      "roles": [
-        "Finance"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "read",
-      "collection": "labor_event",
-      "field_access": "wildcard",
-      "fields": [
-        "*"
-      ],
-      "line": 395,
-      "policy": "Finance Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000004",
-      "roles": [
-        "Finance"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "read",
-      "collection": "loss_event",
-      "field_access": "wildcard",
-      "fields": [
-        "*"
-      ],
-      "line": 394,
-      "policy": "Finance Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000004",
-      "roles": [
-        "Finance"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "read",
-      "collection": "noi_snapshot",
+      "collection": "expense_category",
       "field_access": "wildcard",
       "fields": [
         "*"
@@ -2520,12 +2416,12 @@
     },
     {
       "action": "read",
-      "collection": "revenue_event",
+      "collection": "expense_event",
       "field_access": "wildcard",
       "fields": [
         "*"
       ],
-      "line": 391,
+      "line": 388,
       "policy": "Finance Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000004",
       "roles": [
@@ -2536,27 +2432,11 @@
     },
     {
       "action": "update",
-      "collection": "revenue_event",
+      "collection": "expense_event",
       "field_access": "explicit",
       "fields": [
         "status",
         "rejection_reason"
-      ],
-      "line": 392,
-      "policy": "Finance Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000004",
-      "roles": [
-        "Finance"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "read",
-      "collection": "sales_event",
-      "field_access": "wildcard",
-      "fields": [
-        "*"
       ],
       "line": 389,
       "policy": "Finance Policy",
@@ -2568,25 +2448,8 @@
       "validation": "{}"
     },
     {
-      "action": "update",
-      "collection": "sales_event",
-      "field_access": "explicit",
-      "fields": [
-        "status",
-        "rejection_reason"
-      ],
-      "line": 390,
-      "policy": "Finance Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000004",
-      "roles": [
-        "Finance"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
       "action": "read",
-      "collection": "workflow_history",
+      "collection": "field_note",
       "field_access": "wildcard",
       "fields": [
         "*"
@@ -2602,23 +2465,153 @@
     },
     {
       "action": "read",
-      "collection": "approval",
+      "collection": "harvest_event",
       "field_access": "wildcard",
       "fields": [
         "*"
       ],
-      "line": 375,
-      "policy": "Manager Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000003",
+      "line": 394,
+      "policy": "Finance Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000004",
       "roles": [
-        "Manager"
+        "Finance"
       ],
       "row_filter": "{}",
       "validation": "{}"
     },
     {
       "action": "read",
-      "collection": "expense_category",
+      "collection": "labor_event",
+      "field_access": "wildcard",
+      "fields": [
+        "*"
+      ],
+      "line": 396,
+      "policy": "Finance Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000004",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "read",
+      "collection": "loss_event",
+      "field_access": "wildcard",
+      "fields": [
+        "*"
+      ],
+      "line": 395,
+      "policy": "Finance Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000004",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "read",
+      "collection": "noi_snapshot",
+      "field_access": "wildcard",
+      "fields": [
+        "*"
+      ],
+      "line": 401,
+      "policy": "Finance Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000004",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "read",
+      "collection": "revenue_event",
+      "field_access": "wildcard",
+      "fields": [
+        "*"
+      ],
+      "line": 392,
+      "policy": "Finance Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000004",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "update",
+      "collection": "revenue_event",
+      "field_access": "explicit",
+      "fields": [
+        "status",
+        "rejection_reason"
+      ],
+      "line": 393,
+      "policy": "Finance Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000004",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "read",
+      "collection": "sales_event",
+      "field_access": "wildcard",
+      "fields": [
+        "*"
+      ],
+      "line": 390,
+      "policy": "Finance Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000004",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "update",
+      "collection": "sales_event",
+      "field_access": "explicit",
+      "fields": [
+        "status",
+        "rejection_reason"
+      ],
+      "line": 391,
+      "policy": "Finance Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000004",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "read",
+      "collection": "workflow_history",
+      "field_access": "wildcard",
+      "fields": [
+        "*"
+      ],
+      "line": 398,
+      "policy": "Finance Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000004",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "read",
+      "collection": "approval",
       "field_access": "wildcard",
       "fields": [
         "*"
@@ -2634,12 +2627,12 @@
     },
     {
       "action": "read",
-      "collection": "expense_event",
+      "collection": "expense_category",
       "field_access": "wildcard",
       "fields": [
         "*"
       ],
-      "line": 363,
+      "line": 377,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2649,12 +2642,11 @@
       "validation": "{}"
     },
     {
-      "action": "update",
+      "action": "read",
       "collection": "expense_event",
-      "field_access": "explicit",
+      "field_access": "wildcard",
       "fields": [
-        "status",
-        "rejection_reason"
+        "*"
       ],
       "line": 364,
       "policy": "Manager Policy",
@@ -2666,13 +2658,14 @@
       "validation": "{}"
     },
     {
-      "action": "read",
-      "collection": "field_note",
-      "field_access": "wildcard",
+      "action": "update",
+      "collection": "expense_event",
+      "field_access": "explicit",
       "fields": [
-        "*"
+        "status",
+        "rejection_reason"
       ],
-      "line": 372,
+      "line": 365,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2682,11 +2675,11 @@
       "validation": "{}"
     },
     {
-      "action": "update",
+      "action": "read",
       "collection": "field_note",
-      "field_access": "explicit",
+      "field_access": "wildcard",
       "fields": [
-        "status"
+        "*"
       ],
       "line": 373,
       "policy": "Manager Policy",
@@ -2698,13 +2691,29 @@
       "validation": "{}"
     },
     {
+      "action": "update",
+      "collection": "field_note",
+      "field_access": "explicit",
+      "fields": [
+        "status"
+      ],
+      "line": 374,
+      "policy": "Manager Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000003",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
       "action": "read",
       "collection": "harvest_event",
       "field_access": "wildcard",
       "fields": [
         "*"
       ],
-      "line": 361,
+      "line": 362,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2721,7 +2730,7 @@
         "status",
         "rejection_reason"
       ],
-      "line": 362,
+      "line": 363,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2737,7 +2746,7 @@
       "fields": [
         "*"
       ],
-      "line": 370,
+      "line": 371,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2753,7 +2762,7 @@
       "fields": [
         "status"
       ],
-      "line": 371,
+      "line": 372,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2769,7 +2778,7 @@
       "fields": [
         "*"
       ],
-      "line": 368,
+      "line": 369,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2786,7 +2795,7 @@
         "status",
         "rejection_reason"
       ],
-      "line": 369,
+      "line": 370,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2824,7 +2833,7 @@
       "fields": [
         "*"
       ],
-      "line": 366,
+      "line": 367,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2841,7 +2850,7 @@
         "status",
         "rejection_reason"
       ],
-      "line": 367,
+      "line": 368,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2857,7 +2866,7 @@
       "fields": [
         "*"
       ],
-      "line": 365,
+      "line": 366,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2917,7 +2926,7 @@
       "fields": [
         "*"
       ],
-      "line": 374,
+      "line": 375,
       "policy": "Manager Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000003",
       "roles": [
@@ -2933,7 +2942,7 @@
       "fields": [
         "*"
       ],
-      "line": 349,
+      "line": 350,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -2949,7 +2958,7 @@
       "fields": [
         "*"
       ],
-      "line": 350,
+      "line": 351,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -2965,7 +2974,7 @@
       "fields": [
         "*"
       ],
-      "line": 339,
+      "line": 340,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -2981,7 +2990,7 @@
       "fields": [
         "status"
       ],
-      "line": 340,
+      "line": 341,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -2997,7 +3006,7 @@
       "fields": [
         "*"
       ],
-      "line": 347,
+      "line": 348,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -3012,22 +3021,6 @@
       "field_access": "wildcard",
       "fields": [
         "*"
-      ],
-      "line": 337,
-      "policy": "Supervisor Policy",
-      "policy_id": "b1000000-0000-0000-0000-000000000002",
-      "roles": [
-        "Supervisor"
-      ],
-      "row_filter": "{}",
-      "validation": "{}"
-    },
-    {
-      "action": "update",
-      "collection": "harvest_event",
-      "field_access": "explicit",
-      "fields": [
-        "status"
       ],
       "line": 338,
       "policy": "Supervisor Policy",
@@ -3039,13 +3032,13 @@
       "validation": "{}"
     },
     {
-      "action": "read",
-      "collection": "labor_event",
-      "field_access": "wildcard",
+      "action": "update",
+      "collection": "harvest_event",
+      "field_access": "explicit",
       "fields": [
-        "*"
+        "status"
       ],
-      "line": 345,
+      "line": 339,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -3055,11 +3048,11 @@
       "validation": "{}"
     },
     {
-      "action": "update",
+      "action": "read",
       "collection": "labor_event",
-      "field_access": "explicit",
+      "field_access": "wildcard",
       "fields": [
-        "status"
+        "*"
       ],
       "line": 346,
       "policy": "Supervisor Policy",
@@ -3071,13 +3064,13 @@
       "validation": "{}"
     },
     {
-      "action": "read",
-      "collection": "loss_event",
-      "field_access": "wildcard",
+      "action": "update",
+      "collection": "labor_event",
+      "field_access": "explicit",
       "fields": [
-        "*"
+        "status"
       ],
-      "line": 343,
+      "line": 347,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -3087,11 +3080,11 @@
       "validation": "{}"
     },
     {
-      "action": "update",
+      "action": "read",
       "collection": "loss_event",
-      "field_access": "explicit",
+      "field_access": "wildcard",
       "fields": [
-        "status"
+        "*"
       ],
       "line": 344,
       "policy": "Supervisor Policy",
@@ -3103,13 +3096,29 @@
       "validation": "{}"
     },
     {
+      "action": "update",
+      "collection": "loss_event",
+      "field_access": "explicit",
+      "fields": [
+        "status"
+      ],
+      "line": 345,
+      "policy": "Supervisor Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000002",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
       "action": "read",
       "collection": "sales_event",
       "field_access": "wildcard",
       "fields": [
         "*"
       ],
-      "line": 341,
+      "line": 342,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -3125,7 +3134,7 @@
       "fields": [
         "status"
       ],
-      "line": 342,
+      "line": 343,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -3160,7 +3169,7 @@
       "fields": [
         "*"
       ],
-      "line": 348,
+      "line": 349,
       "policy": "Supervisor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000002",
       "roles": [
@@ -3176,55 +3185,55 @@
     {
       "line": 171,
       "operation": "update",
-      "statement": "UPDATE directus_permissions SET permissions = '{\"_and\":[{\"status\":{\"_in\":[\"verified\",\"published\"]}},{\"is_public\":{\"_eq\":true}},{\"consent_given\":{\"_eq\":true}},{\"party_id\":{\"_nnull\":true}}]}' WHERE policy = 'b1000000-0000-0000-0000-000000000005' AND collection = 'stakeholder_feedback' AND action = 'read'",
+      "statement": "UPDATE directus_permissions SET permissions = '{\"_and\":[{\"status\":{\"_in\":[\"verified\",\"published\"]}},{\"is_public\":{\"_eq\":true}},{\"consent_given\":{\"_eq\":true}},{\"party_id\":{\"_nnull\":true}}]}', fields = 'id,location_id,farm_id,feedback_type,stakeholder_group,feedback_date,sentiment,themes,public_summary,evidence_maturity' WHERE policy = 'b1000000-0000-0000-0000-000000000005' AND collection = 'stakeholder_feedback' AND action = 'read'",
       "target": "directus_permissions"
     },
     {
-      "line": 466,
+      "line": 467,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET fields = 'id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,last_refreshed_at,status,metadata,created_at,updated_at,updated_by' WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'dashboard_dataset' AND action = 'read' AND fields = '*'",
       "target": "directus_permissions"
     },
     {
-      "line": 476,
+      "line": 477,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET fields = 'id,metric_id,location_id,period_start,period_end,value,unit,computation_method,computed_at,verified,verified_at' WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'metric_value' AND action = 'read' AND fields = '*'",
       "target": "directus_permissions"
     },
     {
-      "line": 658,
+      "line": 659,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET permissions = next_filter::JSON WHERE id = legacy_permission.id",
       "target": "directus_permissions"
     },
     {
-      "line": 662,
+      "line": 663,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET permissions = '{}'::JSON WHERE id = legacy_permission.id",
       "target": "directus_permissions"
     },
     {
-      "line": 673,
+      "line": 674,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET validation = '{}'::JSON WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND action = 'create' AND collection IN ('harvest_event', 'expense_event', 'stakeholder_feedback', 'metric_proposal') AND validation::JSONB = '{\"location_id\":{\"_eq\":\"$CURRENT_USER.location_id\"}}'::JSONB",
       "target": "directus_permissions"
     },
     {
-      "line": 687,
+      "line": 688,
       "operation": "delete",
       "statement": "DELETE FROM directus_permissions WHERE collection = 'farm_activity' AND policy IN ( 'b1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000005', 'b1000000-0000-0000-0000-000000000006', 'b1000000-0000-0000-0000-000000000007', 'b1000000-0000-0000-0000-000000000008', 'b1000000-0000-0000-0000-000000000009' )",
       "target": "directus_permissions"
     }
   ],
-  "source_sha256": "f6eb39725bd2d025369123ed08d759f3a8832ec7ca21fa68fefad4707f0b9362",
+  "source_sha256": "7253b1f487db9444d44872f7220d0feb4004e4c88986a9160542065474c9e8c8",
   "summary": {
     "declared_farm_activity_rules": 0,
     "delete_statements": 1,
-    "explicit_field_rows": 52,
+    "explicit_field_rows": 53,
     "literal_permission_rows": 175,
     "unknown_field_rows": 0,
     "update_statements": 6,
-    "wildcard_field_rows": 123,
+    "wildcard_field_rows": 122,
     "wildcard_rows_by_collection": {
       "agent_action_log": 3,
       "agent_identity": 4,
@@ -3253,7 +3262,7 @@
       "report_snapshot": 1,
       "revenue_event": 3,
       "sales_event": 8,
-      "stakeholder_feedback": 3,
+      "stakeholder_feedback": 2,
       "water_access": 1,
       "workflow_history": 7
     },
@@ -3261,7 +3270,7 @@
       "Agent Full Policy": 15,
       "Agent Read-Only Policy": 14,
       "Agent Write Policy": 12,
-      "Analyst Policy": 12,
+      "Analyst Policy": 11,
       "Auditor Policy": 26,
       "Field Worker Policy": 14,
       "Finance Policy": 11,

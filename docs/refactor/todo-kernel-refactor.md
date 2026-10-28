@@ -1631,3 +1631,29 @@ Checklist: 1,455 complete / 25 open (1,480 total); TODO: 162 checked / 16 open.
 The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and
 records 66 strict private Gateway response endpoints. MAN-CAP acceptance and
 capability classifications are unchanged.
+
+
+### Completed continuation — Directus, report scope, and private queue contracts — 28 October 2026
+
+- [x] Narrow the Analyst `stakeholder_feedback` field allowlist without
+  changing its existing row predicates; retain source-only evidence limits.
+- [x] Audit remaining Analyst/Auditor wildcard reads; leave the all-status
+  Auditor forensic permission unchanged because no approved private-field
+  contract supports a safe narrower projection.
+- [x] Require explicit valid location scope for direct `farm_summary` calls
+  before cursor creation; keep output projections unchanged pending review.
+- [x] Require explicit valid location scope for direct
+  `regenerative_outcomes` calls before cursor creation.
+- [x] Add an exact, request-location-bound response contract for the private
+  mobile collection review queue.
+- [x] Add an exact, request-location-bound response contract for the private
+  farm-activity intake queue.
+
+The integrated focused selection passes 400 tests. Ruff, compilation, report
+source/query inventories, the Directus permission inventory, capability-matrix
+validation, and diff hygiene pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-directus-mobile-report-scope-contracts.json).
+Checklist: 1,461 complete / 25 open (1,486 total); TODO: 168 checked / 16 open.
+The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and
+records 68 strict private Gateway response endpoints. MAN-CAP acceptance and
+capability classifications are unchanged.

@@ -15,6 +15,9 @@ from .common import (
 
 def generate_farm_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a farm summary report for a location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("farm_summary requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         # Location info

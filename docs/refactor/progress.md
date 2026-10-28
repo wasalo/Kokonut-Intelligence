@@ -22512,3 +22512,32 @@ matrix validation, and diff hygiene pass. The matrix records 66 strict private
 Gateway response endpoints across 67 capabilities; checklist is 1,455 complete
 / 25 open and TODO is 162 checked / 16 open. No migration, database, provider,
 candidate, legacy service, or live network was used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-report-and-gateway-contracts.json).
+
+
+### Progress addendum — Directus, report scope, and private queue contracts — 28 October 2026
+
+The curated Analyst `stakeholder_feedback` permission now declares only its
+public-safe fields while preserving existing row predicates. A broader
+wildcard audit found the Auditor's all-status access serves forensic review;
+the repository does not define a safe private-field subset, so that permission
+remains unchanged. Neither source change establishes deployed Directus
+permissions or tenant isolation.
+
+Direct calls to `generate_farm_summary` and `generate_regenerative_outcomes`
+now reject missing, aggregate, malformed, and multi-location scope before
+opening a cursor; their SQL projections and report semantics are unchanged.
+The `farm_summary` schema audit counted 33 location, 28 farm, 24 plot, and 30
+crop-cycle keys. Its broad-audience field allowlist and consistent lifecycle
+measures remain open.
+
+The private mobile-collection review queue and farm-activity intake queue now
+publish exact OpenAPI/runtime response contracts bound to the requested
+location. They reject undeclared or inconsistent service projections while
+preserving existing authorization, wire shape, and no-store behavior. The
+integrated focused selection passes 400 tests; Ruff, Python compilation,
+report inventories, Directus permission inventory, capability-matrix
+validation, and diff checks pass. The matrix records 68 strict private Gateway
+response endpoints across 67 capabilities (24 baseline-retained, 7 deployed,
+36 prepared). Checklist: 1,461 complete / 25 open; TODO: 168 checked / 16 open.
+No migration, database, provider, Directus runtime, candidate, legacy service,
+or live network was used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-directus-mobile-report-scope-contracts.json).

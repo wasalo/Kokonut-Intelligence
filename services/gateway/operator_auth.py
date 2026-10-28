@@ -3943,6 +3943,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from pydantic import ValidationError
     from starlette.concurrency import run_in_threadpool
 
+    from services.gateway.farm_activity_intake_responses import (
+        FarmActivityIntakeQueueResponse,
+    )
+    from services.gateway.mobile_collection_review_responses import (
+        MobileCollectionReviewQueueResponse,
+    )
     from services.gateway.operator_review_responses import ReportReviewQueueResponse
     from services.mobile.api import (
         create_operator_enrollment,
@@ -4178,7 +4184,10 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/mobile-collection-review-queue")
+    @router.get(
+        "/operator/api/mobile-collection-review-queue",
+        response_model=MobileCollectionReviewQueueResponse,
+    )
     async def mobile_collection_review_queue(
         request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
     ):
@@ -4213,10 +4222,28 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Mobile collection review service unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store"},
             )
+        try:
+            response = MobileCollectionReviewQueueResponse.model_validate(
+                {"data": rows, "location_id": str(UUID(location_id))}
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Mobile collection review response does not match request location")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile collection review queue unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            jsonable_encoder({"data": rows, "location_id": str(response.location_id)}),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
@@ -4388,7 +4415,10 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Pragma": "no-cache", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/farm-activity-intake-queue")
+    @router.get(
+        "/operator/api/farm-activity-intake-queue",
+        response_model=FarmActivityIntakeQueueResponse,
+    )
     async def farm_activity_intake_queue(
         request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
     ):
@@ -4427,10 +4457,28 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Farm activity intake service unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        try:
+            response = FarmActivityIntakeQueueResponse.model_validate(
+                {"data": rows, "location_id": str(UUID(location_id))}
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Farm activity intake response does not match request location")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity intake queue response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Farm activity intake service unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            jsonable_encoder({"data": rows, "location_id": str(response.location_id)}),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
