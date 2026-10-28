@@ -312,4 +312,4 @@ def test_target_read_route_is_no_store_and_scoped(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == expected
-    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": "10", "offset": "2"})]
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 10, "offset": 2})]

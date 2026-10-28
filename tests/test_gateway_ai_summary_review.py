@@ -300,6 +300,30 @@ def test_review_route_is_no_store_and_uses_operator_session():
     assert response.headers["vary"] == "Cookie"
 
 
+def test_review_route_documents_page_bounds_and_rejects_invalid_values_before_service():
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("invalid page must not invoke the review service")
+
+    app = _make_app(object(), {}, run_in_threadpool)
+    operation = app.openapi()["paths"][
+        "/operator/api/ai-summaries/{location_id}/reviews"
+    ]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert parameters["limit"]["schema"]["default"] == 50
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 50
+    assert parameters["offset"]["schema"]["default"] == 0
+    assert parameters["offset"]["schema"]["minimum"] == 0
+    assert parameters["offset"]["schema"]["maximum"] == 10000
+
+    client = TestClient(app)
+    for query in ("limit=0", "limit=51", "offset=-1", "offset=10001"):
+        response = client.get(
+            f"/operator/api/ai-summaries/{LOCATION_ID}/reviews?{query}"
+        )
+        assert response.status_code == 422
+
+
 def test_decision_route_rejects_extra_body_fields():
     async def run_in_threadpool(*_args, **_kwargs):
         pytest.fail("invalid payload must not invoke decision service")

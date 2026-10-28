@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from services.agents.resilience_agent import synthesize_resilience
 from services.agents.tasks import get_task, list_tasks, validate_output
 from services.export.report_generator import (
@@ -203,6 +205,51 @@ def test_financial_resilience_report_generators_public_safe() -> None:
     assert generate_risk_mitigation(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "risk_mitigation"
     assert generate_scaling_roadmap(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "scaling_roadmap"
     assert generate_green_paper_publication_status(conn, None)["report_type"] == "green_paper_publication_status"
+
+
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_scaling_roadmap_requires_location_before_database_access(location_id) -> None:
+    class NoDatabase:
+        def cursor(self, **_kwargs):
+            raise AssertionError("unscoped report must fail before opening a cursor")
+
+    with pytest.raises(ValueError, match="scaling_roadmap requires an explicit location_id"):
+        generate_scaling_roadmap(NoDatabase(), location_id)
+
+
+def test_scaling_roadmap_filters_location_and_keeps_reviewed_global_rows() -> None:
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return [
+                {"location_id": "a0000000-0000-0000-0000-000000000001", "capital_required_usd": 1000},
+                {"location_id": None, "capital_required_usd": 500},
+            ]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    report = generate_scaling_roadmap(conn, location_id)
+
+    assert report["location_id"] == location_id
+    assert "WHERE (location_id = %s OR location_id IS NULL)" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id, None, None, None, None)
+    assert report["total_capital_required_usd"] == 1500
 
 
 if __name__ == "__main__":

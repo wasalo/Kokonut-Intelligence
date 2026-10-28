@@ -435,8 +435,10 @@ class KokonutClient:
 
     def get_item(self, collection: str, item_id: str, fields: Optional[List[str]] = None) -> Any:
         params: Dict[str, Any] = {}
-        if fields:
-            params["fields"] = ",".join(fields)
+        if fields is not None:
+            # Match the pinned TypeScript Directus SDK's query shape: an empty
+            # projection is sent as JSON `[]`, while populated fields are CSV.
+            params["fields"] = json.dumps(fields) if not fields else ",".join(fields)
         resp = self.session.get(self._item_url(collection, item_id), params=params)
         self._handle_error(resp)
         data = resp.json()

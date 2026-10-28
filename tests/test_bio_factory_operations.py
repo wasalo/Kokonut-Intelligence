@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from services.agents.bio_factory_agent import (
     BioFactorySynthesisAgent,
     synthesize_bio_factory,
@@ -352,6 +354,48 @@ def test_bio_factory_report_generators_registered() -> None:
         "bio_regional_input",
     ]:
         assert report_type in REPORT_GENERATORS, f"Missing report type: {report_type}"
+
+
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_bio_recipe_library_requires_location_before_database_access(location_id) -> None:
+    class NoDatabase:
+        def cursor(self, **_kwargs):
+            raise AssertionError("unscoped report must fail before opening a cursor")
+
+    with pytest.raises(ValueError, match="bio_recipe_library requires an explicit location_id"):
+        generate_bio_recipe_library(NoDatabase(), location_id)
+
+
+def test_bio_recipe_library_keeps_selected_location_and_public_catalog_filter() -> None:
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    location_id = "a0000000-0000-0000-0000-000000000001"
+
+    result = generate_bio_recipe_library(conn, location_id)
+
+    assert result["location_id"] == location_id
+    assert "WHERE (location_id = %s OR location_id IS NULL)" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id,)
 
 
 def test_bio_factory_report_generators_public_safe() -> None:

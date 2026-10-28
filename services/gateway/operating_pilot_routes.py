@@ -4,6 +4,7 @@
 def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg2):
     import json
 
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -265,8 +266,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_work_claim_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -418,8 +419,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_work_claim_allocation_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1707,8 +1708,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_demand_signals(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1753,8 +1754,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_capacity_periods(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1801,8 +1802,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_own_capacity_profiles(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1862,8 +1863,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_own_competency_drafts(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1923,8 +1924,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_own_learning_plans(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1984,8 +1985,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_own_coaching_sessions(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2046,8 +2047,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         request: Request,
         location_id: str,
         q: str | None = None,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2108,8 +2109,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_own_demand_signals(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2169,8 +2170,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_own_resource_requests(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2230,8 +2231,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_capacity_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2291,8 +2292,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_competency_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2352,8 +2353,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_learning_plan_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2413,8 +2414,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_learning_plan_activation_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2634,8 +2635,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_demand_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2695,8 +2696,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_resource_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2756,8 +2757,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_resource_fulfillment_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3249,8 +3250,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_work_claims(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3297,8 +3298,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_resource_categories(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3345,8 +3346,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     async def location_operating_pilot_work_opportunities(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(

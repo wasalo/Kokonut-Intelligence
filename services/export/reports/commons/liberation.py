@@ -86,32 +86,23 @@ def generate_capital_alignment(conn, location_id: str, period_start: str = None,
 def generate_governance_inclusion(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
-    """Generate a public-safe governance inclusion report."""
+    """Generate a public-safe governance inclusion report for one location."""
+    if not location_id:
+        raise ValueError("governance_inclusion requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_governance_inclusion_summary
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR observation_date >= %s::date)
-                  AND (%s::date IS NULL OR observation_date <= %s::date)
-                ORDER BY observation_date DESC, governance_body
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_governance_inclusion_summary
-                WHERE (%s::date IS NULL OR observation_date >= %s::date)
-                  AND (%s::date IS NULL OR observation_date <= %s::date)
-                ORDER BY observation_date DESC, governance_body
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_governance_inclusion_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR observation_date >= %s::date)
+              AND (%s::date IS NULL OR observation_date <= %s::date)
+            ORDER BY observation_date DESC, governance_body
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         observations = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()

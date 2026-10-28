@@ -371,3 +371,39 @@ def test_versions_route_returns_no_store_and_oidc_disabled_404(monkeypatch):
         disabled = client.get(path)
     assert disabled.status_code == 404
     assert disabled.headers["cache-control"] == "no-store"
+
+
+def test_versions_route_publishes_service_bounds_and_rejects_invalid_pages(monkeypatch):
+    calls = []
+    app = _app(
+        monkeypatch,
+        history=lambda *args, **kwargs: calls.append((args, kwargs))
+        or {"versions": [], "has_more": False},
+    )
+    path = f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}/versions"
+    operation = app.openapi()["paths"][
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions"
+    ]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+
+    assert parameters["limit"]["schema"] == {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5,
+        "default": 5,
+        "title": "Limit",
+    }
+    assert parameters["offset"]["schema"] == {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000,
+        "default": 0,
+        "title": "Offset",
+    }
+
+    with TestClient(app) as client:
+        for query in ("limit=0", "limit=6", "offset=-1", "offset=10001"):
+            response = client.get(f"{path}?{query}")
+            assert response.status_code == 422
+
+    assert calls == []

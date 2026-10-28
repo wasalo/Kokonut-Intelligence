@@ -81,6 +81,27 @@ def test_ambiguous_or_unscoped_report_commands_fail_before_database_access(argum
 
 
 @pytest.mark.parametrize(
+    "report_type",
+    [
+        "stakeholder_landscape",
+        "stakeholder_engagement",
+        "stakeholder_grievance",
+        "stakeholder_decision_lineage",
+    ],
+)
+def test_location_lineaged_stakeholder_reports_require_one_explicit_location(report_type) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        validate("--type", report_type)
+    assert exc_info.value.code == 2
+
+    validate("--type", report_type, "--location-id", LOCATION_A)
+
+    with pytest.raises(SystemExit) as exc_info:
+        validate("--type", report_type, "--all")
+    assert exc_info.value.code == 2
+
+
+@pytest.mark.parametrize(
     "arguments",
     [
         ("--auto", "--location-id", LOCATION_A),

@@ -248,8 +248,6 @@ def test_timeline_route_is_no_store_and_forwards_pagination(monkeypatch):
 
     def timeline(*args, **kwargs):
         calls.append((args, kwargs))
-        if kwargs["limit"] == "51":
-            raise reads.SequentialDecisionReadInvalid("Limit must be an integer between 1 and 50")
         return {"location_id": LOCATION_ID, **TIMELINE}
 
     monkeypatch.setattr(
@@ -277,19 +275,44 @@ def test_timeline_route_is_no_store_and_forwards_pagination(monkeypatch):
         response = client.get(
             f"/operator/api/sequential-evidence/{LOCATION_ID}/events?limit=2&offset=0"
         )
-        invalid = client.get(
+        invalid_limit_low = client.get(
+            f"/operator/api/sequential-evidence/{LOCATION_ID}/events?limit=0"
+        )
+        invalid_limit_high = client.get(
             f"/operator/api/sequential-evidence/{LOCATION_ID}/events?limit=51"
         )
+        invalid_offset_low = client.get(
+            f"/operator/api/sequential-evidence/{LOCATION_ID}/events?offset=-1"
+        )
+        invalid_offset_high = client.get(
+            f"/operator/api/sequential-evidence/{LOCATION_ID}/events?offset=10001"
+        )
+        invalid_integer = client.get(
+            f"/operator/api/sequential-evidence/{LOCATION_ID}/events?limit=abc"
+        )
+
+    openapi = app.openapi()
+    event_operation = openapi["paths"]["/operator/api/sequential-evidence/{location_id}/events"]["get"]
+    parameters = {parameter["name"]: parameter for parameter in event_operation["parameters"]}
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 50
+    assert parameters["limit"]["schema"]["default"] == 25
+    assert parameters["offset"]["schema"]["minimum"] == 0
+    assert parameters["offset"]["schema"]["maximum"] == 10000
+    assert parameters["offset"]["schema"]["default"] == 0
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["items"] == TIMELINE["items"]
     assert calls == [
-        ((OPERATOR_ID, LOCATION_ID), {"limit": "2", "offset": "0"}),
-        ((OPERATOR_ID, LOCATION_ID), {"limit": "51", "offset": "0"}),
+        ((OPERATOR_ID, LOCATION_ID), {"limit": 2, "offset": 0}),
     ]
-    assert invalid.status_code == 400
+    assert invalid_limit_low.status_code == 422
+    assert invalid_limit_high.status_code == 422
+    assert invalid_offset_low.status_code == 422
+    assert invalid_offset_high.status_code == 422
+    assert invalid_integer.status_code == 422
 
 
 def test_timeline_route_fails_closed_without_oidc(monkeypatch):

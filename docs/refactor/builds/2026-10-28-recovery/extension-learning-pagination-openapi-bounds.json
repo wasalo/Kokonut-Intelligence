@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-28",
+  "slice": "extension_learning_gateway_pagination_openapi_bounds",
+  "result": "passed",
+  "route": "/operator/api/extension-learning/{location_id}/modules",
+  "source_service_bounds": {
+    "limit_default": 25,
+    "limit_minimum": 1,
+    "limit_maximum": 50,
+    "offset_default": 0,
+    "offset_minimum": 0,
+    "offset_maximum": 10000
+  },
+  "change": "FastAPI now exposes the same bounds as the downstream reader, and rejects invalid query values before service invocation.",
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_extension_learning_pagination_openapi.py tests/test_gateway_extension_learning_reads.py -q",
+    "pytest_result": "12 passed",
+    "openapi_contract": "passed",
+    "invalid_values_rejected_before_service": ["limit=0", "limit=51", "offset=-1", "offset=10001"],
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "Synthetic FastAPI/OpenAPI and mocked service-boundary checks; no database, provider, network, candidate, or legacy service was used.",
+  "baseline_head": "753b4645",
+  "rollback": "Revert the route Query bounds and the focused OpenAPI regression; no schema or data migration was applied."
+}

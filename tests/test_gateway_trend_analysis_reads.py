@@ -845,3 +845,65 @@ def test_forecast_compute_http_route_bounds_request_body_before_writer(monkeypat
         )
     assert response.status_code == 400
     assert "4 KiB" in response.json()["error"]
+
+
+def test_paged_trend_routes_publish_service_bounds_in_openapi(monkeypatch):
+    def reader(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "items": [], "limit": 25, "offset": 0, "has_more": False}
+
+    app = _register_route(monkeypatch, reader)
+    openapi = app.openapi()["paths"]
+    expected = {
+        "/operator/api/trends/{location_id}/estimates": {
+            "limit": (25, 1, 50),
+            "offset": (0, 0, 10_000),
+        },
+        "/operator/api/trends/{location_id}/change-points": {
+            "limit": (100, 1, 100),
+        },
+        "/operator/api/trends/{location_id}/smoothing": {
+            "limit": (100, 1, 100),
+        },
+    }
+    for path, bounds in expected.items():
+        parameters = {
+            parameter["name"]: parameter["schema"]
+            for parameter in openapi[path]["get"]["parameters"]
+        }
+        for name, (default, minimum, maximum) in bounds.items():
+            assert parameters[name]["default"] == default
+            assert parameters[name]["minimum"] == minimum
+            assert parameters[name]["maximum"] == maximum
+
+
+@pytest.mark.parametrize(
+    ("path", "query"),
+    [
+        ("estimates", "limit=0"),
+        ("estimates", "limit=51"),
+        ("estimates", "offset=-1"),
+        ("estimates", "offset=10001"),
+        ("change-points", "metric_key=soil_carbon&limit=0"),
+        ("change-points", "metric_key=soil_carbon&limit=101"),
+        ("smoothing", "metric_key=soil_carbon&limit=0"),
+        ("smoothing", "metric_key=soil_carbon&limit=101"),
+    ],
+)
+def test_invalid_trend_page_bounds_fail_before_service(monkeypatch, path, query):
+    called = False
+
+    def should_not_run(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("invalid pagination reached service")
+
+    app = _register_route(
+        monkeypatch,
+        should_not_run,
+        smoothing_reader=should_not_run,
+        change_points_reader=should_not_run,
+    )
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/trends/{LOCATION_ID}/{path}?{query}")
+    assert response.status_code == 422
+    assert not called

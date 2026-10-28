@@ -57,18 +57,36 @@ def test_fork_detection_counts_related():
          "transfer_ids": ["t1", "t2", "t3"]},
     ]
     conn, _ = _mock_conn({"FROM insight_transfer": rows})
-    result = fork_detector.detect_fork_opportunities(conn, location_id="L")
+    # Locationless insight transfers remain available in network-wide mode.
+    result = fork_detector.detect_fork_opportunities(conn)
     assert result["fork_count"] == 1
     assert result["forks"][0]["target_count"] == 3
 
 
-def test_propose_fork_writes_draft():
+def test_location_fork_detection_omits_unlineaged_insight_transfers():
     rows = [
         {"source_event_id": "e1", "target_count": 3, "transfer_count": 3,
          "target_domains": ["irrigation", "planting", "energy"],
          "transfer_ids": ["t1", "t2", "t3"]},
     ]
     conn, cur = _mock_conn({"FROM insight_transfer": rows})
+
+    result = fork_detector.detect_fork_opportunities(conn, location_id="L")
+
+    assert result["fork_count"] == 0
+    executed = [call.args[0] for call in cur.execute.call_args_list]
+    assert not any("FROM insight_transfer" in query for query in executed)
+    decision_query = next(query for query in executed if "FROM decision_log" in query)
+    assert "AND location_id = %s" in decision_query
+
+
+def test_propose_fork_writes_draft():
+    rows = [{
+        "group_key": "e1", "decision_count": 3,
+        "decision_ids": ["d1", "d2", "d3"],
+        "action_types": ["irrigate", "plant", "harvest"],
+    }]
+    conn, cur = _mock_conn({"FROM decision_log": rows})
     result = fork_detector.propose_fork_opportunities(conn, location_id="L", actor="tester")
     # INSERT executed with status 'draft'
     assert cur.execute.called

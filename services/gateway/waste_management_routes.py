@@ -4,6 +4,7 @@ import json
 
 
 def register_waste_management_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -370,7 +371,9 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
 
     @router.get("/operator/api/waste/{location_id}/incidents")
     async def pollution_incident_review_queue(
-        request: Request, location_id: str, offset: str = "0"
+        request: Request,
+        location_id: str,
+        offset: int = Query(default=0, ge=0, le=1_000_000),
     ):
         if provider is None:
             return JSONResponse(
@@ -379,19 +382,11 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
                 headers=headers,
             )
         try:
-            queue_offset = int(offset)
-        except (TypeError, ValueError):
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Incident queue offset must be a non-negative integer"},
-                headers=headers,
-            )
-        try:
             result = await run_in_threadpool(
                 list_location_pollution_incidents,
                 request.state.operator_session.operator.operator_id,
                 location_id,
-                offset=queue_offset,
+                offset=offset,
             )
         except TenantContextDenied:
             return JSONResponse(

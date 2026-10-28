@@ -2,6 +2,7 @@
 
 
 def register_ecocredit_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -10,7 +11,11 @@ def register_ecocredit_routes(router, provider, run_in_threadpool, psycopg2):
     from services.gateway.ecocredits import list_location_ecocredit_batches
 
     @router.get("/operator/api/ecocredits/{location_id}/batches")
-    async def location_ecocredit_batches(request: Request, location_id: str, limit: int = 50):
+    async def location_ecocredit_batches(
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=50, ge=1, le=100),
+    ):
         if provider is None:
             return JSONResponse(
                 status_code=404,

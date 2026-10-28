@@ -1,0 +1,39 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "OpenAPI pagination contract for all 21 location-scoped operating-pilot read/list routes",
+  "source_contract": {
+    "validator": "services/gateway/operating_pilot_reads.py::_normalize_page",
+    "limit": {
+      "minimum": 1,
+      "maximum": 50,
+      "default": 25
+    },
+    "offset": {
+      "minimum": 0,
+      "maximum": 10000,
+      "default": 0
+    }
+  },
+  "change": "All 21 route handlers now publish FastAPI Query bounds matching the existing service validator. Tests inspect each OpenAPI operation and reject limit=51 on every route before invoking the service; lower limit and invalid offset boundaries are also rejected before service invocation.",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_operating_pilot_pagination_openapi.py tests/test_gateway_operating_pilot_reads.py tests/test_gateway_operating_pilot_work_claims.py tests/test_gateway_operating_pilot_work_claim_allocations.py tests/test_gateway_operating_pilot_work_claim_reviews.py tests/test_gateway_operating_pilot_learning.py -q",
+      "result": "243 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the Query parameter declarations and focused OpenAPI/request-validation tests; no migration or persisted data changed.",
+  "limitations": [
+    "In-process OpenAPI and request validation only; no live proxy, database, or deployed Gateway acceptance."
+  ]
+}

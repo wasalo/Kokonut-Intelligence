@@ -249,7 +249,8 @@ def test_mobile_operations_inventory_rejects_invalid_location_or_limit_before_co
     assert connections == []
 
 
-def test_mobile_collection_list_rejects_invalid_bounds_before_connection():
+@pytest.mark.parametrize("limit", [0, 101])
+def test_mobile_collection_list_rejects_invalid_bounds_before_connection(limit):
     opened = False
 
     def connection_factory():
@@ -261,7 +262,7 @@ def test_mobile_collection_list_rejects_invalid_bounds_before_connection():
         list_mobile_collections(
             OPERATOR_ID,
             LOCATION_ID,
-            101,
+            limit,
             connection_factory=connection_factory,
         )
     assert not opened

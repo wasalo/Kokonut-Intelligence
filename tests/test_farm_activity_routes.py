@@ -110,6 +110,38 @@ def test_published_list_uses_analyst_safe_filter_and_tenant_denial_is_forbidden(
     assert denied.headers["cache-control"] == "no-store"
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/operator/api/farm-activity-records",
+        "/operator/api/farm-activity-records/published",
+    ],
+)
+def test_list_limits_are_advertised_and_rejected_before_service_access(monkeypatch, path):
+    def unexpected_service(*_args, **_kwargs):
+        raise AssertionError("FastAPI should reject the limit before service/database access")
+
+    monkeypatch.setattr(farm_activity_records, "list_farm_activity_records", unexpected_service)
+    with _client(object()) as client:
+        operation = client.app.openapi()["paths"][path]["get"]
+        limit = next(parameter for parameter in operation["parameters"] if parameter["name"] == "limit")
+        assert limit["schema"] == {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50,
+            "title": "Limit",
+        }
+
+        for invalid_limit in (0, 101):
+            response = client.get(
+                path,
+                params={"location_id": LOCATION_ID, "limit": invalid_limit},
+            )
+            assert response.status_code == 422
+            assert response.json()["detail"][0]["loc"] == ["query", "limit"]
+
+
 def test_transition_maps_database_workflow_guard_to_conflict(monkeypatch):
     class DatabaseError(Exception):
         pgcode = "P0001"

@@ -4,6 +4,7 @@
 def register_nutrient_balance_routes(router, provider, run_in_threadpool, psycopg2):
     from typing import Literal
 
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -17,8 +18,8 @@ def register_nutrient_balance_routes(router, provider, run_in_threadpool, psycop
     async def nutrient_balances(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10_000),
     ):
         if provider is None:
             return JSONResponse(
@@ -70,8 +71,8 @@ def register_nutrient_balance_routes(router, provider, run_in_threadpool, psycop
     async def nutrient_soil_tests(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10_000),
     ):
         if provider is None:
             return JSONResponse(
@@ -124,8 +125,8 @@ def register_nutrient_balance_routes(router, provider, run_in_threadpool, psycop
         request: Request,
         location_id: str,
         event_type: Literal["inputs", "removals"],
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10_000),
     ):
         if provider is None:
             return JSONResponse(

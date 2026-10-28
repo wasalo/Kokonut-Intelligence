@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from services.agents.capital_efficiency_agent import (
     CapitalEfficiencySynthesisAgent,
     synthesize_capital_efficiency,
@@ -262,6 +264,47 @@ def test_capital_efficiency_report_generators_public_safe() -> None:
     assert utility["report_type"] == "capital_provider_utility"
     assert "not guaranteed returns" in capital["limitations"][0]
     assert "not an offer of securities" in utility["limitations"][0]
+
+
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_governance_throughput_requires_location_before_database_access(location_id) -> None:
+    class NoDatabase:
+        def cursor(self, **_kwargs):
+            raise AssertionError("unscoped report must fail before opening a cursor")
+
+    with pytest.raises(ValueError, match="governance_throughput requires an explicit location_id"):
+        generate_governance_throughput(NoDatabase(), location_id)
+
+
+def test_governance_throughput_keeps_selected_location_and_public_rows() -> None:
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    report = generate_governance_throughput(conn, location_id)
+
+    assert report["location_id"] == location_id
+    assert "WHERE (location_id = %s OR location_id IS NULL)" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id, None, None, None, None)
 
 
 if __name__ == "__main__":

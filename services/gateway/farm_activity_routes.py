@@ -1,6 +1,7 @@
 """FastAPI route registration for Gateway-operated farm activity records."""
 
 def register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -72,7 +73,11 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
             return _unavailable(exc)
 
     @router.get("/operator/api/farm-activity-records")
-    async def farm_activity_records(request: Request, location_id: str, limit: int = 50):
+    async def farm_activity_records(
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=50, ge=1, le=100),
+    ):
         if provider is None:
             return _disabled()
         result = await _invoke(
@@ -90,7 +95,9 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
 
     @router.get("/operator/api/farm-activity-records/published")
     async def published_farm_activity_records(
-        request: Request, location_id: str, limit: int = 50
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=50, ge=1, le=100),
     ):
         if provider is None:
             return _disabled()

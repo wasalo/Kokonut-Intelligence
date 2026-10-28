@@ -1,3 +1,112 @@
+### Progress addendum — parallel C3/C5/C6/C7 code-first batch — 28 October 2026
+
+The optional Directus hook no longer caches workflow role names for five
+minutes. Each non-admin authorization check resolves the current role from its
+request database, so a role rename takes effect immediately; server
+accountability is still required and payload accountability remains ignored.
+The full extension suite passes 120 tests and the bundled extension build and
+TypeScript check pass. No live Directus or database was used. This adds one
+role lookup per non-admin check and does not prove deployed API/field/row
+permission parity.
+
+The adoption-barrier, bio-recipe library, community-governance,
+governance-inclusion, and governance-throughput reports now
+require a location before opening a database cursor and have no unscoped query
+branch; their location-filtered queries retain intentionally public-safe global
+rows.
+Four stakeholder
+reports whose registry scope is location-lineaged also fail before database
+access when their location is missing, and their CLI rejects `--all`. The
+combined nine-module report selection passes 507 tests with four database-
+dependent skips; Ruff, the query-scope inventory, compilation, and diff checks
+pass. No candidate/legacy database or provider/network was contacted. These
+input/query guards are not tenant authorization or populated report parity.
+
+The signed Delphi source worker now checks that the returned `study_id` matches
+the normalized request as well as the requested location. A mismatch rolls
+back and closes the connection. Three focused worker tests pass with Ruff and
+compilation; no database/provider/network was used. CAP-038 acceptance remains
+open.
+
+The full ARM64/QEMU PostgreSQL 16 replay applied all 670 schemas through
+migration 679 on `aarch64` with verified 1.5 GiB/two-CPU limits, zero pending or
+failed migrations, zero seeds, no OOM, and successful cleanup. It did not run
+the operator-scope probe and is not physical Pi, populated-data, or production
+recovery acceptance.
+
+Python Directus detail reads now match TypeScript for all projection inputs:
+`None` omits `fields`, `[]` serializes as the explicit JSON empty list, and
+populated fields remain CSV. Three mocked wire-contract cases, targeted Ruff,
+compilation, and diff checks pass; no database or network was used. This does
+not establish live authorization or tenant isolation.
+
+The TypeScript `ReportSnapshot` model now matches its canonical PostgreSQL
+table and Python model. Three stale fields with no SQL column were removed;
+13 focused tests and the complete SDK schema check across 109 models/2,150
+columns pass, along with the TypeScript build, Ruff, and diff checks. No
+database or external service was used; report lifecycle/runtime parity remains
+open.
+
+The durable notification outbox now rejects booleans for both `limit` and
+`lease_seconds` before opening a database cursor. Previously `True` could pass
+Python's integer check and become a one-second lease. The 40-test outbox and
+delivery selection, targeted Ruff, Python compilation, and diff check pass with
+mocked connections; no live DB/provider was used. Live SMTP/webhook delivery
+and worker outage acceptance remain open.
+
+C4 inventory review found the 23-entry native job catalog consistent with its
+generated contract and five Prefect deployments. The legacy health-check flow
+is not deployed; the weather-forecast worker remains default-off. No new
+schedule was inferred. The job-contract inventory check passes, but active
+provider ownership and runtime acceptance remain open. C1 audit found no next
+safe table revoke; remaining write paths and external/Directus consumers need
+traceable ownership and signed-context proof.
+
+The C3 and C6 audits found no further safe source-only change in those
+specific slices. Directus `workflow_history` and `approval` still have broad
+read policies without tenant-scoped hooks; row-to-location mapping and
+consumer ownership must be established before changing them. CAP-035 sharing
+and tranche custody remain decision-gated; CAP-036's fixture already verifies
+unscoped sensitive events are excluded; CAP-037 has no identified first-party
+workflow gap; CAP-038 still needs live identity and populated-source review.
+
+The minimal-profile import audit starts the Gateway while optional analytics,
+ML, GIS, Web3, ClickHouse, Prefect, Redis/MQTT, gRPC, OIDC, and S3 packages are
+blocked, without importing or attempting any of them. Provider-boundary and
+dependency-group checks pass. No dependency change was needed. The C2 SDK
+follow-up found no further static mismatch beyond the fixes recorded above.
+The C1 credit-class trace found gRPC `CreateBatch` accepts a global
+`ecocredit:batch:write` key scope and caller-supplied location without signed
+tenant context; active clients/grants and the other batch writers need
+reconciliation before changing that behavior or revoking DML.
+
+The Gateway operator ecocredit-batch and attestation list routes now expose
+their service's existing `1..100` pagination range (default `50`) through
+FastAPI `Query` metadata. OpenAPI reports those bounds and invalid `0`/`101`
+values fail before service invocation. The targeted plus existing route suite
+passes 21 tests with Ruff, compilation, and diff checks; no DB/provider/network
+was used. This does not prove reverse-proxy behavior.
+
+No capability classification or MAN-CAP status changed. Rollback is by
+reverting the source/tests/inventory changes; the full-schema replay was
+disposable and cleaned up. Checklist: 1,313 complete / 25 open (1,338 total);
+capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared.
+
+Evidence: [Directus role resolution](builds/2026-10-28-recovery/directus-role-resolution-freshness.json),
+[adoption-barrier scope](builds/2026-10-28-recovery/adoption-barriers-location-scope.json),
+[Delphi study scope](builds/2026-10-28-recovery/delphi-source-study-scope-match.json),
+[SDK empty projection parity](builds/2026-10-28-recovery/sdk-empty-fields-projection-parity.json),
+[stakeholder report scope](builds/2026-10-28-recovery/stakeholder-report-explicit-location.json),
+[report snapshot schema parity](builds/2026-10-28-recovery/report-snapshot-types-canonical-schema-parity.json),
+[bio recipe location scope](builds/2026-10-28-recovery/bio-recipe-library-location-scope.json),
+[notification bound validation](builds/2026-10-28-recovery/notification-outbox-rejects-boolean-bounds.json),
+[community governance location scope](builds/2026-10-28-recovery/community-governance-location-scope.json),
+[governance inclusion location scope](builds/2026-10-28-recovery/governance-inclusion-location-scope.json),
+[governance throughput location scope](builds/2026-10-28-recovery/governance-throughput-location-scope.json),
+[Gateway pagination contract](builds/2026-10-28-recovery/gateway-pagination-openapi-bounds.json),
+[ARM64 replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-679.json).
+
 ### Progress addendum — C2 typed list extension query parity — 28 October 2026
 
 The Directus TypeScript SDK already retained arbitrary list query parameters
@@ -18,6 +127,7 @@ not close broader SDK parity. No capability classification or MAN-CAP status
 changed. Rollback is a code/documentation revert; no migration or persistent
 data changed. Checklist: 1,300 complete / 25 open (1,325 total); capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared.
+
 
 Evidence: [contract and checks](builds/2026-10-28-recovery/sdk-typed-extension-query-parity.json),
 [Python README](../sdk/python/README.md),
@@ -21489,3 +21599,54 @@ Evidence: [migration](../schemas/postgres/675_runtime_revenue_multiplier_config_
 [refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
 Checklist: 1,289 complete / 25 open (1,314 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Implementation progress — report input scope and Gateway pagination — 28 October 2026
+
+Two further report generators, `replication_readiness` and `scaling_roadmap`, now reject missing location scope before opening a cursor, matching their registered CLI contract. Their selected-location queries retain only reviewed global rows exposed by the safe views. The expanded integrated reporting selection passes 563 tests with four database-dependent skips; the generated source inventory records 167 direct query sites, 166 positional-bind sites, and zero unresolved sites.
+
+Thirty Gateway list families now publish and enforce the downstream service's page-size and offset bounds in OpenAPI: Field Activity, nutrient balances, irrigation, crop simulations, traceability, geostatistics, trend analysis, extension learning, pollinator health, Delphi consultation, Delphi recommendation drafts/reviews, minority review, competitive landscape, business architecture/planning, stakeholder identity/trust, AI-summary review, strategy, sequential decisions, governance roles, planning budgets, business-planning history, threatcasting, Delphi invites, consent notices, all 21 operating-pilot routes, and all 25 solution-lifecycle routes, plus the waste-incident offset cap. Focused route suites pass across all touched modules (6–448 tests per module), including invalid-input rejection before service invocation. The final changed Gateway/operator route selection passes 732 tests after the independent irrigation/crop review added the missing offset upper bounds.
+
+No database, provider, external network, candidate, or legacy service was used for these changes. The query guards align input contracts but do not establish tenant authorization, deployed proxy behavior, or populated-data parity. The capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); no MAN-CAP was accepted. Checklist: 1,350 complete / 25 open (1,375 total).
+
+### Progress addendum — parallel report-scope and Gateway contract batch — 28 October 2026
+
+The report-source review found direct calls that bypassed CLI location
+requirements. All 18 location-only strategy report generators now reject
+missing locations before cursor/helper access. Three location-only Kokonut
+Commons reports and `perpetual_value_stress` do the same, retaining reviewed
+shared public rows only when a farm location is selected. Explicit network
+reports keep their network scope. Location-scoped stakeholder outcomes no
+longer query unlineaged network architecture rows; those remain available from
+the separate `stakeholder_value_streams` report. Location-scoped fork detection
+omits `insight_transfer` until the table has location lineage, while network
+detection keeps the feature. Focused report selections pass 158 strategy tests,
+132 Kokonut Commons tests, and 285 Open Source Capitalist stress/cursor tests.
+The integrated reporting selection passes 563 tests with four database-
+dependent skips. Its generated inventory now records 94 report types, 167
+direct SQL sites, 166 static positional-bind sites, zero unresolved queries,
+and zero bind mismatches.
+
+Gateway pagination contracts now cover the participant Delphi workspace and
+six operator list routes that were missing OpenAPI bounds. The workspace
+enforces `limit=1..50` and `offset=0..10,000`; operator review, mobile
+collection, farm-activity intake/list/published, and inventory routes enforce
+their existing `1..100` cap. Invalid values are rejected before service
+access. The combined changed Gateway/operator route selection passes 732 tests.
+The focused platform-integrity selection passes 374 tests plus six subtests.
+
+The Directus hook suite passes 120 tests and its extension build/typecheck;
+the JavaScript SDK passes 56 tests and TypeScript build; the focused Python
+SDK/outbox/worker selection passes 113 tests. Ruff and Python compilation pass
+for 101 changed Python files, as do dependency/provider-boundary checks and
+capability-matrix validation. No migration, candidate/legacy database,
+provider, or external network was used. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; MAN-CAP
+acceptance is unchanged. Checklist: 1,350 complete / 25 open (1,375 total).
+
+Evidence: [report query inventory](report-generator-query-scope-inventory.json),
+[Kokonut Commons scope](builds/2026-10-28-recovery/kokonut-commons-report-location-scope.json),
+[strategy scope](builds/2026-10-28-recovery/stakeholder-outcomes-direct-scope.json),
+[perpetual stress scope](builds/2026-10-28-recovery/perpetual-value-stress-location-scope.json),
+[Delphi workspace bounds](builds/2026-10-28-recovery/delphi-participant-workspace-pagination-openapi.json),
+[operator list bounds](builds/2026-10-28-recovery/operator-list-pagination-openapi-bounds.json),
+[combined verification](builds/2026-10-28-recovery/parallel-report-gateway-contracts.json).

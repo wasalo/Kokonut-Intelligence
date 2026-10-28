@@ -2,6 +2,7 @@
 
 
 def register_threatcasting_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -39,7 +40,7 @@ def register_threatcasting_routes(router, provider, run_in_threadpool, psycopg2)
     async def location_backcast_plans(
         request: Request,
         location_id: str,
-        limit: str = "50",
+        limit: int = Query(default=50, ge=1, le=100),
         cursor_created_at: str | None = None,
         cursor_plan_id: str | None = None,
     ):

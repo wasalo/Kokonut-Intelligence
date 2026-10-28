@@ -531,6 +531,86 @@ def _set_operator_cookies(client, *, csrf=False):
         )
 
 
+def test_operator_list_routes_publish_and_enforce_pagination_bounds_before_service(
+    monkeypatch,
+):
+    class _ScopedProvider(_FakeProvider):
+        def has_scope(self, operator_id, _resource, _action, location_id):
+            return operator_id == OPERATOR_ID and location_id == LOCATION_ID
+
+    provider = _ScopedProvider()
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
+
+    service_paths = (
+        "services.gateway.operator_review.list_submitted_reports",
+        "services.gateway.operator_mobile_review.list_mobile_collections",
+        "services.gateway.farm_activity_workflow.list_farm_activity_intake",
+        "services.gateway.farm_activity_lifecycle.list_farm_activities",
+        "services.gateway.operator_mobile_review.get_mobile_operations_inventory",
+    )
+    services = {
+        path: MagicMock(side_effect=AssertionError("invalid limit must fail before service access"))
+        for path in service_paths
+    }
+    for path, service in services.items():
+        monkeypatch.setattr(path, service)
+
+    route_cases = (
+        ("/operator/api/report-review-queue", "/operator/api/report-review-queue", "limit"),
+        (
+            "/operator/api/mobile-collection-review-queue",
+            "/operator/api/mobile-collection-review-queue",
+            "limit",
+        ),
+        (
+            "/operator/api/farm-activity-intake-queue",
+            "/operator/api/farm-activity-intake-queue",
+            "limit",
+        ),
+        ("/operator/api/farm-activities", "/operator/api/farm-activities", "limit"),
+        (
+            "/operator/api/farm-activities/published",
+            "/operator/api/farm-activities/published",
+            "limit",
+        ),
+        (
+            "/operator/api/mobile/locations/{location_id}/inventory",
+            f"/operator/api/mobile/locations/{LOCATION_ID}/inventory",
+            "device_limit",
+        ),
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        schema = client.app.openapi()
+        for schema_path, request_path, parameter_name in route_cases:
+            parameter = next(
+                item
+                for item in schema["paths"][schema_path]["get"]["parameters"]
+                if item["name"] == parameter_name
+            )
+            assert parameter["schema"]["minimum"] == 1, schema_path
+            assert parameter["schema"]["maximum"] == 100, schema_path
+            assert parameter["schema"]["default"] == 50, schema_path
+
+            params = {"location_id": LOCATION_ID} if parameter_name == "limit" else {}
+            for invalid_limit in (0, 101):
+                response = client.get(
+                    request_path,
+                    params={**params, parameter_name: invalid_limit},
+                )
+                assert response.status_code == 422, (
+                    request_path,
+                    invalid_limit,
+                    response.text,
+                )
+                assert response.json()["detail"][0]["loc"] == ["query", parameter_name]
+
+    for service in services.values():
+        service.assert_not_called()
+
+
 def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatch):
     monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _FarmActivityProvider(allowed_scopes={("farm_activity", "read")})

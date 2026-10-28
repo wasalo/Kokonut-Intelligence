@@ -299,3 +299,57 @@ def test_irrigation_status_route_denies_missing_location_grant_before_handler(
 
     assert response.status_code == 403
     assert called is False
+
+
+@pytest.mark.parametrize(
+    "query", ["limit=0", "limit=51", "offset=-1", "offset=10001"]
+)
+def test_irrigation_route_publishes_and_enforces_pagination_bounds(
+    monkeypatch, gateway_audit_spool, query
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="e" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, op, resource, action, location):
+            return (op, resource, action, location) == (
+                operator_id, "precision_irrigation", "read", location_id
+            )
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    called = False
+
+    def unexpected_status(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("invalid pagination must fail before service invocation")
+
+    monkeypatch.setattr(
+        "services.gateway.irrigation_status.get_location_irrigation_status",
+        unexpected_status,
+    )
+    app = create_app()
+    path = f"/operator/api/irrigation/{location_id}/status"
+    parameters = app.openapi()["paths"]["/operator/api/irrigation/{location_id}/status"]["get"]["parameters"]
+    by_name = {parameter["name"]: parameter["schema"] for parameter in parameters}
+    assert by_name["limit"]["default"] == 25
+    assert by_name["limit"]["minimum"] == 1
+    assert by_name["limit"]["maximum"] == 50
+    assert by_name["offset"]["default"] == 0
+    assert by_name["offset"]["minimum"] == 0
+    assert by_name["offset"]["maximum"] == 10_000
+
+    with TestClient(app, cookies={"kokonut_operator_session": "synthetic-session"}) as client:
+        response = client.get(f"{path}?{query}")
+
+    assert response.status_code == 422
+    assert called is False

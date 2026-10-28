@@ -219,3 +219,28 @@ def test_routes_fail_closed_when_oidc_is_disabled():
     )
     assert response.status_code == 404
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_list_route_publishes_service_pagination_bounds_and_rejects_invalid_values():
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("invalid pagination must not reach the review service")
+
+    app = _make_app(object(), {}, run_in_threadpool)
+    operation = app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/minority-reports"
+    ]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert parameters["limit"]["schema"] == {
+        "type": "integer", "minimum": 1, "maximum": 50, "default": 50,
+        "title": "Limit",
+    }
+    assert parameters["offset"]["schema"] == {
+        "type": "integer", "minimum": 0, "maximum": 10000, "default": 0,
+        "title": "Offset",
+    }
+
+    client = TestClient(app)
+    path = f"/operator/api/delphi/{LOCATION_ID}/minority-reports"
+    for query in ("limit=0", "limit=51", "offset=-1", "offset=10001"):
+        response = client.get(f"{path}?{query}")
+        assert response.status_code == 422

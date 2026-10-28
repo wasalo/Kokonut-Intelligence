@@ -12,6 +12,7 @@ from services.gateway.farm_activity_lifecycle import (
     FarmActivityTransitionConflict,
     FarmActivityTransitionInvalid,
     edit_farm_activity_draft,
+    list_farm_activities,
     transition_farm_activity,
 )
 
@@ -31,6 +32,26 @@ def _tenant_context_spy(monkeypatch):
 
     monkeypatch.setattr(lifecycle, "set_operator_tenant_context", set_context)
     return calls
+
+
+@pytest.mark.parametrize("limit", [0, 101])
+def test_farm_activity_list_rejects_invalid_limit_before_connecting(limit):
+    connected = False
+
+    def connection_factory():
+        nonlocal connected
+        connected = True
+        raise AssertionError("invalid list bounds must fail before connecting")
+
+    with pytest.raises(ValueError, match="limit must be between 1 and 100"):
+        list_farm_activities(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit,
+            connection_factory=connection_factory,
+        )
+
+    assert not connected
 
 TRANSITIONS = [
     ("submit", "draft", "submitted", "submitted", "submit", None),

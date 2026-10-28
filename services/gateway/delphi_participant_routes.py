@@ -6,6 +6,7 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
     import json
     from pathlib import Path
 
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import FileResponse, JSONResponse
     from starlette.requests import Request
@@ -267,7 +268,11 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
         return response
 
     @router.get("/participation/delphi/workspace")
-    async def participant_workspace(request: Request):
+    async def participant_workspace(
+        request: Request,
+        limit: int = Query(default=50, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
+    ):
         session_token = request.cookies.get(session_cookie, "")
         if not session_token:
             return JSONResponse(
@@ -279,8 +284,8 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
             result = await run_in_threadpool(
                 get_location_delphi_participant_workspace,
                 session_token,
-                limit=request.query_params.get("limit", "50"),
-                offset=request.query_params.get("offset", "0"),
+                limit=limit,
+                offset=offset,
             )
         except DelphiParticipantWorkspaceInvalid as exc:
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)

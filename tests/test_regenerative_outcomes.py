@@ -2,14 +2,19 @@
 
 from pathlib import Path
 
+import pytest
+
 from services.agents.regenerator_agent import RegeneratorSynthesisAgent, synthesize_regenerator
 from services.agents.tasks import get_task, list_tasks, validate_output
 from services.export.report_generator import (
+    NETWORK_LEVEL_REPORTS,
     REPORT_GENERATORS,
+    build_parser,
     generate_adaptive_stewardship,
     generate_community_governance,
     generate_regenerative_outcomes,
     generate_replication_readiness,
+    validate_args,
 )
 
 SCHEMA = Path("schemas/postgres/039_regenerative_outcomes_and_stewardship.sql")
@@ -279,6 +284,66 @@ def test_regenerative_report_generators_public_safe() -> None:
     assert replication["report_type"] == "replication_readiness"
     assert "not an unlimited-scaling claim" in replication["limitations"][0]
     assert generate_adaptive_stewardship(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "adaptive_stewardship"
+
+
+def test_community_governance_rejects_missing_location_before_database_access() -> None:
+    class Conn:
+        def cursor(self, *args, **kwargs):
+            raise AssertionError("connection should not be opened")
+
+    with pytest.raises(ValueError, match="community_governance requires an explicit location_id"):
+        generate_community_governance(Conn())
+
+
+def test_replication_readiness_is_location_scoped_in_registry_and_cli() -> None:
+    assert "replication_readiness" not in NETWORK_LEVEL_REPORTS
+
+    parser = build_parser()
+    with pytest.raises(SystemExit) as exc_info:
+        validate_args(parser, parser.parse_args(["--type", "replication_readiness"]))
+    assert exc_info.value.code == 2
+
+
+def test_replication_readiness_rejects_missing_location_before_database_access() -> None:
+    class Conn:
+        def cursor(self, *args, **kwargs):
+            raise AssertionError("connection should not be opened")
+
+    with pytest.raises(ValueError, match="replication_readiness requires an explicit location_id"):
+        generate_replication_readiness(Conn())
+
+
+def test_replication_readiness_keeps_reviewed_global_rows_in_location_report() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    result = generate_replication_readiness(conn, location_id, period_start, period_end)
+
+    assert "location_id = %s OR location_id IS NULL" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id, period_start, period_start, period_end, period_end)
+    assert result["location_id"] == location_id
 
 
 if __name__ == "__main__":

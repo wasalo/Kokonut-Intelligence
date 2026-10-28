@@ -291,6 +291,79 @@ def test_crop_simulation_runs_route_denies_missing_grant_before_handler(
     assert called is False
 
 
+def test_crop_simulation_routes_publish_service_pagination_bounds(
+    gateway_audit_spool,
+):
+    app = create_app()
+    paths = app.openapi()["paths"]
+    for path in (
+        "/operator/api/crop-simulations/{location_id}/runs",
+        "/operator/api/crop-simulations/{location_id}/runs/{run_id}",
+    ):
+        parameters = {
+            parameter["name"]: parameter["schema"]
+            for parameter in paths[path]["get"]["parameters"]
+        }
+        assert parameters["limit"]["default"] == 25
+        assert parameters["limit"]["minimum"] == 1
+        assert parameters["limit"]["maximum"] == 50
+        assert parameters["offset"]["default"] == 0
+        assert parameters["offset"]["minimum"] == 0
+        assert parameters["offset"]["maximum"] == 10_000
+
+
+@pytest.mark.parametrize(
+    "route_suffix",
+    ["runs", f"runs/{uuid4()}"],
+)
+@pytest.mark.parametrize(
+    "query", ["limit=0", "limit=51", "offset=-1", "offset=10001"]
+)
+def test_crop_simulation_routes_reject_invalid_pagination_before_service(
+    monkeypatch, gateway_audit_spool, route_suffix, query
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="a" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, op, resource, action, location):
+            return (op, resource, action, location) == (
+                operator_id, "digital_twin", "read", location_id
+            )
+
+    called = False
+
+    def unexpected_service_call(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("invalid pagination must fail before service invocation")
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    monkeypatch.setattr(
+        "services.gateway.crop_simulations.get_location_crop_simulation_runs",
+        unexpected_service_call,
+    )
+    monkeypatch.setattr(
+        "services.gateway.crop_simulations.get_location_crop_simulation_run_detail",
+        unexpected_service_call,
+    )
+    path = f"/operator/api/crop-simulations/{location_id}/{route_suffix}"
+    with TestClient(create_app(), cookies={"kokonut_operator_session": "synthetic-session"}) as client:
+        response = client.get(f"{path}?{query}")
+
+    assert response.status_code == 422
+    assert called is False
+
+
 class _DetailCursor:
     def __init__(self, conn):
         self.conn = conn

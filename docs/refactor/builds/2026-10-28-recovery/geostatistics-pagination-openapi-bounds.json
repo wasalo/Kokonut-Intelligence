@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "result": "passed",
+  "slice": "Gateway geostatistics pagination OpenAPI and request validation",
+  "routes": [
+    "/operator/api/geostatistics/{location_id}/autocorrelation",
+    "/operator/api/geostatistics/{location_id}/cross-validation",
+    "/operator/api/geostatistics/{location_id}/variogram-models",
+    "/operator/api/geostatistics/{location_id}/sensor-network-designs",
+    "/operator/api/geostatistics/{location_id}/kriging-summaries",
+    "/operator/api/geostatistics/{location_id}/kriging/{prediction_id}/points",
+    "/operator/api/geostatistics/{location_id}/realization-summaries",
+    "/operator/api/geostatistics/{location_id}/realizations/{realization_id}/points"
+  ],
+  "contract": {
+    "limit_minimum": 1,
+    "limit_maximum": 50,
+    "defaults": "Existing 25 or 50 values preserved per route",
+    "offset_minimum": 0,
+    "offset_maximum": 10000
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_geostatistics_pagination_openapi.py tests/test_gateway_geostatistics_reads.py -q",
+    "pytest_result": "73 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "OpenAPI and mocked route contract checks only. Invalid pagination is rejected before service access. No database, provider, network, candidate, or legacy system was used."
+}

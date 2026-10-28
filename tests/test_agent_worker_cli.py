@@ -383,6 +383,31 @@ def test_delphi_agent_worker_rejects_mismatched_source_location(monkeypatch):
     connection.close.assert_called_once_with()
 
 
+def test_delphi_agent_worker_rejects_mismatched_source_study(monkeypatch):
+    connection, cursor = _source_connection()
+    cursor.fetchone.side_effect = [
+        ("a0000000-0000-4000-8000-000000000801", LOCATION_ID,
+         "a0000000-0000-4000-8000-000000000901", "system_worker"),
+        {
+            "study_id": REQUEST_ID,
+            "location_id": LOCATION_ID,
+            "title": "Synthetic consultation",
+        },
+    ]
+    monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    with pytest.raises(PermissionError, match="mismatched study"):
+        worker_cli.run_worker_delphi_facilitation(
+            "00000000-0000-0000-0000-000000000abc", LOCATION_ID
+        )
+
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
 def _synthetic_synthesis_agent() -> BioFactorySynthesisAgent:
     agent = BioFactorySynthesisAgent()
     agent.synthesize = lambda _conn, location_id=None: {

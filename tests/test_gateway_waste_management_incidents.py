@@ -317,3 +317,30 @@ def test_http_incident_review_and_resolution_routes(monkeypatch):
     assert resolved.status_code == 200
     assert resolved.json()["status"] == "resolved"
     assert resolved.headers["cache-control"] == "no-store"
+
+
+def test_incident_review_offset_openapi_matches_service_bounds(monkeypatch):
+    operation = _app(monkeypatch).app.openapi()["paths"][
+        "/operator/api/waste/{location_id}/incidents"
+    ]["get"]
+    offset = next(parameter for parameter in operation["parameters"] if parameter["name"] == "offset")
+
+    assert offset["schema"]["type"] == "integer"
+    assert offset["schema"]["minimum"] == 0
+    assert offset["schema"]["maximum"] == 1_000_000
+    assert offset["schema"]["default"] == 0
+
+
+@pytest.mark.parametrize("offset", [-1, 1_000_001, "not-an-integer"])
+def test_invalid_http_incident_review_offset_fails_before_service(monkeypatch, offset):
+    def unexpected_service(*_args, **_kwargs):
+        raise AssertionError("FastAPI should reject the offset before service access")
+
+    monkeypatch.setattr(incidents, "list_location_pollution_incidents", unexpected_service)
+    response = _app(monkeypatch).get(
+        f"/operator/api/waste/{_LOCATION}/incidents",
+        params={"offset": offset},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", "offset"]

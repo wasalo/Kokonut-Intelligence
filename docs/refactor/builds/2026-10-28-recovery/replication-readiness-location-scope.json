@@ -1,0 +1,37 @@
+{
+  "slice": "replication_readiness location-scope contract",
+  "source": "services/export/reports/commons/stewardship.py",
+  "registry": "services/export/reports/__init__.py",
+  "registry_and_cli_scope": {
+    "classification": "location-required",
+    "evidence": "replication_readiness is absent from NETWORK_LEVEL_REPORTS and ALL_LOCATION_REPORTS; validate_args rejects an unscoped CLI invocation.",
+    "direct_generator_before_change": "Accepted location_id=None and queried every row in v_public_replication_readiness_summary.",
+    "direct_generator_after_change": "Raises ValueError before opening a cursor when location_id is missing."
+  },
+  "query_contract": {
+    "selected_location_predicate": "location_id = selected location OR location_id IS NULL",
+    "global_rows": "Preserved only through v_public_replication_readiness_summary, which exposes published records with evidence_maturity >= 3 and a non-empty public_summary.",
+    "period_filters": "Preserved for both selected-location and reviewed global rows."
+  },
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_regenerative_outcomes.py -q",
+      "result": "passed",
+      "passed": 12
+    },
+    "ruff": {
+      "command": "ruff check services/export/reports/commons/stewardship.py tests/test_regenerative_outcomes.py",
+      "result": "passed"
+    },
+    "py_compile": {
+      "command": "python3 -m py_compile services/export/reports/commons/stewardship.py tests/test_regenerative_outcomes.py",
+      "result": "passed"
+    },
+    "diff_check": {
+      "command": "git diff --check -- services/export/reports/commons/stewardship.py tests/test_regenerative_outcomes.py",
+      "result": "passed"
+    }
+  },
+  "test_scope": "Mocked/source contract tests only; no database or provider was used.",
+  "baseline_head": "753b4645"
+}

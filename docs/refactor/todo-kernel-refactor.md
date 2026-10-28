@@ -38,6 +38,123 @@ the batch log and the affected capability/progress records are updated.
   native replay and 34-check two-tenant probe pass through all 670 schemas;
   candidate and legacy databases remain untouched. See
   [native evidence](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-disposable.json).
+- [x] Remove stale Directus workflow-role authorization caching. The hook now
+  resolves the current role name on each non-admin authorization check, so a
+  role rename takes effect immediately; server accountability remains required
+  and payload-supplied accountability is ignored. The role/error-safety/workflow
+  selection passes 46 tests, and the extension build/typecheck passes. No live
+  Directus or database was used ([evidence](builds/2026-10-28-recovery/directus-role-resolution-freshness.json)).
+- [x] Bind Delphi worker output to the normalized requested study as well as
+  the requested location. An unexpected row returned by the source view now
+  fails closed, rolls back the transaction, and closes the connection. The
+  focused Delphi worker selection passes 3 tests with targeted Ruff and
+  compilation ([evidence](builds/2026-10-28-recovery/delphi-source-study-scope-match.json)).
+- [x] Require explicit location scope for the adoption-barrier report before
+  database access and remove its unscoped SQL branch. Its location-bound public
+  projection still includes reviewed global rows. The focused report selection
+  passes 456 tests with Ruff, query-scope inventory, Python compilation, and
+  diff checks ([evidence](builds/2026-10-28-recovery/adoption-barriers-location-scope.json)).
+- [x] Re-run all schema migrations through 679 on ARM64/QEMU with a 1.5 GiB,
+  two-CPU database limit. All 670 schemas applied on `aarch64`, with zero
+  pending or failed migrations, no seeds, no OOM, and successful cleanup. This
+  remains software portability evidence only; physical Pi, populated-data, and
+  production recovery gates remain open ([evidence](builds/2026-10-28-recovery/arm64-resource-limited-schema-679.json)).
+- [x] Reconcile C4 provider-job sources. The 23-entry native job catalog matches
+  its generated contract and five Prefect deployments; the legacy health-check
+  flow is not deployed, and the forecast worker remains default-off. Do not
+  invent an active schedule; C4 still needs owner/runtime-state reconciliation
+  ([inventory](worker-job-contract-inventory.json)).
+- [x] Align Python and TypeScript `get_item` projection serialization. Python
+  now omits `fields` for `None`, emits JSON `[]` for an explicit empty list,
+  and sends populated field lists as CSV, matching the pinned TypeScript SDK.
+  Three mocked wire-contract cases, targeted Ruff, compilation, and diff checks
+  pass ([evidence](builds/2026-10-28-recovery/sdk-empty-fields-projection-parity.json)).
+- [x] Require explicit location scope in the four location-lineaged stakeholder
+  report generators before database access. Their direct-call and CLI behavior
+  now agrees with the report registry; `--all` is rejected for these reports.
+  The combined nine-module report suite passes 507 tests with four database-
+  dependent skips, plus generated query-scope inventory, Ruff, compilation, and diff
+  checks ([evidence](builds/2026-10-28-recovery/stakeholder-report-explicit-location.json)).
+- [x] Align the TypeScript `ReportSnapshot` model with the canonical SQL and
+  Python model; removed three unsupported TypeScript fields. Focused schema
+  tests pass (13), and the full parity check covers 109 models/2,150 columns
+  ([evidence](builds/2026-10-28-recovery/report-snapshot-types-canonical-schema-parity.json)).
+- [x] Require explicit location scope for direct `bio_recipe_library` calls
+  before opening a cursor and remove the unscoped SQL branch. Reviewed global
+  public catalog rows remain visible under the selected-location query; the
+  focused check passes 349 tests with inventory, Ruff, compilation, and diff
+  checks ([evidence](builds/2026-10-28-recovery/bio-recipe-library-location-scope.json)).
+- [x] Reject booleans for notification-outbox batch-size and lease-duration
+  bounds before database access. Python's `bool` subclassing of `int` had
+  admitted `True` as a one-second lease; 40 mocked outbox/delivery tests pass
+  ([evidence](builds/2026-10-28-recovery/notification-outbox-rejects-boolean-bounds.json)).
+- [x] Require explicit location scope for direct `community_governance`
+  report calls before cursor creation; the selected-location query preserves
+  reviewed public global rows. The focused suite passes 341 tests, and the
+  combined nine-module report selection passes 507 with four database-
+  dependent skips ([evidence](builds/2026-10-28-recovery/community-governance-location-scope.json)).
+- [x] Require explicit locations for `governance_inclusion` and
+  `governance_throughput` before cursor creation; their selected-location
+  queries retain reviewed public global rows. Dedicated tests pass 290 and 11
+  cases respectively. The integrated nine-module report suite passes 507 with
+  four database-dependent skips; the generated inventory has 171 direct query
+  sites, 170 positional bind sites, and zero unresolved sites. See
+  [inclusion evidence](builds/2026-10-28-recovery/governance-inclusion-location-scope.json)
+  and [throughput evidence](builds/2026-10-28-recovery/governance-throughput-location-scope.json).
+- [x] Publish existing `1..100` pagination limits in the Gateway OpenAPI
+  contract for operator ecocredit-batch and attestation list routes. Invalid
+  values fail before service invocation; the focused plus existing route suite
+  passes 21 tests ([evidence](builds/2026-10-28-recovery/gateway-pagination-openapi-bounds.json)).
+- [x] Extend Gateway pagination bounds to Field Activity, nutrient-balance,
+  irrigation, crop-simulation, traceability, geostatistics, trend-analysis,
+  extension-learning, pollinator health, Delphi consultation, competitive
+  landscape, business-architecture, business-planning, Delphi recommendation
+  draft, recommendation review, stakeholder identity, stakeholder-trust, and
+  Delphi minority-review lists, including AI-summary review, strategy,
+  sequential decisions, governance roles, planning budgets, business-planning
+  history, threatcasting, Delphi participant invites, consent notices,
+  operating-pilot, solution-lifecycle, and pollution-incident queues. The
+  endpoints publish validated limit/offset constraints in OpenAPI and reject
+  invalid values before service access. Focused suites pass 6, 19, 13, 24, 15,
+  73, 34, 12, 74, 21, 50, 18, 32, 15, 18, 13, 20, 21, 28, 14, 20, 8, 20, 23, 14, 29, 35, 243, 448, and 25 tests respectively; bounds match each service's existing maximum
+  ([Field Activity](builds/2026-10-28-recovery/farm-activity-pagination-openapi-bounds.json),
+  [nutrients](builds/2026-10-28-recovery/nutrient-pagination-openapi-bounds.json),
+  [irrigation](builds/2026-10-28-recovery/irrigation-pagination-openapi-bounds.json),
+  [crop simulations](builds/2026-10-28-recovery/crop-simulation-pagination-openapi-bounds.json),
+  [traceability](builds/2026-10-28-recovery/traceability-pagination-openapi-bounds.json),
+  [geostatistics](builds/2026-10-28-recovery/geostatistics-pagination-openapi-bounds.json),
+  [trend analysis](builds/2026-10-28-recovery/trend-analysis-pagination-openapi-bounds.json),
+  [extension learning](builds/2026-10-28-recovery/extension-learning-pagination-openapi-bounds.json),
+  [pollinator health](builds/2026-10-28-recovery/pollinator-pagination-openapi-bounds.json),
+  [Delphi consultation](builds/2026-10-28-recovery/delphi-consultation-pagination-openapi-bounds.json),
+  [competitive landscape](builds/2026-10-28-recovery/competitive-landscape-pagination-openapi-bounds.json),
+  [business architecture](builds/2026-10-28-recovery/business-architecture-pagination-openapi-bounds.json),
+  [Delphi recommendation drafts](builds/2026-10-28-recovery/delphi-draft-study-pagination-openapi-bounds.json),
+  [stakeholder identity](builds/2026-10-28-recovery/stakeholder-identity-pagination-openapi-bounds.json),
+  [business planning](builds/2026-10-28-recovery/business-planning-pagination-openapi-bounds.json),
+  [stakeholder trust](builds/2026-10-28-recovery/stakeholder-identity-trust-pagination-openapi-bounds.json),
+  [Delphi minority review](builds/2026-10-28-recovery/delphi-minority-review-pagination-openapi-bounds.json),
+  [AI-summary review](builds/2026-10-28-recovery/ai-summary-review-pagination-openapi-bounds.json),
+  [strategy](builds/2026-10-28-recovery/strategy-pagination-openapi-bounds.json),
+  [sequential decisions](builds/2026-10-28-recovery/sequential-decision-pagination-openapi-bounds.json),
+  [governance roles](builds/2026-10-28-recovery/governance-role-pagination-openapi-bounds.json),
+  [planning budgets](builds/2026-10-28-recovery/planning-budget-pagination-openapi-bounds.json),
+  [business-planning history](builds/2026-10-28-recovery/business-planning-edit-history-pagination-openapi.json),
+  [threatcasting](builds/2026-10-28-recovery/threatcasting-pagination-openapi-bounds.json),
+  [Delphi participant invites](builds/2026-10-28-recovery/delphi-participant-invite-pagination-openapi.json),
+  [Delphi consent notices](builds/2026-10-28-recovery/delphi-consent-notice-pagination-openapi-bounds.json),
+  [operating pilot](builds/2026-10-28-recovery/operating-pilot-pagination-openapi-bounds.json),
+  [solution lifecycle](builds/2026-10-28-recovery/solution-lifecycle-pagination-openapi-bounds.json),
+  [waste incident offset](builds/2026-10-28-recovery/waste-incident-offset-bounds.json)).
+- [x] Close two more report input-scope mismatches: `replication_readiness`
+  and `scaling_roadmap` were location-required by the registry/CLI but their
+  direct generators accepted missing locations and queried all public-view
+  rows. Both now fail before opening a cursor while keeping reviewed global
+  rows inside a selected-location query. The integrated report selection
+  passes 516 tests with four database-dependent skips; the fresh inventory
+  has 169 direct query sites, 168 positional bind sites, and zero unresolved
+  ([replication readiness](builds/2026-10-28-recovery/replication-readiness-location-scope.json),
+  [scaling roadmap](builds/2026-10-28-recovery/scaling-roadmap-location-scope.json)).
 - [x] Restore typed-list extension query parity across the Python and
   JavaScript SDKs. Python `ListOptions.extra_params` now matches TypeScript
   `ListOptions.extraParams`; representative scoped Field Note reads preserve
@@ -372,7 +489,7 @@ that its full source-plan phase is complete.
   or column violations. The probe still reports 994 relations with effective
   DML while RLS is disabled, so broad runtime access and universal application
   tenant isolation remain open. ARM64/QEMU has full-schema replay evidence
-  through migration 671 and focused ACL checks through 679; this is software
+  through migration 679 and focused ACL checks through 679; this is software
   portability evidence only. The latest full native report counts 994
   relations with effective DML while RLS is disabled.
 
@@ -399,10 +516,26 @@ that its full source-plan phase is complete.
   remaining callers and management paths before changing grants. Do not
   blanket-revoke based on static absence. Preserve rollback and
   distinguish table grants from RLS, worker, Directus, and production
-  enforcement.
+  enforcement. The latest audit found no next relation with a complete safe
+  revoke case: configuration/retention registries remain dynamic, and
+  `process_benchmark`, `farm_task_framework_step`, and governed reference data
+  still lack complete caller/consumer ownership proof. The current report shows
+  251 unprotected DML relations without an inventoried callsite and 432 without
+  an inventoried write-target site; the report does not include all Directus,
+  external, ownership, security-definer, column-ACL, or populated-runtime paths.
+  Trace signed-context/write boundaries for the remaining 273 analytics and 25
+  credit-class write-target relations, then reconcile unlocated Directus and
+  external callers before selecting further revocations. The first credit-
+  class trace found gRPC `CreateBatch` accepts a global
+  `ecocredit:batch:write` API-key scope and writes a caller-supplied location
+  without signed tenant context; the SQL setter supports exact-location grants
+  but this RPC is not wired to it. Other credit-batch writers and the lack of
+  active-client/API-key inventory mean changing this path or revoking runtime
+  DML could break deployed clients, so no code change is safe until the
+  contract is reconciled.
   Sources: [runtime boundary](batches.md#c1-market-reference-catalog-acl--28-october-2026),
   [full-schema replay](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
-  [ARM64 full replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json),
+  [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-679.json),
   [market-reference ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
   [quantity-unit ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
   [analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json).
@@ -415,7 +548,18 @@ that its full source-plan phase is complete.
   methods. Attestation records likewise remain read-only projections of
   governed workflow and indexed chain state; dedicated EAS workflows retain
   publication and revocation. Calculated NOI snapshots also expose read-only
-  SDK methods; reconciliation remains in service/worker paths. Export-log fields
+  SDK methods; reconciliation remains in service/worker paths. Typed list
+  accessors now share arbitrary Directus query extensions; Python detail reads
+  also preserve explicit `fields=[]` like the pinned TypeScript transport. The
+  TypeScript `ReportSnapshot` model now matches canonical SQL and Python. A
+  further audit found no additional static SDK mismatch across the 109-model/
+  2,150-column check and 15 method/public API tests. Parallel route work now
+  aligns service-backed pagination bounds across 30 Gateway list families,
+  including all 25 solution-lifecycle routes and 21 operating-pilot routes;
+  invalid paging fails before readers run. Focused source/OpenAPI regressions
+  cover these bounds. The expanded Gateway integration run is pending;
+  authorization and live runtime behavior remain open.
+  Export-log fields
   match the canonical table; the earlier pending-
   create API was removed because the table lacks its request fields and no
   worker consumes pending rows. Report snapshots remain generated by the
@@ -425,24 +569,40 @@ that its full source-plan phase is complete.
   [Phase 7](implementation-plan-alignment.md#L27).
 - [ ] **C3 — Finish the optional Directus adapter boundary.** Close code-verifiable
   role, field, row and hook gaps for collections still retained; keep native
-  farm activity in Gateway. Record surfaces that cannot be proven without a
-  live runtime separately. Sources: [Directus parity](batches.md#L2117),
+  farm activity in Gateway. Workflow-role authorization cache freshness is
+  fixed; a source audit found unfiltered reads for `workflow_history` and
+  `approval` without tenant-scoped hooks. Map their row-to-location lineage and
+  identify consumers before narrowing those policies; avoid revoking an
+  existing operator feature on static evidence alone. Record surfaces that
+  cannot be proven without a live runtime separately. Sources: [Directus parity](batches.md#L2117),
   [transport/Directus gates](batches.md#L3320).
 - [ ] **C4 — Port repository-defined provider jobs and workflows.** Compare each
   source module against the owned scheduler/job contract, add missing adapters
   and operator controls, and keep external schedules disabled until ownership
-  and active state are reconciled. Sources: [provider/job inventory](batches.md#L2288),
+  and active state are reconciled. The 23-entry catalog matches its generated
+  contract, and five Prefect deployments use catalog-backed pipelines; the
+  legacy health-check flow is undeployed and weather-forecast remains
+  default-off. Sources: [provider/job inventory](batches.md#L2288),
   [worker recovery](batches.md#L2358).
 - [ ] **C5 — Close source-verifiable analytics and reporting gaps.** Port
   registered queries/cards and deterministic projections, fix correctness and
   access gaps, and preserve ClickHouse as rebuildable optional projection.
-  Do not infer populated-farm parity from synthetic fixtures. Sources:
+  Two more direct report generators now reject missing location scope before
+  database access, consistent with the registry and CLI; reviewed global rows
+  remain visible only under a selected location. The integrated report suite
+  passes 516 tests with four database-dependent skips, and the generated query
+  inventory has zero unresolved sites. Do not infer populated-farm parity from
+  synthetic fixtures. Sources:
   [report/query parity](batches.md#L2334),
   [consumer scope](batches.md#L3139).
 - [ ] **C6 — Complete source-only capability slices.** Continue unresolved
   route, lifecycle, lineage, provenance and review functionality for CAP-035,
   CAP-036, CAP-037 and CAP-038 where code can be completed without populated
-  farm records or production identity. Sources: [CAP-035](batches.md#L3484),
+  farm records or production identity. The latest audit found no further safe
+  independent source-only slice: CAP-035 sharing/tranche custody needs policy
+  decisions; CAP-036 already excludes unscoped sensitive events; CAP-037 has
+  no identified first-party workflow gap; CAP-038 needs live identity and
+  populated-source acceptance. Sources: [CAP-035](batches.md#L3484),
   [CAP-036](batches.md#L3574), [CAP-037](batches.md#L3582),
   [CAP-038](batches.md#L3652).
 - [ ] **C7 — Finish software-only ARM64 and recovery evidence.** The full
@@ -451,16 +611,21 @@ that its full source-plan phase is complete.
   672–679. The latest full native replay applies all 670 ordered schema files
   through 679 and passes 34 two-tenant assertions; no seeds or farm data were
   loaded, no host ports were published, and candidate/legacy state stayed
-  untouched. A new full-chain replay through 679 is running in an isolated
-  ARM64/QEMU database under the same 1.5 GiB/two-CPU limits; a live read shows
-  339/670 schemas applied with no pending or failed rows at the last check.
-  Both Kernel app images and profile selections have ARM64 build and
+  untouched. A new full-chain replay through 679 passed in an isolated
+  ARM64/QEMU database under verified 1.5 GiB/two-CPU limits: all 670 schemas
+  applied, zero pending/failed, no seeds or OOM, and cleanup passed. Both Kernel
+  app images and profile selections have ARM64 build and
   import evidence. This remains software-only evidence: no physical Raspberry
   Pi, populated data, external provider/media, R2, whole-platform production
-  recovery, or 24-hour RPO/RTO drill has been accepted.
+  recovery, or 24-hour RPO/RTO drill has been accepted. The minimal Gateway
+  startup was also exercised with optional analytics, ML, GIS, Web3, ClickHouse,
+  Prefect, Redis/MQTT, gRPC, OIDC, and S3 libraries blocked; 16 routes loaded
+  with no attempted or loaded optional imports, and dependency/provider checks
+  passed. This supports the existing profile boundary but does not replace
+  ARM64 image build/runtime or physical-device acceptance.
   Sources: [Phase 8](implementation-plan-alignment.md#L28),
   [latest native full replay](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
-  [ARM64 full replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json),
+  [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-679.json),
   [migration 679 ARM64 ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
   [build and profile evidence](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json),
   [recovery gates](batches.md#L2159).
@@ -818,3 +983,43 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   [ARM64 ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-arm64-disposable.json);
   [full schema and tenant probe](builds/2026-10-27-recovery/runtime-role-full-schema-677-native-disposable.json);
   [source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
+
+### Current continuation — parallel report-scope and Gateway contract batch — 28 October 2026
+
+- [x] Require explicit location scope for the three location-only Kokonut
+  Commons reports. Network-only federation and participatory-signal reports
+  keep their explicit global contract. Focused tests and the integrated report
+  suite pass; no database/provider was used
+  ([evidence](builds/2026-10-28-recovery/kokonut-commons-report-location-scope.json)).
+- [x] Require scope for all 18 location-only strategy reports. Remove the
+  unscoped stakeholder-outcomes branch; network-wide value-stream links remain
+  available through `stakeholder_value_streams`. Farm-scoped fork detection
+  excludes `insight_transfer` until it has trustworthy location lineage, while
+  network-wide detection retains it. Focused suite: 158 passed
+  ([evidence](builds/2026-10-28-recovery/stakeholder-outcomes-direct-scope.json)).
+- [x] Require location scope for direct `perpetual_value_stress` report calls
+  before cursor creation. Preserve selected-farm and reviewed shared rows;
+  focused report checks pass 285 cases
+  ([evidence](builds/2026-10-28-recovery/perpetual-value-stress-location-scope.json)).
+- [x] Publish FastAPI/OpenAPI bounds for the authenticated Delphi participant
+  workspace (`limit=1..50`, `offset=0..10,000`) and reject invalid paging
+  before service access. Twenty-two focused checks pass
+  ([evidence](builds/2026-10-28-recovery/delphi-participant-workspace-pagination-openapi.json)).
+- [x] Publish the existing `limit=1..100` bound (default `50`) on six operator
+  list routes and reject invalid values before service access. The operator and
+  farm-activity selection passes 138 checks
+  ([evidence](builds/2026-10-28-recovery/operator-list-pagination-openapi-bounds.json)).
+- [x] Reconcile report query inventory after removing unsafe unscoped branches.
+  It now records 94 report types, 167 direct queries, 166 positional-bind
+  sites, zero unresolved sites, and zero bind mismatches. The integrated report
+  suite passes 563 tests with four database-dependent skips.
+- [x] Validate the combined changed Gateway/operator contracts: 732 tests pass.
+  The focused platform-integrity selection passes 374 tests and six subtests;
+  changed Python Ruff and compilation, Directus hook tests/build, SDK tests/build,
+  dependency/provider checks, matrix validation, and diff checks pass. No
+  candidate or legacy database, migration, or provider was used.
+
+Capability classifications remain unchanged at 67 rows (24 baseline-retained,
+7 deployed, 36 prepared); no MAN-CAP is accepted. The current checklist is
+1,350 complete / 25 open (1,375 total). Remaining human/runtime gates stay open
+([combined evidence](builds/2026-10-28-recovery/parallel-report-gateway-contracts.json)).

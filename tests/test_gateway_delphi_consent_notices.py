@@ -398,3 +398,47 @@ def test_database_scope_denial_is_mapped_without_database_details():
     )
     assert response.status_code == 403
     assert "private scope details" not in response.text
+
+
+def test_consent_notice_list_openapi_publishes_service_page_bounds():
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("OpenAPI inspection reached the consent notice service")
+
+    operation = _app(object(), run_in_threadpool).openapi()["paths"][
+        "/operator/api/delphi/{location_id}/consent-notices"
+    ]["get"]
+    parameters = {
+        parameter["name"]: parameter["schema"]
+        for parameter in operation["parameters"]
+        if parameter["in"] == "query"
+    }
+
+    assert parameters["limit"] == {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 50,
+        "title": "Limit",
+    }
+    assert parameters["offset"] == {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000,
+        "default": 0,
+        "title": "Offset",
+    }
+
+
+@pytest.mark.parametrize(
+    "query",
+    ["limit=0", "limit=51", "offset=-1", "offset=10001", "limit=invalid"],
+)
+def test_consent_notice_list_rejects_invalid_page_before_service(query):
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("invalid consent-notice pagination reached the service")
+
+    response = TestClient(_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/consent-notices?{query}"
+    )
+
+    assert response.status_code == 422

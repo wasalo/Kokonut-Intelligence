@@ -22,6 +22,28 @@ def _row(row_id: str, channel: str = "webhook") -> dict:
     }
 
 
+@pytest.mark.parametrize(
+    ("limit", "lease_seconds"),
+    [
+        (True, 300),
+        (1, True),
+    ],
+)
+def test_claim_batch_rejects_boolean_bounds_before_database_access(limit, lease_seconds):
+    conn = MagicMock()
+
+    with pytest.raises(ValueError):
+        notification_outbox.claim_batch(
+            conn,
+            "worker-test",
+            limit,
+            lease_seconds=lease_seconds,
+        )
+
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
+
+
 def test_delivery_failure_records_only_exception_class_and_continues(monkeypatch):
     rows = [_row("failed"), _row("delivered")]
     finishes = []

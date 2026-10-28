@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-28",
+  "result": "passed",
+  "slice": "planning budget pagination contract",
+  "route": "/operator/api/planning/{location_id}/budgets",
+  "finding": "The read service rejected limits outside 1..50 and offsets outside 0..10000, but the FastAPI route exposed both query parameters as unbounded strings and did not publish the limits in OpenAPI.",
+  "change": {
+    "limit": {
+      "default": 25,
+      "minimum": 1,
+      "maximum": 50
+    },
+    "offset": {
+      "default": 0,
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "behavior": "FastAPI validates integer query parameters before calling the service; invalid values return 422."
+  },
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_planning_budget_pagination_openapi.py tests/test_gateway_planning_budget_reads.py -q",
+      "result": "20 passed"
+    },
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "external_access": {
+    "database": false,
+    "provider": false,
+    "network": false
+  },
+  "rollback": "Revert the Query constraints and focused contract test; no migration or persisted data changed.",
+  "limitations": [
+    "Checks cover OpenAPI generation and in-process request validation only; they do not establish live proxy behavior or data authorization."
+  ]
+}

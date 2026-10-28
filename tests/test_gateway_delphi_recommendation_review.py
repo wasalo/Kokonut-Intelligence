@@ -250,6 +250,35 @@ def test_review_routes_are_no_store_and_pass_actor_and_location():
     assert response.headers["vary"] == "Cookie"
 
 
+def test_review_list_route_publishes_and_enforces_reader_pagination_bounds():
+    calls = []
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        calls.append((func, args, kwargs))
+        return {"location_id": LOCATION_ID, "recommendations": [], "has_more": False}
+
+    app = _make_app(object(), {}, run_in_threadpool)
+    client = TestClient(app)
+    operation = app.openapi()["paths"]["/operator/api/delphi/{location_id}/recommendations"]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert parameters["limit"]["schema"]["type"] == "integer"
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 50
+    assert parameters["limit"]["schema"]["default"] == 50
+    assert parameters["offset"]["schema"]["type"] == "integer"
+    assert parameters["offset"]["schema"]["minimum"] == 0
+    assert parameters["offset"]["schema"]["maximum"] == 10000
+    assert parameters["offset"]["schema"]["default"] == 0
+
+    for params in ({"limit": 0}, {"limit": 51}, {"offset": -1}, {"offset": 10001}):
+        response = client.get(
+            f"/operator/api/delphi/{LOCATION_ID}/recommendations", params=params
+        )
+        assert response.status_code == 422
+
+    assert calls == []
+
+
 def test_decision_route_rejects_extra_or_non_string_fields():
     async def run_in_threadpool(*_args, **_kwargs):
         pytest.fail("invalid payload must not invoke decision service")

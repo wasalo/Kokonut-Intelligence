@@ -766,7 +766,7 @@ def test_funding_review_routes_are_private_no_store_and_call_review_readers(monk
     assert queue_response.headers["cache-control"] == "no-store"
     assert detail_response.headers["cache-control"] == "no-store"
     assert calls == [
-        ("queue", (OPERATOR_ID, LOCATION_ID), {"limit": "10", "offset": "5"}),
+        ("queue", (OPERATOR_ID, LOCATION_ID), {"limit": 10, "offset": 5}),
         ("detail", (OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"]), {}),
     ]
 

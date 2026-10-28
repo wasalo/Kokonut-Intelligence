@@ -1,0 +1,29 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Signed Delphi synthesis worker result-to-request scope binding",
+  "change": "After fetching the Delphi source row, the worker now rejects a returned study_id that differs from the normalized requested study ID, matching its existing location_id check.",
+  "checks": {
+    "focused_test": {
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py -k delphi_agent_worker -q",
+      "result": "3 passed"
+    },
+    "targeted_ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "security_properties": {
+    "study_mismatch_fails_closed": true,
+    "transaction_rolled_back_on_denial": true,
+    "connection_closed_on_denial": true,
+    "database_provider_network_used": false,
+    "candidate_or_legacy_touched": false
+  },
+  "rollback": "Revert the result-ID check and focused regression; no migration or persisted data changed.",
+  "limitations": [
+    "This guards an unexpected source-view result and does not establish populated Delphi parity or RLS behavior.",
+    "CAP-038 status and acceptance are unchanged."
+  ]
+}

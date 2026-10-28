@@ -1,0 +1,29 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Direct strategy report generator location scope and unlineaged fork evidence",
+  "finding": "Location-required strategy report generators could be called directly with a missing location, bypassing CLI validation; several downstream helpers then queried all locations. stakeholder_outcomes additionally exposed a network-wide architecture view. Fork detection included insight_transfer records with no location lineage even when invoked for one farm.",
+  "change": "All 18 location-required strategy report generators now reject missing or empty location_id before opening a cursor or delegating. stakeholder_outcomes always binds the selected location and omits its unlineaged network architecture view. Location-scoped fork detection now excludes global insight_transfer rows; network-wide detection without a location continues to include them. Explicit network-level reports remain unchanged.",
+  "checks": {
+    "command": "python3 -m pytest tests/test_strategy_report_location_guards.py tests/test_stakeholder_outcomes_scope.py tests/test_tactical_layer.py tests/test_report_generator_cli.py tests/test_comprehensive_status.py tests/test_report_state_error_redaction.py -q",
+    "result": "158 passed",
+    "fork_scope_regression": "passed: unlineaged insight_transfer forks remain available in network-wide detection and are excluded from location-scoped output",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Restore the prior strategy report guards, stakeholder_outcomes query, fork detector branch, focused tests, and this evidence file; no migration or persisted data changed.",
+  "limitations": [
+    "The location guard is a scope correctness check, not an authorization or tenant-isolation boundary.",
+    "Network-wide capability/value-stream links remain outside stakeholder_outcomes and are available through the separate network-level stakeholder_value_streams report.",
+    "Location-scoped fork reports intentionally omit insight_transfer evidence until that table has a trustworthy location lineage."
+  ]
+}

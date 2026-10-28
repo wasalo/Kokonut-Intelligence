@@ -4,6 +4,7 @@
 def register_ai_summary_review_routes(router, provider, run_in_threadpool, psycopg2):
     import json
 
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -58,8 +59,8 @@ def register_ai_summary_review_routes(router, provider, run_in_threadpool, psyco
     async def list_summary_reviews(
         request: Request,
         location_id: str,
-        limit: str = "50",
-        offset: str = "0",
+        limit: int = Query(default=50, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(

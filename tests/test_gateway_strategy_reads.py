@@ -215,3 +215,47 @@ def test_http_projection_is_no_store_and_does_not_claim_execution_authority(monk
     assert response.headers["cache-control"] == "no-store"
     assert response.json()["location_id"] == LOCATION_ID
     assert "execution_authorized" not in response.json()
+
+
+def test_http_pagination_documents_bounds_and_rejects_invalid_values_before_service(monkeypatch):
+    from services.gateway.strategy_routes import register_strategy_routes
+
+    service_calls = []
+    monkeypatch.setattr(
+        "services.gateway.strategy_reads.list_location_strategy_plan_summaries",
+        lambda *args, **kwargs: service_calls.append((args, kwargs)) or {"plans": []},
+    )
+    router_app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_strategy_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    router_app.include_router(router)
+
+    @router_app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    route_path = "/operator/api/strategy/{location_id}/plans"
+    request_path = f"/operator/api/strategy/{LOCATION_ID}/plans"
+    operation = router_app.openapi()["paths"][route_path]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert parameters["limit"]["schema"]["default"] == 50
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 100
+    assert parameters["offset"]["schema"]["default"] == 0
+    assert parameters["offset"]["schema"]["minimum"] == 0
+    assert parameters["offset"]["schema"]["maximum"] == 10000
+
+    with TestClient(router_app) as client:
+        assert client.get(request_path, params={"limit": 0}).status_code == 422
+        assert client.get(request_path, params={"limit": 101}).status_code == 422
+        assert client.get(request_path, params={"offset": -1}).status_code == 422
+        assert client.get(request_path, params={"offset": 10001}).status_code == 422
+
+    assert service_calls == []

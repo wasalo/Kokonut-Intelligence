@@ -500,6 +500,21 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
     )
 
 
+def test_report_snapshot_sdk_fields_match_the_canonical_table():
+    python_types = SCHEMA_GUARD.python_model_field_types(
+        ROOT / "sdk" / "python" / "kokonut" / "types.py"
+    )
+    typescript_types = SCHEMA_GUARD.typescript_model_field_types(
+        ROOT / "sdk" / "javascript" / "src" / "types.ts"
+    )
+    schema_columns = set(SCHEMA_GUARD.table_column_types(
+        ROOT / "schemas" / "postgres" / "007_modeled_outputs.sql", "report_snapshot"
+    ))
+
+    assert set(python_types["ReportSnapshot"]) == schema_columns
+    assert set(typescript_types["ReportSnapshot"]) == schema_columns
+
+
 def test_sql_enum_inventory_reads_type_definitions_and_column_cast_constraints(tmp_path, monkeypatch):
     schema_dir = tmp_path / "schemas" / "postgres"
     schema_dir.mkdir(parents=True)

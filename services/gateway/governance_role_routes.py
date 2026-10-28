@@ -2,6 +2,7 @@
 
 
 def register_governance_role_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -171,7 +172,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         request: Request,
         location_id: str,
         status: str | None = None,
-        limit: str = "50",
+        limit: int = Query(default=50, ge=1, le=100),
         cursor: str | None = None,
     ):
         headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
@@ -311,7 +312,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     async def own_governance_assignment_proposals(
         request: Request,
         location_id: str,
-        limit: str = "50",
+        limit: int = Query(default=50, ge=1, le=100),
         cursor_created_at: str | None = None,
         cursor_assignment_id: str | None = None,
     ):
@@ -371,7 +372,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     async def governance_assignment_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "50",
+        limit: int = Query(default=50, ge=1, le=100),
         cursor_created_at: str | None = None,
         cursor_assignment_id: str | None = None,
     ):
@@ -830,7 +831,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     async def location_governance_tactical_items(
         request: Request,
         location_id: str,
-        limit: str = "50",
+        limit: int = Query(default=50, ge=1, le=100),
         cursor: str | None = None,
     ):
         headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
@@ -873,7 +874,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     async def location_governance_tactical_sessions(
         request: Request,
         location_id: str,
-        limit: str = "50",
+        limit: int = Query(default=50, ge=1, le=100),
         cursor: str | None = None,
     ):
         headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
@@ -1163,7 +1164,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         request: Request,
         location_id: str,
         status: str | None = None,
-        limit: str = "50",
+        limit: int = Query(default=50, ge=1, le=100),
         cursor: str | None = None,
     ):
         headers = {"Cache-Control": "no-store", "Vary": "Cookie"}

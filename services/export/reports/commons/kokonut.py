@@ -9,7 +9,20 @@ from ..common import _serialize_rows
 from ..scope import require_network_scope
 
 
-def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: str = "id") -> list[dict]:
+def _fetch_public_view(
+    conn,
+    view_name: str,
+    location_id: str | None,
+    order_by: str = "id",
+    *,
+    network_scope: bool = False,
+) -> list[dict]:
+    if not network_scope and not location_id:
+        raise ValueError(f"{view_name} requires an explicit location_id")
+
+    if network_scope and location_id:
+        raise ValueError(f"{view_name} cannot combine network and location scope")
+
     # Validate identifiers to prevent SQL injection
     import re
 
@@ -22,13 +35,13 @@ def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: 
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
+        if network_scope:
+            cur.execute(f"SELECT * FROM {view_name} ORDER BY {order_by}")
+        else:
             cur.execute(
                 f"SELECT * FROM {view_name} WHERE location_id = %s OR location_id IS NULL ORDER BY {order_by}",
                 (location_id,),
             )
-        else:
-            cur.execute(f"SELECT * FROM {view_name} ORDER BY {order_by}")
         rows = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -86,7 +99,11 @@ def generate_federation_mutual_aid(
 ) -> dict:
     require_network_scope("federation_mutual_aid", location_id)
     protocols = _fetch_public_view(
-        conn, "v_public_federation_protocol", None, "protocol_status, federation_scope, protocol_name"
+        conn,
+        "v_public_federation_protocol",
+        None,
+        "protocol_status, federation_scope, protocol_name",
+        network_scope=True,
     )
     return {
         "report_type": "federation_mutual_aid",
@@ -136,7 +153,11 @@ def generate_participatory_signal(
 ) -> dict:
     require_network_scope("participatory_signal", location_id)
     experiments = _fetch_public_view(
-        conn, "v_public_participatory_signal_experiment", None, "experiment_status, signal_type, experiment_name"
+        conn,
+        "v_public_participatory_signal_experiment",
+        None,
+        "experiment_status, signal_type, experiment_name",
+        network_scope=True,
     )
     return {
         "report_type": "participatory_signal",

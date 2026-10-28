@@ -13,6 +13,7 @@ from .scope import require_network_scope
 
 def generate_data_stream_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a summary of data stream activity for a location."""
+    _require_location_scope("data_stream_summary", location_id)
     conditions = ["dsp.location_id = :location_id"]
     params: dict[str, Any] = {"location_id": location_id}
 
@@ -65,8 +66,15 @@ def generate_data_stream_summary(conn, location_id: str, period_start: str = Non
     }
 
 
+def _require_location_scope(report_type: str, location_id: str | None) -> None:
+    """Require the location scope that the report registry assigns a report."""
+    if not location_id:
+        raise ValueError(f"{report_type} requires an explicit location_id")
+
+
 def generate_business_model_canvas(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a Business Model Canvas report for a location."""
+    _require_location_scope("business_model_canvas", location_id)
     from services.analytics.business_model_canvas import compute_health, get, list_canvas
 
     canvases = list_canvas(conn, location_id=location_id)
@@ -102,6 +110,7 @@ def generate_business_model_canvas(conn, location_id: str, period_start: str = N
 
 
 def generate_pitch_deck(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("pitch_deck", location_id)
     from services.analytics.pitch import generate_pitch, render_markdown
 
     pitch_data = generate_pitch(conn, location_id, "elevator")
@@ -242,7 +251,8 @@ def generate_technology_roadmap(conn, location_id=None, period_start=None, perio
 
 
 def generate_stakeholder_landscape(conn, location_id=None, period_start=None, period_end=None):
-    """Generate a network- or location-scoped stakeholder landscape report."""
+    """Generate a location-scoped stakeholder landscape report."""
+    _require_location_scope("stakeholder_landscape", location_id)
     if location_id:
         query = (
             "SELECT * FROM v_stakeholder_landscape_by_location "
@@ -276,6 +286,7 @@ def generate_stakeholder_landscape(conn, location_id=None, period_start=None, pe
 
 def generate_stakeholder_engagement(conn, location_id=None, period_start=None, period_end=None):
     """Generate stakeholder engagement plan and commitment health report."""
+    _require_location_scope("stakeholder_engagement", location_id)
     query = "SELECT * FROM v_stakeholder_engagement_summary"
     params = []
     if location_id:
@@ -308,6 +319,7 @@ def generate_stakeholder_engagement(conn, location_id=None, period_start=None, p
 
 def generate_stakeholder_grievance(conn, location_id=None, period_start=None, period_end=None):
     """Generate an internal grievance, remedy, and appeal health report."""
+    _require_location_scope("stakeholder_grievance", location_id)
     query = "SELECT * FROM v_stakeholder_grievance_health"
     params = []
     if location_id:
@@ -356,6 +368,7 @@ def generate_stakeholder_representation(conn, location_id=None, period_start=Non
 
 def generate_stakeholder_decision_lineage(conn, location_id=None, period_start=None, period_end=None):
     """Generate an internal stakeholder decision, trade-off, and evidence report."""
+    _require_location_scope("stakeholder_decision_lineage", location_id)
     query = "SELECT * FROM v_stakeholder_decision_lineage"
     params = []
     if location_id:
@@ -408,42 +421,27 @@ def generate_stakeholder_ecosystem(conn, location_id=None, period_start=None, pe
 
 
 def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, period_end=None):
-    """Generate stakeholder outcomes from governed outcomes and architecture links.
-
-    The architecture view is network-wide and has no location lineage. Include
-    it only for an explicitly network-wide report; a location report must not
-    expose another farm's stakeholder relationships.
-    """
+    """Generate governed stakeholder outcomes for one explicitly selected farm."""
+    _require_location_scope("stakeholder_outcomes", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        query = "SELECT * FROM stakeholder_outcome WHERE status IN ('verified', 'published')"
-        params = []
-        if location_id:
-            query += " AND location_id = %s::uuid"
-            params.append(location_id)
+        query = (
+            "SELECT * FROM stakeholder_outcome "
+            "WHERE status IN ('verified', 'published') AND location_id = %s::uuid"
+        )
+        params = [location_id]
         query += " ORDER BY created_at DESC"
         cur.execute(query, params)
         outcomes = [dict(row) for row in cur.fetchall()]
-        architecture = []
-        if not location_id:
-            cur.execute(
-                "SELECT * FROM v_stakeholder_capability_value_stream "
-                "ORDER BY entity_type, entity_name, party_name"
-            )
-            architecture = [dict(row) for row in cur.fetchall()]
     limitations = [
         "Only verified or published governed outcomes are included.",
         "Outcome presence does not establish causal attribution or satisfaction without supporting evidence.",
     ]
-    if location_id:
-        limitations.append(
-            "Network-wide capability and value-stream links are omitted because their source view has no location lineage."
-        )
     return {
         "report_type": "stakeholder_outcomes",
         "location_id": location_id,
         "outcome_count": len(outcomes),
         "outcomes": outcomes,
-        "capability_and_value_stream_links": architecture,
+        "capability_and_value_stream_links": [],
         "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -590,6 +588,7 @@ def generate_governance_coordination_health(conn, location_id=None, period_start
 
 
 def generate_pestel_assessment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("pestel_assessment", location_id)
     from services.analytics.pestel import list_analyses, render_markdown
 
     analyses = list_analyses(conn, location_id)
@@ -616,6 +615,7 @@ def generate_pestel_assessment(conn, location_id: str, period_start: str = None,
 
 
 def generate_regional_readiness(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("regional_readiness", location_id)
     from services.analytics.regional_readiness import list_assessments, render_markdown
 
     assessments = list_assessments(conn, location_id)
@@ -642,6 +642,7 @@ def generate_regional_readiness(conn, location_id: str, period_start: str = None
 
 
 def generate_publics_market_landscape(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("publics_market_landscape", location_id)
     from services.analytics.publics import influence_interest_matrix, list_publics, list_segments
 
     publics = list_publics(conn, location_id)
@@ -671,6 +672,7 @@ def generate_publics_market_landscape(conn, location_id: str, period_start: str 
 
 
 def generate_env_scan_report(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("env_scan_report", location_id)
     from services.analytics.env_scanning import list_scans, render_markdown
 
     scans = list_scans(conn, location_id)
@@ -704,6 +706,7 @@ def generate_fork_opportunities(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Fork tactic: a single event that reveals/creates multiple high-value opportunities."""
+    _require_location_scope("fork_opportunities", location_id)
     from services.events.fork_detector import detect_fork_opportunities
 
     result = detect_fork_opportunities(conn, location_id=location_id)
@@ -721,6 +724,7 @@ def generate_fork_opportunities(
 
 def generate_pin_dependency(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Pin tactic: governed records blocked (pinned) by an unverified upstream."""
+    _require_location_scope("pin_dependency", location_id)
     from services.analytics.pin_dependency import detect_pin_blocks
 
     result = detect_pin_blocks(conn, location_id=location_id)
@@ -739,6 +743,7 @@ def generate_pin_dependency(conn, location_id: str = None, period_start: str = N
 
 def generate_promotion_ladder(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Promotion tactic: the regenerative value chain funnel per location."""
+    _require_location_scope("promotion_ladder", location_id)
     from services.analytics.promotion_ladder import compute_promotion_ladder
 
     result = compute_promotion_ladder(conn, location_id=location_id)
@@ -756,6 +761,7 @@ def generate_promotion_ladder(conn, location_id: str = None, period_start: str =
 
 def generate_tactical_layer(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Composite Tactical Layer view: fork, discovered double-check, pin, zwischenzug, promotion."""
+    _require_location_scope("tactical_layer", location_id)
     from services.analytics.pin_dependency import detect_pin_blocks
     from services.analytics.promotion_ladder import compute_promotion_ladder
     from services.events.fork_detector import detect_fork_opportunities
@@ -806,6 +812,7 @@ def generate_simulation_wargame(
     No governed state is written; the "opposing force" is shocks/threats vs.
     reserves, never stakeholders or communities (see AGENTS.md).
     """
+    _require_location_scope("simulation_wargame", location_id)
     from services.analytics.digital_twin import list_twins, monte_carlo_yield
     from services.simulation.clash_examples import stress_reserve
 
@@ -848,10 +855,8 @@ def generate_capital_accounting(
 
     No governed state is written; the credit ledger is a read-only view here.
     """
+    _require_location_scope("capital_accounting", location_id)
     from services.capital import accounting_report
-
-    if not location_id:
-        raise ValueError("capital_accounting report requires a location_id")
 
     return accounting_report.build_capital_accounting(conn, location_id, period_start, period_end)
 

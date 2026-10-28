@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from services.export.reports.strategy import generate_stakeholder_outcomes
 
 
@@ -15,26 +17,25 @@ def _connection(fetches):
     return conn, cursor
 
 
-def test_location_report_omits_network_architecture_view():
+def test_location_report_reads_only_selected_location_outcomes():
     conn, cursor = _connection([[{"id": "outcome-a"}]])
 
     report = generate_stakeholder_outcomes(conn, "location-a")
 
     assert report["outcomes"] == [{"id": "outcome-a"}]
     assert report["capability_and_value_stream_links"] == []
-    assert any("no location lineage" in note for note in report["limitations"])
+    assert report["outcome_count"] == 1
     assert cursor.execute.call_count == 1
     query, params = cursor.execute.call_args.args
-    assert "location_id = %s::uuid" in query
+    assert "status IN ('verified', 'published') AND location_id = %s::uuid" in query
     assert params == ["location-a"]
 
 
-def test_network_report_keeps_network_architecture_view():
-    architecture = [{"entity_type": "capability", "entity_name": "Synthetic"}]
-    conn, cursor = _connection([[], architecture])
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_missing_location_fails_before_opening_cursor(location_id):
+    conn, _cursor = _connection([])
 
-    report = generate_stakeholder_outcomes(conn)
+    with pytest.raises(ValueError, match="stakeholder_outcomes requires an explicit location_id"):
+        generate_stakeholder_outcomes(conn, location_id)
 
-    assert report["capability_and_value_stream_links"] == architecture
-    assert cursor.execute.call_count == 2
-    assert "v_stakeholder_capability_value_stream" in cursor.execute.call_args_list[1].args[0]
+    conn.cursor.assert_not_called()

@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from services.agents.commons_agent import synthesize_commons
 from services.agents.tasks import get_task, list_tasks, validate_output
 from services.export.report_generator import (
@@ -11,7 +13,6 @@ from services.export.report_generator import (
     generate_land_stewardship,
     generate_time_liberation,
 )
-
 
 SCHEMA = Path("schemas/postgres/037_commons_liberation_and_stewardship.sql")
 SEED = Path("schemas/seeds/038_commons_liberation_and_stewardship.sql")
@@ -215,6 +216,48 @@ def test_commons_report_generators_public_safe() -> None:
     land = generate_land_stewardship(conn, "a0000000-0000-0000-0000-000000000001")
     assert land["report_type"] == "land_stewardship"
     assert "not legal opinions" in land["limitations"][0]
+
+
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_governance_inclusion_requires_location_before_database_access(location_id) -> None:
+    class NoDatabase:
+        def cursor(self, **_kwargs):
+            raise AssertionError("unscoped report must fail before opening a cursor")
+
+    with pytest.raises(ValueError, match="governance_inclusion requires an explicit location_id"):
+        generate_governance_inclusion(NoDatabase(), location_id)
+
+
+def test_governance_inclusion_keeps_selected_location_and_global_rows() -> None:
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    location_id = "a0000000-0000-0000-0000-000000000001"
+
+    report = generate_governance_inclusion(conn, location_id)
+
+    assert report["location_id"] == location_id
+    assert "WHERE (location_id = %s OR location_id IS NULL)" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id, None, None, None, None)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 
 
 def register_stakeholder_identity_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -62,7 +63,7 @@ def register_stakeholder_identity_routes(router, provider, run_in_threadpool, ps
     async def identity_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "50",
+        limit: int = Query(default=50, ge=1, le=50),
         cursor_created_at: str | None = None,
         cursor_case_id: str | None = None,
     ):

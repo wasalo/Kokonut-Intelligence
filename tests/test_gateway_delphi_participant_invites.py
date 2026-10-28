@@ -296,7 +296,7 @@ def test_list_route_forwards_location_study_and_page_without_caching():
     async def run_in_threadpool(func, *args, **kwargs):
         assert func is invites.list_location_delphi_participant_invites
         assert args == (OPERATOR_ID, LOCATION_ID, STUDY_ID)
-        assert kwargs == {"limit": "25", "offset": "50"}
+        assert kwargs == {"limit": 25, "offset": 50}
         return expected
 
     response = TestClient(_app(object(), run_in_threadpool)).get(
@@ -304,6 +304,50 @@ def test_list_route_forwards_location_study_and_page_without_caching():
     )
     assert response.status_code == 200 and response.json() == expected
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_list_route_publishes_service_pagination_bounds_in_openapi():
+    async def run_in_threadpool(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "study_id": STUDY_ID, "invites": []}
+
+    app = _app(object(), run_in_threadpool)
+    operation = app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/studies/{study_id}/invites"
+    ]["get"]
+    parameters = {parameter["name"]: parameter["schema"] for parameter in operation["parameters"]}
+
+    assert parameters["limit"] == {
+        "type": "integer",
+        "maximum": 50,
+        "minimum": 1,
+        "default": 50,
+        "title": "Limit",
+    }
+    assert parameters["offset"] == {
+        "type": "integer",
+        "maximum": 10000,
+        "minimum": 0,
+        "default": 0,
+        "title": "Offset",
+    }
+
+
+@pytest.mark.parametrize(
+    ("parameter", "value"),
+    [("limit", 0), ("limit", 51), ("offset", -1), ("offset", 10001)],
+)
+def test_invalid_list_pagination_fails_before_service_access(parameter, value):
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("invalid pagination reached the invite service")
+
+    client = TestClient(_app(object(), run_in_threadpool))
+    response = client.get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites",
+        params={parameter: value},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", parameter]
 
 
 def test_invite_routes_fail_closed_when_oidc_is_disabled():

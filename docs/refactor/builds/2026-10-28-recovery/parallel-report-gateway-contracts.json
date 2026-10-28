@@ -1,0 +1,48 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Parallel report-location and Gateway pagination contract batch",
+  "changes": {
+    "report_scope": [
+      "All 18 location-only strategy report generators reject missing scope before cursor/helper access.",
+      "Three location-only Kokonut Commons reports and perpetual_value_stress reject missing scope before database access.",
+      "Unlineaged stakeholder architecture rows remain in the separate network-level stakeholder_value_streams report; location-scoped fork detection omits unlineaged insight_transfer rows while network-wide detection retains them.",
+      "The report query inventory records 94 report types, 167 direct queries, 166 static positional-bind sites, zero unresolved sites, and zero bind mismatches."
+    ],
+    "gateway_contracts": [
+      "Changed Gateway and operator list routes publish service-aligned pagination bounds in OpenAPI and reject invalid inputs before service access.",
+      "Delphi participant workspace: limit 1..50, offset 0..10000.",
+      "Six operator lists: limit 1..100, default 50."
+    ],
+    "capability_matrix": "67 rows remain 24 baseline-retained, 7 deployed, and 36 prepared; no MAN-CAP status changed."
+  },
+  "checks": {
+    "gateway_operator_routes": "732 passed",
+    "integrated_reports": "563 passed, 4 skipped (database-dependent)",
+    "platform_integrity": "374 passed, 6 subtests passed",
+    "directus_hooks": "120 passed; extension build and TypeScript check passed",
+    "javascript_sdk": "56 passed; TypeScript build passed",
+    "python_sdk_outbox_worker": "113 passed",
+    "changed_python_files": "Ruff and Python compilation passed for 101 files",
+    "repository_checks": [
+      "Capability matrix valid: 67 rows; MAN-CAP acceptance separately gated.",
+      "Dependency groups aligned (14 groups, 33 requirements).",
+      "Provider boundaries passed (17 vendor import sites).",
+      "Report query-scope inventory check passed.",
+      "Evidence JSON parsing and git diff --check passed."
+    ]
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "limitations": [
+    "These changes validate source-level report input scope and in-process route/OpenAPI pagination; they do not establish tenant authorization, database RLS, populated-data parity, live ingress, or live identity-provider behavior.",
+    "No migration was required or applied. Physical Raspberry Pi and production acceptance remain open."
+  ],
+  "rollback": "Revert the report and Gateway source changes, focused regressions, generated query inventory, and this evidence file. No persistent data changed."
+}

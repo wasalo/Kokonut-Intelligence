@@ -3938,7 +3938,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from collections.abc import Mapping
 
     import psycopg2
-    from fastapi import APIRouter, HTTPException
+    from fastapi import APIRouter, HTTPException, Query
     from fastapi.responses import JSONResponse, RedirectResponse
     from starlette.concurrency import run_in_threadpool
 
@@ -4063,7 +4063,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         )
 
     @router.get("/operator/api/report-review-queue")
-    async def report_review_queue(request: Request, location_id: str, limit: int = 50):
+    async def report_review_queue(
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
+    ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         from services.common.tenant_context import TenantContextDenied
@@ -4154,7 +4156,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         )
 
     @router.get("/operator/api/mobile-collection-review-queue")
-    async def mobile_collection_review_queue(request: Request, location_id: str, limit: int = 50):
+    async def mobile_collection_review_queue(
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
+    ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         from services.common.tenant_context import TenantContextDenied
@@ -4362,7 +4366,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         )
 
     @router.get("/operator/api/farm-activity-intake-queue")
-    async def farm_activity_intake_queue(request: Request, location_id: str, limit: int = 50):
+    async def farm_activity_intake_queue(
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
+    ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         from services.common.tenant_context import TenantContextDenied
@@ -4643,7 +4649,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         )
 
     @router.get("/operator/api/farm-activities")
-    async def farm_activity_queue(request: Request, location_id: str, limit: int = 50):
+    async def farm_activity_queue(
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
+    ):
         if provider is None:
             return JSONResponse(
                 status_code=404,
@@ -4692,7 +4700,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     @router.get("/operator/api/farm-activities/published")
     async def published_farm_activity_queue(
-        request: Request, location_id: str, limit: int = 50
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
     ):
         if provider is None:
             return JSONResponse(
@@ -5077,7 +5085,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     @router.get("/operator/api/mobile/locations/{location_id}/inventory")
     async def operator_mobile_inventory(
-        location_id: UUID, request: Request, device_limit: int = 50
+        location_id: UUID, request: Request, device_limit: int = Query(default=50, ge=1, le=100)
     ):
         """Read a location-scoped device inventory and collection queue summary."""
         if provider is None:

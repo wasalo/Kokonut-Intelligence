@@ -109,27 +109,21 @@ def generate_bio_input_provenance(conn, location_id: str, period_start: str = No
 def generate_bio_recipe_library(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
-    """Generate a public-safe bio-organic fertilizer recipe library report."""
+    """Generate a public-safe recipe report for an explicit location."""
+    if not location_id:
+        raise ValueError("bio_recipe_library requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_bio_recipe_library_summary
-                WHERE (location_id = %s OR location_id IS NULL)
-                ORDER BY recipe_type, recipe_name
-                """,
-                (location_id,),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_bio_recipe_library_summary
-                ORDER BY recipe_type, recipe_name
-                """
-            )
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_bio_recipe_library_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+            ORDER BY recipe_type, recipe_name
+            """,
+            (location_id,),
+        )
         recipes = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()

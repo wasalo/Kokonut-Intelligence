@@ -1,0 +1,26 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Python and TypeScript Directus detail-read fields projection wire parity",
+  "change": "Python get_item now omits the fields query only for None, serializes an explicit empty list as JSON [], and serializes populated field lists as Directus CSV, matching the pinned TypeScript transport.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_sdk_client_contract_parity.py -q",
+      "result": "3 passed"
+    },
+    "targeted_ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the Python parameter handling and focused regression; no migration or persisted data changed.",
+  "limitations": [
+    "This aligns request serialization only; it does not establish authorization, tenant isolation, or live Directus behavior."
+  ]
+}

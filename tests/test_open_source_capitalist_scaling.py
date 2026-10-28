@@ -1,6 +1,9 @@
 """Open Source Capitalist scaling economics, barriers, stress, and reuse tests."""
 
 from pathlib import Path
+from unittest.mock import Mock
+
+import pytest
 
 from services.agents.open_source_capitalist_agent import synthesize_open_source_capitalist
 from services.agents.tasks import get_task, list_tasks, validate_output
@@ -268,10 +271,32 @@ def test_open_source_capitalist_report_generators_public_safe() -> None:
     assert conn.queries[0][1] == ("a0000000-0000-0000-0000-000000000001",)
     assert "not guaranteed ROI" in economics["limitations"][0]
     assert generate_adoption_barriers(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "adoption_barriers"
+    barrier_query, barrier_params = conn.queries[1]
+    assert "WHERE (location_id = %s OR location_id IS NULL)" in barrier_query
+    assert barrier_params[0] == "a0000000-0000-0000-0000-000000000001"
     assert generate_perpetual_value_stress(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "perpetual_value_stress"
     open_source = generate_open_source_impact(conn)
     assert open_source["report_type"] == "open_source_impact"
     assert "Hypercert" in open_source["limitations"][1]
+
+
+def test_adoption_barrier_report_rejects_missing_location_before_database_access() -> None:
+    conn = Mock()
+
+    with pytest.raises(ValueError, match="adoption_barriers requires an explicit location_id"):
+        generate_adoption_barriers(conn, None)
+
+    conn.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_perpetual_value_stress_rejects_missing_location_before_database_access(location_id) -> None:
+    conn = Mock()
+
+    with pytest.raises(ValueError, match="perpetual_value_stress requires an explicit location_id"):
+        generate_perpetual_value_stress(conn, location_id)
+
+    conn.cursor.assert_not_called()
 
 
 def test_scaling_economics_network_scope_includes_network_targets() -> None:

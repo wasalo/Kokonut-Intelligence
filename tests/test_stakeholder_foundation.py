@@ -6,7 +6,12 @@ from uuid import uuid4
 import pytest
 
 from services.analytics import stakeholders
-from services.export.report_generator import generate_stakeholder_landscape
+from services.export.report_generator import (
+    generate_stakeholder_decision_lineage,
+    generate_stakeholder_engagement,
+    generate_stakeholder_grievance,
+    generate_stakeholder_landscape,
+)
 from services.ingestion.base import get_db
 
 
@@ -72,7 +77,11 @@ def test_seeded_proxy_parties_and_landscape_report():
         assert "Adelphi living systems" in names
         assert "Future generations" in names
 
-        report = generate_stakeholder_landscape(conn)
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM location WHERE slug = 'kokonut-adelphi'")
+            location_row = cur.fetchone()
+        assert location_row is not None
+        report = generate_stakeholder_landscape(conn, location_id=str(location_row[0]))
         assert report["report_type"] == "stakeholder_landscape"
         assert report["party_count"] >= 5
         assert any(row["open_interest_count"] > 0 for row in report["parties"])
@@ -135,16 +144,24 @@ def test_location_landscape_uses_location_lineage_view():
     assert any("explicit location lineage" in item for item in report["limitations"])
 
 
-def test_network_landscape_retains_canonical_network_view():
-    row = {"party_id": "party-a", "active_relationship_count": 3}
-    conn, cursor = _landscape_report_connection([row])
+@pytest.mark.parametrize(
+    ("report_type", "generator"),
+    [
+        ("stakeholder_landscape", generate_stakeholder_landscape),
+        ("stakeholder_engagement", generate_stakeholder_engagement),
+        ("stakeholder_grievance", generate_stakeholder_grievance),
+        ("stakeholder_decision_lineage", generate_stakeholder_decision_lineage),
+    ],
+)
+def test_stakeholder_reports_reject_missing_location_before_database_access(
+    report_type, generator
+):
+    conn = MagicMock()
 
-    report = generate_stakeholder_landscape(conn)
+    with pytest.raises(ValueError, match=f"{report_type} requires an explicit location_id"):
+        generator(conn)
 
-    assert report["parties"] == [row]
-    assert "FROM v_stakeholder_landscape ORDER BY" in cursor.execute.call_args.args[0]
-    assert "v_stakeholder_landscape_by_location" not in cursor.execute.call_args.args[0]
-    assert cursor.execute.call_args.args[1] == []
+    conn.cursor.assert_not_called()
 
 
 def test_location_landscape_aggregates_only_explicit_location_lineage():

@@ -2502,9 +2502,6 @@ export interface ReportSnapshot {
   status?: LifecycleStatus | null;
   created_at?: string | null;
   created_by?: string | null;
-  entity_type?: string | null;
-  entity_id?: string | null;
-  generated_by?: string | null;
   frozen?: boolean | null;
   frozen_at?: string | null;
   frozen_by?: string | null;

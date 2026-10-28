@@ -2,9 +2,13 @@
 
 from pathlib import Path
 
+import pytest
+
 from services.agents.kokonut_commons_agent import synthesize_kokonut_commons
 from services.agents.tasks import get_task, list_tasks, validate_output
 from services.export.report_generator import (
+    ALL_LOCATION_REPORTS,
+    NETWORK_LEVEL_REPORTS,
     REPORT_GENERATORS,
     generate_algorithmic_redistribution,
     generate_anti_capture_governance,
@@ -168,6 +172,120 @@ def test_kokonut_commons_report_generators_registered_and_public_safe() -> None:
     participatory = generate_participatory_signal(conn)
     assert participatory["advisory_count"] == 1
     assert participatory["location_id"] is None
+
+
+@pytest.mark.parametrize(
+    "report_type,generator",
+    [
+        ("anti_capture_governance", generate_anti_capture_governance),
+        ("redistribution_policy", generate_redistribution_policy),
+        ("algorithmic_redistribution", generate_algorithmic_redistribution),
+    ],
+)
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_location_required_commons_reports_reject_missing_scope_before_cursor(
+    report_type, generator, location_id
+) -> None:
+    assert report_type in REPORT_GENERATORS
+    assert report_type not in NETWORK_LEVEL_REPORTS
+    assert report_type not in ALL_LOCATION_REPORTS
+
+    class Conn:
+        cursor_called = False
+
+        def cursor(self, cursor_factory=None):
+            self.cursor_called = True
+            raise AssertionError("a missing location must fail before opening a cursor")
+
+    conn = Conn()
+    with pytest.raises(ValueError, match="requires an explicit location_id"):
+        generator(conn, location_id)
+    assert not conn.cursor_called
+
+
+@pytest.mark.parametrize(
+    "report_type,generator,view_name",
+    [
+        (
+            "anti_capture_governance",
+            generate_anti_capture_governance,
+            "v_public_anti_capture_governance_policy",
+        ),
+        (
+            "redistribution_policy",
+            generate_redistribution_policy,
+            "v_public_commons_redistribution_policy",
+        ),
+        (
+            "algorithmic_redistribution",
+            generate_algorithmic_redistribution,
+            "v_public_algorithmic_redistribution_mechanism",
+        ),
+    ],
+)
+def test_location_required_commons_reports_query_only_location_and_global_rows(
+    report_type, generator, view_name
+) -> None:
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params=None):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_instance = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_instance
+
+    conn = Conn()
+    generator(conn, "11111111-1111-4111-8111-111111111111")
+    assert view_name in conn.cursor_instance.query
+    assert "WHERE location_id = %s OR location_id IS NULL" in conn.cursor_instance.query
+    assert conn.cursor_instance.params == ("11111111-1111-4111-8111-111111111111",)
+
+
+@pytest.mark.parametrize(
+    "generator,view_name",
+    [
+        (generate_federation_mutual_aid, "v_public_federation_protocol"),
+        (generate_participatory_signal, "v_public_participatory_signal_experiment"),
+    ],
+)
+def test_explicit_network_commons_reports_keep_network_wide_queries(generator, view_name) -> None:
+    class Cursor:
+        query = None
+
+        def execute(self, query, params=None):
+            self.query = query
+
+        def fetchall(self):
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_instance = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_instance
+
+    conn = Conn()
+    result = generator(conn)
+    assert result["location_id"] is None
+    assert view_name in conn.cursor_instance.query
+    assert "WHERE location_id" not in conn.cursor_instance.query
 
 
 if __name__ == "__main__":

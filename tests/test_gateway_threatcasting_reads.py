@@ -335,3 +335,62 @@ def test_http_read_returns_no_store_and_advisory_response(monkeypatch):
     assert response.json()["advisory_only"] is True
     assert detail_response.status_code == 413
     assert detail_response.headers["cache-control"] == "no-store"
+
+
+def test_backcast_list_pagination_is_bounded_in_openapi_and_before_service(monkeypatch):
+    from fastapi import APIRouter
+
+    from services.gateway.threatcasting_routes import register_threatcasting_routes
+
+    service_calls = []
+
+    def list_plans(*_args, **_kwargs):
+        service_calls.append(True)
+        return {"location_id": LOCATION_ID, "advisory_only": True, "items": []}
+
+    monkeypatch.setattr(
+        "services.gateway.threatcasting_reads.list_location_backcast_plans",
+        list_plans,
+    )
+
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_threatcasting_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    operation = app.openapi()["paths"][
+        "/operator/api/threatcasting/{location_id}/backcast-plans"
+    ]["get"]
+    limit_parameter = next(
+        parameter for parameter in operation["parameters"] if parameter["name"] == "limit"
+    )
+    assert limit_parameter["schema"] == {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 50,
+        "title": "Limit",
+    }
+
+    with TestClient(app) as client:
+        responses = [
+            client.get(
+                f"/operator/api/threatcasting/{LOCATION_ID}/backcast-plans",
+                params={"limit": value},
+            )
+            for value in ("0", "101", "not-an-integer")
+        ]
+
+    assert [response.status_code for response in responses] == [422, 422, 422]
+    assert service_calls == []

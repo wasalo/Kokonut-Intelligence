@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-28",
+  "result": "passed",
+  "source_revision": "753b4645",
+  "slice": "sequential evidence Gateway pagination contract",
+  "route": "/operator/api/sequential-evidence/{location_id}/events",
+  "bounds": {
+    "limit": {
+      "default": 25,
+      "minimum": 1,
+      "maximum": 50
+    },
+    "offset": {
+      "default": 0,
+      "minimum": 0,
+      "maximum": 10000
+    }
+  },
+  "finding": "The read service rejected invalid page values before database access, but the FastAPI route accepted unbounded strings and its OpenAPI contract did not publish the service limits.",
+  "change": "The route now declares typed FastAPI Query bounds matching the service. Invalid and non-integer values return 422 before invoking the service; valid values are forwarded as integers.",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_sequential_decision_reads.py -q",
+      "result": "20 passed"
+    },
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the route-level Query types/bounds and corresponding test assertions; no schema, persisted state, or service behavior changed.",
+  "limitations": [
+    "Checks cover in-process validation and OpenAPI output only; no live reverse proxy or database behavior was exercised."
+  ]
+}

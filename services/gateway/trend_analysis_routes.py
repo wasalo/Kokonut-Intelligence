@@ -4,6 +4,7 @@ import json
 
 
 def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -26,8 +27,8 @@ def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2
     async def trend_estimates(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10_000),
     ):
         if provider is None:
             return JSONResponse(
@@ -69,7 +70,7 @@ def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2
         request: Request,
         location_id: str,
         metric_key: str,
-        limit: int = 100,
+        limit: int = Query(default=100, ge=1, le=100),
     ):
         if provider is None:
             return JSONResponse(
@@ -243,7 +244,7 @@ def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2
         request: Request,
         location_id: str,
         metric_key: str,
-        limit: int = 100,
+        limit: int = Query(default=100, ge=1, le=100),
     ):
         if provider is None:
             return JSONResponse(

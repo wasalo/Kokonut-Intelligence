@@ -75,32 +75,23 @@ def generate_scaling_economics(conn, location_id: str = None, period_start: str 
 
 
 def generate_adoption_barriers(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
-    """Generate public-safe adoption and market barrier report."""
+    """Generate a public-safe barrier report with an explicit location scope."""
+    if not location_id:
+        raise ValueError("adoption_barriers requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_adoption_barrier_assessment
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR assessment_date >= %s::date)
-                  AND (%s::date IS NULL OR assessment_date <= %s::date)
-                ORDER BY assessment_date DESC, barrier_category, barrier_name
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_adoption_barrier_assessment
-                WHERE (%s::date IS NULL OR assessment_date >= %s::date)
-                  AND (%s::date IS NULL OR assessment_date <= %s::date)
-                ORDER BY assessment_date DESC, barrier_category, barrier_name
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_adoption_barrier_assessment
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR assessment_date >= %s::date)
+              AND (%s::date IS NULL OR assessment_date <= %s::date)
+            ORDER BY assessment_date DESC, barrier_category, barrier_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         barriers = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -125,31 +116,22 @@ def generate_perpetual_value_stress(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate public-safe downside stress-test report."""
+    if not location_id:
+        raise ValueError("perpetual_value_stress requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_perpetual_value_stress_test
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR scenario_date >= %s::date)
-                  AND (%s::date IS NULL OR scenario_date <= %s::date)
-                ORDER BY scenario_date DESC, stress_type, scenario_name
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_perpetual_value_stress_test
-                WHERE (%s::date IS NULL OR scenario_date >= %s::date)
-                  AND (%s::date IS NULL OR scenario_date <= %s::date)
-                ORDER BY scenario_date DESC, stress_type, scenario_name
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_perpetual_value_stress_test
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR scenario_date >= %s::date)
+              AND (%s::date IS NULL OR scenario_date <= %s::date)
+            ORDER BY scenario_date DESC, stress_type, scenario_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         scenarios = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()

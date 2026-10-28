@@ -2,6 +2,7 @@
 
 
 def register_extension_learning_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -21,8 +22,8 @@ def register_extension_learning_routes(router, provider, run_in_threadpool, psyc
         category: str | None = None,
         difficulty: str | None = None,
         content_type: str | None = None,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10_000),
     ):
         if provider is None:
             return JSONResponse(

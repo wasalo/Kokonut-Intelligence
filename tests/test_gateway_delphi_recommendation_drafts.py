@@ -268,7 +268,35 @@ def test_draft_routes_are_no_store_and_forward_actor_location_and_paging():
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert calls[0][1] == (OPERATOR_ID, LOCATION_ID)
-    assert calls[0][2] == {"limit": "30", "offset": "60"}
+    assert calls[0][2] == {"limit": 30, "offset": 60}
+
+
+def test_draft_study_list_publishes_service_bounds_in_openapi():
+    app = _make_app(object(), lambda *_args, **_kwargs: None)
+    operation = app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/draft-studies"
+    ]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+
+    assert parameters["limit"]["schema"]["default"] == 50
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 50
+    assert parameters["offset"]["schema"]["default"] == 0
+    assert parameters["offset"]["schema"]["minimum"] == 0
+    assert parameters["offset"]["schema"]["maximum"] == 10000
+
+
+@pytest.mark.parametrize("query", ["limit=0", "limit=51", "offset=-1", "offset=10001"])
+def test_draft_study_list_rejects_out_of_bounds_before_service(query):
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("invalid page bounds must not invoke the draft-list service")
+
+    client = TestClient(_make_app(object(), run_in_threadpool))
+    response = client.get(
+        f"/operator/api/delphi/{LOCATION_ID}/draft-studies?{query}"
+    )
+
+    assert response.status_code == 422
 
 
 def test_draft_route_requires_exact_json_fields_and_keeps_response_private():

@@ -2,6 +2,7 @@
 
 
 def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -1594,7 +1595,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/drafts")
     async def location_solution_adoption_program_drafts(
-        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -1625,7 +1626,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/redesigns")
     async def location_solution_adoption_program_redesigns(
-        request: Request, location_id: str, limit: str = "25", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=25, ge=1, le=50), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -1755,7 +1756,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/review-queue")
     async def location_solution_adoption_program_review_queue(
-        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -1883,7 +1884,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/readiness/review-queue")
     async def solution_adopter_readiness_review_queue(
-        request: Request, location_id: str, limit: str = "25", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=25, ge=1, le=100), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2013,7 +2014,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/drafts")
     async def location_solution_configuration_drafts(
-        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2085,7 +2086,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/review-queue")
     async def location_solution_configuration_review_queue(
-        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2163,8 +2164,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_lifecycle_adoption(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2362,8 +2363,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_scale_gates(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2414,8 +2415,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_scale_gate_assessment_targets(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2505,8 +2506,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_scale_gate_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2625,8 +2626,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_replications(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2675,8 +2676,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_replication_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2816,8 +2817,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_replication_completion_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3122,8 +3123,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_learning(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3260,8 +3261,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_learning_application_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3365,8 +3366,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_learning_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3599,8 +3600,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_retirements(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3649,8 +3650,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_retirement_candidates(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3699,8 +3700,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_retirement_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4055,8 +4056,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_lifecycle_funding(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4105,8 +4106,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_funding_targets(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4155,8 +4156,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_funding_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4601,8 +4602,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_lifecycle_gates(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4653,8 +4654,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_stage_transition_targets(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4703,8 +4704,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_lifecycle_experiments(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(

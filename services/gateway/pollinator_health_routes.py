@@ -4,6 +4,7 @@ import json
 
 
 def register_pollinator_health_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -103,7 +104,10 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
 
     @router.get("/operator/api/pollinators/{location_id}/review-queue")
     async def pollinator_review_queue(
-        request: Request, location_id: str, limit: int = 25, offset: int = 0
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -238,7 +242,10 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
 
     @router.get("/operator/api/pollinators/{location_id}/habitats")
     async def pollinator_habitat_details(
-        request: Request, location_id: str, limit: int = 50, offset: int = 0
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=50, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -280,7 +287,10 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
 
     @router.get("/operator/api/pollinators/{location_id}/hives")
     async def pollinator_hive_details(
-        request: Request, location_id: str, limit: int = 50, offset: int = 0
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=50, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)

@@ -180,7 +180,48 @@ def test_workspace_route_requires_session_and_returns_no_store_payload():
     assert response.json() == expected
     assert response.headers["cache-control"] == "no-store"
     assert calls[0][1] == (SESSION,)
-    assert calls[0][2] == {"limit": "20", "offset": "40"}
+    assert calls[0][2] == {"limit": 20, "offset": 40}
+
+
+def test_workspace_route_publishes_service_pagination_bounds():
+    async def run_in_threadpool(*_args, **_kwargs):
+        return {"study": None, "items": []}
+
+    schema = _app(run_in_threadpool).openapi()
+    parameters = schema["paths"]["/api/participation/delphi/workspace"]["get"]["parameters"]
+    by_name = {parameter["name"]: parameter["schema"] for parameter in parameters}
+
+    assert by_name["limit"]["minimum"] == 1
+    assert by_name["limit"]["maximum"] == 50
+    assert by_name["limit"]["default"] == 50
+    assert by_name["offset"]["minimum"] == 0
+    assert by_name["offset"]["maximum"] == 10000
+    assert by_name["offset"]["default"] == 0
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "limit=0",
+        "limit=51",
+        "limit=abc",
+        "offset=-1",
+        "offset=10001",
+        "offset=1.5",
+    ],
+)
+def test_workspace_route_rejects_invalid_pagination_before_service_access(query):
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("invalid paging must fail before service access")
+
+    client = TestClient(_app(run_in_threadpool), base_url="https://testserver")
+    client.cookies.set(
+        "kokonut_delphi_participant_session", SESSION, path="/api/participation/delphi"
+    )
+
+    response = client.get(f"/api/participation/delphi/workspace?{query}")
+
+    assert response.status_code == 422
 
 
 @pytest.mark.parametrize("csrf_header", [None, "33" * 32])

@@ -228,3 +228,59 @@ def test_route_fails_closed_when_oidc_is_disabled():
     client = TestClient(_make_app(None, lambda *_args, **_kwargs: None, run_in_threadpool))
     response = client.get(f"/operator/api/delphi/{LOCATION_ID}/studies")
     assert response.status_code == 404
+
+
+def test_route_openapi_publishes_service_page_bounds():
+    async def run_in_threadpool(func, *args, **kwargs):
+        return list_func(*args, **kwargs)
+
+    def list_func(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "offset": 0, "studies": [], "has_more": False}
+
+    app = _make_app(object(), list_func, run_in_threadpool)
+    parameters = {
+        parameter["name"]: parameter["schema"]
+        for parameter in app.openapi()["paths"]["/operator/api/delphi/{location_id}/studies"]["get"]["parameters"]
+    }
+
+    assert parameters["limit"] == {"type": "integer", "minimum": 1, "maximum": 50, "default": 50, "title": "Limit"}
+    assert parameters["offset"] == {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000,
+        "default": 0,
+        "title": "Offset",
+    }
+
+
+@pytest.mark.parametrize("query", ["limit=0", "limit=51", "offset=-1", "offset=10001"])
+def test_route_rejects_out_of_bounds_paging_before_service(query):
+    service_calls = []
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        service_calls.append((args, kwargs))
+        return {"location_id": LOCATION_ID, "offset": kwargs["offset"], "studies": [], "has_more": False}
+
+    client = TestClient(
+        _make_app(object(), lambda *_args, **_kwargs: None, run_in_threadpool)
+    )
+    response = client.get(f"/operator/api/delphi/{LOCATION_ID}/studies?{query}")
+
+    assert response.status_code == 422
+    assert service_calls == []
+
+
+def test_route_forwards_validated_page_values_to_service():
+    service_calls = []
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        service_calls.append((args, kwargs))
+        return {"location_id": LOCATION_ID, "offset": kwargs["offset"], "studies": [], "has_more": False}
+
+    client = TestClient(
+        _make_app(object(), lambda *_args, **_kwargs: None, run_in_threadpool)
+    )
+    response = client.get(f"/operator/api/delphi/{LOCATION_ID}/studies?limit=30&offset=400")
+
+    assert response.status_code == 200
+    assert service_calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 30, "offset": 400})]

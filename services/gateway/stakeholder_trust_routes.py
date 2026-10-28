@@ -2,6 +2,7 @@
 
 
 def register_stakeholder_trust_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -21,7 +22,7 @@ def register_stakeholder_trust_routes(router, provider, run_in_threadpool, psyco
         request: Request,
         location_id: str,
         party_id: str,
-        limit: str = "50",
+        limit: int = Query(default=50, ge=1, le=50),
         cursor_reviewed_at: str | None = None,
         cursor_evidence_id: str | None = None,
     ):

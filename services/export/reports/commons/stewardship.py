@@ -48,27 +48,21 @@ def generate_regenerative_outcomes(conn, location_id: str, period_start: str = N
 def generate_community_governance(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
-    """Generate a public-safe community governance mechanism report."""
+    """Generate a public-safe community governance report for one location."""
+    if not location_id:
+        raise ValueError("community_governance requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_community_governance_mechanism
-                WHERE location_id = %s OR location_id IS NULL
-                ORDER BY governance_level, mechanism_name
-                """,
-                (location_id,),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_community_governance_mechanism
-                ORDER BY governance_level, mechanism_name
-                """
-            )
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_community_governance_mechanism
+            WHERE location_id = %s OR location_id IS NULL
+            ORDER BY governance_level, mechanism_name
+            """,
+            (location_id,),
+        )
         mechanisms = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -90,32 +84,23 @@ def generate_community_governance(
 def generate_replication_readiness(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
-    """Generate a public-safe replication readiness report."""
+    """Generate a public-safe replication readiness report for one location."""
+    if not location_id:
+        raise ValueError("replication_readiness requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_replication_readiness_summary
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR assessment_date >= %s::date)
-                  AND (%s::date IS NULL OR assessment_date <= %s::date)
-                ORDER BY assessment_date DESC, target_region
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_replication_readiness_summary
-                WHERE (%s::date IS NULL OR assessment_date >= %s::date)
-                  AND (%s::date IS NULL OR assessment_date <= %s::date)
-                ORDER BY assessment_date DESC, target_region
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_replication_readiness_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR assessment_date >= %s::date)
+              AND (%s::date IS NULL OR assessment_date <= %s::date)
+            ORDER BY assessment_date DESC, target_region
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         assessments = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()

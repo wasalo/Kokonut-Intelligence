@@ -1179,8 +1179,8 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
     inventory = build_inventory()
 
     assert inventory["summary"]["registered_report_types"] == 94
-    assert inventory["summary"]["direct_query_sites"] == 176
-    assert inventory["summary"]["static_positional_arity_sites"] == 175
+    assert inventory["summary"]["direct_query_sites"] == 167
+    assert inventory["summary"]["static_positional_arity_sites"] == 166
     assert inventory["summary"]["positional_arity_mismatch_sites"] == 0
     assert inventory["summary"]["static_named_bind_contract_sites"] == 1
     assert inventory["summary"]["named_bind_contract_mismatch_sites"] == 0
@@ -1214,9 +1214,10 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
         for query in report["queries"]
         if query["positional_bind_arity"] is None
     ]
-    assert unresolved_arity == [("data_stream_summary", 29)]
+    assert unresolved_arity == [("data_stream_summary", 30)]
     assert reports["data_stream_summary"]["queries"][0]["named_bind_contract"]["mismatch"] is False
     assert reports["stakeholder_trust"]["network_scope_guards"][0]["location_id_parameter"] is True
+    assert reports["adoption_barriers"]["classification"] == "all_direct_queries_show_bound_location_scope"
 
 
 def test_inventory_output_and_freshness_check_are_deterministic(tmp_path):

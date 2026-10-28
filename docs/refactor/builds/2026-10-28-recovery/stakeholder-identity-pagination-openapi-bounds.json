@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "result": "passed",
+  "slice": "stakeholder identity case review pagination contract",
+  "route": "/operator/api/stakeholder-identity/{location_id}/cases",
+  "service_contract": {
+    "limit_default": 50,
+    "limit_minimum": 1,
+    "limit_maximum": 50
+  },
+  "change": "FastAPI now publishes and validates the service limit in OpenAPI; invalid limits return 422 before service invocation.",
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_stakeholder_identity_pagination_openapi.py tests/test_gateway_stakeholder_identity.py -q",
+      "result": "15 passed"
+    },
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false
+  },
+  "rollback": "Revert the route parameter validation and focused regression; no persisted state or schema changed."
+}

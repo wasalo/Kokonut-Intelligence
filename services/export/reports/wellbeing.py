@@ -200,32 +200,23 @@ def generate_risk_mitigation(conn, location_id: str, period_start: str = None, p
 
 
 def generate_scaling_roadmap(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
-    """Generate a public-safe scaling roadmap report."""
+    """Generate a public-safe scaling roadmap report for one location."""
+    if not location_id:
+        raise ValueError("scaling_roadmap requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_scaling_roadmap_summary
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR target_date >= %s::date)
-                  AND (%s::date IS NULL OR target_date <= %s::date)
-                ORDER BY target_date, roadmap_name
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_scaling_roadmap_summary
-                WHERE (%s::date IS NULL OR target_date >= %s::date)
-                  AND (%s::date IS NULL OR target_date <= %s::date)
-                ORDER BY target_date, roadmap_name
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_scaling_roadmap_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR target_date >= %s::date)
+              AND (%s::date IS NULL OR target_date <= %s::date)
+            ORDER BY target_date, roadmap_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         milestones = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -321,32 +312,23 @@ def generate_capital_efficiency(conn, location_id: str, period_start: str = None
 def generate_governance_throughput(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
-    """Generate a public-safe governance throughput report."""
+    """Generate a public-safe governance throughput report for one location."""
+    if not location_id:
+        raise ValueError("governance_throughput requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_governance_throughput_summary
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR proposal_created_at::date >= %s::date)
-                  AND (%s::date IS NULL OR proposal_created_at::date <= %s::date)
-                ORDER BY proposal_created_at DESC, proposal_code
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_governance_throughput_summary
-                WHERE (%s::date IS NULL OR proposal_created_at::date >= %s::date)
-                  AND (%s::date IS NULL OR proposal_created_at::date <= %s::date)
-                ORDER BY proposal_created_at DESC, proposal_code
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_governance_throughput_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR proposal_created_at::date >= %s::date)
+              AND (%s::date IS NULL OR proposal_created_at::date <= %s::date)
+            ORDER BY proposal_created_at DESC, proposal_code
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         observations = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()

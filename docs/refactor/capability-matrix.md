@@ -1,5 +1,62 @@
 # Capability preservation matrix
 
+**Latest parallel report-scope and Gateway contract batch (28 October 2026):**
+direct generation now requires location scope for the location-only strategy,
+Kokonut Commons, and perpetual-value-stress reports; unlineaged stakeholder
+and fork data stays in explicit network reports. The generated report inventory
+records 94 report types, 167 direct queries, 166 positional-bind sites, and
+zero unresolved or mismatched sites. Gateway/operator routes now publish and
+enforce their existing pagination bounds; the changed route selection passes
+732 tests. Integrated report checks pass 563 tests with four
+database-dependent skips; the platform-integrity selection passes 374 tests
+and six subtests. Directus hooks pass 120 tests and build/typecheck, JavaScript
+SDK tests pass 56 with a successful TypeScript build, and the focused Python
+SDK/outbox/worker selection passes 113 tests. Ruff, Python compilation,
+dependency/provider boundaries, capability validation, and diff checks pass.
+No migration, provider, candidate, or legacy database was used. Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows; no MAN-CAP acceptance changed. Checklist: 1,350 complete /
+25 open (1,375 total) ([report inventory](report-generator-query-scope-inventory.json);
+[Kokonut Commons](builds/2026-10-28-recovery/kokonut-commons-report-location-scope.json);
+[strategy scope](builds/2026-10-28-recovery/stakeholder-outcomes-direct-scope.json);
+[perpetual stress](builds/2026-10-28-recovery/perpetual-value-stress-location-scope.json);
+[Delphi workspace](builds/2026-10-28-recovery/delphi-participant-workspace-pagination-openapi.json);
+[operator lists](builds/2026-10-28-recovery/operator-list-pagination-openapi-bounds.json);
+[combined verification](builds/2026-10-28-recovery/parallel-report-gateway-contracts.json)).
+
+**Latest parallel source/portability batch (28 October 2026):** the optional
+Directus hook resolves current workflow role names on each authorization check;
+the adoption-barrier, bio-recipe, community-governance, governance-inclusion,
+governance-throughput, replication-readiness, and scaling-roadmap reports now
+require explicit location scope before direct database access, consistent with
+their registry/CLI contracts. Four location-lineaged stakeholder reports keep
+the same explicit-scope contract. The full ARM64/QEMU replay applied all 670
+schemas through migration 679 under verified 1.5 GiB/two-CPU limits, with no
+seeds, failures, OOM, or leftover resources. Delphi source rows are checked
+against requested study and location; Python/TypeScript field projections and
+report-snapshot schema types now align. Notification bounds reject booleans.
+Gateway list routes for ecocredits, attestations, Field Activity, nutrients,
+irrigation, crop simulations, traceability, geostatistics, trend analysis,
+extension learning, and pollinator health publish and enforce downstream
+page-size/offset limits. Competitive-landscape, business-architecture,
+Delphi-consultation, Delphi draft-study/review, stakeholder identity, and
+business-planning/history, strategy, sequential-decision, governance-role,
+and planning-budget lists also publish service bounds in OpenAPI and reject
+invalid paging before service access; threatcasting and Delphi invite/consent queues do the same. All 21 operating-
+pilot list routes and 25 solution-lifecycle list routes now expose their service-aligned
+limits. Nutrient offsets and the pollution-incident queue offset now publish
+the service caps in OpenAPI too.
+The integrated report selection passes 516 tests with four database-dependent
+skips; Gateway route checks pass 113 tests before the latest geostatistics,
+trend-analysis, extension-learning, pollinator, Delphi, and business-route additions. Directus hook tests pass 120,
+notification tests 40, schema parity tests 13, and Delphi tests 3. QEMU is
+software portability evidence only, not physical Pi or production-recovery
+acceptance. C4 review found no safe schedule to activate without owner/runtime
+confirmation. No capability classification or MAN-CAP acceptance changed
+([Directus evidence](builds/2026-10-28-recovery/directus-role-resolution-freshness.json); [report-scope evidence](builds/2026-10-28-recovery/replication-readiness-location-scope.json); [roadmap evidence](builds/2026-10-28-recovery/scaling-roadmap-location-scope.json); [Gateway pagination evidence](builds/2026-10-28-recovery/gateway-pagination-openapi-bounds.json); [Field Activity](builds/2026-10-28-recovery/farm-activity-pagination-openapi-bounds.json); [nutrients](builds/2026-10-28-recovery/nutrient-pagination-openapi-bounds.json); [nutrient offsets](builds/2026-10-28-recovery/nutrient-pagination-offset-bounds.json); [irrigation](builds/2026-10-28-recovery/irrigation-pagination-openapi-bounds.json); [crop simulations](builds/2026-10-28-recovery/crop-simulation-pagination-openapi-bounds.json); [traceability](builds/2026-10-28-recovery/traceability-pagination-openapi-bounds.json); [geostatistics](builds/2026-10-28-recovery/geostatistics-pagination-openapi-bounds.json); [trend analysis](builds/2026-10-28-recovery/trend-analysis-pagination-openapi-bounds.json); [extension learning](builds/2026-10-28-recovery/extension-learning-pagination-openapi-bounds.json); [pollinator health](builds/2026-10-28-recovery/pollinator-pagination-openapi-bounds.json); [Delphi consultation](builds/2026-10-28-recovery/delphi-consultation-pagination-openapi-bounds.json); [competitive landscape](builds/2026-10-28-recovery/competitive-landscape-pagination-openapi-bounds.json); [business architecture](builds/2026-10-28-recovery/business-architecture-pagination-openapi-bounds.json); [Delphi recommendation drafts](builds/2026-10-28-recovery/delphi-draft-study-pagination-openapi-bounds.json); [stakeholder identity](builds/2026-10-28-recovery/stakeholder-identity-pagination-openapi-bounds.json); [business planning](builds/2026-10-28-recovery/business-planning-pagination-openapi-bounds.json); [stakeholder trust](builds/2026-10-28-recovery/stakeholder-identity-trust-pagination-openapi-bounds.json); [Delphi minority review](builds/2026-10-28-recovery/delphi-minority-review-pagination-openapi-bounds.json); [Delphi recommendation review](builds/2026-10-28-recovery/delphi-recommendation-review-pagination-openapi-bounds.json); [AI-summary review](builds/2026-10-28-recovery/ai-summary-review-pagination-openapi-bounds.json); [strategy](builds/2026-10-28-recovery/strategy-pagination-openapi-bounds.json); [sequential decisions](builds/2026-10-28-recovery/sequential-decision-pagination-openapi-bounds.json); [governance roles](builds/2026-10-28-recovery/governance-role-pagination-openapi-bounds.json); [planning budgets](builds/2026-10-28-recovery/planning-budget-pagination-openapi-bounds.json); [business-planning history](builds/2026-10-28-recovery/business-planning-edit-history-pagination-openapi.json); [threatcasting](builds/2026-10-28-recovery/threatcasting-pagination-openapi-bounds.json); [Delphi invites](builds/2026-10-28-recovery/delphi-participant-invite-pagination-openapi.json); [Delphi consent](builds/2026-10-28-recovery/delphi-consent-notice-pagination-openapi-bounds.json); [operating pilot](builds/2026-10-28-recovery/operating-pilot-pagination-openapi-bounds.json); [solution lifecycle](builds/2026-10-28-recovery/solution-lifecycle-pagination-openapi-bounds.json); [waste incident offset](builds/2026-10-28-recovery/waste-incident-offset-bounds.json)).
+Checklist: 1,345 complete / 25 open (1,370 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 **Latest SDK parity update — typed list extension queries (28 October 2026):**
 Python now exposes `ListOptions.extra_params` through typed accessors, matching
 TypeScript `ListOptions.extraParams`. Both clients retain Directus-specific
