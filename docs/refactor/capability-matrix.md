@@ -1,25 +1,28 @@
 # Capability preservation matrix
 
 **Runtime-role acceptance update (27 October 2026):** Focused native and
-ARM64/QEMU disposable PostgreSQL 16 checks pass migrations 673–674. A fresh
-native AMD64 replay of all 665 ordered schema files through migration 674 passes
-the full provisioner and all 30 two-tenant operator-scope checks under verified
-1.5 GiB memory/swap and two-CPU database limits. The probe verifies 121
-declared runtime-role controls: 79 private relations, 39 mutation-denied
+ARM64/QEMU disposable PostgreSQL 16 checks pass migrations 673–675. A fresh
+native AMD64 replay of all 666 ordered schema files through migration 675 passes
+the full provisioner and all 31 two-tenant operator-scope checks under verified
+1.5 GiB memory/swap and two-CPU database limits. The probe verifies 122
+declared runtime-role controls: 79 private relations, 40 mutation-denied
 relations, two append-only relations, and the API-key read-only column
 boundary. It reports zero direct table or column privilege violations across
-1,511 public relations; 999 relations retain effective table-level DML while
+1,511 public relations; 998 relations retain effective table-level DML while
 RLS is disabled. Broad compatibility DML and non-universal application-table
 RLS remain open C1 concerns. The replay loaded no seed files or farm data,
 published no ports, was not OOM-killed, and removed temporary resources. It
 read the USD currency inserted by the ordered finance migration and the
-schema-defined `fall_armyworm` degree-day default; the optional `crop_gdd_config`
-seed and unrelated seed-dependent catalogs were not loaded. Focused ACL checks
+schema-defined `fall_armyworm` degree-day default. Optional seeds 015, 069, and
+088 and other seed-dependent catalogs were not loaded, so revenue-multiplier
+configuration and crop GDD seed parity remain unverified. Focused ACL checks
 use synthetic relations and verify grants, not general populated-data parity.
 This is synthetic
 software-portability evidence, not candidate/production state, universal
 tenant isolation, populated-data acceptance, or physical Raspberry Pi
-acceptance ([full native schema and scope evidence through 674](builds/2026-10-27-recovery/runtime-role-full-schema-674-native-disposable.json);
+acceptance ([full native schema and scope evidence through 675](builds/2026-10-27-recovery/runtime-role-full-schema-675-native-disposable.json);
+[native revenue-multiplier ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-disposable.json);
+[ARM64/QEMU revenue-multiplier ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-arm64-disposable.json);
 [native pest degree-day ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-disposable.json);
 [ARM64/QEMU pest degree-day ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-arm64-disposable.json);
 [native crop GDD ACL](builds/2026-10-27-recovery/crop-gdd-config-runtime-read-only-disposable.json);
@@ -71,16 +74,17 @@ The app runtime limit result is recorded in
 source-line report joins the runtime ACL snapshot with SQL inventory v2, which
 separates DML targets from source relations. It identifies 273 candidate
 relations and 425 target sites across 89 source files, with no unmatched
-candidate sites. The full migration-674 probe verifies 121 declared runtime
-controls with zero policy mismatches; 999 relations still retain effective
+candidate sites. The full migration-675 probe verifies 122 declared runtime
+controls with zero policy mismatches; 998 relations still retain effective
 DML while RLS is disabled. This is not universal tenant isolation. The source
 report is heuristic and candidate writers still need callsite review. Recent
 read-only runtime policies include seeded factor and benchmark catalogs,
 `operations_protocol`, `process_maturity_level`,
 `pollinator_species_reference`, `gri_indicator`, `governance_framework`,
 `impact_framework`, `impact_dimension`, `expense_category`,
-`crisp_risk_dimension`, `dfs_currency`, `crop_gdd_config`, and
-`pest_degree_day_config`; migrations 668–674 change only the Kernel runtime
+`crisp_risk_dimension`, `dfs_currency`, `crop_gdd_config`,
+`pest_degree_day_config`, and `revenue_multiplier_config`; migrations 668–675
+change only the Kernel runtime
 role and preserve SELECT. Directus
 grants are preserved by focused ACL checks, but Directus API row/role parity is
 not implied. Seeded registry, impact, expense-category, and CRISP-dimension
@@ -5483,3 +5487,5 @@ The current-source ARM64 app builds and its no-network/read-only import smoke pa
 **Latest local batch — Crop GDD configuration runtime boundary (27 October 2026):** migration 673 keeps `crop_gdd_config` readable to analytics while denying direct runtime mutation. Native and ARM64/QEMU PostgreSQL checks pass apply/replay, table and column denial, provisioner reapplication, and preservation of Directus grants. The native full-schema replay through 673 passes 29 two-tenant checks and proves the runtime can query the relation; no seed files were loaded, so populated GDD values were not tested. The refreshed source/ACL report covers 120 policies with zero mismatches and records 1,000 relations with effective DML while RLS is disabled; C1 remains open. The three focused regression modules pass 104 tests. No capability classifications or MAN-CAP acceptance changed; populated-data, physical-device, and production acceptance remain open. Checklist: 1,287 complete / 25 open (1,312 total); 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows ([migration](../schemas/postgres/673_runtime_crop_gdd_config_read_only.sql); [full-schema evidence](builds/2026-10-27-recovery/runtime-role-full-schema-673-native-disposable.json); [native ACL](builds/2026-10-27-recovery/crop-gdd-config-runtime-read-only-disposable.json); [ARM64 ACL](builds/2026-10-27-recovery/crop-gdd-config-runtime-read-only-arm64-disposable.json)).
 
 **Latest local batch — Pest degree-day configuration runtime boundary (27 October 2026):** migration 674 keeps the schema-defined pest degree-day thresholds readable to analytics while denying direct runtime mutation. Source review confirms `record_degree_day` writes only operational `degree_day_record`; the available pest reference writer targets the separate `pest_biology_reference`, and no service/extension SQL targets the config table. Native and ARM64/QEMU disposable PostgreSQL checks pass migration replay, table/column write denial, provisioner reapplication, and preservation of Directus grants. The native replay applies all 665 schemas through migration 674 and passes 30 two-tenant checks, including reading the `fall_armyworm` default defined in schema migration 149. The source/ACL report covers 121 policies with zero mismatches and 999 relations retaining effective DML while RLS is disabled; broad C1 isolation remains open. The three focused regression modules pass 105 tests. No capability classifications or MAN-CAP acceptance changed; candidate/legacy, physical-device, populated operational, and production acceptance remain open. Checklist: 1,288 complete / 25 open (1,313 total); 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows ([migration](../schemas/postgres/674_runtime_pest_degree_day_config_read_only.sql); [full-schema evidence](builds/2026-10-27-recovery/runtime-role-full-schema-674-native-disposable.json); [native ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-disposable.json); [ARM64/QEMU ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-arm64-disposable.json)).
+
+**Latest local batch — Revenue-multiplier configuration runtime boundary (27 October 2026):** migration 675 keeps the shared `revenue_multiplier_config` readable to the runtime while denying its broad DML privileges. Schema 016 defines the table; seed files 015 and 069 supply its configurable business parameters. The revenue-multiplier service only reads the table and falls back to code defaults; no service or extension writer exists. The migration affects only `kokonut_runtime`, leaving the distinct Directus/admin grant path available. Native and ARM64/QEMU disposable PostgreSQL checks pass table and column mutation denial, provisioner reapplication, and Directus grant preservation. The native full-schema replay applies all 666 schemas and passes 31 two-tenant checks, including a query against the table; optional seeds were not applied, so configured parameter values were absent. The source/ACL report covers 122 policies with zero mismatches and 998 relations still retaining effective DML while RLS is disabled; C1 remains open. The service test module passes 14 tests; the three runtime-role/report/schema-replay modules pass 106 tests. No capability classifications changed; candidate/legacy and production remain untouched, and physical Raspberry Pi acceptance is not claimed. Checklist: 1,289 complete / 25 open (1,314 total); classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows ([migration](../schemas/postgres/675_runtime_revenue_multiplier_config_read_only.sql); [full-schema evidence](builds/2026-10-27-recovery/runtime-role-full-schema-675-native-disposable.json); [native ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-disposable.json); [ARM64/QEMU ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-arm64-disposable.json)).

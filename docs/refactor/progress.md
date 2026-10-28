@@ -21141,3 +21141,41 @@ Evidence: [migration](../schemas/postgres/674_runtime_pest_degree_day_config_rea
 [refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
 Checklist: 1,288 complete / 25 open (1,313 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — Revenue multiplier configuration runtime read-only boundary — 27 October 2026
+
+Schema 016 defines `revenue_multiplier_config`; optional seed files 015 and 069
+provide its configurable business parameters. `services/revenue_multiplier/config.py`
+reads the table and falls back to code defaults. The runtime SQL inventory and
+service/extension source scan show no table writer. Migration 675 revokes table
+and residual column INSERT/UPDATE/REFERENCES from `kokonut_runtime`, restores
+SELECT, and the runtime provisioner reapplies the boundary after compatibility
+grants. The migration leaves the separate Directus/admin role untouched.
+
+Native and ARM64/QEMU disposable PostgreSQL 16 checks pass migration
+apply/replay, SELECT, table/column mutation and TRUNCATE denial, stale-column
+grant removal, provisioner reapplication, and preservation of synthetic
+Directus grants. A fresh native replay applies all 666 ordered schemas through
+migration 675 and passes all 31 two-tenant scope assertions under verified
+1.5 GiB/two-CPU limits. The runtime probe successfully queries the config
+relation, which is empty because optional seeds were skipped. No farm data or
+host ports were used, no OOM occurred, cleanup passed, and candidate/legacy
+databases remain untouched. Existing revenue multiplier unit tests pass 14
+tests.
+
+The refreshed source/ACL report covers 122 declared policies with zero
+mismatches; 998 relations still have effective table DML while RLS is disabled,
+so C1 remains open. The runtime-role, report, and schema-replay regression
+selection passes 106 tests. Ruff, Python compilation, dependency/provider
+boundaries, SQL inventory, capability validation, and diff checks pass.
+Rollback retains migration 675; restoring runtime writes requires a reviewed
+forward migration. This does not establish configured-value parity, Directus
+API parity, physical Raspberry Pi acceptance, or production operation.
+
+Evidence: [migration](../schemas/postgres/675_runtime_revenue_multiplier_config_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-arm64-disposable.json),
+[full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-675-native-disposable.json),
+[refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,289 complete / 25 open (1,314 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

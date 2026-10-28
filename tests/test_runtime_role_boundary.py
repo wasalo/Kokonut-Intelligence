@@ -28,7 +28,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 121
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 122
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -857,6 +857,49 @@ def test_pest_degree_day_config_is_read_only_to_kernel_runtime():
     assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
     assert "REVOKE ALL PRIVILEGES ON TABLE public.pest_degree_day_config FROM kokonut_runtime" in migration
     assert "GRANT SELECT ON TABLE public.pest_degree_day_config TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_revenue_multiplier_config_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root
+        / "schemas/postgres/675_runtime_revenue_multiplier_config_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/016_revenue_multiplier_config.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "revenue_multiplier_config" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "revenue_multiplier_config" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS revenue_multiplier_config" in schema
+    assert "SELECT config_key, config_value FROM revenue_multiplier_config" in (
+        root / "services/revenue_multiplier/config.py"
+    ).read_text()
+    assert not any(
+        "revenue_multiplier_config" in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?revenue_multiplier_config\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.revenue_multiplier_config FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.revenue_multiplier_config TO kokonut_runtime" in migration
     assert "REVOKE INSERT (%1$I)" in migration
     assert "REVOKE UPDATE (%1$I)" in migration
     assert "REVOKE REFERENCES (%1$I)" in migration

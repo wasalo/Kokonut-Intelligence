@@ -1056,7 +1056,7 @@ _RUNTIME_MUTATION_TABLES = (
     "advisory_rule",
     "carbon_benchmark", "crop_gdd_config", "dfs_currency",
     "ghg_emission_factor",
-    "operations_protocol",
+    "operations_protocol", "revenue_multiplier_config",
     "process_maturity_level",
     "pollinator_species_reference", "pest_degree_day_config",
     "gri_indicator",

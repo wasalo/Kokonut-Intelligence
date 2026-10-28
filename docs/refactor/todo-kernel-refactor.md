@@ -668,3 +668,13 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   pass 105 tests; 121 ACL policies have zero mismatches while 999 relations
   retain effective DML with RLS disabled, so C1 remains open. No candidate or
   legacy database was touched ([batch](batches.md); [progress](progress.md#progress-addendum--pest-degree-day-configuration-runtime-read-only-boundary--27-october-2026)).
+
+- [x] Keep `revenue_multiplier_config` readable but immutable to
+  `kokonut_runtime`. Migration 675 passes native and ARM64/QEMU disposable ACL
+  checks, including provisioner reapplication and Directus-grant preservation.
+  The 666-file native replay passes all 31 two-tenant assertions and confirms a
+  runtime query succeeds. Optional seeds 015/069 were not loaded, so configured
+  values are not covered by this replay. The three focused regression modules
+  pass 106 tests and the service module passes 14; 122 ACL policies have zero
+  mismatches while 998 relations retain effective DML with RLS disabled, so C1
+  remains open ([batch](batches.md); [progress](progress.md#progress-addendum--revenue-multiplier-configuration-runtime-read-only-boundary--27-october-2026)).

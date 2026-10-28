@@ -167,9 +167,9 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
         "synthetic_operator_count": 2, "runtime_public_tables_with_dml_and_rls_disabled": 4,
         "runtime_scoped_write_policy": {
             "private_relations_expected": 79,
-            "mutation_denied_relations_expected": 39,
+            "mutation_denied_relations_expected": 40,
             "private_relations_verified": 79,
-            "mutation_denied_relations_verified": 39,
+            "mutation_denied_relations_verified": 40,
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,
@@ -232,9 +232,9 @@ def test_operator_probe_counts_insert_only_relations_as_effective_dml():
         "runtime_public_tables_with_dml_and_rls_disabled": 1,
         "runtime_scoped_write_policy": {
             "private_relations_expected": 79,
-            "mutation_denied_relations_expected": 39,
+            "mutation_denied_relations_expected": 40,
             "private_relations_verified": 79,
-            "mutation_denied_relations_verified": 39,
+            "mutation_denied_relations_verified": 40,
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,

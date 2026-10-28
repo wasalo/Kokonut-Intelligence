@@ -151,6 +151,7 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         ("dfs_currency", "currency references"),
         ("crop_gdd_config", "crop GDD configuration"),
         ("pest_degree_day_config", "pest degree-day configuration"),
+        ("revenue_multiplier_config", "revenue multiplier configuration"),
     ):
         if not relation_exists(table):
             raise AssertionError(f"full schema is missing {label}")
@@ -416,6 +417,7 @@ def run_probe() -> dict[str, object]:
                 "runtime can query shared currency references",
                 "runtime can read crop GDD configuration",
     "runtime can read seeded pest degree-day configuration",
+                "runtime can query revenue multiplier configuration",
                 "runtime can read seeded certification types",
                 "runtime can read seeded cooperative types",
                 "runtime can read seeded insurance product types",
