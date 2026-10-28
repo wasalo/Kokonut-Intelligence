@@ -84,8 +84,11 @@ EXPENSE_CATEGORY_MIGRATION = ROOT / "schemas/postgres/670_runtime_expense_catego
 CRISP_RISK_DIMENSION_MIGRATION = (
     ROOT / "schemas/postgres/671_runtime_crisp_risk_dimension_read_only.sql"
 )
+DFS_CURRENCY_MIGRATION = (
+    ROOT / "schemas/postgres/672_runtime_dfs_currency_read_only.sql"
+)
 REFERENCE_CATALOGS = (
-    "carbon_benchmark", "ghg_emission_factor", "cooperative_type",
+    "carbon_benchmark", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
@@ -252,6 +255,7 @@ def check_boundary(
                     "gri_indicator", "governance_framework",
                     "impact_framework", "impact_dimension",
                     "expense_category", "crisp_risk_dimension",
+                    "dfs_currency",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -381,6 +385,11 @@ def check_boundary(
                 )
                 cursor.execute(crisp_risk_dimension_migration)
                 cursor.execute(crisp_risk_dimension_migration)
+                dfs_currency_migration = DFS_CURRENCY_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(dfs_currency_migration)
+                cursor.execute(dfs_currency_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -469,6 +478,7 @@ def check_boundary(
                         "impact_dimension": 669,
                         "expense_category": 670,
                         "crisp_risk_dimension": 671,
+                        "dfs_currency": 672,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -561,6 +571,7 @@ def check_boundary(
                     ("impact_dimension", 669),
                     ("expense_category", 670),
                     ("crisp_risk_dimension", 671),
+                    ("dfs_currency", 672),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -1237,6 +1248,14 @@ def check_boundary(
                     "directus_role_unchanged": True,
                 },
                 "read_only_crisp_risk_dimension": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_dfs_currency": {
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,

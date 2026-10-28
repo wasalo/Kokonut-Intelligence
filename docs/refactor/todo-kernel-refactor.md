@@ -639,3 +639,13 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   the operator-scope probe. C7 remains open for physical-device/power testing,
   populated data, and production recovery acceptance
   ([batch](batches.md); [evidence](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json)).
+
+- [x] Make `dfs_currency` read-only to the general Kernel runtime. Migration 672
+  and native/ARM64 disposable PostgreSQL checks cover reads, table/column write
+  denial, provisioner reapplication, and preservation of Directus grants. The
+  complete native schema through 672 passes all 28 two-tenant probe assertions;
+  119 declared ACL policies have zero mismatches, while 1,001 relations still
+  have effective DML with RLS disabled, so C1 remains open. The three focused
+  regression modules pass 103 tests. This is software-only synthetic evidence;
+  physical Pi, populated operational data, and production acceptance remain
+  open ([batch](batches.md); [progress](progress.md#progress-addendum--currency-reference-catalog-runtime-read-only-boundary--27-october-2026)).

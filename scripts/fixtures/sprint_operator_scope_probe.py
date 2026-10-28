@@ -148,6 +148,7 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         ("impact_dimension", "impact framework dimensions"),
         ("expense_category", "expense categories"),
         ("crisp_risk_dimension", "CRISP risk dimension definitions"),
+        ("dfs_currency", "currency references"),
     ):
         if not relation_exists(table):
             raise AssertionError(f"full schema is missing {label}")
@@ -162,6 +163,11 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
     cur.execute("SELECT count(*) FROM public.certification_type")
     if cur.fetchone()[0] < 1:
         raise AssertionError("runtime login cannot read seeded certification types")
+    if not relation_exists("dfs_currency"):
+        raise AssertionError("full schema is missing currency references")
+    cur.execute("SELECT 1 FROM public.dfs_currency WHERE code = 'USD'")
+    if cur.fetchone() is None:
+        raise AssertionError("runtime login cannot read the seeded USD currency")
     for table, label in (
         ("cooperative_type", "cooperative types"),
         ("dfs_insurance_product_type", "insurance product types"),
@@ -405,6 +411,7 @@ def run_probe() -> dict[str, object]:
                 "runtime can query shared impact framework dimensions",
                 "runtime can read governed expense categories",
                 "runtime can query shared CRISP risk dimension definitions",
+                "runtime can query shared currency references",
                 "runtime can read seeded certification types",
                 "runtime can read seeded cooperative types",
                 "runtime can read seeded insurance product types",

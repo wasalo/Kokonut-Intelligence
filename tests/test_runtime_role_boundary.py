@@ -28,7 +28,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["summary"][
         "migration_revoked_relations_missing_or_mismatched_runtime_policy"
     ] == 0
-    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 118
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == 119
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
 
 
@@ -730,6 +730,47 @@ def test_crisp_risk_dimensions_are_read_only_to_kernel_runtime():
     )
     assert "REVOKE ALL PRIVILEGES ON TABLE public.crisp_risk_dimension" in migration
     assert "GRANT SELECT ON TABLE public.crisp_risk_dimension TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_dfs_currency_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/672_runtime_dfs_currency_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/141_digital_finance.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "dfs_currency" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "dfs_currency" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS dfs_currency" in schema
+    assert "INSERT INTO dfs_currency" in schema
+    assert "LEFT JOIN dfs_currency" in schema
+    assert not any(
+        "dfs_currency" in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?dfs_currency\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.dfs_currency FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.dfs_currency TO kokonut_runtime" in migration
     assert "REVOKE INSERT (%1$I)" in migration
     assert "REVOKE UPDATE (%1$I)" in migration
     assert "REVOKE REFERENCES (%1$I)" in migration

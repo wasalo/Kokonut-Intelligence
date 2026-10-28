@@ -21028,3 +21028,38 @@ MAN-CAP acceptance did not change.
 Evidence: [ARM64/QEMU full-schema replay through migration 671](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json).
 Checklist: 1,285 complete / 25 open (1,310 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — Currency reference catalog runtime read-only boundary — 27 October 2026
+
+Repository review found `dfs_currency` is created and populated by ordered
+finance migration 141, used by financial views as a read join, and has no
+service or extension write target. Migration 672 now revokes table and residual
+column INSERT/UPDATE/REFERENCES grants for `kokonut_runtime` and restores
+SELECT. The runtime provisioner reapplies the boundary after compatibility
+grants. Native and ARM64/QEMU disposable PostgreSQL 16 checks pass apply/replay,
+read access, table/column mutation and TRUNCATE denial, stale-column grant
+cleanup, provisioner reapplication, and preservation of synthetic Directus
+grants. The full native replay applied all 663 ordered schemas through 672 and
+passed all 28 two-tenant scope assertions under verified 1.5 GiB/two-CPU
+limits; the restricted runtime also successfully read migration 141's USD row.
+It loaded no seed files or farm data, published no ports, avoided OOM, and
+cleaned up successfully.
+
+The refreshed ACL/source report covers 119 declared policies with zero
+mismatches across 1,511 public relations. It reports 1,001 relations retaining
+effective table DML while RLS is disabled; broad compatibility grants and
+non-universal table RLS keep C1 open. The runtime-role, report, and schema
+replay regression selection passes 103 tests. Ruff, compilation, dependency
+and provider boundaries, SQL-inventory freshness, capability-matrix validation,
+and diff checks pass. No candidate or legacy database was touched. This does
+not verify Directus API permissions, populated finance data, physical Pi
+hardware, or production operation; rollback retains migration 672 and any
+runtime write restoration requires a reviewed forward migration.
+
+Evidence: [migration](../schemas/postgres/672_runtime_dfs_currency_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/dfs-currency-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/dfs-currency-runtime-read-only-arm64-disposable.json),
+[full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-672-native-disposable.json),
+[refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,286 complete / 25 open (1,311 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
