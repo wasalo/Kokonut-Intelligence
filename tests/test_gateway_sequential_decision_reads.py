@@ -1,5 +1,6 @@
 """Tests for the location-scoped sequential evidence Gateway projection."""
 
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -20,10 +21,23 @@ SUMMARY = {
     "hypothesis_count": 3,
     "hypothesis_status_counts": {"active": 1, "resolved": 1, "draft": 1, "retired": 0},
     "evidence_event_count": 3,
-    "evidence_quality_counts": {"verified": 1, "provisional": 1, "rejected": 1},
+    "evidence_quality_counts": {
+        "unverified": 0,
+        "provisional": 1,
+        "verified": 1,
+        "rejected": 1,
+        "stale": 0,
+    },
     "applied_evidence_event_count": 2,
     "posterior_update_count": 2,
-    "latest_decision_action_counts": {"continue": 1, "insufficient_evidence": 1},
+    "latest_decision_action_counts": {
+        "continue": 1,
+        "act": 0,
+        "escalate": 0,
+        "stop": 0,
+        "reject": 0,
+        "insufficient_evidence": 1,
+    },
 }
 TIMELINE = {
     "limit": 2,
@@ -293,6 +307,8 @@ def test_timeline_route_is_no_store_and_forwards_pagination(monkeypatch):
 
     openapi = app.openapi()
     event_operation = openapi["paths"]["/operator/api/sequential-evidence/{location_id}/events"]["get"]
+    response_schema = event_operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("SequentialEvidenceTimeline")
     parameters = {parameter["name"]: parameter for parameter in event_operation["parameters"]}
     assert parameters["limit"]["schema"]["minimum"] == 1
     assert parameters["limit"]["schema"]["maximum"] == 50
@@ -304,7 +320,10 @@ def test_timeline_route_is_no_store_and_forwards_pagination(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["items"] == TIMELINE["items"]
+    assert response.json()["items"][0]["hypothesis_sequence"] == 1
+    assert response.json()["items"][0]["observed_at"] == "2026-10-01T00:00:00Z"
+    assert response.json()["items"][1]["quality_status"] == "provisional"
+    assert response.json()["next_offset"] == 2
     assert calls == [
         ((OPERATOR_ID, LOCATION_ID), {"limit": 2, "offset": 0}),
     ]
@@ -362,10 +381,16 @@ def test_http_projection_is_no_store_and_operator_authenticated(monkeypatch):
     with TestClient(app) as client:
         response = client.get(f"/operator/api/sequential-evidence/{LOCATION_ID}/summary")
 
+    response_schema = app.openapi()["paths"][
+        "/operator/api/sequential-evidence/{location_id}/summary"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("SequentialDecisionSummary")
+
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["hypothesis_count"] == 3
+    assert response.json()["latest_decision_action_counts"]["continue"] == 1
 
 
 def test_http_projection_fails_closed_when_oidc_is_disabled(monkeypatch):
@@ -419,3 +444,124 @@ def test_http_projection_maps_tenant_denial_to_forbidden(monkeypatch):
 
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
+
+
+def _contract_route_app(monkeypatch, *, summary, timeline):
+    from services.gateway.sequential_decision_routes import register_sequential_decision_routes
+
+    monkeypatch.setattr(
+        "services.gateway.sequential_decision_reads.get_location_sequential_decision_summary",
+        lambda *_args, **_kwargs: summary,
+    )
+    monkeypatch.setattr(
+        "services.gateway.sequential_decision_reads.list_location_sequential_evidence_timeline",
+        lambda *_args, **_kwargs: timeline,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_sequential_decision_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda value: value.update(secret="private"),
+        lambda value: value.update(hypothesis_count=-1),
+        lambda value: value["evidence_quality_counts"].pop("stale"),
+        lambda value: value.update(location_id=str(uuid4())),
+    ],
+)
+def test_summary_route_rejects_malformed_projection(monkeypatch, mutate):
+    summary = {"location_id": LOCATION_ID, **deepcopy(SUMMARY)}
+    mutate(summary)
+    app = _contract_route_app(
+        monkeypatch,
+        summary=summary,
+        timeline={"location_id": LOCATION_ID, **TIMELINE},
+    )
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/sequential-evidence/{LOCATION_ID}/summary")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Sequential evidence summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda value: value["items"][0].update(statement="private"),
+        lambda value: value["items"][0].update(quality_status="unknown"),
+        lambda value: value.update(limit=3),
+        lambda value: value.update(location_id=str(uuid4())),
+        lambda value: value.update(next_offset=4),
+        lambda value: value.update(offset=10_000, next_offset=10_002),
+    ],
+)
+def test_timeline_route_rejects_malformed_or_mismatched_projection(monkeypatch, mutate):
+    timeline = {"location_id": LOCATION_ID, **deepcopy(TIMELINE)}
+    mutate(timeline)
+    app = _contract_route_app(
+        monkeypatch,
+        summary={"location_id": LOCATION_ID, **SUMMARY},
+        timeline=timeline,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/sequential-evidence/{LOCATION_ID}/events?limit=2&offset=0"
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Sequential evidence timeline unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+@pytest.mark.parametrize(
+    ("offset", "has_more", "expected_more", "expected_next"),
+    [(9_950, True, True, 10_000), (9_951, True, False, None)],
+)
+def test_timeline_reader_stops_at_supported_offset_ceiling(
+    monkeypatch, offset, has_more, expected_more, expected_next
+):
+    monkeypatch.setattr(reads, "set_operator_tenant_context", lambda *_args, **_kwargs: None)
+    limit = 50
+    timeline = {
+        "limit": limit,
+        "offset": offset,
+        "items": [deepcopy(TIMELINE["items"][0]) for _ in range(limit)],
+        "has_more": has_more,
+        "next_offset": offset + limit if has_more else None,
+    }
+    connection = _Connection(timeline)
+
+    result = reads.list_location_sequential_evidence_timeline(
+        OPERATOR_ID,
+        LOCATION_ID,
+        limit=limit,
+        offset=offset,
+        connection_factory=lambda: connection,
+    )
+
+    assert result["has_more"] is expected_more
+    assert result["next_offset"] == expected_next
+    assert connection.rolled_back and connection.closed

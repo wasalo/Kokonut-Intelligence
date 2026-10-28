@@ -1411,3 +1411,24 @@ candidate, or legacy service was used ([evidence](builds/2026-10-28-recovery/gat
 The checklist is now 1,414 complete / 25 open (1,439 total); this TODO ledger
 has 121 checked and 16 open entries. Capability classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+
+### Completed parallel continuation — private read response contracts — 28 October 2026
+
+- [x] Add an AI-summary review-list response contract that accepts the full
+  migration-backed source catalog, preserves network/location scope labels,
+  and recognizes worker-attribution blockers.
+- [x] Add a strict business-canvas version-history contract, including the
+  canonical snapshot blocks and bounded response size.
+- [x] Add strict sequential-evidence summary and event response contracts
+  aligned to their current SQL projections and pagination bounds.
+- [x] Add strict nutrient soil-test and input/removal response contracts,
+  including source enums, totals, cost classification, and offset-ceiling
+  behavior.
+
+The combined Gateway selection passes 157 tests; Ruff, compilation, capability
+validation, Python 3.11/3.12 runtime-SQL freshness, and the 24-test inventory
+regression pass. Evidence is recorded in [the batch log](batches.md). This
+ledger now has 125 checked / 16 open entries; the batches checklist records
+1,418 complete / 25 open. Capability classifications and MAN-CAP acceptance
+remain unchanged.

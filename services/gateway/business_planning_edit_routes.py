@@ -1,5 +1,57 @@
 """OIDC routes for draft-only business canvas edits and version history."""
 
+from uuid import UUID
+
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, ValidationError, model_validator
+
+
+class _BusinessCanvasHistoryResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class BusinessCanvasVersionBlocks(_BusinessCanvasHistoryResponseModel):
+    key_partners: JsonValue
+    key_activities: JsonValue
+    key_resources: JsonValue
+    value_propositions: JsonValue
+    customer_relationships: JsonValue
+    channels: JsonValue
+    customer_segments: JsonValue
+    revenue_streams: JsonValue
+    cost_structure: JsonValue
+
+
+class BusinessCanvasVersionSnapshot(_BusinessCanvasHistoryResponseModel):
+    canvas_name: str | None = Field(max_length=255)
+    description: str | None
+    fiscal_year: int | None = Field(strict=True)
+    tags: list[str] | None
+    blocks: BusinessCanvasVersionBlocks
+
+
+class BusinessCanvasVersion(_BusinessCanvasHistoryResponseModel):
+    canvas_id: UUID
+    version: int = Field(ge=1, strict=True)
+    snapshot: BusinessCanvasVersionSnapshot
+    change_reason: str | None
+    changed_at: AwareDatetime
+    is_current: bool = Field(strict=True)
+
+
+class BusinessCanvasVersionHistoryPage(_BusinessCanvasHistoryResponseModel):
+    location_id: UUID
+    canvas_id: UUID
+    offset: int = Field(ge=0, le=10_000, strict=True)
+    versions: list[BusinessCanvasVersion] = Field(max_length=5)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(default=None, ge=0, le=10_000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more != (self.next_offset is not None):
+            raise ValueError("has_more and next_offset are inconsistent")
+        return self
+
 
 def register_business_planning_edit_routes(router, provider, run_in_threadpool, psycopg2):
     import json
@@ -62,7 +114,8 @@ def register_business_planning_edit_routes(router, provider, run_in_threadpool, 
         )
 
     @router.get(
-        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions"
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions",
+        response_model=BusinessCanvasVersionHistoryPage,
     )
     async def location_business_model_canvas_versions(
         request: Request,
@@ -99,7 +152,37 @@ def register_business_planning_edit_routes(router, provider, run_in_threadpool, 
         except psycopg2.Error as exc:
             return _database_error(exc)
 
-        response = JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = BusinessCanvasVersionHistoryPage.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.canvas_id != UUID(canvas_id)
+                or validated.offset != offset
+                or any(version.canvas_id != UUID(canvas_id) for version in validated.versions)
+                or len(validated.versions) > limit
+                or validated.has_more
+                and (
+                    len(validated.versions) != limit
+                    or validated.next_offset != offset + limit
+                    or offset + limit > 10_000
+                )
+            ):
+                raise ValueError("Business canvas history does not match the request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.business_planning").warning(
+                "Business canvas history response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Business canvas history unavailable"},
+                headers=headers,
+            )
+
+        response = JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")), headers=headers
+        )
         if len(response.body) > max_history_bytes:
             return JSONResponse(
                 status_code=413,

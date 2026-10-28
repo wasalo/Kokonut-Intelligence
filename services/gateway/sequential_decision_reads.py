@@ -137,6 +137,12 @@ def list_location_sequential_evidence_timeline(
             if isinstance(timeline, str):
                 timeline = json.loads(timeline)
             response = {"location_id": location_id, **timeline}
+            if (
+                response.get("has_more") is True
+                and page_offset + page_size > 10000
+            ):
+                response["has_more"] = False
+                response["next_offset"] = None
             response_bytes = len(
                 json.dumps(response, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
             )

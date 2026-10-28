@@ -48,7 +48,7 @@ class _Cursor:
         self.conn.queries.append((query, params))
         self.conn.events.append("sql")
         if "SELECT COUNT(*)" in query:
-            self.one = (2,)
+            self.one = (getattr(self.conn, "total", 2),)
             return
         test_id, plot_id = uuid4(), uuid4()
         self.conn.test_id = test_id
@@ -166,6 +166,28 @@ def test_soil_test_read_sets_context_and_returns_bounded_scoped_projection():
     assert conn.rolled_back and conn.closed
 
 
+def test_soil_test_reader_stops_continuation_at_offset_ceiling():
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    conn = _Connection()
+    conn.total = 10_002
+
+    with patch("services.gateway.nutrient_soil_tests.set_operator_tenant_context"):
+        result = get_location_soil_tests(
+            operator_id,
+            location_id,
+            limit=1,
+            offset=10_000,
+            connection_factory=lambda: conn,
+        )
+
+    assert conn.queries[-1][1] == (location_id, 2, 10_000)
+    assert result["total_tests"] == 10_002
+    assert result["offset"] == 10_000
+    assert result["has_more"] is False
+    assert len(result["soil_tests"]) == 1
+    assert conn.rolled_back and conn.closed
+
+
 def test_recorded_soil_test_status_is_not_promoted_to_verified():
     conn = _Connection()
     operator_id, location_id = str(uuid4()), str(uuid4())
@@ -262,7 +284,12 @@ def test_soil_test_route_returns_no_store(monkeypatch, gateway_audit_spool):
     monkeypatch.setattr(
         "services.gateway.nutrient_soil_tests.get_location_soil_tests",
         lambda op, loc, **_kwargs: {
-            "location_id": loc, "total_tests": 1, "soil_tests": []
+            "location_id": loc,
+            "total_tests": 0,
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+            "soil_tests": [],
         },
     )
     with TestClient(create_app(), cookies={"kokonut_operator_session": "synthetic-session"}) as client:

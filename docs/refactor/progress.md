@@ -22229,3 +22229,30 @@ ledger has 121 checked / 16 open entries. The capability matrix records 38
 strict private Gateway response endpoints across 67 rows and remains at 24
 baseline-retained, 7 deployed, and 36 prepared. MAN-CAP acceptance is
 unchanged. Evidence: [combined Gateway contract checks](builds/2026-10-28-recovery/gateway-geostatistics-pollinator-response-contracts.json).
+
+
+### Progress addendum — six private Gateway response contracts — 28 October 2026
+
+The AI-summary review queue now validates the full migration-backed source
+catalog, including network and mixed-scope labels and the unregistered-worker
+blocker. Business-canvas version history validates its canonical snapshot
+blocks and byte bound. Sequential-evidence summaries and timelines validate
+the fixed SQL outputs, request scope, and page metadata. Nutrient soil-test and
+input/removal reads validate nested source fields, event type, cost
+classification, totals, and the 10,000-offset ceiling. Existing private grants,
+no-store behavior, and error boundaries remain unchanged.
+
+The combined selection passes 157 focused Gateway tests and 24 runtime-SQL
+inventory regression tests. Ruff, Python 3.11 compilation, capability-matrix
+validation, inventory freshness on Python 3.11/3.12, and diff checks pass. The
+inventory source-line shifts do not change its 37 unresolved candidates or
+review ledger; no grants changed. No live database, provider, candidate, or
+legacy service was used. Populated-data parity, live OIDC/browser behavior, and
+broader tenant/RLS acceptance remain open. Evidence:
+[batch 4](builds/2026-10-28-recovery/gateway-private-read-contracts-batch-4.json).
+
+The checklist records 1,418 complete / 25 open (1,443 total), the TODO ledger
+has 125 checked / 16 open entries, and the matrix records 44 strict private
+Gateway response endpoints across 67 rows. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP acceptance is
+unchanged.

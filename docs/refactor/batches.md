@@ -5245,3 +5245,35 @@ The checklist is now 1,414 complete / 25 open (1,439 total); the TODO ledger
 has 121 checked and 16 open entries. The matrix records 38 strict private
 Gateway response endpoints; capability classifications and MAN-CAP acceptance
 remain unchanged.
+
+
+### Completed parallel continuation — six private Gateway read contracts — 28 October 2026
+
+- [x] Publish and enforce the AI-summary review-list contract for migration-
+  backed source scopes, creator attribution, review blockers, request identity,
+  and bounded content. Network and mixed-scope references remain labeled;
+  unregistered-worker blockers remain reviewable.
+- [x] Publish and enforce the business-canvas version-history contract for
+  canonical snapshot blocks, canvas/location identity, bounded pages, and the
+  existing response-size limit.
+- [x] Publish and enforce sequential-evidence summary and event contracts for
+  migration-backed counts/statuses, signed location identity, timestamps, and
+  bounded pagination.
+- [x] Publish and enforce nutrient soil-test and input/removal event contracts
+  for source values, event-type identity, finite quantities, currency
+  classification, page totals, and the 10,000-offset ceiling.
+
+The combined Gateway selection passes 157 tests; the runtime-SQL inventory
+regression suite passes 24. Ruff, Python 3.11 compilation, capability-matrix
+validation, inventory checks on Python 3.11 and 3.12, and diff checks pass.
+The inventory changed only AI-summary source-line references; its 37 unresolved
+candidates remain tracked and no grants changed. No live database, candidate,
+legacy service, or provider was used. These source/API checks do not close
+populated-data parity, live OIDC/browser, or broader tenant/RLS acceptance
+([evidence](builds/2026-10-28-recovery/gateway-private-read-contracts-batch-4.json)).
+
+The checklist is now 1,418 complete / 25 open (1,443 total); the TODO ledger
+has 125 checked and 16 open entries. The capability matrix records 44 strict
+private Gateway response endpoints across 67 rows: 24 baseline-retained,
+7 deployed, and 36 prepared. Capability classifications and MAN-CAP
+acceptance remain unchanged.

@@ -49,8 +49,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,411
-complete / 25 open (1,436 total). Twenty-eight private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,418
+complete / 25 open (1,443 total). Forty-four private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. Comprehensive
 Status keeps its section bodies JSON-compatible pending an audit of the
@@ -70,6 +70,14 @@ edge Compose check locks app/database limits at 1 GiB and two CPUs; it does
 not claim physical Pi runtime acceptance.
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows.
+
+The latest response-contract continuation adds strict contracts for AI-summary
+review-list, business-canvas version history, sequential-evidence summary and
+events, and nutrient soil-test/input/removal reads. It preserves migration-
+defined network source scopes and worker-attribution blockers, validates the
+canonical projections and request identities, and prevents pagination beyond
+offset 10,000. The combined selection passes 157 tests; no capability
+classification or MAN-CAP acceptance changes ([evidence](builds/2026-10-28-recovery/gateway-private-read-contracts-batch-4.json)).
 
 The enabled public driver catalog now has a stable versioned `/api/v1/drivers`
 read with bounded pagination and generated typed Python/TypeScript clients.

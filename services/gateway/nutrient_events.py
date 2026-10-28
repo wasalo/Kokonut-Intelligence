@@ -207,7 +207,7 @@ def get_location_nutrient_events(
             "total_events": total_events,
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= _MAX_OFFSET,
             "events": events,
         }
     finally:

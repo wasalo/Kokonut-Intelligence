@@ -150,7 +150,7 @@ def list_location_business_model_canvas_versions(
             )
             rows = [_mapping(cursor, row) for row in cursor.fetchall()]
 
-        has_more = len(rows) > page_size
+        has_more = len(rows) > page_size and page_offset + page_size <= 10000
         page = rows[:page_size]
         result = {
             "location_id": location_id,
