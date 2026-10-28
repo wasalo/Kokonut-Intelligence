@@ -1,3 +1,23 @@
+### Progress addendum — C2 calculated NOI snapshot SDK boundary — 27 October 2026
+
+`noi_snapshot` contains calculated outputs, source inputs, calculation version,
+and timestamps. The repository has no `client.noi.create` or update callsites;
+generic SDK writes could provide final values without executing that
+calculation. Both SDKs now preserve list/detail/crop-cycle reads only. Existing
+CLI, signed-worker, and Directus-extension writers remain as-is and were not
+runtime-validated in this slice.
+
+The focused Python SDK, method-parity, and report-governance selection passes
+111 tests; JavaScript passes 55; TypeScript builds; Ruff and Python compilation
+pass. Calls are mocked, with no database/provider access. Capability
+classifications and MAN-CAP acceptance are unchanged. Checklist: 1,296 complete
+/ 25 open (1,321 total); 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.
+
+Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-noi-snapshot-read-only-contract.json),
+[Python SDK](../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../sdk/javascript/src/methods.ts).
+
 ### Progress addendum — C2 attestation record SDK boundary — 27 October 2026
 
 The `attestation_record` table stores governed lifecycle rows and projections

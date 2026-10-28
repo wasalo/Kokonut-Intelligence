@@ -244,7 +244,7 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `attestations` | `attestation_record` | `listPending`, `listByEntity` (read-only) |
 | `reports` | `report_snapshot` | `listByType` |
 | `exports` | `export_log` | read-only `list`, `get` |
-| `noi` | `noi_snapshot` | `listByCropCycle` |
+| `noi` | `noi_snapshot` | `listByCropCycle` (read-only) |
 | `carbonCredits` | `carbon_credit` | `listByLocation` |
 | `creditAdjustments` | `credit_adjustment` | `listByLocation` |
 | `creditRetirements` | `credit_retirement` | `listByLocation` |
@@ -336,7 +336,7 @@ exposed because their canonical table has no location scope.
 
 Most standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `createMany`, `update`, `delete`. Report snapshots, attestation records,
-exports, credit-ledger, finance, ecological observation, and MRV groups are
+exports, NOI snapshots, credit-ledger, finance, ecological observation, and MRV groups are
 read-only. Reports expose `list`, `get`, and `listByType`; attestations expose
 `list`, `get`, `listPending`, and `listByEntity`; exports expose `list`/`get`.
 Location-scoped collections expose `list`, `get`, and `listByLocation`; metric,
@@ -358,6 +358,8 @@ governed review lifecycle; this SDK does not create or transition them.
 Attestation records reflect governed workflow and indexed chain state. This SDK
 does not create or edit them; publishing/revoking uses the dedicated EAS
 service and its governed signing workflow.
+NOI snapshots are calculated outputs and remain read-only here; reconciliation
+is performed through the snapshot worker/service paths.
 
 ## Examples
 

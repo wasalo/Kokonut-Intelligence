@@ -623,24 +623,20 @@ class ExportMethods:
         return self._client.get_item("export_log", item_id, fields)
 
 
-class NoiMethods(GenericMethods):
+class NoiMethods:
+    """Read calculated NOI snapshots; reconciliation belongs to workers."""
+
     def __init__(self, client: KokonutClient) -> None:
-        super().__init__(client, "noi_snapshot")
+        self._client = client
 
     def list(self, options: Optional[ListOptions] = None) -> List[NoiSnapshot]:
-        return super().list(options)
+        return self._client.list_items("noi_snapshot", options)
 
     def get(self, item_id: str, fields: Optional[List[str]] = None) -> NoiSnapshot:
-        return super().get(item_id, fields)
-
-    def create(self, data: Dict[str, Any]) -> NoiSnapshot:
-        return super().create(data)
-
-    def create_many(self, data: List[Dict[str, Any]]) -> List[NoiSnapshot]:
-        return super().create_many(data)
-
-    def update(self, item_id: str, data: Dict[str, Any]) -> NoiSnapshot:
-        return super().update(item_id, data)
+        return self._client.get_item("noi_snapshot", item_id, fields)
 
     def list_by_crop_cycle(self, crop_cycle_id: str, options: Optional[ListOptions] = None) -> List[NoiSnapshot]:
-        return super().list(_list_options_with_filter(options, {"crop_cycle_id": {"_eq": crop_cycle_id}}))
+        return self._client.list_items(
+            "noi_snapshot",
+            _list_options_with_filter(options, {"crop_cycle_id": {"_eq": crop_cycle_id}}),
+        )

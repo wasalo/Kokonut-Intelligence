@@ -358,3 +358,30 @@ def test_attestation_sdk_exposes_governed_reads_without_generic_mutation():
     assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
         "list", "get", "listPending", "listByEntity"
     ]
+
+
+def test_noi_sdk_exposes_snapshot_reads_without_generic_mutation():
+    python_methods = ast.parse(
+        (ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8")
+    )
+    noi_methods = next(
+        node for node in python_methods.body
+        if isinstance(node, ast.ClassDef) and node.name == "NoiMethods"
+    )
+    python_names = {
+        node.name for node in noi_methods.body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    }
+    assert python_names == {"list", "get", "list_by_crop_cycle"}
+    assert not any(
+        isinstance(base, ast.Name) and base.id == "GenericMethods"
+        for base in noi_methods.bases
+    )
+
+    typescript_methods = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"export interface NoiMethods(.*?)\n\}", typescript_methods, re.DOTALL)
+    assert declaration is not None
+    assert "extends GenericMethods" not in declaration.group(1)
+    assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
+        "list", "get", "listByCropCycle"
+    ]

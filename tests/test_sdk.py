@@ -1517,6 +1517,31 @@ def test_attestation_methods_are_read_only_and_preserve_governed_reads_without_n
         assert not hasattr(client.attestations, name)
 
 
+def test_noi_methods_are_read_only_and_preserve_calculated_snapshot_reads_without_network_calls():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[{"id": "noi-1"}])
+    client.get_item = Mock(return_value={"id": "noi-1", "noi": 1250.0})
+
+    assert client.noi.list_by_crop_cycle(
+        "cycle-1", ListOptions(filter={"location_id": {"_eq": "location-1"}}, limit=5)
+    ) == [{"id": "noi-1"}]
+    assert client.noi.get("noi-1", fields=["id", "noi"]) == {"id": "noi-1", "noi": 1250.0}
+    client.list_items.assert_called_once_with(
+        "noi_snapshot",
+        ListOptions(
+            filter={"location_id": {"_eq": "location-1"}, "crop_cycle_id": {"_eq": "cycle-1"}},
+            limit=5,
+        ),
+    )
+    client.get_item.assert_called_once_with("noi_snapshot", "noi-1", ["id", "noi"])
+
+    for name in ("create", "create_many", "update", "delete"):
+        assert not hasattr(client.noi, name)
+
+
 def test_export_log_type_exposes_canonical_export_table_fields():
     from dataclasses import fields
 

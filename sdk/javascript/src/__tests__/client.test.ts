@@ -1255,6 +1255,24 @@ describe('KokonutClient', () => {
     expect(client.attestations).not.toHaveProperty('delete');
   });
 
+  it('keeps calculated NOI snapshots read-only while preserving scoped reads', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([{ id: 'noi-1' }]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'noi-1', noi: 1250 });
+
+    await client.noi.listByCropCycle('cycle-1', { filter: { location_id: { _eq: 'location-1' } }, limit: 5 });
+    expect(listItems).toHaveBeenCalledWith('noi_snapshot', {
+      filter: { location_id: { _eq: 'location-1' }, crop_cycle_id: { _eq: 'cycle-1' } },
+      limit: 5,
+    });
+    await client.noi.get('noi-1', ['id', 'noi']);
+    expect(getItem).toHaveBeenCalledWith('noi_snapshot', 'noi-1', ['id', 'noi']);
+
+    expect(client.noi).not.toHaveProperty('create');
+    expect(client.noi).not.toHaveProperty('createMany');
+    expect(client.noi).not.toHaveProperty('update');
+    expect(client.noi).not.toHaveProperty('delete');
+  });
+
   it('keeps required convenience filters authoritative and forwards list options', async () => {
     const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
 

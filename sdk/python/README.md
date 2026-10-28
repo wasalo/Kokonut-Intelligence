@@ -255,7 +255,7 @@ except KokonutError as e:
 | `attestations` | `attestation_record` | `list_pending`, `list_by_entity` (read-only) |
 | `reports` | `report_snapshot` | `list_by_type` |
 | `exports` | `export_log` | read-only `list`, `get` |
-| `noi` | `noi_snapshot` | `list_by_crop_cycle` |
+| `noi` | `noi_snapshot` | `list_by_crop_cycle` (read-only) |
 | `carbon_credits` | `carbon_credit` | `list_by_location` |
 | `credit_adjustments` | `credit_adjustment` | `list_by_location` |
 | `credit_retirements` | `credit_retirement` | `list_by_location` |
@@ -347,8 +347,8 @@ exposed because their canonical table has no location scope.
 
 Most standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `create_many`, `update`, `delete`. Report snapshots, attestation records,
-exports, credit-ledger, finance, ecological observation, and MRV groups are
-read-only. Reports expose `list`, `get`, and `list_by_type`; attestations expose
+exports, NOI snapshots, credit-ledger, finance, ecological observation, and MRV
+groups are read-only. Reports expose `list`, `get`, and `list_by_type`; attestations expose
 `list`, `get`, `list_pending`, and `list_by_entity`; exports expose `list`/`get`.
 Location-scoped collections expose `list`, `get`, and `list_by_location`. The ecological,
 MRV, metric, forecast, market, and value-flow groups also expose only these read
@@ -369,6 +369,8 @@ governed review lifecycle; this SDK does not create or transition them.
 Attestation records reflect governed workflow and indexed chain state. This SDK
 does not create or edit them; publishing/revoking uses the dedicated EAS
 service and its governed signing workflow.
+NOI snapshots are calculated outputs and remain read-only here; reconciliation
+is performed through the snapshot worker/service paths.
 
 ## Examples
 
