@@ -631,3 +631,11 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   99 Python and 57 JavaScript tests; TypeScript build, Ruff, compilation, and
   109-model schema-parity checks pass. C2 remains open for route/auth, error and
   runtime parity ([batch](batches.md); [evidence](builds/2026-10-27-recovery/sdk-pagination-contract.json)).
+
+- [x] Re-run the full schema on ARM64/QEMU through migration 671. All 662
+  ordered files applied on `aarch64` under verified 1.5 GiB/two-CPU limits in a
+  network-disabled disposable project, with no seeds, farm rows, host ports,
+  OOM, or candidate/legacy access; cleanup passed. This replay did not include
+  the operator-scope probe. C7 remains open for physical-device/power testing,
+  populated data, and production recovery acceptance
+  ([batch](batches.md); [evidence](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json)).

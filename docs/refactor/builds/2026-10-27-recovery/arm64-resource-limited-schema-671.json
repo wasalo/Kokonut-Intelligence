@@ -1,0 +1,50 @@
+{
+  "result": "passed",
+  "date": "2026-10-27",
+  "source_revision": "00b46f60",
+  "working_tree_dirty": false,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "platform": "linux/arm64",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261027-d6786286",
+  "schema_files_expected": 662,
+  "schema_files_applied": 662,
+  "schema_files_pending": 0,
+  "schema_files_failed": 0,
+  "latest_migration": "671_runtime_crisp_risk_dimension_read_only",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "resource_limits": {
+    "requested_memory_bytes": 1610612736,
+    "requested_cpu_count": 2.0,
+    "verified_database_limits": {
+      "memory_bytes": 1610612736,
+      "memory_swap_bytes": 1610612736,
+      "nano_cpus": 2000000000
+    }
+  },
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:671_runtime_crisp_risk_dimension_read_only.sql",
+  "schema_status": {
+    "seeds": 0,
+    "failed": 0,
+    "latest": "671_runtime_crisp_risk_dimension_read_only",
+    "applied": 662,
+    "pending": 0,
+    "pg_stat_public_select": false
+  },
+  "pg_stat_statements_public_select": false,
+  "container_architecture": "aarch64",
+  "database_oom_killed": false,
+  "elapsed_seconds": 1787.9
+}

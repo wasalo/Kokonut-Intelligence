@@ -21012,3 +21012,19 @@ acceptance are unchanged.
 Evidence: [SDK pagination contract](builds/2026-10-27-recovery/sdk-pagination-contract.json).
 Checklist: 1,284 complete / 25 open (1,309 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — ARM64/QEMU schema replay through migration 671 — 27 October 2026
+
+A fresh network-disabled ARM64/QEMU disposable replay applied all 662 ordered
+schema files through migration 671. The database ran as `aarch64` under verified
+1.5 GiB memory/two-CPU limits; no OOM occurred. No seeds, farm data, host ports,
+or candidate/legacy database were used, and cleanup completed. This replay did
+not include the synthetic operator-scope probe; that acceptance remains covered
+by the separate native run and focused ARM64 migration checks. The result is
+software emulation only: physical-device, power-failure, populated-data, and
+production recovery acceptance remain open. Capability classifications and
+MAN-CAP acceptance did not change.
+
+Evidence: [ARM64/QEMU full-schema replay through migration 671](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json).
+Checklist: 1,285 complete / 25 open (1,310 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
