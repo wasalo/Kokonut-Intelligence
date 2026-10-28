@@ -5,6 +5,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
+    from pydantic import ValidationError
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
@@ -65,6 +66,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     from services.gateway.governance_tension_review import (
         GovernanceTensionReviewInvalid,
         GovernanceTensionReviewNotFound,
+        GovernanceTensionReviewQueueResponse,
         get_location_governance_tension,
         list_location_governance_tensions,
     )
@@ -1159,7 +1161,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     async def cancel_governance_tactical_item(request: Request, location_id: str, item_id: str):
         return await transition_tactical_route(request, location_id, item_id, "cancel")
 
-    @router.get("/operator/api/governance/{location_id}/tensions")
+    @router.get(
+        "/operator/api/governance/{location_id}/tensions",
+        response_model=GovernanceTensionReviewQueueResponse,
+    )
     async def location_governance_tensions(
         request: Request,
         location_id: str,
@@ -1190,7 +1195,31 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             psycopg2.Error,
         ) as exc:
             return error_response(exc, headers=headers)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = GovernanceTensionReviewQueueResponse.model_validate(result)
+            from uuid import UUID
+
+            if (
+                page.location_id != UUID(location_id)
+                or len(page.items) > limit
+                or (page.next_cursor is not None and len(page.items) != limit)
+            ):
+                raise ValueError("governance tension page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_tensions").warning(
+                "Governance tension queue response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance tension review unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(page.model_dump(mode="json")), headers=headers
+        )
 
     @router.get("/operator/api/governance/{location_id}/tensions/{tension_id}")
     async def location_governance_tension_detail(

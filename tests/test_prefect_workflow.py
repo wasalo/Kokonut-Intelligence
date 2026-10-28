@@ -128,6 +128,17 @@ def test_scheduled_hourly_waits_for_explicit_sensor_source_mapping() -> None:
     )
 
 
+def test_scheduled_weekly_runs_only_climate_refresh() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import scheduled_weekly
+
+    with patch("services.flows.climate_data.climate_data_flow") as climate:
+        scheduled_weekly.fn()
+
+    climate.assert_called_once_with()
+
+
 def test_anomaly_prefect_flow_uses_owner_scoped_location_fanout() -> None:
     from unittest.mock import patch
 

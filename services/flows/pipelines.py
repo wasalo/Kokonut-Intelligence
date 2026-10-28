@@ -146,6 +146,6 @@ def scheduled_daily():
 
 @flow(name="scheduled-weekly", retries=1)
 def scheduled_weekly():
-    """Weekly tasks: climate data refresh, ML model retraining."""
+    """Refresh climate datasets weekly; ML model retraining is not scheduled."""
     from .climate_data import climate_data_flow
     climate_data_flow()

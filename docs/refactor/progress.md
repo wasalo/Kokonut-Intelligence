@@ -22310,3 +22310,28 @@ populated-data parity, and broader tenant isolation remain open ([evidence](batc
 
 The checklist is 1,426 complete / 25 open (1,451 total); the TODO ledger has
 133 checked / 16 open entries.
+
+
+### Progress addendum — governance queue and weekly workflow correction — 28 October 2026
+
+The governance tension review queue now publishes a strict success response
+schema and validates exact request location, allowed source enums, severity,
+aware timestamps, projection fields, ordering, and cursor-to-last-item
+consistency. Invalid service projections return its sanitized no-store error.
+The weekly Prefect flow no longer claims ML retraining: the source function
+only invokes climate refresh, and a regression locks that actual behavior.
+Legacy ML retraining remains outside the Kernel scheduler contract pending a
+dedicated signed source identity and bounded retry/idempotency design.
+
+The governance/Prefect focused selection passes 39 tests. Ruff, compilation,
+runtime SQL inventory checks on Python 3.11/3.12, capability validation, and
+diff checks pass. The inventory retains its 37 unresolved candidates. A
+parallel source audit found no further safe Directus reference mapping, report
+query change, or provider JobSpec without better source or owner data. The
+matrix now records 55 strict private Gateway response endpoints across 67 rows
+(24 baseline-retained, 7 deployed, and 36 prepared); classifications and
+MAN-CAP acceptance are unchanged. No database, provider, candidate, or legacy
+service was used ([evidence](builds/2026-10-28-recovery/kernel-governance-weekly-contract-batch.json)).
+
+The checklist is 1,428 complete / 25 open (1,453 total); the TODO ledger has
+135 checked / 16 open entries.

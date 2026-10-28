@@ -49,8 +49,8 @@ operations require explicit scope; and the isolated ClickHouse outbox worker
 receives its dedicated password without exposing it to other isolated workers.
 The replay parser derives expected ACL counts from current policy and rejects
 stale counts. No additional catalog revoke was selected because
-`competency_framework` may be owner-managed. The latest checklist is 1,426
-complete / 25 open (1,451 total). Fifty-four private Gateway response
+`competency_framework` may be owner-managed. The latest checklist is 1,428
+complete / 25 open (1,453 total). Fifty-five private Gateway response
 endpoints now publish OpenAPI success models and reject undeclared fields
 while preserving existing authorization and cache behavior. Comprehensive
 Status keeps its section bodies JSON-compatible pending an audit of the
@@ -69,7 +69,7 @@ the retired full-stack topology and lacks a Kernel health contract. A static
 edge Compose check locks app/database limits at 1 GiB and two CPUs; it does
 not claim physical Pi runtime acceptance.
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36
-prepared across 67 rows. The latest private-read continuation adds response
+prepared across 67 rows. The preceding private-read continuation added response
 contracts for Delphi consent and consultation, independent Delphi review,
 stakeholder identity/trust pages, and the waste incident review queue. Cursor
 ordering, blockers, pagination ceilings, and source-backed nested projections
@@ -84,9 +84,16 @@ selection passes 279 tests; the Directus tenant-hook suite passes 16 tests and
 its extension build/typecheck succeeds. Report inventories are current, and
 the runtime SQL inventory is current on Python 3.11/3.12 with the same 37
 unresolved candidates. No database, provider, candidate, or legacy service was
-used. The matrix now records 54 strict private Gateway response endpoints
-across 67 rows; classifications and MAN-CAP acceptance remain unchanged
+used. That batch recorded 54 strict private Gateway response endpoints
 ([evidence](builds/2026-10-28-recovery/kernel-parallel-contract-and-scope-batch.json)).
+This continuation adds the strict governance-tension review-queue response
+contract and corrects the weekly Prefect flow description to match its actual
+climate-only execution. Its governance/Prefect selection passes 39 tests;
+Ruff, compilation, and runtime SQL inventory checks on Python 3.11/3.12 pass.
+The current endpoint count is 55. A source audit confirms there is no safe new
+provider job or additional Directus tenant-reference mapping to register from
+repository evidence, and remaining report gaps need owner/populated-data input.
+No capability classification or MAN-CAP acceptance changed.
 
 The latest response-contract continuation adds strict contracts for AI-summary
 review-list, business-canvas version history, sequential-evidence summary and

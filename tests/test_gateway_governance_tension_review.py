@@ -336,9 +336,115 @@ def test_review_routes_apply_exact_read_scope_and_no_store(monkeypatch):
     assert detail_response.json() == detail
     assert detail_response.headers["cache-control"] == "no-store"
     queue_call.assert_called_once_with(
-        OPERATOR_ID, LOCATION_ID, status="submitted", limit="10", cursor=None
+        OPERATOR_ID, LOCATION_ID, status="submitted", limit=10, cursor=None
     )
     detail_call.assert_called_once_with(OPERATOR_ID, LOCATION_ID, TENSION_ID)
+
+
+def test_queue_route_publishes_strict_success_contract(monkeypatch):
+    class InMemoryAudit:
+        def __init__(self):
+            pass
+
+        def replay_pending(self, _limit=100):
+            return 0
+
+        def log(self, **_event):
+            return None
+
+        def capture_status(self):
+            return "ok"
+
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="e" * 64,
+        operator=SimpleNamespace(operator_id=OPERATOR_ID),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, *_scope):
+            return True
+
+        def list_scopes(self, _operator_id):
+            return []
+
+        def revoke_session(self, _session_id):
+            return None
+
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    with TestClient(create_app(), base_url="https://operator.example") as client:
+        schema = client.app.openapi()
+
+    operation = schema["paths"]["/operator/api/governance/{location_id}/tensions"]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/GovernanceTensionReviewQueueResponse"
+    }
+    response_schema = schema["components"]["schemas"]["GovernanceTensionReviewQueueResponse"]
+    assert response_schema["additionalProperties"] is False
+    assert set(response_schema["required"]) == {"location_id", "items", "next_cursor"}
+
+
+def test_queue_route_sanitizes_invalid_success_projection(monkeypatch):
+    class InMemoryAudit:
+        def __init__(self):
+            pass
+
+        def replay_pending(self, _limit=100):
+            return 0
+
+        def log(self, **_event):
+            return None
+
+        def capture_status(self):
+            return "ok"
+
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="f" * 64,
+        operator=SimpleNamespace(operator_id=OPERATOR_ID),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, *_scope):
+            return True
+
+        def list_scopes(self, _operator_id):
+            return []
+
+        def revoke_session(self, _session_id):
+            return None
+
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    invalid = {
+        "location_id": LOCATION_ID,
+        "items": [],
+        "next_cursor": None,
+        "private_internal_field": "must not escape",
+    }
+    with patch(
+        "services.gateway.governance_tension_review.list_location_governance_tensions",
+        return_value=invalid,
+    ):
+        with TestClient(create_app(), base_url="https://operator.example") as client:
+            client.cookies.set("kokonut_operator_session", "synthetic-session", path="/operator")
+            response = client.get(f"/operator/api/governance/{LOCATION_ID}/tensions")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Governance tension review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "must not escape" not in response.text
 
 
 def test_review_route_policy_matches_only_exact_location_reads():

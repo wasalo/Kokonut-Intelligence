@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,426 checklist items complete and 25
-open (1,451 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,428 checklist items complete and 25
+open (1,453 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -5343,4 +5343,33 @@ broader tenant isolation remain open. Evidence:
 
 The checklist is now 1,426 complete / 25 open (1,451 total); the TODO ledger
 has 133 checked and 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Completed continuation — governance review response and Prefect schedule correction — 28 October 2026
+
+- [x] Add a strict OpenAPI/runtime success contract to
+  `GET /operator/api/governance/{location_id}/tensions`. Validate allowed
+  tension/status enums, severity bounds, aware timestamps, exact fields,
+  descending order, request location, and continuation cursor; malformed
+  projections use the existing sanitized no-store failure.
+- [x] Correct the weekly Prefect flow description and add a regression proving
+  the actual scheduled function runs climate refresh only. ML retraining stays
+  outside the Kernel scheduler contract until it has a signed, bounded source
+  identity and retry/idempotency behavior.
+
+The combined governance-route and Prefect workflow selection passes 39 tests.
+Ruff, Python compilation, and `git diff --check` pass. The refreshed runtime SQL
+inventory is current on Python 3.11 and 3.12 with 37 unresolved candidates.
+The capability matrix validates at 67 rows (24 baseline-retained, 7 deployed,
+36 prepared) and records 55 strict private Gateway response endpoints. Source
+audits found no additional safe Directus typed-reference mapping, registered
+provider job, or report-scope change to make without a table discriminator,
+isolated worker contract, or owner/populated-data input. No migration,
+database, provider, candidate, or legacy service was used. C3/C4/C5 and live
+OIDC/browser, populated parity, and tenant-isolation gates remain open.
+Evidence: [governance and weekly workflow batch](builds/2026-10-28-recovery/kernel-governance-weekly-contract-batch.json).
+
+The checklist is now 1,428 complete / 25 open (1,453 total); the TODO ledger
+has 135 checked and 16 open entries. Capability classifications and MAN-CAP
 acceptance remain unchanged.

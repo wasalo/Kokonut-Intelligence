@@ -10,6 +10,14 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Add a strict OpenAPI/runtime success contract to the location-scoped
+  governance-tension review queue. Validate its enums, severity bounds,
+  timestamps, exact projection, descending order, location, and cursor binding;
+  invalid projections return the existing sanitized no-store error.
+- [x] Correct the weekly Prefect flow description and add a regression proving
+  the currently deployed flow runs climate refresh only. The legacy ML
+  retraining path remains outside the Kernel job catalog until it receives a
+  signed, bounded identity and retry/idempotency contract.
 - [x] Add a strict, location/study/page-bound contract for the Delphi
   participant-invite inventory. Private invite tokens and participant identity
   remain outside the projection; continuation stops at the existing offset
@@ -758,7 +766,11 @@ that its full source-plan phase is complete.
   return the same unavailable error for missing and foreign valid UUIDs; 14
   focused predicate/non-disclosure tests and the extension build pass
   ([evidence](builds/2026-10-28-recovery/directus-tenant-reference-nondisclosure.json)).
-  Pinned-runtime permissions and populated-row parity remain open. Sources:
+  A follow-up audit confirms the typed direct-location references now have
+  explicit validators, including the recent MRV sensor-device and sensor-alert
+  mappings; polymorphic `source_record_ids` remains unresolvable without a
+  discriminator. No further safe field mapping was found. Pinned-runtime
+  permissions and populated-row parity remain open. Sources:
   [Directus parity](batches.md#L2117),
   [preflight](directus-polymorphic-lineage-preflight.md),
   [transport/Directus gates](batches.md#L3320).
@@ -786,6 +798,13 @@ that its full source-plan phase is complete.
   Kernel scheduler CLI contract, so it also remains unregistered until a
   profile-aware health contract exists
   ([audit](builds/2026-10-28-recovery/prefect-health-check-contract-audit.json)).
+  A new source audit also confirmed the 23-entry native job inventory already
+  matches its generated contract. The legacy weekly flow claimed ML model
+  retraining although the scheduled Prefect function only refreshed climate
+  data; that description is corrected. The underlying legacy retraining path
+  uses the shared database role and has no signed bounded task contract, so it
+  remains unregistered pending an isolated design. No owner schedule was
+  inferred.
   Sources: [provider/job inventory](batches.md#L2288),
   [worker recovery](batches.md#L2358).
 - [ ] **C5 — Close source-verifiable analytics and reporting gaps.** Port
@@ -813,6 +832,11 @@ that its full source-plan phase is complete.
   Their focused suites pass 73 and 285 tests respectively, with report
   inventory freshness checks ([tactical scope](builds/2026-10-28-recovery/tactical-layer-companion-location-scope.json);
   [State of Kokonut scope](builds/2026-10-28-recovery/state-of-kokonut-selected-actor-scope.json)).
+  The latest source audit found remaining location-unfiltered report cases are
+  explicit network/public projections, an explicit all-location operation, or
+  stakeholder/global surfaces whose audience and scope cannot be safely
+  changed without populated fixtures and owner review; no additional query
+  change was selected.
   Sources:
   [report/query parity](batches.md#L2334),
   [consumer scope](batches.md#L3139).
