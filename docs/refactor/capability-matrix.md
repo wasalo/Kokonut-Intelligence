@@ -1,6 +1,31 @@
 # Capability preservation matrix
 
-**Runtime-role acceptance update (27 October 2026):** Focused native and
+**Latest runtime-role acceptance update — migration 678 (28 October 2026):**
+Schema 142's shared `market_reference_data` catalog has no service or extension
+write callsite. Migration 678 keeps SELECT and denies table/column mutation to
+`kokonut_runtime`, and runtime provisioning reapplies the boundary while the
+separate Directus administration grants remain unchanged. Native and
+ARM64/QEMU PostgreSQL 16 checks pass migration replay, read access, write and
+stale column-grant denial, provisioner reapplication, and synthetic Directus
+grant preservation. A fresh network-disabled native replay applies all 669
+ordered schemas through 678 and passes 33 synthetic two-tenant checks under
+verified 1.5 GiB/two-CPU limits. It verifies 125 runtime controls (79 private,
+43 mutation-denied, two append-only, plus the API-key column boundary) with no
+direct table/column violations. The refreshed report has zero source-policy
+mismatches across 1,511 relations; 995 relations still retain effective DML
+while RLS is disabled, so C1 remains open. Candidate and legacy databases are
+untouched; no optional seeds or farm data were loaded. This is synthetic
+software-portability evidence and ARM64/QEMU does not establish physical
+Raspberry Pi acceptance. Capability classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows; MAN-CAP
+acceptance is unchanged. Checklist: 1,298 complete / 25 open (1,323 total).
+[Migration](../schemas/postgres/678_runtime_market_reference_data_read_only.sql),
+[native ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
+[full native replay](builds/2026-10-28-recovery/runtime-role-full-schema-678-native-disposable.json),
+[source/ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json).
+
+**Previous runtime-role acceptance update (27 October 2026):** Focused native and
 ARM64/QEMU disposable PostgreSQL 16 checks pass migrations 673–677. A fresh
 native AMD64 replay of all 668 ordered schema files through migration 677 passes
 the full provisioner and all 32 two-tenant operator-scope checks under verified
@@ -34,7 +59,7 @@ Pi acceptance ([full native schema and scope evidence through 677](builds/2026-1
 [expense-category native ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-disposable.json);
 [CRISP-dimension native ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-disposable.json);
 [CRISP-dimension ARM64/QEMU ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-arm64-disposable.json);
-[updated policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
+[prior policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
 No optional seed files or farm data were loaded, no ports were published,
 temporary resources were removed, and no physical Raspberry Pi acceptance is
 claimed; these are software-portability results only. Schema-defined rows from
@@ -5506,3 +5531,6 @@ The current-source ARM64 app builds and its no-network/read-only import smoke pa
 **Latest local batch — Calculated NOI snapshot SDK boundary (27 October 2026):** Python and TypeScript no longer expose generic create, bulk-create, update, or delete operations for `noi_snapshot`. The table stores calculated outputs, source inputs, calculation version, and timestamp; repository search found no SDK mutation callsites. Both SDKs preserve list/detail/crop-cycle reads; existing CLI, signed-worker, and Directus-extension writer paths were not changed or runtime-validated here. Focused Python SDK/parity/report-governance checks pass 111 tests; JavaScript passes 55; TypeScript build, Ruff, and Python compilation pass. No database/provider was contacted. This does not establish tenant isolation or change capability/MAN-CAP status ([evidence](builds/2026-10-27-recovery/sdk-noi-snapshot-read-only-contract.json)). Checklist: 1,296 complete / 25 open (1,321 total); classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 **Latest local batch — Attestation record SDK lifecycle boundary (27 October 2026):** Python and TypeScript no longer expose generic create, bulk-create, update, or delete operations for `attestation_record`. The table stores governed workflow rows and chain-indexer projections; direct insertion cannot publish or independently verify an EAS attestation. Both SDKs retain list/detail, pending-state, and subject-filtered reads, while publishing and revoking remain in the dedicated EAS service and governed signing workflow. The workflow examples now read indexed records. Focused Python SDK/parity/report-governance checks pass 109 tests; JavaScript passes 54; TypeScript build, Ruff, and Python compilation pass. No database/provider was contacted. This does not add a Gateway attestation-request workflow or change capability/MAN-CAP status ([evidence](builds/2026-10-27-recovery/sdk-attestation-read-only-contract.json)). Checklist: 1,295 complete / 25 open (1,320 total); classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+
+**Latest local batch — Market reference data runtime ACL (28 October 2026):** Migration 678 and runtime provisioning keep `market_reference_data` readable but immutable to `kokonut_runtime`, preserving the separate Directus administration grants. Native and ARM64/QEMU disposable PostgreSQL checks pass migration replay, SELECT, mutation/column denial, provisioner reapplication, and synthetic Directus grant preservation. A fresh native schema replay through 678 passes all 33 two-tenant checks and 125 declared runtime controls; the source/ACL report has zero mismatches. Of 1,511 relations, 995 retain effective DML while RLS is disabled, so C1 remains open. Candidate/legacy databases remain untouched, and QEMU is not physical Raspberry Pi evidence. No capability classification or MAN-CAP acceptance changed ([migration](../schemas/postgres/678_runtime_market_reference_data_read_only.sql); [native replay](builds/2026-10-28-recovery/runtime-role-full-schema-678-native-disposable.json); [focused ACL checks](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-disposable.json)). Checklist: 1,298 complete / 25 open (1,323 total); classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

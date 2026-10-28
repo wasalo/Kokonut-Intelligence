@@ -18,6 +18,16 @@ the batch log and the affected capability/progress records are updated.
   Dockerfile hash; Security passed. A new hosted CI run is still required to
   confirm the repair. See
   [evidence](builds/2026-10-28-recovery/ci-kernel-release-lock-repair.json).
+- [x] Keep the migration-seeded `market_reference_data` catalog readable but
+  immutable to `kokonut_runtime`. Schema 142 defines commodity categories and
+  unit labels, and no service or extension writes the table. Migration 678 and
+  runtime-role provisioning deny table and residual column writes while
+  preserving the separate Directus administration grant. Focused native and
+  ARM64/QEMU PostgreSQL checks pass migration replay, compatibility-grant
+  reapplication, read access, write denial, and Directus-role preservation.
+  The full native replay and two-tenant probe pass through all 669 schemas;
+  candidate and legacy databases remain untouched. See
+  [evidence](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-disposable.json).
 - [x] Keep calculated NOI snapshots read-only in both SDKs. Source review found
   no SDK mutation callsites; generic writes could supply final financial values
   without calculation provenance. Preserve list/detail/crop-cycle reads and
@@ -338,22 +348,26 @@ that its full source-plan phase is complete.
 - [ ] **C1 — Replace broad runtime database privileges with scoped contracts.**
   Initial pre-provisioning inventory remains a historical baseline: 1,101
   relations had runtime DML and RLS disabled. The latest native, network-
-  disabled replay applies all 668 ordered schema files through migration 677
-  and passes 32 synthetic two-tenant scope checks. It verifies 124 declared
-  controls (79 private relations, 42 mutation-denied relations, two append-only
+  disabled replay applies all 669 ordered schema files through migration 678
+  and passes 33 synthetic two-tenant scope checks. It verifies 125 declared
+  controls (79 private relations, 43 mutation-denied relations, two append-only
   relations, and the API-key read-only column boundary), with zero direct table
-  or column violations. The probe still reports 996 relations with effective
+  or column violations. The probe still reports 995 relations with effective
   DML while RLS is disabled, so broad runtime access and universal application
   tenant isolation remain open. ARM64/QEMU has full-schema replay evidence
-  through migration 671 and focused ACL checks through 677; this is software
-  portability evidence only.
+  through migration 671 and focused ACL checks through 678; this is software
+  portability evidence only. The latest full native report counts 995
+  relations with effective DML while RLS is disabled.
 
   Migrations 676 and 677 keep governed `reference_class` and seeded
   `farmer_credential_type` guidance readable but immutable to
   `kokonut_runtime`; source review found prediction readers but no reference-
   class writer, and credential records keep their type as free text. Both
   migrations and role provisioning preserve the separate Directus/admin grant
-  path. Native and ARM64/QEMU disposable ACL checks pass apply/replay, table
+  path. Migration 678 applies the same boundary to schema-defined
+  `market_reference_data` commodity and unit labels; source inventory found no
+  application writer, and separate Directus/admin grants remain intact. Native
+  and ARM64/QEMU disposable ACL checks pass apply/replay, table
   and residual-column denial, provisioner reapplication, and Directus-grant
   preservation. The target-aware analytics inventory covers
   273 relations and 425 static write-target sites across 89 files, with no
@@ -367,9 +381,10 @@ that its full source-plan phase is complete.
   distinguish table grants from RLS, worker, Directus, and production
   enforcement.
   Sources: [runtime boundary](batches.md#L4814),
-  [full-schema replay](builds/2026-10-27-recovery/runtime-role-full-schema-677-native-disposable.json),
+  [full-schema replay](builds/2026-10-28-recovery/runtime-role-full-schema-678-native-disposable.json),
   [ARM64 full replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json),
-  [analytics candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+  [market-reference ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
+  [analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json).
 - [ ] **C2 — Finish Gateway and SDK contract parity.** Audit registered routes,
   auth/action/scope policy, pagination, error models and SDK behavior; close
   source-verifiable gaps without exposing generic CRUD or weakening default
@@ -412,17 +427,17 @@ that its full source-plan phase is complete.
 - [ ] **C7 — Finish software-only ARM64 and recovery evidence.** The full
   ARM64/QEMU schema replay is verified through migration 671 under a 1.5 GiB /
   two-CPU database budget. Focused native and ARM64/QEMU checks cover migrations
-  672–676. The latest full native replay applies all 667 ordered schema files
-  through 676 and passes 31 two-tenant assertions; no seeds or farm data were
+  672–678. The latest full native replay applies all 669 ordered schema files
+  through 678 and passes 33 two-tenant assertions; no seeds or farm data were
   loaded, no host ports were published, and candidate/legacy state stayed
   untouched. Both Kernel app images and profile selections have ARM64 build and
   import evidence. This remains software-only evidence: no physical Raspberry
   Pi, populated data, external provider/media, R2, whole-platform production
   recovery, or 24-hour RPO/RTO drill has been accepted.
   Sources: [Phase 8](implementation-plan-alignment.md#L28),
-  [latest native full replay](builds/2026-10-27-recovery/runtime-role-full-schema-676-native-disposable.json),
+  [latest native full replay](builds/2026-10-28-recovery/runtime-role-full-schema-678-native-disposable.json),
   [ARM64 full replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json),
-  [migration 676 ARM64 ACL](builds/2026-10-27-recovery/reference-class-runtime-read-only-arm64-disposable.json),
+  [migration 678 ARM64 ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
   [build and profile evidence](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json),
   [recovery gates](batches.md#L2159).
 - [ ] **C8 — Reconcile all ledgers after each batch.** Keep the sprint TODO,

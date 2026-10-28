@@ -152,6 +152,7 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         ("crop_gdd_config", "crop GDD configuration"),
         ("pest_degree_day_config", "pest degree-day configuration"),
         ("revenue_multiplier_config", "revenue multiplier configuration"),
+        ("market_reference_data", "market reference labels"),
     ):
         if not relation_exists(table):
             raise AssertionError(f"full schema is missing {label}")
@@ -160,7 +161,9 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         cur.execute(
             sql.SQL("SELECT count(*) FROM public.{}").format(sql.Identifier(table))
         )
-        cur.fetchone()
+        row_count = cur.fetchone()[0]
+        if table == "market_reference_data" and row_count < 1:
+            raise AssertionError("runtime could not read the schema-defined market reference labels")
     if not relation_exists("certification_type"):
         raise AssertionError("full schema is missing certification types")
     cur.execute("SELECT count(*) FROM public.certification_type")
@@ -427,6 +430,7 @@ def run_probe() -> dict[str, object]:
                 "runtime can read seeded certification types",
                 "runtime can read seeded cooperative types",
                 "runtime can read seeded insurance product types",
+                "runtime can read shared market reference labels",
                 "runtime provisioner limited API-key reads to reviewed columns and denied all writes",
                 "runtime can append and read data-access evidence but cannot update, delete, or truncate it",
                 "each real runtime login context sees only its synthetic tenant under forced RLS",

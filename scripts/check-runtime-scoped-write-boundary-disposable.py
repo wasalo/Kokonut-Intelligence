@@ -25,7 +25,7 @@ POSTGRES_IMAGE = (
 ARM64_POSTGRES_IMAGE = "kokonut-kernel-postgis-arm64:local"
 DEFAULT_OUTPUT = (
     ROOT
-    / "docs/refactor/builds/2026-10-27-recovery/"
+    / "docs/refactor/builds/2026-10-28-recovery/"
     "runtime-scoped-write-boundary-disposable.json"
 )
 APPEND_ONLY_MIGRATION = (
@@ -102,12 +102,16 @@ REFERENCE_CLASS_MIGRATION = (
 FARMER_CREDENTIAL_TYPE_MIGRATION = (
     ROOT / "schemas/postgres/677_runtime_farmer_credential_type_read_only.sql"
 )
+MARKET_REFERENCE_DATA_MIGRATION = (
+    ROOT / "schemas/postgres/678_runtime_market_reference_data_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
     "revenue_multiplier_config",
     "reference_class",
     "farmer_credential_type",
+    "market_reference_data",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
@@ -280,6 +284,7 @@ def check_boundary(
                     "revenue_multiplier_config",
                     "reference_class",
                     "farmer_credential_type",
+                    "market_reference_data",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -439,6 +444,11 @@ def check_boundary(
                 )
                 cursor.execute(farmer_credential_type_migration)
                 cursor.execute(farmer_credential_type_migration)
+                market_reference_data_migration = MARKET_REFERENCE_DATA_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(market_reference_data_migration)
+                cursor.execute(market_reference_data_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -533,6 +543,7 @@ def check_boundary(
                         "revenue_multiplier_config": 675,
                         "reference_class": 676,
                         "farmer_credential_type": 677,
+                        "market_reference_data": 678,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
@@ -588,7 +599,7 @@ def check_boundary(
                     "gri_indicator", "governance_framework",
                     "impact_framework", "impact_dimension",
                     "expense_category", "crisp_risk_dimension", "reference_class",
-                    "farmer_credential_type",
+                    "farmer_credential_type", "market_reference_data",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -632,6 +643,7 @@ def check_boundary(
                     ("revenue_multiplier_config", 675),
                     ("reference_class", 676),
                     ("farmer_credential_type", 677),
+                    ("market_reference_data", 678),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES')",
@@ -824,6 +836,7 @@ def check_boundary(
                 for table in (
                     "process_maturity_level", "pollinator_species_reference",
                     "reference_class", "farmer_credential_type",
+                    "market_reference_data",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -1359,6 +1372,14 @@ def check_boundary(
                     "directus_role_unchanged": True,
                 },
                 "read_only_farmer_credential_type": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                },
+                "read_only_market_reference_data": {
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,
                     "select_allowed": True,

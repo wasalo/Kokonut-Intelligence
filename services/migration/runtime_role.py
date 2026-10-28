@@ -1059,6 +1059,7 @@ _RUNTIME_MUTATION_TABLES = (
     "operations_protocol", "revenue_multiplier_config",
     "reference_class",
     "farmer_credential_type",
+    "market_reference_data",
     "process_maturity_level",
     "pollinator_species_reference", "pest_degree_day_config",
     "gri_indicator",

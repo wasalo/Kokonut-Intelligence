@@ -1,3 +1,40 @@
+### Progress addendum — C1 market-reference catalog ACL — 28 October 2026
+
+Schema 142 defines `market_reference_data` as shared commodity-category and
+unit labels. Source and runtime SQL inventories found no service or extension
+write path. Migration 678 keeps the catalog readable to `kokonut_runtime` and
+revokes table and residual column INSERT/UPDATE/REFERENCES privileges; runtime
+provisioning reapplies the boundary after compatibility grants. The separate
+Directus administration role is not changed.
+
+Focused native and ARM64/QEMU PostgreSQL 16 acceptance passes apply/replay,
+SELECT, write and stale column-grant denial, provisioner reapplication, and
+preservation of synthetic Directus grants. A fresh network-disabled native
+replay applies all 669 ordered schema files through 678 and passes all 33
+synthetic two-tenant assertions under verified 1.5 GiB/two-CPU limits. It
+verifies 125 runtime controls (79 private relations, 43 mutation-denied
+relations, two append-only relations, plus the API-key column boundary) with
+zero direct privilege violations. The refreshed source/ACL report has zero
+policy mismatches across 1,511 relations; 995 relations still retain effective
+DML while RLS is disabled, so C1 remains open. Focused runtime-role and
+ARM64-parser suites pass 77 and 23 tests respectively; migration tests pass 37.
+Ruff, dependency groups, provider boundaries, and diff checks pass. No optional
+seeds or farm data were loaded, no ports were published, no OOM occurred, and
+temporary resources were removed. Candidate and legacy databases remain
+untouched. ARM64/QEMU is software portability evidence, not physical Raspberry
+Pi acceptance.
+
+Rollback retains migration 678; runtime writes would require a reviewed forward
+migration. Capability classifications and MAN-CAP acceptance are unchanged.
+Checklist: 1,298 complete / 25 open (1,323 total); 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows.
+
+Evidence: [migration](../schemas/postgres/678_runtime_market_reference_data_read_only.sql),
+[native ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
+[full native replay and tenant probe](builds/2026-10-28-recovery/runtime-role-full-schema-678-native-disposable.json),
+[source/ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json).
+
 ### Progress addendum — Kernel release-input lock repair — 28 October 2026
 
 PR #71 CI failed because `Dockerfile.kernel` changed when the optional OIDC

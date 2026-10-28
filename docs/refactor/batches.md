@@ -1,6 +1,6 @@
 # Kernel execution checklist
 
-Updated: 27 October 2026. Current architecture focus is Phase 8 acceptance;
+Updated: 28 October 2026. Current architecture focus is Phase 8 acceptance;
 batch numbers group work across phases and do not replace the phase gates.
 
 ## Working agreement
@@ -19,14 +19,47 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (27 October 2026):** 1,273 checklist items complete and 25
-open (1,298 total), counting nested items. The
+**Current snapshot (28 October 2026):** 1,298 checklist items complete and 25
+open (1,323 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### C1 market-reference catalog ACL — 28 October 2026
+
+- [x] Keep schema-defined `market_reference_data` commodity-category and unit
+  labels readable but immutable to `kokonut_runtime`. Schema 142 and runtime
+  SQL review found no service or extension write path. Migration 678 revokes
+  table and residual column INSERT/UPDATE/REFERENCES privileges and restores
+  SELECT; runtime provisioning reapplies the boundary after compatibility
+  grants. The separate Directus administration role is unchanged. Native and
+  ARM64/QEMU disposable PostgreSQL 16 checks pass migration apply/replay,
+  SELECT, table/column mutation denial, provisioner reapplication, and
+  synthetic Directus-grant preservation. A fresh network-disabled native
+  replay applies all 669 ordered schemas through 678 and passes 33 synthetic
+  two-tenant checks under verified 1.5 GiB/two-CPU limits. It verifies 125
+  runtime controls (79 private, 43 mutation-denied, two append-only, and the
+  API-key column boundary) with zero direct table/column privilege violations.
+  The refreshed source/ACL report has zero policy mismatches across 1,511
+  relations; 995 still retain effective DML while RLS is disabled, so C1
+  remains open. Focused runtime-role tests pass 77, ARM64 parser tests 23,
+  migration tests 37; Ruff, dependency groups, provider boundaries, and diff
+  checks pass. No optional seeds or farm data were loaded; no ports were
+  published, no OOM occurred, and temporary resources were removed. Candidate
+  and legacy databases were untouched. ARM64/QEMU is software evidence only;
+  no physical Raspberry Pi acceptance is claimed. Rollback retains migration
+  678 and requires a reviewed forward migration to restore writes. Capability
+  and MAN-CAP acceptance statuses are unchanged ([migration](../schemas/postgres/678_runtime_market_reference_data_read_only.sql);
+  [native ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-disposable.json);
+  [ARM64/QEMU ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json);
+  [full native replay](builds/2026-10-28-recovery/runtime-role-full-schema-678-native-disposable.json);
+  [source/ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json)).
+  Checklist: 1,298 complete / 25 open (1,323 total); capability
+  classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+  across 67 rows.
 
 **Sprint baseline (26 October 2026):** native disposable PostgreSQL/PostGIS
 replayed all 642 schema files through 651 without seeds and cleaned up; separate
