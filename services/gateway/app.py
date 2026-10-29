@@ -36,6 +36,7 @@ async def _request_location(request, policy: dict) -> str | None:
         return policy["location_id"]
     if policy.get("resource") in {
         "report_snapshot_review",
+        "report_snapshot_export",
         "mobile_collection_review",
         "mobile_collection_retention",
         "farm_activity",
@@ -74,6 +75,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     """Create the FastAPI gateway application."""
     try:
         from fastapi import APIRouter, FastAPI, Request
+        from fastapi.exceptions import RequestValidationError
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse
         from starlette.concurrency import run_in_threadpool
@@ -199,7 +201,12 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             enabled=operator_provider is not None,
         )
         policy = operator_policy or get_route_policy(request.method, request.url.path)
-        max_body_bytes = 2_000_000 if request.url.path == "/api/mobile/media/uploads" else 8_000_000
+        if request.url.path == "/api/mobile/media/uploads":
+            max_body_bytes = 2_000_000
+        elif request.url.path == "/operator/api/report-exports":
+            max_body_bytes = 8_192
+        else:
+            max_body_bytes = 8_000_000
         if request.method in {"POST", "PUT", "PATCH"}:
             async def reject_body(status_code: int, reason: str, message: str):
                 await run_in_threadpool(
@@ -404,6 +411,38 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                 reset_operator_session_token_hash(operator_session_context_token)
             if mutation_reservation is not None:
                 await run_in_threadpool(audit.release_mutation, mutation_reservation)
+
+    @app.middleware("http")
+    async def private_report_export_headers(request: Request, call_next):
+        """Keep export API success, denial, validation, and error responses private."""
+        response = await call_next(request)
+        if request.url.path == "/operator/api/report-exports" or request.url.path.startswith(
+            "/operator/api/report-exports/"
+        ):
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            vary = {
+                item.strip()
+                for item in response.headers.get("Vary", "").split(",")
+                if item.strip()
+            }
+            vary.add("Cookie")
+            response.headers["Vary"] = ", ".join(sorted(vary, key=str.casefold))
+        return response
+
+    @app.exception_handler(RequestValidationError)
+    async def report_export_validation_error(request: Request, exc: RequestValidationError):
+        if request.url.path == "/operator/api/report-exports" or request.url.path.startswith(
+            "/operator/api/report-exports/"
+        ):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Report export request is invalid"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(status_code=422, content={"detail": jsonable_encoder(exc.errors())})
 
     @app.get("/health")
     async def health():

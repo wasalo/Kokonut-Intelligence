@@ -22,12 +22,14 @@ ISOLATED_WORKER_MODULES = frozenset(
         "services.agents.worker_cli",
         "services.events.dispatch_worker",
         "services.events.notification_delivery_worker",
+        "services.export.report_snapshot_export_worker",
     }
 )
 ISOLATED_WORKER_ENTRYPOINTS = {
     "services.agents.worker_cli": "main",
     "services.events.dispatch_worker": "run_once",
     "services.events.notification_delivery_worker": "run_once",
+    "services.export.report_snapshot_export_worker": "run_once",
 }
 
 # Exact in-process functions used by Gateway and first-party agents to perform

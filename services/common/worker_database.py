@@ -36,6 +36,7 @@ _WORKER_LOGINS = {
     "agent_holistic_wellbeing_source": "kokonut_agent_holistic_wellbeing_login",
     "notification_enqueue": "kokonut_notification_enqueue_login",
     "notification_delivery": "kokonut_notification_delivery_login",
+    "report_snapshot_export": "kokonut_report_snapshot_export_login",
     "event_dispatch": "kokonut_event_dispatch_login",
     "market_data": "kokonut_market_data_login",
     "eas_indexer": "kokonut_eas_indexer_login",

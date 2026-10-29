@@ -1963,6 +1963,42 @@ Checklist: 1,517 complete / 25 open (1,542 total); TODO: 222 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
 
 
+### Completed C2 slice — durable private report snapshot export — 28 October 2026
+
+- [x] Connect the private artifact store and snapshot serializer to an
+  idempotent, tenant-qualified export request queue, strict operator
+  create/read/download routes, and a default-off dedicated one-shot worker.
+  Migration 683 restricts each API and worker identity to bounded functions,
+  binds reads/downloads to current location grants, and denies direct access to
+  export request/attempt tables. Retries are delayed and bounded; artifacts
+  stay private and are never automatically pruned.
+
+The integrated Gateway, route-policy, worker, migration-contract, runtime-role,
+and static worker-inventory selection passes **238 tests**. Ruff,
+Python compilation, all seven worker/runtime SQL inventory checks, capability
+matrix validation, dependency-group alignment, provider-boundary checks, and
+diff checks pass. Network-disabled disposable PostgreSQL 16 acceptance applies
+and replays migration 683 on both native x86_64 and ARM64/QEMU (`aarch64`),
+validating synthetic tenant grants, source lifecycle, role boundaries, forced
+RLS, retries, and worker lease fencing. ARM64/QEMU is code-level portability
+evidence, not a physical Raspberry Pi run. The signed-context Gateway reads use
+normal transactions because the context setter takes `FOR SHARE` locks; routes
+then call only fixed bounded read functions. Static inventories now include
+the isolated report worker. The aggregate worker preflight remains
+`review_required` for existing broader boundary debt. Candidate and legacy
+databases remain untouched. C2 remains open pending live OIDC, candidate
+rollout, browser acceptance, worker runtime recovery, artifact orphan
+reconciliation, R2 inventory/deletion, configurable retention, broader report
+parity, stakeholder access contracts, and MAN-CAP review. Evidence:
+[contract](report-snapshot-export-contract.md),
+[integrated checks](builds/2026-10-28-recovery/report-snapshot-export-integration-checks.json),
+[native migration acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-disposable.json),
+[ARM64 migration acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-arm64-disposable.json).
+
+Checklist: 1,518 complete / 25 open (1,543 total); TODO: 223 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
 ### Completed parallel continuation — operating-pilot response, report scope, and CLI preflight — 28 October 2026
 
 - [x] Add strict request-bound OpenAPI/runtime response contracts for the

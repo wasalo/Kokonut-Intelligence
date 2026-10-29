@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 49,
-    "source_files": 136,
-    "execution_sites": 472,
-    "static_literal_sites": 385,
+    "operation_roots": 50,
+    "source_files": 142,
+    "execution_sites": 494,
+    "static_literal_sites": 407,
     "composed_or_variable_sites": 87
   },
   "execution_sites": [
@@ -3006,6 +3006,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -3068,6 +3069,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -3130,6 +3132,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -3468,9 +3471,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:142:12",
+      "id": "services/common/worker_database.py:143:12",
       "source": "services/common/worker_database.py",
-      "line": 142,
+      "line": 143,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -3489,6 +3492,7 @@
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -3897,9 +3901,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:380:16",
+      "id": "services/drivers/registry.py:383:16",
       "source": "services/drivers/registry.py",
-      "line": 380,
+      "line": 383,
       "column": 16,
       "scope": "DriverRegistry.list_instances",
       "method": "execute",
@@ -3916,9 +3920,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:421:12",
+      "id": "services/drivers/registry.py:424:12",
       "source": "services/drivers/registry.py",
-      "line": 421,
+      "line": 424,
       "column": 12,
       "scope": "DriverRegistry.get_schedulable_instance",
       "method": "execute",
@@ -3935,9 +3939,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:527:16",
+      "id": "services/drivers/registry.py:530:16",
       "source": "services/drivers/registry.py",
-      "line": 527,
+      "line": 530,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -3953,9 +3957,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:540:16",
+      "id": "services/drivers/registry.py:543:16",
       "source": "services/drivers/registry.py",
-      "line": 540,
+      "line": 543,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -3971,9 +3975,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:576:16",
+      "id": "services/drivers/registry.py:579:16",
       "source": "services/drivers/registry.py",
-      "line": 576,
+      "line": 579,
       "column": 16,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -3989,9 +3993,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:588:20",
+      "id": "services/drivers/registry.py:591:20",
       "source": "services/drivers/registry.py",
-      "line": 588,
+      "line": 591,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -4007,9 +4011,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:599:20",
+      "id": "services/drivers/registry.py:602:20",
       "source": "services/drivers/registry.py",
-      "line": 599,
+      "line": 602,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -4469,9 +4473,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:220:12",
+      "id": "services/events/cli.py:231:12",
       "source": "services/events/cli.py",
-      "line": 220,
+      "line": 231,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -4486,9 +4490,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:249:12",
+      "id": "services/events/cli.py:260:12",
       "source": "services/events/cli.py",
-      "line": 249,
+      "line": 260,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
@@ -5310,6 +5314,380 @@
       "static_sql_sha256": "1e92d2b85656fd1fc212b416fc0062eb5c2623c2acba6a532ae20f3253b8743c",
       "operation_refs": [
         "scheduled_module:services.export.dataset_refresh"
+      ]
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:79:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 79,
+      "column": 12,
+      "scope": "_claim",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.claim_report_snapshot_export_batch"
+      ],
+      "static_sql_sha256": "3311476cd2fac4a9c73e6ed5af049866d96221623dce225430a26b6df2a3c6a4",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:102:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 102,
+      "column": 12,
+      "scope": "_read_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.read_report_snapshot_export_source"
+      ],
+      "static_sql_sha256": "793c3a37a5805520121b335e4fd73a74dd8d1b16680f30df43ca1085388233fe",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:155:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 155,
+      "column": 12,
+      "scope": "_finish",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "dae5496dd867e54c837858e4a205029b31a8fcc030731f229a8251187fa58e63",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:192:8",
+      "source": "services/export/reports/common.py",
+      "line": 192,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_stakeholder_feedback_summary"
+      ],
+      "static_sql_sha256": "7074cdeab138a5e8198df335b5e5bc1461010056d97204ddd3419105f021398c",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:205:8",
+      "source": "services/export/reports/common.py",
+      "line": 205,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_impact_claim_summary"
+      ],
+      "static_sql_sha256": "9b55a46cc6e1e63ad3283b06beed6c79d5a8f80388b33a014c7305f90dd22704",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:219:8",
+      "source": "services/export/reports/common.py",
+      "line": 219,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "impact_claim"
+      ],
+      "static_sql_sha256": "01100fa9cd1562d9e4a0aac21fe7bd35bb36ff2a216046f99723d6c0c79af55c",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:250:8",
+      "source": "services/export/reports/common.py",
+      "line": 250,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "stakeholder_feedback"
+      ],
+      "static_sql_sha256": "65f1910f6cc4039c9c9da7e2e55bb0c236080093877beb024c0eff8ab49982e9",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:267:8",
+      "source": "services/export/reports/common.py",
+      "line": 267,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_cultural_context_summary"
+      ],
+      "static_sql_sha256": "fd0e5da8a2874b9bb9cfa5b1000bbdf82ab626b49e8651934c02af0c741ea518",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:280:8",
+      "source": "services/export/reports/common.py",
+      "line": 280,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_wellbeing_metric_summary"
+      ],
+      "static_sql_sha256": "c9bd1ef82b2464f218f149f822a36822ca53295481b2b2e3cbd54ab6c01a3e97",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:294:8",
+      "source": "services/export/reports/common.py",
+      "line": 294,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_participatory_governance_summary"
+      ],
+      "static_sql_sha256": "c127fdfec6147897fc57095a491d4bade5a31132bfe8fb46b2bb71209a442d9d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:308:8",
+      "source": "services/export/reports/common.py",
+      "line": 308,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_financial_sustainability_summary"
+      ],
+      "static_sql_sha256": "b49c0cd162718c74d2a0f57e2e263bec52a4603f3a594019404ab34ed0c8209d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:323:8",
+      "source": "services/export/reports/common.py",
+      "line": 323,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_risk_mitigation_summary"
+      ],
+      "static_sql_sha256": "55fa4206d2b158c7126beb38cb54905649915e35937959d835fecc916d0913d4",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:337:8",
+      "source": "services/export/reports/common.py",
+      "line": 337,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_prediction_accuracy"
+      ],
+      "static_sql_sha256": "ae1ef424ad27fc87ed43c63e92c73118e6af03c22336d4ee1fc9f3260c67521d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:350:8",
+      "source": "services/export/reports/common.py",
+      "line": 350,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "threat_backcast_plan"
+      ],
+      "static_sql_sha256": "9e75b9026f239873eddad42d3ea4008caf5a315e79f83bd4ae56c88113c6c35c",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:367:8",
+      "source": "services/export/reports/common.py",
+      "line": 367,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "backcast_assumption_challenge",
+        "backcast_plan"
+      ],
+      "static_sql_sha256": "b01e5473294681641862555e35cfd968c8baac8c4370c8dc328c18acdbc8b02d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:378:8",
+      "source": "services/export/reports/common.py",
+      "line": 378,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "delphi_study",
+        "v_delphi_consensus_public"
+      ],
+      "static_sql_sha256": "813382400664cf7fbf93b2b650252bad80738d7ac54fb246f84be11af2ab6d38",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:390:8",
+      "source": "services/export/reports/common.py",
+      "line": 390,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_crisp_composite_rating"
+      ],
+      "static_sql_sha256": "618416a772b30bd8c100848535b5d856cced8891d5de9a77de897b6f64d4e846",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:403:8",
+      "source": "services/export/reports/common.py",
+      "line": 403,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_prediction_calibration_summary"
+      ],
+      "static_sql_sha256": "f6c2364e9e61fe25428cabe162557ec39260897291be36214ed312a5de79679a",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:46:8",
+      "source": "services/export/reports/context.py",
+      "line": 46,
+      "column": 8,
+      "scope": "store_snapshot",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "dd639ea7932711d485a2bdadca0b98296d802dfab2557fa2b60eaf7a49f2fe70",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:85:12",
+      "source": "services/export/reports/context.py",
+      "line": 85,
+      "column": 12,
+      "scope": "list_snapshots",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "5153217b352d9ebcbfc6d4131c0195a2ed7bac7072f66ea8563b0ce014ba78a4",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:90:12",
+      "source": "services/export/reports/context.py",
+      "line": 90,
+      "column": 12,
+      "scope": "list_snapshots",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "1af7a9135d3801ff02c21503fc11e41d67b28f3172f67fd6bf1ab43fbbcbd88e",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:103:8",
+      "source": "services/export/reports/context.py",
+      "line": 103,
+      "column": 8,
+      "scope": "_verify_snapshot",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "480595130b6f1a1ab952cd60aee955a84a0f974e9b07c349a04844e68794d21f",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
       ]
     },
     {

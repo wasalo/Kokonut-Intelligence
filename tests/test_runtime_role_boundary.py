@@ -78,7 +78,7 @@ def test_full_schema_acl_snapshot_is_explicitly_pre_service_registry_boundary():
     assert acceptance["full_schema_replay_passed"] is True
     assert acceptance["scoped_acl_checks_passed"] is True
     assert acceptance["acl_snapshot_latest_migration_number"] == 681
-    assert acceptance["repository_latest_migration_number"] == 682
+    assert acceptance["repository_latest_migration_number"] == 683
     assert acceptance["current_migration_chain_observed"] is False
     assert acceptance["production_or_candidate_state_established"] is False
 

@@ -124,6 +124,24 @@ def test_agent_worker_contract_lists_task_specific_identities_and_receipt_gate()
     assert "no shared application database fallback" in entry["retry_boundary"]
 
 
+def test_report_snapshot_export_worker_contract_isolated_from_shared_runtime():
+    inventory = _load_map()
+    entry = next(
+        item
+        for item in inventory["isolated_workers"]
+        if item["module"] == "services.export.report_snapshot_export_worker"
+    )
+
+    assert entry["worker_key"] == "report_snapshot_export"
+    assert "migration 683" in entry["scope"]
+    assert "no direct access" in entry["scope"]
+    assert "not a signed farm-context worker" in entry["scope"]
+    assert "stale worker cannot complete" in entry["idempotency"]
+    assert "no automatic artifact/history pruning" in entry["retry_boundary"]
+    assert "services/export/report_snapshot_export_worker.py" in entry["sources"]
+    assert "schemas/postgres/683_location_scoped_report_snapshot_exports.sql" in entry["sources"]
+
+
 def test_effect_inventory_traces_current_event_runner_and_worker_secret_filter():
     effect_inventory = json.loads(EFFECT_PATH.read_text(encoding="utf-8"))
     dispatches = effect_inventory["callback_dispatches"]

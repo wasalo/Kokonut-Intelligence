@@ -22746,3 +22746,41 @@ checked / 16 open. The capability matrix remains 67 rows. No candidate or
 legacy database was touched; this does not establish RLS or tenant isolation.
 Evidence:
 `docs/refactor/builds/2026-10-28-recovery/kernel-c1-service-registry-boundary.json`.
+
+
+### Progress addendum — durable private report snapshot exports — 28 October 2026
+
+C2 now connects the private artifact store and verified-snapshot serializer to
+an idempotent location-scoped request queue, strict operator create/list/detail
+routes, a reauthorized artifact-download route, and a dedicated default-off
+one-shot worker. Migration 683 provides bounded API and worker functions,
+forced-RLS source reads, append-only attempt receipts, retry scheduling, and
+lease fencing; neither runtime nor Directus can access the new queue tables
+directly. The API's signed tenant-context setter locks current grant and owner
+rows, so its normal transactions call only fixed bounded read functions rather
+than using PostgreSQL `READ ONLY`, which is incompatible with those locks.
+
+The integrated focused Gateway/worker/migration-contract/runtime-role/route
+policy and worker-inventory selection passes **238 tests**. The
+network-disabled disposable PostgreSQL 16 acceptance applies and replays
+migration 683 on native x86_64 and ARM64/QEMU (`aarch64`), verifying synthetic
+two-tenant authorization, lifecycle/hash checks, forced RLS, direct-table and
+function boundaries, retries, atomic receipts, and worker lease fencing.
+ARM64/QEMU is portability evidence, not a physical Raspberry Pi run. Ruff,
+compilation, seven worker/runtime SQL inventory checks, capability-matrix
+validation, dependency-group alignment, provider-boundary checks, and diff
+checks pass. The isolated worker is present in refreshed source/function/SQL
+inventories; aggregate worker preflight remains `review_required` for broader
+existing boundary debt. The latest migration digest is
+`0c78b7736819330a3741fb2c7416395b1f9a62a0ba8362698306226e395fd56a`.
+Candidate and legacy databases remain untouched; live OIDC, candidate rollout,
+browser/worker recovery, R2, retention ownership, populated report parity, and
+stakeholder access remain open. C2 and MAN-CAP acceptance are not complete.
+Evidence: [contract](report-snapshot-export-contract.md),
+[integrated checks](builds/2026-10-28-recovery/report-snapshot-export-integration-checks.json),
+[disposable acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-disposable.json).
+
+Checklist: 1,518 complete / 25 open; TODO: 223 checked / 16 open. The matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); the three
+strict export create/list/detail contracts bring its recorded private-response
+count to 90. Capability classifications and MAN-CAP acceptance are unchanged.

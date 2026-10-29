@@ -6065,3 +6065,44 @@ remains at migration 681, and no candidate or legacy database was touched.
 
 Checklist: 1,517 complete / 25 open (1,542 total); TODO: 222 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed C2 slice — durable private report snapshot export — 28 October 2026
+
+- [x] Connect the private artifact store and snapshot serializer to a durable,
+  idempotent export request queue with separate exact-location create, read,
+  and download grants; add strict private Gateway contracts and a dedicated
+  default-off one-shot worker. Migration 683 bounds both runtime and worker
+  access to security-definer functions, keeps export request and attempt tables
+  inaccessible directly, revalidates the current grant and source lifecycle,
+  fences worker leases, and delays/bounds retry. No automatic artifact or
+  history pruning is introduced.
+
+The integrated Gateway, contract, worker, migration-contract, runtime-role,
+route-policy, and worker-inventory selection passes **238 tests**.
+Ruff, Python compilation, seven worker/runtime SQL inventory checks,
+capability-matrix validation, dependency-group alignment, provider-boundary
+checks, and `git diff --check` pass. Network-disabled disposable PostgreSQL 16
+acceptance applies and replays migration 683 on native x86_64 and ARM64/QEMU
+(`aarch64`), verifying synthetic two-tenant scope, source lifecycle,
+forced-RLS owner reads, function/table privileges, retry timing, terminal
+attempt bounds, and stale-lease fencing. ARM64/QEMU is portability evidence,
+not a physical Raspberry Pi run. Gateway reads use a normal transaction
+because the signed context setter locks authorization rows with `FOR SHARE`;
+each route then invokes only its fixed bounded read function. The worker and
+Gateway share a dedicated private artifact volume, mounted read/write for the
+worker and read-only for the Gateway. The isolated worker is included in
+refreshed source/function/SQL inventories; aggregate worker preflight remains
+`review_required` for broader existing boundary debt. Candidate and legacy
+databases remain untouched; no OIDC provider, external storage, or live
+browser was used. C2 and MAN-CAP acceptance remain open for live OIDC/candidate
+and browser behavior, runtime worker recovery, artifact orphan reconciliation,
+R2 listing/deletion, configurable retention, populated report parity, and
+stakeholder audience/access contracts. Evidence:
+[export contract](report-snapshot-export-contract.md),
+[integrated checks](builds/2026-10-28-recovery/report-snapshot-export-integration-checks.json),
+[native migration acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-disposable.json),
+[ARM64 migration acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-arm64-disposable.json).
+
+Checklist: 1,518 complete / 25 open (1,543 total); TODO: 223 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

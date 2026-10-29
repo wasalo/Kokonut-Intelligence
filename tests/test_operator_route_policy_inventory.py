@@ -28,6 +28,7 @@ _PARAMETER_SAMPLES = {
     "block_name": "key_partners",
     "enrollment_id": "22222222-2222-4222-8222-222222222222",
     "report_id": "33333333-3333-4333-8333-333333333333",
+    "request_id": "33333333-3333-4333-8333-333333333333",
     "incident_id": "33333333-3333-4333-8333-333333333333",
     "collection_id": "44444444-4444-4444-8444-444444444444",
     "activity_id": "55555555-5555-4555-8555-555555555555",
@@ -1093,6 +1094,20 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/attestations/11111111-1111-4111-8111-111111111111",
     ): _expected("attestation", "read", scoped=True, location_id=_LOCATION_ID),
     ("GET", "/operator/api/report-review-queue"): _expected("report_snapshot_review", "read", scoped=True),
+    ("POST", "/operator/api/report-exports"): _expected(
+        "report_snapshot_export", "create", scoped=True
+    ),
+    ("GET", "/operator/api/report-exports"): _expected(
+        "report_snapshot_export", "read", scoped=True
+    ),
+    (
+        "GET",
+        "/operator/api/report-exports/33333333-3333-4333-8333-333333333333",
+    ): _expected("report_snapshot_export", "read", scoped=True),
+    (
+        "GET",
+        "/operator/api/report-exports/33333333-3333-4333-8333-333333333333/artifact",
+    ): _expected("report_snapshot_export", "download", scoped=True),
     (
         "GET",
         "/operator/api/report-review-queue/33333333-3333-4333-8333-333333333333",

@@ -816,6 +816,69 @@ services:
     profiles:
       - notification-isolated
 
+  # One-shot, private report export. The queue remains opt-in; the dedicated
+  # volume is prepared by a small root init container and then used only by the
+  # unprivileged export worker. Run with `--profile report-snapshot-export`.
+  report-snapshot-export-artifact-init:
+    image: python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93
+    user: "0:0"
+    command:
+      - sh
+      - -c
+      - install -d -o 10001 -g 10001 -m 0700 /var/lib/kokonut/report-snapshot-exports
+    restart: "no"
+    volumes:
+      - report-snapshot-export-artifacts:/var/lib/kokonut/report-snapshot-exports
+    profiles:
+      - report-snapshot-export
+
+  report-snapshot-export-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command:
+      - python3
+      - -m
+      - services.export.report_snapshot_export_worker
+      - --worker-id
+      - report-snapshot-export-worker
+      - --limit
+      - "10"
+      - --lease-seconds
+      - "300"
+    user: appuser
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+      report-snapshot-export-artifact-init:
+        condition: service_completed_successfully
+    networks:
+      - databases
+    volumes:
+      - report-snapshot-export-artifacts:/var/lib/kokonut/report-snapshot-exports
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_FEATURE_ISOLATED_REPORT_SNAPSHOT_EXPORT_WORKER: ${KOKONUT_FEATURE_ISOLATED_REPORT_SNAPSHOT_EXPORT_WORKER:-false}
+      KOKONUT_REPORT_SNAPSHOT_EXPORT_DATABASE_URL: ${KOKONUT_REPORT_SNAPSHOT_EXPORT_DATABASE_URL:-}
+      KOKONUT_PRIVATE_EXPORT_DIR: /var/lib/kokonut/report-snapshot-exports
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    profiles:
+      - report-snapshot-export
+
+  # The operator Gateway may read only completed private export artifacts.
+  # Its API process cannot create or delete artifacts.
+  gateway:
+    volumes:
+      - report-snapshot-export-artifacts:/var/lib/kokonut/report-snapshot-exports:ro
+    environment:
+      KOKONUT_PRIVATE_EXPORT_DIR: /var/lib/kokonut/report-snapshot-exports
+
   # Opt-in database scheduler. The cron worker remains unchanged to avoid
   # silently running both dispatch mechanisms during migration.
   kokonut-scheduler:
@@ -823,3 +886,6 @@ services:
     command: ["python3", "-m", "services.scheduler.worker", "--tick-interval", "30"]
     profiles:
       - scheduler
+
+volumes:
+  report-snapshot-export-artifacts:

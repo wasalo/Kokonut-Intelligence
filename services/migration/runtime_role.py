@@ -103,6 +103,21 @@ _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS = (
     "kokonut_security.claim_clickhouse_outbox_batch(text,integer)",
     "kokonut_security.finish_clickhouse_outbox_delivery(uuid,text,uuid,boolean,text,integer,boolean)",
 )
+_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS = (
+    "kokonut_security.request_report_snapshot_export(uuid,uuid,uuid)",
+    "kokonut_security.list_report_snapshot_exports(uuid,integer)",
+    "kokonut_security.get_report_snapshot_export(uuid,uuid)",
+    "kokonut_security.authorize_report_snapshot_export_download(uuid,uuid)",
+)
+_REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS = (
+    "kokonut_security.claim_report_snapshot_export_batch(text,integer,integer)",
+    "kokonut_security.read_report_snapshot_export_source(uuid,text,uuid)",
+    "kokonut_security.finish_report_snapshot_export_attempt(uuid,text,uuid,boolean,text,integer,uuid,text,bigint)",
+)
+_REPORT_SNAPSHOT_EXPORT_FUNCTIONS = (
+    *_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS,
+    *_REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS,
+)
 _NOTIFICATION_DELIVERY_FUNCTIONS = (
     "kokonut_security.claim_notification_outbox_batch(text,integer,integer,text[])",
     "kokonut_security.finish_notification_outbox_attempt(uuid,text,uuid,integer,boolean,text,integer)",
@@ -171,6 +186,10 @@ _SECURITY_DEFINER_OWNERS = (
     *((function, "kokonut_baal_indexer_owner") for function in _BAAL_INDEXER_FUNCTIONS),
     *((function, "kokonut_freshness_owner") for function in _FRESHNESS_WORKER_FUNCTIONS),
     *((function, "kokonut_clickhouse_outbox_owner") for function in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS),
+    *(
+        (function, "kokonut_report_snapshot_export_owner")
+        for function in _REPORT_SNAPSHOT_EXPORT_FUNCTIONS
+    ),
     *((function, "kokonut_notification_delivery_owner") for function in _NOTIFICATION_DELIVERY_FUNCTIONS),
     *((function, "kokonut_event_dispatch_owner") for function in _EVENT_DISPATCH_FUNCTIONS),
     *(
@@ -201,6 +220,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     *_BAAL_INDEXER_FUNCTIONS,
     *_FRESHNESS_WORKER_FUNCTIONS,
     *_CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
+    *_REPORT_SNAPSHOT_EXPORT_FUNCTIONS,
     *_NOTIFICATION_DELIVERY_FUNCTIONS,
     *_EVENT_DISPATCH_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
@@ -1408,6 +1428,8 @@ def provision_runtime_role(
     freshness_password: str | None = None,
     clickhouse_outbox_user: str | None = None,
     clickhouse_outbox_password: str | None = None,
+    report_snapshot_export_user: str | None = None,
+    report_snapshot_export_password: str | None = None,
     notification_delivery_user: str | None = None,
     notification_delivery_password: str | None = None,
     event_dispatch_user: str | None = None,
@@ -1467,6 +1489,8 @@ def provision_runtime_role(
         raise ValueError("freshness worker user and password must be provided together")
     if (clickhouse_outbox_user is None) != (clickhouse_outbox_password is None):
         raise ValueError("ClickHouse outbox user and password must be provided together")
+    if (report_snapshot_export_user is None) != (report_snapshot_export_password is None):
+        raise ValueError("report snapshot export user and password must be provided together")
     if (notification_delivery_user is None) != (notification_delivery_password is None):
         raise ValueError("notification-delivery user and password must be provided together")
     if (event_dispatch_user is None) != (event_dispatch_password is None):
@@ -1517,6 +1541,11 @@ def provision_runtime_role(
         if clickhouse_outbox_user is not None
         else None
     )
+    report_snapshot_export_ident = (
+        _role_identifier(report_snapshot_export_user, "report_snapshot_export_user")
+        if report_snapshot_export_user is not None
+        else None
+    )
     notification_delivery_ident = (
         _role_identifier(notification_delivery_user, "notification_delivery_user")
         if notification_delivery_user is not None
@@ -1559,6 +1588,8 @@ def provision_runtime_role(
         role_names.append(freshness_user)
     if clickhouse_outbox_user is not None:
         role_names.append(clickhouse_outbox_user)
+    if report_snapshot_export_user is not None:
+        role_names.append(report_snapshot_export_user)
     if notification_delivery_user is not None:
         role_names.append(notification_delivery_user)
     if event_dispatch_user is not None:
@@ -1585,6 +1616,8 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the freshness function owner")
     if "kokonut_clickhouse_outbox_owner" in role_names:
         raise ValueError("application logins must differ from the ClickHouse outbox function owner")
+    if "kokonut_report_snapshot_export_owner" in role_names:
+        raise ValueError("application logins must differ from the report snapshot export function owner")
     if "kokonut_notification_delivery_owner" in role_names:
         raise ValueError("application logins must differ from the notification-delivery function owner")
     if "kokonut_event_dispatch_owner" in role_names:
@@ -1599,7 +1632,7 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the sensor-anomaly ML reader role")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, sensor-ingestion, remote-sensing, and sensor-anomaly ML source roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, report snapshot export, sensor-ingestion, remote-sensing, and sensor-anomaly ML source roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1623,6 +1656,8 @@ def provision_runtime_role(
         credential_pairs.append(("freshness_password", freshness_password))
     if clickhouse_outbox_password is not None:
         credential_pairs.append(("clickhouse_outbox_password", clickhouse_outbox_password))
+    if report_snapshot_export_password is not None:
+        credential_pairs.append(("report_snapshot_export_password", report_snapshot_export_password))
     if notification_delivery_password is not None:
         credential_pairs.append(("notification_delivery_password", notification_delivery_password))
     if event_dispatch_password is not None:
@@ -1655,6 +1690,8 @@ def provision_runtime_role(
         passwords.append(freshness_password)
     if clickhouse_outbox_password is not None:
         passwords.append(clickhouse_outbox_password)
+    if report_snapshot_export_password is not None:
+        passwords.append(report_snapshot_export_password)
     if notification_delivery_password is not None:
         passwords.append(notification_delivery_password)
     if event_dispatch_password is not None:
@@ -1677,6 +1714,7 @@ def provision_runtime_role(
     baal_indexer_database_access: dict[str, bool] = {}
     freshness_database_access: dict[str, bool] = {}
     clickhouse_outbox_database_access: dict[str, bool] = {}
+    report_snapshot_export_database_access: dict[str, bool] = {}
     notification_delivery_database_access: dict[str, bool] = {}
     event_dispatch_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
@@ -1808,6 +1846,18 @@ def provision_runtime_role(
                     "migration 646 ClickHouse outbox functions must be applied before "
                     "provisioning its dedicated login"
                 )
+        if report_snapshot_export_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "to_regprocedure(%s)" for _ in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS
+                ),
+                _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 683 report snapshot export functions must be applied before "
+                    "provisioning its dedicated login"
+                )
         if notification_delivery_user is not None:
             cur.execute(
                 "SELECT " + ", ".join(
@@ -1883,6 +1933,18 @@ def provision_runtime_role(
             _revoke_public_function_execute(cur, function)
 
         _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
+        for function in _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS:
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(function), runtime_ident
+                )
+            )
+        for function in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS:
+            cur.execute(
+                sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(
+                    sql.SQL(function), runtime_ident
+                )
+            )
         for function in _MOBILE_CREDENTIAL_FUNCTIONS:
             cur.execute(
                 sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
@@ -2249,6 +2311,50 @@ def provision_runtime_role(
                         sql.SQL(function), clickhouse_outbox_ident
                     )
                 )
+        if report_snapshot_export_user is not None:
+            assert (
+                report_snapshot_export_ident is not None
+                and report_snapshot_export_password is not None
+            )
+            _ensure_login_role(
+                cur,
+                name=report_snapshot_export_user,
+                identifier=report_snapshot_export_ident,
+                password=report_snapshot_export_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=report_snapshot_export_user,
+                identifier=report_snapshot_export_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), report_snapshot_export_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), report_snapshot_export_ident
+                    )
+                )
+                cur.execute(
+                    sql.SQL("REVOKE CREATE ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), report_snapshot_export_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    report_snapshot_export_ident
+                )
+            )
+            for function in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), report_snapshot_export_ident
+                    )
+                )
         if notification_delivery_user is not None:
             assert notification_delivery_ident is not None
             assert notification_delivery_password is not None
@@ -2520,6 +2626,8 @@ def provision_runtime_role(
             protected_login_idents.append(freshness_ident)
         if clickhouse_outbox_ident is not None:
             protected_login_idents.append(clickhouse_outbox_ident)
+        if report_snapshot_export_ident is not None:
+            protected_login_idents.append(report_snapshot_export_ident)
         if notification_delivery_ident is not None:
             protected_login_idents.append(notification_delivery_ident)
         if event_dispatch_ident is not None:
@@ -2972,6 +3080,8 @@ def provision_runtime_role(
             checked_login_names.append(freshness_user)
         if clickhouse_outbox_user is not None:
             checked_login_names.append(clickhouse_outbox_user)
+        if report_snapshot_export_user is not None:
+            checked_login_names.append(report_snapshot_export_user)
         if notification_delivery_user is not None:
             checked_login_names.append(notification_delivery_user)
         if event_dispatch_user is not None:
@@ -3457,6 +3567,14 @@ def provision_runtime_role(
                 "ClickHouse outbox worker",
                 runtime_user,
             )
+        if report_snapshot_export_user is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                report_snapshot_export_user,
+                _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS,
+                "report snapshot export worker",
+                runtime_user,
+            )
         if notification_delivery_user is not None:
             _verify_bounded_indexer_login(
                 cur,
@@ -3496,6 +3614,19 @@ def provision_runtime_role(
         )
         if cur.fetchone() != (True, True, True):
             raise RuntimeError("runtime role is missing a bounded Gateway/mobile-device function")
+        cur.execute(
+            "SELECT " + ", ".join(
+                "has_function_privilege(%s, %s, 'EXECUTE')"
+                for _ in _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS
+            ),
+            tuple(
+                value
+                for function in _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS
+                for value in (runtime_user, function)
+            ),
+        )
+        if cur.fetchone() != (True,) * len(_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS):
+            raise RuntimeError("runtime role is missing the bounded report snapshot export API")
         cur.execute(
             "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
             "has_schema_privilege(%s, 'kokonut_security', 'USAGE')",
@@ -3556,6 +3687,19 @@ def provision_runtime_role(
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("runtime role can execute remote-sensing worker functions")
+        cur.execute(
+            "SELECT " + " OR ".join(
+                "has_function_privilege(%s, %s, 'EXECUTE')"
+                for _ in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS
+            ),
+            tuple(
+                value
+                for function in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS
+                for value in (runtime_user, function)
+            ),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError("runtime role can execute report snapshot export worker functions")
         if farm_activity_event_owner_ready:
             for function in (
                 "public.guard_farm_activity_operator_event_insert()",
@@ -3685,6 +3829,24 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "ClickHouse outbox login must connect only to its configured database"
                 )
+        if report_snapshot_export_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (report_snapshot_export_user,),
+            )
+            report_snapshot_export_database_access = {
+                name: allowed for name, allowed in cur.fetchall()
+            }
+            if any(
+                allowed != (name == database)
+                for name, allowed in report_snapshot_export_database_access.items()
+            ):
+                raise RuntimeError(
+                    "report snapshot export login must connect only to its configured database"
+                )
         if notification_delivery_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -3775,6 +3937,7 @@ def provision_runtime_role(
         "baal_indexer_user": baal_indexer_user,
         "freshness_user": freshness_user,
         "clickhouse_outbox_user": clickhouse_outbox_user,
+        "report_snapshot_export_user": report_snapshot_export_user,
         "notification_delivery_user": notification_delivery_user,
         "event_dispatch_user": event_dispatch_user,
         "sensor_ingestion_user": sensor_ingestion_user,
@@ -3790,6 +3953,7 @@ def provision_runtime_role(
         "baal_indexer_connect_grants": baal_indexer_database_access,
         "freshness_worker_connect_grants": freshness_database_access,
         "clickhouse_outbox_worker_connect_grants": clickhouse_outbox_database_access,
+        "report_snapshot_export_worker_connect_grants": report_snapshot_export_database_access,
         "notification_delivery_worker_connect_grants": notification_delivery_database_access,
         "event_dispatch_worker_connect_grants": event_dispatch_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
@@ -3892,6 +4056,13 @@ def main() -> int:
     clickhouse_outbox_password = os.environ.get(
         "KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD", ""
     )
+    report_snapshot_export_user = os.environ.get(
+        "KOKONUT_REPORT_SNAPSHOT_EXPORT_USER",
+        "kokonut_report_snapshot_export_login",
+    )
+    report_snapshot_export_password = os.environ.get(
+        "KOKONUT_REPORT_SNAPSHOT_EXPORT_PASSWORD", ""
+    )
     notification_delivery_user = os.environ.get(
         "KOKONUT_NOTIFICATION_DELIVERY_USER", "kokonut_notification_delivery_login"
     )
@@ -3971,6 +4142,12 @@ def main() -> int:
             ),
             clickhouse_outbox_password=(
                 clickhouse_outbox_password if clickhouse_outbox_password else None
+            ),
+            report_snapshot_export_user=(
+                report_snapshot_export_user if report_snapshot_export_password else None
+            ),
+            report_snapshot_export_password=(
+                report_snapshot_export_password if report_snapshot_export_password else None
             ),
             notification_delivery_user=(
                 notification_delivery_user if notification_delivery_password else None
