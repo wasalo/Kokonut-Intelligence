@@ -7916,3 +7916,26 @@ Checklist: 1,776 complete / 25 open (1,801 total); TODO: 443 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 142. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — capacity-profile draft revision response — 29 October 2026
+
+- [x] Publish a strict five-field response model for capacity-profile revision
+  in OpenAPI and validate service output before returning it.
+- [x] Bind the returned location and replaced profile to the request path and
+  require a distinct replacement profile ID.
+- [x] Require first-time revisions to remain drafts, preserve the existing
+  lifecycle on idempotent replay, and keep the PUT response at HTTP 200.
+- [x] Sanitize malformed or mismatched results with no-store failure handling.
+- [x] Add and run focused mock-only route/OpenAPI checks; record evidence and
+  reconcile the implementation ledgers.
+
+The focused capacity-revision selection passes 12 tests (193 unrelated tests
+deselected). Ruff, Python compilation, response-schema generation,
+capability-matrix validation, and diff checks pass. No database, provider,
+candidate, or legacy state was used. Evidence:
+[capacity-draft revision response contract](builds/2026-10-29-recovery/operating-pilot-capacity-draft-revision-response-contract.json).
+
+Checklist: 1,781 complete / 25 open (1,806 total); TODO: 447 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 143. C2 remains open for broader route/auth and live-runtime parity.

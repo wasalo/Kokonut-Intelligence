@@ -24298,3 +24298,18 @@ validation passes; no database or provider was used. Checklist: 1,776 complete
 / 25 open; TODO: 443 checked / 16 open; strict private Gateway response
 contracts total 142. Evidence:
 [capacity-draft response contract](builds/2026-10-29-recovery/operating-pilot-capacity-draft-create-response-contract.json).
+
+### Progress addendum — capacity-profile revision response — 29 October 2026
+
+Capacity-profile revision now declares a strict five-field response for
+location, replacement profile, replaced profile, lifecycle status, and replay.
+It binds both IDs and location to the route, requires new revisions to stay
+draft-only, preserves the existing lifecycle on exact replay, and keeps HTTP
+200 for the PUT operation. The approved mock-only route selection passes 12
+tests (193 unrelated tests deselected), including OpenAPI, path binding,
+replacement identity, replay status, and sanitized no-store failures. Ruff,
+Python compilation, schema generation, capability validation, and diff checks
+pass. No database or provider was used. Checklist: 1,781 complete / 25 open;
+TODO: 447 checked / 16 open; strict private Gateway response contracts total
+143. Evidence:
+[capacity-draft revision response contract](builds/2026-10-29-recovery/operating-pilot-capacity-draft-revision-response-contract.json).
