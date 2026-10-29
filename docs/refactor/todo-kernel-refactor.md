@@ -3326,3 +3326,26 @@ candidate/legacy state was used. Checklist: 498 checked / 16 open; the matrix
 remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), with 177
 strict private Gateway response contracts. Evidence:
 `builds/2026-10-29-recovery/adoption-redesign-grievances-crop-date.json`.
+
+## Completed — consent, readiness review, and CLI preflight, 29 October
+
+- [x] Pin consent check/list readers to migration 320's exact projection and
+  verify filters, parameter order, sort, and serialized payload.
+- [x] Reject malformed consent UUIDs before database acquisition and
+  canonicalize valid inputs.
+- [x] Preflight farmer date/datetime values and digital-finance evidence JSON
+  before opening PostgreSQL.
+- [x] Publish the strict migration-516 adopter-readiness queue schema and
+  validate location/page binding, levels, text, timestamps, order, and IDs.
+- [x] Bound queue continuation at 10,000 and align console validation and
+  capped-results messaging.
+- [x] Run approved offline checks, refresh the SQL inventory, and record
+  evidence plus progress counters.
+
+The combined selection passes 157 tests with four skips. Ruff, compilation,
+capability validation, runtime SQL inventory, provider-boundary and dependency
+checks, and diff checks pass. No database/provider or candidate/legacy state
+was used. Checklist: 504 checked / 16 open; matrix remains 67 rows
+(24 baseline-retained, 7 deployed, 36 prepared), with 178 strict private
+Gateway response contracts. Evidence:
+`builds/2026-10-29-recovery/consent-readiness-cli-preflight.json`.

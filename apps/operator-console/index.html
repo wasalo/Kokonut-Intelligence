@@ -13925,15 +13925,74 @@
           if (!response.ok) throw new Error(result.error || "Readiness review queue could not be loaded.");
           if (requestVersion !== solutionLifecycleReadinessReviewRequestVersion
               || locationId !== solutionLifecycleLocation.value) return;
-          const assessments = Array.isArray(result.assessments) ? result.assessments : [];
+          const expectedAssessmentFields = [
+            "assessment_id", "readiness_id", "solution_id", "current_level",
+            "required_level", "remediation_plan", "assessed_at",
+          ].sort();
+          const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const assessments = Array.isArray(result.assessments) ? result.assessments : null;
+          const seenAssessmentIds = new Set();
+          let previousAssessment = null;
+          const validAssessments = assessments !== null
+            && assessments.length <= solutionLifecycleReadinessReviewPageSize
+            && assessments.every((assessment) => {
+              if (!assessment || typeof assessment !== "object"
+                  || Object.keys(assessment).sort().join("|") !== expectedAssessmentFields.join("|")
+                  || !validId.test(assessment.assessment_id || "")
+                  || !validId.test(assessment.readiness_id || "")
+                  || !validId.test(assessment.solution_id || "")
+                  || typeof assessment.current_level !== "number"
+                  || !Number.isFinite(assessment.current_level)
+                  || assessment.current_level < 0 || assessment.current_level > 999.999
+                  || typeof assessment.required_level !== "number"
+                  || !Number.isFinite(assessment.required_level)
+                  || assessment.required_level < 0 || assessment.required_level > 999.999
+                  || (assessment.remediation_plan !== null
+                      && (typeof assessment.remediation_plan !== "string"
+                          || !assessment.remediation_plan.trim()
+                          || assessment.remediation_plan.length > 4000))
+                  || typeof assessment.assessed_at !== "string"
+                  || !/(?:Z|[+-]\d{2}:\d{2})$/i.test(assessment.assessed_at)
+                  || !Number.isFinite(Date.parse(assessment.assessed_at))) {
+                return false;
+              }
+              const assessmentId = assessment.assessment_id.toLowerCase();
+              const assessedAt = Date.parse(assessment.assessed_at);
+              if (seenAssessmentIds.has(assessmentId)
+                  || (previousAssessment && (previousAssessment.assessedAt < assessedAt
+                      || (previousAssessment.assessedAt === assessedAt
+                          && previousAssessment.assessmentId < assessmentId)))) {
+                return false;
+              }
+              seenAssessmentIds.add(assessmentId);
+              previousAssessment = { assessmentId, assessedAt };
+              return true;
+            });
+          const hasMore = typeof result.has_more === "boolean" && result.has_more;
+          const offsetLimited = typeof result.offset_limited === "boolean" && result.offset_limited;
+          const validPage = result.location_id === locationId
+            && result.limit === solutionLifecycleReadinessReviewPageSize
+            && result.offset === offset
+            && typeof result.has_more === "boolean"
+            && typeof result.offset_limited === "boolean"
+            && validAssessments
+            && (offsetLimited
+              ? !hasMore && result.next_offset === null
+                  && assessments.length === solutionLifecycleReadinessReviewPageSize
+                  && offset + assessments.length > 10000
+              : hasMore
+                ? assessments.length === solutionLifecycleReadinessReviewPageSize
+                    && result.next_offset === offset + assessments.length
+                    && result.next_offset <= 10000
+                : result.next_offset === null);
+          if (!validPage) throw new Error("Readiness review queue returned an invalid page.");
           for (const assessment of assessments) appendSolutionLifecycleReadinessReview(assessment);
-          solutionLifecycleReadinessReviewOffset = Number.isInteger(result.next_offset)
-            && result.next_offset > offset && result.next_offset <= 10000
-            ? result.next_offset : offset;
-          solutionLifecycleReadinessReviewMore.hidden = result.has_more !== true
-            || solutionLifecycleReadinessReviewOffset <= offset;
-          solutionLifecycleReadinessReviewStatus.textContent = assessments.length
-            ? `${assessments.length} readiness assessment${assessments.length === 1 ? "" : "s"} loaded. Your own assessments are excluded.`
+          solutionLifecycleReadinessReviewOffset = hasMore ? result.next_offset : offset;
+          solutionLifecycleReadinessReviewMore.hidden = !hasMore;
+          solutionLifecycleReadinessReviewStatus.textContent = offsetLimited
+            ? `${assessments.length} readiness assessment${assessments.length === 1 ? "" : "s"} loaded. The 10,000-row paging limit has been reached.`
+            : assessments.length
+              ? `${assessments.length} readiness assessment${assessments.length === 1 ? "" : "s"} loaded. Your own assessments are excluded.`
             : "No eligible assessments are waiting for your independent review.";
         } catch (error) {
           if (requestVersion !== solutionLifecycleReadinessReviewRequestVersion) return;

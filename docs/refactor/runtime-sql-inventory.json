@@ -32,8 +32,8 @@
     "expression_kinds": {
       "composed": 33,
       "composed_or_variable": 341,
-      "fstring": 303,
-      "literal": 4287
+      "fstring": 304,
+      "literal": 4286
     },
     "relation_candidates": 1254,
     "write_target_relations": 587,
@@ -89,7 +89,7 @@
       },
       "candidate_relation_names": 541,
       "sites_without_relation_candidates": 58,
-      "non_literal_sites": 194,
+      "non_literal_sites": 195,
       "sites_with_worker_operation_refs": 61
     },
     "attestation": {
@@ -2435,10 +2435,10 @@
     {"id": "services/analytics/configurable_containers.py:117:4","source": "services/analytics/configurable_containers.py","line": 117,"column": 4,"scope": "compute_needs_assessment_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["needs_assessment"],"static_sql_sha256": "35b4e2b0d0436066341d377baac9ae4a287332d2c2881d6cdef633dcacecde6e","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/configurable_containers.py:158:4","source": "services/analytics/configurable_containers.py","line": 158,"column": 4,"scope": "compute_aspirations_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["stakeholder_aspiration"],"static_sql_sha256": "4b27018f3f14049b8344a1e801889ef3920d0dce48bc9054b248fd1126eed128","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/configurable_containers.py:198:4","source": "services/analytics/configurable_containers.py","line": 198,"column": 4,"scope": "compute_objectives_progress","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["objective"],"static_sql_sha256": "76f20ac6c8c8f5f6dcd8afc75c5e1bc9be60cb52614a002a0391a5b524fe218f","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/consent_resolver.py:64:8","source": "services/analytics/consent_resolver.py","line": 64,"column": 8,"scope": "record_consent","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["stakeholder_consent"],"static_sql_sha256": "a43693740a4865caa9890823d48df93e63ae6daa8f5776543a98c85673ac7fb8","operation_refs": [],"write_target_relations": ["stakeholder_consent"],"statement_group": "write_candidate"},
-    {"id": "services/analytics/consent_resolver.py:96:8","source": "services/analytics/consent_resolver.py","line": 96,"column": 8,"scope": "check_consent","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["v_effective_stakeholder_consent"],"static_sql_sha256": "3accca898ad5de832ac92ccef48aac36a83f5b999de627812a09ec2adcef4433","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/consent_resolver.py:142:8","source": "services/analytics/consent_resolver.py","line": 142,"column": 8,"scope": "list_effective_consent","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["v_effective_stakeholder_consent"],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/consent_resolver.py:150:8","source": "services/analytics/consent_resolver.py","line": 150,"column": 8,"scope": "withdraw_consent","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["stakeholder_consent"],"static_sql_sha256": "f85d01a354e4ba8a74a93df16842c9e8d2d8877bdb54a50b05a56249078892d1","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/consent_resolver.py:91:8","source": "services/analytics/consent_resolver.py","line": 91,"column": 8,"scope": "record_consent","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["stakeholder_consent"],"static_sql_sha256": "a43693740a4865caa9890823d48df93e63ae6daa8f5776543a98c85673ac7fb8","operation_refs": [],"write_target_relations": ["stakeholder_consent"],"statement_group": "write_candidate"},
+    {"id": "services/analytics/consent_resolver.py:124:8","source": "services/analytics/consent_resolver.py","line": 124,"column": 8,"scope": "check_consent","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["v_effective_stakeholder_consent"],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/consent_resolver.py:171:8","source": "services/analytics/consent_resolver.py","line": 171,"column": 8,"scope": "list_effective_consent","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["v_effective_stakeholder_consent"],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/consent_resolver.py:183:8","source": "services/analytics/consent_resolver.py","line": 183,"column": 8,"scope": "withdraw_consent","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["stakeholder_consent"],"static_sql_sha256": "f85d01a354e4ba8a74a93df16842c9e8d2d8877bdb54a50b05a56249078892d1","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/cooperative.py:53:8","source": "services/analytics/cooperative.py","line": 53,"column": 8,"scope": "create_cooperative","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["cooperative_type"],"static_sql_sha256": "c4328e9fbf91bcf1e4509f29535751d988687913922fd332a1f5c54a6ebd19c2","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/cooperative.py:62:8","source": "services/analytics/cooperative.py","line": 62,"column": 8,"scope": "create_cooperative","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["cooperative"],"static_sql_sha256": "db54f247402605bdc02ff98a156e370e7ad984556a5a43944e553cfd8ec5ab81","operation_refs": [],"write_target_relations": ["cooperative"],"statement_group": "write_candidate"},
     {"id": "services/analytics/cooperative.py:106:8","source": "services/analytics/cooperative.py","line": 106,"column": 8,"scope": "add_member","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["cooperative"],"static_sql_sha256": "e0f4bdf4db66aa7efc947423843c04e1118d65ff5d748ca09bfe7842e595eb94","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},

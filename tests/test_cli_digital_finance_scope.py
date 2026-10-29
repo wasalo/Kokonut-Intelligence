@@ -102,3 +102,49 @@ def test_non_location_account_command_keeps_existing_behavior(monkeypatch):
     cli_digital_finance.main(argv)
 
     runner.assert_called_once_with(argv)
+
+
+def test_file_claim_rejects_malformed_evidence_json_before_database_setup(monkeypatch):
+    argv = [
+        "file-claim", "--policy-id", "policy-1", "--type", "hail", "--amount", "10",
+        "--evidence", "{not-json}",
+    ]
+    runner = Mock()
+    connection_factory = Mock()
+    monkeypatch.setattr(cli_digital_finance.cli, "run", runner)
+    monkeypatch.setattr(
+        cli_digital_finance.cli, "_connection_factory", connection_factory
+    )
+
+    with pytest.raises(SystemExit) as error:
+        cli_digital_finance.main(argv)
+
+    assert error.value.code == 2
+    runner.assert_not_called()
+    connection_factory.assert_not_called()
+
+
+def test_file_claim_passes_decoded_evidence_to_handler(monkeypatch):
+    argv = [
+        "file-claim", "--policy-id", "policy-1", "--type", "hail", "--amount", "10",
+        "--evidence", '{"invoice":"photo-1","measurements":[1,2]}',
+    ]
+    connection = Mock()
+    connection_factory = Mock(return_value=connection)
+    claim = Mock(return_value={"claim_id": "claim-1"})
+    output = Mock()
+    monkeypatch.setattr("services.common.commands.print_json", output)
+    monkeypatch.setattr(
+        cli_digital_finance.cli, "_connection_factory", connection_factory
+    )
+    monkeypatch.setattr(cli_digital_finance, "file_insurance_claim", claim)
+
+    cli_digital_finance.main(argv)
+
+    claim.assert_called_once_with(
+        connection, "policy-1", "hail", 10.0,
+        evidence={"invoice": "photo-1", "measurements": [1, 2]},
+        event_date=None, description=None,
+    )
+    output.assert_called_once_with({"claim_id": "claim-1"})
+    connection.close.assert_called_once_with()

@@ -40,6 +40,16 @@ def _parse_location_id(value: str) -> str:
         raise argparse.ArgumentTypeError("must be a valid UUID") from exc
 
 
+def _parse_evidence(value: str):
+    """Decode optional evidence JSON while argparse can still reject input."""
+    if not value:
+        return None
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise argparse.ArgumentTypeError("must be valid JSON") from exc
+
+
 def _cmd_create_account(db, a):
     return create_account(
         db, a.location_id, a.account_type,
@@ -67,10 +77,9 @@ def _cmd_create_insurance(db, a):
 
 
 def _cmd_file_claim(db, a):
-    evidence = json.loads(a.evidence) if a.evidence else None
     return file_insurance_claim(
         db, a.policy_id, a.claim_type, a.amount,
-        evidence=evidence, event_date=a.event_date, description=a.description,
+        evidence=a.evidence, event_date=a.event_date, description=a.description,
     )
 
 
@@ -147,7 +156,7 @@ cli.subcommand("file-claim", "File insurance claim") \
     .add("--policy-id", required=True) \
     .add("--type", required=True, dest="claim_type") \
     .add("--amount", type=float, required=True) \
-    .add("--evidence", help="JSON evidence data") \
+    .add("--evidence", type=_parse_evidence, help="JSON evidence data") \
     .add("--event-date") \
     .add("--description") \
     .add("--json", action="store_true") \

@@ -612,6 +612,85 @@ class SolutionAdoptionProgramReviewQueueResponse(BaseModel):
         return self
 
 
+class SolutionAdopterReadinessReviewQueueItemResponse(BaseModel):
+    """Exact migration-516 projection for an independently reviewable assessment."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    assessment_id: _SolutionResponseUUID
+    readiness_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    current_level: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("999.999")
+    )
+    required_level: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("999.999")
+    )
+    remediation_plan: str | None = Field(min_length=1, max_length=4000, strict=True)
+    assessed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_remediation_plan(self):
+        if self.remediation_plan is not None and (
+            "\x00" in self.remediation_plan
+            or len(self.remediation_plan.encode("utf-8")) > 8000
+        ):
+            raise ValueError("Readiness remediation plan exceeds its storage bounds")
+        return self
+
+
+class SolutionAdopterReadinessReviewQueuePageResponse(BaseModel):
+    """Strict, location-bound page envelope for the migration-516 review queue."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=100, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    assessments: list[SolutionAdopterReadinessReviewQueueItemResponse] = Field(
+        max_length=100
+    )
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.assessments) > self.limit:
+            raise ValueError("Readiness review page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.assessments) != self.limit
+                or self.offset + len(self.assessments)
+                <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Readiness review offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.assessments) != self.limit
+                or self.next_offset != self.offset + len(self.assessments)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Readiness review continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal readiness review page cannot continue")
+
+        assessment_ids = [assessment.assessment_id for assessment in self.assessments]
+        if len(assessment_ids) != len(set(assessment_ids)):
+            raise ValueError("Readiness review page contains duplicate assessments")
+        order = [
+            (assessment.assessed_at, assessment.assessment_id.int)
+            for assessment in self.assessments
+        ]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Readiness review page is not in SQL order")
+        return self
+
+
 class SolutionAdoptionProgramRedesignItemResponse(BaseModel):
     """Exact migration-519 projection for an independently reviewed redesign."""
 
@@ -2793,7 +2872,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(status_code=503, content={"error": "Solution adoption readiness submission unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/readiness/review-queue")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/readiness/review-queue",
+        response_model=SolutionAdopterReadinessReviewQueuePageResponse,
+    )
     async def solution_adopter_readiness_review_queue(
         request: Request, location_id: str, limit: int = Query(default=25, ge=1, le=100), offset: int = Query(default=0, ge=0, le=10000)
     ):
@@ -2822,7 +2904,53 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution adoption readiness review queue unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution adoption readiness review queue unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict) or set(result) != {
+                "assessments", "has_more", "next_offset",
+            }:
+                raise ValueError("Readiness review result fields are invalid")
+            assessments = result["assessments"]
+            has_more = result["has_more"]
+            next_offset = result["next_offset"]
+            if not isinstance(assessments, list) or type(has_more) is not bool:
+                raise ValueError("Readiness review result shape is invalid")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            if has_more:
+                if (
+                    type(next_offset) is not int
+                    or next_offset != offset + len(assessments)
+                ):
+                    raise ValueError("Readiness review continuation is inconsistent")
+                if next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET:
+                    if len(assessments) != limit:
+                        raise ValueError("Readiness review offset-cap page is incomplete")
+                    page["has_more"] = False
+                    page["next_offset"] = None
+                    page["offset_limited"] = True
+            elif next_offset is not None:
+                raise ValueError("Terminal readiness review result has a cursor")
+            validated = SolutionAdopterReadinessReviewQueuePageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption readiness review response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution adoption readiness review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/readiness/{assessment_id}/review")
     async def review_solution_adopter_readiness(request: Request, location_id: str, assessment_id: str):

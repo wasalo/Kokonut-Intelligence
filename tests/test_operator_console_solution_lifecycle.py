@@ -1111,6 +1111,12 @@ def test_readiness_review_queue_is_review_only_paged_text_rendered_and_retry_saf
     assert 'credentials: "same-origin"' in queue and 'cache: "no-store"' in queue
     assert "requestVersion !== solutionLifecycleReadinessReviewRequestVersion" in queue
     assert "result.next_offset" in queue and "result.has_more" in queue
+    assert "result.location_id === locationId" in queue
+    assert "result.limit === solutionLifecycleReadinessReviewPageSize" in queue
+    assert "result.offset === offset" in queue
+    assert '"required_level", "remediation_plan", "assessed_at"' in queue
+    assert "result.offset_limited" in queue
+    assert "The 10,000-row paging limit has been reached." in queue
     assert "Resolve the pending review with its original assessment form before reloading the queue." in queue
     renderer = _function(
         source,

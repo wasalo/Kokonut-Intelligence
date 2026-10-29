@@ -24559,3 +24559,28 @@ No database, provider, candidate, or legacy state was used; no migration was
 needed. Checklist: 1,855 complete / 25 open; TODO: 498 checked / 16 open;
 strict private Gateway response contracts total 177. Evidence:
 [adoption redesign, grievance projection, and crop-date checks](builds/2026-10-29-recovery/adoption-redesign-grievances-crop-date.json).
+
+### Progress addendum — consent, readiness review, and CLI preflight — 29 October 2026
+
+The consent resolver's `check_consent` and `list_effective_consent` now select
+all 24 migration-320 view columns in declared order while preserving their
+filters, bind order, limit/sort, serialization, and internal access boundary.
+Consent CLI record/check/list/withdraw UUID inputs are canonicalized or
+rejected before `get_db()`. Farmer-identity DOB, credential, and role-expiry
+values parse into their prior date/datetime types before connection creation;
+digital-finance `file-claim --evidence` JSON is decoded in argparse before the
+runner can open PostgreSQL.
+
+The private migration-516 adopter-readiness review queue now declares a strict
+OpenAPI/runtime contract with exact seven-field items, location/page binding,
+finite numeric bounds, remediation text limits, aware timestamps, unique IDs,
+SQL ordering, coherent lookahead, and an explicit terminal page when the
+10,000-offset ceiling is reached. The operator console validates the entire
+page before rendering and reports capped results. The approved combined
+offline selection passes 157 tests with four skips. Ruff, Python compilation,
+capability validation, refreshed runtime SQL inventory, provider-boundary
+and dependency-group checks, and diff checks pass. No database/provider or
+candidate/legacy state was used; no migration was required. Checklist: 1,861
+complete / 25 open; TODO: 504 checked / 16 open; strict private Gateway
+response contracts total 178. Evidence:
+[consent, readiness, and CLI preflight](builds/2026-10-29-recovery/consent-readiness-cli-preflight.json).

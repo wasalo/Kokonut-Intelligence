@@ -8292,3 +8292,33 @@ Checklist: 1,855 complete / 25 open (1,880 total); TODO: 498 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 177. MAN-CAP acceptance and the broader C2/C5/C6 gates remain open.
+
+### Source continuation — consent, readiness review, and input preflight — 29 October 2026
+
+- [x] Pin both migration-320 effective-consent readers to the exact 24 ordered
+  view columns while preserving filter, bind, ordering, payload, and internal
+  visibility behavior.
+- [x] Validate and canonicalize consent CLI party, scope, recipient, and event
+  UUID inputs before opening PostgreSQL.
+- [x] Parse farmer-identity date/datetime inputs and digital-finance claim
+  evidence JSON before database setup, preserving valid handler types.
+- [x] Add strict migration-516 adopter-readiness review item/page contracts,
+  including exact scope, SQL order, duplicates, and continuation validation.
+- [x] Stop readiness-review pagination at offset 10,000 and make the console
+  validate pages and explain capped results.
+- [x] Run the approved focused selection, refresh the runtime SQL inventory,
+  and record evidence in progress and capability records.
+
+The combined offline selection passes 157 tests with four skips across consent
+projections/CLI, farmer-identity and digital-finance preflight, and the readiness
+Gateway/console queue. Ruff, Python compilation, capability validation,
+runtime SQL inventory freshness, provider-boundary checks, dependency-group
+alignment, and diff checks pass. No database/provider, candidate, or legacy
+state was used. No migration is required. Rollback reverts the source, tests,
+evidence, and refreshed inventory; no data rollback is needed. Evidence:
+[consent, readiness, and CLI preflight](builds/2026-10-29-recovery/consent-readiness-cli-preflight.json).
+
+Checklist: 1,861 complete / 25 open (1,886 total); TODO: 504 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 178. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
