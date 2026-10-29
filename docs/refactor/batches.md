@@ -19,14 +19,46 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,589 checklist items complete and 25
-open (1,614 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,595 checklist items complete and 25
+open (1,620 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### Latest local continuation — organic certification report projections — 29 October 2026
+
+- [x] Replace the readiness wildcard with all 24 ordered fields from the
+  migration-055 public view; preserve selected-location scope and latest-score
+  behavior.
+- [x] Replace both organic-transition wildcards with the complete 23-column
+  public projection; preserve location scope, active-only filtering in the
+  readiness report, and transition totals in the progress report.
+- [x] Replace organic-certification `SELECT *` with its complete 21-column
+  public view and preserve newest-first ordering.
+- [x] Replace prohibited-substance audit `SELECT *` with its exact 17 fields
+  and preserve location scope and clearance output.
+- [x] Replace organic-input audit `SELECT *` with all 20 ordered fields and
+  preserve application-date ordering and input totals.
+- [x] Replace harvest-segregation `SELECT *` with all 16 ordered fields and
+  preserve handling payload and compliance aggregation.
+
+One focused synthetic test verifies the six projections across all three
+reports, including location binding, row payloads, and existing aggregates.
+Ruff, Python compilation, all three report inventories, capability-matrix
+validation, and diff checks pass. No database, provider, candidate, or live
+service was used. This does not establish populated-data parity, content
+privacy, live OIDC, or tenant isolation. Rollback consists of reverting the
+six projections and their regression; no migration or data rollback is
+required. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-organic-report-projections.json).
+
+Checklist: 1,595 complete / 25 open (1,620 total); TODO: 290 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
 
 ### Latest local continuation — operations training and reward-calibration reports — 29 October 2026
 

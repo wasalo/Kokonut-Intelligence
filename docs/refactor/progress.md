@@ -23214,3 +23214,22 @@ Checklist: 1,589 complete / 25 open (1,614 total); TODO: 288 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+### Progress addendum — organic certification report projections — 29 October 2026
+
+The organic-certification reports now use exact ordered projections for
+readiness (24 fields), transition (23), certifications (21), prohibited
+substances (17), input audits (20), and harvest segregation (16). Existing
+location predicates, active-transition filtering, newest-first ordering,
+payloads, and report aggregates remain intact.
+
+The focused fake-cursor regression passes. Ruff, Python compilation, all three
+report inventories, capability-matrix validation, and diff checks pass. No
+database, provider, candidate, or live service was used. This is source-level
+contract and payload evidence only; it does not establish populated-data
+parity, live OIDC, content privacy, or tenant isolation. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-organic-report-projections.json).
+
+Checklist: 1,595 complete / 25 open (1,620 total); TODO: 290 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

@@ -1,0 +1,65 @@
+{
+  "batch": "organic-certification-report-projections",
+  "date": "2026-10-29",
+  "base_commit": "39248c96",
+  "scope": "Replace the wildcard selections across the organic-readiness, transition-progress, and input-audit reports with exact migration-055 public-view columns.",
+  "projections": [
+    {
+      "report": "organic_certification_readiness",
+      "view": "v_public_organic_readiness",
+      "column_count": 24,
+      "columns": ["id", "location_id", "location_name", "latitude", "longitude", "farm_registry_id", "farm_status", "assessment_date", "standard", "overall_score", "transition_progress_pct", "soil_health_score", "input_compliance_pct", "pest_management_score", "biodiversity_score", "buffer_zone_score", "record_completeness_pct", "training_completion_pct", "harvest_segregation_score", "barriers", "recommendations", "assessor", "notes", "created_at"]
+    },
+    {
+      "reports": ["organic_certification_readiness", "organic_transition_progress"],
+      "view": "v_public_organic_transition",
+      "column_count": 23,
+      "columns": ["id", "location_id", "location_name", "latitude", "longitude", "farm_registry_id", "farm_status", "standard", "transition_start_date", "expected_certification_date", "current_year", "total_years_required", "status", "progress_pct", "prohibited_substance_free_date", "buffer_zone_established_date", "record_keeping_ready_date", "training_completed_date", "organic_management_plan_date", "readiness_score", "barriers", "notes", "created_at"]
+    },
+    {
+      "report": "organic_certification_readiness",
+      "view": "v_public_organic_certifications",
+      "column_count": 21,
+      "columns": ["id", "location_id", "location_name", "latitude", "longitude", "farm_registry_id", "farm_status", "standard", "certification_type", "certification_body", "application_date", "inspection_date", "certification_date", "expiration_date", "certificate_number", "status", "scope", "scope_areas", "annual_fee_usd", "notes", "created_at"]
+    },
+    {
+      "report": "organic_transition_progress",
+      "view": "v_public_prohibited_substance_audit",
+      "column_count": 17,
+      "columns": ["id", "location_id", "location_name", "farm_registry_id", "substance_name", "substance_category", "cas_number", "date_used", "quantity", "unit", "remediation_action", "remediation_date", "withdrawal_end_date", "compliance_status", "clearance_status", "notes", "created_at"]
+    },
+    {
+      "report": "organic_input_audit",
+      "view": "v_public_organic_input_audit",
+      "column_count": 20,
+      "columns": ["id", "location_id", "location_name", "farm_registry_id", "application_date", "input_category", "input_name", "input_source", "organic_certified", "supplier_name", "quantity", "unit", "application_method", "target_pest_or_nutrient", "pre_harvest_interval_days", "reentry_interval_hours", "is_prohibited", "prohibition_standard", "notes", "created_at"]
+    },
+    {
+      "report": "organic_input_audit",
+      "view": "v_public_harvest_segregation",
+      "column_count": 16,
+      "columns": ["id", "location_id", "location_name", "farm_registry_id", "harvest_event_id", "handling_date", "handling_type", "organic_segregated", "equipment_cleaned", "contamination_risk", "temperature_controlled", "organic_lot_number", "buyer_requirements_met", "storage_conditions", "notes", "created_at"]
+    }
+  ],
+  "focused_checks": {
+    "command": "python3 -m pytest -q tests/test_organic_certification.py::test_organic_reports_use_exact_public_projections_and_preserve_payloads",
+    "passed": 1,
+    "test_boundary": "Synthetic rows and fake cursors only; no database, provider, candidate, legacy service, or live endpoint was used."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_generator_source_inventory": "regenerated and check passed",
+    "report_generator_query_scope_inventory": "regenerated and check passed",
+    "report_generator_helper_scope_inventory": "regenerated and check passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "rollback": "Revert the six explicit view projections, focused regression, generated inventory refresh, and progress records. No migration or data rollback is needed.",
+  "tracked_progress": {
+    "checklist": "1595 complete / 25 open (1620 total)",
+    "todo": "290 checked / 16 open",
+    "capability_matrix": "67 rows; 24 baseline-retained, 7 deployed, 36 prepared; 99 strict private Gateway response contracts",
+    "man_cap_acceptance": "unchanged; separately gated"
+  }
+}

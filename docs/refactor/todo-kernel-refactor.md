@@ -10,6 +10,14 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Replace the organic readiness, transition, certification, prohibited-
+  substance, input-audit, and harvest-segregation wildcards with exact ordered
+  migration-055 public projections; retain their current location filters and
+  report behavior ([evidence](builds/2026-10-29-recovery/kernel-organic-report-projections.json)).
+- [x] Verify all six projections, location bindings, output rows, and existing
+  readiness, transition, and input aggregates with a focused synthetic test
+  ([same evidence](builds/2026-10-29-recovery/kernel-organic-report-projections.json)).
+
 - [x] Replace the training-impact and reward-calibration report wildcards
   with the exact 15-column migration-backed public projections, preserving
   location scope, ordering, output rows, and report aggregates

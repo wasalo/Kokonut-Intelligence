@@ -1004,7 +1004,7 @@
       "callable": "generate_organic_input_audit",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 695,
+      "source_line": 726,
       "parameters": [
         "conn",
         "location_id",
@@ -1026,7 +1026,7 @@
       "callable": "generate_organic_transition_progress",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 640,
+      "source_line": 659,
       "parameters": [
         "conn",
         "location_id",
@@ -1774,7 +1774,7 @@
       "callable": "generate_statement_of_work",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 753,
+      "source_line": 795,
       "parameters": [
         "conn",
         "location_id",

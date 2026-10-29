@@ -554,7 +554,14 @@ def generate_organic_certification_readiness(
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_organic_readiness
+            SELECT id, location_id, location_name, latitude, longitude,
+                   farm_registry_id, farm_status, assessment_date, standard,
+                   overall_score, transition_progress_pct, soil_health_score,
+                   input_compliance_pct, pest_management_score, biodiversity_score,
+                   buffer_zone_score, record_completeness_pct,
+                   training_completion_pct, harvest_segregation_score, barriers,
+                   recommendations, assessor, notes, created_at
+            FROM v_public_organic_readiness
             WHERE location_id = %s ORDER BY assessment_date DESC LIMIT 1
             """,
             (location_id,),
@@ -562,7 +569,14 @@ def generate_organic_certification_readiness(
         readiness = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_organic_transition
+            SELECT id, location_id, location_name, latitude, longitude,
+                   farm_registry_id, farm_status, standard, transition_start_date,
+                   expected_certification_date, current_year, total_years_required,
+                   status, progress_pct, prohibited_substance_free_date,
+                   buffer_zone_established_date, record_keeping_ready_date,
+                   training_completed_date, organic_management_plan_date,
+                   readiness_score, barriers, notes, created_at
+            FROM v_public_organic_transition
             WHERE location_id = %s AND status = 'active'
             """,
             (location_id,),
@@ -570,7 +584,12 @@ def generate_organic_certification_readiness(
         transitions = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_organic_certifications
+            SELECT id, location_id, location_name, latitude, longitude,
+                   farm_registry_id, farm_status, standard, certification_type,
+                   certification_body, application_date, inspection_date,
+                   certification_date, expiration_date, certificate_number, status,
+                   scope, scope_areas, annual_fee_usd, notes, created_at
+            FROM v_public_organic_certifications
             WHERE location_id = %s ORDER BY created_at DESC
             """,
             (location_id,),
@@ -650,7 +669,14 @@ def generate_organic_transition_progress(
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_organic_transition
+            SELECT id, location_id, location_name, latitude, longitude,
+                   farm_registry_id, farm_status, standard, transition_start_date,
+                   expected_certification_date, current_year, total_years_required,
+                   status, progress_pct, prohibited_substance_free_date,
+                   buffer_zone_established_date, record_keeping_ready_date,
+                   training_completed_date, organic_management_plan_date,
+                   readiness_score, barriers, notes, created_at
+            FROM v_public_organic_transition
             WHERE location_id = %s
             """,
             (location_id,),
@@ -658,7 +684,12 @@ def generate_organic_transition_progress(
         transitions = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_prohibited_substance_audit
+            SELECT id, location_id, location_name, farm_registry_id,
+                   substance_name, substance_category, cas_number, date_used,
+                   quantity, unit, remediation_action, remediation_date,
+                   withdrawal_end_date, compliance_status, clearance_status, notes,
+                   created_at
+            FROM v_public_prohibited_substance_audit
             WHERE location_id = %s
             """,
             (location_id,),
@@ -703,7 +734,13 @@ def generate_organic_input_audit(conn, location_id: str, period_start: str = Non
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_organic_input_audit
+            SELECT id, location_id, location_name, farm_registry_id, application_date,
+                   input_category, input_name, input_source, organic_certified,
+                   supplier_name, quantity, unit, application_method,
+                   target_pest_or_nutrient, pre_harvest_interval_days,
+                   reentry_interval_hours, is_prohibited, prohibition_standard,
+                   notes, created_at
+            FROM v_public_organic_input_audit
             WHERE location_id = %s
             ORDER BY application_date DESC
             """,
@@ -712,7 +749,12 @@ def generate_organic_input_audit(conn, location_id: str, period_start: str = Non
         inputs = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_harvest_segregation
+            SELECT id, location_id, location_name, farm_registry_id, harvest_event_id,
+                   handling_date, handling_type, organic_segregated,
+                   equipment_cleaned, contamination_risk, temperature_controlled,
+                   organic_lot_number, buyer_requirements_met, storage_conditions,
+                   notes, created_at
+            FROM v_public_harvest_segregation
             WHERE location_id = %s
             """,
             (location_id,),
