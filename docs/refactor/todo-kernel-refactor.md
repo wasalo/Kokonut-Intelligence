@@ -1883,6 +1883,28 @@ Checklist: 1,506 complete / 25 open (1,531 total); TODO: 212 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
 
 
+### Completed parallel continuation — solution lifecycle read contracts and CLI normalization — 28 October 2026
+
+- [x] Contract the private solution stage-transition target, aggregate summary,
+  and experiment list responses against their exact migration-backed
+  projections; bind location and pagination and reject malformed output.
+- [x] Canonicalize valid supplied location UUIDs before database dispatch in
+  the Digital Finance, Crop Rotation, Marketplace, Extension, Pest Management,
+  Energy Monitoring, and Farmer Identity CLIs while preserving global and
+  optional-scope behavior.
+- [x] Record integrated acceptance and refresh the capability/progress ledgers.
+
+The integrated Gateway/CLI selection passes 295 tests. Ruff, compilation,
+matrix validation, and diff checks pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-read-and-cli-canonicalization.json).
+The strict private Gateway response count is 85; the existing 27 counted CLI
+groups retain their UUID-preflight status. No live database/provider or
+populated tenant data was used.
+
+Checklist: 1,510 complete / 25 open (1,535 total); TODO: 215 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
 ### Completed parallel continuation — operating-pilot response, report scope, and CLI preflight — 28 October 2026
 
 - [x] Add strict request-bound OpenAPI/runtime response contracts for the

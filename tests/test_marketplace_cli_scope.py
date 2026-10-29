@@ -57,3 +57,58 @@ def test_list_active_accepts_valid_location_filter(monkeypatch):
 
     list_active.assert_called_once_with(db, location_id, None, 50, 0)
     db.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "argv, operation",
+    [
+        (
+            ["create-listing", "--location-id", "A0000000-0000-4000-8000-000000000001",
+             "--crop", "yuca", "--quantity", "1", "--json"],
+            "create_listing",
+        ),
+        (
+            ["market-overview", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+            "get_market_overview",
+        ),
+        (
+            ["create-alert", "--location-id", "A0000000-0000-4000-8000-000000000001",
+             "--crop", "yuca", "--threshold", "1", "--json"],
+            "create_price_alert",
+        ),
+        (
+            ["list-active", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+            "list_active_listings",
+        ),
+    ],
+)
+def test_location_arguments_are_canonical_before_database_handler(
+    monkeypatch, argv, operation
+):
+    canonical_location = "a0000000-0000-4000-8000-000000000001"
+    db = Mock()
+    get_db = Mock(return_value=db)
+    handler = Mock(return_value={"total": 0, "listings": []})
+    monkeypatch.setattr("services.ingestion.base.get_db", get_db)
+    monkeypatch.setattr(cli_marketplace, operation, handler)
+
+    cli_marketplace.main(argv)
+
+    assert handler.call_args.args[1] == canonical_location
+    db.close.assert_called_once_with()
+
+
+def test_create_buyer_keeps_descriptive_location_value(monkeypatch):
+    db = Mock()
+    get_db = Mock(return_value=db)
+    create_buyer = Mock(return_value={})
+    monkeypatch.setattr("services.ingestion.base.get_db", get_db)
+    monkeypatch.setattr(cli_marketplace, "create_buyer_profile", create_buyer)
+
+    cli_marketplace.main(
+        ["create-buyer", "--name", "Test buyer", "--location", "Santo Domingo", "--json"]
+    )
+
+    create_buyer.assert_called_once()
+    assert create_buyer.call_args.args[3] == "Santo Domingo"
+    db.close.assert_called_once_with()

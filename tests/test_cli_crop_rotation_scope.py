@@ -45,6 +45,41 @@ def test_valid_required_location_is_forwarded_to_existing_runner(monkeypatch):
     runner.assert_called_once_with(argv)
 
 
+@pytest.mark.parametrize(
+    "prefix",
+    [
+        ["create-plan", "--name", "Rotation"],
+        ["list-plans"],
+        ["family-usage"],
+        ["recommend"],
+        ["dashboard"],
+        ["record-impact"],
+    ],
+)
+def test_valid_location_is_canonicalized_before_cli_runner(prefix, monkeypatch):
+    location_id = uuid4()
+    supplied_location_id = location_id.hex.upper()
+    argv = [*prefix, "--location-id", supplied_location_id]
+    expected_argv = [*prefix, "--location-id", str(location_id)]
+    runner = Mock()
+    monkeypatch.setattr(cli_crop_rotation.cli, "run", runner)
+
+    cli_crop_rotation.main(argv)
+
+    runner.assert_called_once_with(expected_argv)
+
+
+def test_equals_form_location_is_canonicalized_before_cli_runner(monkeypatch):
+    location_id = uuid4()
+    argv = ["list-plans", f"--location-id={location_id.hex.upper()}"]
+    runner = Mock()
+    monkeypatch.setattr(cli_crop_rotation.cli, "run", runner)
+
+    cli_crop_rotation.main(argv)
+
+    runner.assert_called_once_with(["list-plans", f"--location-id={location_id}"])
+
+
 def test_record_impact_keeps_location_optional(monkeypatch):
     argv = ["record-impact"]
     runner = Mock()

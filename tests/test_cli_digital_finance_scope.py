@@ -75,6 +75,25 @@ def test_valid_location_reaches_existing_runner(monkeypatch):
     runner.assert_called_once_with(argv)
 
 
+def test_valid_uppercase_location_is_canonical_before_database_handler(monkeypatch):
+    supplied_location = "A0000000-0000-4000-8000-000000000001"
+    canonical_location = supplied_location.lower()
+    connection = Mock()
+    connection_factory = Mock(return_value=connection)
+    summary = Mock(return_value={"location_id": canonical_location})
+    monkeypatch.setattr(
+        cli_digital_finance.cli, "_connection_factory", connection_factory
+    )
+    monkeypatch.setattr(cli_digital_finance, "get_portfolio_summary", summary)
+
+    cli_digital_finance.main(
+        ["portfolio", "--location-id", supplied_location]
+    )
+
+    summary.assert_called_once_with(connection, canonical_location)
+    connection.close.assert_called_once_with()
+
+
 def test_non_location_account_command_keeps_existing_behavior(monkeypatch):
     argv = ["balance", "--account-id", "account-1"]
     runner = Mock()

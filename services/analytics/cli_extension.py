@@ -155,7 +155,7 @@ def main(argv=None):
 
     if getattr(args, "location_id", None) is not None:
         try:
-            UUID(args.location_id)
+            args.location_id = str(UUID(args.location_id))
         except (AttributeError, TypeError, ValueError):
             parser.error(f"--location-id must be a valid UUID for {args.command}")
 

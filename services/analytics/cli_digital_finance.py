@@ -6,6 +6,7 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_digital_finance --help
 """
 
+import argparse
 import json
 from uuid import UUID
 
@@ -31,15 +32,12 @@ from .digital_finance import (
 
 cli = CommandLine("digital_finance", "Digital financial services")
 
-_LOCATION_SCOPED_COMMANDS = {
-    "create-account",
-    "list",
-    "create-insurance",
-    "create-loan",
-    "portfolio",
-    "premium",
-    "eligibility",
-}
+def _parse_location_id(value: str) -> str:
+    """Validate and canonicalize a CLI location UUID during argument parsing."""
+    try:
+        return str(UUID(value))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise argparse.ArgumentTypeError("must be a valid UUID") from exc
 
 
 def _cmd_create_account(db, a):
@@ -99,7 +97,7 @@ def _cmd_repay(db, a):
 
 
 cli.subcommand("create-account", "Create financial account") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--type", required=True, dest="account_type") \
     .add("--currency", default="KES") \
     .add("--holder", dest="holder_name") \
@@ -127,12 +125,12 @@ cli.subcommand("balance", "Get account balance") \
     .run(lambda db, a: get_account_balance(db, a.account_id))
 
 cli.subcommand("list", "List accounts") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(lambda db, a: list_accounts(db, a.location_id))
 
 cli.subcommand("create-insurance", "Create insurance policy") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--product", required=True, dest="product_type") \
     .add("--coverage", type=float, required=True) \
     .add("--premium", type=float, required=True) \
@@ -165,7 +163,7 @@ cli.subcommand("evaluate-claim", "Evaluate insurance claim") \
     .run(_cmd_evaluate_claim)
 
 cli.subcommand("create-loan", "Create digital loan") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--amount", type=float, required=True) \
     .add("--rate", type=float, required=True) \
     .add("--term", type=int, required=True) \
@@ -184,32 +182,28 @@ cli.subcommand("repay", "Record loan repayment") \
     .run(_cmd_repay)
 
 cli.subcommand("portfolio", "Portfolio summary") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(lambda db, a: get_portfolio_summary(db, a.location_id))
 
 cli.subcommand("premium", "Calculate insurance premium") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--product", required=True) \
     .add("--coverage", type=float, required=True) \
     .add("--json", action="store_true") \
     .run(lambda db, a: calculate_insurance_premium(db, a.location_id, a.product, a.coverage))
 
 cli.subcommand("eligibility", "Evaluate loan eligibility") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--amount", type=float, required=True) \
     .add("--json", action="store_true") \
     .run(lambda db, a: evaluate_loan_eligibility(db, a.location_id, a.amount))
 
 
 def main(argv=None):
-    parser = cli.build_parser()
-    args = parser.parse_args(argv)
-    if args.command in _LOCATION_SCOPED_COMMANDS:
-        try:
-            UUID(args.location_id)
-        except (AttributeError, TypeError, ValueError):
-            parser.error(f"--location-id must be a valid UUID for {args.command}")
+    # Preflight before delegating to the runner; its parser applies the same
+    # UUID type and passes the canonical string to the database handler.
+    cli.build_parser().parse_args(argv)
     return cli.run(argv)
 
 

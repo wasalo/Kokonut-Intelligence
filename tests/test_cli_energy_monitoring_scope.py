@@ -60,6 +60,17 @@ def test_add_renewable_valid_location_reaches_existing_runner(monkeypatch):
     runner.assert_called_once_with(argv)
 
 
+def test_location_scoped_command_still_requires_location_before_cli_runner(monkeypatch):
+    runner = Mock()
+    monkeypatch.setattr(cli_energy_monitoring.cli, "run", runner)
+
+    with pytest.raises(SystemExit) as error:
+        cli_energy_monitoring.main(["consumption"])
+
+    assert error.value.code == 2
+    runner.assert_not_called()
+
+
 def test_help_still_exits_before_cli_runner(monkeypatch, capsys):
     runner = Mock()
     monkeypatch.setattr(cli_energy_monitoring.cli, "run", runner)
@@ -70,3 +81,58 @@ def test_help_still_exits_before_cli_runner(monkeypatch, capsys):
     assert error.value.code == 0
     assert "add-source" in capsys.readouterr().out
     runner.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "argv, operation",
+    [
+        (
+            ["add-source", "--location-id", "A0000000-0000-4000-8000-000000000001",
+             "--name", "Solar array", "--type", "solar", "--json"],
+            "add_source",
+        ),
+        (["add-renewable", "--location-id", "A0000000-0000-4000-8000-000000000001",
+          "--source-id", "source", "--renewable-type", "solar_pv", "--capacity", "1", "--json"],
+         "add_renewable"),
+        (["consumption", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+         "get_consumption"),
+        (["efficiency", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+         "get_efficiency"),
+        (["renewable-summary", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+         "get_renewable_summary"),
+        (["dashboard", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+         "get_energy_dashboard"),
+        (["carbon-intensity", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+         "compute_carbon_intensity"),
+        (["cost-analysis", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+         "get_cost_analysis"),
+    ],
+)
+def test_valid_uppercase_location_is_canonical_before_database_handler(
+    monkeypatch, argv, operation
+):
+    canonical_location = "a0000000-0000-4000-8000-000000000001"
+    connection = Mock()
+    handler = Mock(return_value={})
+    monkeypatch.setattr(cli_energy_monitoring.cli, "_connection_factory", lambda: connection)
+    monkeypatch.setattr(cli_energy_monitoring, operation, handler)
+
+    cli_energy_monitoring.main(argv)
+
+    assert handler.call_args.args[1] == canonical_location
+    connection.close.assert_called_once()
+
+
+def test_reading_command_remains_location_free(monkeypatch):
+    connection = Mock()
+    handler = Mock(return_value={})
+    monkeypatch.setattr(cli_energy_monitoring.cli, "_connection_factory", lambda: connection)
+    monkeypatch.setattr(cli_energy_monitoring, "record_reading", handler)
+
+    cli_energy_monitoring.main(
+        ["record", "--source-id", "source", "--type", "consumption", "--kwh", "1", "--json"]
+    )
+
+    handler.assert_called_once()
+    assert handler.call_args.args[:2] == (connection, "source")
+    connection.close.assert_called_once()

@@ -3602,7 +3602,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Bound gRPC API-key lookup, request-interceptor, and optional-service import failures to exception classes while preserving generic auth failures, exception propagation, and optional service behavior. The 32-test gRPC/auth/policy suite passes with Ruff and compilation on mocked boundaries; no database or RPC provider was contacted ([evidence](builds/2026-10-17-recovery/grpc-auth-request-error-redaction.json)).
 - [x] Redact metadata batch-anchor and threatcasting trend-analysis failures without changing their skip/no-score fallbacks. Two mocked regressions pass with Ruff, compilation, and diff checks; no database or provider was contacted ([evidence](builds/2026-10-17-recovery/metadata-trend-error-redaction.json)).
 - [x] Redact demo sensor-reading insert failures so sensor names, timestamps, and database details are not emitted; preserve per-reading continuation and database cleanup. One mocked regression passes; test lint, source import/syntax checks, compilation, and diff checks pass. No database or provider was used ([evidence](builds/2026-10-17-recovery/mock-sensor-error-redaction.json)).
-- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On the prior pushed source `bfeec998b6021573821c3162e7d4b197c7282a97` for PR #71, Security run #645 passed while CI run #921 remained in progress; the next pushed batch must be checked on its exact head. Keep this gate open until both required contexts pass on the same SHA ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
+- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On PR #71 head `514f1f0c789d795fca49eabd0fe75288b8ff28e7`, Security check `gitleaks` completed successfully and CI check `ci` is still in progress. Keep this gate open until both required contexts pass on the same SHA ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
 - [x] Align the active `Main branch protection` ruleset (ID `18234835`) with `CI / ci` and `Security / gitleaks`. GitHub API verification confirms the obsolete `Python checks`, `Directus hooks`, and `Foundry contracts` contexts were removed; pull-request/review, CODEOWNERS, thread-resolution, strict up-to-date, linear-history, deletion, force-push, and bypass settings remain. The separate active version-tag ruleset (ID `18234836`) was not changed ([settings audit](../github-actions.md#current-required-check-audit--14-october-2026)).
 - [x] Make encrypted checkpoints provider-aware: PostgreSQL-only backup/restore works without ClickHouse credentials or a running ClickHouse service; ClickHouse-enabled backup fails before creating partial artifacts if its service is unavailable, and restore preflights required services before database writes. The manifest explicitly records provider inclusion and exact archives; fake Compose acceptance covers both profiles and preflight ([evidence](builds/2026-10-14-recovery/provider-aware-backup-restore.json)).
 - [ ] Execute the reviewed cutover and retire dependencies only after the readiness gates close. The owner has approved cutover once ready; no gate may be skipped.
@@ -5958,4 +5958,33 @@ prove tenant row-level isolation, live OIDC, or populated-data parity. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-cli-boundaries.json).
 
 Checklist: 1,506 complete / 25 open (1,531 total); TODO: 212 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed parallel continuation — solution lifecycle read contracts and CLI normalization — 28 October 2026
+
+- [x] Add strict request-bound OpenAPI/runtime contracts for the private
+  solution stage-transition target page, aggregate summary, and experiment
+  page, matching migrations 503, 459, and 467 respectively.
+- [x] Validate exact response projections, source-backed enums/count bounds,
+  request identity, pagination, continuation, and stable SQL ordering where
+  the database ordering is exactly reproducible.
+- [x] Canonicalize already-validated location UUIDs before database dispatch
+  across Digital Finance, Crop Rotation, Marketplace, Extension, Pest
+  Management, Energy Monitoring, and Farmer Identity CLIs; preserve each
+  command's existing required or optional scope behavior.
+- [x] Record the integrated Gateway/CLI acceptance and update the capability
+  and progress records.
+
+The combined Gateway/CLI selection passes 295 tests. Ruff, Python compilation,
+capability-matrix validation, and `git diff --check` pass. The capability
+matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); strict
+private Gateway response endpoints now total 85, and the 27 counted CLI groups
+retain UUID preflight. No database, provider, candidate, legacy service, or
+live network was used. The new response contracts were tested through mocked
+readers and ASGI; live OIDC, database behavior, tenant row-level isolation, and
+populated parity remain open. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-read-and-cli-canonicalization.json).
+
+Checklist: 1,510 complete / 25 open (1,535 total); TODO: 215 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

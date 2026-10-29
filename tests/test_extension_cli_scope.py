@@ -59,3 +59,19 @@ def test_peer_groups_accepts_valid_location_filter(monkeypatch):
 
     get_groups.assert_called_once_with(db, location_id=location_id)
     db.close.assert_called_once_with()
+
+
+def test_peer_groups_canonicalizes_uppercase_location_filter(monkeypatch):
+    location_id = uuid4()
+    db = Mock()
+    get_db = Mock(return_value=db)
+    get_groups = Mock(return_value=[])
+    monkeypatch.setattr("services.ingestion.base.get_db", get_db)
+    monkeypatch.setattr(cli_extension, "get_peer_groups", get_groups)
+
+    cli_extension.main(
+        ["peer-groups", "--location-id", str(location_id).upper(), "--json"]
+    )
+
+    get_groups.assert_called_once_with(db, location_id=str(location_id))
+    db.close.assert_called_once_with()

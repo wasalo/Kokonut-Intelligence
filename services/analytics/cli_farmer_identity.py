@@ -6,6 +6,7 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_farmer_identity --help
 """
 
+import sys
 from datetime import date, datetime
 from uuid import UUID
 
@@ -322,7 +323,8 @@ cli.subcommand("directory", "Get farmer directory") \
 
 def main(argv=None):
     parser = cli.build_parser()
-    args = parser.parse_args(argv)
+    dispatch_argv = list(sys.argv[1:] if argv is None else argv)
+    args = parser.parse_args(dispatch_argv)
     location_commands = {
         "create-profile",
         "list-farmers",
@@ -333,10 +335,18 @@ def main(argv=None):
     }
     if args.command in location_commands and args.location_id is not None:
         try:
-            UUID(args.location_id)
+            canonical_location_id = str(UUID(args.location_id))
         except (AttributeError, TypeError, ValueError):
             parser.error("--location-id must be a valid UUID")
-    return cli.run(argv)
+        for index, token in enumerate(dispatch_argv):
+            option, separator, _value = token.partition("=")
+            if option.startswith("--") and "--location-id".startswith(option):
+                if separator:
+                    dispatch_argv[index] = f"{option}={canonical_location_id}"
+                elif index + 1 < len(dispatch_argv):
+                    dispatch_argv[index + 1] = canonical_location_id
+                break
+    return cli.run(dispatch_argv)
 
 
 if __name__ == "__main__":

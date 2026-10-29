@@ -149,7 +149,7 @@ def main(argv=None):
         args.command == "list-active" and args.location_id is not None
     ):
         try:
-            UUID(args.location_id)
+            args.location_id = str(UUID(args.location_id))
         except (AttributeError, TypeError, ValueError):
             parser.error(f"--location-id must be a valid UUID for {args.command}")
 
@@ -289,10 +289,10 @@ def _format_detail(r: dict) -> str:
 
 def _format_listings(r: dict) -> str:
     lines = [f"Active Listings ({r['total']} total):"]
-    for l in r["listings"]:
+    for listing in r["listings"]:
         lines.append(
-            f"  {l['crop_name']:15s} {l['quantity']:>8.0f} {l['unit']:>4s} "
-            f"@ {l.get('price_per_unit') or 'N/A':>8}  [{l.get('quality_grade') or '-'}]"
+            f"  {listing['crop_name']:15s} {listing['quantity']:>8.0f} {listing['unit']:>4s} "
+            f"@ {listing.get('price_per_unit') or 'N/A':>8}  [{listing.get('quality_grade') or '-'}]"
         )
     return "\n".join(lines)
 

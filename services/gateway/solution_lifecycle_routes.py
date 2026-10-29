@@ -64,6 +64,252 @@ _SolutionStage = Literal[
     "superseded", "retired", "failed",
 ]
 
+_MAX_POSTGRES_BIGINT = 9_223_372_036_854_775_807
+_SolutionLifecycleCount = Annotated[
+    int,
+    Field(ge=0, le=_MAX_POSTGRES_BIGINT, strict=True),
+]
+
+
+class _SolutionLifecycleCountSet(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+
+class SolutionLifecycleStageCounts(_SolutionLifecycleCountSet):
+    discovered: _SolutionLifecycleCount
+    triaged: _SolutionLifecycleCount
+    framed: _SolutionLifecycleCount
+    experiment_ready: _SolutionLifecycleCount
+    testing: _SolutionLifecycleCount
+    validated: _SolutionLifecycleCount
+    investment_ready: _SolutionLifecycleCount
+    funded: _SolutionLifecycleCount
+    pilot_active: _SolutionLifecycleCount
+    adoption_ready: _SolutionLifecycleCount
+    adopting: _SolutionLifecycleCount
+    scaled: _SolutionLifecycleCount
+    maintained: _SolutionLifecycleCount
+    paused: _SolutionLifecycleCount
+    superseded: _SolutionLifecycleCount
+    retired: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+
+
+class SolutionLifecycleStatusCounts(_SolutionLifecycleCountSet):
+    active: _SolutionLifecycleCount
+    paused: _SolutionLifecycleCount
+    retired: _SolutionLifecycleCount
+    superseded: _SolutionLifecycleCount
+
+
+class SolutionLifecycleGateStatusCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    ready: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+    retired: _SolutionLifecycleCount
+
+
+class SolutionLifecycleLatestGateEvaluationCounts(_SolutionLifecycleCountSet):
+    passed: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+
+
+class SolutionLifecycleExperimentStatusCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    submitted: _SolutionLifecycleCount
+    protocol_approved: _SolutionLifecycleCount
+    baseline_ready: _SolutionLifecycleCount
+    active: _SolutionLifecycleCount
+    paused: _SolutionLifecycleCount
+    completed: _SolutionLifecycleCount
+    results_review: _SolutionLifecycleCount
+    validated: _SolutionLifecycleCount
+    invalidated: _SolutionLifecycleCount
+    inconclusive: _SolutionLifecycleCount
+    requires_replication: _SolutionLifecycleCount
+
+
+class SolutionLifecycleExperimentResultCounts(_SolutionLifecycleCountSet):
+    validated: _SolutionLifecycleCount
+    invalidated: _SolutionLifecycleCount
+    inconclusive: _SolutionLifecycleCount
+    requires_replication: _SolutionLifecycleCount
+
+
+class SolutionLifecycleReplicationStatusCounts(_SolutionLifecycleCountSet):
+    proposed: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    active: _SolutionLifecycleCount
+    completed: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+
+
+class SolutionLifecycleFundingDecisionCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    submitted: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    rejected: _SolutionLifecycleCount
+    closed: _SolutionLifecycleCount
+
+
+class SolutionLifecycleAdoptionProgramStatusCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    community_review: _SolutionLifecycleCount
+    enablement_ready: _SolutionLifecycleCount
+    launch: _SolutionLifecycleCount
+    onboarding: _SolutionLifecycleCount
+    active: _SolutionLifecycleCount
+    paused: _SolutionLifecycleCount
+    assessed: _SolutionLifecycleCount
+    expand: _SolutionLifecycleCount
+    redesign: _SolutionLifecycleCount
+    retired: _SolutionLifecycleCount
+
+
+class SolutionLifecycleConfigurationApprovalCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    submitted: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    rejected: _SolutionLifecycleCount
+
+
+class SolutionLifecycleAdopterReadinessCounts(_SolutionLifecycleCountSet):
+    not_ready: _SolutionLifecycleCount
+    remediating: _SolutionLifecycleCount
+    ready: _SolutionLifecycleCount
+    expired: _SolutionLifecycleCount
+
+
+class SolutionLifecycleScaleGateStatusCounts(_SolutionLifecycleCountSet):
+    pending: _SolutionLifecycleCount
+    passed: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+    waived: _SolutionLifecycleCount
+
+
+class SolutionLifecycleLearningDecisionCounts(_SolutionLifecycleCountSet):
+    proposed: _SolutionLifecycleCount
+    accepted: _SolutionLifecycleCount
+    rejected: _SolutionLifecycleCount
+    applied: _SolutionLifecycleCount
+
+
+class SolutionLifecycleRetirementStatusCounts(_SolutionLifecycleCountSet):
+    proposed: _SolutionLifecycleCount
+    impact_review: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    migration: _SolutionLifecycleCount
+    sunset: _SolutionLifecycleCount
+    completed: _SolutionLifecycleCount
+    rejected: _SolutionLifecycleCount
+
+
+class SolutionLifecycleSummaryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    solution_count: _SolutionLifecycleCount
+    stage_counts: SolutionLifecycleStageCounts
+    solution_status_counts: SolutionLifecycleStatusCounts
+    stage_gate_status_counts: SolutionLifecycleGateStatusCounts
+    latest_gate_evaluation_counts: SolutionLifecycleLatestGateEvaluationCounts
+    experiment_status_counts: SolutionLifecycleExperimentStatusCounts
+    experiment_result_counts: SolutionLifecycleExperimentResultCounts
+    replication_status_counts: SolutionLifecycleReplicationStatusCounts
+    funding_decision_counts: SolutionLifecycleFundingDecisionCounts
+    adoption_program_status_counts: SolutionLifecycleAdoptionProgramStatusCounts
+    configuration_approval_counts: SolutionLifecycleConfigurationApprovalCounts
+    adopter_readiness_counts: SolutionLifecycleAdopterReadinessCounts
+    scale_gate_status_counts: SolutionLifecycleScaleGateStatusCounts
+    learning_decision_counts: SolutionLifecycleLearningDecisionCounts
+    retirement_status_counts: SolutionLifecycleRetirementStatusCounts
+
+    @model_validator(mode="after")
+    def validate_solution_count_totals(self):
+        if sum(self.stage_counts.model_dump().values()) != self.solution_count:
+            raise ValueError("Solution lifecycle stage totals are inconsistent")
+        if sum(self.solution_status_counts.model_dump().values()) != self.solution_count:
+            raise ValueError("Solution lifecycle status totals are inconsistent")
+        return self
+
+
+class SolutionLifecycleExperimentItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused", "retired", "superseded"]
+    experiment_id: _SolutionResponseUUID
+    protocol_version: str = Field(max_length=40)
+    experiment_status: Literal[
+        "draft", "submitted", "protocol_approved", "baseline_ready", "active",
+        "paused", "completed", "results_review", "validated", "invalidated",
+        "inconclusive", "requires_replication",
+    ]
+    duration_days: int | None = Field(gt=0, le=2_147_483_647, strict=True)
+    primary_metric_count: int | None = Field(
+        ge=0, le=2_147_483_647, strict=True
+    )
+    secondary_metric_count: int | None = Field(
+        ge=0, le=2_147_483_647, strict=True
+    )
+    experiment_created_at: AwareDatetime
+    experiment_updated_at: AwareDatetime
+    started_at: AwareDatetime | None
+    completed_at: AwareDatetime | None
+    latest_result_outcome: Literal[
+        "validated", "invalidated", "inconclusive", "requires_replication"
+    ] | None
+    latest_result_reviewed_at: AwareDatetime | None
+
+    @model_validator(mode="after")
+    def validate_latest_result(self):
+        if (self.latest_result_outcome is None) != (
+            self.latest_result_reviewed_at is None
+        ):
+            raise ValueError("Latest experiment result fields are inconsistent")
+        return self
+
+
+class SolutionLifecycleExperimentPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    experiments: list[SolutionLifecycleExperimentItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation_and_order(self):
+        if self.has_more:
+            if not self.experiments or self.next_offset is None:
+                raise ValueError("Solution experiment continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal solution experiment page cannot continue")
+        seen_experiment_ids = set()
+        previous = None
+        for experiment in self.experiments:
+            if experiment.experiment_id in seen_experiment_ids:
+                raise ValueError("Solution experiment page contains a duplicate item")
+            seen_experiment_ids.add(experiment.experiment_id)
+            if previous is not None and (
+                previous.experiment_created_at < experiment.experiment_created_at
+                or (
+                    previous.experiment_created_at == experiment.experiment_created_at
+                    and previous.experiment_id.int > experiment.experiment_id.int
+                )
+            ):
+                raise ValueError("Solution experiment page order is inconsistent")
+            previous = experiment
+        return self
+
 
 class SolutionLifecycleGateItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
@@ -130,6 +376,44 @@ class SolutionLifecycleGatePageResponse(BaseModel):
             ):
                 raise ValueError("Solution gate page order is inconsistent")
             previous = gate
+        return self
+
+
+class SolutionLifecycleStageTransitionTargetItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused"]
+    updated_at: AwareDatetime
+
+
+class SolutionLifecycleStageTransitionTargetPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    solutions: list[SolutionLifecycleStageTransitionTargetItemResponse] = Field(
+        max_length=50
+    )
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more:
+            if not self.solutions or self.next_offset is None:
+                raise ValueError("Stage-transition target continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal stage-transition target page cannot continue")
+        solution_ids = [solution.solution_id for solution in self.solutions]
+        if len(solution_ids) != len(set(solution_ids)):
+            raise ValueError("Stage-transition target page contains duplicate solutions")
         return self
 
 
@@ -943,7 +1227,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             headers=headers,
         )
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/summary")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/summary",
+        response_model=SolutionLifecycleSummaryResponse,
+    )
     async def location_solution_lifecycle_summary(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -982,7 +1269,24 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution lifecycle summary unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleSummaryResponse.model_validate(result)
+            if validated.location_id != UUID(location_id):
+                raise ValueError("Solution lifecycle summary does not match request location")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution lifecycle summary response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution lifecycle summary unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get(
         "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/protocol-review"
@@ -4842,7 +5146,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         )
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/stage-transition-targets"
+        "/operator/api/solution-lifecycle/{location_id}/stage-transition-targets",
+        response_model=SolutionLifecycleStageTransitionTargetPageResponse,
     )
     async def location_solution_stage_transition_targets(
         request: Request,
@@ -4891,9 +5196,41 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution stage-transition targets unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleStageTransitionTargetPageResponse.model_validate(
+                result
+            )
+            expected_location = UUID(location_id)
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != expected_location
+                or validated.offset != offset
+                or validated.next_offset != expected_next_offset
+                or len(validated.solutions) > limit
+            ):
+                raise ValueError(
+                    "Stage-transition target response does not match request bounds"
+                )
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/experiments")
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution stage-transition target response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution stage-transition targets unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/experiments",
+        response_model=SolutionLifecycleExperimentPageResponse,
+    )
     async def location_solution_lifecycle_experiments(
         request: Request,
         location_id: str,
@@ -4941,4 +5278,29 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution lifecycle experiments unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleExperimentPageResponse.model_validate(result)
+            expected_location = UUID(location_id)
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != expected_location
+                or validated.offset != offset
+                or validated.next_offset != expected_next_offset
+                or len(validated.experiments) > limit
+            ):
+                raise ValueError("Solution experiment response does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution lifecycle experiment response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution lifecycle experiments unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )

@@ -65,3 +65,45 @@ def test_valid_or_omitted_optional_location_keeps_existing_dispatch(monkeypatch,
 
     assert cli_farmer_identity.main(argv) == "dispatched"
     runner.assert_called_once_with(argv)
+
+
+@pytest.mark.parametrize(
+    "prefix",
+    [
+        ["create-profile", "--first-name", "Test"],
+        ["list-farmers"],
+        ["assign-role", "--farmer-id", str(uuid4()), "--role", "observer"],
+        [
+            "register-device",
+            "--farmer-id",
+            str(uuid4()),
+            "--device-id",
+            "synthetic-device",
+            "--device-type",
+            "mobile",
+        ],
+        ["access-matrix"],
+        ["directory"],
+    ],
+)
+def test_supplied_location_is_canonicalized_before_database_runner(prefix, monkeypatch):
+    location_id = uuid4()
+    argv = [*prefix, "--location-id", location_id.hex.upper()]
+    expected_argv = [*prefix, "--location-id", str(location_id)]
+    runner = Mock(return_value="dispatched")
+    monkeypatch.setattr(cli_farmer_identity.cli, "run", runner)
+
+    assert cli_farmer_identity.main(argv) == "dispatched"
+
+    runner.assert_called_once_with(expected_argv)
+
+
+def test_equals_form_location_is_canonicalized_before_database_runner(monkeypatch):
+    location_id = uuid4()
+    argv = ["list-farmers", f"--location-id={location_id.hex.upper()}"]
+    runner = Mock()
+    monkeypatch.setattr(cli_farmer_identity.cli, "run", runner)
+
+    cli_farmer_identity.main(argv)
+
+    runner.assert_called_once_with(["list-farmers", f"--location-id={location_id}"])

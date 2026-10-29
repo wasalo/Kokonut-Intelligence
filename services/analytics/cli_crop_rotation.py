@@ -7,6 +7,7 @@ queries/business logic. Reachable via:
 """
 
 import json
+import sys
 from datetime import date
 from uuid import UUID
 
@@ -148,7 +149,8 @@ cli.subcommand("dashboard", "Rotation dashboard") \
 
 def main(argv=None):
     parser = cli.build_parser()
-    args = parser.parse_args(argv)
+    dispatch_argv = list(sys.argv[1:] if argv is None else argv)
+    args = parser.parse_args(dispatch_argv)
     required_location_commands = {
         "create-plan",
         "list-plans",
@@ -160,10 +162,18 @@ def main(argv=None):
         args.command == "record-impact" and args.location_id is not None
     ):
         try:
-            UUID(args.location_id)
+            canonical_location_id = str(UUID(args.location_id))
         except (AttributeError, TypeError, ValueError):
             parser.error(f"--location-id must be a valid UUID for {args.command}")
-    cli.run(argv)
+        for index, token in enumerate(dispatch_argv):
+            option, separator, _value = token.partition("=")
+            if option.startswith("--") and "--location-id".startswith(option):
+                if separator:
+                    dispatch_argv[index] = f"{option}={canonical_location_id}"
+                elif index + 1 < len(dispatch_argv):
+                    dispatch_argv[index + 1] = canonical_location_id
+                break
+    cli.run(dispatch_argv)
 
 
 def _format_plan_created(r: dict) -> str:

@@ -60,3 +60,37 @@ def test_non_location_command_does_not_require_a_location_id(monkeypatch):
 
     handler.assert_called_once_with(connection, pest_category=None, host_crop=None)
     connection.close.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "argv, operation",
+    [
+        (
+            ["record-scouting", "--location-id", "A0000000-0000-4000-8000-000000000001",
+             "--pest", "aphid", "--json"],
+            "record_scouting",
+        ),
+        (["summary", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+         "get_pest_summary"),
+        (
+            ["add-trap", "--location-id", "A0000000-0000-4000-8000-000000000001",
+             "--name", "synthetic", "--type", "sticky", "--json"],
+            "add_trap",
+        ),
+        (["generate-audit", "--location-id", "A0000000-0000-4000-8000-000000000001", "--json"],
+         "generate_ipm_audit"),
+    ],
+)
+def test_valid_uppercase_location_is_canonical_before_database_handler(
+    monkeypatch, argv, operation
+):
+    canonical_location = "a0000000-0000-4000-8000-000000000001"
+    connection = Mock()
+    handler = Mock(return_value={})
+    monkeypatch.setattr(cli_pest_management.cli, "_connection_factory", lambda: connection)
+    monkeypatch.setattr(cli_pest_management, operation, handler)
+
+    cli_pest_management.main(argv)
+
+    assert handler.call_args.args[1] == canonical_location
+    connection.close.assert_called_once()

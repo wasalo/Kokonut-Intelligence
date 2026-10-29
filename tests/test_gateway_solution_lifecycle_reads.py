@@ -19,20 +19,53 @@ OPERATOR_ID = str(uuid4())
 LOCATION_ID = str(uuid4())
 SUMMARY = {
     "solution_count": 2,
-    "stage_counts": {"discovered": 1, "validated": 1},
-    "solution_status_counts": {"active": 2},
-    "stage_gate_status_counts": {"approved": 1},
+    "stage_counts": {
+        "discovered": 1, "triaged": 0, "framed": 0, "experiment_ready": 0,
+        "testing": 0, "validated": 1, "investment_ready": 0, "funded": 0,
+        "pilot_active": 0, "adoption_ready": 0, "adopting": 0, "scaled": 0,
+        "maintained": 0, "paused": 0, "superseded": 0, "retired": 0,
+        "failed": 0,
+    },
+    "solution_status_counts": {"active": 2, "paused": 0, "retired": 0, "superseded": 0},
+    "stage_gate_status_counts": {
+        "draft": 0, "ready": 0, "approved": 1, "failed": 0, "retired": 0,
+    },
     "latest_gate_evaluation_counts": {"passed": 1, "failed": 0},
-    "experiment_status_counts": {"active": 1},
-    "experiment_result_counts": {"validated": 1},
-    "replication_status_counts": {"proposed": 1},
-    "funding_decision_counts": {"submitted": 1},
-    "adoption_program_status_counts": {"active": 1},
-    "configuration_approval_counts": {"approved": 1},
-    "adopter_readiness_counts": {"ready": 1},
-    "scale_gate_status_counts": {"passed": 1},
-    "learning_decision_counts": {"accepted": 1},
-    "retirement_status_counts": {"proposed": 1},
+    "experiment_status_counts": {
+        "draft": 0, "submitted": 0, "protocol_approved": 0, "baseline_ready": 0,
+        "active": 1, "paused": 0, "completed": 0, "results_review": 0,
+        "validated": 0, "invalidated": 0, "inconclusive": 0,
+        "requires_replication": 0,
+    },
+    "experiment_result_counts": {
+        "validated": 1, "invalidated": 0, "inconclusive": 0,
+        "requires_replication": 0,
+    },
+    "replication_status_counts": {
+        "proposed": 1, "approved": 0, "active": 0, "completed": 0, "failed": 0,
+    },
+    "funding_decision_counts": {
+        "draft": 0, "submitted": 1, "approved": 0, "rejected": 0, "closed": 0,
+    },
+    "adoption_program_status_counts": {
+        "draft": 0, "community_review": 0, "enablement_ready": 0, "launch": 0,
+        "onboarding": 0, "active": 1, "paused": 0, "assessed": 0,
+        "expand": 0, "redesign": 0, "retired": 0,
+    },
+    "configuration_approval_counts": {
+        "draft": 0, "submitted": 0, "approved": 1, "rejected": 0,
+    },
+    "adopter_readiness_counts": {
+        "not_ready": 0, "remediating": 0, "ready": 1, "expired": 0,
+    },
+    "scale_gate_status_counts": {"pending": 0, "passed": 1, "failed": 0, "waived": 0},
+    "learning_decision_counts": {
+        "proposed": 0, "accepted": 1, "rejected": 0, "applied": 0,
+    },
+    "retirement_status_counts": {
+        "proposed": 1, "impact_review": 0, "approved": 0, "migration": 0,
+        "sunset": 0, "completed": 0, "rejected": 0,
+    },
 }
 
 
@@ -57,6 +90,28 @@ def _gate_projection(
         "gate_created_at": created_at,
         "latest_evaluation_passed": True,
         "latest_evaluated_at": datetime(2026, 10, 19, tzinfo=timezone.utc),
+    }
+
+
+def _experiment_projection():
+    return {
+        "solution_id": "c0000000-0000-4000-8000-000000000001",
+        "solution_name": "Soil cover",
+        "solution_type": "practice",
+        "current_stage": "testing",
+        "solution_status": "active",
+        "experiment_id": "f0000000-0000-4000-8000-000000000001",
+        "protocol_version": "v2",
+        "experiment_status": "completed",
+        "duration_days": 42,
+        "primary_metric_count": 2,
+        "secondary_metric_count": 1,
+        "experiment_created_at": datetime(2026, 10, 18, tzinfo=timezone.utc),
+        "experiment_updated_at": datetime(2026, 10, 19, tzinfo=timezone.utc),
+        "started_at": datetime(2026, 10, 1, tzinfo=timezone.utc),
+        "completed_at": datetime(2026, 10, 18, tzinfo=timezone.utc),
+        "latest_result_outcome": "validated",
+        "latest_result_reviewed_at": datetime(2026, 10, 19, tzinfo=timezone.utc),
     }
 
 
@@ -1279,12 +1334,7 @@ def test_gate_http_route_hides_unexpected_read_failure_and_sets_no_store(monkeyp
 def test_experiment_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch):
     from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
 
-    experiment = {
-        "solution_id": "c0000000-0000-4000-8000-000000000001",
-        "experiment_id": "f0000000-0000-4000-8000-000000000001",
-        "experiment_status": "completed",
-        "latest_result_outcome": "validated",
-    }
+    experiment = _experiment_projection()
     monkeypatch.setattr(
         "services.gateway.solution_lifecycle_reads.list_location_solution_experiments",
         lambda *_args, **_kwargs: {
