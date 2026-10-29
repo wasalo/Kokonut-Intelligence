@@ -10,6 +10,15 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Replace the Comprehensive Status holistic-wellbeing `JsonValue` section
+  with strict public-view-backed cultural, metric, and participatory-action
+  response models ([evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json)).
+- [x] Bind the nested holistic-wellbeing report to the composed location and
+  reject undeclared fields, invalid maturity/value types, and malformed output
+  with the existing sanitized error ([same evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json)).
+- [x] Preserve the section's established error shape and verify OpenAPI/runtime
+  parity using synthetic response payloads ([same evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json)).
+
 - [x] Add a strict OpenAPI/runtime detail model for submitted report snapshots,
   preserving the dynamic report JSON object under the existing 512 KiB cap
   ([evidence](builds/2026-10-29-recovery/submitted-report-detail-gateway-contract.json)).
@@ -719,7 +728,8 @@ Checklist: 1,446 complete / 25 open; TODO: 153 checked / 16 open.
   offset ceiling.
 - [x] Validate the Comprehensive Status `crop_noi` section against the
   generator's exact nested projection and selected location; retain the
-  sanitized section error contract and leave other section bodies pending audit.
+  sanitized section error contract and leave remaining section bodies pending
+  audit ([holistic-wellbeing contract](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json)).
 - [x] Validate `expense_event.farm_task_id` against the same location on Directus
   create/update; schema 061 and migration 361 establish the relationship.
 - [x] Reject invalid, `all`, and multi-location IDs for direct climate-impact
@@ -1023,17 +1033,20 @@ that its full source-plan phase is complete.
   existing authorization/error/cache behavior
   ([evidence](builds/2026-10-28-recovery/emergency-response-summary-contract.json)).
   Comprehensive Status validates its one-location envelope and exact canonical
-  section set, with strict typed contracts for `crop_noi` and the
-  environmental section; other section bodies remain JSON-compatible pending
-  generator audits. The environmental model binds its four explicit SQL arrays
-  to the enclosing location and accepts PostgreSQL Decimal values. It preserves
-  current lifecycle, period, and narrative-field behavior pending report review.
-  The farm-summary audit found
-  `SELECT *` over location, farm, plot, and crop-cycle tables, exposing future
-  schema fields in the response, and financial rows do not share the same
-  verification filters as other sections. Define an explicit field allowlist
-  and reconcile lifecycle semantics before making that section strict. The
-  envelope has 20 route tests ([evidence](builds/2026-10-28-recovery/comprehensive-status-response-contract.json)).
+  section set, with strict typed contracts for `crop_noi`, environmental, and
+  holistic-wellbeing sections. The environmental model binds its four explicit
+  SQL arrays to the enclosing location and accepts PostgreSQL Decimal values;
+  the holistic section now binds to its location and derives exact row contracts
+  from the three consent/publication-filtered views. Its 99-route-test selection
+  passes ([evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json)).
+  The farm-summary queries already use explicit current-schema projections and
+  have strict nested models; the remaining semantic issue is that legacy
+  `financial_transaction` has no lifecycle/status column while `expense_event`
+  includes only verified/published rows. Do not infer a financial inclusion
+  policy or add a filter without reconciling the source lifecycle. Other section
+  bodies remain JSON-compatible pending generator audits. The original envelope
+  selection has 20 route tests
+  ([evidence](builds/2026-10-28-recovery/comprehensive-status-response-contract.json)).
   Energy monitoring validates nested source, renewable, efficiency, and cost
   aggregates against schema values and query bounds; 23 route tests include
   request-location matching ([evidence](builds/2026-10-28-recovery/energy-summary-response-contract.json)).

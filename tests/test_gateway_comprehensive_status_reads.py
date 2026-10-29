@@ -83,6 +83,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
     sections["gnh_alignment"] = _gnh_alignment_section(location_id)
     sections["capital_efficiency"] = _capital_efficiency_section(location_id)
     sections["community_governance"] = _community_governance_section(location_id)
+    sections["holistic_wellbeing"] = _holistic_wellbeing_section(location_id)
     sections["foundational_wellbeing"] = _foundational_wellbeing_section(location_id)
     return {
         "report_type": "comprehensive_status",
@@ -271,6 +272,57 @@ def _farm_summary_section(location_id=LOCATION_ID):
             "reported_labor_hours_unit": "hours",
             "by_activity_type": [],
         },
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
+def _holistic_wellbeing_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "holistic_wellbeing",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "languages": ["es", "ht"],
+        "cultural_context": [
+            {
+                "practice_name": "Seed exchange",
+                "practice_type": "cultural_practice",
+                "stakeholder_group": "farmers",
+                "language": "es",
+                "public_summary": "Community-led seed exchange is active.",
+                "evidence_maturity": 4,
+                "evidence_maturity_label": "Independently verified",
+            }
+        ],
+        "wellbeing_metrics": [
+            {
+                "metric_key": "food_security",
+                "metric_name": "Food security",
+                "observation_date": "2026-10-01",
+                "stakeholder_group": "households",
+                "language": "ht",
+                "score_value": 8.5,
+                "count_value": 12,
+                "public_summary": "Published aggregate observation.",
+                "evidence_maturity": 3,
+                "evidence_maturity_label": "Triangulated",
+            }
+        ],
+        "participatory_actions": [
+            {
+                "action_type": "community_meeting",
+                "action_date": "2026-10-02",
+                "stakeholder_group": "community",
+                "feedback_type": "suggestion",
+                "sentiment": "positive",
+                "metric_name": None,
+                "metric_proposal_status": None,
+                "decision_status": "completed",
+                "public_summary": "A published community review was completed.",
+                "evidence_maturity": 5,
+                "evidence_maturity_label": "Externally verified",
+            }
+        ],
+        "limitations": ["Public-safe summaries only."],
         "generated_at": "2026-10-28T00:00:00+00:00",
     }
 
@@ -954,6 +1006,11 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert foundational["observations"][0]["score_value"] is None
     assert foundational["observations"][0]["count_value"] is None
     assert foundational["observations"][0]["metadata"]["method"] == "qualitative"
+    holistic = response.json()["locations"][0]["sections"]["holistic_wellbeing"]
+    assert holistic["location_id"] == LOCATION_ID
+    assert holistic["cultural_context"][0]["practice_name"] == "Seed exchange"
+    assert holistic["wellbeing_metrics"][0]["score_value"] == 8.5
+    assert holistic["participatory_actions"][0]["decision_status"] == "completed"
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -967,6 +1024,27 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     section_schema = schemas["ComprehensiveStatusSections"]
     assert section_schema["additionalProperties"] is False
     assert set(section_schema["properties"]) == set(COMPREHENSIVE_STATUS_SECTIONS)
+    holistic_schema = section_schema["properties"]["holistic_wellbeing"]
+    assert len(holistic_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusHolisticWellbeing"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusHolisticCulturalContext"][
+        "additionalProperties"
+    ] is False
+    assert schemas["ComprehensiveStatusHolisticMetric"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusHolisticParticipatoryAction"][
+        "additionalProperties"
+    ] is False
+    assert set(schemas["ComprehensiveStatusHolisticWellbeing"]["properties"]) == {
+        "report_type",
+        "location_id",
+        "location_name",
+        "languages",
+        "cultural_context",
+        "wellbeing_metrics",
+        "participatory_actions",
+        "limitations",
+        "generated_at",
+    }
     crop_noi_schema = section_schema["properties"]["crop_noi"]
     assert len(crop_noi_schema["anyOf"]) == 2
     assert schemas["ComprehensiveStatusCropNoiReport"]["additionalProperties"] is False
@@ -1318,6 +1396,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     payload["locations"][0]["sections"]["foundational_wellbeing"] = {
         "error": "report section failed (DataError)"
     }
+    payload["locations"][0]["sections"]["holistic_wellbeing"] = {
+        "error": "report section failed (DataError)"
+    }
     monkeypatch.setattr(
         "services.gateway.comprehensive_status_reads.get_location_comprehensive_status",
         lambda *_args, **_kwargs: payload,
@@ -1374,6 +1455,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["foundational_wellbeing"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["holistic_wellbeing"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -1388,6 +1472,8 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "environmental_error_contract",
         "farm_summary_extra", "farm_summary_plot_extra",
         "farm_summary_numeric_string", "farm_summary_error_contract",
+        "holistic_wrong_location", "holistic_context_extra",
+        "holistic_metric_maturity_out_of_range", "holistic_metric_numeric_string",
         "financial_plan_extra", "financial_plan_wrong_location",
         "financial_report_wrong_location", "financial_numeric_string",
         "financial_error_contract",
@@ -1487,6 +1573,22 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         payload["locations"][0]["sections"]["farm_summary"] = {
             "error": "database connection failed with private SQL"
         }
+    elif invalid_projection == "holistic_wrong_location":
+        payload["locations"][0]["sections"]["holistic_wellbeing"]["location_id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "holistic_context_extra":
+        payload["locations"][0]["sections"]["holistic_wellbeing"]["cultural_context"][
+            0
+        ]["source_raw"] = {"private": True}
+    elif invalid_projection == "holistic_metric_maturity_out_of_range":
+        payload["locations"][0]["sections"]["holistic_wellbeing"]["wellbeing_metrics"][
+            0
+        ]["evidence_maturity"] = 7
+    elif invalid_projection == "holistic_metric_numeric_string":
+        payload["locations"][0]["sections"]["holistic_wellbeing"]["wellbeing_metrics"][
+            0
+        ]["score_value"] = "8.5"
     elif invalid_projection == "financial_plan_extra":
         payload["locations"][0]["sections"]["financial_sustainability"]["plans"][0][
             "counterparty_account"

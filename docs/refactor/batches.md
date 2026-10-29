@@ -7012,3 +7012,29 @@ Checklist: 1,641 complete / 25 open (1,666 total); TODO: 336 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 109. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — Comprehensive Status holistic-wellbeing contract — 29 October 2026
+
+- [x] Replace the holistic-wellbeing `JsonValue` section with strict response
+  models matching the report generator's selected public-view fields for
+  cultural context, well-being metrics, and participatory actions.
+- [x] Bind the section to its composed location and validate exact nested
+  fields, date and numeric types, evidence-maturity range, and lifecycle enum.
+- [x] Preserve the existing isolated section-error response and verify its
+  strict OpenAPI contract and sanitized top-level failure through synthetic
+  route fixtures.
+
+The focused Comprehensive Status Gateway selection passes 99 tests. Ruff,
+Python compilation, and `git diff --check` pass. No database/provider,
+candidate, legacy, or production state was used; no migration is required.
+This strengthens the existing tenant-authorized route and does not establish
+populated-data parity or consent beyond the source-view filters. Remaining
+sections in the report need their own source audits; farm-summary financial
+inclusion semantics remain unresolved because the legacy transaction table
+has no lifecycle/status field. Rollback reverts the models, location binding,
+fixtures, and evidence ([evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json)).
+
+Checklist: 1,644 complete / 25 open (1,669 total); TODO: 339 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 109. MAN-CAP acceptance is unchanged.

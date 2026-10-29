@@ -915,6 +915,63 @@ class ComprehensiveStatusFarmSummary(_ComprehensiveStatusModel):
     generated_at: ReportDateTime
 
 
+class ComprehensiveStatusHolisticCulturalContext(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    practice_name: str
+    practice_type: str
+    stakeholder_group: str | None
+    language: str | None
+    public_summary: str
+    evidence_maturity: int | None = Field(default=None, ge=0, le=6)
+    evidence_maturity_label: str | None
+
+
+class ComprehensiveStatusHolisticMetric(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    metric_key: str
+    metric_name: str | None
+    observation_date: ReportDate
+    stakeholder_group: str | None
+    language: str | None
+    score_value: ReportNumber | None
+    count_value: int | None
+    public_summary: str | None
+    evidence_maturity: int | None = Field(default=None, ge=0, le=6)
+    evidence_maturity_label: str | None
+
+
+class ComprehensiveStatusHolisticParticipatoryAction(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    action_type: str
+    action_date: ReportDate
+    stakeholder_group: str | None
+    feedback_type: str | None
+    sentiment: str | None
+    metric_name: str | None
+    metric_proposal_status: str | None
+    decision_status: Literal["draft", "planned", "in_progress", "completed", "deferred", "rejected"] | None
+    public_summary: str
+    evidence_maturity: int | None = Field(default=None, ge=0, le=6)
+    evidence_maturity_label: str | None
+
+
+class ComprehensiveStatusHolisticWellbeing(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["holistic_wellbeing"]
+    location_id: ReportUuid
+    location_name: str | None
+    languages: list[str]
+    cultural_context: list[ComprehensiveStatusHolisticCulturalContext]
+    wellbeing_metrics: list[ComprehensiveStatusHolisticMetric]
+    participatory_actions: list[ComprehensiveStatusHolisticParticipatoryAction]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+
 class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     farm_summary: ComprehensiveStatusFarmSummary | ComprehensiveStatusSectionError
     crop_noi: ComprehensiveStatusCropNoiReport | ComprehensiveStatusSectionError
@@ -931,7 +988,7 @@ class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     community_governance: (
         ComprehensiveStatusCommunityGovernance | ComprehensiveStatusSectionError
     )
-    holistic_wellbeing: JsonValue
+    holistic_wellbeing: ComprehensiveStatusHolisticWellbeing | ComprehensiveStatusSectionError
     training_impact: JsonValue
     foundational_wellbeing: (
         ComprehensiveStatusFoundationalWellbeing | ComprehensiveStatusSectionError
@@ -1004,6 +1061,12 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             and foundational_wellbeing.location_id != self.location_id
         ):
             raise ValueError("Foundational wellbeing section is outside the composed location scope")
+        holistic_wellbeing = self.sections.holistic_wellbeing
+        if (
+            isinstance(holistic_wellbeing, ComprehensiveStatusHolisticWellbeing)
+            and holistic_wellbeing.location_id != self.location_id
+        ):
+            raise ValueError("Holistic wellbeing section is outside the composed location scope")
         return self
 
 

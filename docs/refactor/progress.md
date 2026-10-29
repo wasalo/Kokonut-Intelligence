@@ -1,3 +1,22 @@
+### Progress addendum — Comprehensive Status holistic-wellbeing contract — 29 October 2026
+
+The optional operator route now validates the holistic-wellbeing section
+against strict response models derived from the three public source views:
+cultural context, well-being observations, and participatory actions. The
+contract permits only the fields selected by the report generator, bounds
+evidence maturity to the schema's 0–6 range, and binds the section's location
+to the containing report. Existing report content, error isolation, and
+location-scoped authorization remain in place.
+
+The focused Comprehensive Status route suite passes 99 tests, including
+OpenAPI, valid projection, location mismatch, undeclared fields, numeric
+validation, maturity bounds, and the section error shape. Ruff, compilation,
+and `git diff --check` pass. Checks used synthetic payloads only; no database,
+provider, candidate, legacy, or production state was used. No migration is
+needed. Remaining untyped sections and the farm-summary financial lifecycle
+policy stay open for source/schema reconciliation. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json).
+
 ### Progress addendum — Data Stream draft-create Gateway contract — 29 October 2026
 
 ### Progress addendum — AI-summary draft response contract — 29 October 2026
