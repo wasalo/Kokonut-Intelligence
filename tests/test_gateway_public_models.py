@@ -4,7 +4,11 @@ from datetime import datetime, timezone
 
 import pytest
 
-from services.gateway.public_models import PublicAttestationCounts, PublicMetricCounts
+from services.gateway.public_models import (
+    PublicAttestationCounts,
+    PublicCrispAssessment,
+    PublicMetricCounts,
+)
 
 
 @pytest.mark.parametrize(
@@ -66,4 +70,43 @@ def test_public_attestation_counts_rejects_published_count_above_total() -> None
             total_attestations=1,
             published_count=2,
             latest_attestation=None,
+        )
+
+
+@pytest.mark.parametrize("level", [None, 0, 6])
+def test_public_crisp_assessment_accepts_canonical_evidence_maturity_levels(level):
+    result = PublicCrispAssessment(
+        assessment_id="b0000000-0000-4000-8000-000000000001",
+        location_id="a0000000-0000-4000-8000-000000000001",
+        period_start="2026-01-01",
+        period_end="2026-06-30",
+        methodology_version="crisp-1",
+        composite_score=82,
+        rating="AA",
+        confidence_level="high",
+        evidence_maturity_level=level,
+        score_computed_at=None,
+        status="published",
+    )
+
+    assert result.evidence_maturity_level == level
+
+
+@pytest.mark.parametrize("level", [-1, 7])
+def test_public_crisp_assessment_rejects_noncanonical_evidence_maturity_levels(level):
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        PublicCrispAssessment(
+            assessment_id="b0000000-0000-4000-8000-000000000001",
+            location_id="a0000000-0000-4000-8000-000000000001",
+            period_start="2026-01-01",
+            period_end="2026-06-30",
+            methodology_version="crisp-1",
+            composite_score=82,
+            rating="AA",
+            confidence_level="high",
+            evidence_maturity_level=level,
+            score_computed_at=None,
+            status="published",
         )

@@ -39,6 +39,13 @@ the batch log and the affected capability/progress records are updated.
 - [x] Normalize the TypeScript gRPC DataService responses to declared SDK
   shapes, correct `IRIInfo.hash_algorithm`, and bound/cancel the stream adapter
   ([same evidence](builds/2026-10-29-recovery/kernel-public-projections-and-sdk-contracts.json)).
+- [x] Validate the Data Stream attachment response against its exact 17-field
+  projection, bind rows to the requested post, and redact malformed/private
+  fields in no-store failures
+  ([evidence](builds/2026-10-29-recovery/kernel-c2-file-and-crisp-contracts.json)).
+- [x] Align Gateway and both public REST SDKs to CRISP's canonical evidence
+  maturity range 0–6; regenerate and verify the public OpenAPI/SDK artifacts
+  ([same evidence](builds/2026-10-29-recovery/kernel-c2-file-and-crisp-contracts.json)).
 
 - [x] Replace the public stakeholder-cockpit and coordination-alliance
   wildcards with their exact 13-column migration-238 projections, preserving

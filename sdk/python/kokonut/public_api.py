@@ -140,7 +140,11 @@ def _is_public_crisp_assessment(value: Any, requested_location_id: str) -> bool:
         )
         and (
             maturity is None
-            or (isinstance(maturity, int) and not isinstance(maturity, bool))
+            or (
+                isinstance(maturity, int)
+                and not isinstance(maturity, bool)
+                and 0 <= maturity <= 6
+            )
         )
         and (
             value["score_computed_at"] is None

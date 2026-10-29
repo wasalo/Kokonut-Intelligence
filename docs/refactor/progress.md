@@ -23321,3 +23321,27 @@ Checklist: 1,606 complete / 25 open (1,631 total); TODO: 301 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — strict Data Stream attachment and CRISP contracts — 29 October 2026
+
+The tenant-scoped Data Stream attachment route now publishes and enforces a
+strict 17-field response schema. It excludes storage URLs, Directus file IDs,
+and arbitrary metadata, rejects invalid status/visibility and coordinate
+pairs, binds every attachment to the requested post, and returns sanitized
+no-store errors. CRISP evidence maturity is constrained to its canonical
+0–6 level in Gateway, Python, and JavaScript; the public OpenAPI snapshot and
+generated SDK types were refreshed.
+
+Focused mocked checks pass 197 Python tests and 141 JavaScript tests. Ruff,
+Python compilation, TypeScript build, public OpenAPI generation, generated SDK
+check, capability-matrix validation, and diff checks pass. No database,
+provider, candidate, legacy service, or live route was accessed. The checks do
+not prove populated-data parity, RLS, tenant isolation, OIDC, or live browser
+behavior. Rollback reverts the route/model, SDK validators, generated
+artifacts, and tests; no migration/data rollback is required. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-c2-file-and-crisp-contracts.json).
+
+Checklist: 1,607 complete / 25 open (1,632 total); TODO: 302 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 100. MAN-CAP acceptance is unchanged.

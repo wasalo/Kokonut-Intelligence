@@ -308,6 +308,8 @@ describe('KokonutPublicApiClient', () => {
     },
     { ...crispAssessment, composite_score: 0 },
     { ...crispAssessment, composite_score: 100 },
+    { ...crispAssessment, evidence_maturity_level: 0 },
+    { ...crispAssessment, evidence_maturity_level: 6 },
     { ...crispAssessment, score_computed_at: '2026-10-14T12:35:00.123456Z' },
     { ...crispAssessment, score_computed_at: '2026-10-14T12:35:00-05:30' },
   ])('accepts valid scoped CRISP assessments', async (assessment) => {
@@ -356,6 +358,8 @@ describe('KokonutPublicApiClient', () => {
     { ...crispAssessment, confidence_level: 1 },
     { ...crispAssessment, evidence_maturity_level: 1.5 },
     { ...crispAssessment, evidence_maturity_level: true },
+    { ...crispAssessment, evidence_maturity_level: -1 },
+    { ...crispAssessment, evidence_maturity_level: 7 },
     { ...crispAssessment, score_computed_at: '2026-10-14T12:35:00' },
     { ...crispAssessment, score_computed_at: '2026-02-30T12:35:00Z' },
     { ...crispAssessment, score_computed_at: '2026-10-14 12:35:00Z' },

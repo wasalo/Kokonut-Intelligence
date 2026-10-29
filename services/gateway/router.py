@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -12,7 +13,15 @@ from services.common.logging import get_logger
 try:
     from fastapi import APIRouter, Query, Request
     from fastapi.responses import JSONResponse
-    from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, ValidationError
+    from pydantic import (
+        AwareDatetime,
+        BaseModel,
+        ConfigDict,
+        Field,
+        ValidationError,
+        field_validator,
+        model_validator,
+    )
 
     from services.gateway.federation_models import FederationNodesPage
     from services.gateway.governance_responses import (
@@ -58,6 +67,49 @@ try:
         model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
         data: _DataStreamAttestationRecord
+
+    class _DataStreamFileRecord(BaseModel):
+        """Exact safe attachment metadata projection returned to operators."""
+
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        id: UUID
+        post_id: UUID
+        file_name: str | None = Field(max_length=255)
+        file_description: str | None
+        file_credit: str | None
+        media_type: str | None = Field(max_length=50)
+        file_size_bytes: int | None = Field(strict=True, ge=0)
+        mime_type: str | None = Field(max_length=100)
+        latitude: float | None = Field(ge=-90, le=90)
+        longitude: float | None = Field(ge=-180, le=180)
+        sort_order: int | None = Field(strict=True)
+        status: Literal["draft", "submitted", "verified", "published", "rejected"]
+        visibility: Literal["public", "internal", "private"]
+        created_at: AwareDatetime | None
+        created_by: UUID | None
+        updated_at: AwareDatetime | None
+        updated_by: UUID | None
+
+        @field_validator("latitude", "longitude", mode="before")
+        @classmethod
+        def normalize_numeric_coordinate(cls, value):
+            if value is None:
+                return None
+            if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
+                raise ValueError("coordinate must be numeric")
+            return float(value)
+
+        @model_validator(mode="after")
+        def validate_coordinate_pair(self):
+            if (self.latitude is None) != (self.longitude is None):
+                raise ValueError("latitude and longitude must be set together")
+            return self
+
+    class _DataStreamFileListEnvelope(BaseModel):
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        data: list[_DataStreamFileRecord] = Field(max_length=100)
 
     class _DataStreamPostRecord(BaseModel):
         """Exact fixed projection returned by the tenant-scoped post list."""
@@ -126,6 +178,7 @@ except ImportError:
     BaalProposalDetailEnvelope = BaalProposalListEnvelope = None
     _DataStreamAttestationEnvelope = None
     _DataStreamPostListEnvelope = None
+    _DataStreamFileListEnvelope = None
     ValidationError = None
 
 router = APIRouter()
@@ -501,7 +554,10 @@ async def list_data_stream_posts(
         return _internal_error(exc)
 
 
-@router.get("/data-stream/posts/{post_id}/files")
+@router.get(
+    "/data-stream/posts/{post_id}/files",
+    response_model=_DataStreamFileListEnvelope,
+)
 async def list_data_stream_post_files(
     post_id: str,
     request: Request,
@@ -509,9 +565,11 @@ async def list_data_stream_post_files(
     offset: int = Query(default=0, ge=0, le=5000),
 ):
     """List safe, tenant-scoped attachment metadata without caching it."""
+    from fastapi.encoders import jsonable_encoder
     from starlette.concurrency import run_in_threadpool
 
     try:
+        expected_post_id = UUID(post_id)
         from services.gateway.data_stream import list_gateway_data_stream_files
 
         rows = await run_in_threadpool(
@@ -522,7 +580,15 @@ async def list_data_stream_post_files(
             limit=limit,
             offset=offset,
         )
-        return _private_response({"data": rows})
+        validated = _DataStreamFileListEnvelope.model_validate({"data": rows})
+        if any(row.post_id != expected_post_id for row in validated.data):
+            return _internal_error(
+                RuntimeError("Data Stream attachment post does not match request"),
+                "Data Stream attachments unavailable",
+            )
+        return _private_response(jsonable_encoder(validated.model_dump(mode="python")))
+    except ValidationError as exc:
+        return _internal_error(exc, "Data Stream attachments unavailable")
     except ValueError as exc:
         return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:

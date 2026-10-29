@@ -89,6 +89,8 @@
           "evidence_maturity_level": {
             "anyOf": [
               {
+                "maximum": 6.0,
+                "minimum": 0.0,
                 "type": "integer"
               },
               {

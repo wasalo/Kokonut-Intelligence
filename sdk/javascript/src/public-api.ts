@@ -200,7 +200,11 @@ function isPublicCrispAssessment(
     (candidate.confidence_level === null ||
       (typeof candidate.confidence_level === 'string' &&
         confidenceLevels.has(candidate.confidence_level))) &&
-    (maturity === null || (typeof maturity === 'number' && Number.isInteger(maturity))) &&
+    (maturity === null ||
+      (typeof maturity === 'number' &&
+        Number.isInteger(maturity) &&
+        maturity >= 0 &&
+        maturity <= 6)) &&
     (candidate.score_computed_at === null || isRfc3339DateTime(candidate.score_computed_at)) &&
     candidate.status === 'published'
   );

@@ -313,7 +313,26 @@ def test_data_stream_post_search_requires_location_read_scope(monkeypatch):
     )
     with patch(
         "services.gateway.data_stream.list_gateway_data_stream_posts",
-        return_value=[{"id": "post-1", "location_id": location_id}],
+        return_value=[
+            {
+                "id": UUID("33333333-3333-4333-8333-333333333333"),
+                "location_id": UUID(location_id),
+                "post_type": "field_update",
+                "title": "Field note",
+                "content": "soil cover",
+                "visibility": "private",
+                "status": "verified",
+                "is_anchored": False,
+                "attestation_uid": None,
+                "chain": None,
+                "anchored_at": None,
+                "content_hash": None,
+                "created_at": None,
+                "created_by": None,
+                "expires_at": None,
+                "search_rank": 1.0,
+            }
+        ],
     ) as list_posts:
         with TestClient(create_app()) as client:
             response = client.get(
@@ -328,7 +347,28 @@ def test_data_stream_post_search_requires_location_read_scope(monkeypatch):
             )
 
     assert response.status_code == 200
-    assert response.json() == {"data": [{"id": "post-1", "location_id": location_id}]}
+    assert response.json() == {
+        "data": [
+            {
+                "id": "33333333-3333-4333-8333-333333333333",
+                "location_id": location_id,
+                "post_type": "field_update",
+                "title": "Field note",
+                "content": "soil cover",
+                "visibility": "private",
+                "status": "verified",
+                "is_anchored": False,
+                "attestation_uid": None,
+                "chain": None,
+                "anchored_at": None,
+                "content_hash": None,
+                "created_at": None,
+                "created_by": None,
+                "expires_at": None,
+                "search_rank": 1.0,
+            }
+        ]
+    }
     assert response.headers["cache-control"] == "no-store"
     assert list_posts.call_count == 1
     assert list_posts.call_args.args == (
@@ -362,7 +402,27 @@ def test_data_stream_file_and_attestation_routes_use_separate_read_scopes(monkey
     with (
         patch(
             "services.gateway.data_stream.list_gateway_data_stream_files",
-            return_value=[{"id": "file-1", "file_name": "field-note.jpg"}],
+            return_value=[
+                {
+                    "id": UUID("22222222-2222-4222-8222-222222222222"),
+                    "post_id": UUID(post_id),
+                    "file_name": "field-note.jpg",
+                    "file_description": None,
+                    "file_credit": None,
+                    "media_type": "image",
+                    "file_size_bytes": 1024,
+                    "mime_type": "image/jpeg",
+                    "latitude": None,
+                    "longitude": None,
+                    "sort_order": 0,
+                    "status": "verified",
+                    "visibility": "private",
+                    "created_at": None,
+                    "created_by": None,
+                    "updated_at": None,
+                    "updated_by": None,
+                }
+            ],
         ) as list_files,
         patch(
             "services.gateway.data_stream.get_gateway_data_stream_attestation",
@@ -395,7 +455,29 @@ def test_data_stream_file_and_attestation_routes_use_separate_read_scopes(monkey
             )
 
     assert files.status_code == 200
-    assert files.json() == {"data": [{"id": "file-1", "file_name": "field-note.jpg"}]}
+    assert files.json() == {
+        "data": [
+            {
+                "id": "22222222-2222-4222-8222-222222222222",
+                "post_id": post_id,
+                "file_name": "field-note.jpg",
+                "file_description": None,
+                "file_credit": None,
+                "media_type": "image",
+                "file_size_bytes": 1024,
+                "mime_type": "image/jpeg",
+                "latitude": None,
+                "longitude": None,
+                "sort_order": 0,
+                "status": "verified",
+                "visibility": "private",
+                "created_at": None,
+                "created_by": None,
+                "updated_at": None,
+                "updated_by": None,
+            }
+        ]
+    }
     assert files.headers["cache-control"] == "no-store"
     assert proof.status_code == 200
     assert proof.json() == {

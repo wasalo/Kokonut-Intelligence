@@ -479,6 +479,8 @@ def test_location_summary_sdk_rejects_malformed_or_wrong_scope_payloads(
         ),
         (LOCATION["id"], {**CRISP_ASSESSMENT, "composite_score": 0}),
         (LOCATION["id"], {**CRISP_ASSESSMENT, "composite_score": 100}),
+        (LOCATION["id"], {**CRISP_ASSESSMENT, "evidence_maturity_level": 0}),
+        (LOCATION["id"], {**CRISP_ASSESSMENT, "evidence_maturity_level": 6}),
     ],
 )
 def test_crisp_sdk_accepts_valid_scoped_assessments(
@@ -516,6 +518,8 @@ def test_crisp_sdk_accepts_valid_scoped_assessments(
         {**CRISP_ASSESSMENT, "confidence_level": 1},
         {**CRISP_ASSESSMENT, "evidence_maturity_level": 1.5},
         {**CRISP_ASSESSMENT, "evidence_maturity_level": True},
+        {**CRISP_ASSESSMENT, "evidence_maturity_level": -1},
+        {**CRISP_ASSESSMENT, "evidence_maturity_level": 7},
         {**CRISP_ASSESSMENT, "score_computed_at": "2026-10-14T12:35:00"},
         {**CRISP_ASSESSMENT, "score_computed_at": "2026-02-30T12:35:00Z"},
         {**CRISP_ASSESSMENT, "score_computed_at": "2026-10-14 12:35:00Z"},

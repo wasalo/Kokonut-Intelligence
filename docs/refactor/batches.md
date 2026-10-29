@@ -19,14 +19,38 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,606 checklist items complete and 25
-open (1,631 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,607 checklist items complete and 25
+open (1,632 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### Latest local C2 continuation — Data Stream files and CRISP contracts — 29 October 2026
+
+- [x] Publish and enforce the exact 17-field Data Stream attachment response;
+  bind every returned `post_id` to the requested path and reject extra storage
+  URL, Directus ID, malformed lifecycle, and invalid coordinate data with a
+  sanitized no-store error.
+- [x] Constrain CRISP evidence maturity to the canonical 0–6 scale in the
+  Gateway, Python SDK, JavaScript SDK, and generated public OpenAPI contract.
+
+The focused selection passes 197 Python Gateway/model/SDK tests and 141
+JavaScript public API tests. It covers the strict envelope and OpenAPI schema,
+post binding, validation and sanitized failures, pagination/auth regression,
+and valid/invalid CRISP values. Ruff, Python compilation, TypeScript build,
+OpenAPI regeneration, generated SDK check, capability-matrix validation, and
+diff checks pass. No database, provider, candidate, legacy service, or live
+route was accessed. Rollback reverts the route/model, SDK validators, generated
+OpenAPI artifacts, and tests; no data or migration rollback is needed. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-c2-file-and-crisp-contracts.json).
+
+Checklist: 1,607 complete / 25 open (1,632 total); TODO: 302 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 100. MAN-CAP acceptance is unchanged.
 
 ### Latest local continuation — internal stakeholder and coordination cockpits — 29 October 2026
 

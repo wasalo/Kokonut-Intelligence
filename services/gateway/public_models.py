@@ -44,7 +44,7 @@ class PublicCrispAssessment(PublicModel):
     composite_score: float | None = Field(ge=0, le=100)
     rating: Literal["AAA", "AA", "A", "B", "C", "D"] | None
     confidence_level: Literal["high", "moderate", "low", "insufficient_evidence"] | None
-    evidence_maturity_level: int | None
+    evidence_maturity_level: int | None = Field(ge=0, le=6)
     score_computed_at: datetime | None
     status: Literal["published"]
 
