@@ -1,5 +1,21 @@
 # Capability preservation matrix
 
+**Latest C2/C5 climate and Statement of Work contracts — 28 October 2026:**
+the private Comprehensive Status climate-impact section now validates its
+nested projection and binds its calculations/stored summary to the selected
+location and year while preserving shared protocols and current content.
+Statement of Work now explicitly projects all columns for the main record and
+three child tables. The combined Gateway/report/SOW/scope/inventory selection
+passes 457 tests; Ruff, compilation, three report inventories, and diff checks
+pass. Existing evidence paths, reviewer IDs/notes, invoice numbers, metadata,
+and raw-source fields remain unchanged, so this does not decide content-level
+privacy or populated-data parity. No database, migration, provider, candidate,
+legacy service, or production resource was used. Matrix: 67 rows (24
+baseline-retained, 7 deployed, 36 prepared); strict private Gateway response
+contracts remain 94. Checklist: 1,528 complete / 25 open (1,553 total).
+MAN-CAP acceptance and classifications are unchanged
+([evidence](builds/2026-10-28-recovery/kernel-parallel-climate-sow-contracts.json)).
+
 **Latest C2/C5 composite-report contracts — 28 October 2026:** Comprehensive
 Status now strictly validates its current farm-summary and published
 financial-sustainability projections, including location binding, nested

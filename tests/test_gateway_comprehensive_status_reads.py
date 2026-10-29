@@ -77,6 +77,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
         "generated_at": "2026-10-28T00:00:00+00:00",
     }
     sections["environmental"] = _environmental_section(location_id)
+    sections["climate_impact"] = _climate_impact_section(location_id)
     sections["financial_sustainability"] = _financial_sustainability_section(location_id)
     return {
         "report_type": "comprehensive_status",
@@ -349,6 +350,129 @@ def _financial_sustainability_section(location_id=LOCATION_ID):
     }
 
 
+def _climate_impact_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "climate_impact",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "reporting_year": 2025,
+        "carbon_balance": {
+            "location_id": location_id,
+            "reporting_year": 2025,
+            "above_ground_carbon_tonnes": 10.25,
+            "below_ground_carbon_tonnes": 2.5,
+            "total_sequestration_tonnes_co2e": 12.75,
+            "total_emissions_tonnes_co2e": 4.0,
+            "net_climate_impact_tonnes_co2e": 8.75,
+            "carbon_position": "net_sequester",
+        },
+        "ghg_emissions": {
+            "location_id": location_id,
+            "period_start": None,
+            "period_end": None,
+            "categories": [
+                {
+                    "category": "transport",
+                    "record_count": 2,
+                    "total_co2e_kg": 4000.0,
+                    "total_co2e_tonnes": 4.0,
+                }
+            ],
+            "summary": {
+                "total_co2e_kg": 4000.0,
+                "total_co2e_tonnes": 4.0,
+                "record_count": 2,
+            },
+        },
+        "tree_carbon": {
+            "location_id": location_id,
+            "species": [
+                {
+                    "species_name": "Mango",
+                    "total_trees": 12,
+                    "total_biomass_kg": 1000.0,
+                    "total_carbon_tonnes": 0.47,
+                    "total_co2e_tonnes": 1.7249,
+                    "survey_count": 2,
+                }
+            ],
+            "summary": {
+                "total_trees": 12,
+                "total_carbon_tonnes": 0.47,
+                "total_co2e_tonnes": 1.7249,
+                "species_count": 1,
+            },
+        },
+        "regenerative_score": {
+            "location_id": location_id,
+            "principles": [
+                {
+                    "principle_key": "diversity",
+                    "principle_name": "Increase diversity",
+                    "score": 4,
+                    "max_score": 5,
+                    "assessment_date": "2025-11-12",
+                    "evidence_path": "private://evidence/diversity.pdf",
+                    "notes": "Reviewer notes are preserved by the current report.",
+                }
+            ],
+            "summary": {
+                "total_score": 4,
+                "max_score": 25,
+                "score_pct": 16.0,
+                "principles_assessed": 1,
+                "last_assessment_date": "2025-11-12",
+            },
+        },
+        "framework_phases": [
+            {
+                "framework_key": "regeneration",
+                "phase": "monitoring",
+                "phase_status": "active",
+                "phase_start_date": "2025-02-01",
+                "review_cadence": "quarterly",
+            }
+        ],
+        "operations_protocols": [
+            {
+                "title": "Soil Protocol",
+                "section": "soil_management",
+                "version": "1.0",
+            }
+        ],
+        "stored_summary": {
+            "id": str(uuid4()),
+            "location_id": location_id,
+            "reporting_year": 2025,
+            "above_ground_carbon_tonnes": Decimal("10.2500"),
+            "below_ground_carbon_tonnes": Decimal("2.5000"),
+            "total_sequestration_tonnes_co2e": Decimal("12.7500"),
+            "transport_emissions_tonnes_co2e": Decimal("4.0000"),
+            "machinery_emissions_tonnes_co2e": None,
+            "input_emissions_tonnes_co2e": None,
+            "total_emissions_tonnes_co2e": Decimal("4.0000"),
+            "net_climate_impact_tonnes_co2e": Decimal("8.7500"),
+            "species_count": 8,
+            "shannon_index": Decimal("1.2500"),
+            "regenerative_score_total": 20,
+            "methodology_version": "v1",
+            "data_quality_score": Decimal("85.00"),
+            "status": "draft",
+            "reviewed_by": str(uuid4()),
+            "reviewed_at": "2025-12-01T12:00:00+00:00",
+            "notes": "Synthetic stored-summary note.",
+            "source_system": "manual",
+            "source_id": "source-2025-adelphi",
+            "created_at": "2025-12-01T12:00:00+00:00",
+            "updated_at": "2025-12-02T12:00:00+00:00",
+        },
+        "limitations": [
+            "Active operations protocols are shared platform reference metadata, not location-specific evidence."
+        ],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
 class _Connection:
     autocommit = False
 
@@ -545,6 +669,17 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     plan = response.json()["locations"][0]["sections"]["financial_sustainability"]["plans"][0]
     assert plan["public_summary"] == "Synthetic public plan summary."
     assert plan["metadata"] == {"public_tag": "synthetic", "labels": ["reviewed"]}
+    climate = response.json()["locations"][0]["sections"]["climate_impact"]
+    assert climate["operations_protocols"] == [
+        {"title": "Soil Protocol", "section": "soil_management", "version": "1.0"}
+    ]
+    assert climate["regenerative_score"]["principles"][0]["evidence_path"] == (
+        "private://evidence/diversity.pdf"
+    )
+    assert climate["regenerative_score"]["principles"][0]["notes"].startswith("Reviewer notes")
+    assert climate["stored_summary"]["status"] == "draft"
+    assert climate["stored_summary"]["reviewed_by"]
+    assert climate["stored_summary"]["notes"] == "Synthetic stored-summary note."
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -629,6 +764,63 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "evidence_maturity_label",
         "metadata",
     }
+    climate_schema = section_schema["properties"]["climate_impact"]
+    assert len(climate_schema["anyOf"]) == 2
+    for model_name in (
+        "ComprehensiveStatusClimateImpact",
+        "ComprehensiveStatusClimateCarbonBalance",
+        "ComprehensiveStatusClimateGhgEmissions",
+        "ComprehensiveStatusClimateGhgCategory",
+        "ComprehensiveStatusClimateTreeCarbon",
+        "ComprehensiveStatusClimateTreeSpecies",
+        "ComprehensiveStatusClimateRegenerativeScore",
+        "ComprehensiveStatusClimatePrinciple",
+        "ComprehensiveStatusClimateFrameworkPhase",
+        "ComprehensiveStatusClimateOperationsProtocol",
+        "ComprehensiveStatusClimateStoredSummary",
+    ):
+        assert schemas[model_name]["additionalProperties"] is False
+    assert set(schemas["ComprehensiveStatusClimateImpact"]["properties"]) == {
+        "report_type",
+        "location_id",
+        "location_name",
+        "reporting_year",
+        "carbon_balance",
+        "ghg_emissions",
+        "tree_carbon",
+        "regenerative_score",
+        "framework_phases",
+        "operations_protocols",
+        "stored_summary",
+        "limitations",
+        "generated_at",
+    }
+    assert set(schemas["ComprehensiveStatusClimateStoredSummary"]["properties"]) == {
+        "id",
+        "location_id",
+        "reporting_year",
+        "above_ground_carbon_tonnes",
+        "below_ground_carbon_tonnes",
+        "total_sequestration_tonnes_co2e",
+        "transport_emissions_tonnes_co2e",
+        "machinery_emissions_tonnes_co2e",
+        "input_emissions_tonnes_co2e",
+        "total_emissions_tonnes_co2e",
+        "net_climate_impact_tonnes_co2e",
+        "species_count",
+        "shannon_index",
+        "regenerative_score_total",
+        "methodology_version",
+        "data_quality_score",
+        "status",
+        "reviewed_by",
+        "reviewed_at",
+        "notes",
+        "source_system",
+        "source_id",
+        "created_at",
+        "updated_at",
+    }
 
 
 def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
@@ -645,6 +837,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "error": "report section failed (ProgrammingError)"
     }
     payload["locations"][0]["sections"]["financial_sustainability"] = {
+        "error": "report section failed (DataError)"
+    }
+    payload["locations"][0]["sections"]["climate_impact"] = {
         "error": "report section failed (DataError)"
     }
     monkeypatch.setattr(
@@ -685,6 +880,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["financial_sustainability"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["climate_impact"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -702,6 +900,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "financial_plan_extra", "financial_plan_wrong_location",
         "financial_report_wrong_location", "financial_numeric_string",
         "financial_error_contract",
+        "climate_report_wrong_location", "climate_calculator_wrong_location",
+        "climate_stored_summary_wrong_location", "climate_stored_summary_wrong_year",
+        "climate_nested_extra", "climate_numeric_string", "climate_error_contract",
     ],
 )
 def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_projection):
@@ -788,6 +989,34 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         ] = "25.0"
     elif invalid_projection == "financial_error_contract":
         payload["locations"][0]["sections"]["financial_sustainability"] = {
+            "error": "database connection failed with private SQL"
+        }
+    elif invalid_projection == "climate_report_wrong_location":
+        payload["locations"][0]["sections"]["climate_impact"]["location_id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "climate_calculator_wrong_location":
+        payload["locations"][0]["sections"]["climate_impact"]["tree_carbon"][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "climate_stored_summary_wrong_location":
+        payload["locations"][0]["sections"]["climate_impact"]["stored_summary"][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "climate_stored_summary_wrong_year":
+        payload["locations"][0]["sections"]["climate_impact"]["stored_summary"][
+            "reporting_year"
+        ] = 2024
+    elif invalid_projection == "climate_nested_extra":
+        payload["locations"][0]["sections"]["climate_impact"]["operations_protocols"][
+            0
+        ]["private_content"] = "must not escape"
+    elif invalid_projection == "climate_numeric_string":
+        payload["locations"][0]["sections"]["climate_impact"]["carbon_balance"][
+            "net_climate_impact_tonnes_co2e"
+        ] = "8.75"
+    elif invalid_projection == "climate_error_contract":
+        payload["locations"][0]["sections"]["climate_impact"] = {
             "error": "database connection failed with private SQL"
         }
     else:

@@ -22876,3 +22876,26 @@ service, or provider was used. Evidence:
 Checklist: 1,526 complete / 25 open; TODO: 229 checked / 16 open. The
 capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
 prepared); MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — climate and Statement of Work contracts — 28 October 2026
+
+The private Comprehensive Status climate-impact section now has a strict
+success/error contract. It binds the report and nested calculation/stored
+summary location and year, and it retains the generator's declared shared
+operations-protocol metadata. Current evidence/reviewer/source fields and
+period-calculation semantics remain unchanged. The SOW report now selects
+explicit migration-063 projections for its main row and the deliverable,
+payment-schedule, and change-request rows; parent/location predicates,
+ordering, and serialized output are preserved.
+
+The combined Gateway, composite-report, SOW, report-scope, cursor-cleanup, and
+inventory selection passes 457 tests. Ruff, compilation, all three report
+inventories, and diff checks pass. This does not review existing note, invoice,
+raw-source, evidence-path, or reviewer-ID content for privacy, and it does
+not establish populated-data parity. No database, migration, candidate,
+legacy service, or provider was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-climate-sow-contracts.json).
+
+Checklist: 1,528 complete / 25 open; TODO: 231 checked / 16 open. The
+capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); MAN-CAP acceptance and classifications are unchanged.

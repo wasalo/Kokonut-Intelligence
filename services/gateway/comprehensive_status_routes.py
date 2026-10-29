@@ -182,6 +182,192 @@ class ComprehensiveStatusFinancialSustainability(_ComprehensiveStatusModel):
         return self
 
 
+class ComprehensiveStatusClimateCarbonBalance(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    reporting_year: int
+    above_ground_carbon_tonnes: ReportNumber
+    below_ground_carbon_tonnes: ReportNumber
+    total_sequestration_tonnes_co2e: ReportNumber
+    total_emissions_tonnes_co2e: ReportNumber
+    net_climate_impact_tonnes_co2e: ReportNumber
+    carbon_position: Literal["net_sequester", "net_emitter", "neutral"]
+
+
+class ComprehensiveStatusClimateGhgCategory(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    category: str
+    record_count: int = Field(ge=0)
+    total_co2e_kg: ReportNumber
+    total_co2e_tonnes: ReportNumber
+
+
+class ComprehensiveStatusClimateGhgTotals(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_co2e_kg: ReportNumber
+    total_co2e_tonnes: ReportNumber
+    record_count: int = Field(ge=0)
+
+
+class ComprehensiveStatusClimateGhgEmissions(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    period_start: ReportDate | None
+    period_end: ReportDate | None
+    categories: list[ComprehensiveStatusClimateGhgCategory]
+    summary: ComprehensiveStatusClimateGhgTotals
+
+
+class ComprehensiveStatusClimateTreeSpecies(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    species_name: str
+    total_trees: int
+    total_biomass_kg: ReportNumber
+    total_carbon_tonnes: ReportNumber
+    total_co2e_tonnes: ReportNumber
+    survey_count: int = Field(ge=0)
+
+
+class ComprehensiveStatusClimateTreeTotals(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_trees: int
+    total_carbon_tonnes: ReportNumber
+    total_co2e_tonnes: ReportNumber
+    species_count: int = Field(ge=0)
+
+
+class ComprehensiveStatusClimateTreeCarbon(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    species: list[ComprehensiveStatusClimateTreeSpecies]
+    summary: ComprehensiveStatusClimateTreeTotals
+
+
+class ComprehensiveStatusClimatePrinciple(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    principle_key: str
+    principle_name: str
+    score: int = Field(ge=0, le=5)
+    max_score: Literal[5]
+    assessment_date: ReportDate
+    evidence_path: str | None
+    notes: str | None
+
+
+class ComprehensiveStatusClimateRegenerativeTotals(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    # The legacy query includes all verified/published assessment dates, so
+    # accumulated totals may exceed a single five-principle 25-point scale.
+    total_score: int = Field(ge=0)
+    max_score: Literal[25]
+    score_pct: ReportNumber = Field(ge=0)
+    principles_assessed: int = Field(ge=0)
+    last_assessment_date: ReportDate | None
+
+
+class ComprehensiveStatusClimateRegenerativeScore(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    principles: list[ComprehensiveStatusClimatePrinciple]
+    summary: ComprehensiveStatusClimateRegenerativeTotals
+
+
+class ComprehensiveStatusClimateFrameworkPhase(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    framework_key: str
+    phase: str
+    phase_status: str
+    phase_start_date: ReportDate | None
+    review_cadence: str | None
+
+
+class ComprehensiveStatusClimateOperationsProtocol(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    title: str
+    section: str | None
+    version: str
+
+
+class ComprehensiveStatusClimateStoredSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    reporting_year: int
+    above_ground_carbon_tonnes: ReportNumber | None
+    below_ground_carbon_tonnes: ReportNumber | None
+    total_sequestration_tonnes_co2e: ReportNumber | None
+    transport_emissions_tonnes_co2e: ReportNumber | None
+    machinery_emissions_tonnes_co2e: ReportNumber | None
+    input_emissions_tonnes_co2e: ReportNumber | None
+    total_emissions_tonnes_co2e: ReportNumber | None
+    net_climate_impact_tonnes_co2e: ReportNumber | None
+    species_count: int | None
+    shannon_index: ReportNumber | None
+    regenerative_score_total: int | None
+    methodology_version: str | None
+    data_quality_score: ReportNumber | None
+    status: str | None
+    reviewed_by: ReportUuid | None
+    reviewed_at: ReportDateTime | None
+    notes: str | None
+    source_system: str | None
+    source_id: str | None
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+
+
+class ComprehensiveStatusClimateImpact(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["climate_impact"]
+    location_id: ReportUuid
+    location_name: str
+    reporting_year: int
+    carbon_balance: ComprehensiveStatusClimateCarbonBalance
+    ghg_emissions: ComprehensiveStatusClimateGhgEmissions
+    tree_carbon: ComprehensiveStatusClimateTreeCarbon
+    regenerative_score: ComprehensiveStatusClimateRegenerativeScore
+    framework_phases: list[ComprehensiveStatusClimateFrameworkPhase]
+    # Active operations protocols are intentionally shared platform metadata,
+    # as stated by the generator's limitations field.
+    operations_protocols: list[ComprehensiveStatusClimateOperationsProtocol]
+    stored_summary: ComprehensiveStatusClimateStoredSummary | None
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_calculations_and_stored_summary_in_scope(self):
+        nested_location_ids = (
+            self.carbon_balance.location_id,
+            self.ghg_emissions.location_id,
+            self.tree_carbon.location_id,
+            self.regenerative_score.location_id,
+        )
+        if any(location_id != self.location_id for location_id in nested_location_ids):
+            raise ValueError("Climate impact calculation is outside report location scope")
+        if self.carbon_balance.reporting_year != self.reporting_year:
+            raise ValueError("Climate impact carbon balance is outside report year scope")
+        if self.stored_summary is not None and (
+            self.stored_summary.location_id != self.location_id
+            or self.stored_summary.reporting_year != self.reporting_year
+        ):
+            raise ValueError("Climate impact stored summary is outside report location/year scope")
+        return self
+
+
 class ComprehensiveStatusSectionError(_ComprehensiveStatusModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
 
@@ -453,7 +639,7 @@ class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     farm_summary: ComprehensiveStatusFarmSummary | ComprehensiveStatusSectionError
     crop_noi: ComprehensiveStatusCropNoiReport | ComprehensiveStatusSectionError
     environmental: ComprehensiveStatusEnvironmental | ComprehensiveStatusSectionError
-    climate_impact: JsonValue
+    climate_impact: ComprehensiveStatusClimateImpact | ComprehensiveStatusSectionError
     financial_sustainability: (
         ComprehensiveStatusFinancialSustainability | ComprehensiveStatusSectionError
     )
@@ -496,6 +682,12 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             and financial.location_id != self.location_id
         ):
             raise ValueError("Financial sustainability section is outside the composed location scope")
+        climate = self.sections.climate_impact
+        if (
+            isinstance(climate, ComprehensiveStatusClimateImpact)
+            and climate.location_id != self.location_id
+        ):
+            raise ValueError("Climate impact section is outside the composed location scope")
         return self
 
 

@@ -9620,73 +9620,73 @@
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 757,
+          "line": 795,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 759,
+          "line": 797,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 760,
+          "line": 798,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 761,
+          "line": 799,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 763,
+          "line": 801,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 765,
+          "line": 803,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 766,
+          "line": 804,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 769,
+          "line": 807,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 770,
+          "line": 808,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 771,
+          "line": 809,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 772,
+          "line": 810,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 774,
+          "line": 812,
           "depth": 1
         },
         {

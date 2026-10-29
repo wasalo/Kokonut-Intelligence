@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "b2423eb42a55807e1b75d8b42956189fe1e30fc7",
+  "scope": "Strict Comprehensive Status climate-impact contract and explicit Statement of Work projections",
+  "test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_gateway_comprehensive_status_reads.py",
+    "tests/test_comprehensive_status.py",
+    "tests/test_climate_impact_report.py",
+    "tests/test_statement_of_work.py",
+    "tests/test_operations_report_scope.py",
+    "tests/test_report_state_cursor_cleanup.py",
+    "tests/test_report_generator_query_scope_inventory.py",
+    "-q"
+  ],
+  "test_result": {"passed": 457, "failed": 0},
+  "checks": {
+    "ruff": "passed for changed Python files",
+    "python_compile": "passed for changed Python files",
+    "report_generator_inventories": "passed; source, query-scope, and helper-scope reports are current",
+    "git_diff_check": "passed"
+  },
+  "climate_contract": "The private Comprehensive Status climate-impact section now has a strict success/error model. It binds top-level, nested calculations and stored summary to the requested location/year; shared operations protocols remain explicitly shared metadata. Current content and period/calculation semantics are preserved.",
+  "statement_of_work_projection": "The main SOW row and its deliverables, payment schedule, and change-request rows use explicit projections matching migration 063. Existing parent/location filters, ordering, serialization, and payload fields are preserved.",
+  "data_exposure_review": "No fields were removed. The current climate response still carries evidence paths, reviewer/source identifiers and notes; SOW child outputs still carry notes, invoice numbers, metadata and raw-source fields. This batch validates shape/scope and prevents future schema columns from appearing automatically; it does not decide content-level privacy or populated-data parity.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

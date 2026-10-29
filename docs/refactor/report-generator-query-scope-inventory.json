@@ -5059,7 +5059,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 636,
+          "line": 641,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5082,7 +5082,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 649,
+          "line": 654,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5105,7 +5105,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 662,
+          "line": 667,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5128,7 +5128,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 674,
+          "line": 679,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5151,7 +5151,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 686,
+          "line": 691,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5176,7 +5176,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 699,
+          "line": 704,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5199,7 +5199,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 710,
+          "line": 715,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5222,7 +5222,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 723,
+          "line": 728,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5245,7 +5245,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 740,
+          "line": 745,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5268,7 +5268,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 743,
+          "line": 759,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5291,7 +5291,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 746,
+          "line": 773,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

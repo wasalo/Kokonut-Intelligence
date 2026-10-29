@@ -625,7 +625,12 @@ def generate_statement_of_work(conn, location_id: str, period_start: str = None,
         # SOW records
         cur.execute(
             """
-            SELECT * FROM statement_of_work
+            SELECT id, location_id, sow_name, sow_version, effective_date,
+                   expiration_date, client_name, contractor_name,
+                   total_contract_value, currency, payment_terms, status,
+                   metadata, source_system, source_id, source_raw, created_at,
+                   updated_at, created_by, updated_by
+            FROM statement_of_work
             WHERE location_id = %s ORDER BY created_at DESC LIMIT 1
             """,
             (location_id,),
@@ -737,13 +742,46 @@ def generate_statement_of_work(conn, location_id: str, period_start: str = None,
         payment_schedule = []
         change_requests = []
         if sow:
-            cur.execute("SELECT * FROM sow_deliverable WHERE sow_id = %s ORDER BY due_date", (sow["id"],))
+            cur.execute(
+                """
+                SELECT id, sow_id, deliverable_name, description,
+                       acceptance_criteria, due_date, delivered_at, status,
+                       notes, metadata, source_system, source_id, source_raw,
+                       created_at, updated_at
+                FROM sow_deliverable
+                WHERE sow_id = %s
+                ORDER BY due_date
+                """,
+                (sow["id"],),
+            )
             deliverables = [dict(r) for r in cur.fetchall()]
 
-            cur.execute("SELECT * FROM sow_payment_schedule WHERE sow_id = %s ORDER BY due_date", (sow["id"],))
+            cur.execute(
+                """
+                SELECT id, sow_id, milestone_name, amount, due_date,
+                       payment_status, invoice_number, paid_at, metadata,
+                       source_system, source_id, source_raw, created_at,
+                       updated_at
+                FROM sow_payment_schedule
+                WHERE sow_id = %s
+                ORDER BY due_date
+                """,
+                (sow["id"],),
+            )
             payment_schedule = [dict(r) for r in cur.fetchall()]
 
-            cur.execute("SELECT * FROM sow_change_request WHERE sow_id = %s ORDER BY created_at", (sow["id"],))
+            cur.execute(
+                """
+                SELECT id, sow_id, change_name, description,
+                       impact_on_timeline, impact_on_budget, requested_by,
+                       status, decided_at, metadata, source_system, source_id,
+                       source_raw, created_at, updated_at
+                FROM sow_change_request
+                WHERE sow_id = %s
+                ORDER BY created_at
+                """,
+                (sow["id"],),
+            )
             change_requests = [dict(r) for r in cur.fetchall()]
 
     finally:

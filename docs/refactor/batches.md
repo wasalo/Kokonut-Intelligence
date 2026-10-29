@@ -6201,3 +6201,26 @@ candidate, legacy service, provider, or production resource was used. Evidence:
 
 Checklist: 1,526 complete / 25 open (1,551 total); TODO: 229 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed parallel C2/C5 climate and SOW contracts — 28 October 2026
+
+- [x] Add a strict Comprehensive Status climate-impact success/error contract.
+  Bind the top-level report, nested calculations, and stored summary to the
+  selected location/year; retain the declared shared-protocol metadata and all
+  current report content/period semantics.
+- [x] Replace the main Statement of Work and its three child-table `SELECT *`
+  queries with schema-063 projections. Preserve the location/SOW parent binds,
+  ordering, `dict` serialization, and all current output fields.
+
+The combined Gateway, composite-report, SOW, report-scope, cursor-cleanup, and
+inventory selection passes 457 tests. Ruff, Python compilation, all three
+report inventories, and diff checks pass. Existing climate evidence paths,
+reviewer/source IDs and notes, and SOW notes, invoice numbers, metadata, and
+raw-source fields remain present; the work validates shape and scope without
+making content-level privacy or populated-data parity claims. No migration,
+database, candidate, legacy service, provider, or production resource was
+used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-climate-sow-contracts.json).
+
+Checklist: 1,528 complete / 25 open (1,553 total); TODO: 231 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
