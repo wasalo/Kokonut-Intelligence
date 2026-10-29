@@ -534,7 +534,8 @@ class PublicLocationMethods:
         payload = self._client._get(
             path,
             data_shape="object",
-            data_validator=_is_public_location,
+            data_validator=lambda value: _is_public_location(value)
+            and _normalized_uuid(value["id"]) == _normalized_uuid(location_id),
         )["data"]
         return PublicLocation.from_payload(payload)
 
@@ -673,7 +674,7 @@ class KokonutPublicApiClient:
                 response.status_code,
                 response,
             ) from exc
-        if not isinstance(body, dict):
+        if not isinstance(body, dict) or set(body) != {"data"}:
             raise PublicApiError("Invalid public API response envelope", response.status_code, response)
         data = body.get("data")
         valid_data = isinstance(data, list) if data_shape == "array" else isinstance(data, dict)

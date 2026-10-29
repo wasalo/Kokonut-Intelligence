@@ -135,7 +135,25 @@ def generate_replication_readiness(
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   assessment_date,
+                   target_region,
+                   farm_model,
+                   readiness_score,
+                   ecological_prerequisites,
+                   cultural_governance_prerequisites,
+                   infrastructure_prerequisites,
+                   barriers,
+                   enablers,
+                   support_structures,
+                   minimum_evidence_maturity,
+                   minimum_evidence_maturity_label,
+                   replication_status,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_replication_readiness_summary
             WHERE (location_id = %s OR location_id IS NULL)
               AND (%s::date IS NULL OR assessment_date >= %s::date)
@@ -173,7 +191,25 @@ def generate_adaptive_stewardship(conn, location_id: str, period_start: str = No
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   review_date,
+                   review_period_start,
+                   review_period_end,
+                   stewardship_scope,
+                   review_cadence,
+                   trigger_thresholds,
+                   observed_triggers,
+                   corrective_actions,
+                   action_completion_pct,
+                   responsible_role,
+                   funding_continuity_plan,
+                   next_review_date,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_adaptive_stewardship_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR review_date >= %s::date)

@@ -59,6 +59,49 @@ try:
 
         data: _DataStreamAttestationRecord
 
+    class _DataStreamPostRecord(BaseModel):
+        """Exact fixed projection returned by the tenant-scoped post list."""
+
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        id: UUID
+        location_id: UUID
+        post_type: Literal[
+            "field_update",
+            "monitoring_report",
+            "photo",
+            "satellite_image",
+            "sensor_reading",
+            "soil_analysis",
+            "water_analysis",
+            "biodiversity_survey",
+            "harvest_report",
+            "weather_report",
+            "financial_report",
+            "community_update",
+            "training_record",
+            "intervention_record",
+            "compliance_record",
+        ]
+        title: str = Field(max_length=255)
+        content: str | None
+        visibility: Literal["public", "internal", "private"] | None
+        status: Literal["draft", "submitted", "verified", "published", "rejected"] | None
+        is_anchored: bool | None = Field(strict=True)
+        attestation_uid: str | None = Field(max_length=66)
+        chain: str | None = Field(max_length=50)
+        anchored_at: AwareDatetime | None
+        content_hash: str | None = Field(max_length=128)
+        created_at: AwareDatetime | None
+        created_by: UUID | None
+        expires_at: AwareDatetime | None
+        search_rank: float | None
+
+    class _DataStreamPostListEnvelope(BaseModel):
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        data: list[_DataStreamPostRecord] = Field(max_length=100)
+
 except ImportError:
     # Stub for environments without FastAPI
     class APIRouter:
@@ -82,6 +125,7 @@ except ImportError:
     BaalAuthorizationError = BaalConfigEnvelope = BaalMemberDetailEnvelope = None
     BaalProposalDetailEnvelope = BaalProposalListEnvelope = None
     _DataStreamAttestationEnvelope = None
+    _DataStreamPostListEnvelope = None
     ValidationError = None
 
 router = APIRouter()
@@ -413,7 +457,7 @@ async def get_public_analytics_summary_v1(location_id: str):
     return _versioned_envelope(await get_analytics_summary(location_id))
 
 
-@router.get("/data-stream/posts")
+@router.get("/data-stream/posts", response_model=_DataStreamPostListEnvelope)
 async def list_data_stream_posts(
     request: Request,
     limit: int = Query(default=20, ge=1, le=100),
@@ -435,7 +479,18 @@ async def list_data_stream_posts(
             limit=limit,
             offset=offset,
         )
-        return _private_response({"data": rows})
+        from fastapi.encoders import jsonable_encoder
+
+        validated = _DataStreamPostListEnvelope.model_validate({"data": rows})
+        expected_location = UUID(location_id)
+        if any(row.location_id != expected_location for row in validated.data):
+            return _internal_error(
+                RuntimeError("Data Stream post location does not match request"),
+                "Data Stream posts unavailable",
+            )
+        return _private_response(jsonable_encoder(validated.model_dump(mode="python")))
+    except ValidationError as exc:
+        return _internal_error(exc, "Data Stream posts unavailable")
     except ValueError as exc:
         return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:

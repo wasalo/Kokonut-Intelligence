@@ -74,7 +74,23 @@ def generate_capital_alignment(conn, location_id: str, period_start: str = None,
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   capital_source_id,
+                   assessment_date,
+                   provider_name,
+                   provider_type,
+                   alignment_status,
+                   extractive_risk_level,
+                   community_control_terms,
+                   exit_pressure_risk,
+                   profit_extraction_limits,
+                   commons_reinvestment_commitment_pct,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_capital_alignment_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR assessment_date >= %s::date)

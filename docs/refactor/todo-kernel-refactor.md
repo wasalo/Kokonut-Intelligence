@@ -2178,3 +2178,25 @@ pass. Content privacy and populated parity remain open. See
 
 Checklist: 1,548 complete / 25 open (1,573 total); TODO: 251 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — Data Stream, report projection, and SDK contracts — 28 October 2026
+
+- [x] Add and test a strict private Data Stream post-list contract with exact
+  response fields, no-store failure behavior, and requested-location binding.
+- [x] Replace the replication-readiness report’s wildcard projection with all
+  19 public-view columns and verify shared null-scope rows and payload parity.
+- [x] Replace the adaptive-stewardship report’s wildcard projection with all
+  19 public-view columns and verify serialized output parity.
+- [x] Replace the capital-alignment report’s wildcard projection with all 17
+  public-view columns and verify risk aggregation and payload parity.
+- [x] Require exact `{data}` success envelopes in both REST SDKs.
+- [x] Require location-detail responses to match the requested UUID in both
+  SDKs while retaining path encoding and normalized UUID behavior.
+
+The integrated focused Python selection passes 232 tests and the TypeScript
+public-API selection passes 125; build, Ruff, compilation, inventory, matrix,
+and diff checks pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-sdk-datastream-contracts.json).
+
+Checklist: 1,554 complete / 25 open (1,579 total); TODO: 257 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

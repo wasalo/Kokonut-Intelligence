@@ -144,7 +144,7 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
     client = KokonutPublicApiClient("https://gateway.example///", api_key="test-key", timeout=4.5, session=session)
 
     locations = client.locations.list()
-    location = client.locations.get("a/b +?")
+    location = client.locations.get(LOCATION["id"])
     metrics = client.metrics.get(LOCATION["id"])
     crisp = client.crisp.get(LOCATION["id"])
     summary = client.analytics.get_summary(LOCATION["id"])
@@ -170,7 +170,7 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
 
     assert [url for url, _ in session.calls] == [
         "https://gateway.example/api/v1/locations",
-        "https://gateway.example/api/v1/locations/a%2Fb%20%2B%3F",
+        f"https://gateway.example/api/v1/locations/{LOCATION['id']}",
         f"https://gateway.example/api/v1/metrics/{LOCATION['id']}",
         f"https://gateway.example/api/v1/crisp/{LOCATION['id']}",
         f"https://gateway.example/api/v1/analytics/{LOCATION['id']}/summary",
@@ -678,6 +678,11 @@ def test_driver_catalog_sdk_rejects_invalid_pages_before_transport(
             "Invalid public API response envelope",
             200,
         ),
+        (
+            FakeResponse(200, {"data": [LOCATION], "debug": "extra"}),
+            "Invalid public API response envelope",
+            200,
+        ),
     ],
 )
 def test_public_api_errors_are_stable(response: FakeResponse, message: str, status: int) -> None:
@@ -706,7 +711,7 @@ def test_public_api_rejects_wrong_top_level_data_shape(method: str, data: Any) -
         request = client.locations.list
     else:
         def request():
-            return client.locations.get("location-1")
+            return client.locations.get(LOCATION["id"])
 
     with pytest.raises(PublicApiError, match="Invalid public API response envelope"):
         request()
@@ -731,7 +736,7 @@ def test_public_api_accepts_exact_location_with_nullable_fields(method: str) -> 
         assert len(result) == 1
         parsed = result[0]
     else:
-        parsed = client.locations.get("location-1")
+        parsed = client.locations.get(LOCATION["id"])
 
     assert isinstance(parsed, PublicLocation)
     assert parsed.id == LOCATION["id"]
@@ -765,7 +770,56 @@ def test_public_api_rejects_malformed_location_rows(method: str, location: dict[
         if method == "list":
             client.locations.list()
         else:
-            client.locations.get("location-1")
+            client.locations.get(LOCATION["id"])
 
     assert exc_info.value.status_code == 200
+    assert exc_info.value.response is response
+
+
+def test_public_api_location_detail_binds_response_id_after_uuid_normalization() -> None:
+    session = FakeSession([FakeResponse(200, {"data": LOCATION})])
+    client = KokonutPublicApiClient("https://gateway.example", session=session)
+
+    result = client.locations.get(LOCATION["id"].upper())
+
+    assert result.id == LOCATION["id"]
+    assert session.calls[0][0] == (
+        f"https://gateway.example/api/v1/locations/{LOCATION['id'].upper()}"
+    )
+
+
+def test_public_api_location_detail_rejects_a_valid_but_mismatched_response_id() -> None:
+    response = FakeResponse(
+        200,
+        {"data": {**LOCATION, "id": "c0000000-0000-4000-8000-000000000001"}},
+    )
+    client = KokonutPublicApiClient(
+        "https://gateway.example", session=FakeSession([response])
+    )
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope") as exc_info:
+        client.locations.get(LOCATION["id"])
+
+    assert exc_info.value.response is response
+
+
+def test_public_api_location_detail_continues_to_encode_path_segments() -> None:
+    session = FakeSession([FakeResponse(200, {"data": LOCATION})])
+    client = KokonutPublicApiClient("https://gateway.example", session=session)
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope"):
+        client.locations.get("a/b +?")
+
+    assert session.calls[0][0] == "https://gateway.example/api/v1/locations/a%2Fb%20%2B%3F"
+
+
+def test_public_api_rejects_extra_fields_on_success_envelopes() -> None:
+    response = FakeResponse(200, {"data": LOCATION, "debug": "unexpected"})
+    client = KokonutPublicApiClient(
+        "https://gateway.example", session=FakeSession([response])
+    )
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope") as exc_info:
+        client.locations.get(LOCATION["id"])
+
     assert exc_info.value.response is response

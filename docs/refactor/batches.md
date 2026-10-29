@@ -6341,3 +6341,32 @@ production resource was used. Evidence:
 
 Checklist: 1,548 complete / 25 open (1,573 total); TODO: 251 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — Data Stream, report projection, and SDK contracts — 28 October 2026
+
+- [x] Add a strict private Data Stream post-list contract and bind each returned
+  row to the requested location; malformed, extra, and cross-location rows
+  return a sanitized no-store server error.
+- [x] Replace `SELECT *` with all 19 replication-readiness view columns while
+  preserving date/location filters, network-shared rows, ordering, and payload.
+- [x] Replace `SELECT *` with all 19 adaptive-stewardship view columns while
+  preserving filters, ordering, date serialization, and payload.
+- [x] Replace `SELECT *` with all 17 capital-alignment view columns while
+  preserving filters, ordering, risk aggregate, and payload.
+- [x] Require exact `{data}` success envelopes in the Python and TypeScript
+  REST SDKs.
+- [x] Bind both SDK location-detail responses to the requested UUID while
+  preserving case normalization, path encoding, and SDK error behavior.
+
+The integrated focused Python selection passes 232 tests and the TypeScript
+public-API selection passes 125; `npm run build` passes. Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+`git diff --check` pass. Invalid Data Stream source rows fail closed as a
+sanitized no-store 500. Report query shapes and serialized payloads remain
+covered, including shared null-location readiness rows. These are synthetic
+contract checks, not populated-data privacy review. No migration, database,
+candidate, legacy service, provider, or production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-sdk-datastream-contracts.json).
+
+Checklist: 1,554 complete / 25 open (1,579 total); TODO: 257 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

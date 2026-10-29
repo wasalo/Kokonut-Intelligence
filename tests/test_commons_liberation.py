@@ -291,6 +291,88 @@ def test_time_liberation_projection_preserves_complete_view_payload() -> None:
     assert report["total_hours_reclaimed"] == 2.75
 
 
+def test_capital_alignment_projection_preserves_payload_and_extractive_risk_count() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "capital_source_id": "d0000000-0000-0000-0000-000000000001",
+        "assessment_date": date(2026, 3, 31),
+        "provider_name": "Kokonut Network",
+        "provider_type": "community_fund",
+        "alignment_status": "aligned",
+        "extractive_risk_level": "high",
+        "community_control_terms": "Community retains veto rights.",
+        "exit_pressure_risk": "low",
+        "profit_extraction_limits": "Returns capped by policy.",
+        "commons_reinvestment_commitment_pct": 70.0,
+        "public_summary": "Reviewed capital alignment assessment.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "cycle": "Q1"},
+    }
+    low_risk_row = {
+        **source_row,
+        "id": "b0000000-0000-0000-0000-000000000002",
+        "assessment_date": date(2026, 2, 28),
+        "provider_name": "Community revolving fund",
+        "provider_type": "community_fund",
+        "extractive_risk_level": "low",
+    }
+    source_rows = [source_row, low_risk_row]
+    columns = (
+        "id, location_id, farm_id, capital_source_id, assessment_date, provider_name, provider_type, "
+        "alignment_status, extractive_risk_level, community_control_terms, exit_pressure_risk, "
+        "profit_extraction_limits, commons_reinvestment_commitment_pct, public_summary, "
+        "evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return source_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_capital_alignment(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_capital_alignment_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR assessment_date >= %s::date) "
+        "AND (%s::date IS NULL OR assessment_date <= %s::date) "
+        "ORDER BY assessment_date DESC, provider_type"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "capital_alignment"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["assessments"] == [
+        {**row, "assessment_date": row["assessment_date"].isoformat()}
+        for row in source_rows
+    ]
+    assert report["high_or_critical_extractive_risk_count"] == 1
+
+
 @pytest.mark.parametrize("location_id", [None, ""])
 def test_governance_inclusion_requires_location_before_database_access(location_id) -> None:
     class NoDatabase:

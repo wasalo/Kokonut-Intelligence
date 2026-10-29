@@ -411,7 +411,9 @@ export class KokonutPublicApiClient {
             encodePathSegment(locationId),
           ),
           'object',
-          isPublicLocation,
+          (value) =>
+            isPublicLocation(value) &&
+            normalizedUuid(value.id) === normalizedUuid(locationId),
         ),
     };
     this.drivers = {
@@ -514,7 +516,8 @@ export class KokonutPublicApiClient {
         !payload ||
         typeof payload !== 'object' ||
         Array.isArray(payload) ||
-        !('data' in payload)
+        Object.keys(payload).length !== 1 ||
+        !Object.prototype.hasOwnProperty.call(payload, 'data')
       ) {
         throw new PublicApiError('Invalid public API response envelope', response.status, response);
       }

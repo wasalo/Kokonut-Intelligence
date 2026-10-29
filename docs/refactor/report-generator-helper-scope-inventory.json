@@ -31,13 +31,13 @@
         {
           "caller": "generate_adaptive_stewardship",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 167,
+          "line": 185,
           "depth": 1
         },
         {
           "caller": "generate_adaptive_stewardship",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 192,
+          "line": 228,
           "depth": 1
         },
         {
@@ -3295,7 +3295,7 @@
         {
           "caller": "generate_capital_alignment",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 94,
+          "line": 110,
           "depth": 1
         },
         {
@@ -5158,13 +5158,13 @@
         {
           "caller": "generate_governance_inclusion",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 111,
+          "line": 127,
           "depth": 1
         },
         {
           "caller": "generate_governance_inclusion",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 133,
+          "line": 149,
           "depth": 1
         },
         {
@@ -5338,13 +5338,13 @@
         {
           "caller": "generate_land_stewardship",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 150,
+          "line": 166,
           "depth": 1
         },
         {
           "caller": "generate_land_stewardship",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 175,
+          "line": 191,
           "depth": 1
         },
         {
@@ -7964,7 +7964,7 @@
         {
           "caller": "generate_replication_readiness",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 153,
+          "line": 171,
           "depth": 1
         },
         {

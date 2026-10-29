@@ -84,7 +84,7 @@ describe('KokonutPublicApiClient', () => {
     });
 
     const locations = await client.locations.list();
-    const detail = await client.locations.get('a/b +?');
+    const detail = await client.locations.get(location.id);
     const metrics = await client.metrics.get(location.id);
     const crisp = await client.crisp.get(location.id);
     const summary = await client.analytics.getSummary(location.id);
@@ -96,7 +96,7 @@ describe('KokonutPublicApiClient', () => {
     expect(summary.attestations.published_count).toBe(2);
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([
       'https://gateway.example/api/v1/locations',
-      'https://gateway.example/api/v1/locations/a%2Fb%20%2B%3F',
+      `https://gateway.example/api/v1/locations/${location.id}`,
       `https://gateway.example/api/v1/metrics/${location.id}`,
       `https://gateway.example/api/v1/crisp/${location.id}`,
       `https://gateway.example/api/v1/analytics/${location.id}/summary`,
@@ -598,7 +598,7 @@ describe('KokonutPublicApiClient', () => {
   ])('rejects the wrong top-level data shape for %s', async (method, payload) => {
     const fetch = vi.fn<PublicFetch>().mockResolvedValue(response(200, payload));
     const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
-    const result = method === 'get' ? client.locations.get('location-1') : client.locations.list();
+    const result = method === 'get' ? client.locations.get(location.id) : client.locations.list();
 
     await expect(result).rejects.toMatchObject({
       name: 'PublicApiError',
@@ -618,11 +618,61 @@ describe('KokonutPublicApiClient', () => {
       const result =
         method === 'list'
           ? await client.locations.list()
-          : await client.locations.get('location-1');
+          : await client.locations.get(location.id);
 
       expect(result).toEqual(method === 'list' ? [nullableLocation] : nullableLocation);
     },
   );
+
+  it('binds location detail responses to the requested UUID after case normalization', async () => {
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(response(200, { data: location }));
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    await expect(client.locations.get(location.id.toUpperCase())).resolves.toEqual(location);
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      `https://gateway.example/api/v1/locations/${location.id.toUpperCase()}`,
+    );
+  });
+
+  it('rejects a valid-shaped location detail with a different requested UUID', async () => {
+    const mockResponse = response(200, {
+      data: { ...location, id: 'c0000000-0000-4000-8000-000000000001' },
+    });
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+    const error = await client.locations.get(location.id).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PublicApiError);
+    expect(error).toMatchObject({
+      message: 'Invalid public API response envelope',
+      statusCode: 200,
+    });
+    expect((error as PublicApiError).response).toBe(mockResponse);
+  });
+
+  it('requires exact data-only success envelopes', async () => {
+    const mockResponse = response(200, { data: location, debug: 'unexpected' });
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+    const error = await client.locations.get(location.id).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PublicApiError);
+    expect(error).toMatchObject({
+      message: 'Invalid public API response envelope',
+      statusCode: 200,
+    });
+    expect((error as PublicApiError).response).toBe(mockResponse);
+  });
+
+  it('continues to encode path segments for location detail requests', async () => {
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(response(200, { data: location }));
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    await expect(client.locations.get('a/b +?')).rejects.toBeInstanceOf(PublicApiError);
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      'https://gateway.example/api/v1/locations/a%2Fb%20%2B%3F',
+    );
+  });
 
   it.each(['list', 'get'] as const)(
     'rejects malformed location rows in %s responses',
@@ -651,7 +701,7 @@ describe('KokonutPublicApiClient', () => {
         const result =
           method === 'list'
             ? client.locations.list()
-            : client.locations.get('location-1');
+            : client.locations.get(location.id);
         const error = await result.catch((caught: unknown) => caught);
 
         expect(error).toBeInstanceOf(PublicApiError);

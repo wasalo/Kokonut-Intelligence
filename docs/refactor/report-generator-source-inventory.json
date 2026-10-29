@@ -14,7 +14,7 @@
       "callable": "generate_adaptive_stewardship",
       "source_module": "services.export.reports.commons.stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 165,
+      "source_line": 183,
       "parameters": [
         "conn",
         "location_id",
@@ -810,7 +810,7 @@
       "callable": "generate_governance_inclusion",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 107,
+      "source_line": 123,
       "parameters": [
         "conn",
         "location_id",
@@ -895,7 +895,7 @@
       "callable": "generate_land_stewardship",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 148,
+      "source_line": 164,
       "parameters": [
         "conn",
         "location_id",
