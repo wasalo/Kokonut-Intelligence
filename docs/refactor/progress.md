@@ -24009,3 +24009,16 @@ Checklist: 1,698 complete / 25 open (1,723 total); TODO: 383 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts remain
 116. Production identity-provider and populated-data gates remain open.
+
+### Progress addendum — value-stream performance projection — 29 October 2026
+
+`get_stream_performance()` now selects migration 210's exact 16 view columns
+while retaining the stream filter, sequence ordering, and UUID/datetime
+serialization. Its focused mock-cursor regression passes; Ruff, compilation,
+and diff checks pass. No database/provider was contacted. Evidence:
+[value-stream projection](builds/2026-10-29-recovery/value-stream-performance-projection.json).
+
+Checklist: 1,699 complete / 25 open (1,724 total); TODO: 384 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.

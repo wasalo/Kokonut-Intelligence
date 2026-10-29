@@ -2880,3 +2880,11 @@ Checklist: 382 checked / 16 open. Evidence:
 
 Checklist: 383 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/marketplace-pagination-preflight.json`.
+
+## Completed in the 29 October value-stream projection continuation
+
+- [x] Pin value-stream performance reads to migration 210's ordered 16-column
+  contract and verify scope, sort, and UUID/datetime serialization.
+
+Checklist: 384 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/value-stream-performance-projection.json`.

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import uuid as uuid_mod
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -271,9 +271,14 @@ def get_stream_performance(stream_id: str) -> List[Dict[str, Any]]:
     with _conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
-                "SELECT * FROM v_value_stream_performance "
-                "WHERE stream_id = %s::uuid "
-                "ORDER BY sequence_order",
+                """SELECT stream_id, stream_name, stakeholder_type, trigger_event,
+                          end_state, stream_status, stage_id, stage_name,
+                          sequence_order, process_key, target_lead_time_hours,
+                          target_fty_pct, observation_count, avg_lead_time_hours,
+                          avg_fty_pct, last_observed_at
+                   FROM v_value_stream_performance
+                   WHERE stream_id = %s::uuid
+                   ORDER BY sequence_order""",
                 (stream_id,),
             )
             return [_row_to_dict(r) for r in cur.fetchall()]
