@@ -6180,3 +6180,24 @@ not install source migrations or exercise bounded Gateway functions; full
 schema replay evidence remains through migration 681. This does not establish
 tenant isolation, populated-data behavior, or production grants. See
 [evidence](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json).
+
+### Completed parallel C2/C5 report-contract batch — 28 October 2026
+
+- [x] Give Comprehensive Status farm-summary and published financial-
+  sustainability sections strict nested response models. Preserve current
+  fields, bounded per-section errors, and report behavior; enforce the
+  financial report and every plan row's selected-location identity.
+- [x] Replace the climate-impact stored-summary `SELECT *` with all 24 current
+  schema fields. Keep the existing year/location bindings and full returned
+  payload.
+
+The combined Gateway/composite-report/climate selection passes 56 tests. Ruff,
+Python compilation, the three report inventories, and diff checks pass. Farm
+and plot geometry, metadata, actor IDs, and public financial summary content
+remain in the response; the contract validates shape and scope, not
+content-level privacy or populated-data parity. No migration, database,
+candidate, legacy service, provider, or production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-comprehensive-report-contracts.json).
+
+Checklist: 1,526 complete / 25 open (1,551 total); TODO: 229 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

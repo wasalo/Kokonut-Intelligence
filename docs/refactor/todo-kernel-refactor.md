@@ -10,6 +10,14 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Add strict Comprehensive Status contracts for farm summary and published
+  financial sustainability, including location binding and existing bounded
+  error shapes; preserve current fields and report behavior
+  ([evidence](builds/2026-10-28-recovery/kernel-parallel-comprehensive-report-contracts.json)).
+- [x] Replace the climate-impact stored-summary `SELECT *` with all 24 current
+  schema columns while preserving query bindings and the returned payload
+  ([same evidence](builds/2026-10-28-recovery/kernel-parallel-comprehensive-report-contracts.json)).
+
 - [x] Complete the parallel C1/C2/C5 code batch: resolve module-level SQL
   constants only under conservative single-binding rules and refresh the
   ledger/inventories; add strict private Baal Gateway contracts without
@@ -2066,5 +2074,5 @@ reconciliation remain open. Evidence:
 [storage contract](report-snapshot-export-contract.md),
 [adapter checks](builds/2026-10-28-recovery/report-snapshot-export-s3-adapter-checks.json).
 
-Checklist: 1,524 complete / 25 open (1,549 total); TODO: 227 checked / 16
+Checklist: 1,526 complete / 25 open (1,551 total); TODO: 229 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

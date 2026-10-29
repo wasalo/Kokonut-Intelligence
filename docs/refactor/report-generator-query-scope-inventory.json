@@ -855,22 +855,22 @@
       "helper_calls": [
         {
           "callable": "compute_carbon_balance",
-          "line": 590,
+          "line": 601,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_ghg_emissions",
-          "line": 591,
+          "line": 602,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_regenerative_score",
-          "line": 593,
+          "line": 604,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_tree_carbon",
-          "line": 592,
+          "line": 603,
           "location_id_name_visible_in_arguments": true
         }
       ],
@@ -922,7 +922,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 564,
+          "line": 575,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -945,7 +945,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 576,
+          "line": 587,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

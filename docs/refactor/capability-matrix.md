@@ -1,5 +1,20 @@
 # Capability preservation matrix
 
+**Latest C2/C5 composite-report contracts — 28 October 2026:** Comprehensive
+Status now strictly validates its current farm-summary and published
+financial-sustainability projections, including location binding, nested
+fields, and the existing per-section error response. Climate-impact explicitly
+selects all 24 current `climate_impact_summary` columns. The combined
+Gateway/report/climate selection passes 56 tests; Ruff, compilation, all three
+report inventories, and diff checks pass. Existing field contents and
+lifecycle semantics are preserved. Geometry, metadata, actor IDs, public
+summary text, and populated-data privacy/parity still need separate review. No
+database, migration, provider, candidate, legacy service, or production
+resource was used. The capability matrix remains 67 rows: 24 baseline-retained,
+7 deployed, and 36 prepared; checklist: 1,526 complete / 25 open
+(1,551 total). MAN-CAP acceptance and classifications are unchanged
+([evidence](builds/2026-10-28-recovery/kernel-parallel-comprehensive-report-contracts.json)).
+
 **Latest parallel source-contract batch — 28 October 2026:** the runtime SQL
 inventory now resolves eight additional unambiguous same-module constants and
 fingerprints their source bindings; ambiguous/dynamic cases still fail closed.

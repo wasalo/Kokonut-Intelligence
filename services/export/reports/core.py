@@ -552,7 +552,18 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
         # Climate impact summary (if stored)
         cur.execute(
             """
-            SELECT * FROM climate_impact_summary
+            SELECT id, location_id, reporting_year,
+                   above_ground_carbon_tonnes, below_ground_carbon_tonnes,
+                   total_sequestration_tonnes_co2e,
+                   transport_emissions_tonnes_co2e,
+                   machinery_emissions_tonnes_co2e,
+                   input_emissions_tonnes_co2e,
+                   total_emissions_tonnes_co2e,
+                   net_climate_impact_tonnes_co2e, species_count, shannon_index,
+                   regenerative_score_total, methodology_version,
+                   data_quality_score, status, reviewed_by, reviewed_at, notes,
+                   source_system, source_id, created_at, updated_at
+            FROM climate_impact_summary
             WHERE location_id = %s AND reporting_year = %s
             LIMIT 1
         """,

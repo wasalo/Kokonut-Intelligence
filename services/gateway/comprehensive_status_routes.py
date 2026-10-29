@@ -123,6 +123,65 @@ class ComprehensiveStatusCropNoiReport(_ComprehensiveStatusModel):
     generated_at: ReportDateTime
 
 
+class ComprehensiveStatusFinancialSustainabilityPlan(_ComprehensiveStatusModel):
+    """Exact row projection returned by the published-plan summary view."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    plan_name: str = Field(min_length=1, max_length=255)
+    farm_model: Literal[
+        "public_good_optimized",
+        "blended",
+        "for_profit",
+        "cooperative",
+        "research_pilot",
+        "other",
+    ]
+    plan_period_start: ReportDate
+    plan_period_end: ReportDate | None
+    revenue_streams: list[str] | None
+    grant_dependency_pct: ReportNumber | None = Field(ge=0, le=100)
+    reinvestment_pct: ReportNumber | None = Field(ge=0, le=100)
+    public_goods_allocation_pct: ReportNumber | None = Field(ge=0, le=100)
+    break_even_month: int | None
+    runway_months: ReportNumber | None
+    projected_annual_revenue_usd: ReportNumber | None
+    projected_annual_operating_cost_usd: ReportNumber | None
+    projected_annual_noi_usd: ReportNumber | None
+    sustainability_status: Literal[
+        "draft",
+        "grant_dependent",
+        "transitioning",
+        "self_sustaining",
+        "surplus_generating",
+        "needs_rework",
+    ] | None
+    public_summary: str | None
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusFinancialSustainability(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["financial_sustainability"]
+    location_id: ReportUuid
+    location_name: str | None
+    plans: list[ComprehensiveStatusFinancialSustainabilityPlan]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_plans_in_scope(self):
+        if any(plan.location_id != self.location_id for plan in self.plans):
+            raise ValueError("Financial sustainability plan is outside report location scope")
+        return self
+
+
 class ComprehensiveStatusSectionError(_ComprehensiveStatusModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
 
@@ -181,12 +240,223 @@ class ComprehensiveStatusEnvironmental(_ComprehensiveStatusModel):
     generated_at: ReportDateTime
 
 
+class ComprehensiveStatusFarmLocation(_ComprehensiveStatusModel):
+    """Current location projection embedded in the farm-summary report."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    name: str
+    slug: str
+    description: str | None
+    country: str | None
+    region: str | None
+    sub_region: str | None
+    timezone: str | None
+    latitude: ReportNumber | None
+    longitude: ReportNumber | None
+    baseline_revenue: ReportNumber | None
+    baseline_asset_value: ReportNumber | None
+    baseline_cash_flow: ReportNumber | None
+    baseline_cost: ReportNumber | None
+    baseline_assumptions: JsonValue
+    baseline_source: str | None
+    baseline_date: ReportDate | None
+    status: str | None
+    metadata: JsonValue
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+    project_url: str | None
+    project_start_date: ReportDate | None
+    project_end_date: ReportDate | None
+    bioregion: list[str] | None
+    biome_type: list[str] | None
+    watershed: str | None
+    sub_watershed: str | None
+    schema_version: str | None
+    organization_id: ReportUuid | None
+    baseline_recorded_at: ReportDateTime | None
+
+
+class ComprehensiveStatusFarmRecord(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    name: str
+    slug: str
+    description: str | None
+    farm_type: str | None
+    total_area: ReportNumber | None
+    area_unit: str | None
+    # PostGIS driver serialization is deliberately left JSON-compatible until
+    # the separate geometry exposure review establishes its runtime shape.
+    boundary: JsonValue
+    center: JsonValue
+    status: str | None
+    metadata: JsonValue
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+    property_id: ReportUuid | None
+    schema_version: str | None
+    logo_url: str | None
+    logo_file_id: ReportUuid | None
+    traditional_name: str | None
+    languages: list[str] | None
+    global_standard_certifications: list[str] | None
+    economic_sectors: list[str] | None
+    credits_registries: list[str] | None
+    data_privacy_status: str | None
+    data_privacy_standard: str | None
+    data_privacy_criteria: JsonValue
+
+
+class ComprehensiveStatusFarmPlot(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    farm_id: ReportUuid
+    name: str
+    slug: str
+    description: str | None
+    area: ReportNumber | None
+    area_unit: str | None
+    # Keep the current geometry values intact while their encoded form is
+    # reviewed independently.
+    boundary: JsonValue
+    center: JsonValue
+    soil_type: str | None
+    water_source: str | None
+    elevation_m: ReportNumber | None
+    slope_pct: ReportNumber | None
+    aspect: str | None
+    status: str | None
+    metadata: JsonValue
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+    schema_version: str | None
+    bed_count: int | None
+    bed_area_sqm: ReportNumber | None
+    farm_name: str
+
+
+class ComprehensiveStatusFarmCropCycle(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    plot_id: ReportUuid
+    crop_id: ReportUuid
+    location_id: ReportUuid
+    cycle_name: str | None
+    season: str | None
+    planting_date: ReportDate | None
+    expected_harvest_date: ReportDate | None
+    actual_harvest_date: ReportDate | None
+    expected_yield: ReportNumber | None
+    expected_yield_unit: str | None
+    actual_yield: ReportNumber | None
+    actual_yield_unit: str | None
+    expected_price_per_unit: ReportNumber | None
+    expected_revenue: ReportNumber | None
+    actual_revenue: ReportNumber | None
+    planting_density: ReportNumber | None
+    planting_density_unit: str | None
+    area_planted: ReportNumber | None
+    area_unit: str | None
+    status: str | None
+    failure_reason: str | None
+    metadata: JsonValue
+    schema_version: str | None
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+    crop_name: str
+    plot_name: str
+
+
+class ComprehensiveStatusFarmHarvestSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_harvests: int = Field(ge=0)
+    total_quantity: ReportNumber | None
+    avg_harvest_size: ReportNumber | None
+    cycles_with_harvest: int = Field(ge=0)
+    quantity_unit: str | None
+    total_quantity_by_unit: dict[str, ReportNumber]
+
+
+class ComprehensiveStatusFarmFinancialSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_revenue: ReportNumber
+    total_expenses: ReportNumber
+    net_income: ReportNumber
+
+
+class ComprehensiveStatusFarmExpenseCategory(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    category: str
+    total: ReportNumber
+
+
+class ComprehensiveStatusFarmAttestationCoverage(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_records: int = Field(ge=0)
+    attested: int = Field(ge=0)
+    draft: int = Field(ge=0)
+
+
+class ComprehensiveStatusFarmActivityType(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    activity_type: str
+    activity_count: int = Field(ge=0)
+    reported_labor_hours: ReportNumber
+    reported_labor_hours_unit: Literal["hours"]
+
+
+class ComprehensiveStatusFarmActivitySummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    published_activity_count: int = Field(ge=0)
+    reported_labor_hours: ReportNumber
+    reported_labor_hours_unit: Literal["hours"]
+    by_activity_type: list[ComprehensiveStatusFarmActivityType]
+
+
+class ComprehensiveStatusFarmSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["farm_summary"]
+    location: ComprehensiveStatusFarmLocation
+    farms: list[ComprehensiveStatusFarmRecord]
+    plots: list[ComprehensiveStatusFarmPlot]
+    crop_cycles: list[ComprehensiveStatusFarmCropCycle]
+    harvest_summary: ComprehensiveStatusFarmHarvestSummary
+    financial_summary: ComprehensiveStatusFarmFinancialSummary
+    expense_breakdown: list[ComprehensiveStatusFarmExpenseCategory]
+    attestation_coverage: ComprehensiveStatusFarmAttestationCoverage
+    farm_activity_summary: ComprehensiveStatusFarmActivitySummary
+    generated_at: ReportDateTime
+
+
 class ComprehensiveStatusSections(_ComprehensiveStatusModel):
-    farm_summary: JsonValue
+    farm_summary: ComprehensiveStatusFarmSummary | ComprehensiveStatusSectionError
     crop_noi: ComprehensiveStatusCropNoiReport | ComprehensiveStatusSectionError
     environmental: ComprehensiveStatusEnvironmental | ComprehensiveStatusSectionError
     climate_impact: JsonValue
-    financial_sustainability: JsonValue
+    financial_sustainability: (
+        ComprehensiveStatusFinancialSustainability | ComprehensiveStatusSectionError
+    )
     capital_efficiency: JsonValue
     holistic_wellbeing: JsonValue
     community_governance: JsonValue
@@ -220,6 +490,12 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             and environmental.location_id != self.location_id
         ):
             raise ValueError("Environmental section is outside the composed location scope")
+        financial = self.sections.financial_sustainability
+        if (
+            isinstance(financial, ComprehensiveStatusFinancialSustainability)
+            and financial.location_id != self.location_id
+        ):
+            raise ValueError("Financial sustainability section is outside the composed location scope")
         return self
 
 

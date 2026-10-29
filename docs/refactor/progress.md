@@ -22853,3 +22853,26 @@ across 128 synthetic PostgreSQL 16 tables. Source migrations and bounded
 Gateway functions were not installed or exercised; full-schema replay remains
 through migration 681. Tenant isolation and production grant acceptance remain
 open ([evidence](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json)).
+
+### Progress addendum — strict composite-report section contracts — 28 October 2026
+
+Comprehensive Status now validates its farm-summary and published
+financial-sustainability sections with strict nested models. They mirror the
+current report/view projections, retain the existing bounded section-error
+shape, and bind the financial report and each plan row to the requested
+location. The climate-impact projection changed, while its filters, lifecycle
+behavior, and financial calculations remain unchanged. It explicitly selects all 24 current
+`climate_impact_summary` columns while preserving its location/year bindings
+and complete returned row.
+
+The combined Gateway/composite-report/climate selection passes 56 tests. Ruff,
+compilation, all three report inventories, and diff checks pass. Existing farm
+and plot geometry, metadata, actor IDs, and public financial summary contents
+remain present; this validates shape and scope rather than content-level
+privacy or populated-data parity. No migration, database, candidate, legacy
+service, or provider was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-comprehensive-report-contracts.json).
+
+Checklist: 1,526 complete / 25 open; TODO: 229 checked / 16 open. The
+capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); MAN-CAP acceptance and classifications are unchanged.

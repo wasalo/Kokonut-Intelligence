@@ -35,6 +35,7 @@ COMPREHENSIVE_STATUS_SECTIONS = (
 
 def _comprehensive_status_payload(location_id=LOCATION_ID):
     sections = {section: {} for section in COMPREHENSIVE_STATUS_SECTIONS}
+    sections["farm_summary"] = _farm_summary_section(location_id)
     sections["crop_noi"] = {
         "report_type": "crop_noi",
         "location_id": location_id,
@@ -76,6 +77,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
         "generated_at": "2026-10-28T00:00:00+00:00",
     }
     sections["environmental"] = _environmental_section(location_id)
+    sections["financial_sustainability"] = _financial_sustainability_section(location_id)
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -103,6 +105,166 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
             }
         ],
         "limitations": ["Composite of canonical per-location generators."],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
+def _farm_summary_section(location_id=LOCATION_ID):
+    farm_id = str(uuid4())
+    plot_id = str(uuid4())
+    crop_cycle_id = str(uuid4())
+    return {
+        "report_type": "farm_summary",
+        "location": {
+            "id": location_id,
+            "name": "Kokonut Adelphi",
+            "slug": "kokonut-adelphi",
+            "description": None,
+            "country": "DO",
+            "region": "North",
+            "sub_region": None,
+            "timezone": "America/Santo_Domingo",
+            "latitude": 18.5,
+            "longitude": -69.9,
+            "baseline_revenue": None,
+            "baseline_asset_value": None,
+            "baseline_cash_flow": None,
+            "baseline_cost": None,
+            "baseline_assumptions": {},
+            "baseline_source": None,
+            "baseline_date": None,
+            "status": "active",
+            "metadata": {"profile": "synthetic"},
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "updated_at": "2026-01-02T00:00:00+00:00",
+            "created_by": None,
+            "updated_by": None,
+            "project_url": None,
+            "project_start_date": None,
+            "project_end_date": None,
+            "bioregion": [],
+            "biome_type": [],
+            "watershed": None,
+            "sub_watershed": None,
+            "schema_version": "common-data-schema-v1",
+            "organization_id": None,
+            "baseline_recorded_at": None,
+        },
+        "farms": [
+            {
+                "id": farm_id,
+                "location_id": location_id,
+                "name": "Adelphi Farm",
+                "slug": "adelphi-farm",
+                "description": None,
+                "farm_type": "agroforestry",
+                "total_area": 10.0,
+                "area_unit": "hectares",
+                "boundary": {"type": "Polygon", "coordinates": []},
+                "center": None,
+                "status": "active",
+                "metadata": {"profile": "synthetic"},
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "updated_at": "2026-01-02T00:00:00+00:00",
+                "created_by": None,
+                "updated_by": None,
+                "property_id": None,
+                "schema_version": "common-data-schema-v1",
+                "logo_url": None,
+                "logo_file_id": None,
+                "traditional_name": None,
+                "languages": [],
+                "global_standard_certifications": [],
+                "economic_sectors": [],
+                "credits_registries": [],
+                "data_privacy_status": "internal_review",
+                "data_privacy_standard": None,
+                "data_privacy_criteria": {},
+            }
+        ],
+        "plots": [
+            {
+                "id": plot_id,
+                "farm_id": farm_id,
+                "name": "North plot",
+                "slug": "north-plot",
+                "description": None,
+                "area": 2.5,
+                "area_unit": "hectares",
+                "boundary": None,
+                "center": {"type": "Point", "coordinates": [-69.9, 18.5]},
+                "soil_type": "loam",
+                "water_source": None,
+                "elevation_m": None,
+                "slope_pct": None,
+                "aspect": None,
+                "status": "active",
+                "metadata": {},
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "updated_at": "2026-01-02T00:00:00+00:00",
+                "created_by": None,
+                "updated_by": None,
+                "schema_version": "common-data-schema-v1",
+                "bed_count": None,
+                "bed_area_sqm": None,
+                "farm_name": "Adelphi Farm",
+            }
+        ],
+        "crop_cycles": [
+            {
+                "id": crop_cycle_id,
+                "plot_id": plot_id,
+                "crop_id": str(uuid4()),
+                "location_id": location_id,
+                "cycle_name": "Wet season",
+                "season": "wet",
+                "planting_date": "2026-01-01",
+                "expected_harvest_date": None,
+                "actual_harvest_date": None,
+                "expected_yield": 100.0,
+                "expected_yield_unit": "kg",
+                "actual_yield": None,
+                "actual_yield_unit": None,
+                "expected_price_per_unit": None,
+                "expected_revenue": 1200.0,
+                "actual_revenue": None,
+                "planting_density": None,
+                "planting_density_unit": None,
+                "area_planted": 1.0,
+                "area_unit": "hectares",
+                "status": "active",
+                "failure_reason": None,
+                "metadata": {},
+                "schema_version": "common-data-schema-v1",
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "updated_at": "2026-01-02T00:00:00+00:00",
+                "created_by": None,
+                "updated_by": None,
+                "crop_name": "Plantain",
+                "plot_name": "North plot",
+            }
+        ],
+        "harvest_summary": {
+            "total_harvests": 0,
+            "total_quantity": 0.0,
+            "avg_harvest_size": 0.0,
+            "cycles_with_harvest": 0,
+            "quantity_unit": None,
+            "total_quantity_by_unit": {},
+        },
+        "financial_summary": {
+            "total_revenue": 0.0,
+            "total_expenses": 0.0,
+            "net_income": 0.0,
+        },
+        "expense_breakdown": [],
+        "attestation_coverage": {"total_records": 0, "attested": 0, "draft": 0},
+        "farm_activity_summary": {
+            "published_activity_count": 0,
+            "reported_labor_hours": 0.0,
+            "reported_labor_hours_unit": "hours",
+            "by_activity_type": [],
+        },
         "generated_at": "2026-10-28T00:00:00+00:00",
     }
 
@@ -143,6 +305,45 @@ def _environmental_section(location_id=LOCATION_ID):
                 "unit": "kg",
                 "cause": "Synthetic drought loss",
             }
+        ],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
+def _financial_sustainability_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "financial_sustainability",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "plans": [
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "farm_id": None,
+                "plan_name": "Public operating plan",
+                "farm_model": "blended",
+                "plan_period_start": "2026-01-01",
+                "plan_period_end": None,
+                "revenue_streams": ["produce", "training"],
+                "grant_dependency_pct": Decimal("25.0000"),
+                "reinvestment_pct": Decimal("40.0000"),
+                "public_goods_allocation_pct": Decimal("10.0000"),
+                "break_even_month": 9,
+                "runway_months": Decimal("12.50"),
+                "projected_annual_revenue_usd": Decimal("125000.00"),
+                "projected_annual_operating_cost_usd": Decimal("90000.00"),
+                "projected_annual_noi_usd": Decimal("35000.00"),
+                "sustainability_status": "transitioning",
+                "public_summary": "Synthetic public plan summary.",
+                "evidence_maturity": 3,
+                "evidence_maturity_label": "Substantiated",
+                "metadata": {"public_tag": "synthetic", "labels": ["reviewed"]},
+            }
+        ],
+        "limitations": [
+            "This report summarizes published financial sustainability plans only.",
+            "Projected revenue, NOI, runway, and grant dependency are planning signals, not guarantees.",
+            "Private financial terms and draft capital discussions are excluded.",
         ],
         "generated_at": "2026-10-28T00:00:00+00:00",
     }
@@ -341,6 +542,9 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert response.headers["vary"] == "Cookie"
     assert response.json()["report_type"] == "comprehensive_status"
     assert response.json()["locations"][0]["location_id"] == LOCATION_ID
+    plan = response.json()["locations"][0]["sections"]["financial_sustainability"]["plans"][0]
+    assert plan["public_summary"] == "Synthetic public plan summary."
+    assert plan["metadata"] == {"public_tag": "synthetic", "labels": ["reviewed"]}
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -358,6 +562,26 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert len(crop_noi_schema["anyOf"]) == 2
     assert schemas["ComprehensiveStatusCropNoiReport"]["additionalProperties"] is False
     assert schemas["ComprehensiveStatusCropNoiCycle"]["additionalProperties"] is False
+    farm_summary_schema = section_schema["properties"]["farm_summary"]
+    assert len(farm_summary_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusFarmSummary"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusFarmLocation"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusFarmRecord"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusFarmPlot"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusFarmCropCycle"]["additionalProperties"] is False
+    assert set(schemas["ComprehensiveStatusFarmSummary"]["properties"]) == {
+        "report_type",
+        "location",
+        "farms",
+        "plots",
+        "crop_cycles",
+        "harvest_summary",
+        "financial_summary",
+        "expense_breakdown",
+        "attestation_coverage",
+        "farm_activity_summary",
+        "generated_at",
+    }
     environmental_schema = section_schema["properties"]["environmental"]
     assert len(environmental_schema["anyOf"]) == 2
     assert schemas["ComprehensiveStatusEnvironmental"]["additionalProperties"] is False
@@ -378,6 +602,33 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "loss_events",
         "generated_at",
     }
+    financial_schema = section_schema["properties"]["financial_sustainability"]
+    assert len(financial_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusFinancialSustainability"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusFinancialSustainabilityPlan"]["additionalProperties"] is False
+    assert set(schemas["ComprehensiveStatusFinancialSustainabilityPlan"]["properties"]) == {
+        "id",
+        "location_id",
+        "farm_id",
+        "plan_name",
+        "farm_model",
+        "plan_period_start",
+        "plan_period_end",
+        "revenue_streams",
+        "grant_dependency_pct",
+        "reinvestment_pct",
+        "public_goods_allocation_pct",
+        "break_even_month",
+        "runway_months",
+        "projected_annual_revenue_usd",
+        "projected_annual_operating_cost_usd",
+        "projected_annual_noi_usd",
+        "sustainability_status",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    }
 
 
 def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
@@ -388,6 +639,12 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "error": "report section failed (ProgrammingError)"
     }
     payload["locations"][0]["sections"]["environmental"] = {
+        "error": "report section failed (DataError)"
+    }
+    payload["locations"][0]["sections"]["farm_summary"] = {
+        "error": "report section failed (ProgrammingError)"
+    }
+    payload["locations"][0]["sections"]["financial_sustainability"] = {
         "error": "report section failed (DataError)"
     }
     monkeypatch.setattr(
@@ -422,6 +679,12 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["environmental"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["farm_summary"] == {
+        "error": "report section failed (ProgrammingError)"
+    }
+    assert response.json()["locations"][0]["sections"]["financial_sustainability"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -434,6 +697,11 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "environmental_extra", "environmental_species_extra",
         "environmental_wrong_location", "environmental_numeric_string",
         "environmental_error_contract",
+        "farm_summary_extra", "farm_summary_plot_extra",
+        "farm_summary_numeric_string", "farm_summary_error_contract",
+        "financial_plan_extra", "financial_plan_wrong_location",
+        "financial_report_wrong_location", "financial_numeric_string",
+        "financial_error_contract",
     ],
 )
 def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_projection):
@@ -484,6 +752,42 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         ] = "0.72"
     elif invalid_projection == "environmental_error_contract":
         payload["locations"][0]["sections"]["environmental"] = {
+            "error": "database connection failed with private SQL"
+        }
+    elif invalid_projection == "farm_summary_extra":
+        payload["locations"][0]["sections"]["farm_summary"][
+            "unreviewed_source_ids"
+        ] = [str(uuid4())]
+    elif invalid_projection == "farm_summary_plot_extra":
+        payload["locations"][0]["sections"]["farm_summary"]["plots"][0][
+            "private_note"
+        ] = "must not escape"
+    elif invalid_projection == "farm_summary_numeric_string":
+        payload["locations"][0]["sections"]["farm_summary"]["financial_summary"][
+            "total_revenue"
+        ] = "0.0"
+    elif invalid_projection == "farm_summary_error_contract":
+        payload["locations"][0]["sections"]["farm_summary"] = {
+            "error": "database connection failed with private SQL"
+        }
+    elif invalid_projection == "financial_plan_extra":
+        payload["locations"][0]["sections"]["financial_sustainability"]["plans"][0][
+            "counterparty_account"
+        ] = "must not escape"
+    elif invalid_projection == "financial_plan_wrong_location":
+        payload["locations"][0]["sections"]["financial_sustainability"]["plans"][0][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "financial_report_wrong_location":
+        payload["locations"][0]["sections"]["financial_sustainability"]["location_id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "financial_numeric_string":
+        payload["locations"][0]["sections"]["financial_sustainability"]["plans"][0][
+            "grant_dependency_pct"
+        ] = "25.0"
+    elif invalid_projection == "financial_error_contract":
+        payload["locations"][0]["sections"]["financial_sustainability"] = {
             "error": "database connection failed with private SQL"
         }
     else:
