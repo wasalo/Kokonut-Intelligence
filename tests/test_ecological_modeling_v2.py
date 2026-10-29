@@ -1,5 +1,7 @@
 """Ecological modeling v2, economic/social, and model validation tests."""
 
+import re
+from datetime import date
 from pathlib import Path
 
 from services.analytics.ecological_modeling_v2 import (
@@ -21,8 +23,10 @@ from services.analytics.model_validation import (
 )
 from services.export.report_generator import (
     REPORT_GENERATORS,
+    generate_model_validation,
     generate_pest_management,
     generate_resource_efficiency,
+    generate_revenue_streams,
 )
 
 SCHEMA_V2 = Path("schemas/postgres/047_ecological_modeling_v2.sql")
@@ -451,6 +455,291 @@ def test_mae() -> None:
 
 def test_model_validation_report_registered() -> None:
     assert "model_validation" in REPORT_GENERATORS
+
+
+def test_resource_efficiency_projection_preserves_full_payload_and_aggregate() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_rows = [
+        {
+            "id": "b0000000-0000-0000-0000-000000000001",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "plot_id": "c0000000-0000-0000-0000-000000000001",
+            "plot_name": "North plot",
+            "crop_cycle_id": "d0000000-0000-0000-0000-000000000001",
+            "cycle_name": "2026 first cycle",
+            "period_start": date(2026, 1, 1),
+            "period_end": date(2026, 3, 31),
+            "resource_type": "water",
+            "quantity": 1200.0,
+            "unit": "L",
+            "component": "irrigation",
+            "is_estimated": False,
+            "notes": "Metered field record.",
+            "status": "verified",
+        },
+        {
+            "id": "b0000000-0000-0000-0000-000000000002",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "plot_id": "c0000000-0000-0000-0000-000000000002",
+            "plot_name": "Nursery",
+            "crop_cycle_id": "d0000000-0000-0000-0000-000000000001",
+            "cycle_name": "2026 first cycle",
+            "period_start": date(2026, 1, 1),
+            "period_end": date(2026, 3, 31),
+            "resource_type": "energy",
+            "quantity": 6.0,
+            "unit": "kWh",
+            "component": "water pumping",
+            "is_estimated": True,
+            "notes": "Estimated from operating hours.",
+            "status": "published",
+        },
+    ]
+    columns = (
+        "id, location_id, location_name, plot_id, plot_name, crop_cycle_id, cycle_name, period_start, "
+        "period_end, resource_type, quantity, unit, component, is_estimated, notes, status"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+            self.fetchone_calls = 0
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            self.fetchone_calls += 1
+            if self.fetchone_calls == 1:
+                return {"name": "Kokonut Adelphi"}
+            return {"total_harvest_kg": 1000.0}
+
+        def fetchall(self):
+            return source_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_resource_efficiency(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_resource_efficiency WHERE location_id = %s "
+        "AND (%s::date IS NULL OR period_start >= %s::date) "
+        "AND (%s::date IS NULL OR period_start <= %s::date) "
+        "ORDER BY resource_type, period_start DESC"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "resource_efficiency"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["resources"] == [
+        {
+            **row,
+            "period_start": "2026-01-01",
+            "period_end": "2026-03-31",
+        }
+        for row in source_rows
+    ]
+    assert report["total_harvest_kg"] == 1000.0
+    assert report["efficiency_by_type"] == {
+        "water": {"total_quantity": 1200.0, "unit": "L", "record_count": 1, "per_kg_yield": 1.2},
+        "energy": {"total_quantity": 6.0, "unit": "kWh", "record_count": 1, "per_kg_yield": 0.006},
+    }
+
+
+def test_revenue_streams_projection_preserves_payload_and_totals() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    source_rows = [
+        {
+            "id": "b0000000-0000-0000-0000-000000000001",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "crop_cycle_id": "c0000000-0000-0000-0000-000000000001",
+            "cycle_name": "2026 first cycle",
+            "period_start": date(2026, 1, 1),
+            "period_end": date(2026, 3, 31),
+            "stream_name": "Fresh produce",
+            "stream_category": "agriculture",
+            "gross_revenue": 1000.0,
+            "direct_costs": 300.0,
+            "allocated_costs": 100.0,
+            "net_contribution": 600.0,
+            "contribution_pct": 60.0,
+            "notes": "Verified quarterly amount.",
+            "status": "verified",
+        },
+        {
+            "id": "b0000000-0000-0000-0000-000000000002",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "crop_cycle_id": "c0000000-0000-0000-0000-000000000001",
+            "cycle_name": "2026 first cycle",
+            "period_start": date(2026, 1, 1),
+            "period_end": date(2026, 3, 31),
+            "stream_name": "Nursery plants",
+            "stream_category": "agriculture",
+            "gross_revenue": 250.0,
+            "direct_costs": 80.0,
+            "allocated_costs": 20.0,
+            "net_contribution": 150.0,
+            "contribution_pct": 60.0,
+            "notes": "Reviewed nursery sales.",
+            "status": "published",
+        },
+    ]
+    columns = (
+        "id, location_id, location_name, crop_cycle_id, cycle_name, period_start, period_end, "
+        "stream_name, stream_category, gross_revenue, direct_costs, allocated_costs, net_contribution, "
+        "contribution_pct, notes, status"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return source_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_revenue_streams(conn, location_id)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_revenue_streams "
+        "WHERE location_id = %s ORDER BY period_start DESC, net_contribution DESC"
+    )
+    assert params == (location_id,)
+    assert report["report_type"] == "revenue_streams"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["streams"] == [
+        {**row, "period_start": "2026-01-01", "period_end": "2026-03-31"}
+        for row in source_rows
+    ]
+    assert report["total_gross_revenue"] == 1250.0
+    assert report["total_net_contribution"] == 750.0
+    assert report["stream_count"] == 2
+
+
+def test_prediction_accuracy_projection_preserves_payload_and_metrics() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    prediction_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "model_type": "yield_forecast",
+        "model_name": "Adelphi yield baseline",
+        "prediction_date": date(2026, 2, 1),
+        "actual_date": date(2026, 3, 31),
+        "predicted_value": 100.0,
+        "actual_value": 90.0,
+        "absolute_error": 10.0,
+        "mae": 10.0,
+        "rmse": 10.0,
+        "mape": 11.11,
+        "r_squared": 0.85,
+        "sample_size": 12,
+        "metric_name": "harvest_kg",
+        "unit": "kg",
+        "notes": "Reviewed forecast comparison.",
+        "status": "verified",
+    }
+    feature_row = {
+        "id": "c0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "model_type": "yield_forecast",
+        "analysis_date": date(2026, 3, 31),
+        "feature_name": "rainfall_mm",
+        "importance_score": 0.72,
+        "direction": "positive",
+        "correlation_coefficient": 0.81,
+        "p_value": 0.03,
+        "sample_size": 12,
+        "notes": "Reviewed model feature.",
+        "status": "verified",
+    }
+    columns = (
+        "id, location_id, location_name, model_type, model_name, prediction_date, actual_date, "
+        "predicted_value, actual_value, absolute_error, mae, rmse, mape, r_squared, sample_size, "
+        "metric_name, unit, notes, status"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+            self.fetchall_calls = 0
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            self.fetchall_calls += 1
+            return [prediction_row] if self.fetchall_calls == 1 else [feature_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_model_validation(conn, location_id)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_prediction_accuracy "
+        "WHERE location_id = %s ORDER BY prediction_date DESC"
+    )
+    assert params == (location_id,)
+    assert report["report_type"] == "model_validation"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["predictions"] == [
+        {
+            **prediction_row,
+            "prediction_date": "2026-02-01",
+            "actual_date": "2026-03-31",
+        }
+    ]
+    assert report["feature_importance"] == [{**feature_row, "analysis_date": "2026-03-31"}]
+    assert report["total_predictions"] == 1
+    assert report["avg_mape_pct"] == 11.11
+    assert report["overall_accuracy_pct"] == 88.89
+    assert report["top_predictors"] == ["rainfall_mm"]
 
 
 # ---------------------------------------------------------------------------

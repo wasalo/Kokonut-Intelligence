@@ -22992,3 +22992,51 @@ used. Evidence:
 
 Checklist: 1,548 complete / 25 open (1,573 total); TODO: 251 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — Data Stream, report projection, and SDK contracts — 28 October 2026
+
+The private Data Stream post list now validates its exact fixed projection,
+page size, field types, and requested location. Invalid, extra, or
+cross-location source rows fail as a sanitized no-store server error. The
+replication-readiness, adaptive-stewardship, and capital-alignment reports
+now explicitly select their complete 19-, 19-, and 17-column public views,
+with query and payload regressions. Python and TypeScript public REST clients
+reject extra success-envelope keys and reject location-detail data whose UUID
+does not match the requested UUID after case normalization.
+
+The integrated focused selection passes 232 Python tests and 125 TypeScript
+tests; `npm run build` passes. Ruff, Python compilation, all three report
+inventories, capability-matrix validation, and diff checks pass. No database,
+migration, provider, candidate, legacy service, or production resource was
+used. These source contracts do not establish populated-data parity or
+content-level privacy. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-sdk-datastream-contracts.json).
+
+Checklist: 1,554 complete / 25 open (1,579 total); TODO: 257 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 95 strict private Gateway response contracts;
+MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — operations reports and governance summary contract — 28 October 2026
+
+The private location-governance summary now has an exact OpenAPI/runtime
+contract for its location-bound circle metadata and aggregate counts. Invalid,
+extra, negative, or wrong-location results fail with a sanitized no-store
+server error. Resource efficiency, revenue streams, and prediction accuracy
+now explicitly select all 16, 16, and 19 current public-view columns. Focused
+regressions preserve the existing filters, bindings, ordering, aggregates,
+serialized dates, and metrics.
+
+The integrated focused selection passes 386 tests. Ruff, Python compilation,
+all three report inventories, capability-matrix validation, and diff checks
+pass. Two pre-existing F841 findings in the ecological-modeling test module
+were excluded from Ruff; unrelated lines were left unchanged. Existing public
+notes/measures remain, so content-level privacy and populated-data parity are
+not established. No database, provider, candidate, legacy service, or
+production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-operations-governance-contracts.json).
+
+Checklist: 1,558 complete / 25 open (1,583 total); TODO: 261 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared) and now documents 96 strict private Gateway response
+contracts. MAN-CAP acceptance and classifications are unchanged.

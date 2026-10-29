@@ -1,6 +1,36 @@
 # Capability preservation matrix
 
-**Latest parallel C2/C5 and SDK summary batch — 28 October 2026:**
+**Latest parallel C2/C5 operations and Gateway batch — 28 October 2026:** the
+location-governance summary now has an exact location-bound response and
+OpenAPI contract; malformed results fail closed. Resource-efficiency,
+revenue-stream, and prediction-accuracy reports select their full 16-, 16-,
+and 19-column public views explicitly. Focused mocked checks pass 386 Python
+tests; Ruff, compilation, report inventories, capability validation, and diff
+checks pass. No database, migration, provider, candidate, legacy service, or
+production resource was used. The matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 96 strict private Gateway response contracts.
+Checklist: 1,558 complete / 25 open (1,583 total); TODO: 261 checked / 16
+open; MAN-CAP acceptance and classifications are unchanged
+([evidence](builds/2026-10-28-recovery/kernel-parallel-operations-governance-contracts.json)).
+
+**Previous parallel C2/C5 and SDK contract batch — 28 October 2026:** the private
+Data Stream post-list route now validates the exact fixed response projection
+and requested location; malformed or cross-location rows fail with a
+sanitized no-store server error. Replication readiness, adaptive stewardship,
+and capital alignment now explicitly select all 19, 19, and 17 public-view
+columns. Python and TypeScript SDKs require data-only success envelopes and
+bind location-detail responses to the requested UUID. Focused checks pass 232
+Python and 125 TypeScript tests; the SDK build, Ruff, compilation, report
+inventories, capability validation, and diff checks pass. No database,
+migration, provider, candidate, legacy service, or production resource was
+used. These source contracts do not establish populated-data parity or
+content-level privacy. Matrix classifications remain 67 rows (24
+baseline-retained, 7 deployed, 36 prepared); strict private Gateway response
+contracts now total 95. Checklist: 1,554 complete / 25 open (1,579 total);
+TODO: 257 checked / 16 open; MAN-CAP acceptance and classifications are
+unchanged ([evidence](builds/2026-10-28-recovery/kernel-parallel-report-sdk-datastream-contracts.json)).
+
+**Previous parallel C2/C5 and SDK summary batch — 28 October 2026:**
 Comprehensive Status now validates community governance while retaining
 location-null shared mechanisms, and validates foundational-wellbeing rows
 without rejecting qualitative-only observations. Vulnerable-access,

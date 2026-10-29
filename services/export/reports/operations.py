@@ -43,7 +43,23 @@ def generate_resource_efficiency(conn, location_id: str, period_start: str = Non
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_resource_efficiency
+            SELECT id,
+                   location_id,
+                   location_name,
+                   plot_id,
+                   plot_name,
+                   crop_cycle_id,
+                   cycle_name,
+                   period_start,
+                   period_end,
+                   resource_type,
+                   quantity,
+                   unit,
+                   component,
+                   is_estimated,
+                   notes,
+                   status
+            FROM v_public_resource_efficiency
             WHERE location_id = %s
               AND (%s::date IS NULL OR period_start >= %s::date)
               AND (%s::date IS NULL OR period_start <= %s::date)
@@ -159,7 +175,23 @@ def generate_revenue_streams(conn, location_id: str, period_start: str = None, p
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_revenue_streams
+            SELECT id,
+                   location_id,
+                   location_name,
+                   crop_cycle_id,
+                   cycle_name,
+                   period_start,
+                   period_end,
+                   stream_name,
+                   stream_category,
+                   gross_revenue,
+                   direct_costs,
+                   allocated_costs,
+                   net_contribution,
+                   contribution_pct,
+                   notes,
+                   status
+            FROM v_public_revenue_streams
             WHERE location_id = %s ORDER BY period_start DESC, net_contribution DESC
             """,
             (location_id,),
@@ -202,7 +234,26 @@ def generate_model_validation(conn, location_id: str, period_start: str = None, 
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_prediction_accuracy
+            SELECT id,
+                   location_id,
+                   location_name,
+                   model_type,
+                   model_name,
+                   prediction_date,
+                   actual_date,
+                   predicted_value,
+                   actual_value,
+                   absolute_error,
+                   mae,
+                   rmse,
+                   mape,
+                   r_squared,
+                   sample_size,
+                   metric_name,
+                   unit,
+                   notes,
+                   status
+            FROM v_public_prediction_accuracy
             WHERE location_id = %s ORDER BY prediction_date DESC
             """,
             (location_id,),

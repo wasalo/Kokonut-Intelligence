@@ -2200,3 +2200,21 @@ and diff checks pass. Evidence:
 
 Checklist: 1,554 complete / 25 open (1,579 total); TODO: 257 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — operations reports and governance summary contract — 28 October 2026
+
+- [x] Add and verify a strict location-governance summary contract with
+  requested-location binding and sanitized no-store failures.
+- [x] Replace and parity-check the resource-efficiency public-view wildcard
+  projection.
+- [x] Replace and parity-check the revenue-stream public-view wildcard
+  projection.
+- [x] Replace and parity-check the prediction-accuracy public-view wildcard
+  projection.
+
+The integrated focused selection passes 386 tests. Ruff, compilation, report
+inventories, capability validation, and diff checks pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-operations-governance-contracts.json).
+
+Checklist: 1,558 complete / 25 open (1,583 total); TODO: 261 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

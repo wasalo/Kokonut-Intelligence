@@ -19,6 +19,69 @@ from services.gateway.operator_auth import auth_route_policy  # noqa: E402
 CIRCLE_ID = str(uuid4())
 
 
+def _valid_summary(location_id):
+    return {
+        "location_id": location_id,
+        "circles": [
+            {
+                "id": CIRCLE_ID,
+                "circle_key": "adelphi-stewardship",
+                "name": "Adelphi Stewardship",
+                "status": "active",
+                "review_due_at": None,
+                "active_role_count": 4,
+                "overdue_role_review_count": 1,
+                "active_assignment_count": 3,
+                "proposed_assignment_count": 1,
+                "active_authority_domain_count": 2,
+            }
+        ],
+        "tensions": {
+            "total": 5,
+            "unresolved": 2,
+            "high_severity_unresolved": 1,
+            "overdue_reviews": 1,
+        },
+        "tactical": {
+            "sessions": 2,
+            "open_items": 4,
+            "overdue_items": 1,
+            "disposed_items": 3,
+        },
+    }
+
+
+def _authorized_summary_client(monkeypatch, operator_id, location_id, summary):
+    operator_session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="b" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return operator_session
+
+        def has_scope(self, scoped_operator, resource, action, scoped_location):
+            return (
+                scoped_operator == operator_id
+                and resource == "governance_roles"
+                and action == "read"
+                and scoped_location == location_id
+            )
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    monkeypatch.setattr(
+        "services.gateway.governance_roles.get_location_governance_summary",
+        lambda _operator, _location: summary,
+    )
+    return TestClient(
+        create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
+    )
+
+
 def test_governance_summary_policy_requires_exact_location_read_scope():
     location_id = str(uuid4())
     path = f"/operator/api/governance/{location_id}/summary"
@@ -246,45 +309,70 @@ def test_http_route_requires_location_governance_grant_before_service(
 
 def test_http_route_returns_no_store_scoped_summary(monkeypatch, isolated_audit):
     operator_id, location_id = str(uuid4()), str(uuid4())
-    operator_session = SimpleNamespace(
-        session_id=str(uuid4()),
-        session_token_hash="a" * 64,
-        operator=SimpleNamespace(operator_id=operator_id),
-    )
-
-    class Provider:
-        settings = SimpleNamespace(state_secret="test-only-state-secret")
-
-        def authenticate_request(self, _request):
-            return operator_session
-
-        def has_scope(self, scoped_operator, resource, action, scoped_location):
-            return (
-                scoped_operator == operator_id
-                and resource == "governance_roles"
-                and action == "read"
-                and scoped_location == location_id
-            )
-
-    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
-    monkeypatch.setattr(
-        "services.gateway.governance_roles.get_location_governance_summary",
-        lambda scoped_operator, scoped_location: {
-            "location_id": scoped_location,
-            "circles": [],
-            "tensions": {"total": 0},
-            "tactical": {"open_items": 0},
-        },
-    )
-
-    with TestClient(
-        create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
+    summary = _valid_summary(location_id)
+    with _authorized_summary_client(
+        monkeypatch, operator_id, location_id, summary
     ) as client:
         response = client.get(f"/operator/api/governance/{location_id}/summary")
 
     assert response.status_code == 200
-    assert response.json()["location_id"] == location_id
+    assert response.json() == summary
     assert response.headers["cache-control"] == "no-store"
     assert "cookie" in {
         value.strip().lower() for value in response.headers["vary"].split(",")
     }
+
+
+def test_governance_summary_openapi_declares_exact_success_shape(isolated_audit):
+    schema = create_app().openapi()
+    operation = schema["paths"]["/operator/api/governance/{location_id}/summary"]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    model_name = response_schema["$ref"].rsplit("/", 1)[-1]
+
+    assert set(schema["components"]["schemas"][model_name]["properties"]) == {
+        "location_id",
+        "circles",
+        "tensions",
+        "tactical",
+    }
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda summary: summary.update(extra="not in the SQL projection"),
+        lambda summary: summary["tensions"].update(extra=1),
+        lambda summary: summary["circles"][0].update(active_role_count=-1),
+    ],
+)
+def test_governance_summary_rejects_malformed_or_extra_projection(
+    monkeypatch, isolated_audit, mutate
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    summary = _valid_summary(location_id)
+    mutate(summary)
+
+    with _authorized_summary_client(
+        monkeypatch, operator_id, location_id, summary
+    ) as client:
+        response = client.get(f"/operator/api/governance/{location_id}/summary")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Governance summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_governance_summary_rejects_a_different_location_binding(
+    monkeypatch, isolated_audit
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    summary = _valid_summary(str(uuid4()))
+
+    with _authorized_summary_client(
+        monkeypatch, operator_id, location_id, summary
+    ) as client:
+        response = client.get(f"/operator/api/governance/{location_id}/summary")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Governance summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"

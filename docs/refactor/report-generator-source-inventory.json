@@ -917,7 +917,7 @@
       "callable": "generate_livestock_feed",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 248,
+      "source_line": 299,
       "parameters": [
         "conn",
         "location_id",
@@ -939,7 +939,7 @@
       "callable": "generate_model_validation",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 194,
+      "source_line": 226,
       "parameters": [
         "conn",
         "location_id",
@@ -982,7 +982,7 @@
       "callable": "generate_organic_certification_readiness",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 425,
+      "source_line": 476,
       "parameters": [
         "conn",
         "location_id",
@@ -1004,7 +1004,7 @@
       "callable": "generate_organic_input_audit",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 551,
+      "source_line": 602,
       "parameters": [
         "conn",
         "location_id",
@@ -1026,7 +1026,7 @@
       "callable": "generate_organic_transition_progress",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 496,
+      "source_line": 547,
       "parameters": [
         "conn",
         "location_id",
@@ -1393,7 +1393,7 @@
       "callable": "generate_revenue_streams",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 151,
+      "source_line": 167,
       "parameters": [
         "conn",
         "location_id",
@@ -1415,7 +1415,7 @@
       "callable": "generate_reward_calibration",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 358,
+      "source_line": 409,
       "parameters": [
         "conn",
         "location_id",
@@ -1774,7 +1774,7 @@
       "callable": "generate_statement_of_work",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 609,
+      "source_line": 660,
       "parameters": [
         "conn",
         "location_id",
@@ -1902,7 +1902,7 @@
       "callable": "generate_token_rewards",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 302,
+      "source_line": 353,
       "parameters": [
         "conn",
         "location_id",
@@ -1924,7 +1924,7 @@
       "callable": "generate_training_impact",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 106,
+      "source_line": 122,
       "parameters": [
         "conn",
         "location_id",

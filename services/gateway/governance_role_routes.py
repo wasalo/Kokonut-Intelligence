@@ -135,6 +135,50 @@ class GovernanceRoleListResponse(BaseModel):
     next_cursor: _GovernanceResponseUUID | None
 
 
+class GovernanceSummaryCircleResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _GovernanceResponseUUID
+    circle_key: str = Field(max_length=120)
+    name: str = Field(max_length=255)
+    status: _CIRCLE_STATUS
+    review_due_at: AwareDatetime | None
+    active_role_count: int = Field(ge=0, strict=True)
+    overdue_role_review_count: int = Field(ge=0, strict=True)
+    active_assignment_count: int = Field(ge=0, strict=True)
+    proposed_assignment_count: int = Field(ge=0, strict=True)
+    active_authority_domain_count: int = Field(ge=0, strict=True)
+
+
+class GovernanceSummaryTensionsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    total: int = Field(ge=0, strict=True)
+    unresolved: int = Field(ge=0, strict=True)
+    high_severity_unresolved: int = Field(ge=0, strict=True)
+    overdue_reviews: int = Field(ge=0, strict=True)
+
+
+class GovernanceSummaryTacticalResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    sessions: int = Field(ge=0, strict=True)
+    open_items: int = Field(ge=0, strict=True)
+    overdue_items: int = Field(ge=0, strict=True)
+    disposed_items: int = Field(ge=0, strict=True)
+
+
+class GovernanceSummaryResponse(BaseModel):
+    """Location-scoped counts and circle metadata from the governance summary query."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _GovernanceResponseUUID
+    circles: list[GovernanceSummaryCircleResponse]
+    tensions: GovernanceSummaryTensionsResponse
+    tactical: GovernanceSummaryTacticalResponse
+
+
 class GovernanceTacticalItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -315,7 +359,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
         raise exc
 
-    @router.get("/operator/api/governance/{location_id}/summary")
+    @router.get(
+        "/operator/api/governance/{location_id}/summary",
+        response_model=GovernanceSummaryResponse,
+    )
     async def location_governance_summary(request: Request, location_id: str):
         headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
         if provider is None:
@@ -354,7 +401,23 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers={**headers, "Retry-After": "30"},
             )
 
-        return JSONResponse(jsonable_encoder(summary), headers=headers)
+        try:
+            response = GovernanceSummaryResponse.model_validate(summary)
+            if response.location_id != UUID(location_id):
+                raise ValueError("Governance summary location does not match request")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_roles").warning(
+                "Governance summary response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance summary unavailable"},
+                headers=headers,
+            )
+
+        return JSONResponse(jsonable_encoder(response.model_dump(mode="python")), headers=headers)
 
     @router.get(
         "/operator/api/governance/{location_id}/roles",

@@ -6370,3 +6370,30 @@ candidate, legacy service, provider, or production resource was used. Evidence:
 
 Checklist: 1,554 complete / 25 open (1,579 total); TODO: 257 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — operations reports and governance summary contract — 28 October 2026
+
+- [x] Add a strict response/OpenAPI contract for the location-governance
+  summary, verify requested-location binding, and fail malformed summaries
+  closed with a sanitized no-store server error.
+- [x] Replace the resource-efficiency `SELECT *` with all 16 public-view
+  columns and verify its filters, ordering, total, and serialized output.
+- [x] Replace the revenue-stream `SELECT *` with all 16 public-view columns
+  and verify its location scope, ordering, aggregates, and serialized output.
+- [x] Replace the prediction-accuracy `SELECT *` with all 19 public-view
+  columns and verify its ordering, metrics, feature payload, and serialized
+  output.
+
+The integrated focused selection passes 386 tests. Ruff passes for changed
+source and tests; two pre-existing unused-variable findings in the broader
+ecological-modeling test module were excluded. Python compilation, all three
+report inventories, capability-matrix validation, and `git diff --check` pass.
+The governance response contains only scoped circle metadata and aggregate
+counts. Existing public report notes and measures remain unchanged; this does
+not establish content-level privacy or populated-data parity. No migration,
+database, candidate, legacy service, provider, or production resource was
+used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-operations-governance-contracts.json).
+
+Checklist: 1,558 complete / 25 open (1,583 total); TODO: 261 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
