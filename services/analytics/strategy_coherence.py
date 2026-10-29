@@ -97,7 +97,12 @@ def run_checks(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
             if investment["risk_evidence_status"] == "missing":
                 add("investment_requires_risk_evidence", "strategy_investment_case", investment["id"], "high", "Investment case has no CRISP risk evidence.", "Link a CRISP assessment and mitigation record before allocation.")
 
-        cur.execute("SELECT * FROM v_strategy_advantage_fit WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
+        cur.execute(
+            "SELECT advantage_id, strategy_plan_id, name, defensibility_score, status, "
+            "link_count, capability_link_count, choice_link_count, investment_link_count, fit_status "
+            "FROM v_strategy_advantage_fit WHERE strategy_plan_id = %s::uuid",
+            (strategy_plan_id,),
+        )
         for advantage in cur.fetchall():
             if advantage["fit_status"] == "unlinked":
                 add("advantage_requires_operating_fit", "strategy_advantage", advantage["advantage_id"], "high", "Claimed advantage has no capability, value-chain, choice, or investment link.", "Link the advantage to the operating model and funding path.")

@@ -36,6 +36,12 @@ def report(conn, strategy_plan_id: str) -> Dict[str, Any]:
         landscapes = [_clean(row) for row in cur.fetchall()]
         cur.execute("SELECT * FROM strategy_position WHERE strategy_plan_id = %s::uuid ORDER BY target_name", (strategy_plan_id,))
         positions = [_clean(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_strategy_advantage_fit WHERE strategy_plan_id = %s::uuid ORDER BY defensibility_score DESC NULLS LAST", (strategy_plan_id,))
+        cur.execute(
+            "SELECT advantage_id, strategy_plan_id, name, defensibility_score, status, "
+            "link_count, capability_link_count, choice_link_count, investment_link_count, fit_status "
+            "FROM v_strategy_advantage_fit WHERE strategy_plan_id = %s::uuid "
+            "ORDER BY defensibility_score DESC NULLS LAST",
+            (strategy_plan_id,),
+        )
         advantages = [_clean(row) for row in cur.fetchall()]
         return {"strategy_plan_id": strategy_plan_id, "health": health(conn, strategy_plan_id), "landscapes": landscapes, "positions": positions, "advantages": advantages}
