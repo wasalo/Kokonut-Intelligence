@@ -3891,7 +3891,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Bound gRPC API-key lookup, request-interceptor, and optional-service import failures to exception classes while preserving generic auth failures, exception propagation, and optional service behavior. The 32-test gRPC/auth/policy suite passes with Ruff and compilation on mocked boundaries; no database or RPC provider was contacted ([evidence](builds/2026-10-17-recovery/grpc-auth-request-error-redaction.json)).
 - [x] Redact metadata batch-anchor and threatcasting trend-analysis failures without changing their skip/no-score fallbacks. Two mocked regressions pass with Ruff, compilation, and diff checks; no database or provider was contacted ([evidence](builds/2026-10-17-recovery/metadata-trend-error-redaction.json)).
 - [x] Redact demo sensor-reading insert failures so sensor names, timestamps, and database details are not emitted; preserve per-reading continuation and database cleanup. One mocked regression passes; test lint, source import/syntax checks, compilation, and diff checks pass. No database or provider was used ([evidence](builds/2026-10-17-recovery/mock-sensor-error-redaction.json)).
-- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On PR #71 latest pushed head `572885d69190a28c34a8037cbc49ada8b26fe1d6`, Security run [#672](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40928110401) passed and CI run [#948](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40928110501) is in progress. Each pushed batch starts a new exact-head gate; keep this item open until both required contexts pass together on the current head ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
+- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. Immediately before this local batch, PR #71 was at `2008977759ee16bea323b73fc9858b4213c33932`; Security run [#673](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40932406581) passed and CI run [#949](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40932406304) was in progress. Each pushed batch starts a new exact-head gate; keep this item open until both required contexts pass together on the current head ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
 - [x] Align the active `Main branch protection` ruleset (ID `18234835`) with `CI / ci` and `Security / gitleaks`. GitHub API verification confirms the obsolete `Python checks`, `Directus hooks`, and `Foundry contracts` contexts were removed; pull-request/review, CODEOWNERS, thread-resolution, strict up-to-date, linear-history, deletion, force-push, and bypass settings remain. The separate active version-tag ruleset (ID `18234836`) was not changed ([settings audit](../github-actions.md#current-required-check-audit--14-october-2026)).
 - [x] Make encrypted checkpoints provider-aware: PostgreSQL-only backup/restore works without ClickHouse credentials or a running ClickHouse service; ClickHouse-enabled backup fails before creating partial artifacts if its service is unavailable, and restore preflights required services before database writes. The manifest explicitly records provider inclusion and exact archives; fake Compose acceptance covers both profiles and preflight ([evidence](builds/2026-10-14-recovery/provider-aware-backup-restore.json)).
 - [ ] Execute the reviewed cutover and retire dependencies only after the readiness gates close. The owner has approved cutover once ready; no gate may be skipped.
@@ -7343,6 +7343,30 @@ no database, provider, candidate, or legacy service was contacted. Evidence:
 [worker and projection checks](builds/2026-10-29-recovery/kernel-worker-input-and-competitive-projection.json).
 
 Checklist: 1,685 complete / 20 open (1,705 total); TODO: 370 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
+populated-data parity, and live provider gates remain open.
+
+### Source continuation — analytics and Ecocredit input contracts — 29 October 2026
+
+- [x] Replace the capability-dashboard wildcard with migration 207's exact
+  15-column projection while preserving the optional guild filter, bind, order,
+  and serialized row fields.
+- [x] Reject non-finite or negative Predictive BPM age/SLA values and require
+  the breach threshold to remain within 0–1, before opening PostgreSQL.
+- [x] Validate Ecocredit gRPC pagination limits locally across all nine list
+  methods; accept 0/1/500, reject malformed/out-of-range limits, and preserve
+  cursor bytes.
+
+Focused Python checks pass 20 tests, including two dashboard filter cases and
+the Predictive BPM invalid/valid numeric CLI cases. The TypeScript Ecocredit
+pagination suite passes 36 tests. Ruff, Python compilation, TypeScript
+`tsc --noEmit`, and diff checks pass. Mocks only; no database, provider, or
+live gRPC endpoint was contacted. Evidence:
+[analytics and Ecocredit input contracts](builds/2026-10-29-recovery/kernel-analytics-and-ecocredit-input-contracts.json).
+
+Checklist: 1,688 complete / 20 open (1,708 total); TODO: 373 checked / 16
 open (8 code work groups and 8 owner/environment gates). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,

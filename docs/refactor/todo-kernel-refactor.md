@@ -2800,3 +2800,15 @@ total 106.
 Checklist: 370 checked / 16 open (8 code work groups and 8 owner/environment
 gates remain). Capability acceptance remains partial; evidence is recorded in
 `batches.md` and the capability matrix.
+
+## Completed in the 29 October analytics and SDK continuation
+
+- [x] Replace the capability-dashboard wildcard with the migration-207
+  ordered view projection and verify guild filter/order/payload parity.
+- [x] Validate Predictive BPM CLI numbers before database acquisition,
+  retaining zero and threshold boundary values.
+- [x] Validate Ecocredit TypeScript gRPC list limits locally and keep cursor
+  forwarding unchanged.
+
+Checklist: 373 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/kernel-analytics-and-ecocredit-input-contracts.json`.

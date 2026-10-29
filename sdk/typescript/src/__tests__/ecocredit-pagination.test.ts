@@ -71,6 +71,47 @@ describe("EcocreditServiceClient pagination", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it.each(paginatedLists)(
+    "$method accepts the default and maximum page-size boundaries",
+    async ({ method, invoke, baseRequest }) => {
+      const client = new EcocreditServiceClient("127.0.0.1:50051");
+      const call = vi.spyOn(client as any, "_call").mockResolvedValue({});
+      const offset = Uint8Array.from([4, 5, 6]);
+
+      for (const [index, limit] of [0, 1, 500].entries()) {
+        await invoke(client, { limit, offset });
+        expect(call).toHaveBeenNthCalledWith(index + 1, method, {
+          ...baseRequest,
+          pagination: { limit, offset },
+        });
+      }
+
+      client.close();
+    },
+  );
+
+  it.each(paginatedLists)(
+    "$method rejects malformed or out-of-range limits before transport",
+    ({ invoke }) => {
+      const client = new EcocreditServiceClient("127.0.0.1:50051");
+      const call = vi.spyOn(client as any, "_call").mockResolvedValue({});
+
+      for (const limit of [
+        -1,
+        1.5,
+        Number.NaN,
+        Number.POSITIVE_INFINITY,
+        Number.NEGATIVE_INFINITY,
+        501,
+      ]) {
+        expect(() => invoke(client, { limit })).toThrow(RangeError);
+      }
+      expect(call).not.toHaveBeenCalled();
+
+      client.close();
+    },
+  );
+
+  it.each(paginatedLists)(
     "$method forwards cursor pagination",
     async ({ method, invoke, baseRequest }) => {
       const client = new EcocreditServiceClient("127.0.0.1:50051");

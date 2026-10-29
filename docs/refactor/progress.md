@@ -23866,5 +23866,26 @@ service was contacted. Evidence:
 Checklist: 1,685 complete / 20 open (1,705 total); TODO: 370 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
-remain 116. PR #71's latest pushed head is `572885d69190a28c34a8037cbc49ada8b26fe1d6`;
-Security #672 passed and CI #948 is in progress. New local work is not yet pushed.
+remain 116. Immediately before the current local analytics/SDK batch, PR #71 was
+at `2008977759ee16bea323b73fc9858b4213c33932`; Security #673 passed and CI
+#949 was in progress.
+
+### Progress addendum — analytics and Ecocredit input contracts — 29 October 2026
+
+The capability dashboard now names the exact 15 columns in migration 207's
+view, retaining its optional guild filter, stable ordering, and row conversion.
+Predictive BPM rejects NaN, infinities, and negative age/SLA values before
+database access; breach thresholds are finite and bounded to 0–1. The
+TypeScript Ecocredit client now validates page limits locally from 0 through
+500 across all nine list methods and preserves cursor bytes.
+
+The focused Python selection passes 20 tests; the TypeScript pagination suite
+passes 36. Ruff, Python compilation, `tsc --noEmit`, and diff checks pass.
+Mocks only; no database, provider, or live gRPC endpoint was used. Evidence:
+[analytics and Ecocredit checks](builds/2026-10-29-recovery/kernel-analytics-and-ecocredit-input-contracts.json).
+
+Checklist: 1,688 complete / 20 open (1,708 total); TODO: 373 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. These source checks do not close populated report parity, owner
+acceptance, or live provider/runtime gates.
