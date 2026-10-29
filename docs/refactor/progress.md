@@ -23939,3 +23939,18 @@ Checklist: 1,693 complete / 25 open (1,718 total); TODO: 378 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts remain
 116. Production/provider and populated-data gates remain open.
+
+### Progress addendum — Gateway OpenAPI operator-cookie security — 29 October 2026
+
+OpenAPI now declares the OIDC operator session cookie for every private
+`/operator/api/` operation plus authenticated session/logout. Public login,
+callback, operator landing, driver catalog, and health operations remain
+without the cookie requirement. Sixteen focused Gateway tests pass; Ruff,
+compilation, and diff checks pass. Only a synthetic OIDC provider was used.
+Evidence:
+[Gateway security](builds/2026-10-29-recovery/gateway-openapi-operator-cookie-security.json).
+
+Checklist: 1,694 complete / 25 open (1,719 total); TODO: 379 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.

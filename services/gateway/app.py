@@ -88,6 +88,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     from services.gateway.auth import verify_request
     from services.gateway.delphi_participant_routes import register_delphi_participant_routes
     from services.gateway.operator_auth import (
+        SESSION_COOKIE,
         OperatorAuthConfigurationError,
         auth_route_policy,
         authorize_auth_request,
@@ -564,6 +565,38 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
         ],
         allow_credentials=operator_provider is not None,
     )
+
+    original_openapi = app.openapi
+
+    def openapi_with_operator_session_security():
+        """Describe the middleware-enforced session cookie on private operator APIs."""
+        schema = app.openapi_schema or original_openapi()
+        security_schemes = schema.setdefault("components", {}).setdefault(
+            "securitySchemes", {}
+        )
+        security_schemes["OperatorSessionCookie"] = {
+            "type": "apiKey",
+            "in": "cookie",
+            "name": SESSION_COOKIE,
+            "description": "HTTP-only OIDC operator session cookie.",
+        }
+        for path, path_item in schema.get("paths", {}).items():
+            for method, operation in path_item.items():
+                method = method.lower()
+                if method not in {"get", "post", "put", "patch", "delete"}:
+                    continue
+                private_operator_api = path.startswith("/operator/api/")
+                private_auth_session = (
+                    (path == "/operator/auth/session" and method == "get")
+                    or (path == "/operator/auth/logout" and method == "post")
+                )
+                if private_operator_api or private_auth_session:
+                    operation["security"] = [{"OperatorSessionCookie": []}]
+
+        app.openapi_schema = schema
+        return schema
+
+    app.openapi = openapi_with_operator_session_security
 
     logger.info("Gateway application created")
     return app

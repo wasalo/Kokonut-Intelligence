@@ -2840,3 +2840,11 @@ Checklist: 377 checked / 16 open. Evidence:
 
 Checklist: 378 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/stream-processor-batch-size-preflight.json`.
+
+## Completed in the 29 October Gateway OpenAPI security continuation
+
+- [x] Document the session-cookie requirement for private operator APIs and
+  authenticated session/logout endpoints while preserving public auth flows.
+
+Checklist: 379 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/gateway-openapi-operator-cookie-security.json`.

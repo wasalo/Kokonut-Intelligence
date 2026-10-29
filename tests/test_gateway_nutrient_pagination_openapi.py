@@ -87,6 +87,51 @@ def test_openapi_pagination_contract_matches_nutrient_service_limit(
     assert offset["schema"]["default"] == 0
 
 
+def test_openapi_declares_operator_cookie_only_on_authenticated_operations(
+    isolated_gateway,
+):
+    app, _location_id = isolated_gateway
+    schema = app.openapi()
+    cookie_scheme = schema["components"]["securitySchemes"]["OperatorSessionCookie"]
+
+    assert cookie_scheme == {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "kokonut_operator_session",
+        "description": "HTTP-only OIDC operator session cookie.",
+    }
+    for path, _service_path in PAGINATED_ROUTES:
+        assert schema["paths"][path]["get"]["security"] == [
+            {"OperatorSessionCookie": []}
+        ]
+    for path, path_item in schema["paths"].items():
+        if path.startswith("/operator/api/"):
+            for method, operation in path_item.items():
+                if method in {"get", "post", "put", "patch", "delete"}:
+                    assert operation["security"] == [
+                        {"OperatorSessionCookie": []}
+                    ]
+
+    private_auth_operations = (
+        ("/operator/auth/session", "get"),
+        ("/operator/auth/logout", "post"),
+    )
+    for path, method in private_auth_operations:
+        assert schema["paths"][path][method]["security"] == [
+            {"OperatorSessionCookie": []}
+        ]
+
+    public_operations = (
+        ("/operator/auth/login", "get"),
+        ("/operator/auth/callback", "get"),
+        ("/operator/", "get"),
+        ("/api/drivers", "get"),
+        ("/health", "get"),
+    )
+    for path, method in public_operations:
+        assert "security" not in schema["paths"][path][method]
+
+
 @pytest.mark.parametrize("path_template, service_path", PAGINATED_ROUTES)
 @pytest.mark.parametrize("limit", [0, 51])
 def test_invalid_limit_is_rejected_before_service_access(
