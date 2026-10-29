@@ -23017,6 +23017,26 @@ open. The capability matrix remains 67 rows (24 baseline-retained,
 7 deployed, 36 prepared), with 95 strict private Gateway response contracts;
 MAN-CAP acceptance and classifications are unchanged.
 
+### Progress addendum — wellbeing, governance, and scaling projections — 29 October 2026
+
+Four additional report queries now use complete, migration-grounded public
+projections: network scaling, governance inclusion, EBF scorecard summaries,
+and financial sustainability. Existing network-shared rows, location/date
+filters, ordering, report payloads, and aggregates remain covered by synthetic
+mock regressions.
+
+The focused selection passes 4 tests. Ruff, Python compilation, the three
+report inventories, capability-matrix validation, and diff checks pass. No
+database, migration, candidate, provider, legacy service, or production
+resource was used. These checks do not establish content privacy, populated
+data parity, live OIDC, or tenant isolation. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-parallel-report-projection-batch-2.json).
+
+Checklist: 1,571 complete / 25 open (1,596 total); TODO: 270 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 98 strict private Gateway response contracts;
+MAN-CAP acceptance and classifications are unchanged.
+
 ### Progress addendum — operations reports and governance summary contract — 28 October 2026
 
 The private location-governance summary now has an exact OpenAPI/runtime

@@ -131,7 +131,22 @@ def generate_governance_inclusion(
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   dao_proposal_id,
+                   observation_date,
+                   governance_body,
+                   inclusion_scope,
+                   represented_groups,
+                   missing_groups,
+                   pseudonymous_participation_enabled,
+                   marginalized_voice_count,
+                   total_participant_count,
+                   representation_coverage_pct,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_governance_inclusion_summary
             WHERE (location_id = %s OR location_id IS NULL)
               AND (%s::date IS NULL OR observation_date >= %s::date)

@@ -36,7 +36,7 @@
       "callable": "generate_adoption_barriers",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 80,
+      "source_line": 99,
       "parameters": [
         "conn",
         "location_id",
@@ -333,7 +333,7 @@
       "callable": "generate_capital_efficiency",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 282,
+      "source_line": 318,
       "parameters": [
         "conn",
         "location_id",
@@ -506,7 +506,7 @@
       "callable": "generate_dao_proposal_history",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 372,
+      "source_line": 408,
       "parameters": [
         "conn",
         "location_id",
@@ -680,7 +680,7 @@
       "callable": "generate_financial_sustainability",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 141,
+      "source_line": 157,
       "parameters": [
         "conn",
         "location_id",
@@ -831,7 +831,7 @@
       "callable": "generate_governance_throughput",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 332,
+      "source_line": 368,
       "parameters": [
         "conn",
         "location_id",
@@ -852,7 +852,7 @@
       "callable": "generate_green_paper_publication_status",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 249,
+      "source_line": 285,
       "parameters": [
         "conn",
         "location_id",
@@ -873,7 +873,7 @@
       "callable": "generate_holistic_wellbeing",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 67,
+      "source_line": 83,
       "parameters": [
         "conn",
         "location_id",
@@ -895,7 +895,7 @@
       "callable": "generate_land_stewardship",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 164,
+      "source_line": 179,
       "parameters": [
         "conn",
         "location_id",
@@ -961,7 +961,7 @@
       "callable": "generate_open_source_impact",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 162,
+      "source_line": 181,
       "parameters": [
         "conn",
         "location_id",
@@ -1069,7 +1069,7 @@
       "callable": "generate_perpetual_value_stress",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 118,
+      "source_line": 137,
       "parameters": [
         "conn",
         "location_id",
@@ -1437,7 +1437,7 @@
       "callable": "generate_risk_mitigation",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 178,
+      "source_line": 214,
       "parameters": [
         "conn",
         "location_id",
@@ -1480,7 +1480,7 @@
       "callable": "generate_scaling_roadmap",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 215,
+      "source_line": 251,
       "parameters": [
         "conn",
         "location_id",

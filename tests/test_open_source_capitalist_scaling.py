@@ -365,6 +365,51 @@ def test_perpetual_value_stress_rejects_missing_location_before_database_access(
 
 
 def test_scaling_economics_network_scope_includes_network_targets() -> None:
+    expected_target_columns = [
+        "id",
+        "target_name",
+        "target_region",
+        "farm_model",
+        "target_date",
+        "target_farm_count",
+        "target_hectares",
+        "target_beneficiary_count",
+        "capital_required_usd",
+        "capital_required_per_farm_usd",
+        "expected_public_goods_value_usd",
+        "expected_verification_outputs",
+        "readiness_score",
+        "dependency_summary",
+        "risk_gate_summary",
+        "target_status",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    ]
+    target = {
+        "id": "target-1",
+        "target_name": "Caribbean expansion",
+        "target_region": "Caribbean",
+        "farm_model": "agroforestry",
+        "target_date": None,
+        "target_farm_count": 4,
+        "target_hectares": 80,
+        "target_beneficiary_count": 120,
+        "capital_required_usd": 120000,
+        "capital_required_per_farm_usd": 30000,
+        "expected_public_goods_value_usd": 50000,
+        "expected_verification_outputs": ["annual audit"],
+        "readiness_score": 0.8,
+        "dependency_summary": "Land access and training",
+        "risk_gate_summary": "Independent review",
+        "target_status": "planned",
+        "public_summary": "Synthetic public planning target",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "field_validated",
+        "metadata": {"fixture": True},
+    }
+
     class Cursor:
         def __init__(self, queries):
             self.queries = queries
@@ -375,7 +420,7 @@ def test_scaling_economics_network_scope_includes_network_targets() -> None:
         def fetchall(self):
             if len(self.queries) == 1:
                 return [{"total_launch_cost_usd": 60000, "planned_farm_count": 2}]
-            return [{"capital_required_usd": 120000, "target_farm_count": 4}]
+            return [target]
 
         def close(self):
             pass
@@ -388,14 +433,28 @@ def test_scaling_economics_network_scope_includes_network_targets() -> None:
             return Cursor(self.queries)
 
     conn = Conn()
-    report = generate_scaling_economics(conn, "all")
+    report = generate_scaling_economics(
+        conn, "all", period_start="2026-01-01", period_end="2026-12-31"
+    )
 
     assert report["scope"] == "network"
     assert report["location_id"] is None
     assert report["total_target_capital_usd"] == 120000
     assert report["target_farm_count"] == 4
     assert len(conn.queries) == 2
-    assert "v_public_network_scaling_target" in conn.queries[1][0]
+    query, params = conn.queries[1]
+    normalized_query = " ".join(query.split())
+    projection = re.search(
+        r"SELECT (.*?) FROM v_public_network_scaling_target", normalized_query
+    )
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == expected_target_columns
+    assert "WHERE (%s::date IS NULL OR target_date >= %s::date)" in normalized_query
+    assert "(%s::date IS NULL OR target_date <= %s::date)" in normalized_query
+    assert "ORDER BY target_date, target_name" in normalized_query
+    assert params == ("2026-01-01", "2026-01-01", "2026-12-31", "2026-12-31")
+    assert report["network_targets"] == [target]
+    assert report["total_target_capital_usd"] == 120000
 
 
 @pytest.mark.parametrize("location_id", ["", "x", "not-a-uuid", "all,location"])

@@ -1,5 +1,6 @@
 """Financial resilience, risk mitigation, scaling, and publication status tests."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -205,6 +206,101 @@ def test_financial_resilience_report_generators_public_safe() -> None:
     assert generate_risk_mitigation(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "risk_mitigation"
     assert generate_scaling_roadmap(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "scaling_roadmap"
     assert generate_green_paper_publication_status(conn, None)["report_type"] == "green_paper_publication_status"
+
+
+def test_financial_sustainability_uses_exact_public_projection_and_preserves_scope_payload() -> None:
+    columns = [
+        "id",
+        "location_id",
+        "farm_id",
+        "plan_name",
+        "farm_model",
+        "plan_period_start",
+        "plan_period_end",
+        "revenue_streams",
+        "grant_dependency_pct",
+        "reinvestment_pct",
+        "public_goods_allocation_pct",
+        "break_even_month",
+        "runway_months",
+        "projected_annual_revenue_usd",
+        "projected_annual_operating_cost_usd",
+        "projected_annual_noi_usd",
+        "sustainability_status",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    plan = {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "location_id": location_id,
+        "farm_id": "00000000-0000-4000-8000-000000000002",
+        "plan_name": "Adelphi transition plan",
+        "farm_model": "agroforestry",
+        "plan_period_start": "2026-01-01",
+        "plan_period_end": "2026-12-31",
+        "revenue_streams": ["produce", "training"],
+        "grant_dependency_pct": 20.0,
+        "reinvestment_pct": 35.0,
+        "public_goods_allocation_pct": 10.0,
+        "break_even_month": 8,
+        "runway_months": 18.0,
+        "projected_annual_revenue_usd": 125000.0,
+        "projected_annual_operating_cost_usd": 90000.0,
+        "projected_annual_noi_usd": 35000.0,
+        "sustainability_status": "transitioning",
+        "public_summary": "Reviewed public financial sustainability plan.",
+        "evidence_maturity": 4,
+        "evidence_maturity_label": "Verified",
+        "metadata": {"reviewed": True},
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [plan] if "v_public_financial_sustainability_summary" in self.current_query else []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_financial_sustainability(
+        conn, location_id, period_start="2026-01-01", period_end="2026-12-31"
+    )
+
+    query, params = conn.cursor_value.calls[1]
+    projection = re.search(
+        r"SELECT (.*?) FROM v_public_financial_sustainability_summary", query
+    )
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
+    assert "WHERE location_id = %s" in query
+    assert "plan_period_start >= %s::date" in query
+    assert "plan_period_end IS NULL OR plan_period_end <= %s::date" in query
+    assert "ORDER BY plan_period_start DESC, plan_name" in query
+    assert params == (location_id, "2026-01-01", "2026-01-01", "2026-12-31", "2026-12-31")
+    assert report["location_id"] == location_id
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["plans"] == [plan]
 
 
 def test_green_paper_status_projects_public_view_columns_and_preserves_rows() -> None:

@@ -1,5 +1,7 @@
 # Capability preservation matrix
 
+**Latest parallel report-projection batch — wellbeing, governance, and scaling (29 October 2026):** network-scaling targets, governance inclusion, EBF scorecards, and financial-sustainability reports now select their complete migration-defined public-view columns. Focused mocked checks pass 4 tests; Ruff, compilation, all three report inventories, matrix validation, and diff checks pass. Existing location/date filters, network-shared rows, ordering, and output aggregates are preserved. No database/provider or candidate was used. These source checks do not establish populated-data parity, content privacy, OIDC, or tenant isolation ([evidence](builds/2026-10-29-recovery/kernel-parallel-report-projection-batch-2.json)). Checklist: 1,571 complete / 25 open (1,596 total); TODO: 270 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts remain 98. MAN-CAP acceptance is unchanged.
+
 **Latest parallel C2/C5 operations, Gateway, and SDK batch — 28 October 2026:**
 the governance tactical-session page now has an exact location-bound response
 contract, bounded cursor validation, and sanitized no-store failure behavior.

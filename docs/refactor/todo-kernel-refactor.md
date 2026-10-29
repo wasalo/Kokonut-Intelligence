@@ -2260,3 +2260,25 @@ Checklist: 1,567 complete / 25 open (1,592 total); TODO: 266 checked / 16
 open. The capability matrix remains 67 rows (24 baseline-retained,
 7 deployed, 36 prepared), with 98 strict private Gateway response contracts.
 MAN-CAP acceptance and classifications remain unchanged.
+
+### Latest local continuation — wellbeing, governance, and scaling projections — 29 October 2026
+
+- [x] Replace the network-scaling target wildcard with the exact 20-column
+  public-view projection; preserve date bounds, network scope, and totals.
+- [x] Replace governance-inclusion `SELECT *` with all 16 public-view columns
+  while retaining shared null-location observations and report aggregates.
+- [x] Replace the EBF scorecard summary wildcard with its 17-column view
+  projection and preserve the pillar payload.
+- [x] Replace financial-sustainability `SELECT *` with all 21 public-view
+  fields and preserve its location/date filters and payload.
+
+The focused mocked selection passes 4 tests. Ruff, compilation, all three
+report inventories, capability-matrix validation, and diff checks pass. No
+database, provider, candidate, legacy service, or production resource was
+used. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-parallel-report-projection-batch-2.json).
+
+Checklist: 1,571 complete / 25 open (1,596 total); TODO: 270 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 98. MAN-CAP acceptance is unchanged.

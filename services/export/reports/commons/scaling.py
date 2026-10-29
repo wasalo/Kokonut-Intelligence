@@ -37,7 +37,26 @@ def generate_scaling_economics(conn, location_id: str = None, period_start: str 
         if network_scope:
             cur.execute(
                 """
-                SELECT *
+                SELECT id,
+                       target_name,
+                       target_region,
+                       farm_model,
+                       target_date,
+                       target_farm_count,
+                       target_hectares,
+                       target_beneficiary_count,
+                       capital_required_usd,
+                       capital_required_per_farm_usd,
+                       expected_public_goods_value_usd,
+                       expected_verification_outputs,
+                       readiness_score,
+                       dependency_summary,
+                       risk_gate_summary,
+                       target_status,
+                       public_summary,
+                       evidence_maturity,
+                       evidence_maturity_label,
+                       metadata
                 FROM v_public_network_scaling_target
                 WHERE (%s::date IS NULL OR target_date >= %s::date)
                   AND (%s::date IS NULL OR target_date <= %s::date)

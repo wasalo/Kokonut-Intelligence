@@ -384,16 +384,74 @@ def test_governance_inclusion_requires_location_before_database_access(location_
 
 
 def test_governance_inclusion_keeps_selected_location_and_global_rows() -> None:
+    columns = [
+        "id",
+        "location_id",
+        "dao_proposal_id",
+        "observation_date",
+        "governance_body",
+        "inclusion_scope",
+        "represented_groups",
+        "missing_groups",
+        "pseudonymous_participation_enabled",
+        "marginalized_voice_count",
+        "total_participant_count",
+        "representation_coverage_pct",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    observations = [
+        {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "location_id": location_id,
+            "dao_proposal_id": None,
+            "observation_date": "2026-09-01",
+            "governance_body": "Kokonut DAO",
+            "inclusion_scope": "proposal_participation",
+            "represented_groups": ["farmers", "guild_members"],
+            "missing_groups": ["youth"],
+            "pseudonymous_participation_enabled": True,
+            "marginalized_voice_count": 2,
+            "total_participant_count": 8,
+            "representation_coverage_pct": 75.0,
+            "public_summary": "Reviewed location-level participation summary.",
+            "evidence_maturity": 4,
+            "evidence_maturity_label": "Reviewed",
+            "metadata": {"reviewed": True},
+        },
+        {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "location_id": None,
+            "dao_proposal_id": None,
+            "observation_date": "2026-08-01",
+            "governance_body": "Kokonut Network",
+            "inclusion_scope": "network_wide",
+            "represented_groups": ["community"],
+            "missing_groups": [],
+            "pseudonymous_participation_enabled": False,
+            "marginalized_voice_count": 0,
+            "total_participant_count": 12,
+            "representation_coverage_pct": 100.0,
+            "public_summary": "Reviewed network-level participation summary.",
+            "evidence_maturity": 3,
+            "evidence_maturity_label": "Field validated",
+            "metadata": {"network_shared": True},
+        },
+    ]
+
     class Cursor:
         query = None
         params = None
 
         def execute(self, query, params):
-            self.query = query
+            self.query = " ".join(query.split())
             self.params = params
 
         def fetchall(self):
-            return []
+            return observations
 
         def close(self):
             pass
@@ -406,13 +464,24 @@ def test_governance_inclusion_keeps_selected_location_and_global_rows() -> None:
             return self.cursor_value
 
     conn = Conn()
-    location_id = "a0000000-0000-0000-0000-000000000001"
-
-    report = generate_governance_inclusion(conn, location_id)
+    report = generate_governance_inclusion(
+        conn, location_id, period_start="2026-08-01", period_end="2026-09-30"
+    )
 
     assert report["location_id"] == location_id
+    projection = re.search(
+        r"SELECT (.*?) FROM v_public_governance_inclusion_summary",
+        conn.cursor_value.query,
+    )
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
     assert "WHERE (location_id = %s OR location_id IS NULL)" in conn.cursor_value.query
-    assert conn.cursor_value.params == (location_id, None, None, None, None)
+    assert "observation_date >= %s::date" in conn.cursor_value.query
+    assert "observation_date <= %s::date" in conn.cursor_value.query
+    assert "ORDER BY observation_date DESC, governance_body" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id, "2026-08-01", "2026-08-01", "2026-09-30", "2026-09-30")
+    assert report["observations"] == observations
+    assert report["pseudonymous_participation_enabled_count"] == 1
 
 
 if __name__ == "__main__":

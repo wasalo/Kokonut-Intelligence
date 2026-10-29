@@ -21,7 +21,23 @@ def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, per
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT scorecard_id,
+                   location_id,
+                   location_name,
+                   farm_id,
+                   farm_name,
+                   period_start,
+                   period_end,
+                   overall_score,
+                   overall_confidence,
+                   rubric_version,
+                   evidence_maturity_level,
+                   evidence_maturity_label,
+                   pillar_count,
+                   public_safe_pillar_count,
+                   min_pillar_evidence_maturity,
+                   max_pillar_evidence_maturity,
+                   caveat
             FROM v_public_ebf_scorecard_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR period_start >= %s::date)
@@ -149,7 +165,27 @@ def generate_financial_sustainability(conn, location_id: str, period_start: str 
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   plan_name,
+                   farm_model,
+                   plan_period_start,
+                   plan_period_end,
+                   revenue_streams,
+                   grant_dependency_pct,
+                   reinvestment_pct,
+                   public_goods_allocation_pct,
+                   break_even_month,
+                   runway_months,
+                   projected_annual_revenue_usd,
+                   projected_annual_operating_cost_usd,
+                   projected_annual_noi_usd,
+                   sustainability_status,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_financial_sustainability_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR plan_period_start >= %s::date)
