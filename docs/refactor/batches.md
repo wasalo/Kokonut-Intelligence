@@ -7715,3 +7715,69 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts now
 total 124. C2/C4/C5, populated-data parity, and live provider gates remain
 open.
+
+### Source continuation — contracts and analytics projections acceptance — 29 October 2026
+
+- [x] Pin `list_parties` to migration 316's exact 11-column projection and
+  correct the optional status filter to use `party_status`.
+- [x] Preflight prediction CLI UUIDs, timezone-aware timestamps, text bounds,
+  and finite `NUMERIC(20,8)` outcome values before database acquisition.
+- [x] Add strict migration-backed create/replay response schemas and request
+  binding for Delphi study drafts, consent notices, and consent decisions.
+- [x] Pin the internal governance cockpit, strategy execution dashboard, and
+  stakeholder representation/equity readers to their migration-defined views.
+- [x] Pin both stakeholder-decision lineage readers to migration 229's exact
+  26-column contract without changing filters or ordering.
+- [x] Add a strict four-field Delphi recommendation-draft response schema,
+  bind its study ID to the route, and preserve current lifecycle/replay status.
+- [x] Pin governance circle links, circle and role registries, role
+  assignments, tactical-session health, and strategy execution to their exact
+  migration-defined view columns without changing filters, sorting, or row
+  shape.
+- [x] Refresh the Directus permission and report-helper source inventories
+  after PR #71 CI identified stale snapshots; the runtime SQL inventory is
+  refreshed alongside the current projection changes.
+- [x] Add/run the focused migration-316 stakeholder-list filter/projection
+  regression.
+- [x] Add/run prediction CLI preflight regressions for UUID, timestamp,
+  numeric, and text bounds.
+- [x] Add/run Delphi study-draft create/replay OpenAPI and response-binding
+  regressions.
+- [x] Add/run Delphi consent create/replay and decision response regressions.
+- [x] Add/run the internal governance-cockpit migration-249 projection
+  regression.
+- [x] Add/run the strategy execution migration-208 projection regression.
+- [x] Add/run stakeholder representation/equity projection regressions and
+  record grouped evidence.
+- [x] Add/run migration-229 stakeholder-decision reader projection checks.
+- [x] Add/run Delphi recommendation-draft OpenAPI, binding, lifecycle, and
+  malformed-response checks.
+- [x] Add/run focused mock-cursor checks for governance link/registry,
+  assignment, tactical-session, and strategy-execution projections.
+
+The hosted CI run on PR #71 head `16315d832fe3fa4424c87e1d860a9055f97a09aa`
+failed only the Directus permission-source and report-helper-scope inventory
+freshness gates; Security passed. Both snapshots have been regenerated, and
+their local freshness checks plus the runtime SQL inventory gate pass
+([CI diagnosis and refresh](builds/2026-10-29-recovery/ci-40949871199-inventory-refresh.json)).
+The source projections were reviewed against migrations 316, 208, 249,
+219/220, 242/243/247/248, and 260. The grouped offline selection passes 173
+tests across the Delphi study/consent/recommendation routes, prediction CLI,
+and migration-backed analytics projections. Ruff, Python compilation,
+capability validation, all three relevant inventory freshness checks, and
+`git diff --check` pass. Tests use synthetic rows, mocked connections, and a
+synthetic OIDC provider; no database, candidate, legacy service, or external
+provider was used. The earlier hosted CI inventory failure is repaired in
+the refreshed snapshots; a fresh hosted CI run is still required after push.
+Evidence: [grouped contract and projection checks](builds/2026-10-29-recovery/kernel-next-contract-projection-checks.json).
+
+The parallel C1 audit found no additional safe grant revocation without
+caller/ownership reconciliation. Migration 682 remains the last source-reviewed
+table boundary; refresh the ACL/source snapshot before selecting another write
+boundary.
+
+Checklist: 1,749 complete / 25 open (1,774 total); TODO: 425 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 128. C2/C4/C5, populated-data parity, and live provider gates remain
+open.

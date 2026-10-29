@@ -14,8 +14,15 @@ def _row(row: Any) -> Optional[Dict[str, Any]]:
 
 
 def internal_cockpit(conn) -> Dict[str, Any]:
+    projection = (
+        "active_circle_count, active_role_count, unassigned_role_count, "
+        "overdue_assignment_review_count, unresolved_tension_count, "
+        "high_severity_tension_count, proposals_awaiting_review_count, "
+        "open_objection_count, material_objection_count, links_expiring_soon_count, "
+        "overdue_tactical_item_count, open_tactical_item_count, generated_at"
+    )
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_governance_cockpit_internal")
+        cur.execute(f"SELECT {projection} FROM v_governance_cockpit_internal")
         return _row(cur.fetchone()) or {}
 
 

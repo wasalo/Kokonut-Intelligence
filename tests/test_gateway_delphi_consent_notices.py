@@ -307,14 +307,14 @@ def test_create_notice_route_requires_exact_fields_and_returns_private_response(
         "version": "v1",
         "status": "submitted",
         "notice_digest": "ab" * 32,
-        "created_at": "2026-10-25T12:00:00+00:00",
+        "created_at": "2026-10-28T12:00:00Z",
         "replayed": False,
-        "collection_scopes": ["questionnaire_responses"],
     }
+    service_result = {**expected, "created_at": CREATED_AT}
 
     async def run_in_threadpool(func, *args, **kwargs):
         calls.append((func, args, kwargs))
-        return expected
+        return service_result
 
     response = TestClient(_app(object(), run_in_threadpool)).post(
         f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/consent-notices",
@@ -334,6 +334,129 @@ def test_create_notice_route_requires_exact_fields_and_returns_private_response(
         "notice_text": "A notice.",
         "collection_scopes": ["questionnaire_responses"],
         "request_id": REQUEST_ID,
+    }
+
+
+def test_create_notice_route_reports_replay_after_later_notice_review():
+    service_result = {
+        "notice_id": NOTICE_ID,
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "version": "v1",
+        "status": "approved",
+        "notice_digest": "ab" * 32,
+        "created_at": CREATED_AT,
+        "replayed": True,
+    }
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return service_result
+
+    response = TestClient(_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/consent-notices",
+        json={
+            "request_id": REQUEST_ID,
+            "version": "v1",
+            "notice_text": "A notice.",
+            "collection_scopes": ["questionnaire_responses"],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        **service_result,
+        "created_at": CREATED_AT.isoformat().replace("+00:00", "Z"),
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+@pytest.mark.parametrize(
+    "service_result",
+    [
+        {"notice_id": NOTICE_ID},
+        {
+            "notice_id": NOTICE_ID,
+            "location_id": LOCATION_ID,
+            "study_id": STUDY_ID,
+            "version": "v1",
+            "status": "submitted",
+            "notice_digest": "invalid",
+            "created_at": CREATED_AT,
+            "replayed": False,
+        },
+        {
+            "notice_id": NOTICE_ID,
+            "location_id": LOCATION_ID,
+            "study_id": STUDY_ID,
+            "version": "v1",
+            "status": "approved",
+            "notice_digest": "ab" * 32,
+            "created_at": CREATED_AT,
+            "replayed": False,
+        },
+        {
+            "notice_id": NOTICE_ID,
+            "location_id": str(uuid4()),
+            "study_id": STUDY_ID,
+            "version": "v1",
+            "status": "submitted",
+            "notice_digest": "ab" * 32,
+            "created_at": CREATED_AT,
+            "replayed": False,
+            "private_internal": "must not leak",
+        },
+    ],
+)
+def test_create_notice_route_sanitizes_malformed_service_response(service_result):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return service_result
+
+    response = TestClient(_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/consent-notices",
+        json={
+            "request_id": REQUEST_ID,
+            "version": "v1",
+            "notice_text": "A notice.",
+            "collection_scopes": ["questionnaire_responses"],
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi consent notice service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private_internal" not in response.text
+
+
+def test_consent_create_and_decision_openapi_publish_exact_response_fields():
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("OpenAPI inspection must not call the service")
+
+    app = _app(object(), run_in_threadpool)
+    schema_doc = app.openapi()
+    paths = schema_doc["paths"]
+    create = paths[
+        "/operator/api/delphi/{location_id}/studies/{study_id}/consent-notices"
+    ]["post"]
+    decision = paths[
+        "/operator/api/delphi/{location_id}/consent-notices/{notice_id}/decision"
+    ]["post"]
+
+    def properties(operation, status):
+        ref = operation["responses"][status]["content"]["application/json"]["schema"]["$ref"]
+        component = schema_doc["components"]["schemas"][ref.rsplit("/", 1)[1]]
+        assert component["additionalProperties"] is False
+        return set(component["properties"])
+
+    assert properties(create, "201") == {
+        "notice_id", "location_id", "study_id", "version", "status",
+        "notice_digest", "created_at", "replayed",
+    }
+    assert properties(create, "200") == properties(create, "201")
+    assert properties(decision, "200") == {
+        "decision_id", "notice_id", "study_id", "decision", "status",
+        "decided_at", "replayed",
     }
 
 
@@ -382,13 +505,14 @@ def test_review_decision_route_uses_session_and_no_store():
         "study_id": STUDY_ID,
         "decision": "approve",
         "status": "approved",
-        "decided_at": "2026-10-25T12:00:00+00:00",
+        "decided_at": CREATED_AT.isoformat().replace("+00:00", "Z"),
         "replayed": False,
     }
+    service_result = {**expected, "decided_at": CREATED_AT}
 
     async def run_in_threadpool(func, *args, **kwargs):
         calls.append((func, args, kwargs))
-        return expected
+        return service_result
 
     response = TestClient(_app(object(), run_in_threadpool)).post(
         f"/operator/api/delphi/{LOCATION_ID}/consent-notices/{NOTICE_ID}/decision",
@@ -406,6 +530,51 @@ def test_review_decision_route_uses_session_and_no_store():
         "reason_code": "approved_after_independent_review",
     }
     assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "service_result",
+    [
+        {"decision_id": REQUEST_ID},
+        {
+            "decision_id": REQUEST_ID,
+            "notice_id": NOTICE_ID,
+            "study_id": STUDY_ID,
+            "decision": "approve",
+            "status": "rejected",
+            "decided_at": CREATED_AT,
+            "replayed": False,
+        },
+        {
+            "decision_id": REQUEST_ID,
+            "notice_id": str(uuid4()),
+            "study_id": STUDY_ID,
+            "decision": "approve",
+            "status": "approved",
+            "decided_at": CREATED_AT,
+            "replayed": False,
+            "private_internal": "must not leak",
+        },
+    ],
+)
+def test_consent_decision_route_sanitizes_malformed_service_response(service_result):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return service_result
+
+    response = TestClient(_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/consent-notices/{NOTICE_ID}/decision",
+        json={
+            "decision": "approve",
+            "request_id": REQUEST_ID,
+            "reason_code": "approved_after_independent_review",
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi consent notice service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private_internal" not in response.text
 
 
 def test_notice_routes_are_hidden_when_oidc_is_disabled():

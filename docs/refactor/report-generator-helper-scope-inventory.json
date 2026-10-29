@@ -979,12 +979,6 @@
           "depth": 4
         },
         {
-          "caller": "services/analytics/strategy_execution.py:dashboard",
-          "callee": "services/analytics/strategy_execution.py:_clean",
-          "line": 31,
-          "depth": 4
-        },
-        {
           "caller": "services/analytics/competitive_report.py:report",
           "callee": "services/analytics/competitive_report.py:_clean",
           "line": 36,
@@ -997,21 +991,27 @@
           "depth": 4
         },
         {
-          "caller": "services/analytics/competitive_report.py:report",
-          "callee": "services/analytics/competitive_report.py:_clean",
+          "caller": "services/analytics/strategy_execution.py:dashboard",
+          "callee": "services/analytics/strategy_execution.py:_clean",
           "line": 40,
-          "depth": 4
-        },
-        {
-          "caller": "services/analytics/competitive_report.py:report",
-          "callee": "services/analytics/competitive_report.py:health",
-          "line": 41,
           "depth": 4
         },
         {
           "caller": "services/planning/sandop.py:cockpit",
           "callee": "services/planning/sandop.py:_rows",
           "line": 43,
+          "depth": 4
+        },
+        {
+          "caller": "services/analytics/competitive_report.py:report",
+          "callee": "services/analytics/competitive_report.py:_clean",
+          "line": 46,
+          "depth": 4
+        },
+        {
+          "caller": "services/analytics/competitive_report.py:report",
+          "callee": "services/analytics/competitive_report.py:health",
+          "line": 47,
           "depth": 4
         },
         {
@@ -1029,7 +1029,7 @@
         {
           "caller": "services/analytics/strategy_coherence.py:list_findings",
           "callee": "services/analytics/strategy_coherence.py:_clean",
-          "line": 114,
+          "line": 119,
           "depth": 4
         },
         {
@@ -1185,7 +1185,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 632,
+          "line": 643,
           "relations": [
             "market_listing"
           ],
@@ -1211,7 +1211,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 645,
+          "line": 656,
           "relations": [
             "crop",
             "market_listing"
@@ -1238,7 +1238,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 661,
+          "line": 672,
           "relations": [
             "crop",
             "price_observation"
@@ -1265,7 +1265,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 678,
+          "line": 689,
           "relations": [
             "market_listing",
             "market_order"
@@ -1292,7 +1292,7 @@
         {
           "source_file": "services/analytics/strategy_coherence.py",
           "callable": "list_findings",
-          "line": 113,
+          "line": 118,
           "relations": [
             "strategy_coherence_finding"
           ],
@@ -9472,19 +9472,19 @@
         {
           "caller": "services/analytics/strategy_execution.py:dashboard",
           "callee": "services/analytics/strategy_execution.py:_clean",
-          "line": 31,
+          "line": 40,
           "depth": 2
         },
         {
           "caller": "services/analytics/strategy_map.py:get_perspective_summary",
           "callee": "services/analytics/strategy_map.py:_conn",
-          "line": 319,
+          "line": 325,
           "depth": 2
         },
         {
           "caller": "services/analytics/strategy_map.py:get_perspective_summary",
           "callee": "services/analytics/strategy_map.py:_row_to_dict",
-          "line": 335,
+          "line": 341,
           "depth": 2
         },
         {
@@ -9699,7 +9699,7 @@
         {
           "source_file": "services/analytics/strategy_map.py",
           "callable": "get_perspective_summary",
-          "line": 321,
+          "line": 327,
           "relations": [
             "strategy_map"
           ],
@@ -10367,13 +10367,13 @@
         {
           "caller": "services/analytics/value_stream_defs.py:get_stream_summary",
           "callee": "services/analytics/value_stream_defs.py:_conn",
-          "line": 284,
+          "line": 289,
           "depth": 2
         },
         {
           "caller": "services/analytics/value_stream_defs.py:get_stream_summary",
           "callee": "services/analytics/value_stream_defs.py:_row_to_dict",
-          "line": 289,
+          "line": 297,
           "depth": 2
         },
         {
@@ -10388,7 +10388,7 @@
         {
           "source_file": "services/analytics/value_stream_defs.py",
           "callable": "get_stream_summary",
-          "line": 286,
+          "line": 291,
           "relations": [
             "v_value_stream_summary"
           ],

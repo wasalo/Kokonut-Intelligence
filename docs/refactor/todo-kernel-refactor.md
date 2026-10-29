@@ -2984,3 +2984,44 @@ contracts: 123.
 Checklist: 408 checked / 16 open. Capability matrix: 67 rows; 24
 baseline-retained, 7 deployed, 36 prepared. Strict private Gateway response
 contracts: 124.
+
+## Completed — contracts and analytics projection acceptance, 29 October
+
+- [x] Pin the stakeholder landscape reader to migration 316's ordered columns
+  and fix its status alias.
+- [x] Preflight prediction CLI UUIDs, aware timestamps, bounded text, and
+  `NUMERIC(20,8)` values before opening PostgreSQL.
+- [x] Add strict, request-bound Delphi study draft and consent create/replay/
+  decision response contracts.
+- [x] Pin internal governance, strategy execution, stakeholder representation,
+  and equity view projections to their migration contracts.
+- [x] Pin both stakeholder-decision lineage reads to migration 229's
+  projection and bind Delphi recommendation-draft output to its strict schema
+  and requested study.
+- [x] Pin governance link/registry/assignment, tactical health, and strategy
+  execution reads to their migration-defined projections.
+- [x] Refresh stale Directus permission and report-helper source inventories
+  identified by PR #71 CI; local freshness gates now pass.
+- [x] Test the migration-316 stakeholder list projection and status filter.
+- [x] Test prediction CLI UUID/date/numeric/text preflight before DB access.
+- [x] Test Delphi study-draft create/replay response schema and binding.
+- [x] Test Delphi consent create/replay and decision response schemas.
+- [x] Test the internal governance-cockpit projection against migration 249.
+- [x] Test the strategy execution projection against migration 208.
+- [x] Test stakeholder representation/equity projections and record grouped
+  evidence.
+- [x] Test stakeholder-decision service projections and filter/order behavior.
+- [x] Test Delphi recommendation-draft schema, study binding, lifecycle, and
+  sanitized malformed-output handling.
+- [x] Test governance link/registry/assignment, tactical health, and strategy
+  execution projections with focused mock-cursor checks.
+
+The approved offline grouped selection passes 173 tests. Static checks pass:
+Ruff, compilation, Directus permission inventory, report-helper scope
+inventory, runtime SQL inventory, capability matrix, and diff. Tests use
+synthetic/mocked data only; no database, candidate, legacy service, or external
+provider was used. Checklist: 425 checked / 16 open. Capability matrix: 67
+rows; 24 baseline-retained, 7 deployed, 36 prepared. Strict private Gateway
+response contracts: 128. Hosted CI must rerun after push to verify the
+inventory refresh. Evidence:
+`builds/2026-10-29-recovery/kernel-next-contract-projection-checks.json`.

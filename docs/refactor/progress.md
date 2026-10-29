@@ -24162,3 +24162,47 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 124. C2/C4/C5, populated-data parity, and live provider gates remain
 open.
+
+### Progress addendum — contracts and analytics projection acceptance — 29 October 2026
+
+The stakeholder landscape reader now selects migration 316's explicit
+11-column contract and uses its `party_status` alias for the status filter.
+Prediction CLI inputs are validated before database acquisition, including
+UUIDs, timezone-aware timestamps, source/unit/calibration bounds, and exact
+`NUMERIC(20,8)` range/rounding behavior using `Decimal`. Delphi study-draft
+and consent create/decision routes now expose strict response schemas and
+validate request binding, lifecycle state, identifiers, digests, timestamps,
+and replay semantics. Internal governance, strategy execution, stakeholder
+representation, and equity analytics now select their migration-defined
+columns explicitly.
+
+The stakeholder-decision readers now pin migration 229's 26-column lineage
+view while preserving the existing filters and approved-time ordering. Delphi
+recommendation-draft creation now declares a strict four-field OpenAPI
+response, validates UUID/status/timestamp fields, binds the response study to
+the route, and keeps the current 200 response and no-store behavior.
+
+Governance circle links, circle and role registries, role assignments,
+tactical-session health, and strategy execution now use the exact ordered
+columns exposed by migrations 242, 243, 247, 248, and 260. Existing filters,
+sort order, and row serialization are preserved.
+
+PR #71 CI failed on pushed head `16315d832fe3fa4424c87e1d860a9055f97a09aa`
+because the Directus permission-source and report-helper-scope snapshots were
+stale; Security passed. Both generated snapshots are refreshed and their
+local freshness gates pass, along with the runtime SQL inventory gate. The
+cause and repair are recorded in
+[the CI inventory-refresh evidence](builds/2026-10-29-recovery/ci-40949871199-inventory-refresh.json).
+
+The authorized grouped offline selection passes 173 tests across Delphi
+study/consent/recommendation response contracts, prediction CLI preflight, and
+explicit migration-backed analytics projections. Ruff, Python compilation,
+Directus permission inventory, report-helper scope inventory, runtime SQL
+inventory, capability matrix, and diff checks pass. Synthetic fixtures and
+mocked connections only; no database, candidate, legacy service, or external
+provider was used. Hosted CI must rerun on the pushed head.
+Checklist: 1,749 complete / 25 open; TODO: 425 checked / 16 open. Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows; strict private Gateway response contracts total 128. C2/C4/C5,
+populated-data parity, and live provider gates remain open. Evidence:
+[grouped checks](builds/2026-10-29-recovery/kernel-next-contract-projection-checks.json).

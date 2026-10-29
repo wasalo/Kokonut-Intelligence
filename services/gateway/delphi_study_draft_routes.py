@@ -1,11 +1,29 @@
 """OIDC route for location-scoped Delphi study draft creation."""
 
+from typing import Literal
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, ValidationError
+
+
+class DelphiStudyDraftResponse(BaseModel):
+    """Strict private create/replay response for a location-bound study draft."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    study_id: UUID
+    location_id: UUID
+    title: str = Field(min_length=1, max_length=255)
+    status: Literal["draft"]
+    created_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
 
 def register_delphi_study_draft_routes(router, provider, run_in_threadpool, psycopg2):
     import json
 
-    from fastapi.encoders import jsonable_encoder
-    from fastapi.responses import JSONResponse
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
@@ -16,7 +34,12 @@ def register_delphi_study_draft_routes(router, provider, run_in_threadpool, psyc
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
-    @router.post("/operator/api/delphi/{location_id}/studies")
+    @router.post(
+        "/operator/api/delphi/{location_id}/studies",
+        response_model=DelphiStudyDraftResponse,
+        status_code=201,
+        responses={200: {"model": DelphiStudyDraftResponse}},
+    )
     async def create_study_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -96,5 +119,27 @@ def register_delphi_study_draft_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Delphi study draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        status_code = 200 if result.get("replayed") else 201
-        return JSONResponse(jsonable_encoder(result), status_code=status_code, headers=headers)
+        try:
+            validated = DelphiStudyDraftResponse.model_validate(result)
+            if (
+                not isinstance(payload["title"], str)
+                or validated.location_id != UUID(location_id)
+                or validated.title != payload["title"].strip()
+            ):
+                raise ValueError("response does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_study_draft").warning(
+                "Delphi study draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Delphi study draft unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")),
+            status_code=200 if validated.replayed else 201,
+            headers=headers,
+        )

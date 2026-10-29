@@ -19,6 +19,7 @@ LOCATION_ID = str(uuid4())
 STUDY_ID = str(uuid4())
 REQUEST_ID = str(uuid4())
 RECOMMENDATION_ID = str(uuid4())
+CREATED_AT = datetime(2026, 10, 19, 12, 0, tzinfo=timezone.utc)
 
 
 class _Connection:
@@ -437,12 +438,13 @@ def test_create_route_is_no_store_and_forwards_exact_draft_payload():
         "recommendation_id": RECOMMENDATION_ID,
         "study_id": STUDY_ID,
         "status": "draft",
-        "created_at": "2026-10-19T12:00:00+00:00",
+        "created_at": "2026-10-19T12:00:00Z",
     }
+    service_result = {**expected, "created_at": CREATED_AT}
 
     async def run_in_threadpool(func, *args, **kwargs):
         calls.append((func, args, kwargs))
-        return expected
+        return service_result
 
     client = TestClient(_make_app(object(), run_in_threadpool))
     response = client.post(
@@ -462,6 +464,69 @@ def test_create_route_is_no_store_and_forwards_exact_draft_payload():
         "summary": "Facilitator summary",
         "recommendation_text": "Draft only",
     }
+
+
+@pytest.mark.parametrize(
+    "service_result",
+    [
+        {"recommendation_id": RECOMMENDATION_ID, "study_id": STUDY_ID},
+        {
+            "recommendation_id": RECOMMENDATION_ID,
+            "study_id": STUDY_ID,
+            "status": "draft",
+            "created_at": CREATED_AT,
+            "private_internal": "must not leak",
+        },
+        {
+            "recommendation_id": RECOMMENDATION_ID,
+            "study_id": str(uuid4()),
+            "status": "draft",
+            "created_at": CREATED_AT,
+        },
+        {
+            "recommendation_id": RECOMMENDATION_ID,
+            "study_id": STUDY_ID,
+            "status": "pending",
+            "created_at": CREATED_AT,
+        },
+    ],
+)
+def test_create_route_sanitizes_malformed_or_mismatched_service_response(service_result):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return service_result
+
+    client = TestClient(_make_app(object(), run_in_threadpool))
+    response = client.post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/recommendation-drafts",
+        json={
+            "request_id": REQUEST_ID,
+            "summary": "Facilitator summary",
+            "recommendation_text": "Draft only",
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi recommendation draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private_internal" not in response.text
+
+
+def test_recommendation_draft_openapi_declares_exact_response_fields():
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("OpenAPI inspection must not call the service")
+
+    schema_doc = _make_app(object(), run_in_threadpool).openapi()
+    operation = schema_doc["paths"][
+        "/operator/api/delphi/{location_id}/studies/{study_id}/recommendation-drafts"
+    ]["post"]
+    ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    schema = schema_doc["components"]["schemas"][ref.rsplit("/", 1)[1]]
+
+    assert set(schema["properties"]) == {
+        "recommendation_id", "study_id", "status", "created_at"
+    }
+    assert schema["additionalProperties"] is False
 
 
 def test_missing_draft_grant_fails_closed_without_database_response_details():

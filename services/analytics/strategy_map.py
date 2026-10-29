@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import uuid as uuid_mod
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -304,10 +304,16 @@ def get_execution_dashboard(
         clauses.append("entity_id = %s::uuid")
         params.append(entity_id)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    projection = (
+        "strategy_id, entity_type, entity_id, perspective, strategic_theme, "
+        "objective_statement, target_value, current_value, unit, weight, objective_status, "
+        "progress_pct, initiative_count, completed_initiatives, avg_initiative_progress, "
+        "created_at, updated_at, capability_count"
+    )
     with _conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
-                f"SELECT * FROM v_strategy_execution{where} "
+                f"SELECT {projection} FROM v_strategy_execution{where} "
                 "ORDER BY perspective, objective_statement",
                 params,
             )

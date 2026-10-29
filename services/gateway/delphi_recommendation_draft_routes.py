@@ -56,6 +56,15 @@ class DelphiDraftStudyPage(BaseModel):
         return self
 
 
+class DelphiRecommendationDraftResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    recommendation_id: _StrictUuid
+    study_id: _StrictUuid
+    status: Literal["draft", "approved", "rejected"]
+    created_at: AwareDatetime
+
+
 def register_delphi_recommendation_draft_routes(router, provider, run_in_threadpool, psycopg2):
     import json
 
@@ -159,7 +168,8 @@ def register_delphi_recommendation_draft_routes(router, provider, run_in_threadp
         )
 
     @router.post(
-        "/operator/api/delphi/{location_id}/studies/{study_id}/recommendation-drafts"
+        "/operator/api/delphi/{location_id}/studies/{study_id}/recommendation-drafts",
+        response_model=DelphiRecommendationDraftResponse,
     )
     async def create_recommendation_draft(
         request: Request,
@@ -212,4 +222,21 @@ def register_delphi_recommendation_draft_routes(router, provider, run_in_threadp
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = DelphiRecommendationDraftResponse.model_validate(result)
+            if validated.study_id != UUID(study_id):
+                raise ValueError("Recommendation draft response does not match request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_recommendation_drafts").warning(
+                "Delphi recommendation draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Delphi recommendation draft unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")), headers=headers
+        )

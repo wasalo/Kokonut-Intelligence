@@ -20,7 +20,7 @@
         "action_result",
         "metadata"
       ],
-      "line": 603,
+      "line": 631,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -36,7 +36,7 @@
       "fields": [
         "*"
       ],
-      "line": 604,
+      "line": 632,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -55,7 +55,7 @@
         "metadata",
         "operator_wallet"
       ],
-      "line": 599,
+      "line": 627,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -71,7 +71,7 @@
       "fields": [
         "*"
       ],
-      "line": 598,
+      "line": 626,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -91,7 +91,7 @@
         "subject_type",
         "requested_by"
       ],
-      "line": 601,
+      "line": 629,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -107,7 +107,7 @@
       "fields": [
         "*"
       ],
-      "line": 600,
+      "line": 628,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -125,7 +125,7 @@
         "output",
         "error_message"
       ],
-      "line": 602,
+      "line": 630,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -148,7 +148,7 @@
         "model_version",
         "confidence"
       ],
-      "line": 605,
+      "line": 633,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -164,7 +164,7 @@
       "fields": [
         "*"
       ],
-      "line": 606,
+      "line": 634,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -180,7 +180,7 @@
       "fields": [
         "*"
       ],
-      "line": 610,
+      "line": 638,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -199,7 +199,7 @@
         "event_type",
         "location_id"
       ],
-      "line": 612,
+      "line": 640,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -215,7 +215,7 @@
       "fields": [
         "*"
       ],
-      "line": 611,
+      "line": 639,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -231,7 +231,7 @@
       "fields": [
         "*"
       ],
-      "line": 614,
+      "line": 642,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -262,7 +262,7 @@
         "crop_cycle_id",
         "location_id"
       ],
-      "line": 592,
+      "line": 620,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -278,7 +278,7 @@
       "fields": [
         "*"
       ],
-      "line": 591,
+      "line": 619,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -302,7 +302,7 @@
         "crop_cycle_id",
         "location_id"
       ],
-      "line": 597,
+      "line": 625,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -318,7 +318,7 @@
       "fields": [
         "*"
       ],
-      "line": 596,
+      "line": 624,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -334,7 +334,7 @@
       "fields": [
         "*"
       ],
-      "line": 609,
+      "line": 637,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -350,7 +350,7 @@
       "fields": [
         "*"
       ],
-      "line": 608,
+      "line": 636,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -379,7 +379,7 @@
         "crop_cycle_id",
         "location_id"
       ],
-      "line": 590,
+      "line": 618,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -395,7 +395,7 @@
       "fields": [
         "*"
       ],
-      "line": 589,
+      "line": 617,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -411,7 +411,7 @@
       "fields": [
         "*"
       ],
-      "line": 607,
+      "line": 635,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -433,7 +433,7 @@
         "location_id",
         "plot_id"
       ],
-      "line": 594,
+      "line": 622,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -449,7 +449,7 @@
       "fields": [
         "*"
       ],
-      "line": 593,
+      "line": 621,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -466,7 +466,7 @@
         "status",
         "review_notes"
       ],
-      "line": 595,
+      "line": 623,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -482,7 +482,7 @@
       "fields": [
         "*"
       ],
-      "line": 613,
+      "line": 641,
       "policy": "Agent Full Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000008",
       "roles": [
@@ -498,7 +498,7 @@
       "fields": [
         "*"
       ],
-      "line": 550,
+      "line": 578,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -514,7 +514,7 @@
       "fields": [
         "*"
       ],
-      "line": 551,
+      "line": 579,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -530,7 +530,7 @@
       "fields": [
         "*"
       ],
-      "line": 552,
+      "line": 580,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -546,7 +546,7 @@
       "fields": [
         "*"
       ],
-      "line": 549,
+      "line": 577,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -562,7 +562,7 @@
       "fields": [
         "*"
       ],
-      "line": 543,
+      "line": 571,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -578,7 +578,7 @@
       "fields": [
         "*"
       ],
-      "line": 547,
+      "line": 575,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -594,7 +594,7 @@
       "fields": [
         "*"
       ],
-      "line": 555,
+      "line": 583,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -610,7 +610,7 @@
       "fields": [
         "*"
       ],
-      "line": 554,
+      "line": 582,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -626,7 +626,7 @@
       "fields": [
         "*"
       ],
-      "line": 542,
+      "line": 570,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -642,7 +642,7 @@
       "fields": [
         "*"
       ],
-      "line": 546,
+      "line": 574,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -658,7 +658,7 @@
       "fields": [
         "*"
       ],
-      "line": 545,
+      "line": 573,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -674,7 +674,7 @@
       "fields": [
         "*"
       ],
-      "line": 553,
+      "line": 581,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -690,7 +690,7 @@
       "fields": [
         "*"
       ],
-      "line": 548,
+      "line": 576,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -706,7 +706,7 @@
       "fields": [
         "*"
       ],
-      "line": 544,
+      "line": 572,
       "policy": "Agent Read-Only Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000006",
       "roles": [
@@ -728,7 +728,7 @@
         "action_result",
         "metadata"
       ],
-      "line": 572,
+      "line": 600,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -744,7 +744,7 @@
       "fields": [
         "*"
       ],
-      "line": 573,
+      "line": 601,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -763,7 +763,7 @@
         "metadata",
         "operator_wallet"
       ],
-      "line": 568,
+      "line": 596,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -779,7 +779,7 @@
       "fields": [
         "*"
       ],
-      "line": 567,
+      "line": 595,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -799,7 +799,7 @@
         "subject_type",
         "requested_by"
       ],
-      "line": 570,
+      "line": 598,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -815,7 +815,7 @@
       "fields": [
         "*"
       ],
-      "line": 569,
+      "line": 597,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -833,7 +833,7 @@
         "output",
         "error_message"
       ],
-      "line": 571,
+      "line": 599,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -856,7 +856,7 @@
         "model_version",
         "confidence"
       ],
-      "line": 574,
+      "line": 602,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -872,7 +872,7 @@
       "fields": [
         "*"
       ],
-      "line": 575,
+      "line": 603,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -888,7 +888,7 @@
       "fields": [
         "*"
       ],
-      "line": 580,
+      "line": 608,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -912,7 +912,7 @@
         "crop_cycle_id",
         "location_id"
       ],
-      "line": 565,
+      "line": 593,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -928,7 +928,7 @@
       "fields": [
         "*"
       ],
-      "line": 566,
+      "line": 594,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -944,7 +944,7 @@
       "fields": [
         "*"
       ],
-      "line": 578,
+      "line": 606,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -960,7 +960,7 @@
       "fields": [
         "*"
       ],
-      "line": 577,
+      "line": 605,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -976,7 +976,7 @@
       "fields": [
         "*"
       ],
-      "line": 579,
+      "line": 607,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -992,7 +992,7 @@
       "fields": [
         "*"
       ],
-      "line": 576,
+      "line": 604,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -1014,7 +1014,7 @@
         "location_id",
         "plot_id"
       ],
-      "line": 563,
+      "line": 591,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -1030,7 +1030,7 @@
       "fields": [
         "*"
       ],
-      "line": 564,
+      "line": 592,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -1046,7 +1046,7 @@
       "fields": [
         "*"
       ],
-      "line": 581,
+      "line": 609,
       "policy": "Agent Write Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000007",
       "roles": [
@@ -1638,6 +1638,36 @@
         "*"
       ],
       "line": 448,
+      "policy": "Auditor Policy",
+      "policy_id": "b1000000-0000-0000-0000-000000000009",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": "{}",
+      "validation": "{}"
+    },
+    {
+      "action": "read",
+      "collection": "retirement_certificate",
+      "field_access": "explicit",
+      "fields": [
+        "id",
+        "retirement_id",
+        "credit_id",
+        "credit_class_id",
+        "credit_batch_id",
+        "location_id",
+        "certificate_number",
+        "retired_tonnes",
+        "vintage_year",
+        "methodology",
+        "attestation_uid",
+        "chain",
+        "issued_at",
+        "status",
+        "created_at"
+      ],
+      "line": 487,
       "policy": "Auditor Policy",
       "policy_id": "b1000000-0000-0000-0000-000000000009",
       "roles": [
@@ -3189,50 +3219,56 @@
       "target": "directus_permissions"
     },
     {
-      "line": 467,
+      "line": 471,
+      "operation": "update",
+      "statement": "UPDATE directus_permissions SET fields = 'id,retirement_id,credit_id,credit_class_id,credit_batch_id,location_id,certificate_number,retired_tonnes,vintage_year,methodology,attestation_uid,chain,issued_at,status,created_at' WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'retirement_certificate' AND action = 'read' AND fields IS DISTINCT FROM 'id,retirement_id,credit_id,credit_class_id,credit_batch_id,location_id,certificate_number,retired_tonnes,vintage_year,methodology,attestation_uid,chain,issued_at,status,created_at'",
+      "target": "directus_permissions"
+    },
+    {
+      "line": 495,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET fields = 'id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,last_refreshed_at,status,metadata,created_at,updated_at,updated_by' WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'dashboard_dataset' AND action = 'read' AND fields = '*'",
       "target": "directus_permissions"
     },
     {
-      "line": 477,
+      "line": 505,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET fields = 'id,metric_id,location_id,period_start,period_end,value,unit,computation_method,computed_at,verified,verified_at' WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'metric_value' AND action = 'read' AND fields = '*'",
       "target": "directus_permissions"
     },
     {
-      "line": 659,
+      "line": 687,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET permissions = next_filter::JSON WHERE id = legacy_permission.id",
       "target": "directus_permissions"
     },
     {
-      "line": 663,
+      "line": 691,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET permissions = '{}'::JSON WHERE id = legacy_permission.id",
       "target": "directus_permissions"
     },
     {
-      "line": 674,
+      "line": 702,
       "operation": "update",
       "statement": "UPDATE directus_permissions SET validation = '{}'::JSON WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND action = 'create' AND collection IN ('harvest_event', 'expense_event', 'stakeholder_feedback', 'metric_proposal') AND validation::JSONB = '{\"location_id\":{\"_eq\":\"$CURRENT_USER.location_id\"}}'::JSONB",
       "target": "directus_permissions"
     },
     {
-      "line": 688,
+      "line": 716,
       "operation": "delete",
       "statement": "DELETE FROM directus_permissions WHERE collection = 'farm_activity' AND policy IN ( 'b1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000005', 'b1000000-0000-0000-0000-000000000006', 'b1000000-0000-0000-0000-000000000007', 'b1000000-0000-0000-0000-000000000008', 'b1000000-0000-0000-0000-000000000009' )",
       "target": "directus_permissions"
     }
   ],
-  "source_sha256": "7253b1f487db9444d44872f7220d0feb4004e4c88986a9160542065474c9e8c8",
+  "source_sha256": "18a859f28248d091c906b395999f62d0a0ee0899b66f30214ace6c042dbed41e",
   "summary": {
     "declared_farm_activity_rules": 0,
     "delete_statements": 1,
-    "explicit_field_rows": 53,
-    "literal_permission_rows": 175,
+    "explicit_field_rows": 54,
+    "literal_permission_rows": 176,
     "unknown_field_rows": 0,
-    "update_statements": 6,
+    "update_statements": 7,
     "wildcard_field_rows": 122,
     "wildcard_rows_by_collection": {
       "agent_action_log": 3,

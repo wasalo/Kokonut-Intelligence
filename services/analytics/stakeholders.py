@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
 
-
 PARTY_TYPES = (
     "person", "organization", "community", "cooperative",
     "public_institution", "ecosystem", "species", "future_generation",
@@ -77,11 +76,17 @@ def list_parties(conn, *, party_type: Optional[str] = None, status: Optional[str
         clauses.append("party_type = %s")
         params.append(party_type)
     if status:
-        clauses.append("status = %s")
+        clauses.append("party_status = %s")
         params.append(status)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_stakeholder_landscape{where} ORDER BY display_name", params)
+        cur.execute(
+            "SELECT party_id, party_type, display_name, party_status, privacy_level, "
+            "identifier_count, active_relationship_count, open_interest_count, advisory_score, "
+            "salience_review_status, last_updated_at "
+            f"FROM v_stakeholder_landscape{where} ORDER BY display_name",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 
