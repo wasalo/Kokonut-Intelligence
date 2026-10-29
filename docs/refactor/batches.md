@@ -7557,3 +7557,91 @@ open (8 code work groups and 8 owner/environment gates). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; strict private Gateway response contracts now total 120. C2/C4/C5,
 populated-data parity, and live provider gates remain open.
+
+### Source continuation — stakeholder and cooperative projections — 29 October 2026
+
+- [x] Replace the stakeholder-engagement summary wildcard with migration 217's
+  exact 16-column projection while preserving both optional filters and order.
+- [x] Pin commitment detail and list reads to migration 216's exact 14 columns,
+  preserving ID/plan/overdue filters and due-date ordering.
+- [x] Replace cooperative governance health's wildcard with migration 222's
+  exact seven-column projection while preserving cooperative scope and name
+  ordering.
+- [x] Verify all three view contracts, query variants, bind order, and existing
+  row serialization with focused mock-cursor checks.
+
+Eleven analytics tests pass. Compilation and diff checks pass. The default Ruff
+scan reports existing E702/F401/I001/F841 findings in the touched legacy
+modules; a focused run excluding only those rules passes. No database or
+provider was contacted. Evidence:
+[stakeholder/cooperative projections](builds/2026-10-29-recovery/analytics-stakeholder-cooperative-view-projections.json).
+
+Checklist: 1,707 complete / 25 open (1,732 total); TODO: 392 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 120. C2/C4/C5,
+populated-data parity, and live provider gates remain open.
+
+### Source continuation — precision-irrigation CLI preflight — 29 October 2026
+
+- [x] Reject `create-rule --priority` outside migration 146's 0–100 range
+  before opening PostgreSQL; preserve both valid endpoints.
+- [x] Parse `eval-rules --readings` as a JSON object before database access,
+  rejecting malformed and non-object input while retaining `{}` support.
+- [x] Parse schedule `--start` as an ISO timestamp before database access and
+  forward the resulting datetime to the schedule service.
+
+The focused CLI file passes 30 tests, including existing location-scope
+preflight coverage. Ruff, compilation, and diff checks pass. No database or
+provider was contacted. Evidence:
+[precision-irrigation preflight](builds/2026-10-29-recovery/precision-irrigation-cli-preflight.json).
+
+Checklist: 1,710 complete / 25 open (1,735 total); TODO: 395 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 120. C2/C4/C5,
+populated-data parity, and live provider gates remain open.
+
+### Source continuation — governance proposal lineage ordering repair — 29 October 2026
+
+- [x] Add migration 687 to append `created_at` to migration 246's proposal
+  lineage view without changing the historical migration.
+- [x] Replace proposal-reader wildcard selections with the exact 24-column
+  projection and preserve circle/status filters plus creation-time order.
+- [x] Apply and replay migration 687 on disposable PostgreSQL 16; prove the
+  pre-migration missing-column error and verify the real service returns rows
+  ordered by creation time after upgrade.
+
+Five disposable assertions pass. Migration 246 was applied only to a synthetic
+base schema, migration 687 applied/replayed transactionally, and the temporary
+container was removed. Candidate and legacy databases were not contacted.
+Evidence:
+[proposal lineage migration](builds/2026-10-29-recovery/governance-proposal-created-at-disposable.json).
+
+Checklist: 1,713 complete / 25 open (1,738 total); TODO: 398 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 120. C2/C4/C5,
+populated-data parity, and live provider gates remain open.
+
+### Source continuation — business-canvas draft create response contracts — 29 October 2026
+
+- [x] Declare exact OpenAPI response shapes for caller-composed and
+  generated business-canvas draft creation, including 201 creation and 200
+  idempotent replay.
+- [x] Bind returned location IDs to the requested path and validate UUIDs,
+  draft lifecycle, version, timestamp, replay state, generated source labels,
+  and populated block names.
+- [x] Reject malformed writer results with sanitized no-store errors and add
+  mock-only route/OpenAPI regressions.
+
+The focused business-planning route suite passes 28 tests. Ruff, Python
+compilation, and diff checks pass. No database/provider was used; candidate and
+legacy services remain untouched. Evidence:
+[business-canvas response contracts](builds/2026-10-29-recovery/business-canvas-draft-create-contracts.json).
+
+Checklist: 1,716 complete / 25 open (1,741 total); TODO: 401 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts now
+total 122. C2/C4/C5, populated-data parity, and live provider gates remain
+open.

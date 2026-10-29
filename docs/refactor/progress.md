@@ -24045,3 +24045,68 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts now
 total 120. C2/C4/C5, populated-data parity, and live provider gates remain
 open.
+
+### Progress addendum — stakeholder and cooperative view projections — 29 October 2026
+
+Stakeholder engagement summary, commitment detail/list, and cooperative
+governance health now select the exact migration 217/216/222 view columns. The
+existing filter combinations, bind order, sorting, empty/list behavior, and
+UUID/datetime serialization remain covered by 11 mock-cursor tests. Compilation
+and diff checks pass. Default Ruff reports existing E702/F401/I001/F841
+findings in these older modules; the focused check excluding those legacy rules
+passes. No database/provider was used. Evidence:
+[projection contracts](builds/2026-10-29-recovery/analytics-stakeholder-cooperative-view-projections.json).
+
+Checklist: 1,707 complete / 25 open (1,732 total); TODO: 392 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+120. C2/C4/C5, populated-data parity, and live provider gates remain open.
+
+### Progress addendum — precision-irrigation CLI preflight — 29 October 2026
+
+Precision-irrigation CLI now validates rule priority against migration 146's
+0–100 check before opening PostgreSQL, parses automation readings as a JSON
+object before connecting, and validates schedule start timestamps before
+dispatch. Valid priority boundaries, empty JSON readings, and ISO timestamps
+remain supported. The focused CLI suite passes 30 tests; Ruff, compilation, and
+diff checks pass. No database/provider was used. Evidence:
+[preflight checks](builds/2026-10-29-recovery/precision-irrigation-cli-preflight.json).
+
+Checklist: 1,710 complete / 25 open (1,735 total); TODO: 395 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+120. C2/C4/C5, populated-data parity, and live provider gates remain open.
+
+### Progress addendum — governance proposal lineage ordering repair — 29 October 2026
+
+Source review found the proposal list ordered by `created_at` even though
+migration 246's view did not expose that column. Migration 687 appends the
+existing base-table timestamp without editing the historical migration, and
+the service now selects the exact 24-column view contract. A disposable
+PostgreSQL 16 check reproduced the old missing-column error, applied/replayed
+migration 687 transactionally, and exercised the actual service filter/order
+path against synthetic proposals. Five assertions passed; the temporary
+container was removed and candidate/legacy databases were untouched. Evidence:
+[proposal lineage check](builds/2026-10-29-recovery/governance-proposal-created-at-disposable.json).
+
+Checklist: 1,713 complete / 25 open (1,738 total); TODO: 398 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+120. C2/C4/C5, populated-data parity, and live provider gates remain open.
+
+### Progress addendum — business-canvas draft create contracts — 29 October 2026
+
+Both private business-canvas creation routes now publish strict OpenAPI
+responses for newly created drafts and idempotent replays. Runtime validation
+binds the returned location, enforces draft-only lifecycle and exact UUID,
+version, timestamp, replay, generated-source, and populated-block fields, and
+returns sanitized no-store errors for malformed writer output. The focused
+business-planning route suite passes 28 tests. Ruff, Python compilation, and
+diff checks pass; no database/provider, candidate, or legacy service was used.
+Evidence: [contract checks](builds/2026-10-29-recovery/business-canvas-draft-create-contracts.json).
+
+Checklist: 1,716 complete / 25 open (1,741 total); TODO: 401 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts now
+total 122. C2/C4/C5, populated-data parity, and live provider gates remain
+open.

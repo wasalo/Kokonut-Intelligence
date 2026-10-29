@@ -1,6 +1,7 @@
 """Precision-irrigation location identifiers fail before database access."""
 
 import sys
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -56,4 +57,120 @@ def test_valid_location_scope_is_canonicalized_before_handler(monkeypatch, comma
     cli.main()
 
     assert calls == [CANONICAL_LOCATION_ID]
+
+
+@pytest.mark.parametrize("priority", [-1, 101])
+def test_create_rule_rejects_priority_outside_schema_bounds_before_database(
+    monkeypatch, priority
+):
+    monkeypatch.setattr(sys, "argv", [
+        "precision-irrigation", "create-rule", "--location-id", LOCATION_ID,
+        "--name", "Test rule", "--metric", "soil_moisture", "--operator", "lt",
+        "--threshold", "20", "--priority", str(priority),
+    ])
+    monkeypatch.setattr(
+        "services.ingestion.base.get_db",
+        lambda: pytest.fail("out-of-range rule priority must fail before DB access"),
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    assert exc_info.value.code == 2
+
+
+@pytest.mark.parametrize("priority", [0, 100])
+def test_create_rule_forwards_valid_priority_boundaries(monkeypatch, priority):
+    db = SimpleNamespace(close=lambda: None)
+    calls = []
+    monkeypatch.setattr("services.ingestion.base.get_db", lambda: db)
+    monkeypatch.setattr(
+        cli,
+        "create_automation_rule",
+        lambda _db, *_args, **kwargs: calls.append(kwargs["priority"]) or {},
+    )
+    monkeypatch.setattr(cli, "print_json", lambda _value: None)
+    monkeypatch.setattr(sys, "argv", [
+        "precision-irrigation", "create-rule", "--location-id", LOCATION_ID,
+        "--name", "Test rule", "--metric", "soil_moisture", "--operator", "lt",
+        "--threshold", "20", "--priority", str(priority),
+    ])
+
+    cli.main()
+
+    assert calls == [priority]
+
+
+@pytest.mark.parametrize("readings", ["not-json", "[]", "null"])
+def test_eval_rules_rejects_non_object_json_before_database(monkeypatch, readings):
+    monkeypatch.setattr(sys, "argv", [
+        "precision-irrigation", "eval-rules", "--zone-id", "zone-id",
+        "--readings", readings,
+    ])
+    monkeypatch.setattr(
+        "services.ingestion.base.get_db",
+        lambda: pytest.fail("invalid readings must fail before DB access"),
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    assert exc_info.value.code == 2
+
+
+def test_eval_rules_accepts_empty_json_object_before_handler(monkeypatch):
+    db = SimpleNamespace(close=lambda: None)
+    calls = []
+    monkeypatch.setattr("services.ingestion.base.get_db", lambda: db)
+    monkeypatch.setattr(
+        cli,
+        "evaluate_automation_rules",
+        lambda _db, zone_id, readings: calls.append((zone_id, readings)) or {},
+    )
+    monkeypatch.setattr(cli, "print_json", lambda _value: None)
+    monkeypatch.setattr(sys, "argv", [
+        "precision-irrigation", "eval-rules", "--zone-id", "zone-id",
+        "--readings", "{}",
+    ])
+
+    cli.main()
+
+    assert calls == [("zone-id", {})]
+
+
+def test_schedule_rejects_invalid_start_before_database(monkeypatch):
+    monkeypatch.setattr(sys, "argv", [
+        "precision-irrigation", "schedule", "--zone-id", "zone-id",
+        "--etc", "1.5", "--start", "tomorrow morning",
+    ])
+    monkeypatch.setattr(
+        "services.ingestion.base.get_db",
+        lambda: pytest.fail("invalid schedule time must fail before DB access"),
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    assert exc_info.value.code == 2
+
+
+def test_schedule_forwards_parsed_iso_start_to_handler(monkeypatch):
+    db = SimpleNamespace(close=lambda: None)
+    calls = []
+    scheduled_start = datetime(2026, 10, 29, 8, 30, tzinfo=timezone.utc)
+    monkeypatch.setattr("services.ingestion.base.get_db", lambda: db)
+    monkeypatch.setattr(
+        cli,
+        "generate_schedule",
+        lambda _db, _zone, _etc, **kwargs: calls.append(kwargs["scheduled_start"]) or {},
+    )
+    monkeypatch.setattr(cli, "print_json", lambda _value: None)
+    monkeypatch.setattr(sys, "argv", [
+        "precision-irrigation", "schedule", "--zone-id", "zone-id",
+        "--etc", "1.5", "--start", scheduled_start.isoformat(),
+    ])
+
+    cli.main()
+
+    assert calls == [scheduled_start]
 

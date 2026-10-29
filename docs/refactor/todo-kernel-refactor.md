@@ -2906,3 +2906,49 @@ Checklist: 388 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/analytics-view-projection-contracts.json`,
 `builds/2026-10-29-recovery/graph-projection-cli-preflight.json`, and
 `builds/2026-10-29-recovery/waste-capture-response-contracts.json`.
+
+## Completed in the 29 October stakeholder/cooperative projection continuation
+
+- [x] Pin stakeholder engagement summary to migration 217's 16-column shape.
+- [x] Pin commitment detail and health-list reads to migration 216's 14-column
+  shape, retaining optional filters and ordering.
+- [x] Pin cooperative governance health to migration 222's seven-column shape.
+- [x] Record mock-cursor evidence and reconcile batch/progress/capability logs.
+
+Checklist: 392 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/analytics-stakeholder-cooperative-view-projections.json`.
+
+## Completed in the 29 October precision-irrigation CLI continuation
+
+- [x] Preflight priority against migration 146's 0–100 constraint before DB
+  access.
+- [x] Parse and validate readings as a JSON object before connecting.
+- [x] Parse schedule start timestamps before connecting and preserve valid
+  datetime forwarding.
+
+Checklist: 395 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/precision-irrigation-cli-preflight.json`.
+
+## Completed in the 29 October governance proposal lineage continuation
+
+- [x] Append `created_at` in a forward migration so the existing list ordering
+  is executable without altering migration 246.
+- [x] Use an explicit 24-column proposal lineage projection in detail/list
+  readers.
+- [x] Verify transactional apply/replay and the real ordered service query on
+  disposable PostgreSQL 16; leave candidate and legacy databases untouched.
+
+Checklist: 398 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/governance-proposal-created-at-disposable.json`.
+
+## Completed in the 29 October business-canvas response continuation
+
+- [x] Define exact OpenAPI/runtime contracts for caller-authored and generated
+  draft creation, including created-versus-replayed status.
+- [x] Bind location and enforce the source-defined status, provenance, block,
+  timestamp, version, UUID, and replay fields.
+- [x] Verify malformed service output is rejected with sanitized no-store
+  errors using focused mocked routes.
+
+Checklist: 401 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/business-canvas-draft-create-contracts.json`.
