@@ -3226,3 +3226,18 @@ compilation, capability-matrix validation, and diff checks pass. No database or
 provider was used. Checklist: 474 checked / 16 open; strict private Gateway
 response contracts total 169. Evidence:
 `builds/2026-10-29-recovery/farm-activity-write-response-contracts.json`.
+
+## Completed — operating-pilot work-claim review/allocation queue contracts, 29 October
+
+- [x] Add strict OpenAPI/runtime schemas for both migration-backed work-claim
+  queues.
+- [x] Validate exact item fields, the separate identity exposure policy,
+  request-bound location/page metadata, SQL ordering, and continuation rules.
+- [x] Verify tenant denial and sanitized no-store handling; add/run the
+  approved focused route/pagination selection and record evidence.
+
+The focused Gateway/pagination selection passes 70 tests; Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. No database or
+provider was used. Checklist: 477 checked / 16 open; strict private Gateway
+response contracts total 171. Evidence:
+`builds/2026-10-29-recovery/operating-pilot-work-claim-queue-contracts.json`.

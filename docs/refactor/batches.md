@@ -8142,3 +8142,26 @@ Checklist: 1,825 complete / 25 open (1,850 total); TODO: 474 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 169. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — operating-pilot work-claim queue response contracts — 29 October 2026
+
+- [x] Publish exact OpenAPI/runtime models for the proposal review and
+  accepted-claim allocation queues from migrations 565 and 566.
+- [x] Preserve the review/allocation identity boundary: reviewer projections
+  exclude claimant identity, allocator projections include only the
+  migration-defined claimant name.
+- [x] Bind pages to location, requested limit/offset, SQL order, and
+  continuation state; retain distinct `review` and `allocate` tenant scopes.
+- [x] Sanitize malformed queue output with no-store errors and keep the
+  existing 403 behavior for denied tenant context.
+- [x] Add/run approved mocked Gateway/OpenAPI checks and record evidence.
+
+The focused queue and pagination selection passes 70 tests. Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. Checks use
+mocks only; no database, provider, candidate, or legacy state was used.
+Evidence: [work-claim queue response contracts](builds/2026-10-29-recovery/operating-pilot-work-claim-queue-contracts.json).
+
+Checklist: 1,830 complete / 25 open (1,855 total); TODO: 477 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 171. C2 remains open for broader route/auth and live-runtime parity.

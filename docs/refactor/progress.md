@@ -24448,3 +24448,19 @@ database, provider, candidate, or legacy state was used. Checklist: 1,825
 complete / 25 open; TODO: 474 checked / 16 open; strict private Gateway
 response contracts total 169. Evidence:
 [farm-activity write response contracts](builds/2026-10-29-recovery/farm-activity-write-response-contracts.json).
+
+### Progress addendum — operating-pilot work-claim queue response contracts — 29 October 2026
+
+The migration-565 review queue and migration-566 allocation queue now publish
+strict OpenAPI/runtime page and item models. Both bind the exact requested
+location and page bounds, validate order and continuation, and reject
+duplicate claim IDs. The review projection remains identity-blind; the
+allocation projection alone includes the migration-defined `claimant_name`
+under its separate `allocate` grant. The routes retain 403 tenant denials and
+return sanitized no-store 503 responses for malformed service results. The
+approved mock-only route/pagination selection passes 70 tests. Ruff, Python
+compilation, capability validation, and diff checks pass; no database,
+provider, candidate, or legacy state was used. Checklist: 1,830 complete / 25
+open; TODO: 477 checked / 16 open; strict private Gateway response contracts
+total 171. Evidence:
+[work-claim queue response contracts](builds/2026-10-29-recovery/operating-pilot-work-claim-queue-contracts.json).

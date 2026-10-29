@@ -486,6 +486,133 @@ def _response_decimal(value):
 _ResponseDecimal = Annotated[Decimal, BeforeValidator(_response_decimal)]
 
 
+class OperatingPilotWorkClaimReviewQueueItem(BaseModel):
+    """Identity-blind proposed-claim projection for independent reviewers."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    claim_id: _ResponseUUID
+    work_item_id: _ResponseUUID
+    title: str = Field(max_length=255, strict=True)
+    work_type: str = Field(max_length=50, strict=True)
+    priority: Literal["low", "medium", "high", "critical"]
+    estimated_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    proposed_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    due_at: _ResponseDateTime | None
+    created_at: _ResponseDateTime
+    decision_status: Literal["proposed"]
+
+
+class OperatingPilotWorkClaimReviewQueueResponse(BaseModel):
+    """Strict bounded page that never exposes claimant identity to reviewers."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    scope_configured: Literal[True]
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotWorkClaimReviewQueueItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("work-claim review page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("work-claim review continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal work-claim review page cannot continue")
+
+        claim_ids = [item.claim_id for item in self.items]
+        if len(claim_ids) != len(set(claim_ids)):
+            raise ValueError("work-claim review page contains duplicate claims")
+        priority_rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+        order = [
+            (
+                -priority_rank[item.priority],
+                item.due_at is None,
+                item.due_at,
+                item.work_item_id,
+                item.created_at,
+                item.claim_id,
+            )
+            for item in self.items
+        ]
+        if order != sorted(order):
+            raise ValueError("work-claim review page is not in SQL order")
+        return self
+
+
+class OperatingPilotWorkClaimAllocationQueueItem(BaseModel):
+    """Accepted claim eligible for allocation under the stronger allocate grant."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    claim_id: _ResponseUUID
+    work_item_id: _ResponseUUID
+    claimant_name: str = Field(max_length=255, strict=True)
+    title: str = Field(max_length=255, strict=True)
+    work_type: str = Field(max_length=50, strict=True)
+    priority: Literal["low", "medium", "high", "critical"]
+    estimated_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    proposed_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    due_at: _ResponseDateTime | None
+    accepted_at: _ResponseDateTime
+
+
+class OperatingPilotWorkClaimAllocationQueueResponse(BaseModel):
+    """Strict bounded page for accepted claims awaiting explicit allocation."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    scope_configured: Literal[True]
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotWorkClaimAllocationQueueItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_allocation_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("work-claim allocation page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("work-claim allocation continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal work-claim allocation page cannot continue")
+
+        claim_ids = [item.claim_id for item in self.items]
+        if len(claim_ids) != len(set(claim_ids)):
+            raise ValueError("work-claim allocation page contains duplicate claims")
+        priority_rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+        order = [
+            (
+                -priority_rank[item.priority],
+                item.due_at is None,
+                item.due_at,
+                item.accepted_at,
+                item.claim_id,
+            )
+            for item in self.items
+        ]
+        if order != sorted(order):
+            raise ValueError("work-claim allocation page is not in SQL order")
+        return self
+
+
 class OperatingPilotCapacityPeriodItem(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -1128,6 +1255,32 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
+    def work_claim_queue_response(result, response_model, location_id, limit, offset, queue_name):
+        try:
+            response = response_model.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.limit != limit
+                or response.offset != offset
+            ):
+                raise ValueError("Work-claim queue response does not match the request")
+        except (ValidationError, TypeError, ValueError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating %s queue response rejected (%s)", queue_name, type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": f"Operating work-claim {queue_name} queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
     async def bounded_learning_plan_payload(request):
         body = bytearray()
         async for chunk in request.stream():
@@ -1375,7 +1528,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             headers=headers,
         )
 
-    @router.get("/operator/api/operating-pilot/{location_id}/work-claim-review-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/work-claim-review-queue",
+        response_model=OperatingPilotWorkClaimReviewQueueResponse,
+    )
     async def location_operating_pilot_work_claim_review_queue(
         request: Request,
         location_id: str,
@@ -1434,7 +1590,14 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        return work_claim_queue_response(
+            result,
+            OperatingPilotWorkClaimReviewQueueResponse,
+            location_id,
+            limit,
+            offset,
+            "review",
+        )
 
     @router.post(
         "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review",
@@ -1550,7 +1713,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         )
 
     @router.get(
-        "/operator/api/operating-pilot/{location_id}/work-claim-allocation-queue"
+        "/operator/api/operating-pilot/{location_id}/work-claim-allocation-queue",
+        response_model=OperatingPilotWorkClaimAllocationQueueResponse,
     )
     async def location_operating_pilot_work_claim_allocation_queue(
         request: Request,
@@ -1610,7 +1774,14 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim allocation queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        return work_claim_queue_response(
+            result,
+            OperatingPilotWorkClaimAllocationQueueResponse,
+            location_id,
+            limit,
+            offset,
+            "allocation",
+        )
 
     @router.post(
         "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/allocate",
