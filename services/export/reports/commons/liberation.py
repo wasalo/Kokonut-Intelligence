@@ -19,7 +19,22 @@ def generate_time_liberation(conn, location_id: str, period_start: str = None, p
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   observation_date,
+                   workflow_area,
+                   baseline_hours,
+                   observed_hours,
+                   hours_reclaimed,
+                   burden_reduction_pct,
+                   automation_or_agent_used,
+                   automation_type,
+                   beneficiary_group,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_time_liberation_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR observation_date >= %s::date)

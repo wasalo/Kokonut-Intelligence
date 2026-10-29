@@ -3,7 +3,7 @@ import { KokonutPublicApiClient, PublicApiError } from '../public-api.js';
 import type { PublicFetch, PublicFetchResponse } from '../public-api.js';
 
 const location = {
-  id: 'location-1',
+  id: 'a0000000-0000-4000-8000-000000000001',
   name: 'Kokonut Adelphi',
   country: 'DO',
   region: 'Samaná',
@@ -341,4 +341,61 @@ describe('KokonutPublicApiClient', () => {
       statusCode: 200,
     } satisfies Partial<PublicApiError>);
   });
+
+  it.each(['list', 'get'] as const)(
+    'accepts an exact location with nullable fields in %s responses',
+    async (method) => {
+      const nullableLocation = { ...location, country: null, region: null };
+      const fetch = vi.fn<PublicFetch>().mockResolvedValue(
+        response(200, { data: method === 'list' ? [nullableLocation] : nullableLocation }),
+      );
+      const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+      const result =
+        method === 'list'
+          ? await client.locations.list()
+          : await client.locations.get('location-1');
+
+      expect(result).toEqual(method === 'list' ? [nullableLocation] : nullableLocation);
+    },
+  );
+
+  it.each(['list', 'get'] as const)(
+    'rejects malformed location rows in %s responses',
+    async (method) => {
+      const malformedLocations: unknown[] = [
+        { ...location, id: 'not-a-uuid' },
+        { ...location, name: 4 },
+        { ...location, country: 4 },
+        { ...location, region: [] },
+        { ...location, status: 'published' },
+        {
+          id: location.id,
+          name: location.name,
+          country: location.country,
+          status: location.status,
+        },
+        { ...location, unexpected: 'field' },
+      ];
+
+      for (const malformedLocation of malformedLocations) {
+        const mockResponse = response(200, {
+          data: method === 'list' ? [malformedLocation] : malformedLocation,
+        });
+        const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+        const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+        const result =
+          method === 'list'
+            ? client.locations.list()
+            : client.locations.get('location-1');
+        const error = await result.catch((caught: unknown) => caught);
+
+        expect(error).toBeInstanceOf(PublicApiError);
+        expect(error).toMatchObject({
+          message: 'Invalid public API response envelope',
+          statusCode: 200,
+        });
+        expect((error as PublicApiError).response).toBe(mockResponse);
+      }
+    },
+  );
 });

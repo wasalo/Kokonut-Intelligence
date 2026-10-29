@@ -26,7 +26,7 @@
       "report_type": "adaptive_stewardship",
       "callable": "generate_adaptive_stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 125,
+      "source_line": 149,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -40,7 +40,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 132,
+          "line": 156,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -63,7 +63,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 134,
+          "line": 158,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -623,7 +623,7 @@
       "report_type": "capital_alignment",
       "callable": "generate_capital_alignment",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 51,
+      "source_line": 66,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -637,7 +637,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 58,
+          "line": 73,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -660,7 +660,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 60,
+          "line": 75,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -973,7 +973,7 @@
       "report_type": "community_governance",
       "callable": "generate_community_governance",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 51,
+      "source_line": 75,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -987,7 +987,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 60,
+          "line": 84,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2428,7 +2428,7 @@
       "report_type": "governance_inclusion",
       "callable": "generate_governance_inclusion",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 92,
+      "source_line": 107,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -2442,7 +2442,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 101,
+          "line": 116,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2672,7 +2672,7 @@
       "report_type": "land_stewardship",
       "callable": "generate_land_stewardship",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 133,
+      "source_line": 148,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -2686,7 +2686,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 140,
+          "line": 155,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2709,7 +2709,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 142,
+          "line": 157,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3655,7 +3655,7 @@
       "report_type": "replication_readiness",
       "callable": "generate_replication_readiness",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 87,
+      "source_line": 111,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -3669,7 +3669,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 96,
+          "line": 120,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Callable, Literal, Optional
 from urllib.parse import quote
+from uuid import UUID
 
 import requests
 
@@ -38,6 +39,36 @@ class PublicLocation:
             region=payload.get("region"),
             status=payload["status"],
         )
+
+
+def _is_public_location(value: Any) -> bool:
+    """Return whether a payload matches the Gateway's exact location model."""
+    if not isinstance(value, dict) or set(value) != {
+        "id", "name", "country", "region", "status"
+    }:
+        return False
+
+    location_id = value["id"]
+    if not isinstance(location_id, str):
+        return False
+    try:
+        parsed_id = UUID(location_id)
+    except (TypeError, ValueError, AttributeError):
+        return False
+    if str(parsed_id) != location_id.lower():
+        return False
+
+    return (
+        isinstance(value["name"], str)
+        and (value["country"] is None or isinstance(value["country"], str))
+        and (value["region"] is None or isinstance(value["region"], str))
+        and isinstance(value["status"], str)
+        and value["status"] == "active"
+    )
+
+
+def _is_public_location_list(value: Any) -> bool:
+    return isinstance(value, list) and all(_is_public_location(row) for row in value)
 
 
 @dataclass(frozen=True)
@@ -266,12 +297,20 @@ class PublicLocationMethods:
         path = PUBLIC_API_PATHS_V1["listPublicLocationsV1"]
         return [
             PublicLocation.from_payload(row)
-            for row in self._client._get(path, data_shape="array")["data"]
+            for row in self._client._get(
+                path,
+                data_shape="array",
+                data_validator=_is_public_location_list,
+            )["data"]
         ]
 
     def get(self, location_id: str) -> PublicLocation:
         path = self._client._path("getPublicLocationV1", location_id=location_id)
-        payload = self._client._get(path, data_shape="object")["data"]
+        payload = self._client._get(
+            path,
+            data_shape="object",
+            data_validator=_is_public_location,
+        )["data"]
         return PublicLocation.from_payload(payload)
 
 

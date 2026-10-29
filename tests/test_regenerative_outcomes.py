@@ -1,5 +1,7 @@
 """Regenerative outcomes, governance, replication, and stewardship tests."""
 
+import re
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -284,6 +286,88 @@ def test_regenerative_report_generators_public_safe() -> None:
     assert replication["report_type"] == "replication_readiness"
     assert "not an unlimited-scaling claim" in replication["limitations"][0]
     assert generate_adaptive_stewardship(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "adaptive_stewardship"
+
+
+def test_regenerative_outcomes_projection_preserves_complete_view_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "period_start": date(2026, 1, 1),
+        "period_end": date(2026, 3, 31),
+        "summary_name": "Reviewed quarterly outcome",
+        "hectares_restored": 1.23456,
+        "baseline_species_count": 8,
+        "latest_species_count": 12,
+        "species_diversity_delta": 0.5,
+        "baseline_soil_carbon_t_ha": 42.1,
+        "latest_soil_carbon_t_ha": 43.3,
+        "soil_carbon_delta_t_ha": 1.2,
+        "trees_planted_count": 20,
+        "trees_surviving_count": 18,
+        "tree_survival_rate_pct": 90.0,
+        "regenerative_score": 77,
+        "jobs_or_roles_supported_count": 4,
+        "training_hours": 16.5,
+        "beneficiary_count": 23,
+        "evidence_confidence": 0.91,
+        "public_summary": "Reviewed public outcome summary.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "labels": ["quarterly"]},
+    }
+    expected_columns = (
+        "id, location_id, farm_id, period_start, period_end, summary_name, hectares_restored, "
+        "baseline_species_count, latest_species_count, species_diversity_delta, "
+        "baseline_soil_carbon_t_ha, latest_soil_carbon_t_ha, soil_carbon_delta_t_ha, "
+        "trees_planted_count, trees_surviving_count, tree_survival_rate_pct, regenerative_score, "
+        "jobs_or_roles_supported_count, training_hours, beneficiary_count, evidence_confidence, "
+        "public_summary, evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_regenerative_outcomes(conn, location_id, period_start, period_end)
+
+    normalized_query = re.sub(r"\s+", " ", conn.cursor_value.query).strip()
+    assert normalized_query == (
+        f"SELECT {expected_columns} FROM v_public_regenerative_outcome_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR period_start >= %s::date) "
+        "AND (%s::date IS NULL OR period_end <= %s::date) ORDER BY period_end DESC, summary_name"
+    )
+    assert conn.cursor_value.params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "regenerative_outcomes"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["outcomes"] == [
+        {**source_row, "period_start": "2026-01-01", "period_end": "2026-03-31"}
+    ]
+    assert report["total_hectares_restored"] == 1.2346
 
 
 def test_community_governance_rejects_missing_location_before_database_access() -> None:

@@ -22924,3 +22924,24 @@ provider, or production resource was used. Evidence:
 
 Checklist: 1,532 complete / 25 open (1,557 total); TODO: 235 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — GNH, report projections, and SDK location validation — 28 October 2026
+
+Comprehensive Status now validates the GNH section against its public-view
+projection, including selected-location identity for every assessment and the
+rounded mean of non-null scores. Regenerative-outcomes and time-liberation
+reports now explicitly select their full public-view columns while preserving
+filters, ordering, row serialization, and aggregates. Python and TypeScript
+public-location list/detail SDK methods now check the exact Gateway field set,
+UUID syntax, nullable country/region fields, and active status.
+
+The combined focused Python selection passes 186 tests and the TypeScript
+public-API selection passes 43. Ruff, Python compilation, all three report
+inventories, capability-matrix validation, and diff checks pass. Existing
+public summaries, arrays, and metadata remain unchanged; content-level privacy
+and populated-data parity are not established. No migration, database,
+candidate, legacy service, provider, or production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-gnh-sdk-report-projection-contracts.json).
+
+Checklist: 1,536 complete / 25 open (1,561 total); TODO: 239 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

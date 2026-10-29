@@ -21,7 +21,7 @@ from kokonut.public_api import (  # noqa: E402
 )
 
 LOCATION = {
-    "id": "location-1",
+    "id": "a0000000-0000-4000-8000-000000000001",
     "name": "Kokonut Adelphi",
     "country": "DO",
     "region": "Samaná",
@@ -150,11 +150,11 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
     assert len(locations) == 1
     assert isinstance(locations[0], PublicLocation)
     assert (locations[0].id, locations[0].name, locations[0].region) == (
-        "location-1",
+        LOCATION["id"],
         "Kokonut Adelphi",
         "Samaná",
     )
-    assert (location.id, location.name) == ("location-1", "Kokonut Adelphi")
+    assert (location.id, location.name) == (LOCATION["id"], "Kokonut Adelphi")
     assert (metrics.location_id, metrics.total_computed) == ("location-1", 1)
     assert metrics.computed[0].computed_at == datetime(2026, 10, 14, 12, 30, tzinfo=timezone.utc)
     assert (crisp.period_start, crisp.period_end, crisp.status) == (
@@ -363,3 +363,62 @@ def test_public_api_rejects_wrong_top_level_data_shape(method: str, data: Any) -
 
     with pytest.raises(PublicApiError, match="Invalid public API response envelope"):
         request()
+
+
+@pytest.mark.parametrize("method", ["list", "get"])
+def test_public_api_accepts_exact_location_with_nullable_fields(method: str) -> None:
+    location = {
+        **LOCATION,
+        "country": None,
+        "region": None,
+    }
+    client = KokonutPublicApiClient(
+        "https://gateway.example",
+        session=FakeSession(
+            [FakeResponse(200, {"data": [location] if method == "list" else location})]
+        ),
+    )
+
+    if method == "list":
+        result = client.locations.list()
+        assert len(result) == 1
+        parsed = result[0]
+    else:
+        parsed = client.locations.get("location-1")
+
+    assert isinstance(parsed, PublicLocation)
+    assert parsed.id == LOCATION["id"]
+    assert parsed.country is None
+    assert parsed.region is None
+    assert parsed.status == "active"
+
+
+@pytest.mark.parametrize("method", ["list", "get"])
+@pytest.mark.parametrize(
+    "location",
+    [
+        {**LOCATION, "id": "not-a-uuid"},
+        {**LOCATION, "name": 4},
+        {**LOCATION, "country": 4},
+        {**LOCATION, "region": []},
+        {**LOCATION, "status": "published"},
+        {key: value for key, value in LOCATION.items() if key != "region"},
+        {**LOCATION, "unexpected": "field"},
+    ],
+)
+def test_public_api_rejects_malformed_location_rows(method: str, location: dict[str, Any]) -> None:
+    data = [location] if method == "list" else location
+    response = FakeResponse(200, {"data": data})
+    client = KokonutPublicApiClient(
+        "https://gateway.example",
+        session=FakeSession([response]),
+    )
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope") as exc_info:
+        if method == "list":
+            client.locations.list()
+        else:
+            client.locations.get("location-1")
+
+    assert exc_info.value.status_code == 200
+    assert exc_info.value.response is response

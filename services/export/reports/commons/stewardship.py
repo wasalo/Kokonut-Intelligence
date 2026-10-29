@@ -19,7 +19,31 @@ def generate_regenerative_outcomes(conn, location_id: str, period_start: str = N
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   period_start,
+                   period_end,
+                   summary_name,
+                   hectares_restored,
+                   baseline_species_count,
+                   latest_species_count,
+                   species_diversity_delta,
+                   baseline_soil_carbon_t_ha,
+                   latest_soil_carbon_t_ha,
+                   soil_carbon_delta_t_ha,
+                   trees_planted_count,
+                   trees_surviving_count,
+                   tree_survival_rate_pct,
+                   regenerative_score,
+                   jobs_or_roles_supported_count,
+                   training_hours,
+                   beneficiary_count,
+                   evidence_confidence,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_regenerative_outcome_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR period_start >= %s::date)

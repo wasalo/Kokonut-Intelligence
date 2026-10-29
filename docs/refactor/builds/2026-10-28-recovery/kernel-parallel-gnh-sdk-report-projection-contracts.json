@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "18b6d453acc08a6f0ca1bbc3757c23f3eb9efd7f",
+  "scope": "GNH comprehensive-report contract, explicit public-view projections, and Python/TypeScript location response parity",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_gateway_comprehensive_status_reads.py",
+    "tests/test_comprehensive_status.py",
+    "tests/test_gnh_alignment.py",
+    "tests/test_regenerative_outcomes.py",
+    "tests/test_regenerative_outcomes_scope.py",
+    "tests/test_commons_liberation.py",
+    "tests/test_liberation_report_scope.py",
+    "tests/test_public_api_sdk.py",
+    "-q"
+  ],
+  "python_test_result": {"passed": 186, "failed": 0},
+  "javascript_test_command": [
+    "npm",
+    "test",
+    "--",
+    "src/__tests__/public-api.test.ts"
+  ],
+  "javascript_working_directory": "sdk/javascript",
+  "javascript_test_result": {"passed": 43, "failed": 0},
+  "checks": {
+    "ruff": "passed for changed Python source and tests",
+    "python_compile": "passed for changed Python source and tests",
+    "report_source_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "gnh_alignment": "Strict success/error projection; report and each assessment are bound to the selected location; fields and domain match the public view; average score is checked against the generator's rounded non-null-score mean.",
+    "regenerative_outcomes_projection": "Explicit ordered projection of all 25 current public-view columns; location/date filters, ordering, serialized row shape, and hectares aggregate are preserved.",
+    "time_liberation_projection": "Explicit ordered projection of all 16 current public-view columns; location/date filters, ordering, serialized row shape, and hours aggregate are preserved.",
+    "public_location_sdk": "Python and TypeScript list/detail responses require the exact Gateway field set, valid UUID syntax, nullable string country/region fields, and active status; invalid envelopes use existing SDK error types."
+  },
+  "content_review": "Existing public narratives, arrays, and metadata remain in their payloads. These checks establish contract and projection parity, not content-level privacy or populated-data parity.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

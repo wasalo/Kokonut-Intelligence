@@ -1,5 +1,7 @@
 """Commons liberation, aligned capital, governance inclusion, and land stewardship tests."""
 
+import re
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -216,6 +218,77 @@ def test_commons_report_generators_public_safe() -> None:
     land = generate_land_stewardship(conn, "a0000000-0000-0000-0000-000000000001")
     assert land["report_type"] == "land_stewardship"
     assert "not legal opinions" in land["limitations"][0]
+
+
+def test_time_liberation_projection_preserves_complete_view_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "observation_date": date(2026, 3, 31),
+        "workflow_area": "monthly_operator_reporting",
+        "baseline_hours": 8.0,
+        "observed_hours": 5.25,
+        "hours_reclaimed": 2.75,
+        "burden_reduction_pct": 34.375,
+        "automation_or_agent_used": True,
+        "automation_type": "reviewed_assistant",
+        "beneficiary_group": "farm_operator",
+        "public_summary": "Reviewed workflow outcome.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "labels": ["quarterly"]},
+    }
+    expected_columns = (
+        "id, location_id, farm_id, observation_date, workflow_area, baseline_hours, observed_hours, "
+        "hours_reclaimed, burden_reduction_pct, automation_or_agent_used, automation_type, "
+        "beneficiary_group, public_summary, evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_time_liberation(conn, location_id, period_start, period_end)
+
+    normalized_query = re.sub(r"\s+", " ", conn.cursor_value.query).strip()
+    assert normalized_query == (
+        f"SELECT {expected_columns} FROM v_public_time_liberation_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR observation_date >= %s::date) "
+        "AND (%s::date IS NULL OR observation_date <= %s::date) "
+        "ORDER BY observation_date DESC, workflow_area"
+    )
+    assert conn.cursor_value.params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "time_liberation"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["observations"] == [
+        {**source_row, "observation_date": "2026-03-31"}
+    ]
+    assert report["total_hours_reclaimed"] == 2.75
 
 
 @pytest.mark.parametrize("location_id", [None, ""])

@@ -80,6 +80,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
     sections["climate_impact"] = _climate_impact_section(location_id)
     sections["financial_sustainability"] = _financial_sustainability_section(location_id)
     sections["regenerative_outcomes"] = _regenerative_outcomes_section(location_id)
+    sections["gnh_alignment"] = _gnh_alignment_section(location_id)
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -518,6 +519,39 @@ def _regenerative_outcomes_section(location_id=LOCATION_ID):
     }
 
 
+def _gnh_alignment_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "gnh_alignment",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "assessments": [
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "farm_id": str(uuid4()),
+                "assessment_date": "2025-11-12",
+                "gnh_domain": "community_vitality",
+                "principle_refs": ["community_participation", "shared_benefit"],
+                "alignment_score": Decimal("8.50"),
+                "strengths": ["Local stewardship council is active."],
+                "gaps": ["Youth representation needs review."],
+                "safeguards": ["Participation remains voluntary."],
+                "public_summary": "Synthetic published GNH assessment.",
+                "evidence_maturity": 4,
+                "evidence_maturity_label": "Evidence-linked record",
+                "metadata": {"public_tag": "synthetic", "labels": ["reviewed"]},
+            }
+        ],
+        "average_alignment_score": 8.5,
+        "limitations": [
+            "GNH alignment is a reviewer-assessed evidence signal, not Bhutan readiness certification.",
+            "Local cultural review is required before adapting claims to a Bhutanese context.",
+            "Domain scores summarize published evidence and should be interpreted with listed gaps and safeguards.",
+        ],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
 class _Connection:
     autocommit = False
 
@@ -734,6 +768,18 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "labels": ["reviewed"],
     }
     assert regenerative["total_hectares_restored"] == 1.25
+    gnh = response.json()["locations"][0]["sections"]["gnh_alignment"]
+    assert gnh["assessments"][0]["public_summary"] == (
+        "Synthetic published GNH assessment."
+    )
+    assert gnh["assessments"][0]["strengths"] == [
+        "Local stewardship council is active."
+    ]
+    assert gnh["assessments"][0]["metadata"] == {
+        "public_tag": "synthetic",
+        "labels": ["reviewed"],
+    }
+    assert gnh["average_alignment_score"] == 8.5
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -915,6 +961,35 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "evidence_maturity_label",
         "metadata",
     }
+    gnh_schema = section_schema["properties"]["gnh_alignment"]
+    assert len(gnh_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusGnhAlignment"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusGnhAlignmentAssessment"]["additionalProperties"] is False
+    assert set(schemas["ComprehensiveStatusGnhAlignment"]["properties"]) == {
+        "report_type",
+        "location_id",
+        "location_name",
+        "assessments",
+        "average_alignment_score",
+        "limitations",
+        "generated_at",
+    }
+    assert set(schemas["ComprehensiveStatusGnhAlignmentAssessment"]["properties"]) == {
+        "id",
+        "location_id",
+        "farm_id",
+        "assessment_date",
+        "gnh_domain",
+        "principle_refs",
+        "alignment_score",
+        "strengths",
+        "gaps",
+        "safeguards",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    }
 
 
 def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
@@ -937,6 +1012,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "error": "report section failed (DataError)"
     }
     payload["locations"][0]["sections"]["regenerative_outcomes"] = {
+        "error": "report section failed (DataError)"
+    }
+    payload["locations"][0]["sections"]["gnh_alignment"] = {
         "error": "report section failed (DataError)"
     }
     monkeypatch.setattr(
@@ -983,6 +1061,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["regenerative_outcomes"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["gnh_alignment"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -1008,6 +1089,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "regenerative_missing_field", "regenerative_invalid_confidence",
         "regenerative_invalid_period", "regenerative_total_mismatch",
         "regenerative_error_contract",
+        "gnh_report_wrong_location", "gnh_assessment_wrong_location",
+        "gnh_assessment_extra", "gnh_numeric_string", "gnh_missing_field",
+        "gnh_invalid_domain", "gnh_wrong_average", "gnh_error_contract",
     ],
 )
 def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_projection):
@@ -1158,6 +1242,38 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         ] = 9.0
     elif invalid_projection == "regenerative_error_contract":
         payload["locations"][0]["sections"]["regenerative_outcomes"] = {
+            "error": "database connection failed with private SQL"
+        }
+    elif invalid_projection == "gnh_report_wrong_location":
+        payload["locations"][0]["sections"]["gnh_alignment"]["location_id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "gnh_assessment_wrong_location":
+        payload["locations"][0]["sections"]["gnh_alignment"]["assessments"][0][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "gnh_assessment_extra":
+        payload["locations"][0]["sections"]["gnh_alignment"]["assessments"][0][
+            "source_raw"
+        ] = {"private": "must not escape"}
+    elif invalid_projection == "gnh_numeric_string":
+        payload["locations"][0]["sections"]["gnh_alignment"]["assessments"][0][
+            "alignment_score"
+        ] = "8.50"
+    elif invalid_projection == "gnh_missing_field":
+        payload["locations"][0]["sections"]["gnh_alignment"]["assessments"][0].pop(
+            "public_summary"
+        )
+    elif invalid_projection == "gnh_invalid_domain":
+        payload["locations"][0]["sections"]["gnh_alignment"]["assessments"][0][
+            "gnh_domain"
+        ] = "private_unregistered_domain"
+    elif invalid_projection == "gnh_wrong_average":
+        payload["locations"][0]["sections"]["gnh_alignment"][
+            "average_alignment_score"
+        ] = 9.0
+    elif invalid_projection == "gnh_error_contract":
+        payload["locations"][0]["sections"]["gnh_alignment"] = {
             "error": "database connection failed with private SQL"
         }
     else:

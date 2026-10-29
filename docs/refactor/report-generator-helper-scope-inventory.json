@@ -31,13 +31,13 @@
         {
           "caller": "generate_adaptive_stewardship",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 127,
+          "line": 151,
           "depth": 1
         },
         {
           "caller": "generate_adaptive_stewardship",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 152,
+          "line": 176,
           "depth": 1
         },
         {
@@ -3289,13 +3289,13 @@
         {
           "caller": "generate_capital_alignment",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 53,
+          "line": 68,
           "depth": 1
         },
         {
           "caller": "generate_capital_alignment",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 79,
+          "line": 94,
           "depth": 1
         },
         {
@@ -3711,13 +3711,13 @@
         {
           "caller": "generate_community_governance",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 55,
+          "line": 79,
           "depth": 1
         },
         {
           "caller": "generate_community_governance",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 75,
+          "line": 99,
           "depth": 1
         },
         {
@@ -5158,13 +5158,13 @@
         {
           "caller": "generate_governance_inclusion",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 96,
+          "line": 111,
           "depth": 1
         },
         {
           "caller": "generate_governance_inclusion",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 118,
+          "line": 133,
           "depth": 1
         },
         {
@@ -5338,13 +5338,13 @@
         {
           "caller": "generate_land_stewardship",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 135,
+          "line": 150,
           "depth": 1
         },
         {
           "caller": "generate_land_stewardship",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 160,
+          "line": 175,
           "depth": 1
         },
         {
@@ -7787,7 +7787,7 @@
         {
           "caller": "generate_regenerative_outcomes",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 38,
+          "line": 62,
           "depth": 1
         },
         {
@@ -7958,13 +7958,13 @@
         {
           "caller": "generate_replication_readiness",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 91,
+          "line": 115,
           "depth": 1
         },
         {
           "caller": "generate_replication_readiness",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 113,
+          "line": 137,
           "depth": 1
         },
         {
@@ -10629,7 +10629,7 @@
         {
           "caller": "generate_time_liberation",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 38,
+          "line": 53,
           "depth": 1
         },
         {

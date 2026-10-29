@@ -90,6 +90,29 @@ function encodePathSegment(value: string): string {
   );
 }
 
+function isPublicLocation(value: unknown): value is PublicLocationV1 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const expectedKeys = ['id', 'name', 'country', 'region', 'status'];
+  if (
+    Object.keys(candidate).length !== expectedKeys.length ||
+    !expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(candidate, key)) ||
+    typeof candidate.id !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidate.id) ||
+    typeof candidate.name !== 'string' ||
+    (candidate.country !== null && typeof candidate.country !== 'string') ||
+    (candidate.region !== null && typeof candidate.region !== 'string') ||
+    candidate.status !== 'active'
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function isPublicLocationList(value: unknown): value is PublicLocationV1[] {
+  return Array.isArray(value) && value.every(isPublicLocation);
+}
+
 function isDriverCatalogResponse(
   value: unknown,
   expectedLimit: number,
@@ -180,7 +203,12 @@ export class KokonutPublicApiClient {
     this.fetchImpl = options.fetch ?? defaultFetch!;
     this.apiKey = options.apiKey;
     this.locations = {
-      list: () => this.get<PublicLocationV1[]>(publicApiPathsV1.listPublicLocationsV1, 'array'),
+      list: () =>
+        this.get<PublicLocationV1[]>(
+          publicApiPathsV1.listPublicLocationsV1,
+          'array',
+          isPublicLocationList,
+        ),
       get: (locationId: string) =>
         this.get<PublicLocationV1>(
           publicApiPathsV1.getPublicLocationV1.replace(
@@ -188,6 +216,7 @@ export class KokonutPublicApiClient {
             encodePathSegment(locationId),
           ),
           'object',
+          isPublicLocation,
         ),
     };
     this.drivers = {

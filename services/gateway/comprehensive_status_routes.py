@@ -241,6 +241,62 @@ class ComprehensiveStatusRegenerativeOutcomes(_ComprehensiveStatusModel):
         return self
 
 
+class ComprehensiveStatusGnhAlignmentAssessment(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    assessment_date: ReportDate
+    gnh_domain: Literal[
+        "psychological_wellbeing",
+        "health",
+        "education",
+        "culture",
+        "time_use",
+        "good_governance",
+        "community_vitality",
+        "ecological_diversity",
+        "living_standards",
+        "other",
+    ]
+    principle_refs: list[str] | None
+    alignment_score: ReportNumber | None = Field(ge=0, le=10)
+    strengths: list[str] | None
+    gaps: list[str] | None
+    safeguards: list[str] | None
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusGnhAlignment(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["gnh_alignment"]
+    location_id: ReportUuid
+    location_name: str | None
+    assessments: list[ComprehensiveStatusGnhAlignmentAssessment]
+    average_alignment_score: ReportNumber | None
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_assessments_in_scope_and_average_consistent(self):
+        if any(assessment.location_id != self.location_id for assessment in self.assessments):
+            raise ValueError("GNH alignment assessment is outside report location scope")
+        scores = [
+            float(assessment.alignment_score)
+            for assessment in self.assessments
+            if assessment.alignment_score is not None
+        ]
+        expected_average = round(sum(scores) / len(scores), 2) if scores else None
+        if self.average_alignment_score != expected_average:
+            raise ValueError("GNH alignment average does not match its assessments")
+        return self
+
+
 class ComprehensiveStatusClimateCarbonBalance(_ComprehensiveStatusModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
 
@@ -705,10 +761,10 @@ class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     regenerative_outcomes: (
         ComprehensiveStatusRegenerativeOutcomes | ComprehensiveStatusSectionError
     )
+    gnh_alignment: ComprehensiveStatusGnhAlignment | ComprehensiveStatusSectionError
     capital_efficiency: JsonValue
     holistic_wellbeing: JsonValue
     community_governance: JsonValue
-    gnh_alignment: JsonValue
     training_impact: JsonValue
     foundational_wellbeing: JsonValue
     stakeholder_outcomes: JsonValue
@@ -755,6 +811,12 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             and regenerative.location_id != self.location_id
         ):
             raise ValueError("Regenerative outcomes section is outside the composed location scope")
+        gnh_alignment = self.sections.gnh_alignment
+        if (
+            isinstance(gnh_alignment, ComprehensiveStatusGnhAlignment)
+            and gnh_alignment.location_id != self.location_id
+        ):
+            raise ValueError("GNH alignment section is outside the composed location scope")
         return self
 
 

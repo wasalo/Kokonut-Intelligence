@@ -1,5 +1,20 @@
 # Capability preservation matrix
 
+**Latest parallel C2/C5 and SDK contract batch — 28 October 2026:**
+Comprehensive Status validates the GNH public-view projection, report and row
+location, and the generator's rounded score average. Regenerative-outcomes and
+time-liberation reports now use explicit full projections of their public
+views. Python and TypeScript public-location list/detail clients enforce the
+Gateway's exact field, UUID, nullability, and active-status contract. Focused
+checks pass: 186 Python tests and 43 TypeScript tests; Ruff, compilation, all
+report inventories, capability validation, and diff checks pass. No database,
+provider, candidate, legacy service, or production resource was used. These
+checks do not establish content-level privacy or populated-data parity. Matrix
+classifications remain 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); strict private Gateway response contracts remain 94. Checklist:
+1,536 complete / 25 open (1,561 total); MAN-CAP acceptance and classifications
+are unchanged ([evidence](builds/2026-10-28-recovery/kernel-parallel-gnh-sdk-report-projection-contracts.json)).
+
 **Latest parallel C2/C5 contract and projection batch — 28 October 2026:**
 Comprehensive Status now validates regenerative-outcome report and row scope,
 period order, and hectares aggregation while retaining existing summary and

@@ -6254,3 +6254,31 @@ was used. Evidence:
 
 Checklist: 1,532 complete / 25 open (1,557 total); TODO: 235 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed parallel C2/C5 and SDK parity batch — 28 October 2026
+
+- [x] Add a strict Comprehensive Status GNH-alignment section contract. Bind
+  report and assessment location IDs, mirror the public-view fields, and check
+  the rounded mean of non-null alignment scores while preserving the existing
+  bounded section-error behavior.
+- [x] Replace regenerative-outcomes `SELECT *` with all 25 ordered
+  public-view columns while preserving filters, ordering, serialization, and
+  the hectares aggregate.
+- [x] Replace time-liberation `SELECT *` with all 16 ordered public-view
+  columns while preserving filters, ordering, serialization, and the hours
+  aggregate.
+- [x] Make Python and TypeScript public-location list/detail clients validate
+  exact response fields, UUID syntax, nullable country/region values, and the
+  active status before decoding results.
+
+The integrated focused Python selection passes 186 tests and the TypeScript
+public-API suite passes 43. Ruff, Python compilation, all three report
+inventories, capability-matrix validation, and `git diff --check` pass. Public
+GNH text/metadata and report narratives remain unchanged; this is source-level
+contract and payload-parity evidence, not content-level privacy or populated
+data parity. No migration, database, candidate, legacy service, provider, or
+production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-gnh-sdk-report-projection-contracts.json).
+
+Checklist: 1,536 complete / 25 open (1,561 total); TODO: 239 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

@@ -22,10 +22,11 @@ the batch log and the affected capability/progress records are updated.
   contract with period and aggregate validation, preserving current content.
 - [x] Validate federation `shared_capabilities` as JSON at runtime without
   narrowing the existing JSONB payload or changing route/SDK behavior.
-- [x] Replace stakeholder-outcome and Green Paper publication-status
-  `SELECT *` with explicit schema-aligned column projections and parity checks.
-  These contracts preserve current data and do not establish content-level
-  privacy or populated-data parity
+- [x] Replace stakeholder-outcome `SELECT *` with the explicit 22-column
+  migration-aligned projection.
+- [x] Replace Green Paper publication-status `SELECT *` with the explicit
+  14-column view projection. These preserve current data and do not establish
+  content-level privacy or populated-data parity
   ([evidence](builds/2026-10-28-recovery/kernel-parallel-regenerative-federation-report-projections.json)).
 
 - [x] Add strict Comprehensive Status contracts for farm summary and published
@@ -2095,7 +2096,7 @@ reconciliation remain open. Evidence:
 Checklist: 1,528 complete / 25 open (1,553 total); TODO: 231 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
 
-### Latest local continuation — response and report projection contracts — 28 October 2026
+### Previous local continuation — response and report projection contracts — 28 October 2026
 
 The current continuation adds the strict regenerative-outcomes section
 contract, runtime JSON validation for federation capabilities, and explicit
@@ -2106,4 +2107,18 @@ Content-level privacy and populated-data parity remain open. See
 [batch evidence](builds/2026-10-28-recovery/kernel-parallel-regenerative-federation-report-projections.json).
 
 Checklist: 1,532 complete / 25 open (1,557 total); TODO: 235 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — GNH, public reports, and SDK location validation — 28 October 2026
+
+Comprehensive Status now checks the GNH report location, assessment rows, and
+rounded average. Regenerative-outcomes and time-liberation reports explicitly
+select their complete public-view projections, and both REST SDKs validate the
+public location list/detail response shape at runtime. The integrated focused
+Python selection passes 186 tests and the TypeScript selection passes 43;
+inventories and static checks pass. Content-level privacy and populated-data
+parity remain open. See
+[batch evidence](builds/2026-10-28-recovery/kernel-parallel-gnh-sdk-report-projection-contracts.json).
+
+Checklist: 1,536 complete / 25 open (1,561 total); TODO: 239 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

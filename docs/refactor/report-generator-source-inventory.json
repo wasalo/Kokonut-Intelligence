@@ -14,7 +14,7 @@
       "callable": "generate_adaptive_stewardship",
       "source_module": "services.export.reports.commons.stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 125,
+      "source_line": 149,
       "parameters": [
         "conn",
         "location_id",
@@ -311,7 +311,7 @@
       "callable": "generate_capital_alignment",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 51,
+      "source_line": 66,
       "parameters": [
         "conn",
         "location_id",
@@ -399,7 +399,7 @@
       "callable": "generate_community_governance",
       "source_module": "services.export.reports.commons.stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 51,
+      "source_line": 75,
       "parameters": [
         "conn",
         "location_id",
@@ -810,7 +810,7 @@
       "callable": "generate_governance_inclusion",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 92,
+      "source_line": 107,
       "parameters": [
         "conn",
         "location_id",
@@ -895,7 +895,7 @@
       "callable": "generate_land_stewardship",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 133,
+      "source_line": 148,
       "parameters": [
         "conn",
         "location_id",
@@ -1328,7 +1328,7 @@
       "callable": "generate_replication_readiness",
       "source_module": "services.export.reports.commons.stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 87,
+      "source_line": 111,
       "parameters": [
         "conn",
         "location_id",
