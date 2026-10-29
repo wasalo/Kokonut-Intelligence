@@ -27,6 +27,18 @@ class _PollinatorResponseModel(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
 
+class PollinatorObservationCaptureResponse(_PollinatorResponseModel):
+    observation_id: UUID
+    location_id: UUID
+    pollinator_type: _PollinatorType
+    count: int = Field(ge=0, strict=True)
+    observation_method: _ObservationMethod
+    observation_date: date
+    duration_minutes: int = Field(ge=0, strict=True)
+    status: Literal["recorded"]
+    replayed: bool = Field(strict=True)
+
+
 class PollinatorObservationAggregate(_PollinatorResponseModel):
     pollinator_type: _PollinatorType
     observation_method: _ObservationMethod | None
@@ -295,7 +307,9 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
-    def _validated_private_response(model, result, error_message, expected):
+    def _validated_private_response(
+        model, result, error_message, expected, *, created_replay=False
+    ):
         try:
             validated = model.model_validate(result)
             if any(getattr(validated, name) != value for name, value in expected.items()):
@@ -311,6 +325,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             )
         return JSONResponse(
             jsonable_encoder(validated.model_dump(mode="json", exclude_unset=True)),
+            status_code=(200 if validated.replayed else 201) if created_replay else 200,
             headers=headers,
         )
 
@@ -657,7 +672,12 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             {"location_id": UUID(location_id), "limit": limit, "offset": offset},
         )
 
-    @router.post("/operator/api/pollinators/{location_id}/observations")
+    @router.post(
+        "/operator/api/pollinators/{location_id}/observations",
+        response_model=PollinatorObservationCaptureResponse,
+        status_code=201,
+        responses={200: {"model": PollinatorObservationCaptureResponse}},
+    )
     async def create_pollinator_observation(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -709,10 +729,21 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
                 content={"error": "Pollinator capture unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
-            headers=headers,
+        expected = {
+            "location_id": UUID(location_id),
+            "pollinator_type": payload.get("pollinator_type"),
+            "count": payload.get("count"),
+            "observation_method": payload.get("observation_method"),
+            "duration_minutes": payload.get("duration_minutes"),
+        }
+        if payload.get("observation_date") is not None:
+            expected["observation_date"] = date.fromisoformat(payload["observation_date"])
+        return _validated_private_response(
+            PollinatorObservationCaptureResponse,
+            result,
+            "Pollinator capture unavailable",
+            expected,
+            created_replay=True,
         )
 
     @router.post("/operator/api/pollinators/{location_id}/pesticide-impacts")
