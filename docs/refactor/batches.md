@@ -7348,6 +7348,22 @@ classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
 populated-data parity, and live provider gates remain open.
 
+### Source continuation — sensor stream batch-size preflight — 29 October 2026
+
+- [x] Bound stream processing batches to 1–500 in both the CLI and service
+  method; reject invalid values before processor construction or database
+  acquisition while preserving valid boundary values.
+
+The focused mocked CLI/service suite passes 13 tests. Ruff, Python compilation,
+and diff checks pass. No database or provider was contacted. Evidence:
+[stream batch-size preflight](builds/2026-10-29-recovery/stream-processor-batch-size-preflight.json).
+
+Checklist: 1,693 complete / 25 open (1,718 total); TODO: 378 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
+populated-data parity, and live provider gates remain open.
+
 ### Source continuation — analytics and Ecocredit input contracts — 29 October 2026
 
 - [x] Replace the capability-dashboard wildcard with migration 207's exact

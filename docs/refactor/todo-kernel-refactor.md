@@ -2832,3 +2832,11 @@ Checklist: 376 checked / 16 open. Evidence:
 
 Checklist: 377 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/datastream-signer-cli-batch-bound.json`.
+
+## Completed in the 29 October sensor stream continuation
+
+- [x] Bound CLI and direct stream-processing batches to 1–500 and verify
+  invalid values fail before worker construction/database acquisition.
+
+Checklist: 378 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/stream-processor-batch-size-preflight.json`.

@@ -23926,3 +23926,16 @@ Checklist: 1,692 complete / 25 open (1,717 total); TODO: 377 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 116. Production/provider and populated-data gates remain open.
+
+### Progress addendum — sensor stream batch-size preflight — 29 October 2026
+
+Stream processing now bounds batches to 1–500 at both the CLI and service
+boundary. Invalid CLI arguments fail before processor construction; direct
+service calls reject malformed bounds before database acquisition. The focused
+mock suite passes 13 tests; Ruff, compilation, and diff checks pass. Evidence:
+[stream preflight](builds/2026-10-29-recovery/stream-processor-batch-size-preflight.json).
+
+Checklist: 1,693 complete / 25 open (1,718 total); TODO: 378 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production/provider and populated-data gates remain open.

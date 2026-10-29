@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-29",
+  "scope": "mocked-cli-and-service-preflight",
+  "command": "python3 -m services.stream --run",
+  "batch_limit": {
+    "minimum": 1,
+    "maximum": 500,
+    "rejected_cli_values": ["0", "-1", "501", "1000000", "not-an-int"],
+    "rejected_service_values": [0, -1, 501, "1", 1.0, true],
+    "accepted_values_forwarded_unchanged": [1, 500]
+  },
+  "focused_tests_passed": 13,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}
