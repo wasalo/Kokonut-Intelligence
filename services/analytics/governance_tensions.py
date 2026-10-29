@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
 
-
 TENSION_TYPES = (
     "unmet_interest", "unclear_accountability", "authority_gap",
     "authority_conflict", "commitment_risk", "representation_gap",
@@ -18,6 +17,14 @@ TENSION_TYPES = (
 )
 STATUSES = ("draft", "submitted", "triaged", "in_progress", "resolved", "deferred", "rejected", "closed")
 LINK_TYPES = ("interest", "commitment", "work_item", "decision", "grievance", "evidence", "relationship", "proposal", "outcome")
+_TENSION_HEALTH_COLUMNS = (
+    "tension_id, tension_key, title, description, tension_type, severity, urgency, "
+    "circle_id, circle_key, circle_name, scope_type, scope_id, status, "
+    "reported_by_party_id, reported_by_name, affected_party_id, affected_party_name, "
+    "owner_role_id, owner_role_key, owner_party_id, owner_party_name, work_item_id, "
+    "decision_id, grievance_id, review_due_at, deferred_until, link_count, "
+    "is_overdue, created_at"
+)
 
 
 def _value(value: Any) -> Any:
@@ -83,7 +90,11 @@ def report_tension(
 
 def get_tension(conn, tension_id: str) -> Optional[Dict[str, Any]]:
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_governance_tension_health WHERE tension_id = %s::uuid", (tension_id,))
+        cur.execute(
+            f"SELECT {_TENSION_HEALTH_COLUMNS} FROM v_governance_tension_health "
+            "WHERE tension_id = %s::uuid",
+            (tension_id,),
+        )
         result = _row(cur.fetchone())
         if result:
             cur.execute(
@@ -116,7 +127,8 @@ def list_tensions(
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            f"SELECT * FROM v_governance_tension_health{where} ORDER BY severity DESC, urgency DESC, created_at",
+            f"SELECT {_TENSION_HEALTH_COLUMNS} FROM v_governance_tension_health{where} "
+            "ORDER BY severity DESC, urgency DESC, created_at",
             params,
         )
         return [_row(row) for row in cur.fetchall()]
