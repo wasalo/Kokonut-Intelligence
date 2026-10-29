@@ -23107,3 +23107,27 @@ Checklist: 1,567 complete / 25 open (1,592 total); TODO: 266 checked / 16
 open. The capability matrix remains 67 rows (24 baseline-retained,
 7 deployed, 36 prepared), with 98 strict private Gateway response contracts;
 MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — governance readback and report projection batch — 29 October 2026
+
+Token-reward distribution and calibration reports now select the exact
+16-column and 15-column public views. Capital-provider utility selects all 16
+summary fields, and stakeholder representation selects its exact 8-field
+participation and 10-field distribution projections while retaining network
+scope and shared observations. The private
+governance assignment-proposal endpoint now declares and validates an exact
+response contract, including location/page bounds, aware timestamps, unique
+descending order, input and continuation cursors, and sanitized no-store
+failures. UTC timestamps serialize consistently as `Z`.
+
+The focused synthetic/mock selection passes 22 tests. Ruff, Python
+compilation, all report inventories, capability-matrix validation, and diff
+checks pass. No database, migration, provider, candidate, legacy stack, or
+production service was used. This does not establish populated-data parity,
+content privacy, live OIDC, tenant isolation, or runtime database behavior.
+Evidence: [batch](builds/2026-10-29-recovery/kernel-parallel-governance-and-report-projection-batch-3.json).
+
+Checklist: 1,575 complete / 25 open (1,600 total); TODO: 274 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts now
+total 99. MAN-CAP acceptance is unchanged.

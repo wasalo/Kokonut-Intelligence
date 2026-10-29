@@ -1,5 +1,6 @@
 """OIDC route registration for location-scoped governance reads and actions."""
 
+from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -29,6 +30,8 @@ _GovernanceResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
 _ROLE_STATUS = Literal[
     "draft", "submitted", "approved", "active", "suspended", "rejected", "retired"
 ]
+_ASSIGNMENT_STATUS = Literal["proposed", "active", "suspended", "ended", "rejected"]
+_ASSIGNMENT_TYPE = Literal["primary", "delegate", "representative", "interim"]
 _CIRCLE_STATUS = Literal["draft", "submitted", "active", "suspended", "rejected", "retired"]
 _GOVERNANCE_SCOPE = Literal[
     "network",
@@ -105,6 +108,98 @@ class GovernanceCircleDetailResponse(BaseModel):
 
     location_id: _GovernanceResponseUUID
     circle: GovernanceCircleDetailItemResponse
+
+
+class GovernanceAssignmentProposalItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    assignment_id: _GovernanceResponseUUID
+    role_id: _GovernanceResponseUUID
+    role_key: str = Field(max_length=120, strict=True)
+    role_name: str = Field(max_length=255, strict=True)
+    assignment_type: _ASSIGNMENT_TYPE
+    status: _ASSIGNMENT_STATUS
+    created_at: AwareDatetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def _parse_serialized_timestamp(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("assignment proposal timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("assignment proposal timestamp must include a timezone")
+        return value
+
+
+class GovernanceAssignmentProposalCursorResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    created_at: AwareDatetime
+    assignment_id: _GovernanceResponseUUID
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def _parse_serialized_cursor_timestamp(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("assignment proposal cursor timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("assignment proposal cursor timestamp must include a timezone")
+        return value
+
+
+class GovernanceAssignmentProposalPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _GovernanceResponseUUID
+    items: list[GovernanceAssignmentProposalItemResponse] = Field(max_length=100)
+    next_cursor: GovernanceAssignmentProposalCursorResponse | None
+
+    def validate_request(
+        self,
+        *,
+        location_id: str,
+        limit: int,
+        cursor_created_at: str | None,
+        cursor_assignment_id: str | None,
+    ):
+        if self.location_id != UUID(location_id) or len(self.items) > limit:
+            raise ValueError("Governance assignment proposal page does not match request scope or bounds")
+
+        identities = [item.assignment_id for item in self.items]
+        if len(identities) != len(set(identities)):
+            raise ValueError("Governance assignment proposal page contains duplicate assignments")
+        if any(
+            (previous.created_at, previous.assignment_id.int)
+            <= (current.created_at, current.assignment_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("Governance assignment proposal page is not in descending order")
+
+        if (cursor_created_at is None) != (cursor_assignment_id is None):
+            raise ValueError("Governance assignment proposal input cursor is incomplete")
+        if cursor_created_at is not None:
+            parsed_cursor = datetime.fromisoformat(cursor_created_at.replace("Z", "+00:00"))
+            cursor_key = (parsed_cursor, UUID(cursor_assignment_id).int)
+            if any((item.created_at, item.assignment_id.int) >= cursor_key for item in self.items):
+                raise ValueError("Governance assignment proposal page repeats its input cursor")
+
+        if self.next_cursor is not None:
+            if not self.items or len(self.items) != limit:
+                raise ValueError("Governance assignment proposal continuation does not match its page")
+            last = self.items[-1]
+            if (
+                self.next_cursor.created_at != last.created_at
+                or self.next_cursor.assignment_id != last.assignment_id
+            ):
+                raise ValueError("Governance assignment proposal continuation does not match its last item")
+        return self
 
 
 class GovernanceRoleListItemResponse(BaseModel):
@@ -671,7 +766,8 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         )
 
     @router.get(
-        "/operator/api/governance/{location_id}/assignment-proposals"
+        "/operator/api/governance/{location_id}/assignment-proposals",
+        response_model=GovernanceAssignmentProposalPageResponse,
     )
     async def own_governance_assignment_proposals(
         request: Request,
@@ -728,7 +824,26 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance role proposal readback unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = GovernanceAssignmentProposalPageResponse.model_validate(result)
+            page.validate_request(
+                location_id=location_id,
+                limit=limit,
+                cursor_created_at=cursor_created_at,
+                cursor_assignment_id=cursor_assignment_id,
+            )
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_roles").warning(
+                "Governance role proposal response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance role proposal readback unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page.model_dump(mode="json")), headers=headers)
 
     @router.get(
         "/operator/api/governance/{location_id}/assignment-review-queue"

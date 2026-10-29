@@ -352,9 +352,37 @@ def generate_stakeholder_representation(conn, location_id=None, period_start=Non
     """Generate privacy-aware stakeholder representation and equity metrics."""
     require_network_scope("stakeholder_representation", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_public_stakeholder_representation ORDER BY activity_type, activity_id")
+        cur.execute(
+            """
+            SELECT activity_type,
+                   activity_id,
+                   invited_count,
+                   participated_count,
+                   participation_rate_pct,
+                   contribution_rate_pct,
+                   minority_view_count,
+                   minority_view_preserved_count
+            FROM v_public_stakeholder_representation
+            ORDER BY activity_type, activity_id
+            """
+        )
         representation = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_stakeholder_equity_distribution ORDER BY distribution_type, metric_name")
+        cur.execute(
+            """
+            SELECT scope_type,
+                   scope_id,
+                   distribution_type,
+                   metric_name,
+                   unit,
+                   record_count,
+                   beneficiary_count,
+                   total_amount,
+                   earliest_period,
+                   latest_period
+            FROM v_stakeholder_equity_distribution
+            ORDER BY distribution_type, metric_name
+            """
+        )
         distributions = [dict(row) for row in cur.fetchall()]
     return {
         "report_type": "stakeholder_representation",

@@ -391,7 +391,23 @@ def generate_token_rewards(conn, location_id: str, period_start: str = None, per
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_token_reward_distribution
+            SELECT id,
+                   location_id,
+                   location_name,
+                   recipient_name,
+                   reward_type,
+                   token_type,
+                   token_amount,
+                   usd_value,
+                   distribution_date,
+                   epoch,
+                   linked_metric_key,
+                   linked_metric_value,
+                   is_onchain,
+                   distribution_method,
+                   notes,
+                   status
+            FROM v_public_token_reward_distribution
             WHERE location_id = %s ORDER BY distribution_date DESC
             """,
             (location_id,),
@@ -399,7 +415,22 @@ def generate_token_rewards(conn, location_id: str, period_start: str = None, per
         distributions = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_reward_calibration
+            SELECT id,
+                   location_id,
+                   location_name,
+                   model_name,
+                   model_type,
+                   run_date,
+                   input_metrics,
+                   output_weights,
+                   calibration_score,
+                   total_tokens_distributed,
+                   token_per_unit_output,
+                   epoch,
+                   confidence_level,
+                   notes,
+                   status
+            FROM v_public_reward_calibration
             WHERE location_id = %s ORDER BY run_date DESC LIMIT 1
             """,
             (location_id,),

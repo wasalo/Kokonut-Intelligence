@@ -1,6 +1,6 @@
 # Kokonut Kernel refactor TODO
 
-Updated: 28 October 2026. This is the active cross-phase work queue for the
+Updated: 29 October 2026. This is the active cross-phase work queue for the
 owner-provided [architecture implementation plan](implementation-plan-alignment.md).
 The detailed, historically preserved acceptance records remain in
 [batches.md](batches.md); this file groups their remaining gates into work that
@@ -2282,3 +2282,28 @@ Checklist: 1,571 complete / 25 open (1,596 total); TODO: 270 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 98. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — report projections and governance readback — 29 October 2026
+
+- [x] Replace token-reward distribution and calibration wildcards with exact
+  ordered projections; preserve location scope, ordering, totals, and payload.
+- [x] Replace the capital-provider utility wildcard with its complete
+  16-column public-view projection and preserve location/order behavior.
+- [x] Replace stakeholder representation `SELECT *` with all 8 public-view
+  columns and the equity-distribution wildcard with its 10-column projection,
+  preserving network-shared rows and aggregate output.
+- [x] Publish and enforce a strict request-bound response contract for private
+  governance assignment-proposal pages, including timestamp, order, cursor,
+  scope, page-bound, and sanitized no-store failure checks.
+
+The combined synthetic/mock selection passes 22 tests. Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+diff checks pass. No database, migration, candidate, legacy service, provider,
+or production resource was used. The checks do not establish populated-data
+parity, content privacy, live OIDC, or tenant isolation. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-parallel-governance-and-report-projection-batch-3.json).
+
+Checklist: 1,575 complete / 25 open (1,600 total); TODO: 274 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts now
+total 99. MAN-CAP acceptance is unchanged.

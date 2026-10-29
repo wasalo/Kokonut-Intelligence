@@ -1,6 +1,6 @@
 # Kernel execution checklist
 
-Updated: 28 October 2026. Current architecture focus is Phase 8 acceptance;
+Updated: 29 October 2026. Current architecture focus is Phase 8 acceptance;
 batch numbers group work across phases and do not replace the phase gates.
 
 ## Working agreement
@@ -19,14 +19,41 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (28 October 2026):** 1,491 checklist items complete and 25
-open (1,516 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,575 checklist items complete and 25
+open (1,600 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### Latest local continuation — governance readback and report projections — 29 October 2026
+
+- [x] Replace token-reward distribution and calibration wildcards with exact
+  ordered public-view projections and verify scope, totals, and payload.
+- [x] Replace capital-provider utility `SELECT *` with the complete 16-column
+  public summary projection and preserve location scope and ordering.
+- [x] Replace stakeholder representation `SELECT *` with its exact 8-column
+  projection and replace equity distribution `SELECT *` with all 10 ordered
+  view fields, preserving shared network rows and counts.
+- [x] Add a strict request-bound schema to private governance assignment
+  proposal readback; validate exact fields, time/order, cursors, page bounds,
+  location, and sanitized no-store errors.
+
+The approved synthetic/mock selection passes 22 tests. Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+diff checks pass. No database, provider, candidate, legacy service, or
+production resource was used. The source contracts do not prove populated-data
+parity, live OIDC, tenant isolation, or content-level privacy. Roll back by
+reverting the report queries and Gateway response validator; no migration or
+data rollback is needed. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-parallel-governance-and-report-projection-batch-3.json).
+
+Checklist: 1,575 complete / 25 open (1,600 total); TODO: 274 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 99 strict private Gateway response contracts.
+MAN-CAP acceptance and capability classifications remain unchanged.
 
 ### Completed continuation — GNH scope, mobile inventory contract, and forecast tenant reads — 28 October 2026
 

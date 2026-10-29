@@ -11,7 +11,6 @@ from services.analytics.livestock_feed import (
 from services.analytics.reward_calibration import (
     compute_reward_calibration,
     compute_reward_calibration_model,
-    compute_reward_metric_correlation,
 )
 from services.export.report_generator import (
     REPORT_GENERATORS,
@@ -349,25 +348,157 @@ def test_livestock_feed_projection_preserves_full_payload_and_totals() -> None:
 
 
 def test_token_rewards_report_public_safe() -> None:
+    distribution_columns = [
+        "id",
+        "location_id",
+        "location_name",
+        "recipient_name",
+        "reward_type",
+        "token_type",
+        "token_amount",
+        "usd_value",
+        "distribution_date",
+        "epoch",
+        "linked_metric_key",
+        "linked_metric_value",
+        "is_onchain",
+        "distribution_method",
+        "notes",
+        "status",
+    ]
+    calibration_columns = [
+        "id",
+        "location_id",
+        "location_name",
+        "model_name",
+        "model_type",
+        "run_date",
+        "input_metrics",
+        "output_weights",
+        "calibration_score",
+        "total_tokens_distributed",
+        "token_per_unit_output",
+        "epoch",
+        "confidence_level",
+        "notes",
+        "status",
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    distributions = [
+        {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "recipient_name": "Community fund",
+            "reward_type": "impact",
+            "token_type": "KOKO",
+            "token_amount": 12.5,
+            "usd_value": 25.0,
+            "distribution_date": date(2026, 10, 1),
+            "epoch": 4,
+            "linked_metric_key": "soil_health",
+            "linked_metric_value": 0.8,
+            "is_onchain": True,
+            "distribution_method": "attestation",
+            "notes": "Reviewed reward.",
+            "status": "verified",
+        },
+        {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "recipient_name": "Training guild",
+            "reward_type": "participation",
+            "token_type": "KOKO",
+            "token_amount": 7.5,
+            "usd_value": 15.0,
+            "distribution_date": date(2026, 9, 1),
+            "epoch": 3,
+            "linked_metric_key": "training_hours",
+            "linked_metric_value": 6.0,
+            "is_onchain": False,
+            "distribution_method": "offchain_credit",
+            "notes": "Reviewed participation reward.",
+            "status": "published",
+        },
+    ]
+    calibration = {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "model_name": "Impact model",
+        "model_type": "linear",
+        "run_date": date(2026, 10, 2),
+        "input_metrics": {"soil_health": 0.8},
+        "output_weights": {"soil_health": 1.25},
+        "calibration_score": 0.92,
+        "total_tokens_distributed": 20.0,
+        "token_per_unit_output": 1.0,
+        "epoch": 4,
+        "confidence_level": 0.9,
+        "notes": "Current reviewed calibration.",
+        "status": "verified",
+    }
+
     class Cursor:
-        calls = 0
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
         def execute(self, query, params=None):
-            self.calls += 1
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
         def fetchone(self):
-            if self.calls == 1:
+            if len(self.calls) == 1:
                 return {"name": "Kokonut Adelphi"}
-            return None
+            return calibration
+
         def fetchall(self):
-            return []
+            return distributions
+
         def close(self):
             pass
 
     class Conn:
         def cursor(self, cursor_factory=None):
-            return Cursor()
+            self.cursor_value = Cursor()
+            return self.cursor_value
 
-    report = generate_token_rewards(Conn(), "a0000000-0000-0000-0000-000000000001")
+    conn = Conn()
+    report = generate_token_rewards(conn, location_id)
+
+    distribution_sql, distribution_params = conn.cursor_value.calls[1]
+    distribution_projection = re.search(
+        r"SELECT (.*?) FROM v_public_token_reward_distribution", distribution_sql
+    )
+    assert distribution_projection is not None
+    assert [column.strip() for column in distribution_projection.group(1).split(",")] == distribution_columns
+    assert "WHERE location_id = %s ORDER BY distribution_date DESC" in distribution_sql
+    assert distribution_params == (location_id,)
+
+    calibration_sql, calibration_params = conn.cursor_value.calls[2]
+    calibration_projection = re.search(
+        r"SELECT (.*?) FROM v_public_reward_calibration", calibration_sql
+    )
+    assert calibration_projection is not None
+    assert [column.strip() for column in calibration_projection.group(1).split(",")] == calibration_columns
+    assert "WHERE location_id = %s ORDER BY run_date DESC LIMIT 1" in calibration_sql
+    assert calibration_params == (location_id,)
+
     assert report["report_type"] == "token_rewards"
+    assert report["location_id"] == location_id
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["distributions"] == [
+        {**distributions[0], "distribution_date": "2026-10-01"},
+        {**distributions[1], "distribution_date": "2026-09-01"},
+    ]
+    assert report["latest_calibration"] == calibration
+    assert report["total_distributions"] == 2
+    assert report["total_tokens"] == 20.0
+    assert report["total_usd"] == 40.0
+    assert report["onchain_count"] == 1
+    assert report["offchain_count"] == 1
     assert "limitations" in report
 
 

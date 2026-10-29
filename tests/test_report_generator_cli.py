@@ -1,5 +1,6 @@
 """CLI scope contract for the complete report generator catalog."""
 
+import re
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -181,6 +182,100 @@ def test_network_only_generators_reject_direct_farm_scope_before_database_access
         generator(connection, LOCATION_A)
 
     connection.cursor.assert_not_called()
+
+
+def test_stakeholder_representation_uses_exact_public_projection_and_preserves_payload() -> None:
+    columns = [
+        "activity_type",
+        "activity_id",
+        "invited_count",
+        "participated_count",
+        "participation_rate_pct",
+        "contribution_rate_pct",
+        "minority_view_count",
+        "minority_view_preserved_count",
+    ]
+    representation_rows = [
+        {
+            "activity_type": "decision",
+            "activity_id": "00000000-0000-4000-8000-000000000001",
+            "invited_count": 8,
+            "participated_count": 6,
+            "participation_rate_pct": 75.0,
+            "contribution_rate_pct": 50.0,
+            "minority_view_count": 2,
+            "minority_view_preserved_count": 2,
+        }
+    ]
+    distributions = [
+        {
+            "scope_type": "network",
+            "scope_id": "00000000-0000-4000-8000-000000000010",
+            "distribution_type": "benefit",
+            "metric_name": "training_hours",
+            "unit": "hours",
+            "record_count": 3,
+            "beneficiary_count": 3,
+            "total_amount": 12.0,
+            "earliest_period": "2026-01-01",
+            "latest_period": "2026-09-30",
+        }
+    ]
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchall(self):
+            if "v_public_stakeholder_representation" in self.current_query:
+                return representation_rows
+            return distributions
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+    class Connection:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    connection = Connection()
+    report = generate_stakeholder_representation(connection)
+
+    projection_query, projection_params = connection.cursor_value.calls[0]
+    projection = re.search(
+        r"SELECT (.*?) FROM v_public_stakeholder_representation",
+        projection_query,
+    )
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
+    assert projection_params is None
+    assert "WHERE" not in projection_query
+    assert "ORDER BY activity_type, activity_id" in projection_query
+    assert connection.cursor_value.calls[1] == (
+        "SELECT scope_type, scope_id, distribution_type, metric_name, unit, record_count, "
+        "beneficiary_count, total_amount, earliest_period, latest_period "
+        "FROM v_stakeholder_equity_distribution ORDER BY distribution_type, metric_name",
+        None,
+    )
+    assert report["location_id"] is None
+    assert report["representation"] == representation_rows
+    assert report["representation_count"] == 1
+    assert report["distributions"] == distributions
+    assert report["distribution_count"] == 1
+
+    _, distribution_params = connection.cursor_value.calls[1]
+    assert distribution_params is None
 
 
 def test_check_report_empty_reports_empty_primary_sections(capsys) -> None:

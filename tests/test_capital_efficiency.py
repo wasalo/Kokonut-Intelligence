@@ -1,5 +1,6 @@
 """Capital efficiency, regenerative payback, governance throughput, and utility tests."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -264,6 +265,87 @@ def test_capital_efficiency_report_generators_public_safe() -> None:
     assert utility["report_type"] == "capital_provider_utility"
     assert "not guaranteed returns" in capital["limitations"][0]
     assert "not an offer of securities" in utility["limitations"][0]
+
+
+def test_capital_provider_utility_selects_exact_public_view_projection() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    columns = [
+        "id",
+        "location_id",
+        "farm_id",
+        "scenario_name",
+        "provider_type",
+        "capital_amount_usd",
+        "expected_financial_return_usd",
+        "expected_public_goods_value_usd",
+        "expected_verification_outputs",
+        "expected_payback_months",
+        "utility_score",
+        "public_summary",
+        "limitations",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    ]
+    scenario = {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "location_id": location_id,
+        "farm_id": "00000000-0000-4000-8000-000000000002",
+        "scenario_name": "Adelphi verification facility",
+        "provider_type": "impact_investor",
+        "capital_amount_usd": 25000.0,
+        "expected_financial_return_usd": 1800.0,
+        "expected_public_goods_value_usd": 12000.0,
+        "expected_verification_outputs": ["annual independent report"],
+        "expected_payback_months": 24,
+        "utility_score": 8.4,
+        "public_summary": "Public review scenario for verification support.",
+        "limitations": ["Planning estimate; not a return guarantee."],
+        "evidence_maturity": 4,
+        "evidence_maturity_label": "Verified",
+        "metadata": {"reviewed": True},
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [scenario] if "v_public_capital_provider_utility_summary" in self.current_query else []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_capital_provider_utility(conn, location_id)
+
+    query, params = conn.cursor_value.calls[1]
+    projection = re.search(
+        r"SELECT (.*?) FROM v_public_capital_provider_utility_summary", query
+    )
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
+    assert "WHERE location_id = %s" in query
+    assert "ORDER BY utility_score DESC NULLS LAST, scenario_name" in query
+    assert params == (location_id,)
+    assert report["location_id"] == location_id
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["scenarios"] == [scenario]
 
 
 @pytest.mark.parametrize("location_id", [None, ""])

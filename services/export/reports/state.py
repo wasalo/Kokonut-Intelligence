@@ -616,7 +616,22 @@ def generate_capital_provider_utility(conn, location_id: str, period_start: str 
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   scenario_name,
+                   provider_type,
+                   capital_amount_usd,
+                   expected_financial_return_usd,
+                   expected_public_goods_value_usd,
+                   expected_verification_outputs,
+                   expected_payback_months,
+                   utility_score,
+                   public_summary,
+                   limitations,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_capital_provider_utility_summary
             WHERE location_id = %s
             ORDER BY utility_score DESC NULLS LAST, scenario_name
