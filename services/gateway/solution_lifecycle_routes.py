@@ -612,6 +612,66 @@ class SolutionAdoptionProgramReviewQueueResponse(BaseModel):
         return self
 
 
+class SolutionAdoptionProgramRedesignItemResponse(BaseModel):
+    """Exact migration-519 projection for an independently reviewed redesign."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    program_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    adoption_pathway: str = Field(min_length=1, max_length=2000, strict=True)
+    local_adaptation_policy: str | None = Field(max_length=4000, strict=True)
+    next_revision_number: int = Field(ge=2, strict=True)
+    reviewed_at: AwareDatetime
+
+
+class SolutionAdoptionProgramRedesignPageResponse(BaseModel):
+    """Strict, location-bound page envelope for migration-519 redesigns."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    programs: list[SolutionAdoptionProgramRedesignItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.programs) > self.limit:
+            raise ValueError("Adoption program redesign page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.programs) != self.limit
+                or self.offset + len(self.programs) <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program redesign offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.programs) != self.limit
+                or self.next_offset != self.offset + len(self.programs)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program redesign continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal adoption program redesign page cannot continue")
+
+        program_ids = [program.program_id for program in self.programs]
+        if len(program_ids) != len(set(program_ids)):
+            raise ValueError("Adoption program redesign page contains duplicate programs")
+        order = [(program.reviewed_at, -program.program_id.int) for program in self.programs]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Adoption program redesign page is not in SQL order")
+        return self
+
+
 class SolutionAdoptionProgramDraftItemResponse(BaseModel):
     """Exact migration-520 projection for an operator's own adoption draft."""
 
@@ -2382,7 +2442,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             jsonable_encoder(validated.model_dump(mode="python")), headers=headers
         )
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/redesigns")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs/redesigns",
+        response_model=SolutionAdoptionProgramRedesignPageResponse,
+    )
     async def location_solution_adoption_program_redesigns(
         request: Request, location_id: str, limit: int = Query(default=25, ge=1, le=50), offset: int = Query(default=0, ge=0, le=10000)
     ):
@@ -2411,7 +2474,55 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution adoption program redesigns unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Adoption program redesigns unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict):
+                raise ValueError("Adoption program redesign result is not an object")
+            programs = result.get("programs")
+            next_offset = result.get("next_offset")
+            if (
+                not isinstance(programs, list)
+                or type(next_offset) is not int
+                or next_offset != offset + len(programs)
+            ):
+                raise ValueError("Adoption program redesign page cursor is inconsistent")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            if (
+                result.get("has_more") is True
+                and type(next_offset) is int
+                and next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                if (
+                    len(programs) != limit
+                ):
+                    raise ValueError("Adoption program redesign continuation is inconsistent")
+                page["has_more"] = False
+                page["next_offset"] = None
+                page["offset_limited"] = True
+            elif result.get("has_more") is False:
+                # The service advances its cursor after every page; the public
+                # contract exposes a continuation only when more rows exist.
+                page["next_offset"] = None
+            validated = SolutionAdoptionProgramRedesignPageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError):
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program redesign response rejected"
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Adoption program redesigns unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/revise")
     async def revise_solution_adoption_program(request: Request, location_id: str, program_id: str):

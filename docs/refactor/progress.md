@@ -24537,3 +24537,25 @@ pass. No database, provider, candidate, or legacy state was used. Checklist:
 1,850 complete / 25 open; TODO: 493 checked / 16 open; strict private Gateway
 response contracts total 176. Evidence:
 [adoption drafts, benchmark projection, and energy CLI](builds/2026-10-29-recovery/adoption-drafts-benchmark-energy-preflight.json).
+
+### Progress addendum — adoption redesign, grievance projection, and crop-date preflight — 29 October 2026
+
+The private adoption-redesign queue now validates migration 519's seven-field
+item projection, exact location and page values, unique IDs, and stable
+`reviewed_at DESC, program_id ASC` order. Its service lookahead is converted
+to a bounded `offset_limited` response when another page would exceed 10,000;
+the operator console validates the complete page before rendering and tells
+the operator when that cap is reached. `stakeholder_grievances.list_case_health`
+now selects all 21 columns in migration 218's declared order, preserving
+optional status/overdue filters, binds, result serialization, and internal
+access boundary. Crop-rotation impact dates are parsed in argparse before the
+shared command runner can acquire PostgreSQL; invalid calendar dates fail
+early and valid dates are passed through as `datetime.date` values.
+
+The approved offline selection passes 120 focused tests with two skips. Ruff,
+Python compilation, capability-matrix validation, refreshed runtime SQL
+inventory, provider-boundary and dependency-group checks, and diff checks pass.
+No database, provider, candidate, or legacy state was used; no migration was
+needed. Checklist: 1,855 complete / 25 open; TODO: 498 checked / 16 open;
+strict private Gateway response contracts total 177. Evidence:
+[adoption redesign, grievance projection, and crop-date checks](builds/2026-10-29-recovery/adoption-redesign-grievances-crop-date.json).

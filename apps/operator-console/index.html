@@ -12933,14 +12933,56 @@
           if (!response.ok) throw new Error(result.error || "Reviewed redesigns could not be loaded.");
           if (requestVersion !== solutionLifecycleAdoptionProgramRevisionsRequestVersion
               || locationId !== solutionLifecycleLocation.value) return;
-          const programs = Array.isArray(result.programs) ? result.programs : [];
+          const expectedProgramFields = [
+            "program_id", "solution_id", "solution_name", "adoption_pathway",
+            "local_adaptation_policy", "next_revision_number", "reviewed_at",
+          ].sort();
+          const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const programs = Array.isArray(result.programs) ? result.programs : null;
+          const validPrograms = programs !== null && programs.length <= solutionLifecycleAdoptionProgramPageSize
+            && programs.every((program) => {
+              if (!program || typeof program !== "object"
+                  || Object.keys(program).sort().join("|") !== expectedProgramFields.join("|")
+                  || !validId.test(program.program_id || "")
+                  || !validId.test(program.solution_id || "")
+                  || typeof program.solution_name !== "string" || !program.solution_name.trim()
+                  || program.solution_name.length > 255
+                  || typeof program.adoption_pathway !== "string" || !program.adoption_pathway.trim()
+                  || program.adoption_pathway.length > 2000
+                  || (program.local_adaptation_policy !== null
+                      && (typeof program.local_adaptation_policy !== "string"
+                          || program.local_adaptation_policy.length > 4000))
+                  || !Number.isSafeInteger(program.next_revision_number) || program.next_revision_number < 2
+                  || typeof program.reviewed_at !== "string" || !Number.isFinite(Date.parse(program.reviewed_at))) {
+                return false;
+              }
+              return true;
+            });
+          const hasMore = typeof result.has_more === "boolean" && result.has_more;
+          const offsetLimited = typeof result.offset_limited === "boolean" && result.offset_limited;
+          const validPage = result.location_id === locationId
+            && result.limit === solutionLifecycleAdoptionProgramPageSize
+            && result.offset === offset
+            && typeof result.has_more === "boolean"
+            && typeof result.offset_limited === "boolean"
+            && validPrograms
+            && (offsetLimited
+              ? !hasMore && result.next_offset === null
+                  && programs.length === solutionLifecycleAdoptionProgramPageSize
+                  && offset + programs.length > 10000
+              : hasMore
+                ? programs.length === solutionLifecycleAdoptionProgramPageSize
+                    && result.next_offset === offset + programs.length
+                    && result.next_offset <= 10000
+                : result.next_offset === null);
+          if (!validPage) throw new Error("Reviewed redesign queue returned an invalid page.");
           for (const program of programs) appendSolutionLifecycleAdoptionProgramRevision(program);
-          solutionLifecycleAdoptionProgramRevisionsOffset = Number.isInteger(result.next_offset)
-            && result.next_offset > offset && result.next_offset <= 10000 ? result.next_offset : offset;
-          solutionLifecycleAdoptionProgramRevisionsMore.hidden = result.has_more !== true
-            || solutionLifecycleAdoptionProgramRevisionsOffset <= offset;
-          solutionLifecycleAdoptionProgramRevisionsStatus.textContent = programs.length
-            ? `${programs.length} redesign decision${programs.length === 1 ? "" : "s"} loaded.`
+          solutionLifecycleAdoptionProgramRevisionsOffset = hasMore ? result.next_offset : offset;
+          solutionLifecycleAdoptionProgramRevisionsMore.hidden = !hasMore;
+          solutionLifecycleAdoptionProgramRevisionsStatus.textContent = offsetLimited
+            ? `${programs.length} redesign decision${programs.length === 1 ? "" : "s"} loaded. The 10,000-row paging limit has been reached.`
+            : programs.length
+              ? `${programs.length} redesign decision${programs.length === 1 ? "" : "s"} loaded.`
             : "No redesign decisions are available for a new revision.";
         } catch (error) {
           if (requestVersion === solutionLifecycleAdoptionProgramRevisionsRequestVersion) {

@@ -1858,6 +1858,12 @@ def test_adoption_program_redesign_revision_console_contract():
     assert 'credentials: "same-origin"' in load and 'cache: "no-store"' in load
     assert "solutionLifecycleAdoptionProgramRevisionsRequestVersion" in load
     assert "locationId !== solutionLifecycleLocation.value" in load
+    assert "result.location_id === locationId" in load
+    assert "result.offset === offset" in load
+    assert "result.limit === solutionLifecycleAdoptionProgramPageSize" in load
+    assert '"next_revision_number", "reviewed_at"' in load
+    assert "result.offset_limited" in load
+    assert "The 10,000-row paging limit has been reached." in load
 
     submit = _function(
         source,

@@ -8261,3 +8261,34 @@ was used. Checklist: 1,850 complete / 25 open; TODO: 493 checked / 16 open.
 Capability classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows; strict private Gateway response contracts total 176.
 Evidence: [adoption drafts, benchmark projection, and energy CLI](builds/2026-10-29-recovery/adoption-drafts-benchmark-energy-preflight.json).
+
+### Source continuation — adoption redesign, grievance projection, and crop-date preflight — 29 October 2026
+
+- [x] Add strict migration-519 item/page models for the private adoption
+  redesign queue, including exact SQL fields, page binding, unique IDs, and
+  stable review ordering.
+- [x] Bound queue continuation at offset 10,000 and validate the exact page in
+  the operator console, with a visible capped-results message.
+- [x] Replace the stakeholder-grievance health wildcard with migration 218's
+  ordered 21-column projection while retaining its internal access boundary.
+- [x] Reject invalid crop-rotation `record-impact --date` values before
+  PostgreSQL acquisition and forward valid values as parsed dates.
+- [x] Run the approved focused checks, refresh the runtime SQL inventory, and
+  record evidence in the capability and progress ledgers.
+
+The combined offline selection passes 120 tests with two skips across the
+adoption-redesign Gateway/console contracts, migration-218 grievance projection,
+and crop-rotation CLI preflight. Ruff, Python compilation, capability-matrix
+validation, runtime SQL inventory freshness, provider-boundary checks,
+dependency-group alignment, and `git diff --check` pass. The runtime SQL
+inventory reflects the changed grievance query; its unresolved-write review
+ledger remains current with 42 tracked candidates. Tests use mocks and
+synthetic data; no database, external provider, candidate, or legacy state was
+used. No migration is required. Rollback reverts these source/test/doc changes
+and restores the prior inventory snapshot; no data rollback is needed.
+Evidence: [adoption redesign, grievance projection, and crop-date checks](builds/2026-10-29-recovery/adoption-redesign-grievances-crop-date.json).
+
+Checklist: 1,855 complete / 25 open (1,880 total); TODO: 498 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 177. MAN-CAP acceptance and the broader C2/C5/C6 gates remain open.

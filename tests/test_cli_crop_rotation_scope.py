@@ -1,5 +1,6 @@
 """Crop-rotation CLI location scope fails before shared database dispatch."""
 
+from datetime import date
 from unittest.mock import Mock
 from uuid import uuid4
 
@@ -100,3 +101,36 @@ def test_help_still_exits_before_cli_runner(monkeypatch, capsys):
     assert error.value.code == 0
     assert "create-plan" in capsys.readouterr().out
     runner.assert_not_called()
+
+
+@pytest.mark.parametrize("invalid_date", ["not-a-date", "2026-02-30"])
+def test_record_impact_rejects_invalid_date_before_database_access(
+    monkeypatch, capsys, invalid_date
+):
+    connection_factory = Mock()
+    monkeypatch.setattr(
+        cli_crop_rotation.cli, "_connection_factory", connection_factory
+    )
+
+    with pytest.raises(SystemExit) as error:
+        cli_crop_rotation.main(["record-impact", "--date", invalid_date])
+
+    assert error.value.code == 2
+    assert "--date must be a valid ISO date" in capsys.readouterr().err
+    connection_factory.assert_not_called()
+
+
+def test_record_impact_forwards_valid_iso_date_to_domain_handler(monkeypatch):
+    connection = Mock()
+    record_impact = Mock(return_value={"recorded": True})
+    monkeypatch.setattr(
+        cli_crop_rotation.cli, "_connection_factory", lambda: connection
+    )
+    monkeypatch.setattr(cli_crop_rotation, "record_impact", record_impact)
+
+    cli_crop_rotation.main(
+        ["record-impact", "--date", "2026-02-28", "--json"]
+    )
+
+    assert record_impact.call_args.kwargs["record_date"] == date(2026, 2, 28)
+    connection.close.assert_called_once()

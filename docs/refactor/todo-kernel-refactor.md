@@ -3305,3 +3305,24 @@ validation, and diff checks pass. No database or provider was used. Checklist:
 493 checked / 16 open; strict private Gateway response contracts total 176.
 Evidence:
 `builds/2026-10-29-recovery/adoption-drafts-benchmark-energy-preflight.json`.
+
+## Completed — adoption redesign, grievance health, and crop-date preflight, 29 October
+
+- [x] Publish a strict, request-bound migration-519 redesign queue contract,
+  validate its stable order, and stop continuations at offset 10,000.
+- [x] Validate the queue response in the operator console and report when the
+  remaining records lie beyond the supported paging range.
+- [x] Pin the internal grievance-health reader to migration 218's exact
+  21-column projection while preserving filters, order, serialization, and
+  the current access boundary.
+- [x] Parse crop-rotation impact dates before the CLI can open PostgreSQL.
+- [x] Run the approved offline checks, refresh SQL inventory, and record the
+  evidence and capability/progress counters.
+
+The combined selection passes 120 tests with two skips. Ruff, compilation,
+capability validation, runtime SQL inventory freshness, provider-boundary and
+dependency-group checks, and diff checks pass. No database/provider or
+candidate/legacy state was used. Checklist: 498 checked / 16 open; the matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), with 177
+strict private Gateway response contracts. Evidence:
+`builds/2026-10-29-recovery/adoption-redesign-grievances-crop-date.json`.
