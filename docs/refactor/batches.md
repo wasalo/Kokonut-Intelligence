@@ -55,6 +55,33 @@ open. The capability matrix remains 67 rows (24 baseline-retained,
 7 deployed, 36 prepared), with 99 strict private Gateway response contracts.
 MAN-CAP acceptance and capability classifications remain unchanged.
 
+### Latest local continuation — wellbeing risk, capital, and governance reports — 29 October 2026
+
+- [x] Replace risk-mitigation `SELECT *` with its exact 20-column migration-
+  035 projection; preserve location/date scope, ordering, and row payload.
+- [x] Replace scaling-roadmap `SELECT *` with its exact 16-column migration-
+  035 projection; preserve selected plus shared rows, date bounds, ordering,
+  capital aggregate, and output.
+- [x] Replace capital-efficiency scenario `SELECT *` with its exact
+  16-column migration-036 projection; preserve filters, order, and payload.
+- [x] Replace regenerative-efficiency observation `SELECT *` with its exact
+  16-column migration-036 projection; preserve filters, order, and payload.
+- [x] Replace governance-throughput wildcard with its exact 16-column
+  migration-036 projection and preserve location/shared scope, date range,
+  order, observations, and average decision latency.
+
+The approved synthetic/mock selection passes 4 tests. Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+diff checks pass. No database, migration, candidate, legacy service, provider,
+or production resource was used. Rollback consists of reverting the five
+projection changes; no migration or data rollback is required. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-wellbeing-risk-capital-governance-projections.json).
+
+Checklist: 1,580 complete / 25 open (1,605 total); TODO: 279 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 99 strict private Gateway response contracts.
+MAN-CAP acceptance and capability classifications remain unchanged.
+
 ### Completed continuation — GNH scope, mobile inventory contract, and forecast tenant reads — 28 October 2026
 
 - [x] Reject malformed, missing, and aggregate location scope in direct
@@ -3629,7 +3656,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Bound gRPC API-key lookup, request-interceptor, and optional-service import failures to exception classes while preserving generic auth failures, exception propagation, and optional service behavior. The 32-test gRPC/auth/policy suite passes with Ruff and compilation on mocked boundaries; no database or RPC provider was contacted ([evidence](builds/2026-10-17-recovery/grpc-auth-request-error-redaction.json)).
 - [x] Redact metadata batch-anchor and threatcasting trend-analysis failures without changing their skip/no-score fallbacks. Two mocked regressions pass with Ruff, compilation, and diff checks; no database or provider was contacted ([evidence](builds/2026-10-17-recovery/metadata-trend-error-redaction.json)).
 - [x] Redact demo sensor-reading insert failures so sensor names, timestamps, and database details are not emitted; preserve per-reading continuation and database cleanup. One mocked regression passes; test lint, source import/syntax checks, compilation, and diff checks pass. No database or provider was used ([evidence](builds/2026-10-17-recovery/mock-sensor-error-redaction.json)).
-- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On the previous PR #71 head `73e0c748562ddb4903360328d29b35e776be6e4d`, Security run [#40792486603](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40792486603) passed, while CI run [#40792486535](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40792486535) was in progress. Each pushed batch starts a new exact-head gate; keep this item open until both required contexts pass together on the current head ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
+- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On PR #71 head `460aaa27c136b544595a6f5d69e26828ef0d8847`, Security run [#40820987724](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40820987724) passed and CI run [#40820987702](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40820987702) is in progress. Each pushed batch starts a new exact-head gate; keep this item open until both required contexts pass together on the current head ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
 - [x] Align the active `Main branch protection` ruleset (ID `18234835`) with `CI / ci` and `Security / gitleaks`. GitHub API verification confirms the obsolete `Python checks`, `Directus hooks`, and `Foundry contracts` contexts were removed; pull-request/review, CODEOWNERS, thread-resolution, strict up-to-date, linear-history, deletion, force-push, and bypass settings remain. The separate active version-tag ruleset (ID `18234836`) was not changed ([settings audit](../github-actions.md#current-required-check-audit--14-october-2026)).
 - [x] Make encrypted checkpoints provider-aware: PostgreSQL-only backup/restore works without ClickHouse credentials or a running ClickHouse service; ClickHouse-enabled backup fails before creating partial artifacts if its service is unavailable, and restore preflights required services before database writes. The manifest explicitly records provider inclusion and exact archives; fake Compose acceptance covers both profiles and preflight ([evidence](builds/2026-10-14-recovery/provider-aware-backup-restore.json)).
 - [ ] Execute the reviewed cutover and retire dependencies only after the readiness gates close. The owner has approved cutover once ready; no gate may be skipped.

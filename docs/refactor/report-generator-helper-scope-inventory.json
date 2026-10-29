@@ -3331,19 +3331,19 @@
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 320,
+          "line": 354,
           "depth": 1
         },
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 357,
+          "line": 421,
           "depth": 1
         },
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 358,
+          "line": 422,
           "depth": 1
         },
         {
@@ -4360,7 +4360,7 @@
         {
           "caller": "generate_dao_proposal_history",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 417,
+          "line": 496,
           "depth": 1
         }
       ],
@@ -5200,13 +5200,13 @@
         {
           "caller": "generate_governance_throughput",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 372,
+          "line": 436,
           "depth": 1
         },
         {
           "caller": "generate_governance_throughput",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 397,
+          "line": 476,
           "depth": 1
         },
         {
@@ -5242,13 +5242,13 @@
         {
           "caller": "generate_green_paper_publication_status",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 289,
+          "line": 323,
           "depth": 1
         },
         {
           "caller": "generate_green_paper_publication_status",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 309,
+          "line": 343,
           "depth": 1
         },
         {
@@ -8344,7 +8344,7 @@
         {
           "caller": "generate_risk_mitigation",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 241,
+          "line": 260,
           "depth": 1
         },
         {
@@ -8428,13 +8428,13 @@
         {
           "caller": "generate_scaling_roadmap",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 253,
+          "line": 272,
           "depth": 1
         },
         {
           "caller": "generate_scaling_roadmap",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 275,
+          "line": 309,
           "depth": 1
         },
         {

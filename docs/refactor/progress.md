@@ -23131,3 +23131,24 @@ Checklist: 1,575 complete / 25 open (1,600 total); TODO: 274 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts now
 total 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — wellbeing risk, capital, and governance report projections — 29 October 2026
+
+Five report queries now select complete, ordered projections defined by
+migrations 035 and 036: risk mitigation, scaling roadmap, capital-efficiency
+scenarios, regenerative-efficiency observations, and governance throughput.
+Location and date predicates, shared null-location observations, ordering,
+serialized rows, capital totals, and the decision-latency average remain
+covered by focused synthetic mocks.
+
+The focused selection passes 4 tests. Ruff, Python compilation, all report
+inventories, capability-matrix validation, and diff checks pass. No database,
+migration, provider, candidate, legacy service, or production resource was
+used. This does not prove populated-data parity, tenant isolation, live OIDC,
+or content-level privacy. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-wellbeing-risk-capital-governance-projections.json).
+
+Checklist: 1,580 complete / 25 open (1,605 total); TODO: 279 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

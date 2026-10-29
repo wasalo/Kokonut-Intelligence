@@ -208,6 +208,79 @@ def test_financial_resilience_report_generators_public_safe() -> None:
     assert generate_green_paper_publication_status(conn, None)["report_type"] == "green_paper_publication_status"
 
 
+def test_risk_mitigation_uses_exact_projection_and_preserves_scope_payload() -> None:
+    columns = [
+        "id", "location_id", "farm_id", "risk_category", "risk_description",
+        "likelihood", "impact_level", "mitigation_strategy", "insurance_scope",
+        "oversight_mechanism", "technical_support_provider", "owner_role",
+        "review_cadence", "residual_risk_level", "review_date", "next_review_date",
+        "public_summary", "evidence_maturity", "evidence_maturity_label", "metadata",
+    ]
+    row = {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "location_id": "a0000000-0000-0000-0000-000000000001",
+        "farm_id": "00000000-0000-4000-8000-000000000002",
+        "risk_category": "water",
+        "risk_description": "Seasonal water shortage",
+        "likelihood": "medium",
+        "impact_level": "high",
+        "mitigation_strategy": "Maintain a reviewed storage buffer",
+        "insurance_scope": "Crop and infrastructure coverage",
+        "oversight_mechanism": "Quarterly review",
+        "technical_support_provider": "Regional agronomist",
+        "owner_role": "Farm operator",
+        "review_cadence": "quarterly",
+        "residual_risk_level": "low",
+        "review_date": "2026-09-30",
+        "next_review_date": "2026-12-30",
+        "public_summary": "A reviewed water resilience measure.",
+        "evidence_maturity": 4,
+        "evidence_maturity_label": "Verified",
+        "metadata": {"reviewed": True},
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [row] if "v_public_risk_mitigation_summary" in self.current_query else []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    location_id = row["location_id"]
+    period_start, period_end = "2026-07-01", "2026-12-31"
+    report = generate_risk_mitigation(conn, location_id, period_start, period_end)
+
+    query, params = conn.cursor_value.calls[1]
+    projection = re.search(r"SELECT (.*?) FROM v_public_risk_mitigation_summary", query)
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
+    assert "WHERE location_id = %s" in query
+    assert "ORDER BY next_review_date NULLS LAST, risk_category" in query
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["location_id"] == location_id
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["risks"] == [row]
+
+
 def test_financial_sustainability_uses_exact_public_projection_and_preserves_scope_payload() -> None:
     columns = [
         "id",
@@ -378,19 +451,62 @@ def test_scaling_roadmap_requires_location_before_database_access(location_id) -
 
 
 def test_scaling_roadmap_filters_location_and_keeps_reviewed_global_rows() -> None:
+    columns = [
+        "id", "roadmap_name", "location_id", "target_region", "farm_model",
+        "planned_farm_count", "capital_required_usd", "partner_requirements",
+        "operational_dependencies", "risk_gates", "target_date", "milestone_status",
+        "public_summary", "evidence_maturity", "evidence_maturity_label", "metadata",
+    ]
+    rows = [
+        {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "roadmap_name": "Adelphi expansion",
+            "location_id": "a0000000-0000-0000-0000-000000000001",
+            "target_region": "Monte Plata",
+            "farm_model": "agroforestry",
+            "planned_farm_count": 2,
+            "capital_required_usd": 1000,
+            "partner_requirements": ["nursery"],
+            "operational_dependencies": ["water access"],
+            "risk_gates": ["site review"],
+            "target_date": "2027-01-01",
+            "milestone_status": "planned",
+            "public_summary": "A location-owned expansion milestone.",
+            "evidence_maturity": 4,
+            "evidence_maturity_label": "Verified",
+            "metadata": {},
+        },
+        {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "roadmap_name": "Network nursery",
+            "location_id": None,
+            "target_region": "Dominican Republic",
+            "farm_model": "nursery",
+            "planned_farm_count": 1,
+            "capital_required_usd": 500,
+            "partner_requirements": [],
+            "operational_dependencies": [],
+            "risk_gates": [],
+            "target_date": "2027-02-01",
+            "milestone_status": "planned",
+            "public_summary": "A shared network milestone.",
+            "evidence_maturity": 3,
+            "evidence_maturity_label": "Substantiated",
+            "metadata": {},
+        },
+    ]
+
     class Cursor:
-        query = None
-        params = None
+        def __init__(self):
+            self.query = None
+            self.params = None
 
         def execute(self, query, params):
-            self.query = query
+            self.query = " ".join(query.split())
             self.params = params
 
         def fetchall(self):
-            return [
-                {"location_id": "a0000000-0000-0000-0000-000000000001", "capital_required_usd": 1000},
-                {"location_id": None, "capital_required_usd": 500},
-            ]
+            return rows
 
         def close(self):
             pass
@@ -406,10 +522,14 @@ def test_scaling_roadmap_filters_location_and_keeps_reviewed_global_rows() -> No
     location_id = "a0000000-0000-0000-0000-000000000001"
     report = generate_scaling_roadmap(conn, location_id)
 
+    projection = re.search(r"SELECT (.*?) FROM v_public_scaling_roadmap_summary", conn.cursor_value.query)
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
     assert report["location_id"] == location_id
     assert "WHERE (location_id = %s OR location_id IS NULL)" in conn.cursor_value.query
     assert conn.cursor_value.params == (location_id, None, None, None, None)
     assert report["total_capital_required_usd"] == 1500
+    assert report["milestones"] == rows
 
 
 if __name__ == "__main__":

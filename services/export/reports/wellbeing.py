@@ -222,7 +222,26 @@ def generate_risk_mitigation(conn, location_id: str, period_start: str = None, p
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   risk_category,
+                   risk_description,
+                   likelihood,
+                   impact_level,
+                   mitigation_strategy,
+                   insurance_scope,
+                   oversight_mechanism,
+                   technical_support_provider,
+                   owner_role,
+                   review_cadence,
+                   residual_risk_level,
+                   review_date,
+                   next_review_date,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_risk_mitigation_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR review_date IS NULL OR review_date >= %s::date)
@@ -257,7 +276,22 @@ def generate_scaling_roadmap(conn, location_id: str = None, period_start: str = 
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   roadmap_name,
+                   location_id,
+                   target_region,
+                   farm_model,
+                   planned_farm_count,
+                   capital_required_usd,
+                   partner_requirements,
+                   operational_dependencies,
+                   risk_gates,
+                   target_date,
+                   milestone_status,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_scaling_roadmap_summary
             WHERE (location_id = %s OR location_id IS NULL)
               AND (%s::date IS NULL OR target_date >= %s::date)
@@ -326,7 +360,22 @@ def generate_capital_efficiency(conn, location_id: str, period_start: str = None
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   scenario_name,
+                   scenario_type,
+                   period_start,
+                   period_end,
+                   capital_deployed_usd,
+                   gross_output_value_usd,
+                   net_output_value_usd,
+                   public_goods_value_usd,
+                   capital_leverage_ratio,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_capital_efficiency_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR period_start >= %s::date)
@@ -338,7 +387,22 @@ def generate_capital_efficiency(conn, location_id: str, period_start: str = None
         scenarios = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   practice_event_id,
+                   observation_date,
+                   practice_type,
+                   baseline_cost_usd,
+                   observed_cost_usd,
+                   cost_savings_pct,
+                   incremental_output_value_usd,
+                   implementation_cost_usd,
+                   payback_months,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_regenerative_efficiency_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR observation_date >= %s::date)
@@ -376,7 +440,22 @@ def generate_governance_throughput(
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   dao_proposal_id,
+                   proposal_code,
+                   venue,
+                   proposal_type,
+                   proposal_created_at,
+                   decision_at,
+                   executed_at,
+                   decision_latency_days,
+                   execution_latency_days,
+                   decision_result,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_governance_throughput_summary
             WHERE (location_id = %s OR location_id IS NULL)
               AND (%s::date IS NULL OR proposal_created_at::date >= %s::date)

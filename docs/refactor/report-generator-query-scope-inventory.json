@@ -688,7 +688,7 @@
       "report_type": "capital_efficiency",
       "callable": "generate_capital_efficiency",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 318,
+      "source_line": 352,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
       "static_positional_arity_site_count": 3,
@@ -702,7 +702,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 325,
+          "line": 359,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -725,7 +725,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 327,
+          "line": 361,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -748,7 +748,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 339,
+          "line": 388,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1221,7 +1221,7 @@
       "report_type": "dao_proposal_history",
       "callable": "generate_dao_proposal_history",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 408,
+      "source_line": 487,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -1233,7 +1233,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 417,
+          "line": 496,
           "report_type": "dao_proposal_history",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -1242,7 +1242,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 420,
+          "line": 499,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1265,7 +1265,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 450,
+          "line": 529,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2470,7 +2470,7 @@
       "report_type": "governance_throughput",
       "callable": "generate_governance_throughput",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 368,
+      "source_line": 432,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -2484,7 +2484,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 377,
+          "line": 441,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2512,7 +2512,7 @@
       "report_type": "green_paper_publication_status",
       "callable": "generate_green_paper_publication_status",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 285,
+      "source_line": 319,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -2524,7 +2524,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 289,
+          "line": 323,
           "report_type": "green_paper_publication_status",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -2533,7 +2533,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 292,
+          "line": 326,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4109,7 +4109,7 @@
       "report_type": "scaling_roadmap",
       "callable": "generate_scaling_roadmap",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 251,
+      "source_line": 270,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -4123,7 +4123,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 258,
+          "line": 277,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

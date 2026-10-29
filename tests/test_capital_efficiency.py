@@ -348,26 +348,74 @@ def test_capital_provider_utility_selects_exact_public_view_projection() -> None
     assert report["scenarios"] == [scenario]
 
 
-@pytest.mark.parametrize("location_id", [None, ""])
-def test_governance_throughput_requires_location_before_database_access(location_id) -> None:
-    class NoDatabase:
-        def cursor(self, **_kwargs):
-            raise AssertionError("unscoped report must fail before opening a cursor")
+def test_capital_efficiency_uses_exact_scenario_and_regenerative_projections() -> None:
+    capital_columns = [
+        "id", "location_id", "farm_id", "scenario_name", "scenario_type",
+        "period_start", "period_end", "capital_deployed_usd", "gross_output_value_usd",
+        "net_output_value_usd", "public_goods_value_usd", "capital_leverage_ratio",
+        "public_summary", "evidence_maturity", "evidence_maturity_label", "metadata",
+    ]
+    regenerative_columns = [
+        "id", "location_id", "farm_id", "practice_event_id", "observation_date",
+        "practice_type", "baseline_cost_usd", "observed_cost_usd", "cost_savings_pct",
+        "incremental_output_value_usd", "implementation_cost_usd", "payback_months",
+        "public_summary", "evidence_maturity", "evidence_maturity_label", "metadata",
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    capital_row = {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "location_id": location_id,
+        "farm_id": "00000000-0000-4000-8000-000000000002",
+        "scenario_name": "Water storage",
+        "scenario_type": "infrastructure",
+        "period_start": "2026-01-01",
+        "period_end": "2026-12-31",
+        "capital_deployed_usd": 10000.0,
+        "gross_output_value_usd": 15000.0,
+        "net_output_value_usd": 12000.0,
+        "public_goods_value_usd": 3000.0,
+        "capital_leverage_ratio": 1.5,
+        "public_summary": "Published annual infrastructure scenario.",
+        "evidence_maturity": 4,
+        "evidence_maturity_label": "Verified",
+        "metadata": {"source": "reviewed"},
+    }
+    regenerative_row = {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "location_id": location_id,
+        "farm_id": "00000000-0000-4000-8000-000000000002",
+        "practice_event_id": "00000000-0000-4000-8000-000000000004",
+        "observation_date": "2026-08-15",
+        "practice_type": "mulching",
+        "baseline_cost_usd": 1200.0,
+        "observed_cost_usd": 900.0,
+        "cost_savings_pct": 25.0,
+        "incremental_output_value_usd": 400.0,
+        "implementation_cost_usd": 200.0,
+        "payback_months": 8,
+        "public_summary": "Published practice observation.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Substantiated",
+        "metadata": {},
+    }
 
-    with pytest.raises(ValueError, match="governance_throughput requires an explicit location_id"):
-        generate_governance_throughput(NoDatabase(), location_id)
-
-
-def test_governance_throughput_keeps_selected_location_and_public_rows() -> None:
     class Cursor:
-        query = None
-        params = None
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
 
-        def execute(self, query, params):
-            self.query = query
-            self.params = params
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
 
         def fetchall(self):
+            if "v_public_capital_efficiency_summary" in self.current_query:
+                return [capital_row]
+            if "v_public_regenerative_efficiency_summary" in self.current_query:
+                return [regenerative_row]
             return []
 
         def close(self):
@@ -381,12 +429,128 @@ def test_governance_throughput_keeps_selected_location_and_public_rows() -> None
             return self.cursor_value
 
     conn = Conn()
-    location_id = "a0000000-0000-0000-0000-000000000001"
-    report = generate_governance_throughput(conn, location_id)
+    period_start, period_end = "2026-01-01", "2026-12-31"
+    report = generate_capital_efficiency(conn, location_id, period_start, period_end)
 
+    capital_query, capital_params = conn.cursor_value.calls[1]
+    capital_projection = re.search(
+        r"SELECT (.*?) FROM v_public_capital_efficiency_summary", capital_query
+    )
+    assert capital_projection is not None
+    assert [column.strip() for column in capital_projection.group(1).split(",")] == capital_columns
+    assert "WHERE location_id = %s" in capital_query
+    assert "ORDER BY period_start DESC, scenario_name" in capital_query
+    assert capital_params == (location_id, period_start, period_start, period_end, period_end)
+
+    regenerative_query, regenerative_params = conn.cursor_value.calls[2]
+    regenerative_projection = re.search(
+        r"SELECT (.*?) FROM v_public_regenerative_efficiency_summary", regenerative_query
+    )
+    assert regenerative_projection is not None
+    assert [column.strip() for column in regenerative_projection.group(1).split(",")] == regenerative_columns
+    assert "WHERE location_id = %s" in regenerative_query
+    assert "ORDER BY observation_date DESC, practice_type" in regenerative_query
+    assert regenerative_params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["location_id"] == location_id
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["scenarios"] == [capital_row]
+    assert report["regenerative_efficiency"] == [regenerative_row]
+
+
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_governance_throughput_requires_location_before_database_access(location_id) -> None:
+    class NoDatabase:
+        def cursor(self, **_kwargs):
+            raise AssertionError("unscoped report must fail before opening a cursor")
+
+    with pytest.raises(ValueError, match="governance_throughput requires an explicit location_id"):
+        generate_governance_throughput(NoDatabase(), location_id)
+
+
+def test_governance_throughput_keeps_selected_location_and_public_rows() -> None:
+    columns = [
+        "id", "location_id", "dao_proposal_id", "proposal_code", "venue",
+        "proposal_type", "proposal_created_at", "decision_at", "executed_at",
+        "decision_latency_days", "execution_latency_days", "decision_result",
+        "public_summary", "evidence_maturity", "evidence_maturity_label", "metadata",
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    rows = [
+        {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "location_id": location_id,
+            "dao_proposal_id": "00000000-0000-4000-8000-000000000011",
+            "proposal_code": "KOKO-12",
+            "venue": "Baal",
+            "proposal_type": "funding",
+            "proposal_created_at": "2026-08-01",
+            "decision_at": "2026-08-09",
+            "executed_at": "2026-08-12",
+            "decision_latency_days": 8.0,
+            "execution_latency_days": 3.0,
+            "decision_result": "approved",
+            "public_summary": "Published funding proposal observation.",
+            "evidence_maturity": 4,
+            "evidence_maturity_label": "Verified",
+            "metadata": {},
+        },
+        {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "location_id": None,
+            "dao_proposal_id": "00000000-0000-4000-8000-000000000012",
+            "proposal_code": "KOKO-13",
+            "venue": "Baal",
+            "proposal_type": "policy",
+            "proposal_created_at": "2026-08-10",
+            "decision_at": "2026-08-14",
+            "executed_at": None,
+            "decision_latency_days": 4.0,
+            "execution_latency_days": None,
+            "decision_result": "rejected",
+            "public_summary": "Published network governance observation.",
+            "evidence_maturity": 3,
+            "evidence_maturity_label": "Substantiated",
+            "metadata": {},
+        },
+    ]
+
+    class Cursor:
+        def __init__(self):
+            self.query = None
+            self.params = None
+
+        def execute(self, query, params):
+            self.query = " ".join(query.split())
+            self.params = params
+
+        def fetchall(self):
+            return rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    period_start, period_end = "2026-08-01", "2026-08-31"
+    report = generate_governance_throughput(conn, location_id, period_start, period_end)
+
+    projection = re.search(r"SELECT (.*?) FROM v_public_governance_throughput_summary", conn.cursor_value.query)
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
     assert report["location_id"] == location_id
     assert "WHERE (location_id = %s OR location_id IS NULL)" in conn.cursor_value.query
-    assert conn.cursor_value.params == (location_id, None, None, None, None)
+    assert "ORDER BY proposal_created_at DESC, proposal_code" in conn.cursor_value.query
+    assert conn.cursor_value.params == (
+        location_id, period_start, period_start, period_end, period_end
+    )
+    assert report["observations"] == rows
+    assert report["average_decision_latency_days"] == 6.0
 
 
 if __name__ == "__main__":
