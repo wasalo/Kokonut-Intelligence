@@ -24481,3 +24481,25 @@ provider, candidate, or legacy state was used. Checklist: 1,835 complete / 25
 open; TODO: 480 checked / 16 open; strict private Gateway response contracts
 total 173. Evidence:
 [business-canvas edit response contracts](builds/2026-10-29-recovery/business-canvas-edit-response-contracts.json).
+
+### Progress addendum — competency review queue and PESTEL projections — 29 October 2026
+
+The operating-pilot competency review queue now has a strict OpenAPI/runtime
+contract based on migration 577. It binds location and page values to the
+request, validates finite bounded levels and their relationship, permits only
+submitted drafts, enforces the migration-defined key pattern, checks item
+count/continuation and SQL order, and rejects private undeclared fields. Its
+response keeps numeric JSON values and malformed
+service output becomes a generic no-store error. PESTEL list/detail queries now
+select migration-203 columns explicitly for both analyses and factors; optional
+location filtering, the all-analysis branch, ordering, and dictionary output
+remain unchanged. The Gateway caps continuations at its 10,000-offset request
+limit; the console now indicates when more records exist beyond that bound.
+OpenAPI records the competency levels' two-decimal precision. The approved
+focused selection passes 25 Gateway checks, one operator-console cap-state
+check, and three PESTEL checks. Ruff, Python compilation, capability
+validation, and diff checks pass. No database, provider, candidate, or legacy
+state was used.
+Checklist: 1,840 complete / 25 open; TODO: 483 checked / 16 open; strict
+private Gateway response contracts total 174. Evidence:
+[competency queue and PESTEL projections](builds/2026-10-29-recovery/competency-queue-and-pestel-projections.json).

@@ -1569,7 +1569,15 @@ def test_http_competency_review_queue_is_no_store_and_exactly_scoped(monkeypatch
     from services.gateway.operating_pilot_routes import register_operating_pilot_routes
 
     calls = []
-    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    page = {
+        "location_id": LOCATION_ID,
+        "limit": 7,
+        "offset": 14,
+        "items": [],
+        "has_more": False,
+        "next_offset": None,
+        "total": 0,
+    }
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_competency_review_queue",
         lambda *args, **kwargs: calls.append((args, kwargs)) or page,
@@ -1600,6 +1608,197 @@ def test_http_competency_review_queue_is_no_store_and_exactly_scoped(monkeypatch
     assert response.headers["vary"] == "Cookie"
     assert response.json() == page
     assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 7, "offset": 14})]
+
+
+def _competency_review_app(monkeypatch, result, *, provider=object()):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_competency_review_queue",
+        lambda *_args, **_kwargs: result,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(
+        router, provider, run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
+
+
+def test_competency_review_queue_openapi_declares_exact_strict_projection(monkeypatch):
+    page = {
+        "location_id": LOCATION_ID,
+        "limit": 25,
+        "offset": 0,
+        "items": [],
+        "has_more": False,
+        "next_offset": None,
+        "total": 0,
+    }
+    app = _competency_review_app(monkeypatch, page)
+    operation = app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/competency-review-queue"
+    ]["get"]
+    schemas = app.openapi()["components"]["schemas"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/OperatingPilotCompetencyReviewQueueResponse"
+    }
+    page_schema = schemas["OperatingPilotCompetencyReviewQueueResponse"]
+    item_schema = schemas["OperatingPilotCompetencyReviewQueueItem"]
+    assert set(page_schema["properties"]) == {
+        "location_id", "limit", "offset", "items", "has_more", "next_offset", "total"
+    }
+    assert page_schema["additionalProperties"] is False
+    assert set(item_schema["properties"]) == {
+        "draft_id", "competency_key", "current_level", "target_level",
+        "evidence_note", "status", "updated_at",
+    }
+    assert item_schema["additionalProperties"] is False
+    assert item_schema["properties"]["status"]["const"] == "submitted"
+    assert item_schema["properties"]["competency_key"]["maxLength"] == 120
+    assert item_schema["properties"]["competency_key"]["pattern"] == r"^[a-z][a-z0-9_.-]{0,119}$"
+    assert item_schema["properties"]["current_level"]["type"] == "number"
+    assert item_schema["properties"]["current_level"]["minimum"] == 0
+    assert item_schema["properties"]["current_level"]["maximum"] == 5
+    assert item_schema["properties"]["current_level"]["multipleOf"] == 0.01
+    assert item_schema["properties"]["target_level"]["multipleOf"] == 0.01
+    assert item_schema["properties"]["evidence_note"]["anyOf"][0]["maxLength"] == 2000
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 50
+    assert parameters["offset"]["schema"]["minimum"] == 0
+    assert parameters["offset"]["schema"]["maximum"] == 10000
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda page: page.update(location_id=str(uuid4())),
+        lambda page: page.update(limit=8),
+        lambda page: page.update(offset=1),
+        lambda page: page.update(private_reviewer_id=OPERATOR_ID),
+        lambda page: page.update(next_offset=21),
+        lambda page: page.update(total=2),
+        lambda page: page["items"][0].update(status="draft"),
+        lambda page: page["items"][0].update(competency_key="Invalid Key"),
+        lambda page: page["items"][0].update(current_level=6),
+        lambda page: page["items"][0].update(target_level=1),
+        lambda page: page["items"][0].update(updated_at="2026-10-19T12:00:00"),
+        lambda page: page["items"][0].update(unreviewed_note="secret"),
+    ],
+)
+def test_competency_review_queue_rejects_malformed_or_unbound_results(monkeypatch, mutate):
+    page = {
+        "location_id": LOCATION_ID,
+        "limit": 1,
+        "offset": 0,
+        "items": [{
+            "draft_id": str(uuid4()),
+            "competency_key": "facilitation",
+            "current_level": 1.25,
+            "target_level": 2.5,
+            "evidence_note": "Private evidence",
+            "status": "submitted",
+            "updated_at": "2026-10-19T12:00:00+00:00",
+        }],
+        "has_more": False,
+        "next_offset": None,
+        "total": 1,
+    }
+    mutate(page)
+    app = _competency_review_app(monkeypatch, page)
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-review-queue?limit=1&offset=0"
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 500
+    assert response.json() == {"error": "Operating competency review queue unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "Private evidence" not in response.text
+    assert "secret" not in response.text
+
+
+def test_competency_review_queue_enforces_sql_order_and_continuation(monkeypatch):
+    newer_id, older_id = sorted((uuid4(), uuid4()), reverse=True)
+    page = {
+        "location_id": LOCATION_ID,
+        "limit": 2,
+        "offset": 0,
+        "items": [
+            {
+                "draft_id": str(newer_id),
+                "competency_key": "facilitation",
+                "current_level": 1,
+                "target_level": 2,
+                "evidence_note": None,
+                "status": "submitted",
+                "updated_at": "2026-10-19T12:00:00+00:00",
+            },
+            {
+                "draft_id": str(older_id),
+                "competency_key": "soil_health",
+                "current_level": 2,
+                "target_level": 3,
+                "evidence_note": None,
+                "status": "submitted",
+                "updated_at": "2026-10-19T12:00:00+00:00",
+            },
+        ],
+        "has_more": True,
+        "next_offset": 2,
+        "total": 3,
+    }
+    app = _competency_review_app(monkeypatch, page)
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-review-queue?limit=2&offset=0"
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 200
+    assert response.json() == page
+
+
+def test_competency_review_queue_caps_unrequestable_sql_continuation(monkeypatch):
+    ids = sorted((uuid4() for _ in range(25)), reverse=True)
+    page = {
+        "location_id": LOCATION_ID,
+        "limit": 25,
+        "offset": 10000,
+        "items": [
+            {
+                "draft_id": str(draft_id),
+                "competency_key": "facilitation",
+                "current_level": 1,
+                "target_level": 2,
+                "evidence_note": None,
+                "status": "submitted",
+                "updated_at": "2026-10-19T12:00:00+00:00",
+            }
+            for draft_id in ids
+        ],
+        "has_more": True,
+        "next_offset": 10025,
+        "total": 10026,
+    }
+    app = _competency_review_app(monkeypatch, page)
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-review-queue?limit=25&offset=10000"
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 200
+    assert response.json()["has_more"] is False
+    assert response.json()["next_offset"] is None
+    assert response.json()["total"] == 10026
 
 
 def test_http_competency_review_queue_fails_closed_when_oidc_is_disabled(monkeypatch):

@@ -56,6 +56,7 @@ def _response_datetime(value):
 
 _ResponseDate = Annotated[date, BeforeValidator(_response_date)]
 _ResponseDateTime = Annotated[AwareDatetime, BeforeValidator(_response_datetime)]
+_COMPETENCY_REVIEW_MAX_OFFSET = 10_000
 
 
 class OperatingPilotCoachingSessionCreateResponse(BaseModel):
@@ -484,6 +485,106 @@ def _response_decimal(value):
 
 
 _ResponseDecimal = Annotated[Decimal, BeforeValidator(_response_decimal)]
+def _response_competency_level(value):
+    level = _response_decimal(value)
+    if not 0 <= level <= 5:
+        raise ValueError("competency level is outside its allowed range")
+    return float(level)
+
+
+_ResponseCompetencyLevel = Annotated[
+    float,
+    BeforeValidator(_response_competency_level),
+]
+
+
+class OperatingPilotCompetencyReviewQueueItem(BaseModel):
+    """Submitted, private competency projection for an independent reviewer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    draft_id: _ResponseUUID
+    competency_key: str = Field(
+        min_length=1,
+        max_length=120,
+        pattern=r"^[a-z][a-z0-9_.-]{0,119}$",
+        strict=True,
+    )
+    current_level: _ResponseCompetencyLevel = Field(
+        ge=0, le=5, strict=True, json_schema_extra={"multipleOf": 0.01}
+    )
+    target_level: _ResponseCompetencyLevel = Field(
+        ge=0, le=5, strict=True, json_schema_extra={"multipleOf": 0.01}
+    )
+    evidence_note: str | None = Field(max_length=2000, strict=True)
+    status: Literal["submitted"]
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_levels(self):
+        if self.target_level < self.current_level:
+            raise ValueError("competency target level cannot be below current level")
+        return self
+
+
+class OperatingPilotCompetencyReviewQueueResponse(BaseModel):
+    """Strict, bounded competency-review page from migration 577."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True)
+    items: list[OperatingPilotCompetencyReviewQueueItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True
+    )
+    total: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        expected_item_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_item_count:
+            raise ValueError("competency review item count does not match total and page")
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("competency review continuation does not match total and page")
+        if self.has_more and self.next_offset != self.offset + self.limit:
+            raise ValueError("competency review next offset does not match page")
+        if not self.has_more and self.next_offset is not None:
+            raise ValueError("terminal competency review page cannot continue")
+
+        draft_ids = [item.draft_id for item in self.items]
+        if len(draft_ids) != len(set(draft_ids)):
+            raise ValueError("competency review page contains duplicate drafts")
+        order = [(item.updated_at, item.draft_id) for item in self.items]
+        if order != sorted(order, reverse=True):
+            raise ValueError("competency review page is not in SQL order")
+        return self
+
+
+def _bound_competency_review_continuation(result):
+    """Hide a SQL continuation the Gateway will not accept as a next page."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
 
 
 class OperatingPilotWorkClaimReviewQueueItem(BaseModel):
@@ -4073,12 +4174,17 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(validated.model_dump(mode="python")), headers=headers
         )
 
-    @router.get("/operator/api/operating-pilot/{location_id}/competency-review-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/competency-review-queue",
+        response_model=OperatingPilotCompetencyReviewQueueResponse,
+    )
     async def location_operating_pilot_competency_review_queue(
         request: Request,
         location_id: str,
         limit: int = Query(default=25, ge=1, le=50),
-        offset: int = Query(default=0, ge=0, le=10000),
+        offset: int = Query(
+            default=0, ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET
+        ),
     ):
         if provider is None:
             return JSONResponse(
@@ -4132,6 +4238,27 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            result = _bound_competency_review_continuation(result)
+            validated = OperatingPilotCompetencyReviewQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Competency review page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating competency review queue unavailable"},
+                headers=headers,
+            )
+        # Preserve JSONB numeric values as JSON numbers instead of Decimal strings.
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get("/operator/api/operating-pilot/{location_id}/learning-plan-review-queue")

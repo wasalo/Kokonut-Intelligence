@@ -3254,3 +3254,17 @@ compilation, capability-matrix validation, and diff checks pass. No database
 or provider was used. Checklist: 480 checked / 16 open; strict private
 Gateway response contracts total 173. Evidence:
 `builds/2026-10-29-recovery/business-canvas-edit-response-contracts.json`.
+
+## Completed — competency review queue and PESTEL projections, 29 October
+
+- [x] Add the strict migration-577 competency review queue response contract.
+- [x] Replace PESTEL wildcard reads with the migration-203 explicit columns.
+- [x] Verify response, ordering, pagination, filtering, and serialization using
+  the approved mock-only checks; record evidence and update progress ledgers.
+
+The focused selection passes 25 Gateway checks, one operator-console
+offset-cap check, and three PESTEL checks. Ruff, Python compilation,
+capability validation, and diff checks pass; no database or provider was used.
+Checklist: 483 checked / 16 open; strict private Gateway response contracts
+total 174. Evidence:
+`builds/2026-10-29-recovery/competency-queue-and-pestel-projections.json`.

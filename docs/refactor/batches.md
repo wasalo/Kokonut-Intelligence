@@ -8188,3 +8188,30 @@ Checklist: 1,835 complete / 25 open (1,860 total); TODO: 480 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 173. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — competency review queue and PESTEL projections — 29 October 2026
+
+- [x] Add the migration-577 exact competency review page/item response model
+  and publish it in OpenAPI.
+- [x] Bind location/page metadata, level bounds and relation, submitted-only
+  state, competency-key pattern, SQL ordering, uniqueness, total, and
+  continuation; fail closed on malformed output with a sanitized no-store
+  error.
+- [x] Replace PESTEL analysis/factor `SELECT *` projections with migration-
+  203 column lists while retaining the optional location filter, all-analysis
+  branch, ordering, and serialized dictionaries.
+- [x] Add/run the approved focused mock-only Gateway and PESTEL checks.
+- [x] Record machine-readable evidence and reconcile the progress ledgers.
+
+The focused selection passes 25 competency queue checks, one operator-console
+offset-cap check, and three PESTEL projection checks. The Gateway now suppresses
+unrequestable continuations at the 10,000-offset cap, and the console identifies
+the resulting bounded view. OpenAPI documents two-decimal level precision.
+Ruff, Python compilation, capability-matrix validation, and diff checks pass.
+No database, provider, candidate, or legacy state was used. Evidence:
+[competency queue and PESTEL projections](builds/2026-10-29-recovery/competency-queue-and-pestel-projections.json).
+
+Checklist: 1,840 complete / 25 open (1,865 total); TODO: 483 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 174. C2 remains open for broader route/auth and live-runtime parity.
