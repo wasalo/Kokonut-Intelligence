@@ -1,5 +1,7 @@
 """Organic certification tests: schema, seeds, analytics, views, metrics, reports."""
 
+import re
+from datetime import date
 from pathlib import Path
 
 from services.analytics.organic_certification import (
@@ -11,6 +13,7 @@ from services.analytics.organic_certification import (
     compute_record_completeness,
     compute_transition_progress,
 )
+from services.export.reports.operations import generate_organic_certification_readiness
 
 SCHEMA = Path("schemas/postgres/055_organic_certification.sql")
 SEED = Path("schemas/seeds/055_organic_certification.sql")
@@ -248,6 +251,90 @@ def test_report_types_registered() -> None:
     assert "organic_certification_readiness" in mod.REPORT_GENERATORS
     assert "organic_transition_progress" in mod.REPORT_GENERATORS
     assert "organic_input_audit" in mod.REPORT_GENERATORS
+
+
+def test_organic_compliance_dashboard_projection_preserves_full_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    dashboard_row = {
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "latitude": 18.5,
+        "longitude": -69.9,
+        "farm_registry_id": "b0000000-0000-0000-0000-000000000001",
+        "farm_status": "verified",
+        "active_standard": "IFOAM",
+        "certification_status": "in_transition",
+        "certification_expiry": date(2027, 3, 31),
+        "transition_status": "active",
+        "transition_year": 2,
+        "transition_total_years": 3,
+        "total_prohibited_substances": 3,
+        "cleared_substances": 2,
+        "pending_substances": 1,
+        "buffer_zone_count": 4,
+        "adequate_buffers": 3,
+        "total_inputs": 12,
+        "organic_inputs": 9,
+        "prohibited_inputs": 1,
+        "total_harvests": 8,
+        "segregated_harvests": 7,
+        "latest_readiness_score": 82.5,
+        "latest_readiness_date": date(2026, 3, 15),
+        "latest_inspection_result": "conditional_pass",
+    }
+    columns = (
+        "location_id, location_name, latitude, longitude, farm_registry_id, farm_status, active_standard, "
+        "certification_status, certification_expiry, transition_status, transition_year, "
+        "transition_total_years, total_prohibited_substances, cleared_substances, pending_substances, "
+        "buffer_zone_count, adequate_buffers, total_inputs, organic_inputs, prohibited_inputs, "
+        "total_harvests, segregated_harvests, latest_readiness_score, latest_readiness_date, "
+        "latest_inspection_result"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+            self.fetchone_calls = 0
+            self.fetchall_calls = 0
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            self.fetchone_calls += 1
+            if self.fetchone_calls == 1:
+                return {"name": "Kokonut Adelphi"}
+            if self.fetchone_calls == 2:
+                return {"overall_score": 82.5, "barriers": ["buffer review"]}
+            return dashboard_row
+
+        def fetchall(self):
+            self.fetchall_calls += 1
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_organic_certification_readiness(conn, location_id)
+    query, params = conn.cursor_value.executed[4]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_organic_compliance_dashboard WHERE location_id = %s"
+    )
+    assert params == (location_id,)
+    assert report["report_type"] == "organic_certification_readiness"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["compliance_dashboard"] == dashboard_row
+    assert report["overall_score"] == 82.5
+    assert report["top_barriers"] == ["buffer review"]
 
 
 # ---------------------------------------------------------------------------

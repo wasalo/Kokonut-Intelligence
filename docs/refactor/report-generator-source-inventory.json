@@ -917,7 +917,7 @@
       "callable": "generate_livestock_feed",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 299,
+      "source_line": 312,
       "parameters": [
         "conn",
         "location_id",
@@ -982,7 +982,7 @@
       "callable": "generate_organic_certification_readiness",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 476,
+      "source_line": 506,
       "parameters": [
         "conn",
         "location_id",
@@ -1004,7 +1004,7 @@
       "callable": "generate_organic_input_audit",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 602,
+      "source_line": 657,
       "parameters": [
         "conn",
         "location_id",
@@ -1026,7 +1026,7 @@
       "callable": "generate_organic_transition_progress",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 547,
+      "source_line": 602,
       "parameters": [
         "conn",
         "location_id",
@@ -1415,7 +1415,7 @@
       "callable": "generate_reward_calibration",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 409,
+      "source_line": 439,
       "parameters": [
         "conn",
         "location_id",
@@ -1774,7 +1774,7 @@
       "callable": "generate_statement_of_work",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 660,
+      "source_line": 715,
       "parameters": [
         "conn",
         "location_id",
@@ -1902,7 +1902,7 @@
       "callable": "generate_token_rewards",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 353,
+      "source_line": 383,
       "parameters": [
         "conn",
         "location_id",

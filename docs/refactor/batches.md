@@ -6397,3 +6397,29 @@ used. Evidence:
 
 Checklist: 1,558 complete / 25 open (1,583 total); TODO: 261 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — operations projections, tactical sessions, and SDK errors — 28 October 2026
+
+- [x] Add a strict location-bound response contract for governance tactical
+  session pages, including exact fields, bounded page/cursor behavior, and
+  sanitized no-store failure responses.
+- [x] Replace the feature-importance `SELECT *` with all 13 public-view
+  columns and verify query and payload parity.
+- [x] Replace the livestock-feed-intake `SELECT *` with all 17 public-view
+  columns and verify query, totals, and payload parity.
+- [x] Replace the organic-compliance-dashboard `SELECT *` with all 25
+  public-view columns and verify query and payload parity.
+- [x] Require exact application error envelopes in Python and TypeScript SDKs
+  while preserving framework 422 behavior and stable error metadata.
+
+The integrated focused selection passes 578 Python tests and 131 TypeScript
+tests; `npm run build` passes. Ruff, compilation, all three report inventories,
+capability-matrix validation, and diff checks pass. Three pre-existing unused
+names in broad report test modules were excluded from Ruff. Existing public
+notes and domain fields are unchanged; this does not establish content-level
+privacy or populated-data parity. No database, migration, candidate, legacy
+service, provider, or production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-operations-governance-sdk-error-contracts.json).
+
+Checklist: 1,563 complete / 25 open (1,588 total); TODO: 266 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

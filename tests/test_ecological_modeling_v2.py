@@ -726,6 +726,16 @@ def test_prediction_accuracy_projection_preserves_payload_and_metrics() -> None:
         "WHERE location_id = %s ORDER BY prediction_date DESC"
     )
     assert params == (location_id,)
+    feature_query, feature_params = conn.cursor_value.executed[2]
+    feature_columns = (
+        "id, location_id, location_name, model_type, analysis_date, feature_name, importance_score, "
+        "direction, correlation_coefficient, p_value, sample_size, notes, status"
+    )
+    assert re.sub(r"\s+", " ", feature_query).strip() == (
+        f"SELECT {feature_columns} FROM v_public_feature_importance "
+        "WHERE location_id = %s ORDER BY importance_score DESC"
+    )
+    assert feature_params == (location_id,)
     assert report["report_type"] == "model_validation"
     assert report["location_name"] == "Kokonut Adelphi"
     assert report["predictions"] == [

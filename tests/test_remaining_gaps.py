@@ -1,5 +1,7 @@
 """Remaining gaps tests: leaf litter, livestock, decomposition, predation, token rewards, reward calibration."""
 
+import re
+from datetime import date
 from pathlib import Path
 
 from services.analytics.livestock_feed import (
@@ -14,8 +16,8 @@ from services.analytics.reward_calibration import (
 from services.export.report_generator import (
     REPORT_GENERATORS,
     generate_livestock_feed,
-    generate_token_rewards,
     generate_reward_calibration,
+    generate_token_rewards,
 )
 
 SCHEMA = Path("schemas/postgres/050_remaining_gaps.sql")
@@ -244,6 +246,108 @@ def test_livestock_feed_report_public_safe() -> None:
     assert "limitations" in report
 
 
+def test_livestock_feed_projection_preserves_full_payload_and_totals() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    source_rows = [
+        {
+            "id": "b0000000-0000-0000-0000-000000000001",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "livestock_group_id": "c0000000-0000-0000-0000-000000000001",
+            "group_name": "Dairy goats",
+            "livestock_species": "goat",
+            "livestock_breed": "local crossbreed",
+            "animal_count": 12,
+            "record_date": date(2026, 3, 31),
+            "feed_type": "forage",
+            "feed_name": "cut grass",
+            "quantity_kg": 24.0,
+            "per_animal_kg": 2.0,
+            "method": "weighed",
+            "temperature_c": 25.5,
+            "notes": "Morning feed record.",
+            "status": "verified",
+        },
+        {
+            "id": "b0000000-0000-0000-0000-000000000002",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "livestock_group_id": "c0000000-0000-0000-0000-000000000001",
+            "group_name": "Dairy goats",
+            "livestock_species": "goat",
+            "livestock_breed": "local crossbreed",
+            "animal_count": 12,
+            "record_date": date(2026, 3, 30),
+            "feed_type": "supplement",
+            "feed_name": "mineral mix",
+            "quantity_kg": 2.5,
+            "per_animal_kg": 0.2083,
+            "method": "measured",
+            "temperature_c": 24.0,
+            "notes": "Mineral supplement record.",
+            "status": "published",
+        },
+    ]
+    group_rows = [{
+        "group_name": "Dairy goats",
+        "species": "goat",
+        "breed": "local crossbreed",
+        "animal_count": 12,
+        "feed_type": "mixed forage",
+        "status": "active",
+    }]
+    columns = (
+        "id, location_id, location_name, livestock_group_id, group_name, livestock_species, "
+        "livestock_breed, animal_count, record_date, feed_type, feed_name, quantity_kg, "
+        "per_animal_kg, method, temperature_c, notes, status"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+            self.fetchall_calls = 0
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            self.fetchall_calls += 1
+            return source_rows if self.fetchall_calls == 1 else group_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_livestock_feed(conn, location_id)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_livestock_feed_intake "
+        "WHERE location_id = %s ORDER BY record_date DESC"
+    )
+    assert params == (location_id,)
+    assert report["report_type"] == "livestock_feed"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["feed_records"] == [
+        {**row, "record_date": row["record_date"].isoformat()}
+        for row in source_rows
+    ]
+    assert report["livestock_groups"] == group_rows
+    assert report["total_groups"] == 1
+    assert report["total_animals"] == 12
+    assert report["total_feed_kg"] == 26.5
+
+
 def test_token_rewards_report_public_safe() -> None:
     class Cursor:
         calls = 0
@@ -296,6 +400,7 @@ def test_reward_calibration_report_public_safe() -> None:
 
 def test_agent_imports_new_analytics() -> None:
     import inspect
+
     from services.agents.ecological_modeling_agent import synthesize_ecological_modeling
     source = inspect.getsource(synthesize_ecological_modeling)
     assert "compute_feed_intake_summary" in source

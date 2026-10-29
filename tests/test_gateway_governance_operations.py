@@ -19,7 +19,81 @@ LOCATION_ID = str(uuid4())
 ROLE_ID = str(uuid4())
 CIRCLE_ID = str(uuid4())
 ITEM_ID = str(uuid4())
+TACTICAL_SESSION_ID = str(uuid4())
+TACTICAL_CURSOR_ID = str(uuid4())
 CREATED_AT = datetime(2026, 10, 18, tzinfo=timezone.utc)
+
+
+def _tactical_session_item(**updates):
+    item = {
+        "id": TACTICAL_SESSION_ID,
+        "session_type": "weekly_review",
+        "title": "Weekly review",
+        "scheduled_at": CREATED_AT,
+        "status": "planned",
+        "created_at": CREATED_AT,
+        "circle_key": "adelphi-stewardship",
+        "circle_name": "Adelphi Stewardship",
+        "item_count": 3,
+        "open_item_count": 2,
+        "disposed_item_count": 1,
+        "overdue_item_count": 1,
+    }
+    item.update(updates)
+    return item
+
+
+def _valid_tactical_session_page(location_id=LOCATION_ID, *, items=None, next_cursor=None):
+    return {
+        "location_id": location_id,
+        "items": [_tactical_session_item()] if items is None else items,
+        "next_cursor": next_cursor,
+    }
+
+
+def _authorized_governance_client(monkeypatch, service_result, *, location_id=LOCATION_ID):
+    operator_session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="c" * 64,
+        operator=SimpleNamespace(operator_id=OPERATOR_ID),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="synthetic-test-secret")
+
+        def authenticate_request(self, _request):
+            return operator_session
+
+        def has_scope(self, scoped_operator, resource, action, scoped_location):
+            return (
+                scoped_operator == OPERATOR_ID
+                and resource == "governance_tactical"
+                and action == "read"
+                and scoped_location == location_id
+            )
+
+    class InMemoryAudit:
+        def __init__(self):
+            pass
+
+        def replay_pending(self, _limit=100):
+            return 0
+
+        def log(self, **_event):
+            return None
+
+        def capture_status(self):
+            return "ok"
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
+    monkeypatch.setattr(
+        "services.gateway.governance_operations.list_location_governance_tactical_sessions",
+        lambda *_args, **_kwargs: service_result,
+    )
+    return TestClient(
+        create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
+    )
 
 
 def test_role_registry_covers_all_governance_lifecycle_states():
@@ -432,6 +506,86 @@ def test_tactical_session_registry_is_location_scoped_and_aggregate_only(monkeyp
     for private_field in ("agenda_scope", "session.notes", "outcome_summary", "created_by_party_id"):
         assert private_field not in sql
     assert connection.rolled_back and connection.closed
+
+
+def test_tactical_session_http_route_returns_exact_scoped_page(monkeypatch):
+    page = _valid_tactical_session_page()
+    with _authorized_governance_client(monkeypatch, page) as client:
+        response = client.get(f"/operator/api/governance/{LOCATION_ID}/tactical-sessions")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in {
+        value.strip().lower() for value in response.headers["vary"].split(",")
+    }
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "items": [
+            {
+                **_tactical_session_item(),
+                "scheduled_at": "2026-10-18T00:00:00+00:00",
+                "created_at": "2026-10-18T00:00:00+00:00",
+            }
+        ],
+        "next_cursor": None,
+    }
+
+
+@pytest.mark.parametrize(
+    ("page", "params"),
+    [
+        (
+            _valid_tactical_session_page(
+                items=[_tactical_session_item(extra="not in the SQL projection")]
+            ),
+            {},
+        ),
+        (
+            _valid_tactical_session_page(
+                items=[_tactical_session_item(status="draft")]
+            ),
+            {},
+        ),
+        (
+            _valid_tactical_session_page(
+                items=[_tactical_session_item(), _tactical_session_item(id=str(uuid4()))]
+            ),
+            {"limit": 1},
+        ),
+        (
+            _valid_tactical_session_page(
+                items=[_tactical_session_item()], next_cursor=TACTICAL_CURSOR_ID
+            ),
+            {"limit": 1},
+        ),
+        (
+            _valid_tactical_session_page(
+                items=[_tactical_session_item(id=TACTICAL_CURSOR_ID)],
+                next_cursor=TACTICAL_CURSOR_ID,
+            ),
+            {"limit": 1, "cursor": TACTICAL_CURSOR_ID},
+        ),
+    ],
+)
+def test_tactical_session_http_route_rejects_invalid_page(monkeypatch, page, params):
+    with _authorized_governance_client(monkeypatch, page) as client:
+        response = client.get(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-sessions", params=params
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Governance tactical sessions unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_tactical_session_http_route_rejects_wrong_location(monkeypatch):
+    page = _valid_tactical_session_page(location_id=str(uuid4()))
+    with _authorized_governance_client(monkeypatch, page) as client:
+        response = client.get(f"/operator/api/governance/{LOCATION_ID}/tactical-sessions")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Governance tactical sessions unavailable"}
+    assert response.headers["cache-control"] == "no-store"
 
 
 @pytest.mark.parametrize(

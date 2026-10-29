@@ -23040,3 +23040,27 @@ Checklist: 1,558 complete / 25 open (1,583 total); TODO: 261 checked / 16
 open. The capability matrix remains 67 rows (24 baseline-retained,
 7 deployed, 36 prepared) and now documents 96 strict private Gateway response
 contracts. MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — operations projections, tactical sessions, and SDK errors — 28 October 2026
+
+The governance tactical-session list now publishes an exact location-bound
+page schema with bounded pagination/cursor validation; malformed or mismatched
+server data fails closed. Feature importance, livestock feed intake, and the
+organic compliance dashboard explicitly select their complete 13-, 17-, and
+25-column public views. The Python and TypeScript SDKs accept application
+error text only from exact `{"error": string}` envelopes and preserve the
+framework's 422 detail behavior.
+
+The integrated focused selection passes 578 Python tests and 131 TypeScript
+tests; the SDK build, Ruff, Python compilation, report inventories,
+capability-matrix validation, and diff checks pass. Three pre-existing unused
+names in broad report test modules were excluded from Ruff. Existing public
+notes and domain fields are unchanged, so this does not establish
+content-level privacy, tenant isolation, or populated-data parity. No database,
+provider, candidate, legacy service, or production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-operations-governance-sdk-error-contracts.json).
+
+Checklist: 1,563 complete / 25 open (1,588 total); TODO: 266 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 97 strict private Gateway response contracts;
+MAN-CAP acceptance and classifications are unchanged.

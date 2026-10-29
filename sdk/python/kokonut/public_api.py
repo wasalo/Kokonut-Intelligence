@@ -658,7 +658,11 @@ class KokonutPublicApiClient:
         if not response.ok:
             try:
                 body = response.json()
-                error_message = body.get("error") if isinstance(body, dict) else None
+                error_message = (
+                    body["error"]
+                    if isinstance(body, dict) and set(body) == {"error"}
+                    else None
+                )
                 if isinstance(error_message, str):
                     message = error_message
                 else:

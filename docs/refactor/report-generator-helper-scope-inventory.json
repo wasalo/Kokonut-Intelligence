@@ -5380,19 +5380,19 @@
         {
           "caller": "generate_livestock_feed",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 301,
+          "line": 314,
           "depth": 1
         },
         {
           "caller": "generate_livestock_feed",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 333,
+          "line": 363,
           "depth": 1
         },
         {
           "caller": "generate_livestock_feed",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 334,
+          "line": 364,
           "depth": 1
         },
         {
@@ -5434,13 +5434,13 @@
         {
           "caller": "generate_model_validation",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 278,
+          "line": 291,
           "depth": 1
         },
         {
           "caller": "generate_model_validation",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 279,
+          "line": 292,
           "depth": 1
         },
         {
@@ -5548,19 +5548,19 @@
         {
           "caller": "generate_organic_certification_readiness",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 480,
+          "line": 510,
           "depth": 1
         },
         {
           "caller": "generate_organic_certification_readiness",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 526,
+          "line": 581,
           "depth": 1
         },
         {
           "caller": "generate_organic_certification_readiness",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 527,
+          "line": 582,
           "depth": 1
         },
         {
@@ -5596,19 +5596,19 @@
         {
           "caller": "generate_organic_input_audit",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 604,
+          "line": 659,
           "depth": 1
         },
         {
           "caller": "generate_organic_input_audit",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 638,
+          "line": 693,
           "depth": 1
         },
         {
           "caller": "generate_organic_input_audit",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 639,
+          "line": 694,
           "depth": 1
         },
         {
@@ -5644,19 +5644,19 @@
         {
           "caller": "generate_organic_transition_progress",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 551,
+          "line": 606,
           "depth": 1
         },
         {
           "caller": "generate_organic_transition_progress",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 581,
+          "line": 636,
           "depth": 1
         },
         {
           "caller": "generate_organic_transition_progress",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 583,
+          "line": 638,
           "depth": 1
         },
         {
@@ -8222,31 +8222,31 @@
         {
           "caller": "generate_reward_calibration",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 411,
+          "line": 441,
           "depth": 1
         },
         {
           "caller": "generate_reward_calibration",
           "callee": "services/analytics/reward_calibration.py:detect_overjustification_risk",
-          "line": 445,
+          "line": 475,
           "depth": 1
         },
         {
           "caller": "generate_reward_calibration",
           "callee": "services/common/errors.py:safe_exception_class",
-          "line": 448,
+          "line": 478,
           "depth": 1
         },
         {
           "caller": "generate_reward_calibration",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 454,
+          "line": 484,
           "depth": 1
         },
         {
           "caller": "generate_reward_calibration",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 455,
+          "line": 485,
           "depth": 1
         },
         {
@@ -9614,79 +9614,79 @@
         {
           "caller": "generate_statement_of_work",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 666,
+          "line": 721,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 846,
+          "line": 901,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 848,
+          "line": 903,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 849,
+          "line": 904,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 850,
+          "line": 905,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 852,
+          "line": 907,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 854,
+          "line": 909,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 855,
+          "line": 910,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 858,
+          "line": 913,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 859,
+          "line": 914,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 860,
+          "line": 915,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 861,
+          "line": 916,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 863,
+          "line": 918,
           "depth": 1
         },
         {
@@ -10665,13 +10665,13 @@
         {
           "caller": "generate_token_rewards",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 355,
+          "line": 385,
           "depth": 1
         },
         {
           "caller": "generate_token_rewards",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 387,
+          "line": 417,
           "depth": 1
         },
         {

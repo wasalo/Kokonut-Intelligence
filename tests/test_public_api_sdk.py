@@ -666,6 +666,21 @@ def test_driver_catalog_sdk_rejects_invalid_pages_before_transport(
     ("response", "message", "status"),
     [
         (FakeResponse(403, {"error": "scope denied"}), "scope denied", 403),
+        (
+            FakeResponse(400, {"error": "Invalid location identifier"}),
+            "Invalid location identifier",
+            400,
+        ),
+        (FakeResponse(400, {"error": "invalid", "debug": "extra"}), "HTTP 400", 400),
+        (FakeResponse(400, {"error": 7}), "HTTP 400", 400),
+        (
+            FakeResponse(
+                422,
+                {"detail": [{"loc": ["query", "limit"], "msg": "Input should be >= 1"}]},
+            ),
+            "HTTP 422",
+            422,
+        ),
         (FakeResponse(502, {"unexpected": True}), "HTTP 502", 502),
         (FakeResponse(502, invalid_json=True), "HTTP 502", 502),
         (

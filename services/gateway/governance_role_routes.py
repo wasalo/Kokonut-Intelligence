@@ -232,6 +232,53 @@ class GovernanceTacticalItemPageResponse(BaseModel):
         return self
 
 
+class GovernanceTacticalSessionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _GovernanceResponseUUID
+    session_type: Literal[
+        "weekly_review",
+        "stakeholder_health",
+        "relationship_review",
+        "risk_triage",
+        "governance_followup",
+    ]
+    title: str = Field(max_length=255)
+    scheduled_at: AwareDatetime | None
+    status: Literal["planned", "active", "completed", "cancelled"]
+    created_at: AwareDatetime
+    circle_key: str = Field(max_length=120)
+    circle_name: str = Field(max_length=255)
+    item_count: int = Field(ge=0, strict=True)
+    open_item_count: int = Field(ge=0, strict=True)
+    disposed_item_count: int = Field(ge=0, strict=True)
+    overdue_item_count: int = Field(ge=0, strict=True)
+
+
+class GovernanceTacticalSessionPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _GovernanceResponseUUID
+    items: list[GovernanceTacticalSessionResponse] = Field(max_length=100)
+    next_cursor: _GovernanceResponseUUID | None
+
+    def validate_request(self, *, location_id: str, limit: int, cursor: str | None):
+        if self.location_id != UUID(location_id) or len(self.items) > limit:
+            raise ValueError("Governance tactical session page does not match request bounds")
+        if self.next_cursor is not None:
+            if (
+                not self.items
+                or len(self.items) != limit
+                or self.next_cursor != self.items[-1].id
+            ):
+                raise ValueError("Governance tactical session cursor does not match the page")
+        if cursor is not None:
+            input_cursor = UUID(cursor)
+            if input_cursor in {item.id for item in self.items} or self.next_cursor == input_cursor:
+                raise ValueError("Governance tactical session page repeats its input cursor")
+        return self
+
+
 def register_governance_role_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -1204,7 +1251,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/governance/{location_id}/tactical-sessions")
+    @router.get(
+        "/operator/api/governance/{location_id}/tactical-sessions",
+        response_model=GovernanceTacticalSessionPageResponse,
+    )
     async def location_governance_tactical_sessions(
         request: Request,
         location_id: str,
@@ -1245,7 +1295,22 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance tactical sessions unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = GovernanceTacticalSessionPageResponse.model_validate(result)
+            response.validate_request(location_id=location_id, limit=limit, cursor=cursor)
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_operations").warning(
+                "Governance tactical session page response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance tactical sessions unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(response.model_dump(mode="python")), headers=headers)
 
     @router.post("/operator/api/governance/{location_id}/tactical-sessions", status_code=201)
     async def create_governance_tactical_session_route(request: Request, location_id: str):

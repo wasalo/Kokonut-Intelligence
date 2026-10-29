@@ -81,6 +81,36 @@ def test_governance_list_routes_publish_service_page_limit_in_openapi(
         }
 
 
+def test_tactical_session_openapi_declares_exact_page_and_item_contract(
+    monkeypatch, isolated_audit
+):
+    schema = _app_with_operator(monkeypatch).openapi()
+    operation = schema["paths"][
+        "/operator/api/governance/{location_id}/tactical-sessions"
+    ]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    page_name = response_schema["$ref"].rsplit("/", 1)[-1]
+    page_schema = schema["components"]["schemas"][page_name]
+
+    assert set(page_schema["properties"]) == {"location_id", "items", "next_cursor"}
+    item_ref = page_schema["properties"]["items"]["items"]["$ref"]
+    item_name = item_ref.rsplit("/", 1)[-1]
+    assert set(schema["components"]["schemas"][item_name]["properties"]) == {
+        "id",
+        "session_type",
+        "title",
+        "scheduled_at",
+        "status",
+        "created_at",
+        "circle_key",
+        "circle_name",
+        "item_count",
+        "open_item_count",
+        "disposed_item_count",
+        "overdue_item_count",
+    }
+
+
 def test_governance_list_routes_reject_invalid_limits_before_service_access(
     monkeypatch, isolated_audit
 ):

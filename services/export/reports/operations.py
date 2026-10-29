@@ -261,7 +261,20 @@ def generate_model_validation(conn, location_id: str, period_start: str = None, 
         predictions = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_feature_importance
+            SELECT id,
+                   location_id,
+                   location_name,
+                   model_type,
+                   analysis_date,
+                   feature_name,
+                   importance_score,
+                   direction,
+                   correlation_coefficient,
+                   p_value,
+                   sample_size,
+                   notes,
+                   status
+            FROM v_public_feature_importance
             WHERE location_id = %s ORDER BY importance_score DESC
             """,
             (location_id,),
@@ -307,7 +320,24 @@ def generate_livestock_feed(conn, location_id: str, period_start: str = None, pe
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_livestock_feed_intake
+            SELECT id,
+                   location_id,
+                   location_name,
+                   livestock_group_id,
+                   group_name,
+                   livestock_species,
+                   livestock_breed,
+                   animal_count,
+                   record_date,
+                   feed_type,
+                   feed_name,
+                   quantity_kg,
+                   per_animal_kg,
+                   method,
+                   temperature_c,
+                   notes,
+                   status
+            FROM v_public_livestock_feed_intake
             WHERE location_id = %s ORDER BY record_date DESC
             """,
             (location_id,),
@@ -510,7 +540,32 @@ def generate_organic_certification_readiness(
         certifications = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_organic_compliance_dashboard
+            SELECT location_id,
+                   location_name,
+                   latitude,
+                   longitude,
+                   farm_registry_id,
+                   farm_status,
+                   active_standard,
+                   certification_status,
+                   certification_expiry,
+                   transition_status,
+                   transition_year,
+                   transition_total_years,
+                   total_prohibited_substances,
+                   cleared_substances,
+                   pending_substances,
+                   buffer_zone_count,
+                   adequate_buffers,
+                   total_inputs,
+                   organic_inputs,
+                   prohibited_inputs,
+                   total_harvests,
+                   segregated_harvests,
+                   latest_readiness_score,
+                   latest_readiness_date,
+                   latest_inspection_result
+            FROM v_public_organic_compliance_dashboard
             WHERE location_id = %s
             """,
             (location_id,),

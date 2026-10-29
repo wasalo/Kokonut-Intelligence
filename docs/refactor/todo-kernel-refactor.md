@@ -2218,3 +2218,22 @@ inventories, capability validation, and diff checks pass. Evidence:
 
 Checklist: 1,558 complete / 25 open (1,583 total); TODO: 261 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — operations projections, tactical sessions, and SDK errors — 28 October 2026
+
+- [x] Add exact response and page/cursor validation to the location-scoped
+  governance tactical-session reader.
+- [x] Replace and parity-check the feature-importance public-view projection.
+- [x] Replace and parity-check the livestock-feed-intake public-view
+  projection.
+- [x] Replace and parity-check the organic-compliance-dashboard projection.
+- [x] Align Python and TypeScript application error-envelope parsing while
+  preserving framework 422 details.
+
+The integrated selection passes 578 Python tests and 131 TypeScript tests;
+build, Ruff, compilation, report inventories, matrix validation, and diff
+checks pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-operations-governance-sdk-error-contracts.json).
+
+Checklist: 1,563 complete / 25 open (1,588 total); TODO: 266 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

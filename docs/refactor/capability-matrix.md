@@ -1,6 +1,21 @@
 # Capability preservation matrix
 
-**Latest parallel C2/C5 operations and Gateway batch — 28 October 2026:** the
+**Latest parallel C2/C5 operations, Gateway, and SDK batch — 28 October 2026:**
+the governance tactical-session page now has an exact location-bound response
+contract, bounded cursor validation, and sanitized no-store failure behavior.
+Feature importance, livestock feed intake, and the organic compliance
+dashboard select all 13, 17, and 25 public-view columns explicitly. Both SDKs
+require exact application error envelopes and preserve framework 422 details.
+Focused checks pass 578 Python and 131 TypeScript tests; the SDK build, Ruff,
+compilation, report inventories, capability validation, and diff checks pass.
+No database, migration, provider, candidate, legacy service, or production
+resource was used. Matrix classifications remain 67 rows (24 baseline-
+retained, 7 deployed, 36 prepared), with 97 strict private Gateway response
+contracts. Checklist: 1,563 complete / 25 open (1,588 total); TODO: 266
+checked / 16 open; MAN-CAP acceptance and classifications are unchanged
+([evidence](builds/2026-10-28-recovery/kernel-parallel-operations-governance-sdk-error-contracts.json)).
+
+**Previous parallel C2/C5 operations and Gateway batch — 28 October 2026:** the
 location-governance summary now has an exact location-bound response and
 OpenAPI contract; malformed results fail closed. Resource-efficiency,
 revenue-stream, and prediction-accuracy reports select their full 16-, 16-,

@@ -563,6 +563,14 @@ describe('KokonutPublicApiClient', () => {
 
   it.each([
     [response(403, { error: 'scope denied' }), 'scope denied', 403],
+    [response(400, { error: 'Invalid location identifier' }), 'Invalid location identifier', 400],
+    [response(400, { error: 'invalid', debug: 'extra' }), 'HTTP 400', 400],
+    [response(400, { error: 7 }), 'HTTP 400', 400],
+    [
+      response(422, { detail: [{ loc: ['query', 'limit'], msg: 'Input should be >= 1' }] }),
+      'HTTP 422',
+      422,
+    ],
     [response(502, { unexpected: true }), 'HTTP 502', 502],
     [response(502, undefined, true), 'HTTP 502', 502],
     [response(200, undefined, true), 'Invalid JSON response from Kokonut Gateway', 200],
@@ -580,6 +588,10 @@ describe('KokonutPublicApiClient', () => {
 
   it.each([
     response(403, { error: 'scope denied' }),
+    response(400, { error: 'invalid', debug: 'extra' }),
+    response(422, {
+      detail: [{ loc: ['query', 'limit'], msg: 'Input should be >= 1' }],
+    }),
     response(502, undefined, true),
     response(200, { data: null }),
   ])('preserves the transport response on API errors', async (mockResponse) => {

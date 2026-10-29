@@ -504,9 +504,15 @@ export class KokonutPublicApiClient {
       }
 
       if (!response.ok) {
+        const isPublicErrorEnvelope =
+          payload !== null &&
+          typeof payload === 'object' &&
+          !Array.isArray(payload) &&
+          Object.keys(payload).length === 1 &&
+          Object.prototype.hasOwnProperty.call(payload, 'error');
         const errorMessage =
-          payload && typeof payload === 'object' && 'error' in payload
-            ? payload.error
+          isPublicErrorEnvelope
+            ? (payload as Record<string, unknown>).error
             : undefined;
         const message = typeof errorMessage === 'string' ? errorMessage : `HTTP ${response.status}`;
         throw new PublicApiError(message, response.status, response);
