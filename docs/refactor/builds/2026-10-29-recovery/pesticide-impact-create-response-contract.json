@@ -1,0 +1,23 @@
+{
+  "result": "passed",
+  "date": "2026-10-29",
+  "scope": "private location-scoped pesticide-impact create response",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_pollinator_observation_capture.py -k 'pesticide_capture_openapi or pesticide_capture_validates_exact_result_and_replay_status or pesticide_capture_rejects_malformed_writer_result_safely' -q",
+    "passed": 12,
+    "failed": 0
+  },
+  "acceptance": [
+    "the six migration-620 response fields are exact in runtime and OpenAPI for both 201 creation and 200 replay",
+    "response location, toxicity class, and application date bind to the request",
+    "malformed, missing, extra, wrong-location, invalid-enum, wrong-date, lifecycle, and nonboolean replay output returns sanitized no-store errors",
+    "replay status is derived only after strict response validation"
+  ],
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate": "untouched",
+    "legacy": "untouched"
+  },
+  "rollback": "Revert the Gateway response model, validation, focused route tests, and this evidence file; no database rollback is required."
+}

@@ -39,6 +39,15 @@ class PollinatorObservationCaptureResponse(_PollinatorResponseModel):
     replayed: bool = Field(strict=True)
 
 
+class PesticideImpactCaptureResponse(_PollinatorResponseModel):
+    record_id: UUID
+    location_id: UUID
+    toxicity_class: Literal["low", "moderate", "high", "very_high"]
+    application_date: date
+    status: Literal["recorded"]
+    replayed: bool = Field(strict=True)
+
+
 class PollinatorObservationAggregate(_PollinatorResponseModel):
     pollinator_type: _PollinatorType
     observation_method: _ObservationMethod | None
@@ -746,7 +755,12 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             created_replay=True,
         )
 
-    @router.post("/operator/api/pollinators/{location_id}/pesticide-impacts")
+    @router.post(
+        "/operator/api/pollinators/{location_id}/pesticide-impacts",
+        response_model=PesticideImpactCaptureResponse,
+        status_code=201,
+        responses={200: {"model": PesticideImpactCaptureResponse}},
+    )
     async def create_pesticide_impact(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -798,10 +812,16 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
                 content={"error": "Pesticide report capture unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
-            headers=headers,
+        return _validated_private_response(
+            PesticideImpactCaptureResponse,
+            result,
+            "Pesticide report capture unavailable",
+            {
+                "location_id": UUID(location_id),
+                "toxicity_class": payload.get("toxicity_class"),
+                "application_date": date.fromisoformat(payload["application_date"]),
+            },
+            created_replay=True,
         )
 
     @router.post("/operator/api/pollinators/{location_id}/habitats")
