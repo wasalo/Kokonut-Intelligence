@@ -4,6 +4,23 @@
 
 ### Progress addendum — AI-summary human review decision contract — 29 October 2026
 
+### Progress addendum — AI-summary review-page integrity — 29 October 2026
+
+The private human-review page validates the same stable ascending
+`created_at, id` order as the database function, including PostgreSQL's
+NULL-last behavior, and rejects duplicate summary IDs. The page item also
+requires a true truncation flag to correspond to the full 20,000-character
+review projection. Short content remains valid when untruncated. Malformed
+pages continue to fail with a generic no-store error.
+
+The focused AI-summary review route selection passes 58 tests. Ruff,
+compilation, and diff checks pass. Mocked service output only; no database,
+provider, candidate, legacy, or production state was used. No migration is
+needed. Evidence:
+[focused checks](builds/2026-10-29-recovery/ai-summary-review-page-integrity.json).
+
+### Progress addendum — AI-summary human review decision contract — 29 October 2026
+
 The private operator decision endpoint now publishes strict request and
 response OpenAPI schemas. The body is limited to approve/reject, a UUID retry
 ID, and one of the migration-defined reason codes; approval must use

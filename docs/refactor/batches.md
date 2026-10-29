@@ -6965,3 +6965,24 @@ Checklist: 1,635 complete / 25 open (1,660 total); TODO: 330 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 108. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — AI-summary review-page integrity — 29 October 2026
+
+- [x] Enforce unique review summary IDs and the stable ascending `created_at,
+  id` order returned by the migration-backed review query, with NULL timestamps
+  last as PostgreSQL specifies.
+- [x] Require `content_truncated=true` rows to contain the full 20,000-character
+  bounded projection; preserve shorter complete summaries.
+- [x] Verify malformed duplicate, misordered, and truncation-flag responses
+  fail with the existing generic no-store error.
+
+The focused AI-summary review route selection passes 58 tests. Ruff, Python
+compilation, and `git diff --check` pass. Tests use mocked service output only;
+no database/provider, candidate, legacy, or production state was used. No
+migration is required. Rollback reverts the page/item validator, focused
+tests, and evidence without database changes ([evidence](builds/2026-10-29-recovery/ai-summary-review-page-integrity.json)).
+
+Checklist: 1,638 complete / 25 open (1,663 total); TODO: 333 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 108. MAN-CAP acceptance is unchanged.

@@ -77,6 +77,8 @@ class AiSummaryReviewItem(_StrictResponseModel):
 
     @model_validator(mode="after")
     def validate_source_tables(self):
+        if self.content_truncated and len(self.content) != 20_000:
+            raise ValueError("Truncated review content must reach the projection limit")
         if any(_SOURCE_TABLE_PATTERN.fullmatch(table) is None for table in self.source_tables):
             raise ValueError("Source-table names are invalid")
         if len(set(self.source_tables)) != len(self.source_tables):
@@ -104,6 +106,15 @@ class AiSummaryReviewPage(_StrictResponseModel):
     def validate_page(self):
         if len(self.summaries) > self.limit:
             raise ValueError("Review page exceeds its requested limit")
+        summary_ids = [summary.summary_id for summary in self.summaries]
+        if len(summary_ids) != len(set(summary_ids)):
+            raise ValueError("Review page contains duplicate summary identifiers")
+        ordering = [
+            (summary.created_at is None, summary.created_at, summary.summary_id.int)
+            for summary in self.summaries
+        ]
+        if ordering != sorted(ordering):
+            raise ValueError("Review page order differs from the database projection")
         if self.has_more and (
             len(self.summaries) != self.limit or self.offset + self.limit > 10_000
         ):

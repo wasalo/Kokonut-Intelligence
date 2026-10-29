@@ -10,6 +10,15 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Enforce the database review queue's stable ascending `created_at, id`
+  order and unique summary IDs at the Gateway boundary
+  ([evidence](builds/2026-10-29-recovery/ai-summary-review-page-integrity.json)).
+- [x] Bind the content-truncated marker to the database's 20,000-character
+  projection limit; malformed pages fail with sanitized no-store errors
+  ([same evidence](builds/2026-10-29-recovery/ai-summary-review-page-integrity.json)).
+- [x] Add mocked regressions for duplicate IDs, incorrect order, and short
+  content marked truncated ([same evidence](builds/2026-10-29-recovery/ai-summary-review-page-integrity.json)).
+
 - [x] Publish the strict human review decision request and response schemas
   for approved/rejected AI summaries, including reason-code/lifecycle mapping
   ([evidence](builds/2026-10-29-recovery/ai-summary-human-review-decision-contract.json)).

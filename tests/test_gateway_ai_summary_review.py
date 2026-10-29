@@ -460,6 +460,27 @@ def test_review_route_accepts_network_reference_scope_and_unregistered_worker_bl
     ]
 
 
+def test_review_route_preserves_null_timestamps_last():
+    async def run_in_threadpool(func, *args, **kwargs):
+        return funcs[func](*args, **kwargs)
+
+    response_body = _valid_review_response()
+    dated = response_body["summaries"][0]
+    dated["created_at"] = datetime(2026, 10, 28, tzinfo=UTC)
+    null_dated = deepcopy(dated)
+    null_dated["summary_id"] = str(uuid4())
+    null_dated["created_at"] = None
+    response_body["summaries"].append(null_dated)
+    funcs = {review.list_location_ai_summary_reviews: lambda *_a, **_k: response_body}
+
+    response = TestClient(_make_app(object(), funcs, run_in_threadpool)).get(
+        f"/operator/api/ai-summaries/{LOCATION_ID}/reviews"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["summaries"][1]["created_at"] is None
+
+
 @pytest.mark.parametrize(
     ("mutation", "query"),
     [
@@ -474,6 +495,9 @@ def test_review_route_accepts_network_reference_scope_and_unregistered_worker_bl
         ("blocked_reason", ""),
         ("readiness", ""),
         ("oversized_content", ""),
+        ("duplicate_summary_ids", ""),
+        ("descending_order", ""),
+        ("truncated_content_short", ""),
     ],
 )
 def test_review_route_rejects_mismatched_or_private_projection(mutation, query):
@@ -508,6 +532,16 @@ def test_review_route_rejects_mismatched_or_private_projection(mutation, query):
         item["blocked_reasons"] = ["self_review"]
     elif mutation == "oversized_content":
         item["content"] = "x" * 20_001
+    elif mutation == "duplicate_summary_ids":
+        invalid["summaries"].append(deepcopy(item))
+    elif mutation == "descending_order":
+        later = deepcopy(item)
+        later["summary_id"] = str(uuid4())
+        item["created_at"] = datetime(2026, 10, 29, tzinfo=UTC)
+        later["created_at"] = datetime(2026, 10, 28, tzinfo=UTC)
+        invalid["summaries"].append(later)
+    elif mutation == "truncated_content_short":
+        item["content_truncated"] = True
 
     funcs = {review.list_location_ai_summary_reviews: lambda *_a, **_k: invalid}
     client = TestClient(_make_app(object(), funcs, run_in_threadpool))
