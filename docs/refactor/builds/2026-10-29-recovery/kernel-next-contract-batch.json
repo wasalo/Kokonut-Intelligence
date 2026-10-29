@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-29",
+  "branch": "chore/kernel-next-sprint-plan",
+  "slices": [
+    "Report export status, detail, and artifact reads now require the original operator while eligible source snapshots remain shareable by exact location.",
+    "Operating-pilot capacity review and solution scale-gate target routes validate strict migration-backed response projections, scope, pagination, ordering, and domain invariants.",
+    "Python REST SDK response validation now accepts finite integral JSON numbers and rejects booleans and fractional values consistently with the JavaScript SDK.",
+    "Directus Auditor retirement-certificate access has an idempotently repaired explicit field allowlist; free-form reason text, private rendered-content hash, beneficiary data, and HTML remain excluded.",
+    "Prefect location fan-out rejects required inputs it cannot supply before loading locations; sensor jobs require a driver-instance mapping.",
+    "Ecological residual averages now exclude unmeasured values and weight only the measured input mass."
+  ],
+  "focused_pytest": {
+    "result": "480 passed",
+    "files": [
+      "tests/test_public_api_sdk.py",
+      "tests/test_report_exports_gateway.py",
+      "tests/test_report_exports_gateway_contract.py",
+      "tests/test_report_snapshot_export_migration_contract.py",
+      "tests/test_operator_console_report_exports.py",
+      "tests/test_gateway_operating_pilot_capacity_review_response.py",
+      "tests/test_gateway_operating_pilot_reads.py",
+      "tests/test_directus_permission_inventory.py",
+      "tests/test_prefect_scoped_location_fanout.py",
+      "tests/test_ecological_modeling.py",
+      "tests/test_ecological_modeling_v2.py",
+      "tests/test_gateway_solution_scale_gate_reviews.py",
+      "tests/test_operator_route_policy_inventory.py"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "git_diff_check": "passed",
+    "capability_matrix": "67 rows valid; 24 baseline-retained, 7 deployed, 36 prepared"
+  },
+  "migration_acceptance": {
+    "command": "python3 scripts/check-report-snapshot-export-disposable.py",
+    "result": "passed",
+    "migrations": [
+      "683_location_scoped_report_snapshot_exports.sql",
+      "684_report_snapshot_export_candidates.sql",
+      "685_report_snapshot_export_requester_isolation.sql"
+    ],
+    "database": "Disposable PostgreSQL 16 container with Docker networking disabled",
+    "migration_685_sha256": "bb03637818202b7230b6cd82ee28da2e948a05af56ec8d455b880c5520a1aac0",
+    "candidate_or_legacy_database_touched": false
+  },
+  "directus_permission_inventory": {
+    "result": "source inventory generated",
+    "evidence": "directus-permission-auditor-certificate-source.json",
+    "literal_permission_rows": 176,
+    "wildcard_field_rows": 122,
+    "explicit_field_rows": 54,
+    "effective_deployed_permissions_proven": false
+  }
+}

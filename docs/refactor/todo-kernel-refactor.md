@@ -963,7 +963,7 @@ that its full source-plan phase is complete.
   contract is reconciled.
   Sources: [runtime boundary](batches.md#c1-market-reference-catalog-acl--28-october-2026),
   [full native schema replay through 681](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
-  [ARM64 schema replay through 681](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json),
+  [ARM64 schema replay through 684](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json),
   [market-reference ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
   [quantity-unit ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
   [analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json),
@@ -1037,6 +1037,18 @@ that its full source-plan phase is complete.
   excludes undeclared service fields while preserving tenant authorization and
   cache headers; 13 focused route/OpenAPI tests pass
   ([evidence](builds/2026-10-28-recovery/ecocredit-batch-response-contract.json)).
+  The operating-pilot capacity review and solution scale-gate target routes
+  now validate exact migration-backed projections, request location and page
+  bounds, ordering, and domain invariants before returning. Report export
+  status, detail, and artifact reads are restricted to the original signed-in
+  requester even when another operator shares the location; source candidates
+  remain location-shared. Migrations 683–685 pass isolated PostgreSQL 16
+  replay and requester-isolation checks. Python SDK integer response fields
+  now accept finite integral JSON numbers and reject booleans/fractions, in
+  parity with JavaScript. The combined Gateway, SDK, export and related
+  regression selection passes 480 tests
+  ([batch evidence](builds/2026-10-29-recovery/kernel-next-contract-batch.json);
+  [migration evidence](builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json)).
   The public location IRI resolver now validates its exact JSON-LD document,
   canonical same-location predecessor version, and public-projection digest;
   OpenAPI advertises the `application/ld+json` schema and malformed documents
@@ -1168,7 +1180,16 @@ that its full source-plan phase is complete.
   28-collection adapter. `approval`, `workflow_history`, and file-like reads
   still rely on polymorphic source links without a verified tenant join. No
   further safe field mapping was found. Pinned-runtime permissions and
-  populated-row parity remain open. Sources:
+  populated-row parity remain open. The Auditor now has a read-only,
+  location-hook-scoped retirement-certificate projection with an explicit
+  allowlist; user-authored reason text, private rendered-content hash,
+  beneficiary fields, HTML and metadata are excluded. The permission seed
+  repairs any prior field selection to this allowlist. Source inventory now
+  records 176 permission declarations, including 54 explicit-field rows; it
+  does not prove effective deployed permissions
+  ([inventory](builds/2026-10-29-recovery/directus-permission-auditor-certificate-source.json);
+  [batch checks](builds/2026-10-29-recovery/kernel-next-contract-batch.json)).
+  Sources:
   [Directus parity](batches.md#L2117),
   [preflight](directus-polymorphic-lineage-preflight.md),
   [transport/Directus gates](batches.md#L3320).
@@ -1202,7 +1223,10 @@ that its full source-plan phase is complete.
   data; that description is corrected. The underlying legacy retraining path
   uses the shared database role and has no signed bounded task contract, so it
   remains unregistered pending an isolated design. No owner schedule was
-  inferred.
+  inferred. Location fan-out now rejects any required job inputs it cannot
+  supply before querying owner locations; sensor fan-out clearly fails until a
+  driver-instance mapping exists. Seven focused mocked checks pass without
+  database/provider access ([batch evidence](builds/2026-10-29-recovery/kernel-next-contract-batch.json)).
   Sources: [provider/job inventory](batches.md#L2288),
   [worker recovery](batches.md#L2358).
 - [ ] **C5 — Close source-verifiable analytics and reporting gaps.** Port
@@ -1234,7 +1258,11 @@ that its full source-plan phase is complete.
   explicit network/public projections, an explicit all-location operation, or
   stakeholder/global surfaces whose audience and scope cannot be safely
   changed without populated fixtures and owner review; no additional query
-  change was selected.
+  change was selected. Ecological residual averages now exclude rows without
+  measurements and weight only measured input mass in both report and analytics
+  adapters. The focused report/analytics suite passes 56 tests, including mixed
+  and all-unmeasured cases
+  ([batch evidence](builds/2026-10-29-recovery/kernel-next-contract-batch.json)).
   Sources:
   [report/query parity](batches.md#L2334),
   [consumer scope](batches.md#L3139).
@@ -1285,7 +1313,7 @@ that its full source-plan phase is complete.
   passes 26 tests ([evidence](builds/2026-10-28-recovery/arm64-resource-limit-nanocpu-preflight.json)).
   Sources: [Phase 8](implementation-plan-alignment.md#L28),
   [latest native full replay](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
-  [ARM64 full replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json),
+  [ARM64 full replay](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json),
   [core profile](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
   [multiarch profile gate](kernel-release-inputs.md),
   [migration 679 ARM64 ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),

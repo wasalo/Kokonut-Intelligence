@@ -63,6 +63,24 @@ def test_fanout_refuses_a_global_job_without_location_input_contract():
         run_job_for_kokonut_network_locations("dashboards")
 
 
+def test_fanout_rejects_additional_required_inputs_before_location_lookup():
+    with (
+        patch(
+            "services.core.jobs.kokonut_network_location_ids",
+            side_effect=AssertionError("unsupported fan-out must fail before inventory lookup"),
+        ) as location_ids,
+        patch(
+            "services.core.jobs.run_job",
+            side_effect=AssertionError("unsupported fan-out must not start jobs"),
+        ) as run_job,
+    ):
+        with pytest.raises(ValueError, match="driver_instance_id"):
+            run_job_for_kokonut_network_locations("sensors")
+
+    location_ids.assert_not_called()
+    run_job.assert_not_called()
+
+
 def test_weather_flow_without_argument_uses_owner_scoped_fanout():
     from services.flows.weather import weather_ingestion_flow
 

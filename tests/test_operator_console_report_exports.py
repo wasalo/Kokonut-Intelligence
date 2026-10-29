@@ -25,6 +25,7 @@ def test_export_panel_is_separate_and_marks_private_location_grants():
     assert "verified or published report snapshot" in panel.group()
     assert "separate location grants" in panel.group()
     assert "never published or shared" in panel.group()
+    assert "Your recent export requests" in panel.group()
     for action in ("read", "create", "download"):
         assert f'reportExportScopeLocations("{action}")' in source
         assert f"reportExport{action.title()}Locations = new Set" in source
@@ -89,6 +90,7 @@ def test_requests_poll_and_download_only_completed_private_artifacts():
     download = _function(source, "async function downloadReportExport(", "function renderIdentity(")
 
     assert 'cache: "no-store"' in requests
+    assert "Your private export requests are visible only to you" in requests
     assert "result.location_id !== locationId" in requests
     assert "isReportExportSummary(item, locationId)" in requests
     assert '"pending", "processing", "retryable"' in source

@@ -150,7 +150,14 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
     mutualism_count = sum(1 for i in interactions if i.get("interaction_type") == "mutualism")
     predation_count = sum(1 for i in interactions if i.get("interaction_type") == "predation")
     trophic_balance = mutualism_count / max(mutualism_count + predation_count, 1)
-    avg_residual = sum(s.get("residual_pct", 0) or 0 for s in soil_inputs) / max(len(soil_inputs), 1)
+    residual_values = [
+        float(row["residual_pct"])
+        for row in soil_inputs
+        if row.get("residual_pct") is not None
+    ]
+    avg_residual = (
+        sum(residual_values) / len(residual_values) if residual_values else None
+    )
     return {
         "report_type": "ecological_modeling",
         "location_id": location_id,
@@ -165,7 +172,7 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         "predation_count": predation_count,
         "trophic_balance_index": round(trophic_balance, 3),
         "soil_input_count": len(soil_inputs),
-        "avg_residual_pct": round(avg_residual, 2),
+        "avg_residual_pct": round(avg_residual, 2) if avg_residual is not None else None,
         "limitations": [
             "Ecological model outputs are simulation estimates, not guaranteed outcomes.",
             "Interaction strength values are observational estimates requiring ground-truth verification.",

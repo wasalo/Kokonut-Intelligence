@@ -127,7 +127,7 @@
             </table>
           </div>
           <button id="report-export-more" class="secondary" type="button" hidden>Load more eligible reports</button>
-          <h3>Recent export requests</h3>
+          <h3>Your recent export requests</h3>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Report snapshot</th><th>Status</th><th>Attempts</th><th>Updated</th><th></th></tr></thead>
@@ -4613,7 +4613,7 @@
           reportExportRequestsById = new Map(result.data.map((item) => [item.request_id, item]));
           renderReportExportRequests();
           renderReportExportCandidates();
-          if (!poll) reportExportStatus.textContent = "Private export requests are available only to operators with this location's read grant.";
+          if (!poll) reportExportStatus.textContent = "Your private export requests are visible only to you; eligible snapshots remain location-scoped.";
         } catch (error) {
           if (requestVersion === reportExportRequestVersion) {
             if (reportExportPollTimer !== null) window.clearTimeout(reportExportPollTimer);

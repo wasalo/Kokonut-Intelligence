@@ -85,6 +85,15 @@ def _is_finite_number(value: Any) -> bool:
         return False
 
 
+def _is_integer(value: Any) -> bool:
+    """Match JSON Schema integer semantics for decoded JSON numbers."""
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return True
+    return isinstance(value, float) and math.isfinite(value) and value.is_integer()
+
+
 def _is_public_crisp_assessment(value: Any, requested_location_id: str) -> bool:
     if not isinstance(value, dict) or set(value) != {
         "assessment_id",
@@ -140,11 +149,7 @@ def _is_public_crisp_assessment(value: Any, requested_location_id: str) -> bool:
         )
         and (
             maturity is None
-            or (
-                isinstance(maturity, int)
-                and not isinstance(maturity, bool)
-                and 0 <= maturity <= 6
-            )
+            or (_is_integer(maturity) and 0 <= maturity <= 6)
         )
         and (
             value["score_computed_at"] is None
@@ -170,8 +175,7 @@ def _is_public_metric_summary(value: Any, requested_location_id: str) -> bool:
         expected_location_id is None
         or _normalized_uuid(value["location_id"]) != expected_location_id
         or not isinstance(computed, list)
-        or isinstance(total_computed, bool)
-        or not isinstance(total_computed, int)
+        or not _is_integer(total_computed)
         or total_computed < 0
         or total_computed != len(computed)
     ):
@@ -205,7 +209,7 @@ def _is_public_metric_summary(value: Any, requested_location_id: str) -> bool:
 
 
 def _is_nonnegative_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+    return _is_integer(value) and value >= 0
 
 
 def _is_public_location_summary(value: Any, requested_location_id: str) -> bool:
@@ -363,11 +367,9 @@ def _is_driver_catalog_response(
     offset = value.get("offset")
     if (
         not isinstance(drivers, list)
-        or isinstance(limit, bool)
-        or not isinstance(limit, int)
+        or not _is_integer(limit)
         or not 1 <= limit <= 50
-        or isinstance(offset, bool)
-        or not isinstance(offset, int)
+        or not _is_integer(offset)
         or not 0 <= offset <= 5000
         or limit != expected_limit
         or offset != expected_offset

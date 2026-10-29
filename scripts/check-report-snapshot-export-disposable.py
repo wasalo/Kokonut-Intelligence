@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay migrations 683/684 and exercise scoped report exports on disposable PG 16."""
+"""Replay migrations 683-685 and exercise scoped report exports on disposable PG 16."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "schemas/postgres/683_location_scoped_report_snapshot_exports.sql"
 CANDIDATE_MIGRATION = ROOT / "schemas/postgres/684_report_snapshot_export_candidates.sql"
+REQUESTER_ISOLATION_MIGRATION = ROOT / "schemas/postgres/685_report_snapshot_export_requester_isolation.sql"
 DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json"
 
 ORG_A = "10000000-0000-0000-0000-000000000001"
@@ -153,7 +154,12 @@ SELECT '{OPERATOR_A}'::UUID, '{ORG_A}'::UUID, 'report_snapshot_export', action, 
   FROM unnest(ARRAY['create', 'read', 'download']) AS action
 UNION ALL
 SELECT '{OPERATOR_B}'::UUID, '{ORG_B}'::UUID, 'report_snapshot_export', action, '{LOCATION_B}'::UUID
+  FROM unnest(ARRAY['create', 'read', 'download']) AS action
+UNION ALL
+SELECT '{OPERATOR_B}'::UUID, '{ORG_B}'::UUID, 'report_snapshot_export', action, '{LOCATION_A}'::UUID
   FROM unnest(ARRAY['create', 'read', 'download']) AS action;
+INSERT INTO public.location_organization_share(location_id, organization_id)
+VALUES ('{LOCATION_A}', '{ORG_B}');
 INSERT INTO public.report_snapshot (
     id, report_name, report_type, location_id, period_start, period_end,
     report_data, snapshot_hash, status
@@ -281,6 +287,19 @@ BEGIN
         RAISE EXCEPTION 'cross-location export detail unexpectedly succeeded';
     EXCEPTION WHEN insufficient_privilege THEN NULL;
     END;
+    PERFORM kokonut_security.test_set_context('{ORG_B}', '{LOCATION_A}', '{OPERATOR_B}');
+    IF EXISTS (SELECT 1 FROM kokonut_security.list_report_snapshot_exports('{LOCATION_A}', 50)) THEN
+        RAISE EXCEPTION 'same-location operator saw another operator export status';
+    END IF;
+    IF EXISTS (SELECT 1 FROM kokonut_security.get_report_snapshot_export('{LOCATION_A}', request_id)) THEN
+        RAISE EXCEPTION 'same-location operator saw another operator export detail';
+    END IF;
+    SELECT count(*) INTO count_rows
+      FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 25, 0);
+    IF count_rows <> 2 THEN
+        RAISE EXCEPTION 'shared location read grant did not preserve candidate visibility';
+    END IF;
+    PERFORM kokonut_security.test_set_context('{ORG_A}', '{LOCATION_A}', '{OPERATOR_A}');
     IF EXISTS (SELECT 1 FROM kokonut_security.authorize_report_snapshot_export_download(
         '{LOCATION_A}', request_id
     )) THEN RAISE EXCEPTION 'pending export unexpectedly authorized download'; END IF;
@@ -389,6 +408,16 @@ BEGIN
        OR result.artifact_size <> 120 THEN
         RAISE EXCEPTION 'authorized completed artifact was not returned by opaque ID and digest';
     END IF;
+    PERFORM kokonut_security.test_set_context('{ORG_B}', '{LOCATION_A}', '{OPERATOR_B}');
+    IF EXISTS (SELECT 1 FROM kokonut_security.list_report_snapshot_exports('{LOCATION_A}', 50)) THEN
+        RAISE EXCEPTION 'same-location operator saw a completed export status';
+    END IF;
+    IF EXISTS (SELECT 1 FROM kokonut_security.get_report_snapshot_export('{LOCATION_A}', request_text::UUID)) THEN
+        RAISE EXCEPTION 'same-location operator saw completed export detail';
+    END IF;
+    IF EXISTS (SELECT 1 FROM kokonut_security.authorize_report_snapshot_export_download(
+        '{LOCATION_A}', request_text::UUID
+    )) THEN RAISE EXCEPTION 'same-location operator downloaded another operator artifact'; END IF;
     SELECT * INTO result FROM kokonut_security.request_report_snapshot_export(
         '{LOCATION_A}', '{SNAPSHOT_A}', '50000000-0000-0000-0000-000000000006'
     );
@@ -618,6 +647,7 @@ def main() -> int:
     output = args.output or DEFAULT_OUTPUT
     migration = MIGRATION.read_text(encoding="utf-8")
     candidate_migration = CANDIDATE_MIGRATION.read_text(encoding="utf-8")
+    requester_isolation_migration = REQUESTER_ISOLATION_MIGRATION.read_text(encoding="utf-8")
     created = False
     try:
         command = [docker, "run", "-d", "--rm", "--network", "none", "--name", container]
@@ -634,17 +664,22 @@ def main() -> int:
         docker_sql(docker, container, FIXTURE)
         docker_sql(docker, container, migration)
         docker_sql(docker, container, candidate_migration)
+        docker_sql(docker, container, requester_isolation_migration)
         docker_sql(docker, container, REPLAY_SETUP)
         docker_sql(docker, container, migration)
         docker_sql(docker, container, candidate_migration)
+        docker_sql(docker, container, requester_isolation_migration)
         docker_sql(docker, container, CANDIDATE_ACCEPTANCE)
         docker_sql(docker, container, ACCEPTANCE)
         evidence = {
             "date": "2026-10-29",
-            "migrations": [MIGRATION.name, CANDIDATE_MIGRATION.name],
+            "migrations": [MIGRATION.name, CANDIDATE_MIGRATION.name, REQUESTER_ISOLATION_MIGRATION.name],
             "migration_sha256": {
                 MIGRATION.name: hashlib.sha256(migration.encode()).hexdigest(),
                 CANDIDATE_MIGRATION.name: hashlib.sha256(candidate_migration.encode()).hexdigest(),
+                REQUESTER_ISOLATION_MIGRATION.name: hashlib.sha256(
+                    requester_isolation_migration.encode()
+                ).hexdigest(),
             },
             "database": "PostgreSQL 16 disposable container; Docker network disabled",
             "database_image": args.image,
@@ -661,6 +696,7 @@ def main() -> int:
                 "download authorization returns opaque artifact UUID, digest, and size only to the current location download grant",
                 "eligible snapshot listing returns only exact-location verified/published records with bounded JSON payloads and valid SHA-256 text",
                 "eligible snapshot listing enforces its own read grant, preserves bounded pagination, and exposes no report payload or storage path",
+                "same-location operators can list shared candidates but cannot see each other's request status/detail or download each other's artifacts",
                 "request state and append-only attempt receipts commit atomically",
                 "transient storage failure respects available_at and dead-letters at attempt eight; deterministic source change dead-letters immediately",
             ],

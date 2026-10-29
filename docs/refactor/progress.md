@@ -23686,3 +23686,35 @@ Gateway response contracts remain 109. Current checklist: 1,658 complete / 25
 open (1,683 total); TODO: 353 checked / 16 open. Evidence:
 [ARM64/QEMU replay](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json)
 and [farm-summary GeoJSON contract](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json).
+
+### Progress addendum — requester privacy and contract consistency — 29 October 2026
+
+Report-export request status, detail and artifact access now require the
+request's signed-in creator; eligible report snapshots remain shared within an
+authorized location. Migration 685 and migrations 683–684 pass network-disabled
+PostgreSQL 16 replay and same-location cross-operator checks. Migration 685 is
+not applied to the local candidate or legacy database.
+
+The operating-pilot capacity-review queue and solution scale-gate assessment
+targets now have strict response models that bind exact schema projections,
+domain constraints, request location and pagination. The capacity queue also
+checks returned row count against `total - offset`. Python REST SDK response
+integer fields now match JavaScript for integral JSON floats while rejecting
+booleans and fractional numbers. Directus Auditor certificate reads now have
+an explicit field allowlist; private beneficiary content, free-form reason,
+rendered certificate hash/HTML and arbitrary metadata are excluded, and replay
+repairs old field selections. Prefect location fan-out rejects unsupplied job
+inputs before database lookup, and ecological residual averages now omit
+unmeasured mass and readings.
+
+The combined focused Gateway, SDK, export, Directus inventory, Prefect, and
+ecological suite passes 480 tests. Ruff, Python compilation, capability-matrix
+validation and `git diff --check` pass. No candidate/legacy database or
+production/provider state was used. Evidence:
+[contract batch](builds/2026-10-29-recovery/kernel-next-contract-batch.json),
+[migration replay](builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json),
+[Directus inventory](builds/2026-10-29-recovery/directus-permission-auditor-certificate-source.json).
+
+Checklist: 1,665 complete / 25 open (1,690 total); TODO: 353 checked / 16
+open. Capability matrix remains 67 rows (24 baseline-retained, 7 deployed,
+36 prepared); strict private Gateway response contracts now total 111.

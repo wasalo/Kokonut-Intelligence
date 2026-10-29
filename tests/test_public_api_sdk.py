@@ -193,6 +193,10 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
         ),
         (
             LOCATION["id"],
+            {**METRIC_SUMMARY, "total_computed": 1.0},
+        ),
+        (
+            LOCATION["id"],
             {
                 **METRIC_SUMMARY,
                 "computed": [
@@ -219,6 +223,7 @@ def test_metric_sdk_accepts_exact_scoped_summaries(
 
     assert result.location_id == LOCATION["id"]
     assert result.total_computed == len(result.computed)
+    assert type(result.total_computed) is int
 
 
 @pytest.mark.parametrize(
@@ -328,6 +333,21 @@ def test_metric_sdk_rejects_malformed_or_wrong_scope_summaries(
                 },
             },
         ),
+        (
+            LOCATION["id"],
+            {
+                **LOCATION_SUMMARY,
+                "metrics": {
+                    "metric_count": 1.0,
+                    "latest_computed_at": "2026-10-14T12:30:00Z",
+                },
+                "attestations": {
+                    "total_attestations": 2.0,
+                    "published_count": 2.0,
+                    "latest_attestation": "2026-10-14T12:35:00+00:00",
+                },
+            },
+        ),
     ],
 )
 def test_location_summary_sdk_accepts_exact_scoped_payloads_with_consistent_counts(
@@ -343,6 +363,9 @@ def test_location_summary_sdk_accepts_exact_scoped_payloads_with_consistent_coun
     assert result.location_id == LOCATION["id"]
     assert result.location.id == LOCATION["id"]
     assert result.metrics.metric_count >= 0
+    assert type(result.metrics.metric_count) is int
+    assert type(result.attestations.total_attestations) is int
+    assert type(result.attestations.published_count) is int
     assert result.attestations.published_count == summary["attestations"]["published_count"]
 
 
@@ -430,6 +453,27 @@ def test_location_summary_sdk_accepts_exact_scoped_payloads_with_consistent_coun
             **LOCATION_SUMMARY,
             "attestations": {
                 **LOCATION_SUMMARY["attestations"],
+                "total_attestations": True,
+            },
+        },
+        {
+            **LOCATION_SUMMARY,
+            "attestations": {
+                **LOCATION_SUMMARY["attestations"],
+                "total_attestations": 2.5,
+            },
+        },
+        {
+            **LOCATION_SUMMARY,
+            "attestations": {
+                **LOCATION_SUMMARY["attestations"],
+                "published_count": 1.5,
+            },
+        },
+        {
+            **LOCATION_SUMMARY,
+            "attestations": {
+                **LOCATION_SUMMARY["attestations"],
                 "total_attestations": 1,
                 "published_count": 2,
             },
@@ -480,6 +524,7 @@ def test_location_summary_sdk_rejects_malformed_or_wrong_scope_payloads(
         (LOCATION["id"], {**CRISP_ASSESSMENT, "composite_score": 0}),
         (LOCATION["id"], {**CRISP_ASSESSMENT, "composite_score": 100}),
         (LOCATION["id"], {**CRISP_ASSESSMENT, "evidence_maturity_level": 0}),
+        (LOCATION["id"], {**CRISP_ASSESSMENT, "evidence_maturity_level": 3.0}),
         (LOCATION["id"], {**CRISP_ASSESSMENT, "evidence_maturity_level": 6}),
     ],
 )
@@ -495,6 +540,7 @@ def test_crisp_sdk_accepts_valid_scoped_assessments(
 
     assert result.location_id == LOCATION["id"]
     assert result.status == "published"
+    assert result.evidence_maturity_level is None or type(result.evidence_maturity_level) is int
 
 
 @pytest.mark.parametrize(
@@ -569,8 +615,8 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
                                 "driver_type": "weather",
                             }
                         ],
-                        "limit": 1,
-                        "offset": 12,
+                        "limit": 1.0,
+                        "offset": 12.0,
                         "has_more": True,
                     }
                 },
@@ -594,6 +640,8 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
         offset=12,
         has_more=True,
     )
+    assert type(page.limit) is int
+    assert type(page.offset) is int
     assert session.calls == [
         (
             "https://gateway.example/api/v1/drivers?limit=1&offset=12",
@@ -615,6 +663,9 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
             "has_more": True,
         },
         {"drivers": [], "limit": True, "offset": 12, "has_more": False},
+        {"drivers": [], "limit": 7.5, "offset": 12, "has_more": False},
+        {"drivers": [], "limit": 7, "offset": True, "has_more": False},
+        {"drivers": [], "limit": 7, "offset": 12.5, "has_more": False},
         {"drivers": [], "limit": 7, "offset": 5001, "has_more": False},
         {"drivers": [], "limit": 7, "offset": 13, "has_more": False},
         {"drivers": [], "limit": 7, "offset": 12, "has_more": False, "debug": "extra"},

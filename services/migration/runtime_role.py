@@ -110,6 +110,20 @@ _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS = (
     "kokonut_security.get_report_snapshot_export(uuid,uuid)",
     "kokonut_security.authorize_report_snapshot_export_download(uuid,uuid)",
 )
+_REPORT_SNAPSHOT_EXPORT_REQUESTER_ISOLATION_GUARDS = (
+    (
+        "kokonut_security.list_report_snapshot_exports(uuid,integer)",
+        "request.requested_by = context_record.actor_id",
+    ),
+    (
+        "kokonut_security.get_report_snapshot_export(uuid,uuid)",
+        "request.requested_by = context_record.actor_id",
+    ),
+    (
+        "kokonut_security.authorize_report_snapshot_export_download(uuid,uuid)",
+        "request.requested_by = context_record.actor_id",
+    ),
+)
 _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS = (
     "kokonut_security.claim_report_snapshot_export_batch(text,integer,integer)",
     "kokonut_security.read_report_snapshot_export_source(uuid,text,uuid)",
@@ -1856,8 +1870,24 @@ def provision_runtime_role(
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migrations 683 and 684 report snapshot export functions must be applied before "
+                    "migrations 683 through 685 report snapshot export functions must be applied before "
                     "provisioning its dedicated login"
+                )
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "pg_catalog.strpos(pg_catalog.pg_get_functiondef(%s::regprocedure), %s) > 0"
+                    for _ in _REPORT_SNAPSHOT_EXPORT_REQUESTER_ISOLATION_GUARDS
+                ),
+                tuple(
+                    value
+                    for signature, guard in _REPORT_SNAPSHOT_EXPORT_REQUESTER_ISOLATION_GUARDS
+                    for value in (signature, guard)
+                ),
+            )
+            if cur.fetchone() != (True,) * len(_REPORT_SNAPSHOT_EXPORT_REQUESTER_ISOLATION_GUARDS):
+                raise RuntimeError(
+                    "migration 685 report snapshot export requester-isolation functions must be "
+                    "applied before provisioning its dedicated login"
                 )
         if notification_delivery_user is not None:
             cur.execute(

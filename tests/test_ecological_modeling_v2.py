@@ -166,13 +166,33 @@ class _MockConn:
 
 def test_soil_input_retention_analytics() -> None:
     rows = [
-        ("biochar", "Coconut shell biochar", 120.0, 72.0, 1, "2025-10-05", "2026-03-10"),
-        ("leaf_litter", "Inga edulis leaf litter", 250.0, 45.0, 1, "2025-10-05", "2026-03-10"),
+        ("biochar", "Coconut shell biochar", 100.0, 60.0, 2, "2025-10-05", "2026-03-10", 40.0, 2400.0),
+        ("leaf_litter", "Inga edulis leaf litter", 250.0, 45.0, 1, "2025-10-05", "2026-03-10", 250.0, 11250.0),
     ]
     result = compute_soil_input_retention(_MockConn(rows), "test-location")
     assert result["input_types_count"] == 2
-    assert result["total_input_kg"] == 370.0
-    assert 0 <= result["weighted_avg_residual_pct"] <= 100
+    assert result["total_input_kg"] == 350.0
+    assert result["inputs"][0]["avg_residual_pct"] == 60.0
+    assert result["weighted_avg_residual_pct"] == 47.07
+
+
+def test_soil_input_retention_excludes_unmeasured_mass_from_residual_average() -> None:
+    rows = [
+        ("compost", "Measured compost", 100.0, 50.0, 2, "2025-10-05", "2026-03-10", 40.0, 2000.0),
+        ("compost", "Unmeasured compost", 900.0, None, 3, "2025-10-05", None, None, None),
+    ]
+    result = compute_soil_input_retention(_MockConn(rows), "test-location")
+    assert result["total_input_kg"] == 1000.0
+    assert result["weighted_avg_residual_pct"] == 50.0
+
+
+def test_soil_input_retention_returns_null_when_no_residual_is_measured() -> None:
+    rows = [
+        ("compost", "Unmeasured compost", 900.0, None, 3, "2025-10-05", None, None, None),
+    ]
+    result = compute_soil_input_retention(_MockConn(rows), "test-location")
+    assert result["inputs"][0]["avg_residual_pct"] is None
+    assert result["weighted_avg_residual_pct"] is None
 
 
 def test_pest_trends_analytics() -> None:
@@ -207,7 +227,6 @@ def test_resource_efficiency_analytics() -> None:
     class _Conn:
         def cursor(self, cursor_factory=None):
             c = _MockCursor(rows)
-            original_fetchone = c.fetchone
             c.fetchone = lambda: harvest_row[0]
             return c
 
@@ -429,12 +448,6 @@ def test_regression_metrics() -> None:
 
 
 def test_geographic_cross_validation() -> None:
-    data = [
-        {"plot_id": "A", "value": 1.0},
-        {"plot_id": "A", "value": 2.0},
-        {"plot_id": "B", "value": 3.0},
-        {"plot_id": "B", "value": 4.0},
-    ]
     result = compute_regression_metrics([1.0, 2.0, 3.0, 4.0], [1.1, 1.9, 3.1, 3.9])
     assert result["n"] == 4
 

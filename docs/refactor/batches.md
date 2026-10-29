@@ -7132,6 +7132,43 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 109. MAN-CAP acceptance is unchanged.
 
+### Latest local continuation — requester privacy and contract consistency — 29 October 2026
+
+- [x] Restrict report-export status, detail and artifact authorization to the
+  request's signed-in creator while preserving shared exact-location snapshot
+  candidates.
+- [x] Validate strict capacity-review queue projections, item constraints,
+  ordering, location binding and exact page length against total and offset.
+- [x] Validate the strict solution scale-gate assessment-target projection,
+  enums, numeric/date shapes, ordering, request binding and continuation.
+- [x] Align Python SDK integer response validation with JSON Schema and
+  JavaScript semantics for finite integral JSON numbers.
+- [x] Give the Directus Auditor an exact read-only certificate field allowlist,
+  repair prior selections on replay, and exclude beneficiary data, free-form
+  reason text, certificate-content hash, HTML and arbitrary metadata.
+- [x] Reject Prefect location fan-out before location lookup when required job
+  inputs cannot be supplied; sensor fan-out waits for an explicit driver map.
+- [x] Exclude unmeasured soil-input applications from residual averages and
+  weight measured observations only in both report and analytics adapters.
+
+The focused combined Gateway, SDK, report-export, Directus inventory, Prefect,
+and ecological selection passes 480 tests. Ruff, Python compilation,
+`git diff --check`, and capability-matrix validation pass. PostgreSQL 16
+disposable replay and authorization checks pass for migrations 683–685 with
+network disabled. Migration 685 is added to the ordered source but has not been
+applied to the candidate or legacy database. The source-only Directus inventory
+now records 176 rules (122 wildcard-field, 54 explicit-field); effective
+deployed Directus permissions remain unverified. Candidate/legacy data,
+production identity and providers were not used. Evidence:
+[combined contract batch](builds/2026-10-29-recovery/kernel-next-contract-batch.json),
+[export migration replay](builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json),
+[Directus source inventory](builds/2026-10-29-recovery/directus-permission-auditor-certificate-source.json).
+
+Checklist: 1,665 complete / 25 open (1,690 total); TODO: 353 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+increase to 111. MAN-CAP acceptance is unchanged.
+
 ### Latest local continuation — full ARM64/QEMU schema replay — 29 October 2026
 
 A fresh, network-disabled ARM64 PostgreSQL 16/PostGIS replay applied all 675

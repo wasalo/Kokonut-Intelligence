@@ -25,7 +25,9 @@ The operator console preserves this split. A read grant lists eligible
 snapshots and request status. Create controls appear only when the same
 location has a create grant; download controls appear only for completed
 requests when the location has a download grant. One action does not imply
-another through the UI or Gateway.
+another through the UI or Gateway. Eligible source snapshots are shared among
+operators with the location read grant, while request status, detail, and
+artifact access are restricted to the operator who created each request.
 
 Gateway handlers establish `set_operator_tenant_context()` on the same database
 connection and transaction as the bounded database function. Legacy
@@ -57,9 +59,9 @@ return `Cache-Control: no-store` and `Vary: Cookie` where applicable.
 | --- | --- | --- |
 | `GET /operator/api/report-export-snapshots?location_id=UUID&limit=N&offset=N` | `read` | Bounded page of exact-location verified/published snapshots with a valid SHA-256 digest and export-size-compatible JSON object; omits report payload and storage metadata |
 | `POST /operator/api/report-exports?location_id=UUID` | `create` | Strict body `{report_snapshot_id, idempotency_key}`; returns opaque request ID and state |
-| `GET /operator/api/report-exports?location_id=UUID&limit=N` | `read` | Bounded newest-first status list; never includes report payload |
-| `GET /operator/api/report-exports/{request_id}?location_id=UUID` | `read` | One request's status and safe error class |
-| `GET /operator/api/report-exports/{request_id}/artifact?location_id=UUID` | `download` | Completed JSON bytes only; rechecks grant and source lifecycle before storage read |
+| `GET /operator/api/report-exports?location_id=UUID&limit=N` | `read` | Bounded newest-first status list for the signed-in requester; never includes report payload |
+| `GET /operator/api/report-exports/{request_id}?location_id=UUID` | `read` | The requester's status and safe error class only |
+| `GET /operator/api/report-exports/{request_id}/artifact?location_id=UUID` | `download` | Completed JSON bytes only; requires the original requester and rechecks grants and source lifecycle before storage read |
 
 The idempotency key is scoped to the operator. Repeating the same key with the
 same location and snapshot returns the existing request. Reusing it for a

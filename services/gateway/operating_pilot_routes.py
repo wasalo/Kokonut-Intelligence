@@ -182,6 +182,78 @@ class OperatingPilotCapacityPeriodsPage(BaseModel):
         return self
 
 
+class OperatingPilotCapacityReviewItem(BaseModel):
+    """Exact submitted-capacity projection exposed to independent reviewers."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    profile_id: _ResponseUUID
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    available_hours: _ResponseDecimal = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    committed_hours: _ResponseDecimal = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    protected_hours: _ResponseDecimal = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    status: Literal["submitted"]
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_submitted_capacity(self):
+        if self.period_end < self.period_start:
+            raise ValueError("capacity review period is reversed")
+        if self.committed_hours + self.protected_hours > self.available_hours:
+            raise ValueError("capacity commitments exceed available hours")
+        return self
+
+
+class OperatingPilotCapacityReviewPage(BaseModel):
+    """Strict response contract for the bounded independent-review queue."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotCapacityReviewItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+    total: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("capacity review page exceeds its limit")
+        expected_items = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_items:
+            raise ValueError("capacity review page length does not match its total and offset")
+        if self.has_more != (self.total > self.offset + self.limit):
+            raise ValueError("capacity review continuation does not match its total")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("capacity review continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal capacity review page cannot continue")
+
+        profile_ids = [item.profile_id for item in self.items]
+        if len(profile_ids) != len(set(profile_ids)):
+            raise ValueError("capacity review page contains duplicate profile IDs")
+        if any(
+            previous.updated_at < current.updated_at
+            or (
+                previous.updated_at == current.updated_at
+                and previous.profile_id.int < current.profile_id.int
+            )
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("capacity review page is not in descending SQL order")
+        return self
+
+
 class OperatingPilotResourceCategoryItem(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -2932,7 +3004,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/capacity-review-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/capacity-review-queue",
+        response_model=OperatingPilotCapacityReviewPage,
+    )
     async def location_operating_pilot_capacity_review_queue(
         request: Request,
         location_id: str,
@@ -2991,7 +3066,28 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating capacity review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = OperatingPilotCapacityReviewPage.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Capacity review page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Capacity review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating capacity review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get("/operator/api/operating-pilot/{location_id}/competency-review-queue")
     async def location_operating_pilot_competency_review_queue(

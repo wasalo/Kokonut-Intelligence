@@ -1,5 +1,6 @@
 """OIDC routes for location-scoped solution lifecycle reads."""
 
+from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -26,6 +27,21 @@ def _solution_response_uuid(value):
 
 
 _SolutionResponseUUID = Annotated[UUID, BeforeValidator(_solution_response_uuid)]
+
+
+def _solution_response_decimal(value):
+    if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
+        raise ValueError("numeric value is invalid")
+    try:
+        result = Decimal(str(value))
+    except (ValueError, TypeError) as exc:
+        raise ValueError("numeric value is invalid") from exc
+    if not result.is_finite():
+        raise ValueError("numeric value is invalid")
+    return result
+
+
+_SolutionResponseDecimal = Annotated[Decimal, BeforeValidator(_solution_response_decimal)]
 
 
 class SolutionRetirementCandidateItemResponse(BaseModel):
@@ -421,6 +437,58 @@ class SolutionLifecycleGatePageResponse(BaseModel):
             ):
                 raise ValueError("Solution gate page order is inconsistent")
             previous = gate
+        return self
+
+
+class SolutionScaleGateAssessmentTargetResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    scale_gate_id: _SolutionResponseUUID
+    gate_type: Literal[
+        "impact",
+        "safety",
+        "financial_sustainability",
+        "operational_capacity",
+        "supply_chain",
+        "regulatory",
+        "community_acceptance",
+        "equity",
+        "data_quality",
+        "maintainability",
+        "replicability",
+    ]
+    requirement: str = Field(max_length=2000)
+    threshold: str | None = Field(max_length=1000)
+    metric_key: str | None = Field(max_length=120)
+    comparison_operator: Literal["lt", "lte", "eq", "gte", "gt"] | None
+    threshold_numeric: _SolutionResponseDecimal | None
+    unit: str | None = Field(max_length=50)
+    minimum_sample: int | None = Field(gt=0, le=2_147_483_647, strict=True)
+    gate_status: Literal["pending", "failed"]
+
+
+class SolutionScaleGateAssessmentTargetsPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    targets: list[SolutionScaleGateAssessmentTargetResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation_and_order(self):
+        if self.has_more:
+            if not self.targets or self.next_offset is None:
+                raise ValueError("Scale-gate target continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal scale-gate target page cannot continue")
+
+        gate_ids = [target.scale_gate_id for target in self.targets]
+        if gate_ids != sorted(set(gate_ids), key=lambda gate_id: gate_id.int):
+            raise ValueError("Scale-gate target page order is inconsistent")
         return self
 
 
@@ -2891,7 +2959,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/scale-gates/assessment-targets"
+        "/operator/api/solution-lifecycle/{location_id}/scale-gates/assessment-targets",
+        response_model=SolutionScaleGateAssessmentTargetsPageResponse,
     )
     async def location_solution_scale_gate_assessment_targets(
         request: Request,
@@ -2924,7 +2993,37 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Scale-gate assessment targets unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Scale-gate assessment targets unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionScaleGateAssessmentTargetsPageResponse.model_validate(
+                result
+            )
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.offset != offset
+                or len(validated.targets) > limit
+                or (
+                    validated.has_more
+                    and (
+                        len(validated.targets) != limit
+                        or validated.next_offset != offset + limit
+                    )
+                )
+            ):
+                raise ValueError("Scale-gate targets do not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Scale-gate target response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Scale-gate assessment targets unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/scale-gates/{gate_id}/evaluations"

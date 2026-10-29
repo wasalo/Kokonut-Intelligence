@@ -256,7 +256,11 @@ def test_ecological_modeling_explicit_public_view_projections_preserve_payload()
         make_row(energy_columns, biomass_transferred_kg=25.0, conversion_efficiency_pct=1.67)
     ]
     soil_columns = expected_columns["v_public_soil_input_retention"]
-    soil_inputs = [make_row(soil_columns, residual_pct=62.75)]
+    soil_inputs = [
+        make_row(soil_columns, residual_pct=62.75),
+        make_row(soil_columns, residual_pct=None),
+        make_row(soil_columns, residual_pct=20.0),
+    ]
     rows_by_view = {
         "v_public_ecological_interaction_summary": interactions,
         "v_public_ecological_model_summary": models,
@@ -339,8 +343,43 @@ def test_ecological_modeling_explicit_public_view_projections_preserve_payload()
     assert report["mutualism_count"] == 1
     assert report["predation_count"] == 1
     assert report["trophic_balance_index"] == 0.5
-    assert report["soil_input_count"] == 1
-    assert report["avg_residual_pct"] == 62.75
+    assert report["soil_input_count"] == 3
+    assert report["avg_residual_pct"] == 41.38
+
+
+def test_ecological_modeling_report_ignores_unmeasured_soil_residuals() -> None:
+    from services.export.reports.commons.ecological import generate_ecological_modeling as generate
+
+    class Cursor:
+        calls = 0
+
+        def execute(self, _query, _params=None):
+            self.calls += 1
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            if self.calls == 6:
+                return [
+                    {"residual_pct": None},
+                    {"residual_pct": None},
+                ]
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    report = generate(Conn(), "a0000000-0000-0000-0000-000000000001")
+    assert report["soil_input_count"] == 2
+    assert report["avg_residual_pct"] is None
 
 
 def test_trophic_pyramid_report_public_safe() -> None:

@@ -456,7 +456,7 @@ def test_capacity_review_queue_uses_review_context_and_read_only_bounded_page():
         }],
         "has_more": False,
         "next_offset": None,
-        "total": 1,
+        "total": 5,
     }
     connection = _Connection(page)
     contexts = []
@@ -1506,7 +1506,15 @@ def test_http_capacity_review_queue_is_no_store_and_exactly_scoped(monkeypatch):
     from services.gateway.operating_pilot_routes import register_operating_pilot_routes
 
     calls = []
-    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    page = {
+        "location_id": LOCATION_ID,
+        "items": [],
+        "limit": 7,
+        "offset": 14,
+        "has_more": False,
+        "next_offset": None,
+        "total": 0,
+    }
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_capacity_review_queue",
         lambda *args, **kwargs: calls.append((args, kwargs)) or page,
