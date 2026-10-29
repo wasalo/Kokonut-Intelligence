@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-29",
+  "base_head": "410c4067",
+  "scope": "Governance-domain JSON preflight, annual climate-credit source projection, and migration-517 configuration review queue contract",
+  "files": [
+    "services/analytics/cli_governance_roles.py",
+    "tests/test_cli_governance_roles_constraints.py",
+    "services/analytics/carbon_credits.py",
+    "tests/test_carbon_credit_climate_impact_projection.py",
+    "services/gateway/solution_lifecycle_routes.py",
+    "apps/operator-console/index.html",
+    "tests/test_gateway_solution_lifecycle_configuration.py",
+    "tests/test_operator_console_solution_lifecycle.py",
+    "docs/refactor/runtime-sql-inventory.json"
+  ],
+  "source_migrations": [
+    "schemas/postgres/028_carbon_framework.sql",
+    "schemas/postgres/517_location_solution_configuration_draft_review.sql"
+  ],
+  "governance_cli": {
+    "argument": "domain-add --constraints",
+    "invariants": [
+      "malformed JSON and JSON arrays/scalars fail during argparse before _connection()",
+      "valid JSON objects are passed to add_domain as decoded dictionaries",
+      "the default remains an empty object"
+    ]
+  },
+  "carbon_credit_climate_source": {
+    "projection": [
+      "id",
+      "location_id",
+      "reporting_year",
+      "total_sequestration_tonnes_co2e",
+      "status"
+    ],
+    "filters": [
+      "exact location_id",
+      "reporting_year equals the requested vintage_year",
+      "status is verified or published"
+    ],
+    "reason": "Migration 028 defines climate_impact_summary as annual, unique by location_id/reporting_year, with no period_start or period_end columns."
+  },
+  "configuration_review_queue": {
+    "item_fields": [
+      "configuration_id", "solution_id", "version", "invariant_components",
+      "configurable_components", "prohibited_components", "local_assumptions",
+      "comparability_class", "evidence_impact", "submitted_at"
+    ],
+    "page_fields": [
+      "location_id", "limit", "offset", "configurations", "has_more",
+      "next_offset", "offset_limited"
+    ],
+    "invariants": [
+      "strict OpenAPI/runtime response projection and exact-location/page binding",
+      "four component JSONB values must be objects and preserve arbitrary nested source-defined content",
+      "combined component payload remains within migration 517's 65,536-byte bound",
+      "evidence impact, comparability class, integer version, and aware timestamp match source bounds",
+      "unique IDs and submitted_at DESC, configuration_id DESC order, including PostgreSQL microsecond precision",
+      "continuation becomes terminal at offset 10000 with explicit offset_limited marker",
+      "malformed output returns sanitized no-store failure; console validates page before rendering"
+    ]
+  },
+  "verification": {
+    "focused_tests_command": "python3 -m pytest tests/test_cli_governance_roles_constraints.py tests/test_carbon_credit_climate_impact_projection.py tests/test_gateway_solution_lifecycle_configuration.py tests/test_operator_console_solution_lifecycle.py -q",
+    "focused_tests_passed": 110,
+    "focused_tests_skipped": 0,
+    "ruff": "passed for all changed Python source and test files",
+    "python_compileall": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "refreshed and current; unresolved-write review ledger current with 42 tracked candidates",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "migration_applied": false,
+    "errors": 0
+  },
+  "rollback": "Revert the governance CLI and carbon-credit source fixes, Gateway/console contract, focused tests, evidence/progress entries, and refreshed SQL inventory. Migration 517 was not applied; no schema or data rollback is needed."
+}

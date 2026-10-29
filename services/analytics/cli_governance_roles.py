@@ -27,6 +27,17 @@ def _out(value):
     print_json(value)
 
 
+def _parse_json_object(value: str) -> dict:
+    """Parse a JSON object before the command opens PostgreSQL."""
+    try:
+        parsed = json.loads(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("--constraints must be a valid JSON object") from exc
+    if not isinstance(parsed, dict):
+        raise argparse.ArgumentTypeError("--constraints must be a valid JSON object")
+    return parsed
+
+
 def _run_with_connection(operation) -> None:
     """Own and close the database connection for one CLI read command."""
     conn = _connection()
@@ -103,12 +114,14 @@ def main() -> None:
     domain.add_argument("--scope-type", default="network")
     domain.add_argument("--scope-id")
     domain.add_argument("--authority-level", default="recommend", choices=["observe", "recommend", "decide", "execute"])
-    domain.add_argument("--constraints", default="{}")
+    domain.add_argument(
+        "--constraints", type=_parse_json_object, default=_parse_json_object("{}")
+    )
     domain.add_argument("--no-human-approval", action="store_true")
     domain.set_defaults(func=lambda a: _out(add_domain(
         _connection(), a.role_id, a.domain_type, a.domain_key,
         scope_type=a.scope_type, scope_id=a.scope_id,
-        authority_level=a.authority_level, constraints=json.loads(a.constraints),
+        authority_level=a.authority_level, constraints=a.constraints,
         requires_human_approval=not a.no_human_approval,
     )))
 

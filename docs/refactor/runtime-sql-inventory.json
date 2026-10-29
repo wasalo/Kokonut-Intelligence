@@ -35,7 +35,7 @@
       "fstring": 308,
       "literal": 4282
     },
-    "relation_candidates": 1254,
+    "relation_candidates": 1253,
     "write_target_relations": 587,
     "sites_without_relation_candidates": 1239,
     "service_packages": 68
@@ -87,7 +87,7 @@
         "with_requires_manual_review": 7,
         "write_candidate": 455
       },
-      "candidate_relation_names": 541,
+      "candidate_relation_names": 539,
       "sites_without_relation_candidates": 58,
       "non_literal_sites": 199,
       "sites_with_worker_operation_refs": 61
@@ -1585,8 +1585,7 @@
     "peer_network": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/extension.py","services/gateway/extension_learning_reads.py"]},
     "peer_network_member": {"execution_site_count": 6,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/extension.py","services/gateway/extension_learning_reads.py"]},
     "pending_gateway_audit": {"execution_site_count": 12,"statement_kinds": ["DELETE","INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/gateway/audit_spool.py","services/gateway/audit_spool_cli.py"]},
-    "period_end": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/carbon_credits.py"]},
-    "period_start": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/carbon_credits.py","services/export/kokonut_graphs.py"]},
+    "period_start": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/export/kokonut_graphs.py"]},
     "periodic_validation": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/abundance/economics.py","services/abundance/periodic.py"]},
     "periods": {"execution_site_count": 3,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/systems/velocity_tracker.py"]},
     "pest_action_threshold": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/pest_management.py"]},
@@ -2386,7 +2385,7 @@
     {"id": "services/analytics/carbon_credit_adjustment_worker.py:32:12","source": "services/analytics/carbon_credit_adjustment_worker.py","line": 32,"column": 12,"scope": "check","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.credit_adjustment_snapshot_for_location"],"static_sql_sha256": "fc04cddb58fb8e323311a5f438e47eebd62121cc54f72fbfd6c611b503d7e26e","operation_refs": ["scheduled_module:services.analytics.carbon_credit_adjustment_worker"],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/carbon_credits.py:35:4","source": "services/analytics/carbon_credits.py","line": 35,"column": 4,"scope": "_generate_credit_code","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["carbon_credit"],"static_sql_sha256": "1efb8ebc37d2c94f59c0799a16f97afc18f88a82f42452fcab8224be573b2f2f","operation_refs": ["scheduled_module:services.analytics.carbon_credit_adjustment_check"],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/carbon_credits.py:44:4","source": "services/analytics/carbon_credits.py","line": 44,"column": 4,"scope": "_generate_credit_code","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["location"],"static_sql_sha256": "4cee3d58bb03486cdfce593435e79c13dc952d5e74054949b7f4d7b55a4b1972","operation_refs": ["scheduled_module:services.analytics.carbon_credit_adjustment_check"],"write_target_relations": [],"statement_group": "read_candidate"},
-    {"id": "services/analytics/carbon_credits.py:55:4","source": "services/analytics/carbon_credits.py","line": 55,"column": 4,"scope": "_query_climate_impact","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["climate_impact_summary","period_end","period_start"],"static_sql_sha256": "aacad1cbf410263b30e4db1b2ef85dbec133d7d0fc24b5bc25e35f18d776cd62","operation_refs": ["scheduled_module:services.analytics.carbon_credit_adjustment_check"],"write_target_relations": [],"statement_group": "read_candidate"},
+    {"id": "services/analytics/carbon_credits.py:55:4","source": "services/analytics/carbon_credits.py","line": 55,"column": 4,"scope": "_query_climate_impact","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["climate_impact_summary"],"static_sql_sha256": "f006c7a5cdf581cc5abbb3d92704d00058a94fa51709f4ccfd1d4cd02924a3a7","operation_refs": ["scheduled_module:services.analytics.carbon_credit_adjustment_check"],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/carbon_credits.py:72:4","source": "services/analytics/carbon_credits.py","line": 72,"column": 4,"scope": "_get_latest_price","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["price_observation"],"static_sql_sha256": "ae3ffe8ca83dde25f1c50ae92f1fd1af323aec8818ddedcc299ee85437fada68","operation_refs": ["scheduled_module:services.analytics.carbon_credit_adjustment_check"],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/carbon_credits.py:129:4","source": "services/analytics/carbon_credits.py","line": 129,"column": 4,"scope": "issue_credit","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["carbon_credit"],"static_sql_sha256": "ce428cbea8f3c68441e08a1f2e05bbca1f658749e97812666f7e2fd60c9d0247","operation_refs": ["scheduled_module:services.analytics.carbon_credit_adjustment_check"],"write_target_relations": ["carbon_credit"],"statement_group": "write_candidate"},
     {"id": "services/analytics/carbon_credits.py:182:4","source": "services/analytics/carbon_credits.py","line": 182,"column": 4,"scope": "adjust_credit","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["carbon_credit"],"static_sql_sha256": "720938c2a85233b85bae21d5a0c189e37bc8eb8ebe81969aa020a723ba511e3c","operation_refs": ["scheduled_module:services.analytics.carbon_credit_adjustment_check"],"write_target_relations": [],"statement_group": "read_candidate"},

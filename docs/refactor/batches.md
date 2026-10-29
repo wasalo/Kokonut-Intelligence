@@ -8358,3 +8358,31 @@ Checklist: 1,867 complete / 25 open (1,892 total); TODO: 507 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 179. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
+
+### Source continuation — governance CLI, carbon-credit climate lookup, and configuration review — 29 October 2026
+
+- [x] Validate `domain-add --constraints` as a JSON object in the CLI parser,
+  before database acquisition; pass valid constraints as a decoded object.
+- [x] Align the carbon-credit climate summary lookup with migration 028's
+  annual `reporting_year` contract and exact location/year/status scope.
+- [x] Publish strict request-bound OpenAPI/runtime response contracts for the
+  migration-517 independent configuration review queue, including source
+  bounds, combined JSONB size, deterministic ordering, unique IDs, and capped
+  continuation.
+- [x] Validate the review page in the operator console before rendering,
+  including its migration-defined order and microsecond-accurate timestamps.
+- [x] Run the approved focused selection and record source, inventory, and
+  regression evidence.
+
+The combined mock-only selection passes 110 tests. Ruff, Python compilation,
+capability-matrix validation, refreshed runtime SQL inventory,
+provider-boundary and dependency-group checks, and `git diff --check` pass.
+No database/provider, candidate, or legacy state was used; migration 517 was
+not applied. Rollback reverts the source, tests, evidence/progress, and SQL
+inventory snapshot; no data rollback is needed. Evidence:
+[governance CLI, carbon-credit lookup, and configuration review queue](builds/2026-10-29-recovery/governance-cli-carbon-lookup-configuration-review-queue.json).
+
+Checklist: 1,872 complete / 25 open (1,897 total); TODO: 511 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 180. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.

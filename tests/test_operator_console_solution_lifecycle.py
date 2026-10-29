@@ -1729,10 +1729,25 @@ def test_configuration_draft_submission_and_independent_review_console_contract(
     assert "result.offset === offset" in drafts_load
     assert '"evidence_impact", "proposed_at"' in drafts_load
     assert "result.offset_limited" in drafts_load
-    assert "solutionLifecycleConfigurationDraftsInSqlOrder(drafts)" in drafts_load
+    assert 'solutionLifecycleConfigurationRowsInSqlOrder(drafts, "proposed_at")' in drafts_load
     assert "BigInt(wholeSecondMilliseconds) * 1000n + microseconds" in source
     assert "Configuration draft queue returned an invalid page." in drafts_load
     assert "The 10,000-row paging limit has been reached." in drafts_load
+
+    review_queue = _function(
+        source,
+        "async function loadSolutionLifecycleConfigurationReviewQueue(",
+        "async function submitSolutionLifecycleReadinessAssessment(",
+    )
+    assert "result.location_id === locationId" in review_queue
+    assert "result.limit === solutionLifecycleConfigurationPageSize" in review_queue
+    assert "result.offset === offset" in review_queue
+    assert '"invariant_components",\n            "configurable_components"' in review_queue
+    assert '"prohibited_components", "local_assumptions"' in review_queue
+    assert "result.offset_limited" in review_queue
+    assert 'solutionLifecycleConfigurationRowsInSqlOrder(\n              configurations, "submitted_at"' in review_queue
+    assert "Configuration review queue returned an invalid page." in review_queue
+    assert "The 10,000-row paging limit has been reached." in review_queue
 
     review = _function(
         source,
@@ -1900,14 +1915,14 @@ def test_adoption_program_redesign_revision_console_contract():
     assert "innerHTML" not in submit
 
 
-def test_configuration_draft_console_order_preserves_postgres_microseconds():
+def test_configuration_console_order_preserves_postgres_microseconds():
     node = shutil.which("node")
     if node is None:
         return
     source = CONSOLE.read_text(encoding="utf-8")
     comparator = _function(
         source,
-        "function solutionLifecycleConfigurationDraftsInSqlOrder(",
+        "function solutionLifecycleConfigurationRowsInSqlOrder(",
         "async function loadSolutionLifecycleConfigurationDrafts(",
     )
     valid = """
@@ -1915,13 +1930,18 @@ def test_configuration_draft_console_order_preserves_postgres_microseconds():
         {configuration_id: "00000000-0000-4000-8000-000000000001", proposed_at: "2026-10-20T12:00:00.123900Z"},
         {configuration_id: "00000000-0000-4000-8000-000000000002", proposed_at: "2026-10-20T12:00:00.123100Z"},
       ];
-      if (!solutionLifecycleConfigurationDraftsInSqlOrder(drafts)) process.exit(1);
-      if (solutionLifecycleConfigurationDraftsInSqlOrder([...drafts].reverse())) process.exit(2);
+      if (!solutionLifecycleConfigurationRowsInSqlOrder(drafts, "proposed_at")) process.exit(1);
+      if (solutionLifecycleConfigurationRowsInSqlOrder([...drafts].reverse(), "proposed_at")) process.exit(2);
       const equalInstant = [
         {configuration_id: "00000000-0000-4000-8000-000000000002", proposed_at: "2026-10-20T12:00:00.123900Z"},
         {configuration_id: "00000000-0000-4000-8000-000000000001", proposed_at: "2026-10-20T14:00:00.123900+02:00"},
       ];
-      if (!solutionLifecycleConfigurationDraftsInSqlOrder(equalInstant)) process.exit(3);
+      if (!solutionLifecycleConfigurationRowsInSqlOrder(equalInstant, "proposed_at")) process.exit(3);
+      const reviewRows = [
+        {configuration_id: "00000000-0000-4000-8000-000000000001", submitted_at: "2026-10-20T12:00:00.123900Z"},
+        {configuration_id: "00000000-0000-4000-8000-000000000002", submitted_at: "2026-10-20T12:00:00.123100Z"},
+      ];
+      if (!solutionLifecycleConfigurationRowsInSqlOrder(reviewRows, "submitted_at")) process.exit(4);
     """
     with tempfile.NamedTemporaryFile(mode="w", suffix=".js", encoding="utf-8") as script:
         script.write(comparator)

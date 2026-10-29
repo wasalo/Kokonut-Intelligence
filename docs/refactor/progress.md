@@ -24614,3 +24614,29 @@ candidate, or legacy state was used; migration 517 was not applied. Checklist:
 1,867 complete / 25 open; TODO: 507 checked / 16 open; strict private Gateway
 response contracts total 179. Evidence:
 [stakeholder projections, marketplace/pest preflight, and configuration queue](builds/2026-10-29-recovery/stakeholder-projections-marketplace-pest-configuration-queue.json).
+
+### Progress addendum — governance CLI, carbon-credit source, and configuration review — 29 October 2026
+
+The governance `domain-add --constraints` CLI now parses and validates a JSON
+object before database acquisition, preserving the existing empty-object
+default. The carbon-credit climate summary now uses migration 028's annual
+`reporting_year` field and exact location/year/verified-or-published filters;
+the former period-bound query referenced columns the canonical view does not
+define.
+
+The private migration-517 independent configuration review queue now exposes
+strict OpenAPI/runtime item and page schemas. The Gateway binds exact location
+and page inputs, validates the source-defined component objects and their
+combined 65,536-byte limit, evidence/classification/version/timestamp bounds,
+unique identifiers, and `submitted_at DESC, configuration_id DESC` ordering.
+Continuation stops at offset 10,000 with an explicit cap marker. The operator
+console validates the complete page before rendering and compares timestamps
+at PostgreSQL microsecond precision.
+
+The approved mock-only selection passes 110 tests. Ruff, compilation,
+capability validation, refreshed runtime SQL inventory, provider-boundary and
+dependency-group checks, and diff checks pass. No database/provider,
+candidate, or legacy state was used; migration 517 was not applied. Checklist:
+1,872 complete / 25 open; TODO: 511 checked / 16 open; strict private Gateway
+response contracts total 180. Evidence:
+[governance CLI, carbon-credit lookup, and configuration review queue](builds/2026-10-29-recovery/governance-cli-carbon-lookup-configuration-review-queue.json).

@@ -13425,17 +13425,17 @@
         }
       }
 
-      function solutionLifecycleConfigurationDraftsInSqlOrder(drafts) {
+      function solutionLifecycleConfigurationRowsInSqlOrder(rows, timestampField) {
         let previous = null;
-        for (const draft of drafts) {
-          const timestamp = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/i.exec(draft.proposed_at);
+        for (const row of rows) {
+          const timestamp = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/i.exec(row[timestampField]);
           if (!timestamp) return false;
           const zone = timestamp[3].toUpperCase() === "Z" ? "Z" : timestamp[3];
           const wholeSecondMilliseconds = Date.parse(`${timestamp[1]}${zone}`);
           if (!Number.isSafeInteger(wholeSecondMilliseconds)) return false;
           const microseconds = BigInt((timestamp[2] || "").padEnd(6, "0").slice(0, 6));
           const instantMicroseconds = BigInt(wholeSecondMilliseconds) * 1000n + microseconds;
-          const configurationId = draft.configuration_id.toLowerCase();
+          const configurationId = row.configuration_id.toLowerCase();
           if (previous && (previous.instantMicroseconds < instantMicroseconds
               || (previous.instantMicroseconds === instantMicroseconds
                   && previous.configurationId < configurationId))) {
@@ -13511,7 +13511,7 @@
               return true;
             });
           const orderedDrafts = validDrafts
-            && solutionLifecycleConfigurationDraftsInSqlOrder(drafts);
+            && solutionLifecycleConfigurationRowsInSqlOrder(drafts, "proposed_at");
           const hasMore = typeof result.has_more === "boolean" && result.has_more;
           const offsetLimited = typeof result.offset_limited === "boolean" && result.offset_limited;
           const validPage = result.location_id === locationId
@@ -13723,14 +13723,85 @@
           if (!response.ok) throw new Error(result.error || "Configuration review queue could not be loaded.");
           if (requestVersion !== solutionLifecycleConfigurationReviewRequestVersion
               || locationId !== solutionLifecycleLocation.value) return;
-          const configurations = Array.isArray(result.configurations) ? result.configurations : [];
+          const expectedConfigurationFields = [
+            "configuration_id", "solution_id", "version", "invariant_components",
+            "configurable_components", "prohibited_components", "local_assumptions",
+            "comparability_class", "evidence_impact", "submitted_at",
+          ].sort();
+          const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const validComparabilityClasses = new Set([
+            "comparable", "partially_comparable", "not_comparable",
+          ]);
+          const configurations = Array.isArray(result.configurations)
+            ? result.configurations : null;
+          const seenConfigurationIds = new Set();
+          const validConfigurations = configurations !== null
+            && configurations.length <= solutionLifecycleConfigurationPageSize
+            && configurations.every((configuration) => {
+              if (!configuration || typeof configuration !== "object"
+                  || Object.keys(configuration).sort().join("|")
+                    !== expectedConfigurationFields.join("|")
+                  || !validId.test(configuration.configuration_id || "")
+                  || !validId.test(configuration.solution_id || "")
+                  || !Number.isSafeInteger(configuration.version)
+                  || configuration.version < 1 || configuration.version > 2147483647
+                  || !configuration.invariant_components
+                  || typeof configuration.invariant_components !== "object"
+                  || Array.isArray(configuration.invariant_components)
+                  || !configuration.configurable_components
+                  || typeof configuration.configurable_components !== "object"
+                  || Array.isArray(configuration.configurable_components)
+                  || !configuration.prohibited_components
+                  || typeof configuration.prohibited_components !== "object"
+                  || Array.isArray(configuration.prohibited_components)
+                  || !configuration.local_assumptions
+                  || typeof configuration.local_assumptions !== "object"
+                  || Array.isArray(configuration.local_assumptions)
+                  || !validComparabilityClasses.has(configuration.comparability_class)
+                  || typeof configuration.evidence_impact !== "string"
+                  || !configuration.evidence_impact.replace(/^ +| +$/g, "")
+                  || configuration.evidence_impact.length > 4000
+                  || configuration.evidence_impact.includes("\u0000")
+                  || typeof configuration.submitted_at !== "string"
+                  || !/(?:Z|[+-]\d{2}:\d{2})$/i.test(configuration.submitted_at)
+                  || !Number.isFinite(Date.parse(configuration.submitted_at))) {
+                return false;
+              }
+              const configurationId = configuration.configuration_id.toLowerCase();
+              if (seenConfigurationIds.has(configurationId)) return false;
+              seenConfigurationIds.add(configurationId);
+              return true;
+            });
+          const orderedConfigurations = validConfigurations
+            && solutionLifecycleConfigurationRowsInSqlOrder(
+              configurations, "submitted_at",
+            );
+          const hasMore = typeof result.has_more === "boolean" && result.has_more;
+          const offsetLimited = typeof result.offset_limited === "boolean"
+            && result.offset_limited;
+          const validPage = result.location_id === locationId
+            && result.limit === solutionLifecycleConfigurationPageSize
+            && result.offset === offset
+            && typeof result.has_more === "boolean"
+            && typeof result.offset_limited === "boolean"
+            && orderedConfigurations
+            && (offsetLimited
+              ? !hasMore && result.next_offset === null
+                  && configurations.length === solutionLifecycleConfigurationPageSize
+                  && offset + configurations.length > 10000
+              : hasMore
+                ? configurations.length === solutionLifecycleConfigurationPageSize
+                    && result.next_offset === offset + configurations.length
+                    && result.next_offset <= 10000
+                : result.next_offset === null);
+          if (!validPage) throw new Error("Configuration review queue returned an invalid page.");
           for (const configuration of configurations) appendSolutionLifecycleConfigurationReview(configuration);
-          solutionLifecycleConfigurationReviewOffset = Number.isInteger(result.next_offset)
-            && result.next_offset > offset && result.next_offset <= 10000 ? result.next_offset : offset;
-          solutionLifecycleConfigurationReviewMore.hidden = result.has_more !== true
-            || solutionLifecycleConfigurationReviewOffset <= offset;
-          solutionLifecycleConfigurationReviewStatus.textContent = configurations.length
-            ? `${configurations.length} configuration${configurations.length === 1 ? "" : "s"} waiting for independent review.`
+          solutionLifecycleConfigurationReviewOffset = hasMore ? result.next_offset : offset;
+          solutionLifecycleConfigurationReviewMore.hidden = !hasMore;
+          solutionLifecycleConfigurationReviewStatus.textContent = offsetLimited
+            ? `${configurations.length} configuration${configurations.length === 1 ? "" : "s"} loaded. The 10,000-row paging limit has been reached.`
+            : configurations.length
+              ? `${configurations.length} configuration${configurations.length === 1 ? "" : "s"} waiting for independent review.`
             : "No configurations are waiting for independent review.";
         } catch (error) {
           if (requestVersion !== solutionLifecycleConfigurationReviewRequestVersion) return;

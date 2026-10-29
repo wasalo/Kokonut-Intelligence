@@ -1,7 +1,8 @@
 """OIDC routes for location-scoped solution lifecycle reads."""
 
+import json
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import (
@@ -82,6 +83,7 @@ _SolutionStage = Literal[
 
 _MAX_POSTGRES_BIGINT = 9_223_372_036_854_775_807
 _SOLUTION_LIFECYCLE_MAX_OFFSET = 10_000
+_SOLUTION_CONFIGURATION_COMPONENTS_MAX_BYTES = 65_536
 _SolutionLifecycleCount = Annotated[
     int,
     Field(ge=0, le=_MAX_POSTGRES_BIGINT, strict=True),
@@ -901,6 +903,108 @@ class SolutionConfigurationDraftPageResponse(BaseModel):
         ]
         if order != sorted(order, reverse=True):
             raise ValueError("Configuration draft page is not in SQL order")
+        return self
+
+
+class SolutionConfigurationReviewQueueItemResponse(BaseModel):
+    """Exact migration-517 projection for an independent configuration reviewer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    configuration_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    version: int = Field(ge=1, le=2_147_483_647, strict=True)
+    invariant_components: dict[str, Any]
+    configurable_components: dict[str, Any]
+    prohibited_components: dict[str, Any]
+    local_assumptions: dict[str, Any]
+    comparability_class: Literal[
+        "comparable", "partially_comparable", "not_comparable",
+    ]
+    evidence_impact: str = Field(min_length=1, max_length=4000, strict=True)
+    submitted_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_evidence_impact(self):
+        if (
+            "\x00" in self.evidence_impact
+            or len(self.evidence_impact.strip(" ")) == 0
+            or len(self.evidence_impact.encode("utf-8")) > 8000
+        ):
+            raise ValueError("Configuration review evidence impact exceeds its storage bounds")
+        component_payload = [
+            self.invariant_components,
+            self.configurable_components,
+            self.prohibited_components,
+            self.local_assumptions,
+        ]
+        try:
+            component_payload_bytes = len(
+                json.dumps(
+                    component_payload,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                    separators=(", ", ": "),
+                ).encode("utf-8")
+            )
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Configuration review component payload is invalid") from exc
+        if component_payload_bytes > _SOLUTION_CONFIGURATION_COMPONENTS_MAX_BYTES:
+            raise ValueError("Configuration review component payload exceeds its storage bounds")
+        return self
+
+
+class SolutionConfigurationReviewQueuePageResponse(BaseModel):
+    """Strict, location-bound review page for migration-517 configurations."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=25, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    configurations: list[SolutionConfigurationReviewQueueItemResponse] = Field(
+        max_length=25
+    )
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.configurations) > self.limit:
+            raise ValueError("Configuration review page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.configurations) != self.limit
+                or self.offset + len(self.configurations)
+                <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Configuration review offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.configurations) != self.limit
+                or self.next_offset != self.offset + len(self.configurations)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Configuration review continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal configuration review page cannot continue")
+
+        configuration_ids = [
+            configuration.configuration_id for configuration in self.configurations
+        ]
+        if len(configuration_ids) != len(set(configuration_ids)):
+            raise ValueError("Configuration review page contains duplicate configurations")
+        order = [
+            (configuration.submitted_at, configuration.configuration_id.int)
+            for configuration in self.configurations
+        ]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Configuration review page is not in SQL order")
         return self
 
 
@@ -3244,7 +3348,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(status_code=503, content={"error": "Solution configuration submission unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/review-queue")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/configurations/review-queue",
+        response_model=SolutionConfigurationReviewQueuePageResponse,
+    )
     async def location_solution_configuration_review_queue(
         request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
     ):
@@ -3273,7 +3380,53 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution configuration review queue unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution configuration review queue unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict) or set(result) != {
+                "configurations", "has_more", "next_offset",
+            }:
+                raise ValueError("Configuration review result fields are invalid")
+            configurations = result["configurations"]
+            has_more = result["has_more"]
+            next_offset = result["next_offset"]
+            if not isinstance(configurations, list) or type(has_more) is not bool:
+                raise ValueError("Configuration review result shape is invalid")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            if has_more:
+                if (
+                    type(next_offset) is not int
+                    or next_offset != offset + len(configurations)
+                ):
+                    raise ValueError("Configuration review continuation is inconsistent")
+                if next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET:
+                    if len(configurations) != limit:
+                        raise ValueError("Configuration review offset-cap page is incomplete")
+                    page["has_more"] = False
+                    page["next_offset"] = None
+                    page["offset_limited"] = True
+            elif next_offset is not None:
+                raise ValueError("Terminal configuration review result has a cursor")
+            validated = SolutionConfigurationReviewQueuePageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution configuration review response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution configuration review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/{configuration_id}/review")
     async def review_solution_configuration(request: Request, location_id: str, configuration_id: str):

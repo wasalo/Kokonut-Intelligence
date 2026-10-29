@@ -3362,3 +3362,22 @@ was used. Checklist: 504 checked / 16 open; matrix remains 67 rows
 (24 baseline-retained, 7 deployed, 36 prepared), with 178 strict private
 Gateway response contracts. Evidence:
 `builds/2026-10-29-recovery/consent-readiness-cli-preflight.json`.
+
+## Completed — governance CLI, carbon-credit source, and configuration review, 29 October
+
+- [x] Reject malformed or non-object governance-domain constraints before
+  database acquisition and preserve decoded-object semantics.
+- [x] Pin the annual carbon-credit climate-summary lookup to migration 028's
+  location, reporting year, verified/published status, and exact projection.
+- [x] Validate migration-517 configuration-review item/page contracts,
+  request binding, ordering, IDs, payload bounds, and capped continuation in
+  the Gateway and operator console.
+- [x] Run the approved 110-test mock-only selection and refresh/check SQL
+  inventory; record evidence and progress counters.
+
+Ruff, compilation, capability-matrix validation, provider-boundary,
+dependency-group, SQL-inventory, and diff checks pass. No database, provider,
+candidate, or legacy state was used; no migration was applied. Checklist:
+511 checked / 16 open; strict private Gateway response contracts total 180.
+Evidence:
+`builds/2026-10-29-recovery/governance-cli-carbon-lookup-configuration-review-queue.json`.

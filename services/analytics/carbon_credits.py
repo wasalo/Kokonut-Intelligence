@@ -53,14 +53,14 @@ def _query_climate_impact(conn, location_id: str, vintage_year: int) -> Optional
     """Get climate impact summary for credit issuance."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("""
-        SELECT * FROM climate_impact_summary
+        SELECT id, location_id, reporting_year,
+               total_sequestration_tonnes_co2e, status
+        FROM climate_impact_summary
         WHERE location_id = %s
-        AND EXTRACT(YEAR FROM period_start) <= %s
-        AND EXTRACT(YEAR FROM period_end) >= %s
+        AND reporting_year = %s
         AND status IN ('verified', 'published')
-        ORDER BY period_end DESC
         LIMIT 1
-    """, (location_id, vintage_year, vintage_year))
+    """, (location_id, vintage_year))
     row = cur.fetchone()
     cur.close()
     return dict(row) if row else None
