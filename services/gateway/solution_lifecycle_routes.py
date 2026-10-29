@@ -311,6 +311,51 @@ class SolutionLifecycleExperimentPageResponse(BaseModel):
         return self
 
 
+class SolutionLifecycleFundingTargetItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused", "retired", "superseded"]
+
+
+class SolutionLifecycleFundingTargetsPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    solutions: list[SolutionLifecycleFundingTargetItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation_and_identity(self):
+        if self.has_more:
+            if not self.solutions or self.next_offset is None:
+                raise ValueError("Funding-target continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal funding-target page cannot continue")
+        seen_solution_ids = set()
+        previous = None
+        for solution in self.solutions:
+            if solution.solution_id in seen_solution_ids:
+                raise ValueError("Funding-target page contains a duplicate solution")
+            seen_solution_ids.add(solution.solution_id)
+            if (
+                previous is not None
+                and previous.solution_name == solution.solution_name
+                and previous.solution_id.int > solution.solution_id.int
+            ):
+                raise ValueError("Funding-target name tie-break order is inconsistent")
+            previous = solution
+        return self
+
+
 class SolutionLifecycleGateItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -4561,7 +4606,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/funding/targets")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/funding/targets",
+        response_model=SolutionLifecycleFundingTargetsPageResponse,
+    )
     async def location_solution_funding_targets(
         request: Request,
         location_id: str,
@@ -4609,7 +4657,31 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution funding targets unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleFundingTargetsPageResponse.model_validate(result)
+            expected_location = UUID(location_id)
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != expected_location
+                or validated.offset != offset
+                or validated.next_offset != expected_next_offset
+                or len(validated.solutions) > limit
+            ):
+                raise ValueError("Funding-target response does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding target response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding targets unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/funding/review")
     async def location_solution_funding_review_queue(

@@ -1054,6 +1054,7 @@ _RUNTIME_MUTATION_TABLES = (
     "ai_summary",
     "agent_action_log",
     "advisory_rule",
+    "service_registry",
     "carbon_benchmark", "crop_gdd_config", "dfs_currency",
     "ghg_emission_factor",
     "operations_protocol", "revenue_multiplier_config",

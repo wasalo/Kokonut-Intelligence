@@ -1,7 +1,7 @@
 {
   "version": 1,
   "scope": "Tracks direct SQL DML and conservative WITH candidates whose target relation is unresolved. Legacy entries are acknowledged inventory debt only; they do not grant or approve ACLs. New candidates require a reviewed_sites entry with reviewer, date, decision note, and reason.",
-  "legacy_fingerprint_sha256": "b09fe6be4fb098529d04432be6d0aa12071c3c1dd75423f90e77cde3017b95cf",
+  "legacy_fingerprint_sha256": "ce181e19cf9e7b0e25c82f4b504e8a8694fb49926fcfe64f9ba0e30f112b87a0",
   "legacy_unreviewed": [
     {
       "fingerprint": "121bdc4b3054f807d73fdec63415c04a2cd0409e41cfd1a91fe3c8aa891e550f",
@@ -24,17 +24,6 @@
       "expression_kind": "composed_or_variable",
       "review_status": "preexisting_unreviewed",
       "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "15634e66e7a7e8b8dd246cd7c629d0cb0cae69ac0f8eddc8209d05aab469144f",
-      "source": "services/export/reports/core.py",
-      "line": 55,
-      "scope": "generate_farm_summary",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
     },
     {
       "fingerprint": "17285b250cc1776104efd1c43217009ecc393b55166720f54bb961616babf571",
@@ -403,6 +392,13 @@
       "reviewed_by": "Codex source review",
       "reviewed_on": "2026-10-28",
       "reason": "Reviewed list_location_realization_summaries: its WITH clause selects the bounded, location-filtered geostat_realization page and aggregates point values; no DML or mutating SQL is present. This edit only clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative manual review; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "b10db4c1fe7ebf5526d08f6b3cc59ee0247e55e84b901bd9ddd8f5150371a44e",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed generate_farm_summary at services/export/reports/core.py:59: both CTEs perform SELECT and aggregation, and the top-level statement selects the resulting bounded summary; there is no DML or mutating function. The inventory conservatively retains WITH for manual review. This source review is not an ACL approval."
     }
   ]
 }

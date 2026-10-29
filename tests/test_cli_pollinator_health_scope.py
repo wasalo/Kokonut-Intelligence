@@ -34,14 +34,32 @@ def test_invalid_db_read_location_fails_before_runner(argv, monkeypatch):
     connection_factory.assert_not_called()
 
 
-def test_valid_db_read_location_reaches_existing_runner(monkeypatch):
-    argv = ["summary", "--location-id", str(uuid4())]
+@pytest.mark.parametrize(
+    "command",
+    ["summary", "habitat-inventory", "pesticide-risk", "hive-status", "dashboard"],
+)
+def test_valid_db_read_location_is_canonical_before_runner(command, monkeypatch):
+    location_id = uuid4()
+    argv = [command, "--location-id", location_id.hex.upper()]
+    expected_argv = [command, "--location-id", str(location_id)]
     runner = Mock()
     monkeypatch.setattr(cli_pollinator_health.cli, "run", runner)
 
     cli_pollinator_health.main(argv)
 
-    runner.assert_called_once_with(argv)
+    runner.assert_called_once_with(expected_argv)
+
+
+def test_equals_form_db_read_location_is_canonical_before_runner(monkeypatch):
+    location_id = uuid4()
+    runner = Mock()
+    monkeypatch.setattr(cli_pollinator_health.cli, "run", runner)
+
+    cli_pollinator_health.main(
+        ["summary", f"--location-id={location_id.hex.upper()}"]
+    )
+
+    runner.assert_called_once_with(["summary", f"--location-id={location_id}"])
 
 
 def test_retired_write_command_remains_outside_db_read_preflight(monkeypatch):

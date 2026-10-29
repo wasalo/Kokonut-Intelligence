@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts.runtime_sql_inventory import build_inventory
 from services.migration import runtime_role
 
 REPORTER = runpy.run_path(
@@ -21,13 +22,15 @@ REPORTER = runpy.run_path(
 def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     root = Path(__file__).resolve().parents[1]
     source = (root / "services/migration/runtime_role.py").read_bytes()
-    report = json.loads(
+    probe = json.loads(
         (
             root
             / "docs/refactor/builds/2026-10-28-recovery/"
-            "sprint-runtime-privilege-callsite-report.json"
+            "runtime-role-full-schema-681-native-disposable.json"
         ).read_text()
     )
+    inventory = build_inventory()
+    report = REPORTER["build_report"](probe, inventory)
 
     assert set(runtime_role._RUNTIME_PRIVATE_TABLES).isdisjoint(
         runtime_role._RUNTIME_MUTATION_TABLES
@@ -55,25 +58,28 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
         reported_relations
     )
     assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
+    assert "service_registry" in configured_boundaries
+    assert configured_boundaries["service_registry"] == "runtime_mutations_denied"
 
 
-def test_acl_report_observes_current_schema_and_metric_definition_boundary():
+def test_full_schema_acl_snapshot_is_explicitly_pre_service_registry_boundary():
     root = Path(__file__).resolve().parents[1]
-    report = json.loads(
+    probe = json.loads(
         (
             root
             / "docs/refactor/builds/2026-10-28-recovery/"
-            "sprint-runtime-privilege-callsite-report.json"
+            "runtime-role-full-schema-681-native-disposable.json"
         ).read_text()
     )
+    inventory = build_inventory()
+    report = REPORTER["build_report"](probe, inventory)
 
     acceptance = report["runtime_role_acceptance"]
     assert acceptance["full_schema_replay_passed"] is True
     assert acceptance["scoped_acl_checks_passed"] is True
     assert acceptance["acl_snapshot_latest_migration_number"] == 681
-    assert acceptance["repository_latest_migration_number"] == 681
-    assert acceptance["current_migration_chain_observed"] is True
-    assert acceptance["current_source_policy_coverage_observed"] is True
+    assert acceptance["repository_latest_migration_number"] == 682
+    assert acceptance["current_migration_chain_observed"] is False
     assert acceptance["production_or_candidate_state_established"] is False
 
     metric_definition = next(
@@ -173,9 +179,7 @@ def test_crop_nutrient_factors_are_read_only_after_schema_seed_initialization():
     ).read_text()
     initial_schema = (root / "schemas/postgres/151_nutrient_budget.sql").read_text()
     runtime_source = (root / "services/analytics/nutrient_budget.py").read_text()
-    sql_inventory = json.loads(
-        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
-    )
+    sql_inventory = build_inventory()
     source_sites = [
         site for site in sql_inventory["execution_sites"]
         if "crop_nutrient_removal_factor" in site["candidate_relations"]
@@ -1171,6 +1175,54 @@ def test_metric_definition_is_read_only_to_kernel_runtime():
     assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
     assert "REVOKE ALL PRIVILEGES ON TABLE public.metric_definition FROM kokonut_runtime" in migration
     assert "GRANT SELECT ON TABLE public.metric_definition TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_service_registry_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/682_runtime_service_registry_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/195_service_catalog.sql").read_text()
+    mapping_schema = (root / "schemas/postgres/207_capability_map.sql").read_text()
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    registry_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "service_registry" in site.get("candidate_relations", [])
+    ]
+
+    assert "service_registry" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS service_registry" in schema
+    assert "CREATE TRIGGER" in schema and "trg_service_registry_updated_at" in schema
+    assert "REFERENCES service_registry(name) ON DELETE CASCADE" in mapping_schema
+    assert registry_sites
+    assert all(site["statement_kind"] == "SELECT" for site in registry_sites)
+    assert not any(
+        "service_registry" in site.get("write_target_relations", [])
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?service_registry\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.service_registry FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.service_registry TO kokonut_runtime" in migration
     assert "REVOKE INSERT (%1$I)" in migration
     assert "REVOKE UPDATE (%1$I)" in migration
     assert "REVOKE REFERENCES (%1$I)" in migration

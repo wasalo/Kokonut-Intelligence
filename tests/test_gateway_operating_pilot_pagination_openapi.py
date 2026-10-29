@@ -93,3 +93,25 @@ def test_invalid_lower_and_offset_bounds_fail_before_service(route_app, query):
 
     assert response.status_code == 422
     assert calls == []
+
+
+def test_demand_route_publishes_strict_openapi_projection(route_app):
+    app, _calls = route_app
+    schema = app.openapi()
+    operation = schema["paths"][
+        "/operator/api/operating-pilot/{location_id}/demand-signals"
+    ]["get"]
+
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/OperatingPilotDemandSignalsPage"
+    }
+    item_schema = schema["components"]["schemas"]["OperatingPilotDemandSignalItem"]
+    assert item_schema["additionalProperties"] is False
+    assert set(item_schema["properties"]) == {
+        "work_type",
+        "period_start",
+        "period_end",
+        "required_hours",
+        "priority",
+        "status",
+    }

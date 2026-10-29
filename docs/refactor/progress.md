@@ -22685,3 +22685,64 @@ The integrated Gateway/CLI selection passes 159 tests. Ruff, Python compilation,
 The private stage-transition target page, aggregate summary, and experiment page now publish strict request-bound contracts against migrations 503, 459, and 467. The models enforce exact fields, location identity, enum and numeric bounds, pagination/continuation, SQL ordering, and aggregate consistency. Seven domain CLIs now pass canonical location UUIDs to handlers before database setup while preserving required and optional scope behavior.
 
 The integrated Gateway/CLI selection passes 295 tests. Ruff, Python compilation, capability-matrix validation, and diff checks pass. Strict private Gateway response contracts total 85; the 27 counted CLI groups retain UUID preflight. Checklist: 1,510 complete / 25 open; TODO: 215 checked / 16 open. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared). No database, provider, candidate, legacy service, or live network was used. Mocked source checks do not prove live OIDC/database behavior, tenant isolation, or populated parity. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-read-and-cli-canonicalization.json`.
+
+
+### Progress addendum — lifecycle, demand-signals, and pollinator CLI — 28 October 2026
+
+The private solution-lifecycle funding-target page now publishes a strict
+migration-488 response projection and validates location, pagination, enum and
+name bounds, continuation, duplicate IDs, and reproducible same-name UUID
+ordering. The private operating-pilot demand-signals page now enforces
+migration 479's redacted field set, location and pagination binding, SQL order,
+scope consistency, date/status rules, and the `NUMERIC(10,2)` maximum. Pollinator
+health CLI reads canonicalize the supplied location UUID before the command
+runner can open PostgreSQL; retired writes remain outside that read preflight.
+
+The combined Gateway/CLI regression selection passes 564 tests. Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. The capability
+matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), with 87
+strict private Gateway response contracts and 27 counted CLI groups retaining
+UUID preflight. Checklist: 1,513 complete / 25 open; TODO: 218 checked / 16
+open. No database, provider, candidate, legacy service, or live network was
+used. Mocked Gateway checks do not prove live OIDC, tenant RLS, or populated
+parity. Evidence:
+`docs/refactor/builds/2026-10-28-recovery/kernel-parallel-lifecycle-demand-pollinator.json`.
+
+
+### Progress addendum — private export foundation — 28 October 2026
+
+C2 now has a local private artifact-storage port that accepts UUID keys, uses
+0700/0600 permissions, rejects symlink traversal, replaces writes atomically,
+and only deletes on an explicit call. It applies no cleanup schedule. A
+separate pure report-snapshot serializer requires exact location scope,
+verified/published status, a matching SHA-256, and payloads within 512 KiB; it
+returns only `report_data` and ignores legacy `file_url`.
+
+The two focused suites pass 33 tests total; Ruff, compilation, and diff hygiene
+pass. No database/provider was used. The queue, current-grant reader, Gateway
+download, worker, R2 adapter, and dynamic retention integration remain open.
+Checklist: 1,515 complete / 25 open; TODO: 220 checked / 16 open. Matrix
+classifications remain unchanged. Evidence:
+`docs/refactor/builds/2026-10-28-recovery/kernel-c2-private-export-primitives.json`.
+
+
+### Progress addendum — service registry boundary and SQL review reconciliation — 28 October 2026
+
+Migration 682 makes the global `service_registry` catalog readable but
+immutable to `kokonut_runtime`; runtime-role provisioning reapplies the same
+table and column boundary after compatibility grants. The unused registration,
+update, deprecation, and retirement helpers now fail explicitly before opening
+a database connection. Directus permissions and capability-service mappings
+remain unchanged. Disposable PostgreSQL 16 replay and re-provisioning checks
+passed across 128 synthetic tables.
+
+The source/policy selection passes 118 tests; migration checks pass 37, and
+post-reconciliation SQL inventory/privilege checks pass 32. The SQL scanner is
+current with 37 tracked unresolved candidates. A pre-existing stale fingerprint
+for `generate_farm_summary` was reconciled after source review confirmed that
+its CTEs are SELECT-only; the scanner retains it as `reviewed_unresolved`, and
+this is not ACL approval. Checklist: 1,517 complete / 25 open; TODO: 222
+checked / 16 open. The capability matrix remains 67 rows. No candidate or
+legacy database was touched; this does not establish RLS or tenant isolation.
+Evidence:
+`docs/refactor/builds/2026-10-28-recovery/kernel-c1-service-registry-boundary.json`.

@@ -1905,6 +1905,64 @@ Checklist: 1,510 complete / 25 open (1,535 total); TODO: 215 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
 
 
+### Completed continuation — lifecycle, demand response, and pollinator CLI — 28 October 2026
+
+- [x] Enforce strict response validation for solution-lifecycle funding
+  targets, bound to migration 488's exact projection, location, and page.
+- [x] Enforce the redacted migration-479 demand-signals response contract,
+  including ordering, pagination, status, and numeric bounds.
+- [x] Canonicalize pollinator-health location UUIDs before database dispatch.
+
+The integrated selection passes 564 tests. Ruff, compilation, capability
+matrix validation, and diff checks pass. Strict private Gateway response
+contracts now total 87; the 27 counted CLI groups retain UUID preflight.
+Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-lifecycle-demand-pollinator.json).
+No live database/provider was used; live OIDC, tenant row isolation, and
+populated-data parity remain open.
+
+Checklist: 1,513 complete / 25 open (1,538 total); TODO: 218 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed C2 foundation slices — private storage and snapshot validation — 28 October 2026
+
+- [x] Implement a private local artifact store with canonical UUID keys,
+  restrictive permissions, symlink-safe paths, atomic replacement, and
+  explicit deletion only.
+- [x] Validate and serialize exact-location verified/published report
+  snapshots with a matching content hash and 512 KiB limit; exclude the legacy
+  file URL from output.
+
+The focused suites pass 33 tests across both modules. C2 remains open because
+the request queue, authorized reader integration, worker, Gateway download,
+and R2 delivery are not yet implemented. Evidence:
+[C2 foundation](builds/2026-10-28-recovery/kernel-c2-private-export-primitives.json).
+
+Checklist: 1,515 complete / 25 open (1,540 total); TODO: 220 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed C1 continuation — service registry runtime boundary — 28 October 2026
+
+- [x] Make `service_registry` read-only to `kokonut_runtime` in migration 682
+  and runtime-role provisioning, while preserving catalog reads, Directus
+  CRUD, and capability-service mapping writes.
+- [x] Reconcile the pre-existing unresolved-write fingerprint for
+  `generate_farm_summary`; source review confirms a SELECT-only CTE and keeps
+  the site tracked as `reviewed_unresolved`, not as ACL approval.
+
+Focused source/policy checks passed (118 tests), migration checks passed (37),
+and the post-reconciliation inventory/privilege selection passed (32). The
+disposable PostgreSQL 16 harness replayed migration 682 and confirmed the
+boundary after compatibility-grant reapplication across 128 synthetic tables.
+The current 37-candidate inventory gate passes. Evidence:
+[service registry](builds/2026-10-28-recovery/kernel-c1-service-registry-boundary.json).
+No candidate or legacy database was used; this is not tenant/RLS acceptance.
+
+Checklist: 1,517 complete / 25 open (1,542 total); TODO: 222 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
 ### Completed parallel continuation — operating-pilot response, report scope, and CLI preflight — 28 October 2026
 
 - [x] Add strict request-bound OpenAPI/runtime response contracts for the

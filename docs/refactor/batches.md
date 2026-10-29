@@ -3602,7 +3602,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Bound gRPC API-key lookup, request-interceptor, and optional-service import failures to exception classes while preserving generic auth failures, exception propagation, and optional service behavior. The 32-test gRPC/auth/policy suite passes with Ruff and compilation on mocked boundaries; no database or RPC provider was contacted ([evidence](builds/2026-10-17-recovery/grpc-auth-request-error-redaction.json)).
 - [x] Redact metadata batch-anchor and threatcasting trend-analysis failures without changing their skip/no-score fallbacks. Two mocked regressions pass with Ruff, compilation, and diff checks; no database or provider was contacted ([evidence](builds/2026-10-17-recovery/metadata-trend-error-redaction.json)).
 - [x] Redact demo sensor-reading insert failures so sensor names, timestamps, and database details are not emitted; preserve per-reading continuation and database cleanup. One mocked regression passes; test lint, source import/syntax checks, compilation, and diff checks pass. No database or provider was used ([evidence](builds/2026-10-17-recovery/mock-sensor-error-redaction.json)).
-- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On PR #71 head `514f1f0c789d795fca49eabd0fe75288b8ff28e7`, Security check `gitleaks` completed successfully and CI check `ci` is still in progress. Keep this gate open until both required contexts pass on the same SHA ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
+- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On the previous PR #71 head `73e0c748562ddb4903360328d29b35e776be6e4d`, Security run [#40792486603](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40792486603) passed, while CI run [#40792486535](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40792486535) was in progress. Each pushed batch starts a new exact-head gate; keep this item open until both required contexts pass together on the current head ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
 - [x] Align the active `Main branch protection` ruleset (ID `18234835`) with `CI / ci` and `Security / gitleaks`. GitHub API verification confirms the obsolete `Python checks`, `Directus hooks`, and `Foundry contracts` contexts were removed; pull-request/review, CODEOWNERS, thread-resolution, strict up-to-date, linear-history, deletion, force-push, and bypass settings remain. The separate active version-tag ruleset (ID `18234836`) was not changed ([settings audit](../github-actions.md#current-required-check-audit--14-october-2026)).
 - [x] Make encrypted checkpoints provider-aware: PostgreSQL-only backup/restore works without ClickHouse credentials or a running ClickHouse service; ClickHouse-enabled backup fails before creating partial artifacts if its service is unavailable, and restore preflights required services before database writes. The manifest explicitly records provider inclusion and exact archives; fake Compose acceptance covers both profiles and preflight ([evidence](builds/2026-10-14-recovery/provider-aware-backup-restore.json)).
 - [ ] Execute the reviewed cutover and retire dependencies only after the readiness gates close. The owner has approved cutover once ready; no gate may be skipped.
@@ -5987,4 +5987,81 @@ populated parity remain open. Evidence:
 [batch](builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-read-and-cli-canonicalization.json).
 
 Checklist: 1,510 complete / 25 open (1,535 total); TODO: 215 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed parallel continuation — lifecycle, operating demand, and pollinator boundaries — 28 October 2026
+
+- [x] Publish and enforce the strict response contract for private
+  solution-lifecycle funding targets, matching migration 488's five-field
+  projection, exact location/page bounds, and stable same-name UUID tie-break.
+- [x] Publish and enforce the private migration-479 operating-demand response
+  contract, including its redacted projection, current page/location binding,
+  sorted order, lifecycle values, and `NUMERIC(10,2)` range.
+- [x] Canonicalize valid pollinator-health location UUIDs before CLI dispatch
+  for each database-backed read, including both supported option spellings;
+  keep retired writes outside the database preflight.
+
+The combined solution-lifecycle, operating-pilot, and CLI regression selection
+passes 564 tests. Ruff, Python compilation, capability-matrix validation, and
+`git diff --check` pass. The capability matrix remains 67 rows (24
+baseline-retained, 7 deployed, 36 prepared); strict private Gateway response
+contracts now total 87, and the 27 counted CLI groups retain their UUID
+preflight coverage. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-lifecycle-demand-pollinator.json).
+Gateway checks used mocked readers and ASGI; no database, provider, candidate,
+legacy service, or live network was used. Live OIDC, tenant RLS, and populated
+report parity remain open. Capability classifications and MAN-CAP acceptance
+are unchanged.
+
+Checklist: 1,513 complete / 25 open (1,538 total); TODO: 218 checked / 16
+open.
+
+
+### Completed C2 foundation slices — private artifacts and snapshot validation — 28 October 2026
+
+- [x] Add a local private artifact-storage port keyed only by opaque UUIDs,
+  with owner-only permissions, symlink-safe descriptor-relative access,
+  atomic replacement, explicit deletion, and no automatic pruning.
+- [x] Add a pure report-snapshot export validator that requires a valid ID,
+  exact non-null location, verified/published lifecycle, matching SHA-256, and
+  a 512 KiB cap; emit only `report_data` and ignore legacy `file_url`.
+
+The focused serializer and storage suites pass 18 and 15 tests respectively;
+Ruff, compilation, and diff checks pass. No database or provider was used.
+Evidence:
+[C2 foundation](builds/2026-10-28-recovery/kernel-c2-private-export-primitives.json).
+These components are not yet connected to an export-request queue, Gateway
+authorization/download route, worker, or R2. C2 remains open, and broad
+stakeholder access still requires a governed grant contract.
+
+Checklist: 1,515 complete / 25 open (1,540 total); TODO: 220 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed C1 continuation — service catalog ACL and SQL review gate — 28 October 2026
+
+- [x] Keep the global, deployment-managed `service_registry` readable to the
+  Kernel runtime but deny table and residual column writes. Migration 682 and
+  runtime-role provisioning enforce the same boundary after compatibility
+  grants; unused service-catalog mutation helpers now fail before DB access.
+  Directus CRUD and `capability_service_map` operations remain intact.
+- [x] Reconcile the pre-existing stale `generate_farm_summary` SQL fingerprint
+  through source review. Its `WITH` statement is SELECT-only; it remains in the
+  conservative 37-candidate inventory as `reviewed_unresolved`, with the
+  explicit caveat that source review is not ACL approval.
+
+The service-registry source/policy suite passes 118 tests; migration checks
+pass 37 tests, and post-reconciliation inventory/privilege checks pass 32.
+Disposable PostgreSQL 16 acceptance applied and replayed migration 682, denied
+runtime table/column writes after compatibility-grant reapplication, retained
+SELECT, Directus CRUD, and capability-service mapping writes, across 128
+synthetic tables. Ruff, compilation, the current 37-candidate SQL inventory
+gate, capability validation, and diff checks pass. Evidence:
+[boundary](builds/2026-10-28-recovery/service-registry-runtime-read-only-disposable.json)
+and [batch](builds/2026-10-28-recovery/kernel-c1-service-registry-boundary.json).
+This is not RLS or tenant-isolation evidence; the full-schema ACL snapshot
+remains at migration 681, and no candidate or legacy database was touched.
+
+Checklist: 1,517 complete / 25 open (1,542 total); TODO: 222 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

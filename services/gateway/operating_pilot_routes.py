@@ -96,6 +96,65 @@ class OperatingPilotCapacityPeriodItem(BaseModel):
         return self
 
 
+class OperatingPilotDemandSignalItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    work_type: str = Field(max_length=50, strict=True)
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    required_hours: _ResponseDecimal = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    priority: Literal["low", "medium", "high", "critical"]
+    status: Literal[
+        "draft", "submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"
+    ]
+
+    @model_validator(mode="after")
+    def validate_demand_period(self):
+        if self.period_end < self.period_start:
+            raise ValueError("demand period is reversed")
+        return self
+
+
+class OperatingPilotDemandSignalsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    scope_configured: bool = Field(strict=True)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotDemandSignalItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_demand_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("demand page exceeds its limit")
+        page_order = [
+            (
+                item.period_start,
+                item.period_end,
+                item.work_type,
+                item.priority,
+                item.status,
+                item.required_hours,
+            )
+            for item in self.items
+        ]
+        if page_order != sorted(page_order):
+            raise ValueError("demand page is not in projection order")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("demand continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("demand page has an unexpected continuation")
+        if not self.scope_configured and (self.items or self.has_more):
+            raise ValueError("unconfigured demand scope cannot contain signals")
+        return self
+
+
 class OperatingPilotCapacityPeriodsPage(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -2160,7 +2219,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/demand-signals")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/demand-signals",
+        response_model=OperatingPilotDemandSignalsPage,
+    )
     async def location_operating_pilot_demand_signals(
         request: Request,
         location_id: str,
@@ -2203,6 +2265,21 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 status_code=503,
                 content={"error": "Operating demand read unavailable"},
                 headers={**headers, "Retry-After": "30"},
+            )
+        try:
+            page = OperatingPilotDemandSignalsPage.model_validate(result)
+            if page.location_id != UUID(location_id) or page.limit != limit or page.offset != offset:
+                raise ValueError("Demand page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating demand read unavailable"},
+                headers=headers,
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 

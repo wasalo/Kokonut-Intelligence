@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "73e0c748562ddb4903360328d29b35e776be6e4d",
+  "working_tree_dirty": true,
+  "scope": "Source-level batch adding the strict migration-488 solution-funding-target response contract, migration-479 operating-pilot demand-signals response contract, and canonical pollinator-health CLI UUID dispatch.",
+  "checks": [
+    {
+      "command": "python3 -m pytest <solution-lifecycle contracts, CLI UUID scope, and operating-pilot read/pagination modules> -q",
+      "result": "passed",
+      "passed": 564,
+      "test_files": [
+        "tests/test_gateway_solution_lifecycle_reads.py",
+        "tests/test_gateway_solution_lifecycle_pagination_openapi.py",
+        "tests/test_gateway_solution_lifecycle_stage_transition_target_contract.py",
+        "tests/test_gateway_solution_lifecycle_summary_contract.py",
+        "tests/test_gateway_solution_lifecycle_experiments_contract.py",
+        "tests/test_gateway_solution_lifecycle_nonpromotion_transitions.py",
+        "tests/test_gateway_solution_lifecycle_funding_targets_contract.py",
+        "tests/test_gateway_solution_lifecycle_funding_proposals.py",
+        "tests/test_cli_digital_finance_scope.py",
+        "tests/test_cli_crop_rotation_scope.py",
+        "tests/test_marketplace_cli_scope.py",
+        "tests/test_extension_cli_scope.py",
+        "tests/test_pest_management_cli_scope.py",
+        "tests/test_cli_energy_monitoring_scope.py",
+        "tests/test_cli_farmer_identity_scope.py",
+        "tests/test_cli_pollinator_health_scope.py",
+        "tests/test_gateway_operating_pilot_reads.py",
+        "tests/test_gateway_operating_pilot_pagination_openapi.py"
+      ]
+    },
+    {
+      "command": "ruff check on changed implementation and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile on changed implementation files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "progress": {
+    "checklist_complete": 1513,
+    "checklist_open": 25,
+    "todo_complete": 218,
+    "todo_open": 16,
+    "capability_rows": 67,
+    "strict_private_gateway_response_endpoints": 87,
+    "cli_groups_with_location_uuid_preflight": 27
+  },
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "live_network_used": false
+  },
+  "limitations": [
+    "Gateway response contracts were exercised through mocked readers and ASGI; live OIDC, populated-data parity, and database behavior remain unverified.",
+    "Location UUID normalization is an input-safety boundary and does not establish database row-level isolation.",
+    "The capability matrix remains at 67 rows with unchanged classifications and MAN-CAP acceptance.",
+    "The progress counts anticipate the three completed source-level changes in this evidence; the service_registry ACL work is tracked separately."
+  ]
+}

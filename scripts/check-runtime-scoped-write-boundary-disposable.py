@@ -114,6 +114,9 @@ YIELD_BENCHMARK_MIGRATION = (
 METRIC_DEFINITION_MIGRATION = (
     ROOT / "schemas/postgres/681_runtime_metric_definition_read_only.sql"
 )
+SERVICE_REGISTRY_MIGRATION = (
+    ROOT / "schemas/postgres/682_runtime_service_registry_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
@@ -124,6 +127,7 @@ REFERENCE_CATALOGS = (
     "quantity_unit",
     "yield_benchmark",
     "metric_definition",
+    "service_registry",
     "operations_protocol", "dfs_insurance_product_type", "evidence_maturity_level",
     "sensor_type", "waste_type", "disposal_method", "graph_node_type",
     "graph_edge_type", "process_maturity_level", "pollinator_species_reference",
@@ -247,12 +251,39 @@ def check_boundary(
                          *runtime_role._RUNTIME_MUTATION_TABLES)
                     )
                 )
+                service_registry_id = str(uuid.uuid4())
+                capability_id = str(uuid.uuid4())
                 for table in relations:
-                    cursor.execute(
-                        sql.SQL("CREATE TABLE {} (id uuid PRIMARY KEY, marker text)").format(
-                            sql.Identifier("public", table)
+                    if table == "service_registry":
+                        cursor.execute(
+                            "CREATE TABLE public.service_registry ("
+                            "id uuid PRIMARY KEY, name text NOT NULL UNIQUE, marker text NOT NULL)"
                         )
-                    )
+                        cursor.execute(
+                            "INSERT INTO public.service_registry (id, name, marker) "
+                            "VALUES (%s, 'gateway', 'synthetic-service-registry')",
+                            (service_registry_id,),
+                        )
+                    else:
+                        cursor.execute(
+                            sql.SQL("CREATE TABLE {} (id uuid PRIMARY KEY, marker text)").format(
+                                sql.Identifier("public", table)
+                            )
+                        )
+                cursor.execute(
+                    "CREATE TABLE public.business_capability (id uuid PRIMARY KEY)"
+                )
+                cursor.execute(
+                    "INSERT INTO public.business_capability (id) VALUES (%s)",
+                    (capability_id,),
+                )
+                cursor.execute(
+                    "CREATE TABLE public.capability_service_map ("
+                    "id uuid PRIMARY KEY DEFAULT gen_random_uuid(), "
+                    "capability_id uuid NOT NULL REFERENCES public.business_capability(id) ON DELETE CASCADE, "
+                    "service_name text NOT NULL REFERENCES public.service_registry(name) ON DELETE CASCADE, "
+                    "is_primary boolean NOT NULL DEFAULT true, UNIQUE (capability_id, service_name))"
+                )
                 cursor.execute(
                     "INSERT INTO public.yield_benchmark (id, marker) "
                     "VALUES (%s, %s)",
@@ -310,6 +341,7 @@ def check_boundary(
                     "quantity_unit",
                     "yield_benchmark",
                     "metric_definition",
+                    "service_registry",
                 ):
                     cursor.execute(
                         sql.SQL(
@@ -489,6 +521,11 @@ def check_boundary(
                 )
                 cursor.execute(metric_definition_migration)
                 cursor.execute(metric_definition_migration)
+                service_registry_migration = SERVICE_REGISTRY_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(service_registry_migration)
+                cursor.execute(service_registry_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -587,9 +624,25 @@ def check_boundary(
                         "quantity_unit": 679,
                         "yield_benchmark": 680,
                         "metric_definition": 681,
+                        "service_registry": 682,
                     }[table]
                     raise AssertionError(
                         f"migration {migration_number} did not establish read-only rights on {table}"
+                    )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', "
+                    "'public.service_registry', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.service_registry', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.service_registry', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.service_registry', 'DELETE')"
+                )
+                if cursor.fetchone() != (True, True, True, True):
+                    raise AssertionError(
+                        "migration 682 unexpectedly changed the separate Directus role"
                     )
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -887,6 +940,7 @@ def check_boundary(
                     "reference_class", "farmer_credential_type",
                     "market_reference_data",
                     "quantity_unit", "yield_benchmark", "metric_definition",
+                    "service_registry",
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
@@ -1001,6 +1055,27 @@ def check_boundary(
                             raise AssertionError(
                                 f"runtime write unexpectedly succeeded on {table}"
                             )
+                cursor.execute("RESET ROLE")
+
+            # Catalog rows stay immutable while the dependent capability map
+            # remains writable through its existing operation.
+            with connection.cursor() as cursor:
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute(
+                    "INSERT INTO public.capability_service_map "
+                    "(capability_id, service_name, is_primary) VALUES (%s, 'gateway', true)",
+                    (capability_id,),
+                )
+                cursor.execute(
+                    "SELECT sr.marker FROM public.capability_service_map csm "
+                    "JOIN public.service_registry sr ON sr.name = csm.service_name "
+                    "WHERE csm.capability_id = %s",
+                    (capability_id,),
+                )
+                if cursor.fetchone() != ("synthetic-service-registry",):
+                    raise AssertionError(
+                        "runtime could not create/read a capability-service mapping"
+                    )
                 cursor.execute("RESET ROLE")
 
             with connection.cursor() as cursor:
@@ -1475,6 +1550,16 @@ def check_boundary(
                     "insert_update_delete_truncate_denied": True,
                     "references_triggers_and_column_grants_denied": True,
                     "directus_role_unchanged": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_service_registry": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_triggers_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                    "capability_service_mapping_remains_writable": True,
                     "tenant_isolation_established": False,
                 },
                 "column_level_privilege_regression_detected": True,

@@ -62,6 +62,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "quantity_unit": "runtime_mutations_denied",
     "yield_benchmark": "runtime_mutations_denied",
     "metric_definition": "runtime_mutations_denied",
+    "service_registry": "runtime_mutations_denied",
     "dfs_currency": "runtime_mutations_denied",
     "ghg_emission_factor": "runtime_mutations_denied",
     "operations_protocol": "runtime_mutations_denied",

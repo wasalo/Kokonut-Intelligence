@@ -1,16 +1,10 @@
-"""Tests for service catalog (SCRM) service layer.
-
-Covers service_registry CRUD, lifecycle, health summary, and the
-21 workflow specs including the 7 new ones.
-Integration DB tests skip when service_registry table is not available.
-"""
-
-import uuid
+"""Tests for service catalog reads and workflow specs."""
 
 import pytest
 
 from services.analytics.service_catalog import (
-    list_services, get_service, register_service, deprecate_service,
+    get_service,
+    list_services,
     service_health_summary,
 )
 
@@ -54,17 +48,6 @@ class TestServiceRegistry:
     def test_get_service_nonexistent(self):
         assert get_service("nonexistent_xyz") is None
 
-    def test_register_and_deprecate_service(self):
-        name = f"test_svc_{uuid.uuid4().hex[:8]}"
-        created = register_service(
-            name=name, category="support", description="Test service",
-        )
-        assert created["name"] == name
-        assert created["status"] == "active"
-
-        deprecated = deprecate_service(name)
-        assert deprecated["status"] == "deprecated"
-
     def test_service_health_summary(self):
         summary = service_health_summary()
         assert isinstance(summary, dict)
@@ -82,7 +65,7 @@ class TestWorkflowSpecs:
     """Validate that all registered workflow specs are well-formed."""
 
     def test_all_builtin_specs_present(self):
-        from services.workflow_specs.registry import load_builtin_specs, list_specs
+        from services.workflow_specs.registry import list_specs, load_builtin_specs
         load_builtin_specs()
         specs = {s.id for s in list_specs()}
         assert len(specs) == 30
@@ -93,7 +76,7 @@ class TestWorkflowSpecs:
         assert new_specs.issubset(specs)
 
     def test_new_specs_have_valid_states(self):
-        from services.workflow_specs.registry import load_builtin_specs, list_specs
+        from services.workflow_specs.registry import list_specs, load_builtin_specs
         load_builtin_specs()
         new_ids = {
             "traceability_batch", "insurance_claim", "pest_intervention",
@@ -105,7 +88,7 @@ class TestWorkflowSpecs:
                     assert state in spec.states, f"{spec.id} missing state {state}"
 
     def test_new_specs_have_human_approval_on_verify(self):
-        from services.workflow_specs.registry import load_builtin_specs, list_specs
+        from services.workflow_specs.registry import list_specs, load_builtin_specs
         load_builtin_specs()
         new_ids = {
             "traceability_batch", "insurance_claim", "pest_intervention",
@@ -121,7 +104,7 @@ class TestWorkflowSpecs:
                     )
 
     def test_new_specs_have_entry_steps(self):
-        from services.workflow_specs.registry import load_builtin_specs, list_specs
+        from services.workflow_specs.registry import list_specs, load_builtin_specs
         load_builtin_specs()
         new_ids = {
             "traceability_batch", "insurance_claim", "pest_intervention",

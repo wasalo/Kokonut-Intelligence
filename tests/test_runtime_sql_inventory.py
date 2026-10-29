@@ -440,21 +440,17 @@ def test_reviewed_unresolved_site_requires_all_review_metadata():
     assert any("requires reviewed_on" in error for error in errors)
 
 
-def test_runtime_sql_inventory_detects_service_catalog_insert_and_update_writers():
-    sites = {
-        site["scope"]: site
-        for site in build_inventory()["execution_sites"]
+def test_runtime_sql_inventory_contains_no_service_catalog_writer():
+    sites = [
+        site for site in build_inventory()["execution_sites"]
         if site["source"] == "services/analytics/service_catalog.py"
-    }
+    ]
 
-    register = sites["register_service"]
-    update = sites["update_service"]
-    assert register["statement_kind"] == "INSERT"
-    assert register["candidate_relations"] == ["service_registry"]
-    assert register["write_target_relations"] == ["service_registry"]
-    assert update["statement_kind"] == "UPDATE"
-    assert update["candidate_relations"] == ["service_registry"]
-    assert update["write_target_relations"] == ["service_registry"]
+    assert not any(
+        "service_registry" in site.get("write_target_relations", [])
+        for site in sites
+    )
+    assert all(site["statement_kind"] == "SELECT" for site in sites)
 
 
 def test_runtime_sql_inventory_separates_dml_targets_from_referenced_tables(tmp_path: Path):

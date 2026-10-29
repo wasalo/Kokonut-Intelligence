@@ -1043,7 +1043,15 @@ def test_http_demand_page_is_no_store_scoped_and_bounded(monkeypatch):
     from services.gateway.operating_pilot_routes import register_operating_pilot_routes
 
     calls = []
-    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    page = {
+        "location_id": LOCATION_ID,
+        "scope_configured": True,
+        "limit": 7,
+        "offset": 14,
+        "items": [],
+        "has_more": False,
+        "next_offset": None,
+    }
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_demand_signals",
         lambda *args, **kwargs: calls.append((args, kwargs)) or page,
@@ -1074,6 +1082,83 @@ def test_http_demand_page_is_no_store_scoped_and_bounded(monkeypatch):
     assert response.headers["vary"] == "Cookie"
     assert response.json() == page
     assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 7, "offset": 14})]
+
+
+def test_http_demand_page_rejects_unprojected_sensitive_fields(monkeypatch):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    page = {
+        "location_id": LOCATION_ID,
+        "scope_configured": True,
+        "limit": 25,
+        "offset": 0,
+        "items": [{
+            "work_type": "harvest",
+            "period_start": "2026-10-01",
+            "period_end": "2026-10-31",
+            "required_hours": 8,
+            "priority": "high",
+            "status": "submitted",
+            "created_by_party_id": "private-party-id",
+        }],
+        "has_more": False,
+        "next_offset": None,
+    }
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_demand_signals",
+        lambda *_args, **_kwargs: page,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Operating demand read unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private-party-id" not in response.text
+
+
+def test_demand_signal_response_enforces_numeric_column_bound():
+    from decimal import Decimal
+
+    from pydantic import ValidationError
+
+    from services.gateway.operating_pilot_routes import OperatingPilotDemandSignalItem
+
+    item = {
+        "work_type": "harvest",
+        "period_start": "2026-10-01",
+        "period_end": "2026-10-31",
+        "required_hours": Decimal("99999999.99"),
+        "priority": "high",
+        "status": "submitted",
+    }
+
+    assert OperatingPilotDemandSignalItem.model_validate(item).required_hours == Decimal(
+        "99999999.99"
+    )
+    with pytest.raises(ValidationError):
+        OperatingPilotDemandSignalItem.model_validate(
+            {**item, "required_hours": Decimal("100000000.00")}
+        )
 
 
 def test_resource_category_route_publishes_strict_openapi_contract():

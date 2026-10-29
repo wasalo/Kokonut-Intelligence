@@ -26,6 +26,7 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     assert overrides["revenue_multiplier_config"] == "runtime_mutations_denied"
     assert overrides["farmer_credential_type"] == "runtime_mutations_denied"
     assert overrides["metric_definition"] == "runtime_mutations_denied"
+    assert overrides["service_registry"] == "runtime_mutations_denied"
 
 
 def _acl_row(
@@ -205,6 +206,13 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
                     delete=False,
                 ),
                 _acl_row(
+                    "service_registry",
+                    select=True,
+                    insert=False,
+                    update=False,
+                    delete=False,
+                ),
+                _acl_row(
                     "yield_benchmark",
                     select=True,
                     insert=False,
@@ -279,6 +287,9 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
     assert rows["reference_class"]["expected_runtime_boundary"] == "runtime_mutations_denied"
     assert rows["reference_class"]["configured_runtime_boundary"] == "runtime_mutations_denied"
     assert rows["reference_class"]["runtime_boundary_policy_matches_source"] is True
+    assert rows["service_registry"]["expected_runtime_boundary"] == "runtime_mutations_denied"
+    assert rows["service_registry"]["configured_runtime_boundary"] == "runtime_mutations_denied"
+    assert rows["service_registry"]["runtime_boundary_policy_matches_source"] is True
     assert report["summary"]["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == 0
     assert report["runtime_role_acceptance"] == {
         "full_schema_replay_passed": True,
@@ -287,7 +298,7 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
         "current_source_policy_coverage_observed": True,
         "acl_snapshot_latest_migration": None,
         "acl_snapshot_latest_migration_number": None,
-        "repository_latest_migration_number": 681,
+        "repository_latest_migration_number": 682,
         "current_migration_chain_observed": False,
         "api_key_column_boundary_passed": False,
         "append_only_audit_ledgers_boundary_passed": True,
