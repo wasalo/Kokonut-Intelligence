@@ -220,6 +220,68 @@ def test_commons_report_generators_public_safe() -> None:
     assert "not legal opinions" in land["limitations"][0]
 
 
+def test_land_stewardship_uses_exact_view_projection_and_preserves_scope_and_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "tenure_rights_assessment_id": "d0000000-0000-0000-0000-000000000001",
+        "commitment_date": "2026-03-31",
+        "stewardship_model": "community_stewardship",
+        "landlord_dependency_risk": "low",
+        "anti_speculation_terms": "Transfer controls apply.",
+        "community_benefit_rights": "Commons access remains reserved.",
+        "commons_transition_path": "Governed review required.",
+        "public_summary": "Reviewed public commitment.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "synthetic"},
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+
+        def execute(self, query, params=None):
+            self.calls.append((" ".join(query.split()), params))
+
+        def fetchone(self):
+            return {"name": "Synthetic location"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_land_stewardship(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.calls[1]
+
+    assert query == (
+        "SELECT id, location_id, farm_id, tenure_rights_assessment_id, commitment_date, "
+        "stewardship_model, landlord_dependency_risk, anti_speculation_terms, "
+        "community_benefit_rights, commons_transition_path, public_summary, evidence_maturity, "
+        "evidence_maturity_label, metadata FROM v_public_land_stewardship_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR commitment_date >= %s::date) "
+        "AND (%s::date IS NULL OR commitment_date <= %s::date) "
+        "ORDER BY commitment_date DESC, stewardship_model"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["location_name"] == "Synthetic location"
+    assert report["commitments"] == [source_row]
+
+
 def test_time_liberation_projection_preserves_complete_view_payload() -> None:
     location_id = "a0000000-0000-0000-0000-000000000001"
     period_start = "2026-01-01"

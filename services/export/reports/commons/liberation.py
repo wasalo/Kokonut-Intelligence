@@ -187,7 +187,21 @@ def generate_land_stewardship(conn, location_id: str, period_start: str = None, 
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT
+                id,
+                location_id,
+                farm_id,
+                tenure_rights_assessment_id,
+                commitment_date,
+                stewardship_model,
+                landlord_dependency_risk,
+                anti_speculation_terms,
+                community_benefit_rights,
+                commons_transition_path,
+                public_summary,
+                evidence_maturity,
+                evidence_maturity_label,
+                metadata
             FROM v_public_land_stewardship_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR commitment_date >= %s::date)

@@ -1,0 +1,51 @@
+{
+  "batch": "strategy-roadmap-and-stakeholder-engagement-projections",
+  "date": "2026-10-29",
+  "base_commit": "98a2766c",
+  "scope": "Replace three report view wildcards in the strategy report module with migration-defined ordered projections.",
+  "projections": [
+    {
+      "report": "technology_roadmap",
+      "view": "v_technology_roadmap_overview",
+      "schema": "schemas/postgres/212_technology_roadmap.sql",
+      "column_count": 17,
+      "columns": ["roadmap_id", "name", "entity_type", "entity_id", "planning_horizon_start", "planning_horizon_end", "detail_level", "sponsor", "owner", "status", "next_review_at", "requirement_count", "technology_area_count", "driver_count", "alternative_count", "selected_alternative_count", "last_reviewed_at"]
+    },
+    {
+      "report": "stakeholder_engagement",
+      "view": "v_stakeholder_engagement_summary",
+      "schema": "schemas/postgres/217_stakeholder_engagement_scope_view.sql",
+      "column_count": 16,
+      "columns": ["plan_id", "name", "status", "engagement_mode", "stakeholder_party_id", "stakeholder_name", "objective_count", "touchpoint_count", "commitment_count", "open_commitment_count", "fulfilled_commitment_count", "overdue_commitment_count", "outcome_count", "last_outcome_at", "scope_type", "scope_id"]
+    },
+    {
+      "report": "stakeholder_engagement",
+      "view": "v_stakeholder_commitment_health",
+      "schema": "schemas/postgres/216_stakeholder_engagement.sql",
+      "column_count": 14,
+      "columns": ["commitment_id", "plan_id", "plan_name", "stakeholder_name", "owner_name", "title", "status", "due_at", "work_item_id", "work_item_status", "responsibility_id", "is_overdue", "outcome_count", "last_outcome_at"]
+    }
+  ],
+  "focused_check": {
+    "command": "python3 -m pytest -q tests/test_report_generator_cli.py::test_roadmap_and_stakeholder_engagement_use_exact_view_projections",
+    "passed": 1,
+    "coverage": "Asserts exact ordered column projections, roadmap ordering, selected-location engagement filtering, overdue commitment filtering/order, and unchanged returned rows and nested report payloads.",
+    "boundary": "Synthetic rows and fake cursors only; no database, provider, candidate, legacy service, or live route was used."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_generator_source_inventory": "check passed",
+    "report_generator_query_scope_inventory": "check passed",
+    "report_generator_helper_scope_inventory": "check passed",
+    "git_diff_check": "passed"
+  },
+  "source_audit": "The three report callsites now project all view fields explicitly; output dictionary fields and report aggregates are preserved.",
+  "rollback": "Revert the three query projections and focused fake-cursor regression, then regenerate the three report inventories. No migration or data rollback is needed.",
+  "tracked_progress": {
+    "checklist": "1602 complete / 25 open (1627 total)",
+    "todo": "297 checked / 16 open",
+    "capability_matrix": "67 rows; 24 baseline-retained, 7 deployed, 36 prepared; 99 strict private Gateway response contracts",
+    "man_cap_acceptance": "unchanged; separately gated"
+  }
+}

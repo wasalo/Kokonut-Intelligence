@@ -23271,3 +23271,53 @@ Checklist: 1,599 complete / 25 open (1,624 total); TODO: 294 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — strategy roadmap and engagement projections — 29 October 2026
+
+The technology-roadmap overview, stakeholder-engagement summary, and overdue
+commitment-health reads now select all 17, 16, and 14 migration-defined fields
+explicitly. The reports retain their network/location scope guards, selected
+location predicate, overdue-only selection, sort order, nested requirement and
+alternative reads, and serialized row payloads. One focused fake-cursor test
+asserts exact column order and unchanged report output.
+
+The focused regression, Ruff, Python compilation, three report inventory
+checks, and diff checks pass. No database, provider, candidate, legacy service,
+or live route was used. Populated-data parity, content privacy, OIDC, and tenant
+isolation remain unproven. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-strategy-roadmap-engagement-projections.json).
+
+Checklist: 1,602 complete / 25 open (1,627 total); TODO: 297 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — report projections and SDK response contracts — 29 October 2026
+
+The commons reports now select fixed migration-backed fields for their five
+public Kokonut views and the land-stewardship projection. Strategy reports
+replace additional stakeholder, grievance, trust, value-stream, technology,
+and governance wildcards with explicit view/table projections while retaining
+existing scope, filters, ordering, and serialized rows.
+
+The Gateway and both public SDKs enforce source-backed count relationships:
+zero metrics pair with a null latest timestamp, positive metric counts have a
+timestamp, and published attestations cannot exceed total attestations. Driver
+pagination rejects contradictory `has_more` responses. The TypeScript gRPC
+DataService now maps all declared response shapes, validates proto int32
+versions, and uses a bounded, cancellation-safe stream adapter. `IRIInfo`
+field 6 is now the algorithm returned by the Python service.
+
+Focused mock checks pass: commons 2, strategy 2, Gateway model 8, Python SDK
+47, JavaScript SDK 45, TypeScript gRPC DataService 25, and Python gRPC
+response serialization 1. Ruff, TypeScript
+lint, JavaScript type-check, report inventories, and capability-matrix
+validation pass. The report helper inventory explicitly records ten
+allowlisted dynamic projection sites as statically unresolved. No database,
+provider, candidate, legacy service, or live gRPC endpoint was used. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-public-projections-and-sdk-contracts.json).
+
+Checklist: 1,606 complete / 25 open (1,631 total); TODO: 301 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

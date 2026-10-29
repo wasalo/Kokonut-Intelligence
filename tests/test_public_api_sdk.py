@@ -312,14 +312,25 @@ def test_metric_sdk_rejects_malformed_or_wrong_scope_summaries(
                 "metrics": {"metric_count": 0, "latest_computed_at": None},
                 "attestations": {
                     "total_attestations": 1,
-                    "published_count": 2,
+                    "published_count": 1,
                     "latest_attestation": None,
+                },
+            },
+        ),
+        (
+            LOCATION["id"],
+            {
+                **LOCATION_SUMMARY,
+                "attestations": {
+                    "total_attestations": 2,
+                    "published_count": 1,
+                    "latest_attestation": "2026-10-14T12:35:00+00:00",
                 },
             },
         ),
     ],
 )
-def test_location_summary_sdk_accepts_exact_scoped_payloads_without_extra_count_rules(
+def test_location_summary_sdk_accepts_exact_scoped_payloads_with_consistent_counts(
     requested_location_id: str, summary: dict[str, Any]
 ) -> None:
     client = KokonutPublicApiClient(
@@ -383,6 +394,14 @@ def test_location_summary_sdk_accepts_exact_scoped_payloads_without_extra_count_
         },
         {
             **LOCATION_SUMMARY,
+            "metrics": {"metric_count": 0, "latest_computed_at": "2026-10-14T12:30:00Z"},
+        },
+        {
+            **LOCATION_SUMMARY,
+            "metrics": {"metric_count": 1, "latest_computed_at": None},
+        },
+        {
+            **LOCATION_SUMMARY,
             "attestations": {
                 key: value
                 for key, value in LOCATION_SUMMARY["attestations"].items()
@@ -405,6 +424,14 @@ def test_location_summary_sdk_accepts_exact_scoped_payloads_without_extra_count_
             "attestations": {
                 **LOCATION_SUMMARY["attestations"],
                 "published_count": True,
+            },
+        },
+        {
+            **LOCATION_SUMMARY,
+            "attestations": {
+                **LOCATION_SUMMARY["attestations"],
+                "total_attestations": 1,
+                "published_count": 2,
             },
         },
         {
@@ -538,7 +565,7 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
                                 "driver_type": "weather",
                             }
                         ],
-                        "limit": 7,
+                        "limit": 1,
                         "offset": 12,
                         "has_more": True,
                     }
@@ -548,7 +575,7 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
     )
     client = KokonutPublicApiClient("https://gateway.example", session=session)
 
-    page = client.drivers.list(limit=7, offset=12)
+    page = client.drivers.list(limit=1, offset=12)
 
     assert isinstance(page, PublicDriverCatalogPage)
     assert page == PublicDriverCatalogPage(
@@ -559,13 +586,13 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
                 driver_type="weather",
             )
         ],
-        limit=7,
+        limit=1,
         offset=12,
         has_more=True,
     )
     assert session.calls == [
         (
-            "https://gateway.example/api/v1/drivers?limit=7&offset=12",
+            "https://gateway.example/api/v1/drivers?limit=1&offset=12",
             {"timeout": 10.0},
         )
     ]
@@ -575,6 +602,14 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
     "catalog",
     [
         {"drivers": [], "limit": 7, "offset": 12, "has_more": "false"},
+        {
+            "drivers": [
+                {"driver_name": "weather", "driver_version": "1", "driver_type": "weather"}
+            ],
+            "limit": 7,
+            "offset": 12,
+            "has_more": True,
+        },
         {"drivers": [], "limit": True, "offset": 12, "has_more": False},
         {"drivers": [], "limit": 7, "offset": 5001, "has_more": False},
         {"drivers": [], "limit": 7, "offset": 13, "has_more": False},
@@ -644,6 +679,29 @@ def test_driver_catalog_sdk_rejects_malformed_typed_response(catalog: dict[str, 
         client.drivers.list(limit=7, offset=12)
 
     assert exc_info.value.response is response
+
+
+def test_driver_catalog_sdk_rejects_more_when_next_page_exceeds_offset_bound() -> None:
+    driver = {
+        "driver_name": "weather",
+        "driver_version": "1",
+        "driver_type": "weather",
+    }
+    response = FakeResponse(
+        200,
+        {
+            "data": {
+                "drivers": [driver.copy() for _ in range(7)],
+                "limit": 7,
+                "offset": 4994,
+                "has_more": True,
+            }
+        },
+    )
+    client = KokonutPublicApiClient("https://gateway.example", session=FakeSession([response]))
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope"):
+        client.drivers.list(limit=7, offset=4994)
 
 
 @pytest.mark.parametrize(

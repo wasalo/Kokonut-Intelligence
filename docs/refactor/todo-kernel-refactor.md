@@ -17,6 +17,29 @@ the batch log and the affected capability/progress records are updated.
   payloads across all three consuming report paths using fake cursors only
   ([same evidence](builds/2026-10-29-recovery/kernel-strategy-internal-cockpit-projections.json)).
 
+- [x] Replace technology-roadmap and stakeholder-engagement report wildcards
+  with the migration-defined 17-, 16-, and 14-column projections, preserving
+  ordering, location filters, overdue filtering, and output payloads
+  ([evidence](builds/2026-10-29-recovery/kernel-strategy-roadmap-engagement-projections.json)).
+- [x] Verify all three ordered projections and report payloads with a focused
+  fake-cursor regression; no database or provider was used
+  ([same evidence](builds/2026-10-29-recovery/kernel-strategy-roadmap-engagement-projections.json)).
+
+- [x] Replace six commons report wildcards with migration-backed, ordered
+  projections; retain location/network scope and serialized rows
+  ([evidence](builds/2026-10-29-recovery/kernel-public-projections-and-sdk-contracts.json)).
+- [x] Replace additional stakeholder, grievance, trust, value-stream, and
+  governance report wildcards with exact schema projections and preserve
+  report payloads
+  ([same evidence](builds/2026-10-29-recovery/kernel-public-projections-and-sdk-contracts.json)).
+- [x] Align public summary count invariants and driver pagination checks in
+  Gateway, Python, and JavaScript; metric counts match timestamp presence and
+  published attestations remain a subset of all attestations
+  ([same evidence](builds/2026-10-29-recovery/kernel-public-projections-and-sdk-contracts.json)).
+- [x] Normalize the TypeScript gRPC DataService responses to declared SDK
+  shapes, correct `IRIInfo.hash_algorithm`, and bound/cancel the stream adapter
+  ([same evidence](builds/2026-10-29-recovery/kernel-public-projections-and-sdk-contracts.json)).
+
 - [x] Replace the public stakeholder-cockpit and coordination-alliance
   wildcards with their exact 13-column migration-238 projections, preserving
   network-wide behavior and internal/public response separation
@@ -87,8 +110,9 @@ the batch log and the affected capability/progress records are updated.
 - [x] Validate public metrics responses in Python and TypeScript, including
   requested-location identity and result-count parity.
 - [x] Validate nested public location summaries and both location identities
-  in Python and TypeScript without adding undeclared count relationships
-  ([evidence](builds/2026-10-28-recovery/kernel-parallel-wellbeing-community-sdk-contracts.json)).
+  in Python and TypeScript, including source-backed metric count/timestamp and
+  published-attestation subset invariants
+  ([evidence](builds/2026-10-29-recovery/kernel-public-projections-and-sdk-contracts.json)).
 
 - [x] Add strict Comprehensive Status contracts for farm summary and published
   financial sustainability, including location binding and existing bounded

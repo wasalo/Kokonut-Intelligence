@@ -297,12 +297,16 @@ function isPublicLocationSummary(
     isNonNegativeInteger(metricCounts.metric_count) &&
     (metricCounts.latest_computed_at === null ||
       isRfc3339DateTime(metricCounts.latest_computed_at)) &&
+    ((metricCounts.metric_count as number) === 0) ===
+      (metricCounts.latest_computed_at === null) &&
     Object.keys(attestationCounts).length === 3 &&
     Object.prototype.hasOwnProperty.call(attestationCounts, 'total_attestations') &&
     Object.prototype.hasOwnProperty.call(attestationCounts, 'published_count') &&
     Object.prototype.hasOwnProperty.call(attestationCounts, 'latest_attestation') &&
     isNonNegativeInteger(attestationCounts.total_attestations) &&
     isNonNegativeInteger(attestationCounts.published_count) &&
+    (attestationCounts.published_count as number) <=
+      (attestationCounts.total_attestations as number) &&
     (attestationCounts.latest_attestation === null ||
       isRfc3339DateTime(attestationCounts.latest_attestation))
   );
@@ -326,7 +330,10 @@ function isDriverCatalogResponse(
     (candidate.offset as number) > 5000 ||
     candidate.limit !== expectedLimit ||
     candidate.offset !== expectedOffset ||
-    typeof candidate.has_more !== 'boolean'
+    typeof candidate.has_more !== 'boolean' ||
+    (candidate.has_more &&
+      (candidate.drivers.length !== candidate.limit ||
+        (candidate.offset as number) + (candidate.limit as number) > 5000))
   ) {
     return false;
   }

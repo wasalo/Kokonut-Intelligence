@@ -238,8 +238,13 @@ def _is_public_location_summary(value: Any, requested_location_id: str) -> bool:
             metrics["latest_computed_at"] is None
             or _is_rfc3339_datetime(metrics["latest_computed_at"])
         )
+        and (
+            (metrics["metric_count"] == 0)
+            == (metrics["latest_computed_at"] is None)
+        )
         and _is_nonnegative_integer(attestations["total_attestations"])
         and _is_nonnegative_integer(attestations["published_count"])
+        and attestations["published_count"] <= attestations["total_attestations"]
         and (
             attestations["latest_attestation"] is None
             or _is_rfc3339_datetime(attestations["latest_attestation"])
@@ -363,6 +368,10 @@ def _is_driver_catalog_response(
         or limit != expected_limit
         or offset != expected_offset
         or not isinstance(value.get("has_more"), bool)
+        or (
+            value["has_more"]
+            and (len(drivers) != limit or offset + limit > 5000)
+        )
     ):
         return False
     driver_types = {

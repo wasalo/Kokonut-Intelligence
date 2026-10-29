@@ -20,7 +20,11 @@ from services.export.reports.strategy import (
     generate_coordination_cockpit,
     generate_governance_coordination_health,
     generate_stakeholder_cockpit,
+    generate_stakeholder_decision_lineage,
     generate_stakeholder_ecosystem,
+    generate_stakeholder_engagement,
+    generate_stakeholder_grievance,
+    generate_stakeholder_landscape,
     generate_stakeholder_representation,
     generate_stakeholder_trust,
     generate_stakeholder_value_streams,
@@ -548,6 +552,333 @@ def test_internal_cockpit_views_use_exact_projections_at_every_report_callsite()
     assert coordination_cursor.calls[0][1] is None
     assert "ORDER BY name" in coordination_cursor.calls[0][0]
     assert coordination_report["internal"] == [coordination_row]
+
+
+def test_roadmap_and_stakeholder_engagement_use_exact_view_projections() -> None:
+    roadmap_columns = [
+        "roadmap_id",
+        "name",
+        "entity_type",
+        "entity_id",
+        "planning_horizon_start",
+        "planning_horizon_end",
+        "detail_level",
+        "sponsor",
+        "owner",
+        "status",
+        "next_review_at",
+        "requirement_count",
+        "technology_area_count",
+        "driver_count",
+        "alternative_count",
+        "selected_alternative_count",
+        "last_reviewed_at",
+    ]
+    engagement_columns = [
+        "plan_id",
+        "name",
+        "status",
+        "engagement_mode",
+        "stakeholder_party_id",
+        "stakeholder_name",
+        "objective_count",
+        "touchpoint_count",
+        "commitment_count",
+        "open_commitment_count",
+        "fulfilled_commitment_count",
+        "overdue_commitment_count",
+        "outcome_count",
+        "last_outcome_at",
+        "scope_type",
+        "scope_id",
+    ]
+    commitment_columns = [
+        "commitment_id",
+        "plan_id",
+        "plan_name",
+        "stakeholder_name",
+        "owner_name",
+        "title",
+        "status",
+        "due_at",
+        "work_item_id",
+        "work_item_status",
+        "responsibility_id",
+        "is_overdue",
+        "outcome_count",
+        "last_outcome_at",
+    ]
+    roadmap_row = {"roadmap_id": "roadmap-1", "name": "Kernel roadmap", "status": "active"}
+    plan_row = {
+        "plan_id": "plan-1",
+        "name": "Seasonal consultations",
+        "scope_type": "location",
+        "scope_id": LOCATION_A,
+        "overdue_commitment_count": 1,
+    }
+    commitment_row = {"commitment_id": "commitment-1", "plan_id": "plan-1", "is_overdue": True}
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchall(self):
+            if "v_technology_roadmap_overview" in self.current_query:
+                return [roadmap_row]
+            if "v_stakeholder_engagement_summary" in self.current_query:
+                return [plan_row]
+            if "v_stakeholder_commitment_health" in self.current_query:
+                return [commitment_row]
+            return []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+    class Connection:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    def assert_projection(query, view, columns):
+        projection = re.search(rf"SELECT (.*?) FROM {view}", query)
+        assert projection is not None
+        assert [column.strip() for column in projection.group(1).split(",")] == columns
+
+    connection = Connection()
+    roadmap = generate_technology_roadmap(connection)
+    roadmap_query, roadmap_params = connection.cursor_value.calls[0]
+    assert_projection(roadmap_query, "v_technology_roadmap_overview", roadmap_columns)
+    assert roadmap_params is None
+    assert "ORDER BY name" in roadmap_query
+    assert roadmap["roadmaps"] == [{**roadmap_row, "requirements": [], "alternatives": []}]
+
+    engagement = generate_stakeholder_engagement(connection, location_id=LOCATION_A)
+    summary_query, summary_params = connection.cursor_value.calls[-2]
+    assert_projection(summary_query, "v_stakeholder_engagement_summary", engagement_columns)
+    assert summary_params == [LOCATION_A]
+    assert "WHERE scope_type = 'location' AND scope_id = %s::uuid" in summary_query
+    assert "ORDER BY overdue_commitment_count DESC, name" in summary_query
+    commitment_query, commitment_params = connection.cursor_value.calls[-1]
+    assert_projection(commitment_query, "v_stakeholder_commitment_health", commitment_columns)
+    assert commitment_params == ("plan-1",)
+    assert "WHERE plan_id = %s AND is_overdue = TRUE" in commitment_query
+    assert "ORDER BY due_at NULLS LAST" in commitment_query
+    assert engagement["plans"] == [plan_row]
+    assert engagement["overdue_commitments"] == [commitment_row]
+
+
+def test_additional_strategy_projections_preserve_scope_order_and_report_payloads() -> None:
+    projections = {
+        "v_stakeholder_landscape_by_location": "location_id, party_id, party_type, display_name, party_status, privacy_level, identifier_count, active_relationship_count, open_interest_count, advisory_score, salience_review_status, last_updated_at",
+        "v_stakeholder_landscape": "party_id, party_type, display_name, party_status, privacy_level, identifier_count, active_relationship_count, open_interest_count, advisory_score, salience_review_status, last_updated_at",
+        "v_stakeholder_cockpit_internal": "active_party_count, active_relationship_count, open_interest_count, active_engagement_plan_count, overdue_commitment_count, open_grievance_count, active_decision_count, unresolved_harm_count, open_relationship_risk_count, pending_buyer_verification_count, contested_trust_evidence_count, stewardship_action_count, unverified_value_stream_outcome_count, generated_at, active_alliance_count, slow_cycle_alliance_count, fast_cycle_alliance_count, open_coordination_conflict_count, open_coordination_remedy_count, overdue_alliance_review_count",
+        "v_stakeholder_grievance_health": "case_id, case_number, category, severity, confidentiality, status, summary, location_id, complainant_name, affected_party_name, owner_name, received_at, due_at, work_item_id, investigation_count, evidence_count, remedy_count, open_remedy_count, appeal_count, satisfaction_score, is_overdue",
+        "v_stakeholder_decision_lineage": "decision_id, decision_key, title, decision_type, scope_type, scope_id, status, approval_status, approval_actor_type, approval_role, material_harm_review_status, minority_review_status, created_by_name, approved_by_name, approved_at, decision_log_id, work_item_id, participant_count, participating_count, minority_participant_count, tradeoff_count, unresolved_harm_count, evidence_count, verified_evidence_count, outcome_count, last_outcome_at",
+        "relationship_risk_indicator": "id, subject_party_id, relationship_party_id, risk_key, severity, rationale, evidence_ids, uncertainty, status, reviewed_by_party_id, created_at",
+        "v_party_relationship_recommendations": "party_id, display_name, recommendation, evidence_count, maximum_uncertainty, human_review_required, limitation",
+        "v_party_trust_profile": "party_id, display_name, party_type, evidence_count, supporting_evidence_count, contradicting_evidence_count, contested_evidence_count, open_risk_count, latest_evidence_at, earliest_evidence_at, latest_snapshot_at, latest_uncertainty, interpretation",
+        "v_market_dispute_performance": "dispute_count, resolved_count, open_count, average_resolution_days, open_appeal_count, correction_request_count",
+        "v_party_financing_eligibility_inputs": "party_id, display_name, identity_evidence_count, payment_support_count, contradicting_evidence_count, open_risk_count, maximum_uncertainty, human_review_required, limitation",
+        "v_stakeholder_capability_value_stream": "entity_type, entity_id, entity_name, party_id, party_name, relationship_type, desired_outcome, demand_level, criticality, harm_exposure, dependency_risk, stakeholder_promise, service_quality_target, satisfaction_target, status",
+        "v_value_stream_performance": "stream_id, stream_name, stakeholder_type, trigger_event, end_state, stream_status, stage_id, stage_name, sequence_order, process_key, target_lead_time_hours, target_fty_pct, observation_count, avg_lead_time_hours, avg_fty_pct, last_observed_at",
+        "stakeholder_bottleneck_priority": "id, stage_id, party_id, outcome_id, process_key, priority, harm_if_unresolved, value_at_risk, value_unit, evidence, reviewed_by_party_id, reviewed_at, status",
+        "technology_alternative_stakeholder_outcome": "id, alternative_id, party_id, outcome_id, expected_benefit, expected_harm_reduction, access_effects, equity_effects, estimated_value, estimated_value_unit, uncertainty, evidence, reviewed_by_party_id, reviewed_at, status",
+        "v_governance_cockpit_internal": "active_circle_count, active_role_count, unassigned_role_count, overdue_assignment_review_count, unresolved_tension_count, high_severity_tension_count, proposals_awaiting_review_count, open_objection_count, material_objection_count, links_expiring_soon_count, overdue_tactical_item_count, open_tactical_item_count, generated_at",
+        "v_governance_cockpit_public": "active_circle_count, active_role_count, resolved_tension_count, implemented_proposal_count, privacy_limitation, generated_at",
+        "v_governance_tension_health": "tension_id, tension_key, title, description, tension_type, severity, urgency, circle_id, circle_key, circle_name, scope_type, scope_id, status, reported_by_party_id, reported_by_name, affected_party_id, affected_party_name, owner_role_id, owner_role_key, owner_party_id, owner_party_name, work_item_id, decision_id, grievance_id, review_due_at, deferred_until, link_count, is_overdue",
+        "v_governance_proposal_lineage": "proposal_id, proposal_key, circle_id, circle_key, proposal_type, title, status, tension_id, proposed_by_party_id, proposer_name, proposed_by_role_id, proposer_role_key, harm_review_status, minority_review_status, approved_by_party_id, approver_name, approved_at, implementation_work_item_id, review_due_at, objection_count, open_objection_count, open_material_objection_count, review_count",
+        "v_governance_circle_links": "link_id, source_circle_id, source_circle_key, target_circle_id, target_circle_key, link_type, role_id, role_key, party_id, party_name, mandate, scope_type, scope_id, term_start, term_end, status, recusal_status, approved_by_party_id, approved_by_name",
+    }
+
+    def columns(relation):
+        return [column.strip() for column in projections[relation].split(",")]
+
+    def assert_projection(query, relation):
+        match = re.search(rf"SELECT (.*?) FROM {relation}(?:\s|$)", query)
+        assert match is not None, query
+        assert [column.strip() for column in match.group(1).split(",")] == columns(relation)
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_relation = ""
+
+        def execute(self, query, params=None):
+            normalized = " ".join(query.split())
+            relation_match = re.search(r"\bFROM ([a-z_]+)", normalized)
+            assert relation_match is not None, normalized
+            self.current_relation = relation_match.group(1)
+            self.calls.append((normalized, params))
+
+        def fetchall(self):
+            return [{"payload": self.current_relation, "is_overdue": True}]
+
+        def fetchone(self):
+            return {"payload": self.current_relation}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+    class Connection:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    location_cases = [
+        (
+            generate_stakeholder_landscape,
+            ["v_stakeholder_landscape_by_location"],
+            "parties",
+            "WHERE location_id = %s::uuid ORDER BY advisory_score DESC NULLS LAST, display_name",
+        ),
+        (
+            generate_stakeholder_grievance,
+            ["v_stakeholder_grievance_health"],
+            "cases",
+            "WHERE location_id = %s::uuid ORDER BY is_overdue DESC, severity DESC, received_at",
+        ),
+        (
+            generate_stakeholder_decision_lineage,
+            ["v_stakeholder_decision_lineage"],
+            "decisions",
+            "WHERE scope_type = 'location' AND scope_id = %s::uuid ORDER BY approved_at DESC NULLS LAST, decision_id",
+        ),
+    ]
+    for generator, relations, payload_key, expected_suffix in location_cases:
+        connection = Connection()
+        report = generator(connection, location_id=LOCATION_A)
+        assert len(connection.cursor_value.calls) == len(relations)
+        query, params = connection.cursor_value.calls[0]
+        assert_projection(query, relations[0])
+        assert params == [LOCATION_A]
+        assert query.endswith(expected_suffix)
+        assert report[payload_key] == [{"payload": relations[0], "is_overdue": True}]
+        if generator is generate_stakeholder_grievance:
+            assert report["overdue_count"] == 1
+
+    network_cases = [
+        (
+            generate_stakeholder_ecosystem,
+            [
+                "v_stakeholder_cockpit_internal",
+                "v_stakeholder_landscape",
+                "relationship_risk_indicator",
+                "v_party_relationship_recommendations",
+            ],
+            [
+                "",
+                "ORDER BY advisory_score DESC NULLS LAST, display_name",
+                "ORDER BY created_at DESC",
+                "ORDER BY recommendation, display_name",
+            ],
+            {
+                "landscape": "v_stakeholder_landscape",
+                "relationship_risks": "relationship_risk_indicator",
+                "relationship_recommendations": "v_party_relationship_recommendations",
+            },
+        ),
+        (
+            generate_stakeholder_trust,
+            [
+                "v_party_trust_profile",
+                "v_market_dispute_performance",
+                "relationship_risk_indicator",
+                "v_party_financing_eligibility_inputs",
+            ],
+            [
+                "ORDER BY open_risk_count DESC, display_name",
+                "",
+                "WHERE status IN ('open', 'monitoring') ORDER BY created_at DESC",
+                "ORDER BY open_risk_count DESC, display_name",
+            ],
+            {
+                "profiles": "v_party_trust_profile",
+                "relationship_risks": "relationship_risk_indicator",
+                "financing_and_insurance_inputs": "v_party_financing_eligibility_inputs",
+            },
+        ),
+        (
+            generate_stakeholder_value_streams,
+            [
+                "v_stakeholder_capability_value_stream",
+                "v_value_stream_performance",
+                "stakeholder_bottleneck_priority",
+                "technology_alternative_stakeholder_outcome",
+            ],
+            [
+                "ORDER BY entity_type, entity_name, party_name",
+                "",
+                "WHERE status IN ('reviewed', 'active') ORDER BY priority, reviewed_at DESC NULLS LAST",
+                "WHERE status IN ('reviewed', 'approved') ORDER BY reviewed_at DESC NULLS LAST",
+            ],
+            {
+                "stakeholder_links": "v_stakeholder_capability_value_stream",
+                "performance": "v_value_stream_performance",
+                "stakeholder_bottleneck_priorities": "stakeholder_bottleneck_priority",
+                "technology_alternative_outcomes": "technology_alternative_stakeholder_outcome",
+            },
+        ),
+        (
+            generate_governance_coordination_health,
+            [
+                "v_governance_cockpit_internal",
+                "v_governance_cockpit_public",
+                "v_governance_tension_health",
+                "v_governance_proposal_lineage",
+                "v_governance_circle_links",
+            ],
+            [
+                "",
+                "",
+                "ORDER BY severity DESC, urgency DESC",
+                "ORDER BY approved_at DESC NULLS LAST, proposal_id",
+                "ORDER BY term_end NULLS LAST",
+            ],
+            {
+                "tensions": "v_governance_tension_health",
+                "proposals": "v_governance_proposal_lineage",
+                "circle_links": "v_governance_circle_links",
+            },
+        ),
+    ]
+    for generator, relations, clauses, payload_rows in network_cases:
+        connection = Connection()
+        report = generator(connection)
+        assert len(connection.cursor_value.calls) == len(relations)
+        for (query, params), relation, clause in zip(
+            connection.cursor_value.calls, relations, clauses, strict=True
+        ):
+            assert_projection(query, relation)
+            assert params is None
+            if clause:
+                assert query.endswith(clause)
+        for key, relation in payload_rows.items():
+            assert report[key] == [{"payload": relation, "is_overdue": True}]
+        if generator is generate_stakeholder_ecosystem:
+            assert report["relationship_recommendations"] == [
+                {"payload": "v_party_relationship_recommendations", "is_overdue": True}
+            ]
+        elif generator is generate_stakeholder_trust:
+            assert report["dispute_performance"] == {"payload": "v_market_dispute_performance"}
+        elif generator is generate_governance_coordination_health:
+            assert report["internal"] == {"payload": "v_governance_cockpit_internal"}
+            assert report["public_safe"] == {"payload": "v_governance_cockpit_public"}
+
 
 
 def test_check_report_empty_reports_empty_primary_sections(capsys) -> None:

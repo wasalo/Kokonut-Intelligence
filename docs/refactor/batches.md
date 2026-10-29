@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,599 checklist items complete and 25
-open (1,624 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,606 checklist items complete and 25
+open (1,631 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -47,6 +47,64 @@ Evidence:
 [batch](builds/2026-10-29-recovery/kernel-strategy-internal-cockpit-projections.json).
 
 Checklist: 1,599 complete / 25 open (1,624 total); TODO: 294 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — roadmap and stakeholder-engagement projections — 29 October 2026
+
+- [x] Replace the technology-roadmap overview wildcard with all 17 ordered
+  migration-212 fields, preserving roadmap ordering and nested records.
+- [x] Replace stakeholder-engagement summary and commitment-health wildcards
+  with their exact 16- and 14-column migrations-backed projections, retaining
+  selected-location and overdue filters, ordering, and payloads.
+
+The focused fake-cursor regression passes. Ruff, Python compilation, all three
+report inventories, and diff checks pass. No database, provider, candidate,
+legacy service, or live route was used. This does not establish populated-data
+parity, content privacy, OIDC, or tenant isolation. Rollback reverts the three
+queries and regression and regenerates the source inventories; no migration or
+data rollback is needed. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-strategy-roadmap-engagement-projections.json).
+
+Checklist: 1,602 complete / 25 open (1,627 total); TODO: 297 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — report projections and SDK response contracts — 29 October 2026
+
+- [x] Replace six commons-report wildcards with fixed, migration-defined
+  projections. The five public Kokonut views retain allowlisted view names,
+  location/network scope, ordering, and row payloads; land stewardship now
+  selects its exact 14 migration-037 columns.
+- [x] Replace the additional stakeholder, grievance, trust, value-stream,
+  technology, and governance report wildcards with exact view/table projections
+  while preserving existing filters, sort order, and serialized output.
+- [x] Align the public location-summary contract across Gateway, Python SDK,
+  and JavaScript SDK: a zero metric count pairs with a null latest timestamp,
+  positive count pairs with a timestamp, and published attestations cannot
+  exceed the total. Keep driver pagination bounds consistent across both SDKs.
+- [x] Normalize TypeScript DataService gRPC unary and streaming responses to
+  the declared SDK shapes, validate malformed responses and proto int32
+  versions, correct `IRIInfo.hash_algorithm`, and add bounded stream buffering
+  with cancellation-safe listener cleanup.
+
+Focused mocked regressions pass: commons projections (2 tests), strategy
+projections (2), Gateway public models (8), Python public summary/driver SDK
+(47), JavaScript public summary/driver SDK (45), TypeScript DataService (25),
+and Python gRPC response serialization (1). Ruff, TypeScript lint, JavaScript type-check, capability-matrix
+validation, all three report inventories, and diff checks pass. The report
+helper inventory now identifies 10 SQL helper sites as unresolved because the
+projection is selected from a fixed allowlist at runtime; the runtime source
+still rejects unknown views. This is a static inventory limitation, not proof
+of database behavior. No database, provider, candidate, legacy service, or
+live gRPC route was used. Rollback reverts these query/SDK/proto changes and
+focused tests, then regenerates the report inventories; no migration or data
+rollback is needed. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-public-projections-and-sdk-contracts.json).
+
+Checklist: 1,606 complete / 25 open (1,631 total); TODO: 301 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.

@@ -196,11 +196,19 @@ describe('KokonutPublicApiClient', () => {
       metrics: { metric_count: 0, latest_computed_at: null },
       attestations: {
         total_attestations: 1,
-        published_count: 2,
+        published_count: 1,
         latest_attestation: null,
       },
     },
-  ])('accepts exact scoped location summaries without invented count relationships', async (summary) => {
+    {
+      ...locationSummary,
+      attestations: {
+        total_attestations: 2,
+        published_count: 1,
+        latest_attestation: '2026-10-14T12:35:00+00:00',
+      },
+    },
+  ])('accepts exact scoped location summaries with consistent counts', async (summary) => {
     const fetch = vi.fn<PublicFetch>().mockResolvedValue(response(200, { data: summary }));
     const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
 
@@ -241,6 +249,11 @@ describe('KokonutPublicApiClient', () => {
     { ...locationSummary, metrics: { metric_count: 1.5, latest_computed_at: null } },
     {
       ...locationSummary,
+      metrics: { metric_count: 0, latest_computed_at: '2026-10-14T12:30:00Z' },
+    },
+    { ...locationSummary, metrics: { metric_count: 1, latest_computed_at: null } },
+    {
+      ...locationSummary,
       metrics: { metric_count: 1, latest_computed_at: '2026-10-14T12:30:00' },
     },
     {
@@ -257,6 +270,10 @@ describe('KokonutPublicApiClient', () => {
     {
       ...locationSummary,
       attestations: { ...locationSummary.attestations, published_count: true },
+    },
+    {
+      ...locationSummary,
+      attestations: { total_attestations: 1, published_count: 2, latest_attestation: null },
     },
     {
       ...locationSummary,
@@ -384,7 +401,7 @@ describe('KokonutPublicApiClient', () => {
               driver_type: 'weather',
             },
           ],
-          limit: 7,
+          limit: 1,
           offset: 12,
           has_more: true,
         },
@@ -392,7 +409,7 @@ describe('KokonutPublicApiClient', () => {
     );
     const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
 
-    await expect(client.drivers.list({ limit: 7, offset: 12 })).resolves.toEqual({
+    await expect(client.drivers.list({ limit: 1, offset: 12 })).resolves.toEqual({
       drivers: [
         {
           driver_name: 'weather_openweathermap',
@@ -400,17 +417,23 @@ describe('KokonutPublicApiClient', () => {
           driver_type: 'weather',
         },
       ],
-      limit: 7,
+      limit: 1,
       offset: 12,
       has_more: true,
     });
     expect(fetch.mock.calls[0]?.[0]).toBe(
-      'https://gateway.example/api/v1/drivers?limit=7&offset=12',
+      'https://gateway.example/api/v1/drivers?limit=1&offset=12',
     );
   });
 
   it.each([
     { drivers: [], limit: 7, offset: 12, has_more: 'false' },
+    {
+      drivers: [{ driver_name: 'weather', driver_version: '1', driver_type: 'weather' }],
+      limit: 7,
+      offset: 12,
+      has_more: true,
+    },
     { drivers: [], limit: true, offset: 12, has_more: false },
     { drivers: [], limit: 7, offset: 5001, has_more: false },
     { drivers: [], limit: 7, offset: 13, has_more: false },
@@ -470,6 +493,29 @@ describe('KokonutPublicApiClient', () => {
       message: 'Invalid public API response envelope',
       statusCode: 200,
     });
+    expect((error as PublicApiError).response).toBe(mockResponse);
+  });
+
+  it('rejects more when the next driver page exceeds the offset bound', async () => {
+    const driver = {
+      driver_name: 'weather',
+      driver_version: '1',
+      driver_type: 'weather',
+    };
+    const mockResponse = response(200, {
+      data: {
+        drivers: Array.from({ length: 7 }, () => ({ ...driver })),
+        limit: 7,
+        offset: 4994,
+        has_more: true,
+      },
+    });
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    const error = await client.drivers.list({ limit: 7, offset: 4994 }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PublicApiError);
     expect((error as PublicApiError).response).toBe(mockResponse);
   });
 

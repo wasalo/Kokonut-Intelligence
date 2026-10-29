@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class PublicModel(BaseModel):
@@ -94,11 +94,23 @@ class PublicMetricCounts(PublicModel):
     metric_count: int = Field(ge=0)
     latest_computed_at: datetime | None
 
+    @model_validator(mode="after")
+    def validate_latest_timestamp_matches_count(self):
+        if (self.metric_count == 0) != (self.latest_computed_at is None):
+            raise ValueError("latest_computed_at must match metric_count")
+        return self
+
 
 class PublicAttestationCounts(PublicModel):
     total_attestations: int = Field(ge=0)
     published_count: int = Field(ge=0)
     latest_attestation: datetime | None
+
+    @model_validator(mode="after")
+    def validate_published_count_subset(self):
+        if self.published_count > self.total_attestations:
+            raise ValueError("published_count must not exceed total_attestations")
+        return self
 
 
 class PublicLocationSummary(PublicModel):
