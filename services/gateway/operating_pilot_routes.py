@@ -58,6 +58,19 @@ _ResponseDate = Annotated[date, BeforeValidator(_response_date)]
 _ResponseDateTime = Annotated[AwareDatetime, BeforeValidator(_response_datetime)]
 
 
+class OperatingPilotCoachingSessionCreateResponse(BaseModel):
+    """Minimal response for a private, consent-bound coaching write."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    session_id: _ResponseUUID
+    status: Literal["completed"]
+    privacy_level: Literal["private"]
+    session_date: _ResponseDate
+    replayed: bool
+
+
 def _response_decimal(value):
     if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
         raise ValueError("numeric value is invalid")
@@ -767,7 +780,12 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return payload, None
 
-    @router.post("/operator/api/operating-pilot/{location_id}/coaching-sessions")
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/coaching-sessions",
+        response_model=OperatingPilotCoachingSessionCreateResponse,
+        status_code=201,
+        responses={200: {"model": OperatingPilotCoachingSessionCreateResponse}},
+    )
     async def create_operating_pilot_coaching_session(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -831,7 +849,28 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating coaching-session write unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotCoachingSessionCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Coaching response location does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating coaching-session response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating coaching-session write unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")),
+            status_code=200 if response.replayed else 201,
+            headers=headers,
+        )
 
     @router.post("/operator/api/operating-pilot/{location_id}/capacity-profiles")
     async def create_operating_pilot_capacity_draft(request: Request, location_id: str):

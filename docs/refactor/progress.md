@@ -24270,3 +24270,17 @@ Capability-matrix validation passes; no database or provider was used.
 Checklist: 1,766 complete / 25 open; TODO: 437 checked / 16 open; strict
 private Gateway response contracts total 140. Evidence:
 [operator invite response contracts](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json).
+
+### Progress addendum — private operating-pilot coaching response — 29 October 2026
+
+The coaching-session create route now declares a strict six-field response
+for location, session ID, completed/private lifecycle, session date, and replay
+state. It binds location to the path and returns HTTP 201 for creation or 200
+for an idempotent replay. Invalid service output is sanitized and uncached.
+The approved focused route selection passes 19 tests (176 unrelated tests
+deselected), including OpenAPI, request binding, replay, and malformed output.
+Ruff, Python compilation, schema generation, capability validation, and diff
+checks pass; no database or provider was used. Checklist: 1,771 complete / 25
+open; TODO: 440 checked / 16 open; strict private Gateway response contracts
+total 141. Evidence:
+[coaching response contract](builds/2026-10-29-recovery/operating-pilot-coaching-create-response-contract.json).

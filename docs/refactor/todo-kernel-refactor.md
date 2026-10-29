@@ -1179,7 +1179,10 @@ that its full source-plan phase is complete.
   withdrawal, questionnaire contribution, and minority-report submission.
   Operator invite issue/revoke routes now also validate strict OpenAPI/runtime
   contracts, including first-issue versus replay token behavior and path binding;
-  45 focused checks pass ([evidence](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json)).
+  45 focused checks pass ([evidence](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json)). A strict
+  private coaching-session create response is now in progress, with exact
+  location/session/lifecycle/date fields and idempotent 201/200 status; its 19
+  focused route checks pass ([evidence](builds/2026-10-29-recovery/operating-pilot-coaching-create-response-contract.json)).
   Sources:
   [API/SDK gates](batches.md#L3226),
   [Phase 7](implementation-plan-alignment.md#L27).
@@ -1198,6 +1201,13 @@ that its full source-plan phase is complete.
 - [x] Add/run 45 focused mock-only operator invite route checks for OpenAPI,
   exact fields, path binding, replay behavior, and sanitized failures
   ([evidence](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json)).
+- [x] Add a strict private coaching-session create response contract with
+  request-location binding and source-defined private/completed state.
+- [x] Return HTTP 201 for creation and 200 for idempotent coaching replay;
+  reject malformed private-session output with a sanitized no-store response.
+- [x] Add/run 19 focused mocked route/OpenAPI checks for coaching response
+  fields, location, lifecycle, date, replay, and malformed output
+  ([evidence](builds/2026-10-29-recovery/operating-pilot-coaching-create-response-contract.json)).
 - [ ] **C3 — Finish the optional Directus adapter boundary.** Close code-verifiable
   role, field, row and hook gaps for collections still retained; keep native
   farm activity in Gateway. Workflow-role authorization cache freshness is

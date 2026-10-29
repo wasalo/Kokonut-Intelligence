@@ -3021,7 +3021,12 @@ def test_invalid_coaching_session_fails_before_database_access(payload, message)
 
 def test_coaching_session_route_requires_request_id_and_returns_no_store(monkeypatch):
     action = MagicMock(return_value={
-        "session_id": PROFILE_ID, "status": "completed", "privacy_level": "private", "replayed": False,
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": False,
     })
     client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
 
@@ -3033,8 +3038,89 @@ def test_coaching_session_route_requires_request_id_and_returns_no_store(monkeyp
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["privacy_level"] == "private"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": False,
+    }
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, COACHING_PAYLOAD)
+
+
+def test_coaching_session_openapi_declares_create_and_replay_responses(monkeypatch):
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": False,
+    })
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
+    operation = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/coaching-sessions"
+    ]["post"]
+    for status_code in ("200", "201"):
+        schema = operation["responses"][status_code]["content"]["application/json"]["schema"]
+        assert schema["$ref"].endswith("OperatingPilotCoachingSessionCreateResponse")
+
+
+def test_coaching_session_idempotent_replay_returns_http_200(monkeypatch):
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": True,
+    })
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/coaching-sessions",
+        json={**COACHING_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["replayed"] is True
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"status": "draft"},
+        {"privacy_level": "public"},
+        {"session_date": "not-a-date"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_coaching_session_rejects_malformed_response_without_private_data(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/coaching-sessions",
+        json={**COACHING_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating coaching-session write unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_coaching_session_route_rejects_oversized_body_before_write(monkeypatch):

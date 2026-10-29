@@ -7872,3 +7872,26 @@ Checklist: 1,766 complete / 25 open (1,791 total); TODO: 437 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 140. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — private coaching-session create response — 29 October 2026
+
+- [x] Publish the strict six-field operating-pilot coaching create response in
+  OpenAPI and validate each service result before serialization.
+- [x] Bind the returned location to the path and enforce completed/private
+  state, UUID, session date, and replay fields.
+- [x] Preserve idempotency with HTTP 201 for a new session and HTTP 200 for a
+  replay; reject malformed results with sanitized no-store errors.
+- [x] Add and run focused mock-only route/OpenAPI acceptance for valid create,
+  replay, path binding, and malformed responses.
+- [x] Record evidence and reconcile the progress ledgers.
+
+The focused selection passes 19 tests (176 unrelated tests deselected). Ruff,
+Python compilation, response-schema generation, capability validation, and
+diff checks pass. No database, provider, candidate, or legacy state was used.
+Evidence:
+[coaching response contract](builds/2026-10-29-recovery/operating-pilot-coaching-create-response-contract.json).
+
+Checklist: 1,771 complete / 25 open (1,796 total); TODO: 440 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 141. C2 remains open for broader route/auth and live-runtime parity.
