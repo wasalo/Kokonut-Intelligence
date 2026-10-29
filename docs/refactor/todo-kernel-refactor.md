@@ -10,6 +10,15 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Replace the training-impact and reward-calibration report wildcards
+  with the exact 15-column migration-backed public projections, preserving
+  location scope, ordering, output rows, and report aggregates
+  ([evidence](builds/2026-10-29-recovery/kernel-operations-training-reward-report-projections.json)).
+- [x] Verify the two operations projections plus the approved report and
+  assignment-proposal response contracts with focused synthetic checks; no
+  database, provider, or live service was used
+  ([same evidence](builds/2026-10-29-recovery/kernel-operations-training-reward-report-projections.json)).
+
 - [x] Add a strict Comprehensive Status climate-impact success/error contract,
   binding nested calculations and stored summaries to the selected location
   and year while preserving shared protocols and existing content

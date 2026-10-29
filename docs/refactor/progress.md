@@ -23192,3 +23192,25 @@ Checklist: 1,587 complete / 25 open (1,612 total); TODO: 286 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+### Progress addendum — operations training and reward-calibration report projections — 29 October 2026
+
+The training-impact and reward-calibration reports now use exact ordered
+15-column projections from migrations 048 and 050. The report queries retain
+their location predicates, descending date order, existing metric-link
+aggregate, training participant/hour/improvement calculations, and serialized
+row payload. The approved focused mock selection also rechecked the latest
+wellbeing, capital, scaling, governance-inclusion, EBF, token-reward,
+stakeholder-representation, and private assignment-proposal response
+contracts.
+
+The focused selection passes 37 tests. Ruff, Python compilation, all three
+report inventories, capability-matrix validation, and diff checks pass. No
+database, provider, candidate, legacy service, or production resource was
+used. This does not establish populated-data parity, live OIDC, tenant
+isolation, or content-level privacy. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-operations-training-reward-report-projections.json).
+
+Checklist: 1,589 complete / 25 open (1,614 total); TODO: 288 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

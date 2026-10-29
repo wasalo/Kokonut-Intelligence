@@ -130,7 +130,10 @@ def generate_training_impact(conn, location_id: str, period_start: str = None, p
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_training_impact
+            SELECT id, location_id, location_name, participant_name, participant_role,
+                   session_date, session_topic, session_type, duration_hours, pre_score,
+                   post_score, improvement_pct, trainer, notes, status
+            FROM v_public_training_impact
             WHERE location_id = %s ORDER BY session_date DESC
             """,
             (location_id,),
@@ -478,7 +481,11 @@ def generate_reward_calibration(conn, location_id: str, period_start: str = None
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_reward_calibration
+            SELECT id, location_id, location_name, model_name, model_type, run_date,
+                   input_metrics, output_weights, calibration_score,
+                   total_tokens_distributed, token_per_unit_output, epoch,
+                   confidence_level, notes, status
+            FROM v_public_reward_calibration
             WHERE location_id = %s ORDER BY run_date DESC
             """,
             (location_id,),

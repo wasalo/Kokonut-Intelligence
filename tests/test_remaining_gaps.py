@@ -3,6 +3,7 @@
 import re
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 from services.analytics.livestock_feed import (
     compute_feed_conversion_ratio,
@@ -525,6 +526,101 @@ def test_reward_calibration_report_public_safe() -> None:
     assert "limitations" in report
 
 
+def test_reward_calibration_uses_exact_public_projection_and_preserves_scope_payload() -> None:
+    columns = [
+        "id",
+        "location_id",
+        "location_name",
+        "model_name",
+        "model_type",
+        "run_date",
+        "input_metrics",
+        "output_weights",
+        "calibration_score",
+        "total_tokens_distributed",
+        "token_per_unit_output",
+        "epoch",
+        "confidence_level",
+        "notes",
+        "status",
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    model = {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "model_name": "Impact model",
+        "model_type": "linear",
+        "run_date": date(2026, 10, 2),
+        "input_metrics": {"soil_health": 0.8},
+        "output_weights": {"soil_health": 1.25},
+        "calibration_score": 0.92,
+        "total_tokens_distributed": 20.0,
+        "token_per_unit_output": 1.0,
+        "epoch": 4,
+        "confidence_level": 0.9,
+        "notes": "Current reviewed calibration.",
+        "status": "verified",
+    }
+    metric_link = {
+        "reward_type": "impact",
+        "linked_metric_key": "soil_health",
+        "avg_metric": 0.8,
+        "avg_tokens": 20.0,
+        "count": 3,
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"} if "FROM location" in self.current_query else None
+
+        def fetchall(self):
+            if "v_public_reward_calibration" in self.current_query:
+                return [model]
+            return [metric_link]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    with patch(
+        "services.analytics.reward_calibration.detect_overjustification_risk",
+        return_value={"risk_level": "low", "sample_count": 3},
+    ):
+        report = generate_reward_calibration(conn, location_id)
+
+    query, params = conn.cursor_value.calls[1]
+    projection = re.search(r"SELECT (.*?) FROM v_public_reward_calibration", query)
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
+    assert "WHERE location_id = %s ORDER BY run_date DESC" in query
+    assert params == (location_id,)
+    assert conn.cursor_value.calls[2][1] == (location_id,)
+    assert report["report_type"] == "reward_calibration"
+    assert report["location_id"] == location_id
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["calibration_models"] == [{**model, "run_date": "2026-10-02"}]
+    assert report["metric_links"] == [metric_link]
+    assert report["latest_calibration_score"] == 0.92
+    assert report["latest_model_name"] == "Impact model"
+    assert report["overjustification_risk"] == {"risk_level": "low", "sample_count": 3}
+
+
 # ---------------------------------------------------------------------------
 # Agent tests
 # ---------------------------------------------------------------------------
@@ -565,5 +661,6 @@ if __name__ == "__main__":
     test_livestock_feed_report_public_safe()
     test_token_rewards_report_public_safe()
     test_reward_calibration_report_public_safe()
+    test_reward_calibration_uses_exact_public_projection_and_preserves_scope_payload()
     test_agent_imports_new_analytics()
     print("All tests passed.")

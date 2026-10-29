@@ -19,14 +19,41 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,587 checklist items complete and 25
-open (1,612 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,589 checklist items complete and 25
+open (1,614 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### Latest local continuation — operations training and reward-calibration reports — 29 October 2026
+
+- [x] Replace training-impact `SELECT *` with all 15 ordered fields from the
+  migration-048 public view; preserve location filter, descending session
+  order, serialized rows, participant count, training hours, and improvement
+  average.
+- [x] Replace reward-calibration `SELECT *` with all 15 ordered fields from
+  migration 050; preserve location filter, descending run order, metric-link
+  aggregate, latest-model fields, advisory output, and payload.
+
+The focused mocked report and response-contract selection passes 37 tests,
+including exact projection and scope assertions for both operations reports,
+the previously approved wellbeing/scaling/governance projections, token
+rewards, stakeholder representation, and private assignment-proposal readback.
+Ruff, Python compilation, all three report inventories, capability-matrix
+validation, and diff checks pass. No database, provider, candidate, legacy
+service, or production resource was used. This is source-level contract and
+payload evidence; it does not establish populated-data parity, live OIDC,
+tenant isolation, or content-level privacy. Rollback consists of reverting
+the two projections and their tests; no migration or data rollback is needed.
+Evidence: [batch](builds/2026-10-29-recovery/kernel-operations-training-reward-report-projections.json).
+
+Checklist: 1,589 complete / 25 open (1,614 total); TODO: 288 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows, with 99 strict private Gateway response
+contracts. MAN-CAP acceptance is unchanged.
 
 ### Latest local continuation — governance readback and report projections — 29 October 2026
 
