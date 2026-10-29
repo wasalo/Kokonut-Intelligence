@@ -429,7 +429,31 @@ def generate_stakeholder_ecosystem(conn, location_id=None, period_start=None, pe
     """Generate the internal stakeholder ecosystem cockpit report."""
     require_network_scope("stakeholder_ecosystem", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
+        cur.execute(
+            """
+            SELECT active_party_count,
+                   active_relationship_count,
+                   open_interest_count,
+                   active_engagement_plan_count,
+                   overdue_commitment_count,
+                   open_grievance_count,
+                   active_decision_count,
+                   unresolved_harm_count,
+                   open_relationship_risk_count,
+                   pending_buyer_verification_count,
+                   contested_trust_evidence_count,
+                   stewardship_action_count,
+                   unverified_value_stream_outcome_count,
+                   generated_at,
+                   active_alliance_count,
+                   slow_cycle_alliance_count,
+                   fast_cycle_alliance_count,
+                   open_coordination_conflict_count,
+                   open_coordination_remedy_count,
+                   overdue_alliance_review_count
+            FROM v_stakeholder_cockpit_internal
+            """
+        )
         cockpit = dict(cur.fetchone())
         cur.execute("SELECT * FROM v_stakeholder_landscape ORDER BY advisory_score DESC NULLS LAST, display_name")
         landscape = [dict(row) for row in cur.fetchall()]
@@ -550,7 +574,31 @@ def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, peri
     """Generate a composite internal/public-safe stakeholder cockpit snapshot."""
     require_network_scope("stakeholder_cockpit", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
+        cur.execute(
+            """
+            SELECT active_party_count,
+                   active_relationship_count,
+                   open_interest_count,
+                   active_engagement_plan_count,
+                   overdue_commitment_count,
+                   open_grievance_count,
+                   active_decision_count,
+                   unresolved_harm_count,
+                   open_relationship_risk_count,
+                   pending_buyer_verification_count,
+                   contested_trust_evidence_count,
+                   stewardship_action_count,
+                   unverified_value_stream_outcome_count,
+                   generated_at,
+                   active_alliance_count,
+                   slow_cycle_alliance_count,
+                   fast_cycle_alliance_count,
+                   open_coordination_conflict_count,
+                   open_coordination_remedy_count,
+                   overdue_alliance_review_count
+            FROM v_stakeholder_cockpit_internal
+            """
+        )
         internal = dict(cur.fetchone())
         cur.execute(
             """
@@ -588,7 +636,20 @@ def generate_coordination_cockpit(conn, location_id=None, period_start=None, per
     """Generate internal coordination controls and public-safe alliance output."""
     require_network_scope("coordination_cockpit", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_coordination_cockpit_internal ORDER BY name")
+        cur.execute(
+            """
+            SELECT alliance_id, name, coordination_type, market_cycle, status,
+                   review_due_at, ends_at, work_item_id, proxy_authority_id,
+                   active_participant_count, shared_objective_count,
+                   contribution_count, verified_benefit_count, open_harm_count,
+                   open_knowledge_exchange_count, open_conflict_count,
+                   trust_risk_count, open_coordination_risk_count,
+                   open_remedy_count, preserved_minority_view_count,
+                   verified_outcome_change_count, ecological_obligation_count
+            FROM v_coordination_cockpit_internal
+            ORDER BY name
+            """
+        )
         internal = [dict(row) for row in cur.fetchall()]
         cur.execute(
             """

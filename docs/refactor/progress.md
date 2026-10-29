@@ -23253,3 +23253,21 @@ Checklist: 1,597 complete / 25 open (1,622 total); TODO: 292 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+### Progress addendum — internal stakeholder and coordination cockpit projections — 29 October 2026
+
+The stakeholder internal summary now uses the exact 20 fields at both report
+callsites (`stakeholder_cockpit` and `stakeholder_ecosystem`). The coordination
+internal summary selects all 22 migration-238 fields. A focused fake-cursor
+test checks exact order, network-wide behavior, and unchanged payloads across
+all three callers.
+
+The focused regression passes. Ruff, Python compilation, all report
+inventories, capability-matrix validation, and diff checks pass. No database,
+provider, candidate, or live service was used. This does not establish
+populated-data parity, content privacy, OIDC, or tenant isolation. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-strategy-internal-cockpit-projections.json).
+
+Checklist: 1,599 complete / 25 open (1,624 total); TODO: 294 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

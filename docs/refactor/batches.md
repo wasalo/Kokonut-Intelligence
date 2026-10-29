@@ -19,14 +19,37 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,597 checklist items complete and 25
-open (1,622 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,599 checklist items complete and 25
+open (1,624 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### Latest local continuation — internal stakeholder and coordination cockpits — 29 October 2026
+
+- [x] Replace stakeholder-cockpit and stakeholder-ecosystem reads of the
+  internal summary wildcard with the exact 20 migration-238 fields.
+- [x] Replace the coordination-cockpit internal wildcard with all 22 ordered
+  fields from its migration-238 summary view; retain name ordering and output.
+
+The focused fake-cursor regression passes for all three report callsites. It
+checks field order, network-wide reads, and unchanged summary payloads. Ruff,
+Python compilation, all three report inventories, capability-matrix
+validation, and diff checks pass. The source audit finds no wildcard read of
+these internal cockpit views in report generators. No database, provider,
+candidate, or live service was used. This does not establish populated-data
+parity, content privacy, OIDC, or tenant isolation. Rollback reverts these
+queries and their regression; no migration or data rollback is needed.
+Evidence:
+[batch](builds/2026-10-29-recovery/kernel-strategy-internal-cockpit-projections.json).
+
+Checklist: 1,599 complete / 25 open (1,624 total); TODO: 294 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
 
 ### Latest local continuation — stakeholder and coordination cockpit projections — 29 October 2026
 

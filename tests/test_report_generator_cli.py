@@ -411,6 +411,145 @@ def test_stakeholder_and_coordination_cockpits_use_exact_public_projections() ->
     assert coordination_report["public_safe"] == coordination_public
 
 
+def test_internal_cockpit_views_use_exact_projections_at_every_report_callsite() -> None:
+    stakeholder_columns = [
+        "active_party_count",
+        "active_relationship_count",
+        "open_interest_count",
+        "active_engagement_plan_count",
+        "overdue_commitment_count",
+        "open_grievance_count",
+        "active_decision_count",
+        "unresolved_harm_count",
+        "open_relationship_risk_count",
+        "pending_buyer_verification_count",
+        "contested_trust_evidence_count",
+        "stewardship_action_count",
+        "unverified_value_stream_outcome_count",
+        "generated_at",
+        "active_alliance_count",
+        "slow_cycle_alliance_count",
+        "fast_cycle_alliance_count",
+        "open_coordination_conflict_count",
+        "open_coordination_remedy_count",
+        "overdue_alliance_review_count",
+    ]
+    coordination_columns = [
+        "alliance_id",
+        "name",
+        "coordination_type",
+        "market_cycle",
+        "status",
+        "review_due_at",
+        "ends_at",
+        "work_item_id",
+        "proxy_authority_id",
+        "active_participant_count",
+        "shared_objective_count",
+        "contribution_count",
+        "verified_benefit_count",
+        "open_harm_count",
+        "open_knowledge_exchange_count",
+        "open_conflict_count",
+        "trust_risk_count",
+        "open_coordination_risk_count",
+        "open_remedy_count",
+        "preserved_minority_view_count",
+        "verified_outcome_change_count",
+        "ecological_obligation_count",
+    ]
+    stakeholder_row = {column: index for index, column in enumerate(stakeholder_columns)}
+    stakeholder_row["generated_at"] = "2026-10-29T12:00:00Z"
+    coordination_row = {
+        column: index for index, column in enumerate(coordination_columns)
+    }
+    coordination_row.update(
+        {
+            "alliance_id": "00000000-0000-4000-8000-000000000001",
+            "name": "Synthetic coordination alliance",
+            "coordination_type": "learning",
+            "market_cycle": "slow",
+            "status": "active",
+        }
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            if "v_stakeholder_cockpit_internal" in self.current_query:
+                return stakeholder_row
+            return {}
+
+        def fetchall(self):
+            if "v_coordination_cockpit_internal" in self.current_query:
+                return [coordination_row]
+            if "v_stakeholder_landscape" in self.current_query:
+                return [{"display_name": "Synthetic participant"}]
+            if "relationship_risk_indicator" in self.current_query:
+                return [{"status": "monitoring"}]
+            if "v_party_relationship_recommendations" in self.current_query:
+                return [{"recommendation": "review"}]
+            return []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+    class Connection:
+        def __init__(self):
+            self.cursors = []
+
+        def cursor(self, cursor_factory=None):
+            cursor = Cursor()
+            self.cursors.append(cursor)
+            return cursor
+
+    def assert_projection(query, view, columns):
+        projection = re.search(rf"SELECT (.*?) FROM {view}", query)
+        assert projection is not None
+        assert [column.strip() for column in projection.group(1).split(",")] == columns
+
+    connection = Connection()
+    stakeholder_report = generate_stakeholder_cockpit(connection)
+    cockpit_cursor = connection.cursors[-1]
+    assert_projection(
+        cockpit_cursor.calls[0][0], "v_stakeholder_cockpit_internal", stakeholder_columns
+    )
+    assert cockpit_cursor.calls[0][1] is None
+    assert stakeholder_report["internal"] == stakeholder_row
+
+    ecosystem_report = generate_stakeholder_ecosystem(connection)
+    ecosystem_cursor = connection.cursors[-1]
+    assert_projection(
+        ecosystem_cursor.calls[0][0], "v_stakeholder_cockpit_internal", stakeholder_columns
+    )
+    assert ecosystem_cursor.calls[0][1] is None
+    assert ecosystem_report["cockpit"] == stakeholder_row
+    assert ecosystem_report["landscape"] == [{"display_name": "Synthetic participant"}]
+    assert ecosystem_report["relationship_risks"] == [{"status": "monitoring"}]
+    assert ecosystem_report["relationship_recommendations"] == [{"recommendation": "review"}]
+
+    coordination_report = generate_coordination_cockpit(connection)
+    coordination_cursor = connection.cursors[-1]
+    assert_projection(
+        coordination_cursor.calls[0][0],
+        "v_coordination_cockpit_internal",
+        coordination_columns,
+    )
+    assert coordination_cursor.calls[0][1] is None
+    assert "ORDER BY name" in coordination_cursor.calls[0][0]
+    assert coordination_report["internal"] == [coordination_row]
+
+
 def test_check_report_empty_reports_empty_primary_sections(capsys) -> None:
     is_empty = report_generator._check_report_empty({"farms": []}, "farm_summary")
 

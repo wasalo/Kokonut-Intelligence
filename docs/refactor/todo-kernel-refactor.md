@@ -10,6 +10,13 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Replace both callsites for the internal stakeholder cockpit and the
+  coordination-cockpit wildcard with the exact migration-238 summary fields
+  ([evidence](builds/2026-10-29-recovery/kernel-strategy-internal-cockpit-projections.json)).
+- [x] Verify the 20- and 22-column lists and unchanged internal report
+  payloads across all three consuming report paths using fake cursors only
+  ([same evidence](builds/2026-10-29-recovery/kernel-strategy-internal-cockpit-projections.json)).
+
 - [x] Replace the public stakeholder-cockpit and coordination-alliance
   wildcards with their exact 13-column migration-238 projections, preserving
   network-wide behavior and internal/public response separation
