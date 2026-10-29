@@ -841,7 +841,7 @@
       "report_type": "climate_impact",
       "callable": "generate_climate_impact",
       "source_file": "services/export/reports/core.py",
-      "source_line": 485,
+      "source_line": 526,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 4,
       "static_positional_arity_site_count": 4,
@@ -855,28 +855,28 @@
       "helper_calls": [
         {
           "callable": "compute_carbon_balance",
-          "line": 549,
+          "line": 590,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_ghg_emissions",
-          "line": 550,
+          "line": 591,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_regenerative_score",
-          "line": 552,
+          "line": 593,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_tree_carbon",
-          "line": 551,
+          "line": 592,
           "location_id_name_visible_in_arguments": true
         }
       ],
       "queries": [
         {
-          "line": 507,
+          "line": 548,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -899,7 +899,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 512,
+          "line": 553,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -922,7 +922,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 523,
+          "line": 564,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -945,7 +945,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 535,
+          "line": 576,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1111,7 +1111,7 @@
       "report_type": "crop_noi",
       "callable": "generate_crop_noi",
       "source_file": "services/export/reports/core.py",
-      "source_line": 197,
+      "source_line": 238,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -1125,7 +1125,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 204,
+          "line": 245,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1618,7 +1618,7 @@
       "report_type": "environmental",
       "callable": "generate_environmental",
       "source_file": "services/export/reports/core.py",
-      "source_line": 308,
+      "source_line": 349,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 4,
       "static_positional_arity_site_count": 4,
@@ -1632,7 +1632,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 316,
+          "line": 357,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1655,7 +1655,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 328,
+          "line": 369,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1678,7 +1678,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 340,
+          "line": 381,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1701,7 +1701,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 352,
+          "line": 393,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1766,7 +1766,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 30,
+          "line": 44,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1789,7 +1789,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 34,
+          "line": 61,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1813,7 +1813,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 45,
+          "line": 77,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1838,7 +1838,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 59,
+          "line": 100,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1863,7 +1863,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 91,
+          "line": 132,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1886,7 +1886,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 108,
+          "line": 149,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1909,7 +1909,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 122,
+          "line": 163,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1932,7 +1932,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 138,
+          "line": 179,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2050,7 +2050,7 @@
       "report_type": "forecast",
       "callable": "generate_forecast_summary",
       "source_file": "services/export/reports/core.py",
-      "source_line": 403,
+      "source_line": 444,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
       "static_positional_arity_site_count": 3,
@@ -2064,7 +2064,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 411,
+          "line": 452,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2087,7 +2087,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 422,
+          "line": 463,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2111,7 +2111,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 468,
+          "line": 509,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3785,7 +3785,7 @@
       "report_type": "revenue_multiplier",
       "callable": "generate_revenue_multiplier",
       "source_file": "services/export/reports/core.py",
-      "source_line": 382,
+      "source_line": 423,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "static_positional_arity_site_count": 0,

@@ -394,11 +394,25 @@
       "reason": "Reviewed list_location_realization_summaries: its WITH clause selects the bounded, location-filtered geostat_realization page and aggregates point values; no DML or mutating SQL is present. This edit only clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative manual review; this is not an ACL approval."
     },
     {
-      "fingerprint": "b10db4c1fe7ebf5526d08f6b3cc59ee0247e55e84b901bd9ddd8f5150371a44e",
+      "fingerprint": "974e74f0353f82e0dab460547c67576fd88887fb51184b915c9019c90759010a",
       "review_status": "reviewed_unresolved",
       "reviewed_by": "Codex source review",
       "reviewed_on": "2026-10-28",
-      "reason": "Reviewed generate_farm_summary at services/export/reports/core.py:59: both CTEs perform SELECT and aggregation, and the top-level statement selects the resulting bounded summary; there is no DML or mutating function. The inventory conservatively retains WITH for manual review. This source review is not an ACL approval."
+      "reason": "Reviewed generate_farm_summary at services/export/reports/core.py:100 after its explicit schema projection change: both CTEs perform SELECT and aggregation, and the top-level statement selects the resulting bounded summary; there is no DML or mutating function. The inventory conservatively retains WITH for manual review. This source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "a869c3d618da2c536087d1ce01b2c11f8817dd57e1b29e3b1355830b25efb1c8",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed the module-level _INVENTORY_SQL constant used by collect_inventory in services/mobile/tenant_preflight.py: all CTE bodies and the final statement are SELECT-only aggregates over the explicit preflight lineage sources; no DML or mutating function is present. The execution remains inside the dedicated repeatable-read, read-only preflight transaction. The inventory conservatively retains WITH; this source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "8ec0246aea81d5bd070ea90bef44ea95226c3bcb426e2325198c70615af2a78b",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed the module-level _CONFIRMED_OPERATING_TENANT_MAP_SQL constant used by collect_inventory in services/mobile/tenant_preflight.py: its CTE uses VALUES and SELECT/COUNT/EXISTS checks only, with a SELECT-only final projection and no DML or mutating function. The inventory conservatively retains WITH; this source review is not an ACL approval."
     }
   ]
 }

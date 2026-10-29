@@ -135,6 +135,151 @@ def _single_local_sql_assignment(
     return assignments[0] if len(assignments) == 1 else None
 
 
+def _module_scope_nodes(module: ast.Module):
+    """Yield nodes that execute in module scope, including control-flow bodies.
+
+    Function and class bodies are separate scopes. Their definitions are
+    yielded so their names count as bindings, but their bodies are not walked
+    as module-scope code.
+    """
+    pending = list(reversed(module.body))
+    while pending:
+        node = pending.pop()
+        yield node
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            pending.extend(reversed(_definition_scope_expressions(node)))
+            continue
+        children = list(ast.iter_child_nodes(node))
+        pending.extend(reversed(children))
+
+
+def _definition_scope_expressions(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef | ast.Lambda,
+) -> list[ast.AST]:
+    """Return definition expressions evaluated in the surrounding scope."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        arguments = [
+            *node.args.posonlyargs,
+            *node.args.args,
+            *node.args.kwonlyargs,
+        ]
+        if node.args.vararg:
+            arguments.append(node.args.vararg)
+        if node.args.kwarg:
+            arguments.append(node.args.kwarg)
+        annotations = [arg.annotation for arg in arguments if arg.annotation is not None]
+        return [
+            *node.decorator_list,
+            *node.args.defaults,
+            *(value for value in node.args.kw_defaults if value is not None),
+            *annotations,
+            *([node.returns] if node.returns is not None else []),
+        ]
+    if isinstance(node, ast.ClassDef):
+        return [
+            *node.decorator_list,
+            *node.bases,
+            *(keyword.value for keyword in node.keywords),
+        ]
+    return [
+        *node.args.defaults,
+        *(value for value in node.args.kw_defaults if value is not None),
+    ]
+
+
+def _import_binds_name(node: ast.Import | ast.ImportFrom, name: str) -> bool:
+    if isinstance(node, ast.Import):
+        return any((alias.asname or alias.name.split(".", 1)[0]) == name for alias in node.names)
+    return any(alias.name == "*" or (alias.asname or alias.name) == name for alias in node.names)
+
+
+def _single_module_sql_assignment(module: ast.Module, name: str) -> ast.AST | None:
+    """Resolve one unconditional immutable module-level SQL string binding.
+
+    Only a direct top-level assignment to a simple name is eligible. Any other
+    store/delete, import binding, definition-name collision, global/nonlocal
+    declaration, or dynamic initializer makes the value ambiguous and leaves
+    the query unresolved. F-strings are accepted only when they contain no
+    formatted expressions.
+    """
+    if any(
+        isinstance(node, (ast.Global, ast.Nonlocal)) and name in node.names
+        for node in ast.walk(module)
+    ):
+        return None
+
+    candidates: list[tuple[ast.AST, ast.AST]] = []
+    for statement in module.body:
+        if isinstance(statement, ast.Assign):
+            if any(_target_binds_name(target, name) for target in statement.targets):
+                if len(statement.targets) != 1 or not isinstance(statement.targets[0], ast.Name):
+                    return None
+                candidates.append((statement.targets[0], statement.value))
+        elif isinstance(statement, ast.AnnAssign) and _target_binds_name(statement.target, name):
+            if not isinstance(statement.target, ast.Name) or statement.value is None:
+                return None
+            candidates.append((statement.target, statement.value))
+
+    if len(candidates) != 1:
+        return None
+    target, value = candidates[0]
+    if not (
+        (isinstance(value, ast.Constant) and isinstance(value.value, str))
+        or (
+            isinstance(value, ast.JoinedStr)
+            and all(
+                isinstance(part, ast.Constant) and isinstance(part.value, str)
+                for part in value.values
+            )
+        )
+    ):
+        return None
+
+    bindings: list[ast.AST] = []
+    for node in _module_scope_nodes(module):
+        if isinstance(node, ast.Name) and node.id == name and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bindings.append(node)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)) and _import_binds_name(node, name):
+            bindings.append(node)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == name:
+            bindings.append(node)
+    if len(bindings) != 1 or bindings[0] is not target:
+        return None
+    return value
+
+
+def _function_may_bind_name(function: ast.FunctionDef | ast.AsyncFunctionDef, name: str) -> bool:
+    """Return whether a function-local binding prevents module fallback."""
+    parameters = [
+        *function.args.posonlyargs,
+        *function.args.args,
+        *function.args.kwonlyargs,
+    ]
+    if function.args.vararg:
+        parameters.append(function.args.vararg)
+    if function.args.kwarg:
+        parameters.append(function.args.kwarg)
+    if any(parameter.arg == name for parameter in parameters):
+        return True
+
+    pending = list(reversed(function.body))
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            if node is not function and getattr(node, "name", None) == name:
+                return True
+            pending.extend(reversed(_definition_scope_expressions(node)))
+            continue
+        if isinstance(node, (ast.Global, ast.Nonlocal)) and name in node.names:
+            return True
+        if isinstance(node, (ast.Import, ast.ImportFrom)) and _import_binds_name(node, name):
+            return True
+        if isinstance(node, ast.Name) and node.id == name and isinstance(node.ctx, (ast.Store, ast.Del)):
+            return True
+        pending.extend(reversed(list(ast.iter_child_nodes(node))))
+    return False
+
+
 class _ExecutionQueryContextVisitor(ast.NodeVisitor):
     """Keep local function and query-expression context for execution calls."""
 
@@ -233,11 +378,13 @@ def _write_review_fingerprint(
 ) -> str:
     """Hash source-level SQL identity without storing SQL or runtime values.
 
-    The complete lexical scope AST catches source-level bindings that feed a
-    query expression. The ordinal distinguishes repeated calls with identical
-    expressions in the same named scope. AST locations are excluded, so line
-    moves alone do not change the fingerprint. This cannot capture runtime
-    values supplied through parameters, imports, mutable globals, or helpers.
+    The complete lexical scope AST catches local source bindings. When a
+    same-module immutable SQL constant is resolved, its assignment expression
+    is also fingerprinted as the query expression. The ordinal distinguishes
+    repeated calls with identical expressions in the same named scope. AST
+    locations are excluded, so line moves alone do not change the fingerprint.
+    This cannot capture runtime values supplied through parameters, imports,
+    mutable globals, or helpers.
     """
     identity = {
         "source": source,
@@ -294,8 +441,19 @@ def _scan_source(
             context is not None
             and isinstance(context[1], ast.Name)
         ):
-            assignment_scope = context[0] if context[0] is not None else tree
-            assigned = _single_local_sql_assignment(assignment_scope, context[1].id)
+            query_name = context[1].id
+            if context[0] is None:
+                assigned = _single_module_sql_assignment(tree, query_name)
+                resolution_field = "module_query_resolution"
+                resolution_value = "single_module_constant_template"
+            else:
+                assigned = _single_local_sql_assignment(context[0], query_name)
+                resolution_field = "local_query_resolution"
+                resolution_value = "single_local_assignment_template"
+                if assigned is None and not _function_may_bind_name(context[0], query_name):
+                    assigned = _single_module_sql_assignment(tree, query_name)
+                    resolution_field = "module_query_resolution"
+                    resolution_value = "single_module_constant_template"
             if assigned is not None:
                 fingerprint_expression = assigned
                 query, query_kind = _query_template(assigned)
@@ -318,7 +476,7 @@ def _scan_source(
                         site["write_target_relations"] = [
                             relation for relation in write_targets if relation in relations
                         ]
-                        site["local_query_resolution"] = "single_local_assignment_template"
+                        site[resolution_field] = resolution_value
         site["statement_group"] = _statement_group(site["statement_kind"])
         if (
             include_review_fingerprints
@@ -568,7 +726,9 @@ def _build_inventory_with_review_candidates() -> tuple[dict, list[dict]]:
             "Direct Python SQL execution calls in services/**/*.py, including API, worker, "
             "and CLI modules. Relation names and simple leading DML targets are regex-derived "
             "candidates, not a parsed SQL AST. A query held in a local variable is resolved only "
-            "from one unambiguous local assignment; dynamic table identifiers stay unresolved. "
+            "from one unambiguous local assignment; an unconditional same-module string or "
+            "literal-only f-string constant is resolved only when no shadowing or reassignment is "
+            "found. Dynamic table identifiers stay unresolved. "
             "The scan cannot prove query reachability, ORM/extension/external effects, complete "
             "database access, required columns, or authorization. It is not a grant allowlist."
         ),

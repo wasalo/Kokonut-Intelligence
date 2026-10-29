@@ -6129,7 +6129,45 @@ orphan inventory/deletion, and retention/backup acceptance remain open.
 Evidence: [contract](report-snapshot-export-contract.md),
 [adapter checks](builds/2026-10-28-recovery/report-snapshot-export-s3-adapter-checks.json).
 
-Checklist: 1,520 complete / 25 open (1,545 total); TODO: 225 checked / 16
+Checklist: 1,524 complete / 25 open (1,549 total); TODO: 227 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed parallel C1/C2/C5 code batch — 28 October 2026
+
+- [x] Resolve one unambiguous immutable SQL string/f-string constant at module
+  scope or from a function with no local shadowing. The scanner fails closed
+  for reassignment, conditional stores, imports, dynamic initializers, and
+  ambiguous bindings; module bindings participate in source fingerprints.
+  Two tenant-preflight `WITH` queries and the changed farm-summary CTE were
+  reviewed and tracked, not ACL-approved. No grants changed.
+- [x] Add strict response models for Baal config, proposal pages/details, and
+  member details, including the Gateway's actual 401/403 bodies. Preserve
+  authorization and no-store behavior; keep these routes out of the generated
+  public API/SDK contract.
+- [x] Replace farm-summary `SELECT *` projections over location, farm, plot,
+  and crop-cycle with explicit current-schema field lists. Location geometry
+  fields are no longer fetched; other existing farm/plot fields and report
+  output behavior are preserved. Financial lifecycle semantics remain
+  unchanged for owner/reference review.
+
+The integrated focused selection passes 75 tests; the worker/static-inventory
+selection passes 67 tests. Ruff, Python compilation, three report inventories,
+all seven worker/runtime inventories, dependency-group alignment, provider
+boundaries, capability-matrix validation, and diff checks pass. The refreshed
+runtime SQL inventory records 4,960 execution sites across 984 files, 1,243
+relation candidates, and 587 write-target relations, with 39 unresolved review
+candidates (8 direct DML and 31 conservative `WITH`). Source review of those
+`WITH` statements is explicitly not ACL approval. Parallel Directus review
+found no safe new collection boundary without populated polymorphic-lineage
+review; the ACL audit found no additional table safe to revoke from source
+evidence alone, and the SDK audit found no missing public operation. The
+unmatched legacy Prefect health flow remains unregistered pending a
+profile-aware alert/retry contract. No migration,
+database, candidate, legacy service, provider, or production resource was
+used. Aggregate worker preflight remains `review_required`. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-c1-c2-c5-code-batch.json).
+
+Checklist: 1,524 complete / 25 open (1,549 total); TODO: 227 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
 
 ### Completed C1 verification — runtime-role provisioner against current code — 28 October 2026

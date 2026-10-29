@@ -22808,6 +22808,42 @@ and orphan reconciliation remain open. Evidence:
 Checklist: 1,520 complete / 25 open; TODO: 225 checked / 16 open. Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared.
 
+### Progress addendum — parallel C1/C2/C5 source-contract batch — 28 October 2026
+
+The conservative runtime SQL scanner now resolves a single immutable
+same-module string or literal-only f-string binding when source proves it is
+unconditional and unshadowed. Reassignment, conditional stores, imports,
+dynamic initialization, and ambiguous bindings remain unresolved. Its module
+binding participates in the review fingerprint, so edits to a resolved query
+template are detected. The refreshed inventory records 4,960 execution sites
+across 984 files, 1,243 relation candidates, and 587 write-target relations.
+Two tenant-preflight `WITH` candidates and the changed report CTE were source-
+reviewed and recorded; those reviews do not approve ACL changes.
+
+The four protected Baal Gateway reads now validate config, proposal-list,
+proposal-detail, and member projections against strict OpenAPI/runtime models.
+Authentication errors match the actual middleware body, no-store and
+authorization behavior remain intact, and the routes stay outside the public
+OpenAPI/SDK contract. Farm-summary queries now select explicit current-schema
+fields rather than `SELECT *`; financial lifecycle semantics were not changed.
+
+The focused Gateway/report/scanner selection passes 75 tests, and the
+worker/static-inventory regression selection passes 67. Ruff, compilation,
+three report inventories, seven worker/runtime inventories, dependency-group
+alignment, provider boundaries, and capability validation pass. A parallel
+Directus audit found no safe additional collection change without populated
+polymorphic-lineage review; the SDK parity audit found no missing public
+operation. The ACL candidate audit found no additional table safe to revoke
+from source evidence alone. The legacy Prefect health flow remains
+unregistered pending a profile-aware alert/retry contract. No migration,
+database, provider, candidate, or legacy service was used. Aggregate worker
+preflight remains `review_required`. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-c1-c2-c5-code-batch.json).
+
+Checklist: 1,524 complete / 25 open; TODO: 227 checked / 16 open. The
+capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); MAN-CAP acceptance and classifications are unchanged.
+
 ### C1 runtime-role regression check — 28 October 2026
 
 Following migrations 682–683, the documented disposable runtime-role check

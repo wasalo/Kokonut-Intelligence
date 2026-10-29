@@ -1,5 +1,26 @@
 # Capability preservation matrix
 
+**Latest parallel source-contract batch — 28 October 2026:** the runtime SQL
+inventory now resolves eight additional unambiguous same-module constants and
+fingerprints their source bindings; ambiguous/dynamic cases still fail closed.
+Two preflight `WITH` candidates and the changed farm-summary query were
+recorded as source-reviewed, not ACL-approved. Four protected Baal Gateway
+reads now have strict runtime/OpenAPI response contracts and remain outside
+the public API/SDK. Farm-summary SQL uses explicit current-schema projections
+instead of `SELECT *`, without changing financial lifecycle semantics. The
+75-test focused selection, 67-test worker/inventory selection, report and
+worker inventories, Ruff, compilation, provider/dependency checks, and matrix
+validation pass. No database, provider, candidate, legacy service, or
+production resource was used. Parallel Directus and SDK audits found no safe
+unattended Directus expansion or missing public SDK operation; the ACL audit
+found no new relation safe to revoke from source evidence alone. The legacy
+Prefect health flow remains unregistered pending a profile-aware alert/retry
+contract. Aggregate worker preflight remains `review_required`. The matrix
+remains 67 rows (24
+baseline-retained, 7 deployed, 36 prepared), with strict private Gateway
+response contracts now totaling 94. Checklist: 1,524 complete / 25 open
+(1,549 total); MAN-CAP acceptance and classifications are unchanged ([evidence](builds/2026-10-28-recovery/kernel-parallel-c1-c2-c5-code-batch.json)).
+
 **Latest C2 report-export slice — 28 October 2026:** migration 683 and the Gateway now provide a durable, idempotent private report-snapshot export path with separate location-qualified create/read/download grants and a dedicated default-off worker. Its provider-neutral artifact port keeps local storage as the default and adds an optional S3-compatible/R2 adapter with separate read-only Gateway and write/delete worker credentials. The API exposes strict create/list/detail response models; downloads return only verified private artifact bytes after the current grant and source lifecycle are rechecked. Network-disabled disposable PostgreSQL 16 runs apply and replay migration 683 on native x86_64 and ARM64/QEMU (`aarch64`) and verify exact tenant authorization, worker fencing/retry, forced-RLS source reads, and function/table boundaries. The integrated route/worker/migration/runtime-role and worker-inventory selection passes **238 tests**; a follow-up storage/Gateway/worker selection passes **65 tests** for bounded artifact reads, and the regenerated worker-function graph selection passes **13 tests**; mocked S3/storage/Gateway/worker checks pass **77 tests** for the optional private R2 adapter; worker-inventory regressions pass **67 tests** after all seven reports are refreshed. Ruff, compilation, seven inventory checks, dependency-group alignment, provider-boundary checks, matrix validation, and diff checks pass. ARM64/QEMU is portability evidence, not a physical Raspberry Pi run. The static inventory includes the isolated report worker; the aggregate worker preflight remains `review_required` for broader existing boundary debt. This source and disposable-database evidence does not establish live OIDC, candidate rollout, browser/worker runtime recovery, live R2 connectivity or bucket policy, retention, populated report parity, or stakeholder access. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); documented strict private Gateway response contracts now total 90. Checklist: 1,520 complete / 25 open (1,545 total); MAN-CAP acceptance and classifications are unchanged ([contract](report-snapshot-export-contract.md); [integrated checks](builds/2026-10-28-recovery/report-snapshot-export-integration-checks.json); [bounded-read checks](builds/2026-10-28-recovery/report-snapshot-export-bounded-read-checks.json); [S3 adapter checks](builds/2026-10-28-recovery/report-snapshot-export-s3-adapter-checks.json); [native evidence](builds/2026-10-28-recovery/report-snapshot-export-migration-disposable.json); [ARM64 evidence](builds/2026-10-28-recovery/report-snapshot-export-migration-arm64-disposable.json)).
 
 **Previous parallel continuation — solution lifecycle read contracts and CLI UUID normalization (28 October 2026):** the stage-transition target, aggregate summary, and experiment pages now enforce strict request-bound response contracts from migrations 503, 459, and 467. Seven domain CLIs now pass canonical UUIDs to database handlers after preflight while retaining existing scope requirements. The combined Gateway/CLI selection passes 295 tests; Ruff, compilation, matrix validation, and diff checks pass. These source checks do not establish live Gateway/database behavior, tenant isolation, OIDC, or populated-data parity ([evidence](builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-read-and-cli-canonicalization.json)). Checklist: 1,510 complete / 25 open (1,535 total); strict private Gateway response endpoints: 85; counted CLI location UUID preflight groups: 27; matrix: 67 rows (24 baseline-retained, 7 deployed, 36 prepared).

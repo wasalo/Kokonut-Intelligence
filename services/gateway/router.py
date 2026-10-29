@@ -15,6 +15,13 @@ try:
     from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, ValidationError
 
     from services.gateway.federation_models import FederationNodesPage
+    from services.gateway.governance_responses import (
+        BaalAuthorizationError,
+        BaalConfigEnvelope,
+        BaalMemberDetailEnvelope,
+        BaalProposalDetailEnvelope,
+        BaalProposalListEnvelope,
+    )
     from services.gateway.public_models import (
         PublicCrispAssessment,
         PublicCrispAssessmentEnvelope,
@@ -72,6 +79,8 @@ except ImportError:
     PublicLocationSummaryEnvelope = PublicCrispAssessmentEnvelope = None
     PublicMetricSummaryEnvelope = None
     FederationNodesPage = None
+    BaalAuthorizationError = BaalConfigEnvelope = BaalMemberDetailEnvelope = None
+    BaalProposalDetailEnvelope = BaalProposalListEnvelope = None
     _DataStreamAttestationEnvelope = None
     ValidationError = None
 
@@ -169,6 +178,17 @@ def _private_response(content: dict, status_code: int = 200):
         status_code=status_code,
         content=content,
         headers={"Cache-Control": "no-store"},
+    )
+
+
+def _private_validated_response(model, payload: dict, status_code: int = 200):
+    """Validate a private projection while retaining its no-store headers."""
+    from fastapi.encoders import jsonable_encoder
+
+    validated = model.model_validate(payload)
+    return _private_response(
+        jsonable_encoder(validated.model_dump(mode="python")),
+        status_code=status_code,
     )
 
 
@@ -610,7 +630,17 @@ async def service_health():
         return _internal_error(exc)
 
 
-@router.get("/v1/governance/baal/config")
+@router.get(
+    "/v1/governance/baal/config",
+    response_model=BaalConfigEnvelope,
+    responses={
+        401: {"model": BaalAuthorizationError},
+        403: {"model": BaalAuthorizationError},
+        400: {"model": PublicError},
+        500: {"model": PublicError},
+        503: {"model": PublicError},
+    },
+)
 async def get_baal_governance_config():
     """Read global Baal configuration under the governance:read credential scope."""
     from starlette.concurrency import run_in_threadpool
@@ -619,12 +649,24 @@ async def get_baal_governance_config():
 
     try:
         result = await run_in_threadpool(read_baal_config)
-        return _private_response({"data": result})
+        return _private_validated_response(BaalConfigEnvelope, {"data": result})
+    except ValidationError as exc:
+        return _internal_error(exc)
     except Exception as exc:
         return _governance_read_error(exc)
 
 
-@router.get("/v1/governance/baal/proposals")
+@router.get(
+    "/v1/governance/baal/proposals",
+    response_model=BaalProposalListEnvelope,
+    responses={
+        401: {"model": BaalAuthorizationError},
+        403: {"model": BaalAuthorizationError},
+        400: {"model": PublicError},
+        500: {"model": PublicError},
+        503: {"model": PublicError},
+    },
+)
 async def get_baal_governance_proposals(limit: int = Query(default=50, ge=1, le=100)):
     """Read a bounded newest-first list of global Baal proposals."""
     from starlette.concurrency import run_in_threadpool
@@ -633,12 +675,25 @@ async def get_baal_governance_proposals(limit: int = Query(default=50, ge=1, le=
 
     try:
         result = await run_in_threadpool(read_baal_proposals, limit)
-        return _private_response({"data": result})
+        return _private_validated_response(BaalProposalListEnvelope, {"data": result})
+    except ValidationError as exc:
+        return _internal_error(exc)
     except Exception as exc:
         return _governance_read_error(exc)
 
 
-@router.get("/v1/governance/baal/proposals/{proposal_id}")
+@router.get(
+    "/v1/governance/baal/proposals/{proposal_id}",
+    response_model=BaalProposalDetailEnvelope,
+    responses={
+        401: {"model": BaalAuthorizationError},
+        403: {"model": BaalAuthorizationError},
+        400: {"model": PublicError},
+        404: {"model": PublicError},
+        500: {"model": PublicError},
+        503: {"model": PublicError},
+    },
+)
 async def get_baal_governance_proposal(proposal_id: str):
     """Read one global Baal proposal by decimal proposal identifier."""
     from starlette.concurrency import run_in_threadpool
@@ -647,12 +702,24 @@ async def get_baal_governance_proposal(proposal_id: str):
 
     try:
         result = await run_in_threadpool(read_baal_proposal, proposal_id)
-        return _private_response({"data": result})
+        return _private_validated_response(BaalProposalDetailEnvelope, {"data": result})
+    except ValidationError as exc:
+        return _internal_error(exc)
     except Exception as exc:
         return _governance_read_error(exc)
 
 
-@router.get("/v1/governance/baal/members/{wallet}")
+@router.get(
+    "/v1/governance/baal/members/{wallet}",
+    response_model=BaalMemberDetailEnvelope,
+    responses={
+        401: {"model": BaalAuthorizationError},
+        403: {"model": BaalAuthorizationError},
+        400: {"model": PublicError},
+        500: {"model": PublicError},
+        503: {"model": PublicError},
+    },
+)
 async def get_baal_governance_member(wallet: str):
     """Read one requested public Baal member position by wallet address."""
     from starlette.concurrency import run_in_threadpool
@@ -661,7 +728,9 @@ async def get_baal_governance_member(wallet: str):
 
     try:
         result = await run_in_threadpool(read_baal_member, wallet)
-        return _private_response({"data": result})
+        return _private_validated_response(BaalMemberDetailEnvelope, {"data": result})
+    except ValidationError as exc:
+        return _internal_error(exc)
     except Exception as exc:
         return _governance_read_error(exc)
 

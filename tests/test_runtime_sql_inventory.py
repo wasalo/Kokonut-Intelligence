@@ -2,6 +2,8 @@ import ast
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts.runtime_sql_inventory import (
     _fingerprint_digest,
     _scan_source,
@@ -297,7 +299,7 @@ def test_duplicate_unresolved_calls_have_distinct_fingerprints_and_new_duplicate
 def test_unresolved_module_level_execute_resolves_assignment_and_is_reviewed(tmp_path: Path):
     path = tmp_path / "module_sql.py"
     path.write_text(
-        'sql = f"UPDATE {table} SET value = %s"\nconn.execute(sql)\n',
+        'sql = f"UPDATE <dynamic_table> SET value = %s"\nconn.execute(sql)\n',
         encoding="utf-8",
     )
 
@@ -308,7 +310,77 @@ def test_unresolved_module_level_execute_resolves_assignment_and_is_reviewed(tmp
     assert site["statement_kind"] == "UPDATE"
     assert site["scope"] == "module"
     assert site["write_target_relations"] == []
+    assert site["module_query_resolution"] == "single_module_constant_template"
     assert site["write_review_fingerprint"]
+
+
+def test_module_constant_query_resolves_inside_function_and_is_fingerprinted(tmp_path: Path):
+    sources = [
+        'query = "UPDATE <dynamic_table> SET value = %s"\n'
+        'def persist(conn):\n    conn.execute(query, (1,))\n',
+        'query = "UPDATE <other_dynamic_table> SET value = %s"\n'
+        'def persist(conn):\n    conn.execute(query, (1,))\n',
+    ]
+    sites = []
+    for index, source_text in enumerate(sources):
+        path = tmp_path / f"module_constant_{index}.py"
+        path.write_text(source_text, encoding="utf-8")
+        sites.append(
+            _scan_source(
+                "services/example.py", path, [], include_review_fingerprints=True
+            )[0]
+        )
+
+    assert all(site["statement_kind"] == "UPDATE" for site in sites)
+    assert all(site["write_target_relations"] == [] for site in sites)
+    assert all(
+        site["module_query_resolution"] == "single_module_constant_template"
+        for site in sites
+    )
+    assert all(site["write_review_fingerprint"] for site in sites)
+    assert sites[0]["write_review_fingerprint"] != sites[1]["write_review_fingerprint"]
+    assert all("query" not in site and "sql" not in site for site in sites)
+
+
+@pytest.mark.parametrize(
+    "source_text",
+    [
+        'if enabled:\n    query = "INSERT INTO example_record VALUES (%s)"\n'
+        'def persist(conn):\n    conn.execute(query, (1,))\n',
+        'query = "INSERT INTO example_record VALUES (%s)"\n'
+        'if enabled:\n    query = "DELETE FROM example_record"\n'
+        'def persist(conn):\n    conn.execute(query)\n',
+        'query = "INSERT INTO example_record VALUES (%s)"\n'
+        'query = "DELETE FROM example_record"\n'
+        'def persist(conn):\n    conn.execute(query)\n',
+        'from query_source import query\n'
+        'query = "INSERT INTO example_record VALUES (%s)"\n'
+        'def persist(conn):\n    conn.execute(query)\n',
+        'query = "INSERT INTO example_record VALUES (%s)"\n'
+        'def change():\n    global query\n    query = "DELETE FROM example_record"\n'
+        'def persist(conn):\n    conn.execute(query)\n',
+        'query = "INSERT INTO example_record VALUES (%s)"\n'
+        'def persist(conn, query):\n    conn.execute(query)\n',
+        'query = "INSERT INTO example_record VALUES (%s)"\n'
+        'def persist(conn):\n    from query_source import query\n    conn.execute(query)\n',
+        'query = build_query()\n'
+        'def persist(conn):\n    conn.execute(query)\n',
+        'query = f"UPDATE {table} SET value = %s"\n'
+        'def persist(conn):\n    conn.execute(query, (1,))\n',
+    ],
+)
+def test_module_constant_resolution_fails_closed_for_ambiguous_bindings(
+    tmp_path: Path, source_text: str
+):
+    path = tmp_path / "ambiguous_module_sql.py"
+    path.write_text(source_text, encoding="utf-8")
+
+    site = _scan_source("services/example.py", path, [])[0]
+
+    assert site["statement_kind"] == "UNKNOWN"
+    assert site["candidate_relations"] == []
+    assert site["write_target_relations"] == []
+    assert "module_query_resolution" not in site
 
 
 def test_unresolved_write_ledger_requires_explicit_review_for_new_sites():

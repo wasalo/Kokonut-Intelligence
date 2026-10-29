@@ -21,19 +21,51 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         # Location info
-        cur.execute("SELECT * FROM location WHERE id = %s", (location_id,))
+        cur.execute(
+            """
+            SELECT id, name, slug, description, country, region, sub_region,
+                   timezone, latitude, longitude, baseline_revenue,
+                   baseline_asset_value, baseline_cash_flow, baseline_cost,
+                   baseline_assumptions, baseline_source, baseline_date, status,
+                   metadata, created_at, updated_at, created_by, updated_by,
+                   project_url, project_start_date, project_end_date, bioregion,
+                   biome_type, watershed, sub_watershed, schema_version,
+                   organization_id, baseline_recorded_at
+            FROM location
+            WHERE id = %s
+            """,
+            (location_id,),
+        )
         location = cur.fetchone()
         if not location:
             raise ValueError(f"Location {location_id} not found")
 
         # Farms
-        cur.execute("SELECT * FROM farm WHERE location_id = %s", (location_id,))
+        cur.execute(
+            """
+            SELECT id, location_id, name, slug, description, farm_type,
+                   total_area, area_unit, boundary, center, status, metadata,
+                   created_at, updated_at, created_by, updated_by, property_id,
+                   schema_version, logo_url, logo_file_id, traditional_name,
+                   languages, global_standard_certifications, economic_sectors,
+                   credits_registries, data_privacy_status,
+                   data_privacy_standard, data_privacy_criteria
+            FROM farm
+            WHERE location_id = %s
+            """,
+            (location_id,),
+        )
         farms = [dict(r) for r in cur.fetchall()]
 
         # Plots
         cur.execute(
             """
-            SELECT p.*, f.name as farm_name
+            SELECT p.id, p.farm_id, p.name, p.slug, p.description, p.area,
+                   p.area_unit, p.boundary, p.center, p.soil_type,
+                   p.water_source, p.elevation_m, p.slope_pct, p.aspect,
+                   p.status, p.metadata, p.created_at, p.updated_at,
+                   p.created_by, p.updated_by, p.schema_version, p.bed_count,
+                   p.bed_area_sqm, f.name AS farm_name
             FROM plot p JOIN farm f ON p.farm_id = f.id
             WHERE f.location_id = %s
         """,
@@ -44,7 +76,16 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         # Active crop cycles
         cur.execute(
             """
-            SELECT cc.*, c.name as crop_name, p.name as plot_name
+            SELECT cc.id, cc.plot_id, cc.crop_id, cc.location_id,
+                   cc.cycle_name, cc.season, cc.planting_date,
+                   cc.expected_harvest_date, cc.actual_harvest_date,
+                   cc.expected_yield, cc.expected_yield_unit, cc.actual_yield,
+                   cc.actual_yield_unit, cc.expected_price_per_unit,
+                   cc.expected_revenue, cc.actual_revenue, cc.planting_density,
+                   cc.planting_density_unit, cc.area_planted, cc.area_unit,
+                   cc.status, cc.failure_reason, cc.metadata, cc.schema_version,
+                   cc.created_at, cc.updated_at, cc.created_by, cc.updated_by,
+                   c.name AS crop_name, p.name AS plot_name
             FROM crop_cycle cc
             JOIN crop c ON cc.crop_id = c.id
             JOIN plot p ON cc.plot_id = p.id

@@ -10,6 +10,13 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Complete the parallel C1/C2/C5 code batch: resolve module-level SQL
+  constants only under conservative single-binding rules and refresh the
+  ledger/inventories; add strict private Baal Gateway contracts without
+  adding those routes to the public SDK; and replace farm-summary `SELECT *`
+  projections with explicit current-schema fields. No runtime ACL or report
+  lifecycle policy changed ([evidence](builds/2026-10-28-recovery/kernel-parallel-c1-c2-c5-code-batch.json)).
+
 - [x] Add strict OpenAPI/runtime response contracts for farm-activity list and
   published-list reads, including exact location, source-system, and published
   lifecycle checks.
@@ -655,10 +662,11 @@ that its full source-plan phase is complete.
   `yield_benchmark`: one location-scoped analytics reader and no application
   write path were found; its DML is denied to `kokonut_runtime`, while the
   optional Directus role remains unchanged. This does not establish RLS or
-  tenant isolation. The conservative SQL inventory now records 4,936 execution
-  sites across 974 files, 1,223 relation candidates, and 588 write-target
-  relations. It resolves 53 SQL templates stored in one unambiguous local
-  assignment; dynamic identifiers, reassigned variables, and ambiguous/helper
+  tenant isolation. The conservative SQL inventory now records 4,960 execution
+  sites across 984 files, 1,243 relation candidates, and 587 write-target
+  relations. It resolves 51 SQL templates stored in one unambiguous local
+  assignment and eight same-module constants with an unambiguous immutable
+  binding; dynamic identifiers, reassigned variables, and ambiguous/helper
   expressions remain unresolved. It surfaced `service_registry` INSERT/UPDATE
   in `services/analytics/service_catalog.py`; repository search found no
   internal API, CLI, SDK, or scheduled caller, but the public helper and
@@ -669,13 +677,13 @@ that its full source-plan phase is complete.
   `farm_task_framework_step` relation is an operational many-to-many edge with
   cascades and no direct location key; historic reconciliation found 20
   unresolved scope edges among 41 links, and the owner deferred those links.
-  A separate unresolved-write review ledger now tracks 37 existing candidates
-  (eight unresolved direct DML targets and 29 conservative `WITH` statements).
+  A separate unresolved-write review ledger now tracks 39 existing candidates
+  (eight unresolved direct DML targets and 31 conservative `WITH` statements).
   Its legacy fingerprint set is pinned in source. Scope-AST fingerprints and
   per-scope ordinals catch same-scope source-binding edits and distinguish
   duplicate calls; hosted `ci-check.sh` invokes the inventory gate and fails
   when a new candidate lacks reviewed metadata that explicitly disclaims ACL
-  approval. Twenty-two scanner tests pass. Parameter, import, mutable-global, and helper-provided values
+  approval. Thirty-four scanner tests pass. Parameter, import, mutable-global, and helper-provided values
   remain beyond fingerprint reach. This is source drift detection only: it
   does not change grants, classify existing debt as safe, or establish
   tenant isolation
@@ -2058,5 +2066,5 @@ reconciliation remain open. Evidence:
 [storage contract](report-snapshot-export-contract.md),
 [adapter checks](builds/2026-10-28-recovery/report-snapshot-export-s3-adapter-checks.json).
 
-Checklist: 1,520 complete / 25 open (1,545 total); TODO: 225 checked / 16
+Checklist: 1,524 complete / 25 open (1,549 total); TODO: 227 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
