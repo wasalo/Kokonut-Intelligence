@@ -1,5 +1,6 @@
 """Contracts for private, location-scoped Delphi minority-report review."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -17,6 +18,7 @@ OPERATOR_ID = str(uuid4())
 LOCATION_ID = str(uuid4())
 REPORT_ID = str(uuid4())
 REQUEST_ID = str(uuid4())
+DECIDED_AT = datetime(2026, 10, 29, 12, 0, tzinfo=timezone.utc)
 
 
 class _Connection:
@@ -335,3 +337,104 @@ def test_list_route_publishes_service_pagination_bounds_and_rejects_invalid_valu
     for query in ("limit=0", "limit=51", "offset=-1", "offset=10001"):
         response = client.get(f"{path}?{query}")
         assert response.status_code == 422
+
+
+def test_decision_route_validates_response_and_publishes_openapi_contract():
+    calls = []
+    result = {
+        "review_id": str(uuid4()),
+        "report_id": REPORT_ID,
+        "study_id": str(uuid4()),
+        "decision": "verified",
+        "status": "verified",
+        "decided_at": DECIDED_AT,
+    }
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        calls.append((func, args, kwargs))
+        return result
+
+    app = _make_app(object(), {}, run_in_threadpool)
+    client = TestClient(app)
+    response = client.post(
+        f"/operator/api/delphi/{LOCATION_ID}/minority-reports/{REPORT_ID}/decision",
+        json={
+            "decision": "verified",
+            "request_id": REQUEST_ID,
+            "reason_code": "evidence_considered",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {**result, "decided_at": "2026-10-29T12:00:00Z"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert calls == [
+        (
+            review.decide_location_delphi_minority_report,
+            (OPERATOR_ID, LOCATION_ID, REPORT_ID),
+            {
+                "decision": "verified",
+                "request_id": REQUEST_ID,
+                "reason_code": "evidence_considered",
+            },
+        )
+    ]
+
+    operation = app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/minority-reports/{report_id}/decision"
+    ]["post"]
+    response_ref = operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    schema = app.openapi()["components"]["schemas"][response_ref.rsplit("/", 1)[1]]
+    assert set(schema["properties"]) == {
+        "review_id",
+        "report_id",
+        "study_id",
+        "decision",
+        "status",
+        "decided_at",
+    }
+    assert set(schema["required"]) == set(schema["properties"])
+    assert schema["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"report_id": str(uuid4())},
+        {"decision": "rejected"},
+        {"status": "rejected"},
+        {"participant_note": "not part of the response"},
+        {"decided_at": "not-a-timestamp"},
+    ],
+)
+def test_decision_route_sanitizes_invalid_minority_report_response(changes):
+    result = {
+        "review_id": str(uuid4()),
+        "report_id": REPORT_ID,
+        "study_id": str(uuid4()),
+        "decision": "verified",
+        "status": "verified",
+        "decided_at": DECIDED_AT,
+    }
+    result.update(changes)
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return result
+
+    client = TestClient(_make_app(object(), {}, run_in_threadpool))
+    response = client.post(
+        f"/operator/api/delphi/{LOCATION_ID}/minority-reports/{REPORT_ID}/decision",
+        json={
+            "decision": "verified",
+            "request_id": REQUEST_ID,
+            "reason_code": "evidence_considered",
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi minority-report review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "participant_note" not in response.text

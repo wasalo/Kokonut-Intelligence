@@ -7781,3 +7781,21 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 128. C2/C4/C5, populated-data parity, and live provider gates remain
 open.
+
+### Source continuation — Delphi review-decision response contracts — 29 October 2026
+
+- [x] Add strict six-field response models to the recommendation and minority
+  report human-decision routes; declare them in OpenAPI and bind returned
+  decision/status and record ID to the submitted request/path.
+- [x] Add and run focused mocked route/OpenAPI checks for exact response
+  fields, decision/status consistency, path binding, and sanitized no-store
+  malformed-service failures
+
+The 12 focused route checks pass. No database, candidate, legacy service, or
+provider was involved. Ruff, compilation, and diff checks pass. The previous
+grouped batch was pushed as
+`eaefae7dee6484b8df6bbd5d6f1b47b5ded57864`; Gitleaks passed and CI remains
+in progress on that exact head. The source contract count is now 130. Current
+checklist: 1,751 complete / 25 open (1,776 total); TODO: 427 checked / 16
+open. Evidence:
+[Delphi decision contracts](builds/2026-10-29-recovery/delphi-review-decision-response-contracts.json).

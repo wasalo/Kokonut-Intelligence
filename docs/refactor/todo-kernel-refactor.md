@@ -3025,3 +3025,16 @@ rows; 24 baseline-retained, 7 deployed, 36 prepared. Strict private Gateway
 response contracts: 128. Hosted CI must rerun after push to verify the
 inventory refresh. Evidence:
 `builds/2026-10-29-recovery/kernel-next-contract-projection-checks.json`.
+
+## In progress — Delphi review-decision response contracts, 29 October
+
+- [x] Declare strict six-field response schemas for recommendation and
+  minority-report review decisions, bind record IDs and decisions to the
+  request, and enforce the corresponding resulting status.
+- [x] Add/run focused mocked tests for OpenAPI fields, response binding,
+  decision/status consistency, and sanitized no-store malformed results.
+
+Twelve focused checks pass. Source changes pass Ruff, Python compilation, and
+diff checks. Strict private Gateway response contracts total 130. Checklist:
+427 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/delphi-review-decision-response-contracts.json`.

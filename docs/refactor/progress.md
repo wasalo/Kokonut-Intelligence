@@ -24206,3 +24206,19 @@ classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows; strict private Gateway response contracts total 128. C2/C4/C5,
 populated-data parity, and live provider gates remain open. Evidence:
 [grouped checks](builds/2026-10-29-recovery/kernel-next-contract-projection-checks.json).
+
+### Progress addendum — Delphi review-decision response schemas — 29 October 2026
+
+Recommendation and minority-report review decision endpoints now publish
+strict six-field response schemas. Each handler validates the lifecycle result
+against the submitted decision and binds the returned recommendation/report
+identifier to the path; malformed service output receives a sanitized
+no-store error. The authorized mock-only route/OpenAPI selection passes 12
+tests, including field completeness, request/path binding, decision/status
+consistency, and sanitized failures. Ruff, Python compilation, and diff checks
+pass; no database/provider was used. Checklist: 1,751 complete / 25 open;
+TODO: 427 checked / 16 open; strict private Gateway response contracts total
+130. Evidence:
+[Delphi decision contracts](builds/2026-10-29-recovery/delphi-review-decision-response-contracts.json).
+On feature head `eaefae7dee6484b8df6bbd5d6f1b47b5ded57864`, Gitleaks passed and
+CI was still in progress at last check.

@@ -66,6 +66,21 @@ class DelphiRecommendationReviewPage(_RecommendationReviewResponseModel):
         return self
 
 
+class DelphiRecommendationReviewDecisionResponse(_RecommendationReviewResponseModel):
+    review_id: StrictUuid
+    recommendation_id: StrictUuid
+    study_id: StrictUuid
+    decision: Literal["approve", "reject"]
+    status: Literal["approved", "rejected"]
+    decided_at: AwareDatetime
+
+    def validate_decision_state(self):
+        expected_status = "approved" if self.decision == "approve" else "rejected"
+        if self.status != expected_status:
+            raise ValueError("recommendation decision status does not match decision")
+        return self
+
+
 def register_delphi_recommendation_review_routes(router, provider, run_in_threadpool, psycopg2):
     import json
 
@@ -169,7 +184,8 @@ def register_delphi_recommendation_review_routes(router, provider, run_in_thread
         )
 
     @router.post(
-        "/operator/api/delphi/{location_id}/recommendations/{recommendation_id}/decision"
+        "/operator/api/delphi/{location_id}/recommendations/{recommendation_id}/decision",
+        response_model=DelphiRecommendationReviewDecisionResponse,
     )
     async def decide_recommendation_review(
         request: Request,
@@ -220,4 +236,26 @@ def register_delphi_recommendation_review_routes(router, provider, run_in_thread
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = DelphiRecommendationReviewDecisionResponse.model_validate(result)
+            validated.validate_decision_state()
+            if (
+                validated.recommendation_id != UUID(recommendation_id)
+                or validated.decision != payload["decision"]
+            ):
+                raise ValueError("recommendation decision response does not match request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_recommendation_review").warning(
+                "Delphi recommendation decision response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Delphi recommendation review unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")), headers=headers
+        )

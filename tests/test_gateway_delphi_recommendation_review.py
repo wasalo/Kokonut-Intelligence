@@ -1,5 +1,6 @@
 """Focused contracts for location-scoped human review of Delphi drafts."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -17,6 +18,7 @@ OPERATOR_ID = str(uuid4())
 LOCATION_ID = str(uuid4())
 RECOMMENDATION_ID = str(uuid4())
 REQUEST_ID = str(uuid4())
+DECIDED_AT = datetime(2026, 10, 29, 12, 0, tzinfo=timezone.utc)
 
 
 class _Connection:
@@ -424,3 +426,109 @@ def test_routes_fail_closed_when_oidc_is_disabled():
     response = client.get(f"/operator/api/delphi/{LOCATION_ID}/recommendations")
     assert response.status_code == 404
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_decision_route_validates_response_and_publishes_openapi_contract():
+    calls = []
+    result = {
+        "review_id": str(uuid4()),
+        "recommendation_id": RECOMMENDATION_ID,
+        "study_id": str(uuid4()),
+        "decision": "approve",
+        "status": "approved",
+        "decided_at": DECIDED_AT,
+    }
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        calls.append((func, args, kwargs))
+        return result
+
+    app = _make_app(object(), {}, run_in_threadpool)
+    client = TestClient(app)
+    path = (
+        f"/operator/api/delphi/{LOCATION_ID}/recommendations/"
+        f"{RECOMMENDATION_ID}/decision"
+    )
+    response = client.post(
+        path,
+        json={
+            "decision": "approve",
+            "request_id": REQUEST_ID,
+            "reason_code": "approved_after_review",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {**result, "decided_at": "2026-10-29T12:00:00Z"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert calls == [
+        (
+            review.decide_location_delphi_recommendation,
+            (OPERATOR_ID, LOCATION_ID, RECOMMENDATION_ID),
+            {
+                "decision": "approve",
+                "request_id": REQUEST_ID,
+                "reason_code": "approved_after_review",
+            },
+        )
+    ]
+
+    operation = app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/recommendations/{recommendation_id}/decision"
+    ]["post"]
+    response_ref = operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    schema = app.openapi()["components"]["schemas"][response_ref.rsplit("/", 1)[1]]
+    assert set(schema["properties"]) == {
+        "review_id",
+        "recommendation_id",
+        "study_id",
+        "decision",
+        "status",
+        "decided_at",
+    }
+    assert set(schema["required"]) == set(schema["properties"])
+    assert schema["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"recommendation_id": str(uuid4())},
+        {"decision": "reject"},
+        {"status": "rejected"},
+        {"private_feedback": "not part of the response"},
+        {"decided_at": "not-a-timestamp"},
+    ],
+)
+def test_decision_route_sanitizes_invalid_recommendation_response(changes):
+    result = {
+        "review_id": str(uuid4()),
+        "recommendation_id": RECOMMENDATION_ID,
+        "study_id": str(uuid4()),
+        "decision": "approve",
+        "status": "approved",
+        "decided_at": DECIDED_AT,
+    }
+    result.update(changes)
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return result
+
+    client = TestClient(_make_app(object(), {}, run_in_threadpool))
+    response = client.post(
+        f"/operator/api/delphi/{LOCATION_ID}/recommendations/"
+        f"{RECOMMENDATION_ID}/decision",
+        json={
+            "decision": "approve",
+            "request_id": REQUEST_ID,
+            "reason_code": "approved_after_review",
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi recommendation review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "private_feedback" not in response.text
