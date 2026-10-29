@@ -71,6 +71,17 @@ class OperatingPilotCoachingSessionCreateResponse(BaseModel):
     replayed: bool
 
 
+class OperatingPilotCapacityDraftCreateResponse(BaseModel):
+    """Minimal response for a private capacity-profile draft write."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    profile_id: _ResponseUUID
+    status: Literal["draft", "submitted", "approved", "rejected", "superseded"]
+    replayed: bool
+
+
 def _response_decimal(value):
     if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
         raise ValueError("numeric value is invalid")
@@ -872,7 +883,12 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             headers=headers,
         )
 
-    @router.post("/operator/api/operating-pilot/{location_id}/capacity-profiles")
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles",
+        response_model=OperatingPilotCapacityDraftCreateResponse,
+        status_code=201,
+        responses={200: {"model": OperatingPilotCapacityDraftCreateResponse}},
+    )
     async def create_operating_pilot_capacity_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -947,7 +963,28 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating capacity draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotCapacityDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Capacity response location does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating capacity-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating capacity draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")),
+            status_code=200 if response.replayed else 201,
+            headers=headers,
+        )
 
     @router.get("/operator/api/operating-pilot/{location_id}/work-claim-review-queue")
     async def location_operating_pilot_work_claim_review_queue(

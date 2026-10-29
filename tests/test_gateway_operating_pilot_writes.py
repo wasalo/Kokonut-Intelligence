@@ -1504,7 +1504,12 @@ def _capacity_route_app(monkeypatch, action, provider=object()):
 
 
 def test_capacity_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
-    action = MagicMock(return_value={"profile_id": REQUEST_ID, "status": "draft", "replayed": False})
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "profile_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    })
     client = _capacity_route_app(monkeypatch, action)
 
     response = client.post(
@@ -1515,8 +1520,70 @@ def test_capacity_draft_http_route_passes_request_id_and_uses_no_store(monkeypat
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["status"] == "draft"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "profile_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    operation = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles"
+    ]["post"]
+    for status_code in ("200", "201"):
+        schema = operation["responses"][status_code]["content"]["application/json"]["schema"]
+        assert schema["$ref"].endswith("OperatingPilotCapacityDraftCreateResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, CAPACITY_PAYLOAD)
+
+
+def test_capacity_draft_idempotent_replay_returns_http_200(monkeypatch):
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "profile_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": True,
+    })
+    client = _capacity_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles",
+        json={**CAPACITY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "submitted"
+    assert response.json()["replayed"] is True
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"status": "active"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_capacity_draft_rejects_malformed_response_without_private_data(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "profile_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _capacity_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles",
+        json={**CAPACITY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating capacity draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_capacity_draft_http_route_returns_403_when_signed_context_is_denied(monkeypatch):

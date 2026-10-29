@@ -7895,3 +7895,24 @@ Checklist: 1,771 complete / 25 open (1,796 total); TODO: 440 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 141. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — capacity-profile draft response — 29 October 2026
+
+- [x] Publish a strict four-field capacity-profile create response and validate
+  the database service result before returning it.
+- [x] Bind the returned location to the route and allow only the profile
+  lifecycle values defined by the schema.
+- [x] Preserve HTTP 201 for creation and HTTP 200 for idempotent replay.
+- [x] Sanitize malformed or mismatched results with no-store failure handling.
+- [x] Run focused mock-only route/OpenAPI checks and record evidence.
+
+The focused operating-pilot write selection passes 20 tests (179 unrelated
+tests deselected). Ruff, Python compilation, response-schema generation,
+capability validation, and diff checks pass. No database, provider, candidate,
+or legacy state was used. Evidence:
+[capacity-draft response contract](builds/2026-10-29-recovery/operating-pilot-capacity-draft-create-response-contract.json).
+
+Checklist: 1,776 complete / 25 open (1,801 total); TODO: 443 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 142. C2 remains open for broader route/auth and live-runtime parity.

@@ -24284,3 +24284,17 @@ checks pass; no database or provider was used. Checklist: 1,771 complete / 25
 open; TODO: 440 checked / 16 open; strict private Gateway response contracts
 total 141. Evidence:
 [coaching response contract](builds/2026-10-29-recovery/operating-pilot-coaching-create-response-contract.json).
+
+### Progress addendum — capacity-profile draft response — 29 October 2026
+
+The operating-pilot capacity draft route now declares a strict four-field
+response for location, profile ID, canonical lifecycle status, and replay.
+It binds the result location to the path and returns HTTP 200 on an idempotent
+replay while keeping HTTP 201 for a new draft. Ruff, Python compilation,
+response-schema generation, and diff checks pass. The approved focused
+route selection passes 20 tests (179 unrelated tests deselected), including
+OpenAPI, lifecycle, path binding, replay, and malformed output. Capability
+validation passes; no database or provider was used. Checklist: 1,776 complete
+/ 25 open; TODO: 443 checked / 16 open; strict private Gateway response
+contracts total 142. Evidence:
+[capacity-draft response contract](builds/2026-10-29-recovery/operating-pilot-capacity-draft-create-response-contract.json).

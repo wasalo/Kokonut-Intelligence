@@ -1182,7 +1182,11 @@ that its full source-plan phase is complete.
   45 focused checks pass ([evidence](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json)). A strict
   private coaching-session create response is now in progress, with exact
   location/session/lifecycle/date fields and idempotent 201/200 status; its 19
-  focused route checks pass ([evidence](builds/2026-10-29-recovery/operating-pilot-coaching-create-response-contract.json)).
+  focused route checks pass ([evidence](builds/2026-10-29-recovery/operating-pilot-coaching-create-response-contract.json)). A strict response for
+  capacity-profile draft creation is now in progress: it binds the location,
+  allows only source-defined profile statuses, and distinguishes 201 creation
+  from 200 replay; 20 focused checks pass
+  ([evidence](builds/2026-10-29-recovery/operating-pilot-capacity-draft-create-response-contract.json)).
   Sources:
   [API/SDK gates](batches.md#L3226),
   [Phase 7](implementation-plan-alignment.md#L27).
@@ -1208,6 +1212,13 @@ that its full source-plan phase is complete.
 - [x] Add/run 19 focused mocked route/OpenAPI checks for coaching response
   fields, location, lifecycle, date, replay, and malformed output
   ([evidence](builds/2026-10-29-recovery/operating-pilot-coaching-create-response-contract.json)).
+- [x] Declare and validate the capacity-profile create response against its
+  migration-defined lifecycle and bind returned location to the route.
+- [x] Preserve 201 new-draft / 200 replay statuses and sanitized no-store
+  handling for malformed create results.
+- [x] Add/run 20 focused mocked route/OpenAPI checks for exact fields, status,
+  location, replay, and malformed service output
+  ([evidence](builds/2026-10-29-recovery/operating-pilot-capacity-draft-create-response-contract.json)).
 - [ ] **C3 — Finish the optional Directus adapter boundary.** Close code-verifiable
   role, field, row and hook gaps for collections still retained; keep native
   farm activity in Gateway. Workflow-role authorization cache freshness is
