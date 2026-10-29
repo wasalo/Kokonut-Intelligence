@@ -27,6 +27,19 @@ LOCATION = {
     "region": "Samaná",
     "status": "active",
 }
+CRISP_ASSESSMENT = {
+    "assessment_id": "b0000000-0000-4000-8000-000000000001",
+    "location_id": LOCATION["id"],
+    "period_start": "2026-01-01",
+    "period_end": "2026-06-30",
+    "methodology_version": "crisp-1",
+    "composite_score": 82.0,
+    "rating": "AA",
+    "confidence_level": "high",
+    "evidence_maturity_level": 3,
+    "score_computed_at": "2026-10-14T12:35:00+00:00",
+    "status": "published",
+}
 
 
 class FakeResponse:
@@ -104,17 +117,8 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
                 200,
                 {
                     "data": {
-                        "assessment_id": "assessment-1",
-                        "location_id": "location-1",
-                        "period_start": "2026-01-01",
-                        "period_end": "2026-06-30",
-                        "methodology_version": "crisp-1",
-                        "composite_score": 82.0,
-                        "rating": "AA",
-                        "confidence_level": "high",
-                        "evidence_maturity_level": 3,
+                        **CRISP_ASSESSMENT,
                         "score_computed_at": crisp_time,
-                        "status": "published",
                     }
                 },
             ),
@@ -144,7 +148,7 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
     locations = client.locations.list()
     location = client.locations.get("a/b +?")
     metrics = client.metrics.get("location-1")
-    crisp = client.crisp.get("location-1")
+    crisp = client.crisp.get(LOCATION["id"])
     summary = client.analytics.get_summary("location-1")
 
     assert len(locations) == 1
@@ -170,11 +174,104 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
         "https://gateway.example/api/v1/locations",
         "https://gateway.example/api/v1/locations/a%2Fb%20%2B%3F",
         "https://gateway.example/api/v1/metrics/location-1",
-        "https://gateway.example/api/v1/crisp/location-1",
+        f"https://gateway.example/api/v1/crisp/{LOCATION['id']}",
         "https://gateway.example/api/v1/analytics/location-1/summary",
     ]
     assert all(kwargs == {"timeout": 4.5} for _, kwargs in session.calls)
     assert session.headers == {"Accept": "application/json", "x-api-key": "test-key"}
+
+
+@pytest.mark.parametrize(
+    ("requested_location_id", "assessment"),
+    [
+        (LOCATION["id"], CRISP_ASSESSMENT),
+        (
+            LOCATION["id"].upper(),
+            {**CRISP_ASSESSMENT, "score_computed_at": "2026-10-14T12:35:00.123456Z"},
+        ),
+        (
+            LOCATION["id"],
+            {
+                **CRISP_ASSESSMENT,
+                "composite_score": None,
+                "rating": None,
+                "confidence_level": None,
+                "evidence_maturity_level": None,
+                "score_computed_at": None,
+            },
+        ),
+        (LOCATION["id"], {**CRISP_ASSESSMENT, "composite_score": 0}),
+        (LOCATION["id"], {**CRISP_ASSESSMENT, "composite_score": 100}),
+    ],
+)
+def test_crisp_sdk_accepts_valid_scoped_assessments(
+    requested_location_id: str, assessment: dict[str, Any]
+) -> None:
+    client = KokonutPublicApiClient(
+        "https://gateway.example",
+        session=FakeSession([FakeResponse(200, {"data": assessment})]),
+    )
+
+    result = client.crisp.get(requested_location_id)
+
+    assert result.location_id == LOCATION["id"]
+    assert result.status == "published"
+
+
+@pytest.mark.parametrize(
+    "assessment",
+    [
+        {**CRISP_ASSESSMENT, "unexpected": "field"},
+        {key: value for key, value in CRISP_ASSESSMENT.items() if key != "status"},
+        {**CRISP_ASSESSMENT, "assessment_id": "assessment-1"},
+        {**CRISP_ASSESSMENT, "location_id": "not-a-uuid"},
+        {**CRISP_ASSESSMENT, "location_id": "c0000000-0000-4000-8000-000000000001"},
+        {**CRISP_ASSESSMENT, "period_start": "2026-02-30"},
+        {**CRISP_ASSESSMENT, "period_end": 20260630},
+        {**CRISP_ASSESSMENT, "methodology_version": 1},
+        {**CRISP_ASSESSMENT, "composite_score": -0.01},
+        {**CRISP_ASSESSMENT, "composite_score": 100.01},
+        {**CRISP_ASSESSMENT, "composite_score": True},
+        {**CRISP_ASSESSMENT, "composite_score": float("nan")},
+        {**CRISP_ASSESSMENT, "rating": "F"},
+        {**CRISP_ASSESSMENT, "rating": []},
+        {**CRISP_ASSESSMENT, "confidence_level": "certain"},
+        {**CRISP_ASSESSMENT, "confidence_level": 1},
+        {**CRISP_ASSESSMENT, "evidence_maturity_level": 1.5},
+        {**CRISP_ASSESSMENT, "evidence_maturity_level": True},
+        {**CRISP_ASSESSMENT, "score_computed_at": "2026-10-14T12:35:00"},
+        {**CRISP_ASSESSMENT, "score_computed_at": "2026-02-30T12:35:00Z"},
+        {**CRISP_ASSESSMENT, "score_computed_at": "2026-10-14 12:35:00Z"},
+        {**CRISP_ASSESSMENT, "score_computed_at": "2026-10-14T12:35:00+25:00"},
+        {**CRISP_ASSESSMENT, "score_computed_at": "2026-10-14T12:35:00+01:60"},
+        {**CRISP_ASSESSMENT, "status": "verified"},
+    ],
+)
+def test_crisp_sdk_rejects_malformed_or_wrong_scope_assessments(
+    assessment: dict[str, Any],
+) -> None:
+    response = FakeResponse(200, {"data": assessment})
+    client = KokonutPublicApiClient(
+        "https://gateway.example", session=FakeSession([response])
+    )
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope") as exc_info:
+        client.crisp.get(LOCATION["id"])
+
+    assert exc_info.value.status_code == 200
+    assert exc_info.value.response is response
+
+
+def test_crisp_sdk_rejects_a_malformed_requested_location_before_accepting_response() -> None:
+    response = FakeResponse(200, {"data": CRISP_ASSESSMENT})
+    client = KokonutPublicApiClient(
+        "https://gateway.example", session=FakeSession([response])
+    )
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope"):
+        client.crisp.get("location-1")
+
+    assert len(client.session.calls) == 1
 
 
 def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> None:

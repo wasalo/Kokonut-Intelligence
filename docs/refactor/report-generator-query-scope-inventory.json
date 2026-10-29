@@ -1156,7 +1156,7 @@
       "report_type": "cultural_preservation",
       "callable": "generate_cultural_preservation",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 52,
+      "source_line": 65,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -1170,7 +1170,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 59,
+          "line": 72,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1193,7 +1193,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 61,
+          "line": 74,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2157,7 +2157,7 @@
       "report_type": "foundational_wellbeing",
       "callable": "generate_foundational_wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 171,
+      "source_line": 216,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -2171,7 +2171,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 178,
+          "line": 223,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2194,7 +2194,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 180,
+          "line": 225,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3590,7 +3590,7 @@
       "report_type": "renewable_energy",
       "callable": "generate_renewable_energy",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 91,
+      "source_line": 119,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -3604,7 +3604,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 98,
+          "line": 126,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3627,7 +3627,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 100,
+          "line": 128,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5914,7 +5914,7 @@
       "report_type": "vulnerable_access",
       "callable": "generate_vulnerable_access",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 132,
+      "source_line": 177,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -5928,7 +5928,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 139,
+          "line": 184,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5951,7 +5951,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 141,
+          "line": 186,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

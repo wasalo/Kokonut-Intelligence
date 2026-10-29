@@ -81,6 +81,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
     sections["financial_sustainability"] = _financial_sustainability_section(location_id)
     sections["regenerative_outcomes"] = _regenerative_outcomes_section(location_id)
     sections["gnh_alignment"] = _gnh_alignment_section(location_id)
+    sections["capital_efficiency"] = _capital_efficiency_section(location_id)
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -552,6 +553,60 @@ def _gnh_alignment_section(location_id=LOCATION_ID):
     }
 
 
+def _capital_efficiency_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "capital_efficiency",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "scenarios": [
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "farm_id": None,
+                "scenario_name": "Public goods loop",
+                "scenario_type": "public_goods_loop",
+                "period_start": "2025-01-01",
+                "period_end": None,
+                "capital_deployed_usd": Decimal("10000.00"),
+                "gross_output_value_usd": Decimal("15000.00"),
+                "net_output_value_usd": Decimal("-250.00"),
+                "public_goods_value_usd": Decimal("4000.00"),
+                "capital_leverage_ratio": Decimal("1.5000"),
+                "public_summary": "Published synthetic capital scenario.",
+                "evidence_maturity": 4,
+                "evidence_maturity_label": "Evidence-linked record",
+                "metadata": {"public_tag": "synthetic", "labels": ["reviewed"]},
+            }
+        ],
+        "regenerative_efficiency": [
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "farm_id": str(uuid4()),
+                "practice_event_id": None,
+                "observation_date": "2025-09-15",
+                "practice_type": "mulching",
+                "baseline_cost_usd": Decimal("100.00"),
+                "observed_cost_usd": Decimal("125.00"),
+                "cost_savings_pct": Decimal("-25.0000"),
+                "incremental_output_value_usd": Decimal("-10.00"),
+                "implementation_cost_usd": Decimal("25.00"),
+                "payback_months": Decimal("6.00"),
+                "public_summary": "Published synthetic regenerative efficiency observation.",
+                "evidence_maturity": 3,
+                "evidence_maturity_label": "Reviewed record",
+                "metadata": {"public_tag": "synthetic"},
+            }
+        ],
+        "limitations": [
+            "Capital efficiency and payback values are scenario evidence, not guaranteed returns.",
+            "Private capital terms and draft financial assumptions are excluded.",
+            "Regenerative savings should be recalculated as additional verified expense, output, and practice records mature.",
+        ],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
 class _Connection:
     autocommit = False
 
@@ -780,6 +835,17 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "labels": ["reviewed"],
     }
     assert gnh["average_alignment_score"] == 8.5
+    capital = response.json()["locations"][0]["sections"]["capital_efficiency"]
+    assert capital["scenarios"][0]["public_summary"] == (
+        "Published synthetic capital scenario."
+    )
+    assert capital["scenarios"][0]["metadata"] == {
+        "public_tag": "synthetic",
+        "labels": ["reviewed"],
+    }
+    assert capital["scenarios"][0]["net_output_value_usd"] == -250.0
+    assert capital["regenerative_efficiency"][0]["cost_savings_pct"] == -25.0
+    assert capital["regenerative_efficiency"][0]["incremental_output_value_usd"] == -10.0
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -990,6 +1056,58 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "evidence_maturity_label",
         "metadata",
     }
+    capital_schema = section_schema["properties"]["capital_efficiency"]
+    assert len(capital_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusCapitalEfficiency"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusCapitalEfficiencyScenario"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusCapitalEfficiencyObservation"]["additionalProperties"] is False
+    assert set(schemas["ComprehensiveStatusCapitalEfficiency"]["properties"]) == {
+        "report_type",
+        "location_id",
+        "location_name",
+        "scenarios",
+        "regenerative_efficiency",
+        "limitations",
+        "generated_at",
+    }
+    assert set(schemas["ComprehensiveStatusCapitalEfficiencyScenario"]["properties"]) == {
+        "id",
+        "location_id",
+        "farm_id",
+        "scenario_name",
+        "scenario_type",
+        "period_start",
+        "period_end",
+        "capital_deployed_usd",
+        "gross_output_value_usd",
+        "net_output_value_usd",
+        "public_goods_value_usd",
+        "capital_leverage_ratio",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    }
+    assert set(
+        schemas["ComprehensiveStatusCapitalEfficiencyObservation"]["properties"]
+    ) == {
+        "id",
+        "location_id",
+        "farm_id",
+        "practice_event_id",
+        "observation_date",
+        "practice_type",
+        "baseline_cost_usd",
+        "observed_cost_usd",
+        "cost_savings_pct",
+        "incremental_output_value_usd",
+        "implementation_cost_usd",
+        "payback_months",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    }
 
 
 def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
@@ -1015,6 +1133,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "error": "report section failed (DataError)"
     }
     payload["locations"][0]["sections"]["gnh_alignment"] = {
+        "error": "report section failed (DataError)"
+    }
+    payload["locations"][0]["sections"]["capital_efficiency"] = {
         "error": "report section failed (DataError)"
     }
     monkeypatch.setattr(
@@ -1064,6 +1185,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["gnh_alignment"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["capital_efficiency"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -1092,6 +1216,15 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "gnh_report_wrong_location", "gnh_assessment_wrong_location",
         "gnh_assessment_extra", "gnh_numeric_string", "gnh_missing_field",
         "gnh_invalid_domain", "gnh_wrong_average", "gnh_error_contract",
+        "capital_scenario_wrong_location", "capital_observation_wrong_location",
+        "capital_scenario_extra", "capital_observation_extra",
+        "capital_scenario_numeric_string", "capital_scenario_capital_negative",
+        "capital_scenario_gross_negative", "capital_scenario_goods_negative",
+        "capital_scenario_leverage_negative", "capital_scenario_type_invalid",
+        "capital_observation_baseline_negative", "capital_observation_observed_negative",
+        "capital_observation_savings_low", "capital_observation_savings_high",
+        "capital_observation_implementation_negative", "capital_observation_payback_negative",
+        "capital_error_contract",
     ],
 )
 def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_projection):
@@ -1274,6 +1407,74 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         ] = 9.0
     elif invalid_projection == "gnh_error_contract":
         payload["locations"][0]["sections"]["gnh_alignment"] = {
+            "error": "database connection failed with private SQL"
+        }
+    elif invalid_projection == "capital_scenario_wrong_location":
+        payload["locations"][0]["sections"]["capital_efficiency"]["scenarios"][0][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "capital_observation_wrong_location":
+        payload["locations"][0]["sections"]["capital_efficiency"][
+            "regenerative_efficiency"
+        ][0]["location_id"] = str(uuid4())
+    elif invalid_projection == "capital_scenario_extra":
+        payload["locations"][0]["sections"]["capital_efficiency"]["scenarios"][0][
+            "source_raw"
+        ] = {"private": "must not escape"}
+    elif invalid_projection == "capital_observation_extra":
+        payload["locations"][0]["sections"]["capital_efficiency"][
+            "regenerative_efficiency"
+        ][0]["source_id"] = "private-source-id"
+    elif invalid_projection == "capital_scenario_numeric_string":
+        payload["locations"][0]["sections"]["capital_efficiency"]["scenarios"][0][
+            "capital_deployed_usd"
+        ] = "10000.00"
+    elif invalid_projection == "capital_scenario_capital_negative":
+        payload["locations"][0]["sections"]["capital_efficiency"]["scenarios"][0][
+            "capital_deployed_usd"
+        ] = Decimal("-1.00")
+    elif invalid_projection == "capital_scenario_gross_negative":
+        payload["locations"][0]["sections"]["capital_efficiency"]["scenarios"][0][
+            "gross_output_value_usd"
+        ] = Decimal("-1.00")
+    elif invalid_projection == "capital_scenario_goods_negative":
+        payload["locations"][0]["sections"]["capital_efficiency"]["scenarios"][0][
+            "public_goods_value_usd"
+        ] = Decimal("-1.00")
+    elif invalid_projection == "capital_scenario_leverage_negative":
+        payload["locations"][0]["sections"]["capital_efficiency"]["scenarios"][0][
+            "capital_leverage_ratio"
+        ] = Decimal("-1.00")
+    elif invalid_projection == "capital_scenario_type_invalid":
+        payload["locations"][0]["sections"]["capital_efficiency"]["scenarios"][0][
+            "scenario_type"
+        ] = "unknown_scenario"
+    elif invalid_projection == "capital_observation_baseline_negative":
+        payload["locations"][0]["sections"]["capital_efficiency"][
+            "regenerative_efficiency"
+        ][0]["baseline_cost_usd"] = Decimal("-1.00")
+    elif invalid_projection == "capital_observation_observed_negative":
+        payload["locations"][0]["sections"]["capital_efficiency"][
+            "regenerative_efficiency"
+        ][0]["observed_cost_usd"] = Decimal("-1.00")
+    elif invalid_projection == "capital_observation_savings_low":
+        payload["locations"][0]["sections"]["capital_efficiency"][
+            "regenerative_efficiency"
+        ][0]["cost_savings_pct"] = Decimal("-100.01")
+    elif invalid_projection == "capital_observation_savings_high":
+        payload["locations"][0]["sections"]["capital_efficiency"][
+            "regenerative_efficiency"
+        ][0]["cost_savings_pct"] = Decimal("100.01")
+    elif invalid_projection == "capital_observation_implementation_negative":
+        payload["locations"][0]["sections"]["capital_efficiency"][
+            "regenerative_efficiency"
+        ][0]["implementation_cost_usd"] = Decimal("-1.00")
+    elif invalid_projection == "capital_observation_payback_negative":
+        payload["locations"][0]["sections"]["capital_efficiency"][
+            "regenerative_efficiency"
+        ][0]["payback_months"] = Decimal("-1.00")
+    elif invalid_projection == "capital_error_contract":
+        payload["locations"][0]["sections"]["capital_efficiency"] = {
             "error": "database connection failed with private SQL"
         }
     else:

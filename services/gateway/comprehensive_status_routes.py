@@ -297,6 +297,79 @@ class ComprehensiveStatusGnhAlignment(_ComprehensiveStatusModel):
         return self
 
 
+class ComprehensiveStatusCapitalEfficiencyScenario(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    scenario_name: str = Field(max_length=255)
+    scenario_type: Literal[
+        "farm_establishment",
+        "practice_upgrade",
+        "public_goods_loop",
+        "replication",
+        "sponsor_supported",
+        "partner_infrastructure",
+        "other",
+    ]
+    period_start: ReportDate
+    period_end: ReportDate | None
+    capital_deployed_usd: ReportNumber = Field(ge=0)
+    gross_output_value_usd: ReportNumber | None = Field(ge=0)
+    net_output_value_usd: ReportNumber | None
+    public_goods_value_usd: ReportNumber | None = Field(ge=0)
+    capital_leverage_ratio: ReportNumber | None = Field(ge=0)
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusCapitalEfficiencyObservation(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    practice_event_id: ReportUuid | None
+    observation_date: ReportDate
+    practice_type: str = Field(max_length=100)
+    baseline_cost_usd: ReportNumber | None = Field(ge=0)
+    observed_cost_usd: ReportNumber | None = Field(ge=0)
+    cost_savings_pct: ReportNumber | None = Field(ge=-100, le=100)
+    incremental_output_value_usd: ReportNumber | None
+    implementation_cost_usd: ReportNumber | None = Field(ge=0)
+    payback_months: ReportNumber | None = Field(ge=0)
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusCapitalEfficiency(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["capital_efficiency"]
+    location_id: ReportUuid
+    location_name: str | None
+    scenarios: list[ComprehensiveStatusCapitalEfficiencyScenario]
+    regenerative_efficiency: list[ComprehensiveStatusCapitalEfficiencyObservation]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_rows_in_scope(self):
+        if any(scenario.location_id != self.location_id for scenario in self.scenarios):
+            raise ValueError("Capital efficiency scenario is outside report location scope")
+        if any(
+            observation.location_id != self.location_id
+            for observation in self.regenerative_efficiency
+        ):
+            raise ValueError("Regenerative efficiency observation is outside report location scope")
+        return self
+
+
 class ComprehensiveStatusClimateCarbonBalance(_ComprehensiveStatusModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
 
@@ -762,7 +835,7 @@ class ComprehensiveStatusSections(_ComprehensiveStatusModel):
         ComprehensiveStatusRegenerativeOutcomes | ComprehensiveStatusSectionError
     )
     gnh_alignment: ComprehensiveStatusGnhAlignment | ComprehensiveStatusSectionError
-    capital_efficiency: JsonValue
+    capital_efficiency: ComprehensiveStatusCapitalEfficiency | ComprehensiveStatusSectionError
     holistic_wellbeing: JsonValue
     community_governance: JsonValue
     training_impact: JsonValue
@@ -817,6 +890,12 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             and gnh_alignment.location_id != self.location_id
         ):
             raise ValueError("GNH alignment section is outside the composed location scope")
+        capital_efficiency = self.sections.capital_efficiency
+        if (
+            isinstance(capital_efficiency, ComprehensiveStatusCapitalEfficiency)
+            and capital_efficiency.location_id != self.location_id
+        ):
+            raise ValueError("Capital efficiency section is outside the composed location scope")
         return self
 
 

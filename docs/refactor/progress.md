@@ -22945,3 +22945,26 @@ candidate, legacy service, provider, or production resource was used. Evidence:
 
 Checklist: 1,536 complete / 25 open (1,561 total); TODO: 239 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — capital efficiency, public wellbeing projections, and CRISP SDK parity — 28 October 2026
+
+Comprehensive Status now validates capital-efficiency scenarios and
+regenerative-efficiency observations against strict public-view models and the
+requested location. GNH alignment, cultural preservation, and renewable-energy
+reports explicitly select all 14, 16, and 18 current public-view fields,
+preserving query filters, ordering, serialization, aggregates, and status
+counts. Python and TypeScript native SDKs validate CRISP assessments against
+the Gateway's exact response fields and the requested location; malformed
+offset components are rejected.
+
+The integrated focused Python selection passes 209 tests; the TypeScript
+public-API selection passes 75, and `npm run build` passes. Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+diff checks pass. Existing public narratives and metadata remain unchanged;
+content-level privacy and populated-data parity remain open. No migration,
+database, candidate, legacy service, provider, or production resource was
+used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-capital-wellbeing-crisp-contracts.json).
+
+Checklist: 1,541 complete / 25 open (1,566 total); TODO: 244 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

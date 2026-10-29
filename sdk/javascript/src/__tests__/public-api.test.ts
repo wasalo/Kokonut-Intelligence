@@ -9,6 +9,19 @@ const location = {
   region: 'Samaná',
   status: 'active' as const,
 };
+const crispAssessment = {
+  assessment_id: 'b0000000-0000-4000-8000-000000000001',
+  location_id: location.id,
+  period_start: '2026-01-01',
+  period_end: '2026-06-30',
+  methodology_version: 'crisp-1',
+  composite_score: 82,
+  rating: 'AA',
+  confidence_level: 'high',
+  evidence_maturity_level: 3,
+  score_computed_at: '2026-10-14T12:35:00+00:00',
+  status: 'published',
+};
 
 function response(status: number, payload?: unknown, invalidJson = false): PublicFetchResponse {
   return {
@@ -47,17 +60,7 @@ describe('KokonutPublicApiClient', () => {
       .mockResolvedValueOnce(
         response(200, {
           data: {
-            assessment_id: 'assessment-1',
-            location_id: 'location-1',
-            period_start: '2026-01-01',
-            period_end: '2026-06-30',
-            methodology_version: 'crisp-1',
-            composite_score: 82,
-            rating: 'AA',
-            confidence_level: 'high',
-            evidence_maturity_level: 3,
-            score_computed_at: '2026-10-14T12:35:00+00:00',
-            status: 'published',
+            ...crispAssessment,
           },
         }),
       )
@@ -88,7 +91,7 @@ describe('KokonutPublicApiClient', () => {
     const locations = await client.locations.list();
     const detail = await client.locations.get('a/b +?');
     const metrics = await client.metrics.get('location-1');
-    const crisp = await client.crisp.get('location-1');
+    const crisp = await client.crisp.get(location.id);
     const summary = await client.analytics.getSummary('location-1');
 
     expect(locations).toEqual([location]);
@@ -100,12 +103,106 @@ describe('KokonutPublicApiClient', () => {
       'https://gateway.example/api/v1/locations',
       'https://gateway.example/api/v1/locations/a%2Fb%20%2B%3F',
       'https://gateway.example/api/v1/metrics/location-1',
-      'https://gateway.example/api/v1/crisp/location-1',
+      `https://gateway.example/api/v1/crisp/${location.id}`,
       'https://gateway.example/api/v1/analytics/location-1/summary',
     ]);
     expect(fetch.mock.calls.every(([, init]) => init.headers.Accept === 'application/json')).toBe(true);
     expect(fetch.mock.calls.every(([, init]) => init.headers['x-api-key'] === 'test-key')).toBe(true);
     expect(fetch.mock.calls.every(([, init]) => init.signal !== undefined)).toBe(true);
+  });
+
+  it.each([
+    crispAssessment,
+    {
+      ...crispAssessment,
+      composite_score: null,
+      rating: null,
+      confidence_level: null,
+      evidence_maturity_level: null,
+      score_computed_at: null,
+    },
+    { ...crispAssessment, composite_score: 0 },
+    { ...crispAssessment, composite_score: 100 },
+    { ...crispAssessment, score_computed_at: '2026-10-14T12:35:00.123456Z' },
+    { ...crispAssessment, score_computed_at: '2026-10-14T12:35:00-05:30' },
+  ])('accepts valid scoped CRISP assessments', async (assessment) => {
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(response(200, { data: assessment }));
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    await expect(client.crisp.get(location.id)).resolves.toMatchObject({
+      assessment_id: crispAssessment.assessment_id,
+      location_id: location.id,
+      status: 'published',
+    });
+  });
+
+  it('normalizes UUID case when binding a CRISP response to its requested location', async () => {
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(
+      response(200, { data: crispAssessment }),
+    );
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    await expect(client.crisp.get(location.id.toUpperCase())).resolves.toMatchObject({
+      location_id: location.id,
+    });
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      `https://gateway.example/api/v1/crisp/${location.id.toUpperCase()}`,
+    );
+  });
+
+  it.each([
+    { ...crispAssessment, unexpected: 'field' },
+    Object.fromEntries(
+      Object.entries(crispAssessment).filter(([key]) => key !== 'status'),
+    ),
+    { ...crispAssessment, assessment_id: 'assessment-1' },
+    { ...crispAssessment, location_id: 'not-a-uuid' },
+    { ...crispAssessment, location_id: 'c0000000-0000-4000-8000-000000000001' },
+    { ...crispAssessment, period_start: '2026-02-30' },
+    { ...crispAssessment, period_end: 20260630 },
+    { ...crispAssessment, methodology_version: 1 },
+    { ...crispAssessment, composite_score: -0.01 },
+    { ...crispAssessment, composite_score: 100.01 },
+    { ...crispAssessment, composite_score: true },
+    { ...crispAssessment, composite_score: Number.NaN },
+    { ...crispAssessment, rating: 'F' },
+    { ...crispAssessment, rating: [] },
+    { ...crispAssessment, confidence_level: 'certain' },
+    { ...crispAssessment, confidence_level: 1 },
+    { ...crispAssessment, evidence_maturity_level: 1.5 },
+    { ...crispAssessment, evidence_maturity_level: true },
+    { ...crispAssessment, score_computed_at: '2026-10-14T12:35:00' },
+    { ...crispAssessment, score_computed_at: '2026-02-30T12:35:00Z' },
+    { ...crispAssessment, score_computed_at: '2026-10-14 12:35:00Z' },
+    { ...crispAssessment, score_computed_at: '2026-10-14T12:35:00+25:00' },
+    { ...crispAssessment, score_computed_at: '2026-10-14T12:35:00+01:60' },
+    { ...crispAssessment, status: 'verified' },
+  ])('rejects malformed or wrong-scope CRISP assessments', async (assessment) => {
+    const mockResponse = response(200, { data: assessment });
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+    const error = await client.crisp.get(location.id).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PublicApiError);
+    expect(error).toMatchObject({
+      message: 'Invalid public API response envelope',
+      statusCode: 200,
+    });
+    expect((error as PublicApiError).response).toBe(mockResponse);
+  });
+
+  it('rejects a malformed requested location UUID for CRISP response binding', async () => {
+    const mockResponse = response(200, { data: crispAssessment });
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+    const error = await client.crisp.get('location-1').catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PublicApiError);
+    expect(error).toMatchObject({
+      message: 'Invalid public API response envelope',
+      statusCode: 200,
+    });
+    expect((error as PublicApiError).response).toBe(mockResponse);
   });
 
   it('lists the bounded public driver catalog through the generated v1 route', async () => {

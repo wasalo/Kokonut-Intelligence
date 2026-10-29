@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Callable, Literal, Optional
@@ -20,6 +21,125 @@ from .generated_public_api import (
     ApiPublicMetric,
     ApiPublicMetricSummary,
 )
+
+_UUID_PATTERN = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+_ISO_DATE_PATTERN = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+_RFC3339_DATETIME_PATTERN = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T(?P<hour>[0-9]{2}):"
+    r"(?P<minute>[0-9]{2}):(?P<second>[0-9]{2})(?:\.[0-9]+)?"
+    r"(?P<zone>Z|[+-](?P<offset_hour>[0-9]{2}):(?P<offset_minute>[0-9]{2}))$"
+)
+
+
+def _normalized_uuid(value: Any) -> str | None:
+    if not isinstance(value, str) or not _UUID_PATTERN.fullmatch(value):
+        return None
+    try:
+        return str(UUID(value))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def _is_iso_date(value: Any) -> bool:
+    if not isinstance(value, str) or not _ISO_DATE_PATTERN.fullmatch(value):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _is_rfc3339_datetime(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    match = _RFC3339_DATETIME_PATTERN.fullmatch(value)
+    if match is None:
+        return False
+    if (
+        int(match["hour"]) > 23
+        or int(match["minute"]) > 59
+        or int(match["second"]) > 59
+    ):
+        return False
+    if match["zone"] != "Z" and (
+        int(match["offset_hour"]) > 23 or int(match["offset_minute"]) > 59
+    ):
+        return False
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00" if value.endswith("Z") else value)
+    except ValueError:
+        return False
+    return parsed.utcoffset() is not None
+
+
+def _is_public_crisp_assessment(value: Any, requested_location_id: str) -> bool:
+    if not isinstance(value, dict) or set(value) != {
+        "assessment_id",
+        "location_id",
+        "period_start",
+        "period_end",
+        "methodology_version",
+        "composite_score",
+        "rating",
+        "confidence_level",
+        "evidence_maturity_level",
+        "score_computed_at",
+        "status",
+    }:
+        return False
+
+    expected_location_id = _normalized_uuid(requested_location_id)
+    if expected_location_id is None:
+        return False
+    if _normalized_uuid(value["assessment_id"]) is None:
+        return False
+    if _normalized_uuid(value["location_id"]) != expected_location_id:
+        return False
+
+    score = value["composite_score"]
+    maturity = value["evidence_maturity_level"]
+    return (
+        _is_iso_date(value["period_start"])
+        and _is_iso_date(value["period_end"])
+        and isinstance(value["methodology_version"], str)
+        and (
+            score is None
+            or (
+                not isinstance(score, bool)
+                and isinstance(score, (int, float))
+                and 0 <= score <= 100
+            )
+        )
+        and (
+            value["rating"] is None
+            or (
+                isinstance(value["rating"], str)
+                and value["rating"] in {"AAA", "AA", "A", "B", "C", "D"}
+            )
+        )
+        and (
+            value["confidence_level"] is None
+            or (
+                isinstance(value["confidence_level"], str)
+                and value["confidence_level"]
+                in {"high", "moderate", "low", "insufficient_evidence"}
+            )
+        )
+        and (
+            maturity is None
+            or (isinstance(maturity, int) and not isinstance(maturity, bool))
+        )
+        and (
+            value["score_computed_at"] is None
+            or _is_rfc3339_datetime(value["score_computed_at"])
+        )
+        and isinstance(value["status"], str)
+        and value["status"] == "published"
+    )
 
 
 @dataclass(frozen=True)
@@ -347,7 +467,11 @@ class PublicCrispMethods:
 
     def get(self, location_id: str) -> PublicCrispAssessment:
         path = self._client._path("getPublicCrispAssessmentV1", location_id=location_id)
-        payload = self._client._get(path, data_shape="object")["data"]
+        payload = self._client._get(
+            path,
+            data_shape="object",
+            data_validator=lambda value: _is_public_crisp_assessment(value, location_id),
+        )["data"]
         return PublicCrispAssessment.from_payload(payload)
 
 

@@ -113,6 +113,99 @@ function isPublicLocationList(value: unknown): value is PublicLocationV1[] {
   return Array.isArray(value) && value.every(isPublicLocation);
 }
 
+function normalizedUuid(value: unknown): string | undefined {
+  if (
+    typeof value !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  ) {
+    return undefined;
+  }
+  return value.toLowerCase();
+}
+
+function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1 || month < 1 || month > 12) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysByMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day >= 1 && day <= daysByMonth[month - 1];
+}
+
+function isRfc3339DateTime(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match =
+    /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-](\d{2}):(\d{2}))$/.exec(
+      value,
+    );
+  if (!match || !isIsoDate(match[1])) return false;
+  const hour = Number(match[2]);
+  const minute = Number(match[3]);
+  const second = Number(match[4]);
+  if (hour > 23 || minute > 59 || second > 59) return false;
+  if (match[5] !== 'Z') {
+    const offsetHour = Number(match[6]);
+    const offsetMinute = Number(match[7]);
+    if (offsetHour > 23 || offsetMinute > 59) return false;
+  }
+  return true;
+}
+
+function isPublicCrispAssessment(
+  value: unknown,
+  requestedLocationId: string,
+): value is PublicCrispAssessmentV1 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const expectedKeys = [
+    'assessment_id',
+    'location_id',
+    'period_start',
+    'period_end',
+    'methodology_version',
+    'composite_score',
+    'rating',
+    'confidence_level',
+    'evidence_maturity_level',
+    'score_computed_at',
+    'status',
+  ];
+  if (
+    Object.keys(candidate).length !== expectedKeys.length ||
+    !expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(candidate, key))
+  ) {
+    return false;
+  }
+
+  const expectedLocationId = normalizedUuid(requestedLocationId);
+  const score = candidate.composite_score;
+  const maturity = candidate.evidence_maturity_level;
+  const ratings = new Set(['AAA', 'AA', 'A', 'B', 'C', 'D']);
+  const confidenceLevels = new Set(['high', 'moderate', 'low', 'insufficient_evidence']);
+  return (
+    expectedLocationId !== undefined &&
+    normalizedUuid(candidate.assessment_id) !== undefined &&
+    normalizedUuid(candidate.location_id) === expectedLocationId &&
+    isIsoDate(candidate.period_start) &&
+    isIsoDate(candidate.period_end) &&
+    typeof candidate.methodology_version === 'string' &&
+    (score === null ||
+      (typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100)) &&
+    (candidate.rating === null ||
+      (typeof candidate.rating === 'string' && ratings.has(candidate.rating))) &&
+    (candidate.confidence_level === null ||
+      (typeof candidate.confidence_level === 'string' &&
+        confidenceLevels.has(candidate.confidence_level))) &&
+    (maturity === null || (typeof maturity === 'number' && Number.isInteger(maturity))) &&
+    (candidate.score_computed_at === null || isRfc3339DateTime(candidate.score_computed_at)) &&
+    candidate.status === 'published'
+  );
+}
+
 function isDriverCatalogResponse(
   value: unknown,
   expectedLimit: number,
@@ -254,6 +347,7 @@ export class KokonutPublicApiClient {
             encodePathSegment(locationId),
           ),
           'object',
+          (value) => isPublicCrispAssessment(value, locationId),
         ),
     };
     this.analytics = {

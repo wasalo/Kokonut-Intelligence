@@ -4320,13 +4320,13 @@
         {
           "caller": "generate_cultural_preservation",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 54,
+          "line": 67,
           "depth": 1
         },
         {
           "caller": "generate_cultural_preservation",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 79,
+          "line": 107,
           "depth": 1
         },
         {
@@ -5046,13 +5046,13 @@
         {
           "caller": "generate_foundational_wellbeing",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 173,
+          "line": 218,
           "depth": 1
         },
         {
           "caller": "generate_foundational_wellbeing",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 198,
+          "line": 243,
           "depth": 1
         },
         {
@@ -5094,7 +5094,7 @@
         {
           "caller": "generate_gnh_alignment",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 39,
+          "line": 52,
           "depth": 1
         },
         {
@@ -7916,13 +7916,13 @@
         {
           "caller": "generate_renewable_energy",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 93,
+          "line": 121,
           "depth": 1
         },
         {
           "caller": "generate_renewable_energy",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 118,
+          "line": 163,
           "depth": 1
         },
         {
@@ -11117,13 +11117,13 @@
         {
           "caller": "generate_vulnerable_access",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 134,
+          "line": 179,
           "depth": 1
         },
         {
           "caller": "generate_vulnerable_access",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 159,
+          "line": 204,
           "depth": 1
         },
         {

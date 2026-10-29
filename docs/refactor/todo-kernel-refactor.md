@@ -29,6 +29,18 @@ the batch log and the affected capability/progress records are updated.
   content-level privacy or populated-data parity
   ([evidence](builds/2026-10-28-recovery/kernel-parallel-regenerative-federation-report-projections.json)).
 
+- [x] Add a strict Comprehensive Status capital-efficiency contract for both
+  public-view row families, including exact location scope.
+- [x] Replace GNH-alignment `SELECT *` with the full 14-column public-view
+  projection and verify report payload parity.
+- [x] Replace cultural-preservation `SELECT *` with the full 16-column
+  public-view projection and verify report payload parity.
+- [x] Replace renewable-energy `SELECT *` with the full 18-column public-view
+  projection and verify report payload parity.
+- [x] Validate public CRISP assessment payloads in Python and TypeScript,
+  including match to the requested location and date/status/value constraints
+  ([evidence](builds/2026-10-28-recovery/kernel-parallel-capital-wellbeing-crisp-contracts.json)).
+
 - [x] Add strict Comprehensive Status contracts for farm summary and published
   financial sustainability, including location binding and existing bounded
   error shapes; preserve current fields and report behavior
@@ -2109,7 +2121,7 @@ Content-level privacy and populated-data parity remain open. See
 Checklist: 1,532 complete / 25 open (1,557 total); TODO: 235 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
 
-### Latest local continuation — GNH, public reports, and SDK location validation — 28 October 2026
+### Previous local continuation — GNH, public reports, and SDK location validation — 28 October 2026
 
 Comprehensive Status now checks the GNH report location, assessment rows, and
 rounded average. Regenerative-outcomes and time-liberation reports explicitly
@@ -2121,4 +2133,18 @@ parity remain open. See
 [batch evidence](builds/2026-10-28-recovery/kernel-parallel-gnh-sdk-report-projection-contracts.json).
 
 Checklist: 1,536 complete / 25 open (1,561 total); TODO: 239 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — capital efficiency, wellbeing projections, and CRISP SDK parity — 28 October 2026
+
+The strict capital-efficiency contract now binds both nested row families to
+the requested location. GNH, cultural-preservation, and renewable-energy
+reports use explicit full public-view projections. Python and TypeScript
+validate CRISP responses, including requested-location matching. The
+integrated Python selection passes 209 tests, TypeScript passes 75, and the
+SDK build, lint, compilation, inventories, and matrix checks pass. Content
+privacy and populated-data parity remain open. See
+[batch evidence](builds/2026-10-28-recovery/kernel-parallel-capital-wellbeing-crisp-contracts.json).
+
+Checklist: 1,541 complete / 25 open (1,566 total); TODO: 244 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

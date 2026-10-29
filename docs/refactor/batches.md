@@ -6282,3 +6282,31 @@ production resource was used. Evidence:
 
 Checklist: 1,536 complete / 25 open (1,561 total); TODO: 239 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed parallel C2/C5 and SDK CRISP contract batch — 28 October 2026
+
+- [x] Add a strict Comprehensive Status capital-efficiency contract for both
+  public-view row families. Bind every row to the requested location while
+  preserving scenario/observation values and the existing error shape.
+- [x] Replace GNH-alignment `SELECT *` with the full 14-column public-view
+  projection and preserve the report payload, filters, ordering, and average.
+- [x] Replace cultural-preservation `SELECT *` with the full 16-column
+  projection while preserving the existing public payload and query behavior.
+- [x] Replace renewable-energy `SELECT *` with the full 18-column projection
+  while preserving its filters, ordering, serialization, and status counts.
+- [x] Add matching Python and TypeScript runtime contracts for CRISP
+  assessments, including requested-location identity and validated date,
+  score, status, enum, and timestamp values.
+
+The integrated focused Python selection passes 209 tests; the TypeScript
+public-API suite passes 75 and `npm run build` passes. Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+`git diff --check` pass. CRISP rejects invalid offset components that Python's
+datetime parser would otherwise accept. Published narratives and metadata are
+preserved; these source checks do not establish content-level privacy or
+populated-data parity. No migration, database, candidate, legacy service,
+provider, or production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-capital-wellbeing-crisp-contracts.json).
+
+Checklist: 1,541 complete / 25 open (1,566 total); TODO: 244 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

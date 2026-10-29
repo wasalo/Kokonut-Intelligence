@@ -19,7 +19,20 @@ def generate_gnh_alignment(conn, location_id: str, period_start: str = None, per
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   assessment_date,
+                   gnh_domain,
+                   principle_refs,
+                   alignment_score,
+                   strengths,
+                   gaps,
+                   safeguards,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_gnh_alignment_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR assessment_date >= %s::date)
@@ -60,7 +73,22 @@ def generate_cultural_preservation(conn, location_id: str, period_start: str = N
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   cultural_context_record_id,
+                   plan_date,
+                   cultural_element,
+                   preservation_type,
+                   local_language,
+                   digital_integration_strategy,
+                   consent_protocol,
+                   local_reviewer_role,
+                   implementation_status,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_cultural_preservation_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR plan_date >= %s::date)
@@ -99,7 +127,24 @@ def generate_renewable_energy(conn, location_id: str, period_start: str = None, 
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   plan_date,
+                   energy_use_case,
+                   renewable_source,
+                   implementation_status,
+                   current_energy_source,
+                   planned_capacity_kw,
+                   estimated_annual_kwh,
+                   renewable_share_pct,
+                   fossil_displacement_estimate_co2e_tonnes,
+                   infrastructure_dependencies,
+                   maintenance_owner_role,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_renewable_energy_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR plan_date >= %s::date)

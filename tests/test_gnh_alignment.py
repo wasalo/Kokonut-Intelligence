@@ -1,5 +1,7 @@
 """GNH alignment, cultural preservation, renewable energy, vulnerable access, and foundational well-being tests."""
 
+import re
+from datetime import date
 from pathlib import Path
 
 from services.agents.gnh_agent import synthesize_gnh
@@ -12,7 +14,6 @@ from services.export.report_generator import (
     generate_renewable_energy,
     generate_vulnerable_access,
 )
-
 
 SCHEMA = Path("schemas/postgres/038_gnh_alignment_and_inclusion.sql")
 SEED = Path("schemas/seeds/039_gnh_alignment_and_inclusion.sql")
@@ -235,6 +236,222 @@ def test_gnh_report_generators_public_safe() -> None:
     assert renewable["planned_count"] == 1
     assert generate_vulnerable_access(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "vulnerable_access"
     assert generate_foundational_wellbeing(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "foundational_wellbeing"
+
+
+def test_gnh_alignment_projection_preserves_full_payload_and_average() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "assessment_date": date(2026, 3, 31),
+        "gnh_domain": "community_vitality",
+        "principle_refs": ["wellbeing", "community"],
+        "alignment_score": 8.25,
+        "strengths": ["Shared stewardship"],
+        "gaps": ["Seasonal coverage"],
+        "safeguards": ["Local review"],
+        "public_summary": "Reviewed public alignment summary.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "cycle": "Q1"},
+    }
+    columns = (
+        "id, location_id, farm_id, assessment_date, gnh_domain, principle_refs, alignment_score, "
+        "strengths, gaps, safeguards, public_summary, evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_gnh_alignment(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_gnh_alignment_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR assessment_date >= %s::date) "
+        "AND (%s::date IS NULL OR assessment_date <= %s::date) "
+        "ORDER BY assessment_date DESC, gnh_domain"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "gnh_alignment"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["assessments"] == [
+        {**source_row, "assessment_date": "2026-03-31"}
+    ]
+    assert report["average_alignment_score"] == 8.25
+
+
+def test_cultural_preservation_projection_preserves_full_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "cultural_context_record_id": "d0000000-0000-0000-0000-000000000001",
+        "plan_date": date(2026, 3, 31),
+        "cultural_element": "Community seed knowledge",
+        "preservation_type": "community-led documentation",
+        "local_language": "Spanish",
+        "digital_integration_strategy": "Community-controlled archive",
+        "consent_protocol": "Opt-in and revocable",
+        "local_reviewer_role": "Community knowledge steward",
+        "implementation_status": "active",
+        "public_summary": "Reviewed public preservation summary.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "cycle": "Q1"},
+    }
+    columns = (
+        "id, location_id, farm_id, cultural_context_record_id, plan_date, cultural_element, "
+        "preservation_type, local_language, digital_integration_strategy, consent_protocol, "
+        "local_reviewer_role, implementation_status, public_summary, evidence_maturity, "
+        "evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_cultural_preservation(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_cultural_preservation_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR plan_date >= %s::date) "
+        "AND (%s::date IS NULL OR plan_date <= %s::date) "
+        "ORDER BY plan_date DESC, cultural_element"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "cultural_preservation"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["plans"] == [{**source_row, "plan_date": "2026-03-31"}]
+
+
+def test_renewable_energy_projection_preserves_full_payload_and_status_counts() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "plan_date": date(2026, 3, 31),
+        "energy_use_case": "irrigation pumping",
+        "renewable_source": "solar photovoltaic",
+        "implementation_status": "planned",
+        "current_energy_source": "diesel generator",
+        "planned_capacity_kw": 12.5,
+        "estimated_annual_kwh": 24000,
+        "renewable_share_pct": 75.0,
+        "fossil_displacement_estimate_co2e_tonnes": 8.4,
+        "infrastructure_dependencies": ["Grid interconnect", "Battery storage"],
+        "maintenance_owner_role": "Farm energy steward",
+        "public_summary": "Reviewed renewable energy plan.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "cycle": "Q1"},
+    }
+    implemented_row = {
+        **source_row,
+        "id": "b0000000-0000-0000-0000-000000000002",
+        "energy_use_case": "community cold storage",
+        "implementation_status": "implemented",
+    }
+    source_rows = [source_row, implemented_row]
+    columns = (
+        "id, location_id, farm_id, plan_date, energy_use_case, renewable_source, "
+        "implementation_status, current_energy_source, planned_capacity_kw, estimated_annual_kwh, "
+        "renewable_share_pct, fossil_displacement_estimate_co2e_tonnes, infrastructure_dependencies, "
+        "maintenance_owner_role, public_summary, evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return source_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_renewable_energy(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_renewable_energy_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR plan_date >= %s::date) "
+        "AND (%s::date IS NULL OR plan_date <= %s::date) "
+        "ORDER BY plan_date DESC, energy_use_case"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "renewable_energy"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["plans"] == [
+        {**row, "plan_date": "2026-03-31"} for row in source_rows
+    ]
+    assert report["planned_count"] == 1
+    assert report["implemented_count"] == 1
 
 
 if __name__ == "__main__":

@@ -484,7 +484,7 @@
       "callable": "generate_cultural_preservation",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 52,
+      "source_line": 65,
       "parameters": [
         "conn",
         "location_id",
@@ -745,7 +745,7 @@
       "callable": "generate_foundational_wellbeing",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 171,
+      "source_line": 216,
       "parameters": [
         "conn",
         "location_id",
@@ -1306,7 +1306,7 @@
       "callable": "generate_renewable_energy",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 91,
+      "source_line": 119,
       "parameters": [
         "conn",
         "location_id",
@@ -2010,7 +2010,7 @@
       "callable": "generate_vulnerable_access",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 132,
+      "source_line": 177,
       "parameters": [
         "conn",
         "location_id",

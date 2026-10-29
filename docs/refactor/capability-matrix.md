@@ -1,5 +1,22 @@
 # Capability preservation matrix
 
+**Latest parallel C2/C5 and SDK CRISP batch — 28 October 2026:** the
+Comprehensive Status capital-efficiency section now has strict nested models
+and verifies both scenario and regenerative-efficiency rows match the requested
+location. GNH alignment, cultural preservation, and renewable energy now use
+explicit full projections from their stable public views. The Python and
+TypeScript SDKs validate CRISP assessment fields and enforce requested-path
+location matching. Focused verification passes 209 Python and 75 TypeScript
+tests; the SDK build, Ruff, compilation, report inventories, matrix validation,
+and diff checks pass. Existing public narratives/metadata remain, so this is
+not content-level privacy or populated-data parity evidence. No database,
+migration, provider, candidate, legacy service, or production resource was
+used. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); strict private Gateway response contracts remain 94. Checklist:
+1,541 complete / 25 open (1,566 total); MAN-CAP acceptance and classifications
+are unchanged
+([evidence](builds/2026-10-28-recovery/kernel-parallel-capital-wellbeing-crisp-contracts.json)).
+
 **Latest parallel C2/C5 and SDK contract batch — 28 October 2026:**
 Comprehensive Status validates the GNH public-view projection, report and row
 location, and the generator's rounded score average. Regenerative-outcomes and
