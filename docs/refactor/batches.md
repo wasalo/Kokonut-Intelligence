@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,607 checklist items complete and 25
-open (1,632 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,653 checklist items complete and 25
+open (1,678 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -7080,6 +7080,29 @@ wider stakeholder audience. Rollback reverts the response models, location
 checks, focused fixtures, and evidence ([evidence](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json)).
 
 Checklist: 1,650 complete / 25 open (1,675 total); TODO: 345 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 109. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — Comprehensive Status capital-accounting contract — 29 October 2026
+
+- [x] Replace the capital-accounting `JsonValue` section with strict models
+  for capacity, diversion, capture-risk, and draft-credit ledger projections.
+- [x] Bind each projection and nested credit row to the composed location;
+  validate period parity, derived capacity/risk lists, safe partial errors, and
+  draft-only credit lifecycle while preserving the advisory-only marker.
+- [x] Verify strict OpenAPI fields, malformed projections, and a valid
+  generator-shaped partial failure using mocked route responses.
+
+The focused Comprehensive Status Gateway suite passes 127 tests. Ruff, Python
+compilation, and `git diff --check` pass. Synthetic route payloads only; no
+database/provider, candidate, legacy, or production state was used, and no
+migration is required. This preserves the four existing independently
+failure-tolerant report sections and does not establish populated-data parity
+or content privacy. Rollback reverts the response models, location binding,
+fixtures, and evidence ([evidence](builds/2026-10-29-recovery/comprehensive-status-capital-accounting-contract.json)).
+
+Checklist: 1,653 complete / 25 open (1,678 total); TODO: 348 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 109. MAN-CAP acceptance is unchanged.

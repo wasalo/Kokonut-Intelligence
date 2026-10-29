@@ -1,3 +1,21 @@
+### Progress addendum — Comprehensive Status capital-accounting contract — 29 October 2026
+
+The optional operator route now validates capital accounting against strict
+models for the four independently failure-tolerant report projections:
+capacity, diversion, capture risk, and credit ledger. The contract binds each
+projection and nested credit to the requested location, matches the diversion
+period and derived capacity/risk fields, accepts only safe source-generated
+partial errors, and keeps the ledger strictly draft-only and advisory.
+
+The focused Comprehensive Status Gateway selection passes 127 tests,
+including exact OpenAPI fields, nested-scope checks, malformed projections,
+credit lifecycle enforcement, sanitized error validation, and a valid partial
+failure. Ruff, Python compilation, and `git diff --check` pass. Synthetic
+route fixtures only; no database/provider, candidate, legacy, or production
+state was used. No migration is required. This verifies response shape, not
+populated-data parity or content privacy. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-capital-accounting-contract.json).
+
 ### Progress addendum — Comprehensive Status training-impact contract — 29 October 2026
 
 The optional operator route now validates training impact against strict

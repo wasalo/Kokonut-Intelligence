@@ -10,6 +10,15 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Replace Comprehensive Status capital accounting's `JsonValue` with
+  strict models for all four independently failure-tolerant projections
+  ([evidence](builds/2026-10-29-recovery/comprehensive-status-capital-accounting-contract.json)).
+- [x] Bind sections and draft credits to the composed location; validate
+  advisory-only behavior, period/derived-field parity, draft-only ledger rows,
+  and safe partial failures ([same evidence](builds/2026-10-29-recovery/comprehensive-status-capital-accounting-contract.json)).
+- [x] Verify OpenAPI, malformed nested rows, and a valid partial-failure
+  response with focused mocked route checks ([same evidence](builds/2026-10-29-recovery/comprehensive-status-capital-accounting-contract.json)).
+
 - [x] Replace the Comprehensive Status training-impact `JsonValue` with strict
   public-view-backed section and session models ([evidence](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json)).
 - [x] Bind the section and sessions to the composed location, preserve nullable

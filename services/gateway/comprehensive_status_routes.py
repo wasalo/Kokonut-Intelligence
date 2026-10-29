@@ -1088,6 +1088,197 @@ class ComprehensiveStatusTrainingImpact(_ComprehensiveStatusModel):
         return self
 
 
+CapitalKey = Literal[
+    "natural", "financial", "social", "human", "material", "intellectual", "cultural", "health"
+]
+
+
+class ComprehensiveStatusCapitalForm(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    capital_key: CapitalKey
+    name: str | None
+    stock_estimate: ReportNumber | None
+    output_capacity_estimate: ReportNumber | None
+    mobilization_pct: ReportNumber | None
+    under_mobilized: bool
+
+
+class ComprehensiveStatusCapitalCapacity(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    mobilization_threshold: ReportNumber
+    forms: list[ComprehensiveStatusCapitalForm] = Field(max_length=8)
+    under_mobilized_forms: list[CapitalKey] = Field(max_length=8)
+
+    @model_validator(mode="after")
+    def match_under_mobilized_forms(self):
+        keys = [form.capital_key for form in self.forms]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Capital forms must be unique")
+        expected = [form.capital_key for form in self.forms if form.under_mobilized]
+        if self.under_mobilized_forms != expected:
+            raise ValueError("Under-mobilized forms do not match the form rows")
+        return self
+
+
+class ComprehensiveStatusCapitalDiversion(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    period_start: ReportDate | None
+    period_end: ReportDate | None
+    consumption_value: ReportNumber
+    reinvestment_value: ReportNumber
+    diversion_index: ReportNumber | None
+    healthy: bool
+
+    @model_validator(mode="after")
+    def match_health_to_index(self):
+        expected = self.diversion_index is not None and self.diversion_index >= 0.5
+        if self.healthy is not expected:
+            raise ValueError("Diversion health flag does not match its index")
+        return self
+
+
+class ComprehensiveStatusCapitalCaptureForm(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    capital_key: CapitalKey
+    concentration_metric: ReportNumber | None
+    leakage_signal: ReportNumber | None
+    capture_risk_level: Literal["low", "medium", "high", "unknown"]
+
+
+class ComprehensiveStatusCapitalCapture(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    financial_top_counterparty_share: ReportNumber
+    anti_capture_policies_in_effect: int = Field(ge=0, strict=True)
+    forms: list[ComprehensiveStatusCapitalCaptureForm] = Field(max_length=8)
+    at_risk_forms: list[CapitalKey] = Field(max_length=8)
+
+    @model_validator(mode="after")
+    def match_risk_forms(self):
+        keys = [form.capital_key for form in self.forms]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Capital capture forms must be unique")
+        expected = [form.capital_key for form in self.forms if form.capture_risk_level == "high"]
+        if self.at_risk_forms != expected:
+            raise ValueError("At-risk forms do not match the capture-risk rows")
+        financial = next((form for form in self.forms if form.capital_key == "financial"), None)
+        if financial is not None and (
+            financial.concentration_metric != self.financial_top_counterparty_share
+            or financial.leakage_signal != self.financial_top_counterparty_share
+        ):
+            raise ValueError("Financial capture metrics do not match the top-counterparty share")
+        return self
+
+
+class ComprehensiveStatusDraftCredit(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    contributor_party_id: ReportUuid | None
+    source_type: Literal["carbon_credit_surplus", "cooperative_surplus", "federation_underwrite"]
+    source_ref_id: ReportUuid | None
+    withheld_amount: ReportNumber
+    unit: str
+    redeemable_against: Literal[
+        "regenerative_investment", "shared_dividend", "stewardship_grant"
+    ]
+    credit_status: Literal["draft"]
+    idempotency_key: str | None
+    created_by: ReportUuid | None
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusCreditCapacity(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    draft_credit_total: ReportNumber
+    draft_credit_count: int = Field(ge=0, strict=True)
+    note: Literal["read-only capacity; settlement requires human confirmation"]
+
+
+class ComprehensiveStatusCapitalCreditLedger(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    draft_credits: list[ComprehensiveStatusDraftCredit]
+    capacity: ComprehensiveStatusCreditCapacity
+
+
+class ComprehensiveStatusCapitalAccountingSections(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    capacity: ComprehensiveStatusCapitalCapacity | None = None
+    diversion: ComprehensiveStatusCapitalDiversion | None = None
+    capture_risk: ComprehensiveStatusCapitalCapture | None = None
+    credit_ledger: ComprehensiveStatusCapitalCreditLedger | None = None
+
+
+class ComprehensiveStatusCapitalAccounting(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["capital_accounting"]
+    location_id: ReportUuid
+    period_start: ReportDate | None
+    period_end: ReportDate | None
+    generated_at: ReportDateTime
+    advisory_only: Literal[True]
+    sections: ComprehensiveStatusCapitalAccountingSections
+    errors: list[str] = Field(max_length=4)
+
+    @model_validator(mode="after")
+    def validate_partial_sections_and_scope(self):
+        expected_errors = {
+            "capacity": "capacity failed",
+            "diversion": "diversion failed",
+            "capture_risk": "capture-risk analysis failed",
+            "credit_ledger": "credit-ledger analysis failed",
+        }
+        parsed_failures = []
+        for error in self.errors:
+            matching = next(
+                (name for name, prefix in expected_errors.items() if error.startswith(prefix + " (")),
+                None,
+            )
+            if matching is None or not error.endswith(")"):
+                raise ValueError("Capital accounting contains an unknown error projection")
+            exception_name = error[len(expected_errors[matching]) + 2 : -1]
+            if not exception_name.isascii() or not exception_name.isidentifier() or len(exception_name) > 64:
+                raise ValueError("Capital accounting contains an unsafe error projection")
+            parsed_failures.append(matching)
+        expected_failures = [
+            name for name in expected_errors if getattr(self.sections, name) is None
+        ]
+        if parsed_failures != expected_failures:
+            raise ValueError("Capital accounting partial sections do not match their errors")
+
+        for name in ("capacity", "diversion", "capture_risk"):
+            section = getattr(self.sections, name)
+            if section is not None and section.location_id != self.location_id:
+                raise ValueError("Capital accounting section is outside the composed location scope")
+        diversion = self.sections.diversion
+        if diversion is not None and (
+            diversion.period_start != self.period_start or diversion.period_end != self.period_end
+        ):
+            raise ValueError("Capital accounting diversion period does not match its report")
+        ledger = self.sections.credit_ledger
+        if ledger is not None:
+            if ledger.capacity.location_id != self.location_id:
+                raise ValueError("Capital credit capacity is outside the composed location scope")
+            if any(credit.location_id != self.location_id for credit in ledger.draft_credits):
+                raise ValueError("Draft capital credit is outside the composed location scope")
+        return self
+
+
 class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     farm_summary: ComprehensiveStatusFarmSummary | ComprehensiveStatusSectionError
     crop_noi: ComprehensiveStatusCropNoiReport | ComprehensiveStatusSectionError
@@ -1110,7 +1301,7 @@ class ComprehensiveStatusSections(_ComprehensiveStatusModel):
         ComprehensiveStatusFoundationalWellbeing | ComprehensiveStatusSectionError
     )
     stakeholder_outcomes: ComprehensiveStatusStakeholderOutcomes | ComprehensiveStatusSectionError
-    capital_accounting: JsonValue
+    capital_accounting: ComprehensiveStatusCapitalAccounting | ComprehensiveStatusSectionError
 
 
 class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
@@ -1203,6 +1394,12 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             session.location_id != self.location_id for session in training_impact.sessions
         ):
             raise ValueError("Training session is outside the composed location scope")
+        capital_accounting = self.sections.capital_accounting
+        if (
+            isinstance(capital_accounting, ComprehensiveStatusCapitalAccounting)
+            and capital_accounting.location_id != self.location_id
+        ):
+            raise ValueError("Capital accounting section is outside the composed location scope")
         return self
 
 

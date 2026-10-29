@@ -87,6 +87,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
     sections["foundational_wellbeing"] = _foundational_wellbeing_section(location_id)
     sections["stakeholder_outcomes"] = _stakeholder_outcomes_section(location_id)
     sections["training_impact"] = _training_impact_section(location_id)
+    sections["capital_accounting"] = _capital_accounting_section(location_id)
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -427,6 +428,98 @@ def test_training_impact_decimal_aggregate_matches_generator_rounding():
     validated = ComprehensiveStatusTrainingImpact.model_validate(report)
 
     assert validated.avg_improvement_pct == 1.22
+
+
+def _capital_accounting_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "capital_accounting",
+        "location_id": location_id,
+        "period_start": None,
+        "period_end": None,
+        "generated_at": "2026-10-28T00:00:00+00:00",
+        "advisory_only": True,
+        "sections": {
+            "capacity": {
+                "location_id": location_id,
+                "mobilization_threshold": 0.5,
+                "forms": [
+                    {
+                        "capital_key": "natural",
+                        "name": "Natural Capital",
+                        "stock_estimate": 2.0,
+                        "output_capacity_estimate": 10.0,
+                        "mobilization_pct": 0.2,
+                        "under_mobilized": True,
+                    },
+                    {
+                        "capital_key": "financial",
+                        "name": "Financial Capital",
+                        "stock_estimate": None,
+                        "output_capacity_estimate": None,
+                        "mobilization_pct": None,
+                        "under_mobilized": False,
+                    },
+                ],
+                "under_mobilized_forms": ["natural"],
+            },
+            "diversion": {
+                "location_id": location_id,
+                "period_start": None,
+                "period_end": None,
+                "consumption_value": 20.0,
+                "reinvestment_value": 30.0,
+                "diversion_index": 0.6,
+                "healthy": True,
+            },
+            "capture_risk": {
+                "location_id": location_id,
+                "financial_top_counterparty_share": 0.35,
+                "anti_capture_policies_in_effect": 2,
+                "forms": [
+                    {
+                        "capital_key": "natural",
+                        "concentration_metric": None,
+                        "leakage_signal": None,
+                        "capture_risk_level": "unknown",
+                    },
+                    {
+                        "capital_key": "financial",
+                        "concentration_metric": 0.35,
+                        "leakage_signal": 0.35,
+                        "capture_risk_level": "medium",
+                    },
+                ],
+                "at_risk_forms": [],
+            },
+            "credit_ledger": {
+                "draft_credits": [
+                    {
+                        "id": str(uuid4()),
+                        "location_id": location_id,
+                        "contributor_party_id": str(uuid4()),
+                        "source_type": "cooperative_surplus",
+                        "source_ref_id": None,
+                        "withheld_amount": 125.0,
+                        "unit": "usd",
+                        "redeemable_against": "regenerative_investment",
+                        "credit_status": "draft",
+                        "idempotency_key": "synthetic-capital-credit",
+                        "created_by": None,
+                        "created_at": "2026-10-01T00:00:00+00:00",
+                        "updated_at": None,
+                        "metadata": {"source": "synthetic"},
+                    }
+                ],
+                "capacity": {
+                    "location_id": location_id,
+                    "draft_credit_total": 125.0,
+                    "draft_credit_count": 1,
+                    "note": "read-only capacity; settlement requires human confirmation",
+                },
+            },
+        },
+        "errors": [],
+    }
 
 
 def _environmental_section(location_id=LOCATION_ID):
@@ -1125,6 +1218,14 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert training["unique_participants"] == 1
     assert training["sessions"][0]["pre_score"] is None
     assert training["sessions"][0]["status"] == "verified"
+    accounting = response.json()["locations"][0]["sections"]["capital_accounting"]
+    assert accounting["location_id"] == LOCATION_ID
+    assert accounting["advisory_only"] is True
+    assert accounting["sections"]["capacity"]["under_mobilized_forms"] == ["natural"]
+    assert accounting["sections"]["diversion"]["healthy"] is True
+    assert accounting["sections"]["credit_ledger"]["draft_credits"][0][
+        "credit_status"
+    ] == "draft"
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -1228,6 +1329,26 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "trainer",
         "notes",
         "status",
+    }
+    accounting_schema = section_schema["properties"]["capital_accounting"]
+    assert len(accounting_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusCapitalAccounting"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusCapitalAccountingSections"][
+        "additionalProperties"
+    ] is False
+    assert schemas["ComprehensiveStatusCapitalForm"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusCapitalDiversion"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusCapitalCapture"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusDraftCredit"]["additionalProperties"] is False
+    assert set(schemas["ComprehensiveStatusCapitalAccounting"]["properties"]) == {
+        "report_type",
+        "location_id",
+        "period_start",
+        "period_end",
+        "generated_at",
+        "advisory_only",
+        "sections",
+        "errors",
     }
     crop_noi_schema = section_schema["properties"]["crop_noi"]
     assert len(crop_noi_schema["anyOf"]) == 2
@@ -1589,6 +1710,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     payload["locations"][0]["sections"]["training_impact"] = {
         "error": "report section failed (DataError)"
     }
+    capital_accounting = payload["locations"][0]["sections"]["capital_accounting"]
+    capital_accounting["sections"]["capacity"] = None
+    capital_accounting["errors"] = ["capacity failed (ProgrammingError)"]
     monkeypatch.setattr(
         "services.gateway.comprehensive_status_reads.get_location_comprehensive_status",
         lambda *_args, **_kwargs: payload,
@@ -1654,6 +1778,12 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["training_impact"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["capital_accounting"]["sections"][
+        "capacity"
+    ] is None
+    assert response.json()["locations"][0]["sections"]["capital_accounting"]["errors"] == [
+        "capacity failed (ProgrammingError)"
+    ]
 
 
 @pytest.mark.parametrize(
@@ -1679,6 +1809,11 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "training_type_invalid", "training_count_mismatch",
         "training_participant_count_mismatch", "training_hours_mismatch",
         "training_improvement_mismatch", "training_numeric_string",
+        "capital_accounting_wrong_location", "capital_capacity_wrong_location",
+        "capital_diversion_period_mismatch", "capital_capture_at_risk_mismatch",
+        "capital_credit_wrong_location", "capital_credit_not_draft",
+        "capital_accounting_not_advisory", "capital_accounting_unknown_error",
+        "capital_accounting_partial_without_error", "capital_accounting_leak_error",
         "financial_plan_extra", "financial_plan_wrong_location",
         "financial_report_wrong_location", "financial_numeric_string",
         "financial_error_contract",
@@ -1852,6 +1987,44 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         payload["locations"][0]["sections"]["training_impact"]["sessions"][0][
             "post_score"
         ] = "80.0"
+    elif invalid_projection == "capital_accounting_wrong_location":
+        payload["locations"][0]["sections"]["capital_accounting"]["location_id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "capital_capacity_wrong_location":
+        payload["locations"][0]["sections"]["capital_accounting"]["sections"][
+            "capacity"
+        ]["location_id"] = str(uuid4())
+    elif invalid_projection == "capital_diversion_period_mismatch":
+        payload["locations"][0]["sections"]["capital_accounting"]["sections"][
+            "diversion"
+        ]["period_start"] = "2026-01-01"
+    elif invalid_projection == "capital_capture_at_risk_mismatch":
+        payload["locations"][0]["sections"]["capital_accounting"]["sections"][
+            "capture_risk"
+        ]["at_risk_forms"] = ["financial"]
+    elif invalid_projection == "capital_credit_wrong_location":
+        payload["locations"][0]["sections"]["capital_accounting"]["sections"][
+            "credit_ledger"
+        ]["draft_credits"][0]["location_id"] = str(uuid4())
+    elif invalid_projection == "capital_credit_not_draft":
+        payload["locations"][0]["sections"]["capital_accounting"]["sections"][
+            "credit_ledger"
+        ]["draft_credits"][0]["credit_status"] = "settled"
+    elif invalid_projection == "capital_accounting_not_advisory":
+        payload["locations"][0]["sections"]["capital_accounting"]["advisory_only"] = False
+    elif invalid_projection == "capital_accounting_unknown_error":
+        payload["locations"][0]["sections"]["capital_accounting"]["errors"] = [
+            "database error: secret SQL"
+        ]
+    elif invalid_projection == "capital_accounting_partial_without_error":
+        payload["locations"][0]["sections"]["capital_accounting"]["sections"][
+            "capacity"
+        ] = None
+    elif invalid_projection == "capital_accounting_leak_error":
+        accounting = payload["locations"][0]["sections"]["capital_accounting"]
+        accounting["sections"]["capacity"] = None
+        accounting["errors"] = ["capacity failed (database password is wrong)"]
     elif invalid_projection == "financial_plan_extra":
         payload["locations"][0]["sections"]["financial_sustainability"]["plans"][0][
             "counterparty_account"
