@@ -22,8 +22,22 @@ def _dashboard_refresh_skip_result():
     }
 
 
+def _weather_ingestion_skip_result():
+    """Describe the default-off signed weather stage in composite flows."""
+    return {
+        "status": "skipped",
+        "reason": "signed_weather_worker_disabled",
+    }
+
+
 def _dispatch_catalog_job(job_id):
     """Fan out scoped jobs only through their explicit catalog adapters."""
+    # This dispatcher is used by the Prefect composite task path. Keep direct
+    # weather flow/job/worker calls fail-closed while allowing independent
+    # ingestion jobs in the composite to continue until signed credentials are
+    # provisioned.
+    if job_id == "weather" and not is_enabled("signed_weather_worker"):
+        return _weather_ingestion_skip_result()
     if job_id == "market_data":
         from .market_data import dispatch_market_data_job
 
@@ -154,7 +168,11 @@ def scheduled_every_6h():
     from .remote_sensing import remote_sensing_flow
     from .weather import weather_ingestion_flow
 
-    weather_result = weather_ingestion_flow()
+    weather_result = (
+        weather_ingestion_flow()
+        if is_enabled("signed_weather_worker")
+        else _weather_ingestion_skip_result()
+    )
     dashboard_result = (
         dashboard_refresh_flow()
         if is_enabled("legacy_dataset_sql")

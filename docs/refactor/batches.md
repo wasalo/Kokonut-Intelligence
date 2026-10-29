@@ -7245,3 +7245,35 @@ pass. No candidate or legacy database, provider, or migration was touched. The
 code-only sub-slices are verified; broader C2/C4/C5 work stays open for other
 acceptance and owner-dependent gates. Evidence:
 [analytics aggregation](builds/2026-10-29-recovery/analytics-event-aggregation-disposable.json).
+
+### Source continuation — enrollment, optional weather, and revenue scope — 29 October 2026
+
+- [x] Add a strict three-field response contract for one-time mobile-device
+  enrollment codes, including URL-safe token length, UUID, aware expiry,
+  OpenAPI, and generic no-store failures for malformed service output.
+- [x] Skip default-off signed weather work only inside Prefect composites, so
+  ingestion and six-hour workflows continue; preserve direct worker fail-closed
+  behavior.
+- [x] Apply/replay migration 686 on disposable PostgreSQL 16 and verify that a
+  cross-location crop-cycle reference preserves the revenue row and totals but
+  suppresses the foreign cycle label; same-location labels remain available.
+- [x] Verify focused acceptance for the strict Delphi study-item create/replay
+  response, including exact OpenAPI fields, route ID binding, malformed output,
+  numeric bounds, and unchanged 200/201 retry behavior.
+
+The enrollment response selection passes 15 tests, Prefect workflow checks pass
+30, direct weather worker/job checks pass 2, and Delphi response-contract checks
+pass 37. The network-disabled
+PostgreSQL 16 check applies and replays migration 686; it preserves the local
+cycle label and all three revenue rows/$175 gross/$120 net totals, while the
+foreign cycle label becomes NULL. Ruff, compilation, migration-source
+validation (677 files), and `git diff --check` pass. No candidate or legacy
+database was used. Evidence:
+[focused contracts](builds/2026-10-29-recovery/mobile-enrollment-prefect-weather-contracts.json),
+[migration acceptance](builds/2026-10-29-recovery/revenue-stream-location-join-disposable.json),
+[Delphi response contract](builds/2026-10-29-recovery/delphi-study-item-response-contract.json).
+
+Checklist: 1,676 complete / 25 open (1,701 total); TODO: 361 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 115. Broader C2/C4/C5 acceptance remains open.

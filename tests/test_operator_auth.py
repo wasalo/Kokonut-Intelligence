@@ -1928,7 +1928,13 @@ def test_oidc_operator_can_issue_enrollment_only_with_session_scope_and_csrf(
     assert response.status_code == status, response.text
     if status == 201:
         assert response.headers["cache-control"] == "no-store"
-        assert len(response.json()["enrollment_code"]) >= 32
+        assert "Cookie" in {value.strip() for value in response.headers["vary"].split(",")}
+        assert set(response.json()) == {"enrollment_id", "enrollment_code", "expires_at"}
+        assert response.json()["enrollment_id"] == "33333333-3333-4333-8333-333333333333"
+        assert len(response.json()["enrollment_code"]) == 43
+        assert set(response.json()["enrollment_code"]) <= set(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+        )
         assert cursor.execute.call_args.args[1][1:5] == (
             "collector-17",
             LOCATION_ID,
@@ -1952,6 +1958,103 @@ def test_oidc_operator_can_issue_enrollment_only_with_session_scope_and_csrf(
     else:
         connection.cursor.assert_not_called()
         connection.commit.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "service_result",
+    [
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "expires_at": "2030-01-01T00:00:00+00:00",
+        },
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "enrollment_code": "a" * 43,
+            "expires_at": "2030-01-01T00:00:00+00:00",
+            "internal": "secret-marker",
+        },
+        {
+            "enrollment_id": "not-a-uuid",
+            "enrollment_code": "a" * 43,
+            "expires_at": "2030-01-01T00:00:00+00:00",
+        },
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "enrollment_code": "secret-marker",
+            "expires_at": "2030-01-01T00:00:00+00:00",
+        },
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "enrollment_code": "a" * 43,
+            "expires_at": "2030-01-01T00:00:00",
+        },
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "enrollment_code": "a" * 43,
+            "expires_at": "not-a-timestamp",
+        },
+    ],
+)
+def test_oidc_operator_rejects_malformed_enrollment_response_without_leaking_code(
+    monkeypatch, caplog, service_result
+):
+    async def create_enrollment(*_args, **_kwargs):
+        return service_result
+
+    provider = _FakeProvider()
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(mobile_api, "create_operator_enrollment", create_enrollment)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda _self, _reservation: None,
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda _self, **_record: None,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        client.cookies.set(
+            operator_auth.CSRF_COOKIE,
+            "valid-csrf",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.post(
+            f"/operator/api/mobile/locations/{LOCATION_ID}/enrollments",
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json={"user_id": "collector-17", "expires_in_minutes": 60},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Mobile enrollment service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["pragma"] == "no-cache"
+    assert "Cookie" in {value.strip() for value in response.headers["vary"].split(",")}
+    assert "secret-marker" not in response.text
+    assert "secret-marker" not in caplog.text
+
+
+def test_mobile_enrollment_openapi_declares_strict_success_response():
+    schema = create_app().openapi()
+    operation = schema["paths"][
+        "/operator/api/mobile/locations/{location_id}/enrollments"
+    ]["post"]
+
+    response_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("/MobileEnrollmentCreateResponse")
+    model = schema["components"]["schemas"]["MobileEnrollmentCreateResponse"]
+    assert model["additionalProperties"] is False
+    assert set(model["properties"]) == {"enrollment_id", "enrollment_code", "expires_at"}
+    assert set(model["required"]) == {"enrollment_id", "enrollment_code", "expires_at"}
 
 
 @pytest.mark.parametrize(

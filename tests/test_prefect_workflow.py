@@ -49,13 +49,17 @@ def test_flows_import_existing_cli_tools() -> None:
     assert "dashboard_refresh_flow" in content
 
 
-def test_ingestion_pipeline_skips_source_less_sensor_job_and_waits_for_other_jobs() -> None:
+def test_ingestion_pipeline_waits_for_other_jobs_when_weather_is_skipped() -> None:
     from unittest.mock import Mock, call, patch
 
     from services.flows.pipelines import ingestion_pipeline
 
     jobs = ("weather", "market_data", "eas", "rpc", "gnosis")
     futures = {job_id: Mock() for job_id in jobs}
+    futures["weather"].result.return_value = {
+        "status": "skipped",
+        "reason": "signed_weather_worker_disabled",
+    }
 
     with patch("services.flows.pipelines._submit_job", side_effect=futures.__getitem__) as submit:
         result = ingestion_pipeline.fn()
@@ -235,11 +239,14 @@ def test_scheduled_every_6h_skips_default_off_dashboard_and_continues() -> None:
     ):
         result = scheduled_every_6h.fn()
 
-    assert calls == ["weather", "remote_sensing"]
+    assert calls == ["remote_sensing"]
     dashboard.assert_not_called()
     assert result == {
         "status": "success",
-        "weather": weather_result,
+        "weather": {
+            "status": "skipped",
+            "reason": "signed_weather_worker_disabled",
+        },
         "dashboard_refresh": {
             "status": "skipped",
             "reason": "legacy_dataset_sql_disabled",
@@ -381,6 +388,7 @@ def test_pipeline_dispatch_routes_required_location_jobs_through_owner_fanout() 
     from services.flows.pipelines import _dispatch_catalog_job
 
     with (
+        patch("services.flows.pipelines.is_enabled", return_value=True),
         patch("services.flows.pipelines.run_job_for_kokonut_network_locations", return_value={"status": "success"}) as fanout,
         patch("services.flows.pipelines.run_job") as run_job,
     ):
@@ -388,6 +396,26 @@ def test_pipeline_dispatch_routes_required_location_jobs_through_owner_fanout() 
 
     assert result == {"status": "success"}
     fanout.assert_called_once_with("weather")
+    run_job.assert_not_called()
+
+
+def test_pipeline_dispatch_skips_default_off_weather_before_database_access() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import _dispatch_catalog_job
+
+    with (
+        patch("services.flows.pipelines.is_enabled", return_value=False),
+        patch("services.flows.pipelines.run_job_for_kokonut_network_locations") as fanout,
+        patch("services.flows.pipelines.run_job") as run_job,
+    ):
+        result = _dispatch_catalog_job("weather")
+
+    assert result == {
+        "status": "skipped",
+        "reason": "signed_weather_worker_disabled",
+    }
+    fanout.assert_not_called()
     run_job.assert_not_called()
 
 

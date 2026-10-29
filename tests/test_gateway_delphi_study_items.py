@@ -268,13 +268,182 @@ def test_item_route_uses_session_identity_bounded_defaults_and_private_response(
 
 def test_item_route_reports_exact_retry_as_replay():
     async def run_in_threadpool(*_args, **_kwargs):
-        return {"item_id": ITEM_ID, "replayed": True}
+        return {
+            "item_id": ITEM_ID,
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "item_type": "issue",
+            "label": "Water resilience",
+            "description": None,
+            "scale": "probability",
+            "min_value": Decimal("0.0000"),
+            "max_value": Decimal("100.0000"),
+            "created_at": CREATED_AT.isoformat(),
+            "replayed": True,
+        }
 
     response = TestClient(_make_app(object(), run_in_threadpool)).post(
         f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/items",
         json={"request_id": REQUEST_ID, "label": "Water resilience"},
     )
     assert response.status_code == 200
+    assert set(response.json()) == {
+        "item_id", "study_id", "location_id", "item_type", "label",
+        "description", "scale", "min_value", "max_value", "created_at", "replayed",
+    }
+    assert response.json()["replayed"] is True
+    assert response.json()["study_id"] == STUDY_ID
+    assert response.json()["location_id"] == LOCATION_ID
+
+
+@pytest.mark.parametrize(
+    "service_result",
+    [
+        {
+            "item_id": ITEM_ID,
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "item_type": "option",
+            "label": "Water resilience",
+            "description": None,
+            "scale": "desirability",
+            "min_value": Decimal("-1.0000"),
+            "max_value": Decimal("1.0000"),
+            "created_at": CREATED_AT.isoformat(),
+            "replayed": False,
+            "private_debug": "private-secret-marker",
+        },
+        {
+            "item_id": ITEM_ID,
+            "study_id": STUDY_ID,
+            "location_id": str(uuid4()),
+            "item_type": "option",
+            "label": "Water resilience",
+            "description": None,
+            "scale": "desirability",
+            "min_value": Decimal("-1.0000"),
+            "max_value": Decimal("1.0000"),
+            "created_at": CREATED_AT.isoformat(),
+            "replayed": False,
+        },
+        {
+            "item_id": ITEM_ID,
+            "study_id": str(uuid4()),
+            "location_id": LOCATION_ID,
+            "item_type": "option",
+            "label": "Water resilience",
+            "description": None,
+            "scale": "desirability",
+            "min_value": Decimal("-1.0000"),
+            "max_value": Decimal("1.0000"),
+            "created_at": CREATED_AT.isoformat(),
+            "replayed": False,
+        },
+        {
+            "item_id": ITEM_ID,
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "item_type": "option",
+            "label": "Water resilience",
+            "description": None,
+            "scale": "desirability",
+            "min_value": Decimal("1.0000"),
+            "max_value": Decimal("1.0000"),
+            "created_at": CREATED_AT.isoformat(),
+            "replayed": False,
+        },
+        {
+            "item_id": ITEM_ID,
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "item_type": "unsupported",
+            "label": "Water resilience",
+            "description": None,
+            "scale": "desirability",
+            "min_value": Decimal("-1.0000"),
+            "max_value": Decimal("1.0000"),
+            "created_at": CREATED_AT.isoformat(),
+            "replayed": False,
+        },
+        {
+            "item_id": ITEM_ID,
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "item_type": "option",
+            "label": "Water resilience",
+            "description": None,
+            "scale": "desirability",
+            "min_value": Decimal("-1.0000"),
+            "max_value": Decimal("1.0000"),
+            "created_at": datetime(2026, 10, 25, 12, 0).isoformat(),
+            "replayed": False,
+        },
+        {
+            "item_id": ITEM_ID,
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "item_type": "option",
+            "label": "Water resilience",
+            "description": None,
+            "scale": "desirability",
+            "min_value": Decimal("-10000.0000"),
+            "max_value": Decimal("1.0000"),
+            "created_at": CREATED_AT.isoformat(),
+            "replayed": False,
+        },
+        {
+            "item_id": ITEM_ID,
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "item_type": "option",
+            "label": "Water resilience",
+            "description": None,
+            "scale": "desirability",
+            "min_value": Decimal("-1.0000"),
+            "max_value": Decimal("1.0000"),
+            "created_at": CREATED_AT.isoformat(),
+            "replayed": "false",
+        },
+    ],
+)
+def test_item_route_rejects_malformed_response_with_sanitized_no_store_error(
+    caplog, service_result
+):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return service_result
+
+    response = TestClient(_make_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/items",
+        json={"request_id": REQUEST_ID, "label": "Water resilience"},
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi study item unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private-secret-marker" not in response.text
+    assert "private-secret-marker" not in caplog.text
+
+
+def test_item_route_openapi_declares_strict_create_and_replay_success_models():
+    schema = _make_app(object(), lambda *_args, **_kwargs: None).openapi()
+    operation = schema["paths"][
+        "/operator/api/delphi/{location_id}/studies/{study_id}/items"
+    ]["post"]
+
+    assert operation["responses"]["201"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DelphiStudyItemCreateResponse")
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DelphiStudyItemCreateResponse")
+    model = schema["components"]["schemas"]["DelphiStudyItemCreateResponse"]
+    assert model["additionalProperties"] is False
+    assert set(model["properties"]) == {
+        "item_id", "study_id", "location_id", "item_type", "label",
+        "description", "scale", "min_value", "max_value", "created_at", "replayed",
+    }
+    assert set(model["required"]) == set(model["properties"])
 
 
 @pytest.mark.parametrize(

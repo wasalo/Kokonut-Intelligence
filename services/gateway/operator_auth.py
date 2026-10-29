@@ -3977,6 +3977,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         MobileCollectionReviewDetailResponse,
         MobileCollectionReviewQueueResponse,
     )
+    from services.gateway.mobile_enrollment_responses import MobileEnrollmentCreateResponse
     from services.gateway.mobile_operations_inventory_responses import (
         MobileOperationsInventoryResponse,
     )
@@ -5644,7 +5645,11 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         result.headers["Vary"] = "Cookie"
         return result
 
-    @router.post("/operator/api/mobile/locations/{location_id}/enrollments", status_code=201)
+    @router.post(
+        "/operator/api/mobile/locations/{location_id}/enrollments",
+        response_model=MobileEnrollmentCreateResponse,
+        status_code=201,
+    )
     async def operator_create_mobile_enrollment(
         location_id: UUID,
         request: Request,
@@ -5674,10 +5679,30 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": exc.detail},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        try:
+            response = MobileEnrollmentCreateResponse.model_validate(result)
+        except (ValidationError, ValueError, TypeError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_enrollment").warning(
+                "Mobile enrollment response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile enrollment service unavailable"},
+                headers={
+                    "Cache-Control": "no-store",
+                    "Pragma": "no-cache",
+                    "Vary": "Cookie",
+                },
+            )
+
+        from fastapi.encoders import jsonable_encoder
+
         return JSONResponse(
             status_code=201,
-            content=result,
-            headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+            content=jsonable_encoder(response.model_dump(mode="python")),
+            headers={"Cache-Control": "no-store", "Pragma": "no-cache", "Vary": "Cookie"},
         )
 
     @router.delete(

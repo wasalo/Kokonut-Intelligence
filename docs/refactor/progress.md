@@ -23753,3 +23753,45 @@ Checklist: 1,669 complete / 25 open (1,694 total); TODO: 357 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 increase to 112.
+
+### Progress addendum — enrollment response, optional weather, and revenue scope — 29 October 2026
+
+The private OIDC mobile-enrollment route now validates its exact three-field
+success payload, including a 32-byte URL-safe one-time code and timezone-aware
+expiry, before returning it. Malformed internal service output is logged only
+by exception class and becomes a generic no-store response. OpenAPI now
+declares that response shape. Focused enrollment tests pass 15 cases.
+
+Prefect ingestion and six-hour composites now report a structured skip when
+the signed weather worker is disabled by default, allowing unrelated ingestion
+and later composite stages to continue. Direct weather worker/job behavior
+remains fail-closed. The workflow and direct-worker selections pass 30 and 2
+tests respectively.
+
+Migration 686 preserves revenue-stream contributions while limiting the
+optional crop-cycle label join to the same location. The ordered migration
+source validates and its network-disabled PostgreSQL 16 apply/replay passes:
+all three location-A contribution rows and $175 gross/$120 net totals remain,
+the same-location cycle label remains, and the foreign cycle label becomes
+NULL. The temporary container was removed. Ruff, Python compilation,
+migration-source validation, and `git diff --check` pass. No candidate or
+legacy database, provider, or production identity was used. Evidence:
+[focused contracts](builds/2026-10-29-recovery/mobile-enrollment-prefect-weather-contracts.json)
+and [migration acceptance](builds/2026-10-29-recovery/revenue-stream-location-join-disposable.json).
+
+Checklist: 1,675 complete / 26 open (1,701 total); TODO: 360 checked / 17
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 114.
+
+The Delphi study-item creation route now has a strict 11-field response and
+OpenAPI contract, including location/study request binding, NUMERIC(8,4) score
+bounds, sanitized malformed-output handling, and replay-specific 200/201 status
+selection. Its focused Gateway acceptance passes 37 tests. Evidence:
+[Delphi response contract](builds/2026-10-29-recovery/delphi-study-item-response-contract.json).
+
+Checklist: 1,676 complete / 25 open (1,701 total); TODO: 361 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 115. Broader C2/C4/C5, production OIDC, populated-data parity, and
+candidate/legacy migration acceptance remain open.

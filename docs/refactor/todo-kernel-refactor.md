@@ -835,6 +835,20 @@ Directus adapter covers 28 location-scoped collections. No database, provider,
 live Directus runtime, candidate, legacy service, or live network was used.
 Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-report-gateway-acceptance.json).
 
+- [x] Validate the private mobile-enrollment success payload, OpenAPI schema,
+  one-time code bounds, and sanitized no-store failures
+  ([evidence](builds/2026-10-29-recovery/mobile-enrollment-prefect-weather-contracts.json)).
+- [x] Let Prefect composites skip default-off signed weather safely, while
+  direct weather worker execution remains fail-closed
+  ([same evidence](builds/2026-10-29-recovery/mobile-enrollment-prefect-weather-contracts.json)).
+- [x] Verify migration 686 apply/replay preserves revenue rows and totals while
+  suppressing a mismatched-location crop-cycle label
+  ([evidence](builds/2026-10-29-recovery/revenue-stream-location-join-disposable.json)).
+- [x] Verify the strict Delphi study-item response contract, including exact
+  OpenAPI fields, request-bound location/study IDs, malformed-output rejection,
+  NUMERIC(8,4) bounds, and 200/201 create/replay behavior
+  ([evidence](builds/2026-10-29-recovery/delphi-study-item-response-contract.json)).
+
 ## Code work to continue without owner input
 
 Work in this order. Each item is a bounded implementation batch, not a claim
