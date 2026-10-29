@@ -59,6 +59,30 @@ def public_row(**overrides):
     }
 
 
+def public_document(*, previous_version=True):
+    document = {
+        "@context": {
+            "schema": "http://schema.org/",
+            "kokonut": "https://kokonut.network/ontology#",
+        },
+        "@id": PUBLIC_IRI,
+        "@type": "kokonut:location",
+        "schema:name": "Public Farm",
+        "schema:addressCountry": "DO",
+        "schema:addressRegion": "North",
+        "kokonut:status": "active",
+        "kokonut:version": 2,
+    }
+    if previous_version:
+        document["kokonut:previousVersion"] = {"@id": PREVIOUS_IRI}
+    canonical = json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    document["kokonut:publicProjectionHash"] = "sha256:" + hashlib.sha256(
+        canonical.encode("utf-8")
+    ).hexdigest()
+    document["kokonut:hashAlgorithm"] = "sha256"
+    return document
+
+
 def test_public_iri_returns_jsonld_projection_hash_and_validated_lineage():
     connection = ReadOnlyConnection(public_row())
     connection_factory = Mock(return_value=connection)
@@ -175,12 +199,7 @@ def client(tmp_path, monkeypatch):
 
 
 def test_gateway_iri_route_returns_jsonld_without_private_registry_fields(client, monkeypatch):
-    safe_document = {
-        "@id": PUBLIC_IRI,
-        "@type": "kokonut:location",
-        "schema:name": "Public Farm",
-        "kokonut:publicProjectionHash": "sha256:public-only",
-    }
+    safe_document = public_document()
     resolver = Mock(return_value=safe_document)
     monkeypatch.setattr(public_iri, "resolve_public_location_iri", resolver)
 
@@ -193,6 +212,69 @@ def test_gateway_iri_route_returns_jsonld_without_private_registry_fields(client
     resolver.assert_called_once_with(PUBLIC_IRI)
 
 
+def test_gateway_iri_openapi_documents_jsonld_media_type_and_exact_fields(client):
+    operation = client.app.openapi()["paths"]["/api/iri/resolve"]["get"]
+    content = operation["responses"]["200"]["content"]
+    assert set(content) == {"application/ld+json"}
+    schema_ref = content["application/ld+json"]["schema"]["$ref"]
+    schema = client.app.openapi()["components"]["schemas"][schema_ref.rsplit("/", 1)[-1]]
+
+    assert operation["operationId"] == "resolvePublicLocationIri"
+    assert schema["additionalProperties"] is False
+    assert set(schema["properties"]) == {
+        "@context",
+        "@id",
+        "@type",
+        "schema:name",
+        "schema:addressCountry",
+        "schema:addressRegion",
+        "kokonut:status",
+        "kokonut:version",
+        "kokonut:previousVersion",
+        "kokonut:publicProjectionHash",
+        "kokonut:hashAlgorithm",
+    }
+
+
+def test_gateway_iri_route_omits_only_absent_predecessor_and_keeps_nullable_fields(
+    client, monkeypatch
+):
+    document = public_document(previous_version=False)
+    document["schema:addressCountry"] = None
+    document["schema:addressRegion"] = None
+    unsigned = {key: value for key, value in document.items() if key not in {
+        "kokonut:publicProjectionHash", "kokonut:hashAlgorithm"
+    }}
+    document["kokonut:publicProjectionHash"] = "sha256:" + hashlib.sha256(
+        json.dumps(unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+    monkeypatch.setattr(public_iri, "resolve_public_location_iri", Mock(return_value=document))
+
+    response = client.get("/api/iri/resolve", params={"iri": PUBLIC_IRI})
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/ld+json")
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["schema:addressCountry"] is None
+    assert response.json()["schema:addressRegion"] is None
+    assert "kokonut:previousVersion" not in response.json()
+
+
+def test_gateway_iri_route_rejects_malformed_jsonld_contract_without_leaking_fields(
+    client, monkeypatch
+):
+    document = public_document()
+    document["kokonut:publicProjectionHash"] = "sha256:" + "0" * 64
+    monkeypatch.setattr(public_iri, "resolve_public_location_iri", Mock(return_value=document))
+
+    response = client.get("/api/iri/resolve", params={"iri": PUBLIC_IRI})
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "IRI resolution unavailable"}
+    assert "sha256:" not in response.text
+
+
 def test_gateway_iri_route_returns_nonrevealing_404_for_private_or_unknown_iri(client, monkeypatch):
     resolver = Mock(return_value=None)
     monkeypatch.setattr(public_iri, "resolve_public_location_iri", resolver)
@@ -200,4 +282,5 @@ def test_gateway_iri_route_returns_nonrevealing_404_for_private_or_unknown_iri(c
     response = client.get("/api/iri/resolve", params={"iri": "private-or-missing"})
 
     assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"
     assert response.json() == {"error": "IRI not found"}

@@ -6794,3 +6794,22 @@ Checklist: 1,611 complete / 25 open (1,636 total); TODO: 306 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 101. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — public location IRI JSON-LD response contract — 29 October 2026
+
+- [x] Add an exact JSON-LD model for the public location projection, canonical
+  IRI/version, optional same-location predecessor, and SHA-256 digest.
+- [x] Validate resolver output before returning it and publish the success
+  contract in OpenAPI as `application/ld+json`.
+- [x] Add mocked regressions for lineage variants, hash rejection, malformed
+  output, no-store behavior, and the nonrevealing 404.
+
+The focused Gateway/public-IRI selection passes 13 tests. Ruff, Python
+compilation, and diff checks pass. No database, provider, candidate, or legacy
+service was used. Populated/live IRI parity, external JSON-LD interoperability,
+and tenant/RLS isolation remain open ([evidence](builds/2026-10-29-recovery/public-location-iri-jsonld-response-contract.json)).
+
+Checklist: 1,614 complete / 25 open (1,639 total); TODO: 309 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; the 101 strict private Gateway response
+contracts are unchanged. MAN-CAP acceptance is unchanged.

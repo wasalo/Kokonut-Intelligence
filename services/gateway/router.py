@@ -37,6 +37,7 @@ try:
         PublicDriverCatalogEnvelope,
         PublicDriverCatalogResponse,
         PublicError,
+        PublicLocationIriDocument,
         PublicLocationListResponse,
         PublicLocationResponse,
         PublicLocationSummary,
@@ -62,6 +63,9 @@ try:
         block_number: int | None = Field(strict=True)
         confirmed_at: AwareDatetime | None
         request_created_at: AwareDatetime | None
+
+    class _JsonLdResponse(JSONResponse):
+        media_type = "application/ld+json"
 
     class _DataStreamAttestationEnvelope(BaseModel):
         model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
@@ -179,6 +183,8 @@ except ImportError:
     _DataStreamAttestationEnvelope = None
     _DataStreamPostListEnvelope = None
     _DataStreamFileListEnvelope = None
+    PublicLocationIriDocument = None
+    _JsonLdResponse = None
     ValidationError = None
 
 router = APIRouter()
@@ -664,9 +670,16 @@ async def create_data_stream_post(request: Request):
         return _internal_error(exc)
 
 
-@router.get("/iri/resolve")
+@router.get(
+    "/iri/resolve",
+    response_model=PublicLocationIriDocument,
+    response_class=_JsonLdResponse,
+    responses={404: {"model": PublicError}, 500: {"model": PublicError}},
+    operation_id="resolvePublicLocationIri",
+)
 async def resolve_iri(iri: str):
     """Resolve a public location IRI to its non-sensitive JSON-LD projection."""
+    from pydantic import ValidationError
     from starlette.concurrency import run_in_threadpool
 
     try:
@@ -674,9 +687,12 @@ async def resolve_iri(iri: str):
 
         result = await run_in_threadpool(resolve_public_location_iri, iri)
         if result:
-            return JSONResponse(
-                content=result,
-                media_type="application/ld+json",
+            validated = PublicLocationIriDocument.model_validate(result)
+            document = validated.model_dump(mode="json", by_alias=True)
+            if validated.previous_version is None:
+                document.pop("kokonut:previousVersion", None)
+            return _JsonLdResponse(
+                content=document,
                 headers={"Cache-Control": "no-store"},
             )
         return JSONResponse(
@@ -684,6 +700,8 @@ async def resolve_iri(iri: str):
             content={"error": "IRI not found"},
             headers={"Cache-Control": "no-store"},
         )
+    except ValidationError as exc:
+        return _internal_error(exc, "IRI resolution unavailable")
     except Exception as exc:
         return _internal_error(exc)
 

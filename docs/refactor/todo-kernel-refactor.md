@@ -945,6 +945,11 @@ that its full source-plan phase is complete.
   excludes undeclared service fields while preserving tenant authorization and
   cache headers; 13 focused route/OpenAPI tests pass
   ([evidence](builds/2026-10-28-recovery/ecocredit-batch-response-contract.json)).
+  The public location IRI resolver now validates its exact JSON-LD document,
+  canonical same-location predecessor version, and public-projection digest;
+  OpenAPI advertises the `application/ld+json` schema and malformed documents
+  fail closed with a sanitized no-store error. Thirteen focused resolver tests
+  pass ([evidence](builds/2026-10-29-recovery/public-location-iri-jsonld-response-contract.json)).
   Python SDK timeouts now reject boolean, nonnumeric, non-finite, nonpositive,
   and overflow-sized values before networking while preserving the 10-second
   default; 17 focused tests pass
@@ -2457,4 +2462,22 @@ network-disabled; candidate and legacy databases are untouched. Evidence:
 [focused checks](builds/2026-10-29-recovery/report-snapshot-export-console-contracts.json).
 
 Checklist: 306 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+### Latest local continuation — public location IRI JSON-LD contract — 29 October 2026
+
+- [x] Define a strict JSON-LD response model for the exact public location
+  projection, including bounded identity/version fields and optional lineage.
+- [x] Verify canonical version linkage and recompute the public projection
+  digest before returning JSON-LD with its documented media type.
+- [x] Preserve nullable address fields, omitted absent predecessor, no-store
+  headers, and nonrevealing private/unavailable behavior under focused checks.
+
+The focused public IRI Gateway selection passes 13 tests. Ruff, Python
+compilation, and `git diff --check` pass. No database, provider, candidate, or
+legacy service was used. This does not establish live IRI/populated-data parity,
+external JSON-LD interoperability, or tenant/RLS isolation. Evidence:
+[contract checks](builds/2026-10-29-recovery/public-location-iri-jsonld-response-contract.json).
+
+Checklist: 309 checked / 16 open. Capability classifications and MAN-CAP
 acceptance remain unchanged.

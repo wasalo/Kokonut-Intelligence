@@ -1,3 +1,21 @@
+### Progress addendum — public location IRI JSON-LD response contract — 29 October 2026
+
+The public location IRI route now publishes and validates the exact document
+produced by the native resolver. Its schema binds the canonical location IRI
+to the document version, permits only the immediately preceding version for the
+same location, and verifies the SHA-256 digest over the non-hash projection.
+The optional predecessor is omitted when absent, while nullable country and
+region remain explicit. OpenAPI describes `application/ld+json`; malformed
+documents receive a generic no-store 500 response and unknown/private IRIs
+retain the existing nonrevealing 404.
+
+The focused public IRI route/service tests pass 13 checks. Ruff, Python
+compilation, and `git diff --check` pass. No database, provider, candidate, or
+legacy service was used. This establishes source/mock contract behavior only;
+it does not establish external JSON-LD interoperability, live IRI/populated
+parity, or tenant/RLS isolation. Evidence:
+[focused checks](builds/2026-10-29-recovery/public-location-iri-jsonld-response-contract.json).
+
 ### Progress addendum — C1 yield-benchmark runtime ACL — 28 October 2026
 
 Migration 680 keeps the location-scoped `yield_benchmark` table readable but
