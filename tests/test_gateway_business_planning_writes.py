@@ -494,8 +494,22 @@ def test_create_routes_declare_exact_created_and_replay_models(
     }
     schema = app.openapi()
     operation = schema["paths"][f"/operator/api/business-planning/{{location_id}}/canvases{route_suffix}"]["post"]
-    assert operation["responses"]["201"]["content"]["application/json"]["schema"]
-    assert operation["responses"]["200"]["content"]["application/json"]["schema"]
+    created_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    replay_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert created_schema == replay_schema
+    model_name = created_schema["$ref"].rsplit("/", 1)[-1]
+    model_schema = schema["components"]["schemas"][model_name]
+    expected_fields = {
+        "location_id",
+        "canvas_id",
+        "status",
+        "version",
+        "created_at",
+        "replayed",
+        *extra_fields.keys(),
+    }
+    assert set(model_schema["properties"]) == expected_fields
+    assert set(model_schema["required"]) == expected_fields
 
 
 @pytest.mark.parametrize(
