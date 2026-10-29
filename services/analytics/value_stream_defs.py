@@ -285,11 +285,14 @@ def get_stream_performance(stream_id: str) -> List[Dict[str, Any]]:
 
 
 def get_stream_summary() -> List[Dict[str, Any]]:
-    """Get stream-level summary for all active value streams."""
+    """Get stream-level summaries for all value streams."""
     with _conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
-                "SELECT * FROM v_value_stream_summary ORDER BY stream_name"
+                "SELECT stream_id, stream_name, stakeholder_type, status, "
+                "stage_count, total_target_lead_time_hours, "
+                "avg_actual_lead_time_hours, avg_fty_pct, created_at, updated_at "
+                "FROM v_value_stream_summary ORDER BY stream_name"
             )
             return [_row_to_dict(r) for r in cur.fetchall()]
 

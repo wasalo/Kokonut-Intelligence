@@ -24022,3 +24022,26 @@ Checklist: 1,699 complete / 25 open (1,724 total); TODO: 384 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts remain
 116. Production identity-provider and populated-data gates remain open.
+
+### Progress addendum — analytics, graph CLI, and waste capture contracts — 29 October 2026
+
+The value-stream summary and coordination-health queries now select their exact
+migration-defined projections while preserving filters, ordering, and row
+serialization. Graph-projection CLI inputs now fail before database acquisition
+when depth/node bounds, UUIDs, entity keys, edge types, or rebuild actors are
+invalid. Four waste-capture Gateway routes now validate strict migration-aligned
+OpenAPI/runtime responses, bind the returned location to the request, preserve
+201 creation/200 replay behavior, and return generic no-store errors for
+malformed service results. Focused checks pass: three analytics projection
+tests, 16 graph CLI tests, and 21 capture contract tests plus 92 existing waste
+route tests. Ruff, compilation, and diff checks pass; no database/provider was
+used. Evidence:
+[analytics projections](builds/2026-10-29-recovery/analytics-view-projection-contracts.json),
+[graph CLI](builds/2026-10-29-recovery/graph-projection-cli-preflight.json),
+[waste capture](builds/2026-10-29-recovery/waste-capture-response-contracts.json).
+
+Checklist: 1,703 complete / 25 open (1,728 total); TODO: 388 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts now
+total 120. C2/C4/C5, populated-data parity, and live provider gates remain
+open.

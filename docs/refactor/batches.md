@@ -7531,3 +7531,29 @@ open (8 code work groups and 8 owner/environment gates). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
 populated-data parity, and live provider gates remain open.
+
+### Source continuation — view projections, graph CLI, and waste capture contracts — 29 October 2026
+
+- [x] Replace `v_value_stream_summary` wildcard projection with migration 210's
+  exact ten columns, preserving the current unfiltered result and name order.
+- [x] Replace `v_coordination_health` wildcard projection with migration 235's
+  exact eleven columns, preserving optional alliance binding and name order.
+- [x] Preflight graph-projection depth, node cap, entity key, edge type,
+  generation UUID, and rebuild actor before database acquisition.
+- [x] Publish and enforce exact response contracts for waste, composting,
+  recycling, and pollution-incident capture, binding returned location to the
+  request and sanitizing malformed service results.
+
+The analytics projection checks pass three mock-cursor tests; the graph CLI
+preflight suite passes 16 mock-only tests; and the four capture contracts pass
+21 route/OpenAPI tests alongside 92 existing waste-capture route tests. Ruff,
+Python compilation, and diff checks pass. No database or provider was used.
+Evidence: [analytics view projections](builds/2026-10-29-recovery/analytics-view-projection-contracts.json),
+[graph CLI preflight](builds/2026-10-29-recovery/graph-projection-cli-preflight.json),
+and [waste capture contracts](builds/2026-10-29-recovery/waste-capture-response-contracts.json).
+
+Checklist: 1,703 complete / 25 open (1,728 total); TODO: 388 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts now total 120. C2/C4/C5,
+populated-data parity, and live provider gates remain open.

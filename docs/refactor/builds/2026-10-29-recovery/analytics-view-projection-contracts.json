@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-29",
+  "scope": "mock-cursor-migration-view-contracts",
+  "views": [
+    {
+      "name": "v_value_stream_summary",
+      "migration": 210,
+      "columns": [
+        "stream_id",
+        "stream_name",
+        "stakeholder_type",
+        "status",
+        "stage_count",
+        "total_target_lead_time_hours",
+        "avg_actual_lead_time_hours",
+        "avg_fty_pct",
+        "created_at",
+        "updated_at"
+      ],
+      "filter": null,
+      "ordering": "stream_name",
+      "serialization": ["uuid", "datetime"]
+    },
+    {
+      "name": "v_coordination_health",
+      "migration": 235,
+      "columns": [
+        "alliance_id",
+        "name",
+        "coordination_type",
+        "status",
+        "active_participant_count",
+        "active_objective_count",
+        "contribution_count",
+        "benefit_count",
+        "open_risk_count",
+        "completed_exchange_count",
+        "latest_review_end"
+      ],
+      "optional_filter": "alliance_id",
+      "ordering": "name",
+      "serialization": ["uuid", "date"]
+    }
+  ],
+  "focused_tests_passed": 3,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

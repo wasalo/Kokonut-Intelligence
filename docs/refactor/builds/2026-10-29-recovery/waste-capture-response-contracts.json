@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-29",
+  "scope": "mocked-gateway-response-contracts",
+  "routes": [
+    {
+      "path": "/operator/api/waste/{location_id}/records",
+      "migration": 613,
+      "fields": ["record_id", "location_id", "status", "record_date", "replayed"]
+    },
+    {
+      "path": "/operator/api/waste/{location_id}/composting",
+      "migration": 614,
+      "fields": ["record_id", "location_id", "compost_date", "status", "replayed"]
+    },
+    {
+      "path": "/operator/api/waste/{location_id}/recycling",
+      "migration": 615,
+      "fields": ["record_id", "location_id", "record_date", "status", "replayed"]
+    },
+    {
+      "path": "/operator/api/waste/{location_id}/incidents",
+      "migration": 616,
+      "fields": ["incident_id", "location_id", "incident_date", "status", "replayed"]
+    }
+  ],
+  "acceptance": {
+    "created_status": 201,
+    "replayed_status": 200,
+    "request_location_binding": true,
+    "extra_and_missing_fields_rejected": true,
+    "wrong_location_rejected": true,
+    "non_boolean_replay_rejected": true,
+    "malformed_error_sanitized": true,
+    "cache_control": "no-store",
+    "vary": "Cookie"
+  },
+  "focused_tests_passed": 21,
+  "supporting_route_tests_passed": 92,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

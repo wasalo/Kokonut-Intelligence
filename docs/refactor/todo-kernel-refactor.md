@@ -2888,3 +2888,21 @@ Checklist: 383 checked / 16 open. Evidence:
 
 Checklist: 384 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/value-stream-performance-projection.json`.
+
+## Completed in the 29 October analytics, CLI, and Gateway continuation
+
+- [x] Pin value-stream summary and coordination-health readers to the exact
+  ordered migration-defined view projections and preserve filters, ordering,
+  empty results, and date/UUID serialization.
+- [x] Reject invalid graph-projection CLI values before opening PostgreSQL,
+  using the service's depth/node bounds and the schema's UUID/edge-type rules.
+- [x] Add strict OpenAPI and runtime response contracts for the four waste
+  capture operations, including location binding, idempotent 201/200 status,
+  and sanitized no-store failures.
+- [x] Record focused evidence and reconcile the capability, batch, progress,
+  and active TODO ledgers.
+
+Checklist: 388 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/analytics-view-projection-contracts.json`,
+`builds/2026-10-29-recovery/graph-projection-cli-preflight.json`, and
+`builds/2026-10-29-recovery/waste-capture-response-contracts.json`.

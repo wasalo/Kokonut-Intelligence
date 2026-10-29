@@ -302,6 +302,7 @@ def test_http_incident_capture_is_no_store_and_returns_open_only(monkeypatch):
         lambda operator, location, payload: {
             "incident_id": _INCIDENT,
             "location_id": location,
+            "incident_date": date.today().isoformat(),
             "status": "open",
             "replayed": False,
         },
@@ -314,6 +315,7 @@ def test_http_incident_capture_is_no_store_and_returns_open_only(monkeypatch):
     assert response.json() == {
         "incident_id": _INCIDENT,
         "location_id": _LOCATION,
+        "incident_date": date.today().isoformat(),
         "status": "open",
         "replayed": False,
     }

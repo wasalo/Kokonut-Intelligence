@@ -161,6 +161,38 @@ class PollutionIncidentResolutionResponse(_WasteResponseModel):
     replayed: bool
 
 
+class WasteStreamCaptureResponse(_WasteResponseModel):
+    record_id: UUID
+    location_id: UUID
+    status: Literal["recorded"]
+    record_date: date
+    replayed: bool = Field(strict=True)
+
+
+class CompostingCaptureResponse(_WasteResponseModel):
+    record_id: UUID
+    location_id: UUID
+    compost_date: date
+    status: Literal["recorded"]
+    replayed: bool = Field(strict=True)
+
+
+class RecyclingCaptureResponse(_WasteResponseModel):
+    record_id: UUID
+    location_id: UUID
+    record_date: date
+    status: Literal["recorded"]
+    replayed: bool = Field(strict=True)
+
+
+class PollutionIncidentCaptureResponse(_WasteResponseModel):
+    incident_id: UUID
+    location_id: UUID
+    incident_date: date
+    status: Literal["open"]
+    replayed: bool = Field(strict=True)
+
+
 def register_waste_management_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -183,6 +215,28 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
     )
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+
+    def capture_response(result, response_model, location_id: str, capture_name: str):
+        try:
+            validated = response_model.model_validate(result)
+            if validated.location_id != UUID(location_id):
+                raise ValueError("Capture response location does not match request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.waste").warning(
+                "%s capture response rejected (%s)", capture_name, type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"{capture_name} capture unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")),
+            status_code=200 if validated.replayed else 201,
+            headers=headers,
+        )
 
     async def bounded_payload(request: Request, *, max_bytes: int = 4096):
         content_length = request.headers.get("content-length")
@@ -303,7 +357,12 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
             jsonable_encoder(validated.model_dump(mode="json")), headers=headers
         )
 
-    @router.post("/operator/api/waste/{location_id}/records")
+    @router.post(
+        "/operator/api/waste/{location_id}/records",
+        response_model=WasteStreamCaptureResponse,
+        status_code=201,
+        responses={200: {"model": WasteStreamCaptureResponse}},
+    )
     async def create_waste_record(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -359,13 +418,14 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
                 content={"error": "Waste capture unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
-            headers=headers,
-        )
+        return capture_response(result, WasteStreamCaptureResponse, location_id, "Waste")
 
-    @router.post("/operator/api/waste/{location_id}/composting")
+    @router.post(
+        "/operator/api/waste/{location_id}/composting",
+        response_model=CompostingCaptureResponse,
+        status_code=201,
+        responses={200: {"model": CompostingCaptureResponse}},
+    )
     async def create_composting_record(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -421,13 +481,14 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
                 content={"error": "Composting capture unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
-            headers=headers,
-        )
+        return capture_response(result, CompostingCaptureResponse, location_id, "Composting")
 
-    @router.post("/operator/api/waste/{location_id}/recycling")
+    @router.post(
+        "/operator/api/waste/{location_id}/recycling",
+        response_model=RecyclingCaptureResponse,
+        status_code=201,
+        responses={200: {"model": RecyclingCaptureResponse}},
+    )
     async def create_recycling_record(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -483,13 +544,14 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
                 content={"error": "Recycling capture unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
-            headers=headers,
-        )
+        return capture_response(result, RecyclingCaptureResponse, location_id, "Recycling")
 
-    @router.post("/operator/api/waste/{location_id}/incidents")
+    @router.post(
+        "/operator/api/waste/{location_id}/incidents",
+        response_model=PollutionIncidentCaptureResponse,
+        status_code=201,
+        responses={200: {"model": PollutionIncidentCaptureResponse}},
+    )
     async def create_pollution_incident(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -545,10 +607,8 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
                 content={"error": "Incident capture unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
-            headers=headers,
+        return capture_response(
+            result, PollutionIncidentCaptureResponse, location_id, "Incident"
         )
 
     @router.get(
