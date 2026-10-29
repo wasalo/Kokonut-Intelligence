@@ -972,6 +972,51 @@ class ComprehensiveStatusHolisticWellbeing(_ComprehensiveStatusModel):
     generated_at: ReportDateTime
 
 
+class ComprehensiveStatusStakeholderOutcome(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    outcome_name: str
+    outcome_description: str | None
+    stakeholder_group: str
+    stakeholder_description: str | None
+    importance: Literal["high", "moderate", "low", "neutral", "unimportant", "unknown"] | None
+    importance_perspective: str | None
+    is_underserved: bool | None
+    framework_key: str | None
+    dimension_key: str | None
+    sdg_number: int | None
+    capital_key: str | None
+    pillar_key: str | None
+    evidence_maturity: int | None = Field(default=None, ge=0, le=6)
+    status: Literal["verified", "published"]
+    metadata: JsonValue
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+
+
+class ComprehensiveStatusStakeholderOutcomes(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["stakeholder_outcomes"]
+    location_id: ReportUuid
+    outcome_count: int = Field(ge=0, strict=True)
+    outcomes: list[ComprehensiveStatusStakeholderOutcome]
+    capability_and_value_stream_links: list[JsonValue] = Field(max_length=0)
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def match_outcome_count(self):
+        if self.outcome_count != len(self.outcomes):
+            raise ValueError("Stakeholder outcome count does not match its rows")
+        return self
+
+
 class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     farm_summary: ComprehensiveStatusFarmSummary | ComprehensiveStatusSectionError
     crop_noi: ComprehensiveStatusCropNoiReport | ComprehensiveStatusSectionError
@@ -993,7 +1038,7 @@ class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     foundational_wellbeing: (
         ComprehensiveStatusFoundationalWellbeing | ComprehensiveStatusSectionError
     )
-    stakeholder_outcomes: JsonValue
+    stakeholder_outcomes: ComprehensiveStatusStakeholderOutcomes | ComprehensiveStatusSectionError
     capital_accounting: JsonValue
 
 
@@ -1067,6 +1112,16 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             and holistic_wellbeing.location_id != self.location_id
         ):
             raise ValueError("Holistic wellbeing section is outside the composed location scope")
+        stakeholder_outcomes = self.sections.stakeholder_outcomes
+        if (
+            isinstance(stakeholder_outcomes, ComprehensiveStatusStakeholderOutcomes)
+            and stakeholder_outcomes.location_id != self.location_id
+        ):
+            raise ValueError("Stakeholder outcomes section is outside the composed location scope")
+        if isinstance(stakeholder_outcomes, ComprehensiveStatusStakeholderOutcomes) and any(
+            outcome.location_id != self.location_id for outcome in stakeholder_outcomes.outcomes
+        ):
+            raise ValueError("Stakeholder outcome row is outside the composed location scope")
         return self
 
 

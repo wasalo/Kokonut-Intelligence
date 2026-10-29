@@ -7038,3 +7038,25 @@ Checklist: 1,644 complete / 25 open (1,669 total); TODO: 339 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 109. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — Comprehensive Status stakeholder-outcomes contract — 29 October 2026
+
+- [x] Replace the stakeholder-outcomes `JsonValue` section with strict models
+  based on the report generator's exact selected columns and source lifecycle.
+- [x] Bind the section and every outcome row to the composed location; validate
+  the verified/published status, importance enum, nullable schema fields, and
+  aggregate count parity.
+- [x] Keep the currently unimplemented capability/value-stream link projection
+  empty and verify OpenAPI, malformed data, and existing section errors.
+
+The focused Comprehensive Status route suite passes 106 tests. Ruff, Python
+compilation, and `git diff --check` pass. No database/provider, candidate,
+legacy, or production state was used; no migration is required. This does not
+establish populated-data parity, attribution, or content-level privacy.
+Rollback reverts the response models, location binding, focused fixtures, and
+evidence ([evidence](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json)).
+
+Checklist: 1,647 complete / 25 open (1,672 total); TODO: 342 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 109. MAN-CAP acceptance is unchanged.

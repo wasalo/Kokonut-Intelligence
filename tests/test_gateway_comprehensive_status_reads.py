@@ -85,6 +85,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
     sections["community_governance"] = _community_governance_section(location_id)
     sections["holistic_wellbeing"] = _holistic_wellbeing_section(location_id)
     sections["foundational_wellbeing"] = _foundational_wellbeing_section(location_id)
+    sections["stakeholder_outcomes"] = _stakeholder_outcomes_section(location_id)
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -323,6 +324,46 @@ def _holistic_wellbeing_section(location_id=LOCATION_ID):
             }
         ],
         "limitations": ["Public-safe summaries only."],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
+def _stakeholder_outcomes_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "stakeholder_outcomes",
+        "location_id": location_id,
+        "outcome_count": 1,
+        "outcomes": [
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "farm_id": None,
+                "outcome_name": "Community decision autonomy",
+                "outcome_description": None,
+                "stakeholder_group": "DAO members",
+                "stakeholder_description": None,
+                "importance": None,
+                "importance_perspective": None,
+                "is_underserved": None,
+                "framework_key": "wellbeing",
+                "dimension_key": None,
+                "sdg_number": None,
+                "capital_key": None,
+                "pillar_key": None,
+                "evidence_maturity": None,
+                "status": "verified",
+                "metadata": {},
+                "created_at": "2026-10-01T00:00:00+00:00",
+                "updated_at": None,
+                "created_by": None,
+                "updated_by": None,
+            }
+        ],
+        "capability_and_value_stream_links": [],
+        "limitations": [
+            "Only verified or published governed outcomes are included.",
+            "Outcome presence does not establish causality or satisfaction.",
+        ],
         "generated_at": "2026-10-28T00:00:00+00:00",
     }
 
@@ -1011,6 +1052,12 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert holistic["cultural_context"][0]["practice_name"] == "Seed exchange"
     assert holistic["wellbeing_metrics"][0]["score_value"] == 8.5
     assert holistic["participatory_actions"][0]["decision_status"] == "completed"
+    outcomes = response.json()["locations"][0]["sections"]["stakeholder_outcomes"]
+    assert outcomes["location_id"] == LOCATION_ID
+    assert outcomes["outcome_count"] == len(outcomes["outcomes"]) == 1
+    assert outcomes["outcomes"][0]["importance"] is None
+    assert outcomes["outcomes"][0]["status"] == "verified"
+    assert outcomes["capability_and_value_stream_links"] == []
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -1045,6 +1092,43 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "limitations",
         "generated_at",
     }
+    stakeholder_schema = section_schema["properties"]["stakeholder_outcomes"]
+    assert len(stakeholder_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusStakeholderOutcomes"][
+        "additionalProperties"
+    ] is False
+    assert schemas["ComprehensiveStatusStakeholderOutcome"][
+        "additionalProperties"
+    ] is False
+    assert set(
+        schemas["ComprehensiveStatusStakeholderOutcome"]["properties"]
+    ) == {
+        "id",
+        "location_id",
+        "farm_id",
+        "outcome_name",
+        "outcome_description",
+        "stakeholder_group",
+        "stakeholder_description",
+        "importance",
+        "importance_perspective",
+        "is_underserved",
+        "framework_key",
+        "dimension_key",
+        "sdg_number",
+        "capital_key",
+        "pillar_key",
+        "evidence_maturity",
+        "status",
+        "metadata",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+    }
+    assert schemas["ComprehensiveStatusStakeholderOutcomes"]["properties"][
+        "capability_and_value_stream_links"
+    ]["maxItems"] == 0
     crop_noi_schema = section_schema["properties"]["crop_noi"]
     assert len(crop_noi_schema["anyOf"]) == 2
     assert schemas["ComprehensiveStatusCropNoiReport"]["additionalProperties"] is False
@@ -1399,6 +1483,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     payload["locations"][0]["sections"]["holistic_wellbeing"] = {
         "error": "report section failed (DataError)"
     }
+    payload["locations"][0]["sections"]["stakeholder_outcomes"] = {
+        "error": "report section failed (DataError)"
+    }
     monkeypatch.setattr(
         "services.gateway.comprehensive_status_reads.get_location_comprehensive_status",
         lambda *_args, **_kwargs: payload,
@@ -1458,6 +1545,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["holistic_wellbeing"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["stakeholder_outcomes"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -1474,6 +1564,10 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "farm_summary_numeric_string", "farm_summary_error_contract",
         "holistic_wrong_location", "holistic_context_extra",
         "holistic_metric_maturity_out_of_range", "holistic_metric_numeric_string",
+        "stakeholder_wrong_location", "stakeholder_row_wrong_location",
+        "stakeholder_row_extra", "stakeholder_draft_status",
+        "stakeholder_invalid_importance", "stakeholder_count_mismatch",
+        "stakeholder_links_unimplemented",
         "financial_plan_extra", "financial_plan_wrong_location",
         "financial_report_wrong_location", "financial_numeric_string",
         "financial_error_contract",
@@ -1589,6 +1683,32 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         payload["locations"][0]["sections"]["holistic_wellbeing"]["wellbeing_metrics"][
             0
         ]["score_value"] = "8.5"
+    elif invalid_projection == "stakeholder_wrong_location":
+        payload["locations"][0]["sections"]["stakeholder_outcomes"]["location_id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "stakeholder_row_wrong_location":
+        payload["locations"][0]["sections"]["stakeholder_outcomes"]["outcomes"][
+            0
+        ]["location_id"] = str(uuid4())
+    elif invalid_projection == "stakeholder_row_extra":
+        payload["locations"][0]["sections"]["stakeholder_outcomes"]["outcomes"][
+            0
+        ]["source_raw"] = {"private": True}
+    elif invalid_projection == "stakeholder_draft_status":
+        payload["locations"][0]["sections"]["stakeholder_outcomes"]["outcomes"][
+            0
+        ]["status"] = "draft"
+    elif invalid_projection == "stakeholder_invalid_importance":
+        payload["locations"][0]["sections"]["stakeholder_outcomes"]["outcomes"][
+            0
+        ]["importance"] = "urgent"
+    elif invalid_projection == "stakeholder_count_mismatch":
+        payload["locations"][0]["sections"]["stakeholder_outcomes"]["outcome_count"] = 2
+    elif invalid_projection == "stakeholder_links_unimplemented":
+        payload["locations"][0]["sections"]["stakeholder_outcomes"][
+            "capability_and_value_stream_links"
+        ] = [{"link_id": str(uuid4())}]
     elif invalid_projection == "financial_plan_extra":
         payload["locations"][0]["sections"]["financial_sustainability"]["plans"][0][
             "counterparty_account"

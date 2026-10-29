@@ -10,6 +10,16 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Replace the Comprehensive Status stakeholder-outcomes `JsonValue` with
+  a strict schema-aligned section and exact outcome-row model; preserve the
+  source query's verified/published filter ([evidence](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json)).
+- [x] Bind the section and every outcome row to the composed location, validate
+  the lifecycle/importance enums and count parity, and keep its currently empty
+  link projection explicitly empty ([same evidence](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json)).
+- [x] Verify OpenAPI, nullable fields, malformed rows, and the existing
+  sanitized section-error response with mock-only route checks
+  ([same evidence](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json)).
+
 - [x] Replace the Comprehensive Status holistic-wellbeing `JsonValue` section
   with strict public-view-backed cultural, metric, and participatory-action
   response models ([evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json)).
@@ -1033,12 +1043,15 @@ that its full source-plan phase is complete.
   existing authorization/error/cache behavior
   ([evidence](builds/2026-10-28-recovery/emergency-response-summary-contract.json)).
   Comprehensive Status validates its one-location envelope and exact canonical
-  section set, with strict typed contracts for `crop_noi`, environmental, and
-  holistic-wellbeing sections. The environmental model binds its four explicit
+  section set, with strict typed contracts for `crop_noi`, environmental,
+  holistic-wellbeing, and stakeholder-outcomes sections. The environmental model binds its four explicit
   SQL arrays to the enclosing location and accepts PostgreSQL Decimal values;
   the holistic section now binds to its location and derives exact row contracts
-  from the three consent/publication-filtered views. Its 99-route-test selection
-  passes ([evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json)).
+  from the three consent/publication-filtered views. Stakeholder-outcomes rows
+  bind to the same location, preserve their verified/published lifecycle, and
+  match the aggregate count. The combined route selection passes 106 tests
+  ([holistic evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json);
+  [stakeholder evidence](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json)).
   The farm-summary queries already use explicit current-schema projections and
   have strict nested models; the remaining semantic issue is that legacy
   `financial_transaction` has no lifecycle/status column while `expense_event`

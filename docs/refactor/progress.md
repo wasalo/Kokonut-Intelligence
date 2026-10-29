@@ -1,3 +1,21 @@
+### Progress addendum — Comprehensive Status stakeholder-outcomes contract — 29 October 2026
+
+The optional operator route now validates stakeholder outcomes against a
+strict projection matching the report generator's selected columns. Each row
+and the section itself must match the enclosing location, status must be
+verified or published, importance must match the schema enum, and the aggregate
+count must equal the returned rows. The source generator currently returns an
+empty capability/value-stream link list; the contract keeps it empty until a
+source-backed implementation is added.
+
+The focused Comprehensive Status Gateway selection passes 106 tests,
+including OpenAPI, nullable fields, location binding, invalid status/importance,
+count mismatch, undeclared fields, and the section error shape. Ruff, Python
+compilation, and `git diff --check` pass. Synthetic route data only; no
+database/provider, candidate, legacy, or production state was used. No
+migration is required. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json).
+
 ### Progress addendum — Comprehensive Status holistic-wellbeing contract — 29 October 2026
 
 The optional operator route now validates the holistic-wellbeing section
