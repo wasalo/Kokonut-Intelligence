@@ -612,6 +612,87 @@ class SolutionAdoptionProgramReviewQueueResponse(BaseModel):
         return self
 
 
+class SolutionAdoptionProgramDraftItemResponse(BaseModel):
+    """Exact migration-520 projection for an operator's own adoption draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    program_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    program_status: Literal["draft"]
+    adoption_pathway: str = Field(min_length=1, max_length=2000, strict=True)
+    local_adaptation_policy: str | None = Field(max_length=4000, strict=True)
+    created_at: AwareDatetime
+    consent_data_category: Literal["solution_adoption_participation"] | None
+    consent_purpose: str | None = Field(min_length=1, max_length=255, strict=True)
+    consent_version: str | None = Field(
+        min_length=1,
+        max_length=30,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,29}$",
+        strict=True,
+    )
+
+    @model_validator(mode="after")
+    def validate_consent_policy(self):
+        consent_values = (
+            self.consent_data_category,
+            self.consent_purpose,
+            self.consent_version,
+        )
+        if any(value is None for value in consent_values) and any(
+            value is not None for value in consent_values
+        ):
+            raise ValueError("Adoption program draft consent policy projection is incomplete")
+        return self
+
+
+class SolutionAdoptionProgramDraftPageResponse(BaseModel):
+    """Strict, location-bound page envelope for migration-520 own drafts."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=25, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    drafts: list[SolutionAdoptionProgramDraftItemResponse] = Field(max_length=25)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.drafts) > self.limit:
+            raise ValueError("Adoption program draft page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.drafts) != self.limit
+                or self.offset + len(self.drafts) <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program draft offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.drafts) != self.limit
+                or self.next_offset != self.offset + len(self.drafts)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program draft continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal adoption program draft page cannot continue")
+
+        program_ids = [draft.program_id for draft in self.drafts]
+        if len(program_ids) != len(set(program_ids)):
+            raise ValueError("Adoption program draft page contains duplicate programs")
+        order = [(draft.created_at, -draft.program_id.int) for draft in self.drafts]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Adoption program draft page is not in SQL order")
+        return self
+
+
 def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -2224,9 +2305,15 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             headers=headers,
         )
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/drafts")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs/drafts",
+        response_model=SolutionAdoptionProgramDraftPageResponse,
+    )
     async def location_solution_adoption_program_drafts(
-        request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=10, ge=1, le=25),
+        offset: int = Query(default=0, ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2253,7 +2340,47 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution adoption program drafts unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution adoption program drafts unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict):
+                raise ValueError("Adoption program draft result is not an object")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            next_offset = result.get("next_offset")
+            if (
+                result.get("has_more") is True
+                and type(next_offset) is int
+                and next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                drafts = result.get("drafts")
+                if (
+                    not isinstance(drafts, list)
+                    or len(drafts) != limit
+                    or next_offset != offset + len(drafts)
+                ):
+                    raise ValueError("Adoption program draft continuation is inconsistent")
+                page["has_more"] = False
+                page["next_offset"] = None
+                page["offset_limited"] = True
+            validated = SolutionAdoptionProgramDraftPageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution adoption program drafts unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/redesigns")
     async def location_solution_adoption_program_redesigns(

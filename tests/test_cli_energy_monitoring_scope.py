@@ -1,11 +1,147 @@
 """Energy source CLI rejects malformed location IDs before DB setup."""
 
+from datetime import date
 from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
 
 from services.analytics import cli_energy_monitoring
+
+
+@pytest.mark.parametrize(
+    "argv, option",
+    [
+        (
+            [
+                "add-source", "--location-id", str(uuid4()), "--name", "Solar array",
+                "--type", "solar", "--installation-date", "not-a-date",
+            ],
+            "--installation-date",
+        ),
+        (
+            [
+                "record", "--source-id", "source", "--type", "consumption",
+                "--kwh", "1", "--date", "2026-02-30",
+            ],
+            "--date",
+        ),
+    ],
+)
+def test_date_arguments_reject_malformed_values_before_database_access(
+    monkeypatch, capsys, argv, option
+):
+    runner = Mock()
+    connection_factory = Mock()
+    monkeypatch.setattr(cli_energy_monitoring.cli, "run", runner)
+    monkeypatch.setattr(
+        cli_energy_monitoring.cli, "_connection_factory", connection_factory
+    )
+
+    with pytest.raises(SystemExit) as error:
+        cli_energy_monitoring.main(argv)
+
+    assert error.value.code == 2
+    assert option in capsys.readouterr().err
+    runner.assert_not_called()
+    connection_factory.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "argv, operation, expected_date, keyword",
+    [
+        (
+            [
+                "add-source", "--location-id", str(uuid4()), "--name", "Solar array",
+                "--type", "solar", "--installation-date", "2026-02-28", "--json",
+            ],
+            "add_source",
+            date(2026, 2, 28),
+            "installation_date",
+        ),
+        (
+            [
+                "record", "--source-id", "source", "--type", "consumption",
+                "--kwh", "1", "--date", "2026-02-28", "--json",
+            ],
+            "record_reading",
+            date(2026, 2, 28),
+            None,
+        ),
+    ],
+)
+def test_valid_iso_date_reaches_domain_handler(
+    monkeypatch, argv, operation, expected_date, keyword
+):
+    connection = Mock()
+    handler = Mock(return_value={})
+    monkeypatch.setattr(
+        cli_energy_monitoring.cli, "_connection_factory", lambda: connection
+    )
+    monkeypatch.setattr(cli_energy_monitoring, operation, handler)
+
+    cli_energy_monitoring.main(argv)
+
+    if keyword:
+        assert handler.call_args.kwargs[keyword] == expected_date
+    else:
+        assert handler.call_args.args[2] == expected_date
+    connection.close.assert_called_once()
+
+
+@pytest.mark.parametrize("installation_date", [None, ""])
+def test_add_source_missing_or_empty_date_keeps_none_fallback(
+    monkeypatch, installation_date
+):
+    argv = [
+        "add-source", "--location-id", str(uuid4()), "--name", "Solar array",
+        "--type", "solar", "--json",
+    ]
+    if installation_date is not None:
+        argv.extend(["--installation-date", installation_date])
+    connection = Mock()
+    handler = Mock(return_value={})
+    monkeypatch.setattr(
+        cli_energy_monitoring.cli, "_connection_factory", lambda: connection
+    )
+    monkeypatch.setattr(cli_energy_monitoring, "add_source", handler)
+
+    cli_energy_monitoring.main(argv)
+
+    assert handler.call_args.kwargs["installation_date"] is None
+    connection.close.assert_called_once()
+
+
+@pytest.mark.parametrize("reading_date", [None, ""])
+def test_record_missing_or_empty_date_keeps_today_fallback(
+    monkeypatch, reading_date
+):
+    today = date(2026, 10, 29)
+
+    class FixedDate:
+        @staticmethod
+        def fromisoformat(value):
+            return date.fromisoformat(value)
+
+        @staticmethod
+        def today():
+            return today
+
+    argv = ["record", "--source-id", "source", "--type", "consumption", "--kwh", "1", "--json"]
+    if reading_date is not None:
+        argv.extend(["--date", reading_date])
+    connection = Mock()
+    handler = Mock(return_value={})
+    monkeypatch.setattr(cli_energy_monitoring, "date", FixedDate)
+    monkeypatch.setattr(
+        cli_energy_monitoring.cli, "_connection_factory", lambda: connection
+    )
+    monkeypatch.setattr(cli_energy_monitoring, "record_reading", handler)
+
+    cli_energy_monitoring.main(argv)
+
+    assert handler.call_args.args[2] == today
+    connection.close.assert_called_once()
 
 
 @pytest.mark.parametrize(

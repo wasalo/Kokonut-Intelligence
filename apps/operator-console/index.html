@@ -12815,15 +12815,24 @@
           if (!response.ok) throw new Error(result.error || "Adoption program drafts could not be loaded.");
           if (requestVersion !== solutionLifecycleAdoptionProgramDraftsRequestVersion
               || locationId !== solutionLifecycleLocation.value) return;
+          if (result.location_id !== locationId
+              || result.limit !== solutionLifecycleAdoptionProgramPageSize
+              || result.offset !== offset) {
+            throw new Error("Adoption program draft response did not match the requested location and page.");
+          }
           const drafts = Array.isArray(result.drafts) ? result.drafts : [];
           for (const draft of drafts) appendSolutionLifecycleAdoptionProgramDraft(draft);
-          solutionLifecycleAdoptionProgramDraftsOffset = Number.isInteger(result.next_offset)
-            && result.next_offset > offset && result.next_offset <= 10000 ? result.next_offset : offset;
-          solutionLifecycleAdoptionProgramDraftsMore.hidden = result.has_more !== true
-            || solutionLifecycleAdoptionProgramDraftsOffset <= offset;
-          solutionLifecycleAdoptionProgramDraftsStatus.textContent = drafts.length
-            ? `${drafts.length} unsubmitted draft${drafts.length === 1 ? "" : "s"} loaded.`
-            : "No unsubmitted adoption-program drafts.";
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true
+            && nextOffset === offset + drafts.length
+            && nextOffset <= 10000;
+          solutionLifecycleAdoptionProgramDraftsOffset = canContinue ? nextOffset : offset;
+          solutionLifecycleAdoptionProgramDraftsMore.hidden = !canContinue;
+          solutionLifecycleAdoptionProgramDraftsStatus.textContent = result.offset_limited === true
+            ? "Showing drafts through the 10,000-offset limit; additional drafts remain."
+            : drafts.length
+              ? `${drafts.length} unsubmitted draft${drafts.length === 1 ? "" : "s"} loaded.`
+              : "No unsubmitted adoption-program drafts.";
         } catch (error) {
           if (requestVersion === solutionLifecycleAdoptionProgramDraftsRequestVersion) {
             solutionLifecycleAdoptionProgramDraftsStatus.textContent = error.message;

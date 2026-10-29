@@ -8238,3 +8238,26 @@ TODO: 488 checked / 16 open. Capability classifications remain 24
 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private
 Gateway response contracts total 175. Evidence:
 [adoption review, competitive projections, and trust CLI](builds/2026-10-29-recovery/adoption-review-competitive-projections-trust-cli.json).
+
+### Source continuation — adoption drafts, benchmark projection, and energy CLI — 29 October 2026
+
+- [x] Publish and validate the migration-520 own-drafts response contract,
+  including consent coherence, page binding, draft-only status, SQL order, and
+  sanitized no-store failures.
+- [x] Cap inaccessible draft continuations at offset 10,000 and tell console
+  users when more drafts remain beyond the supported range.
+- [x] Replace the customer-value competitive-benchmark wildcard read with the
+  exact migration-285 columns, preserving filters, order, and UUID cleanup.
+- [x] Reject malformed energy-monitoring date arguments before the command
+  runner can acquire a PostgreSQL connection; preserve optional date behavior.
+- [x] Run the approved mock-only and offline checks and reconcile evidence and
+  progress ledgers.
+
+The approved offline selection passes 14 adoption Gateway checks, one console
+page/cap check, one benchmark-projection check, eight energy-date checks, and
+one JavaScript syntax check (25 total). Ruff, Python compilation,
+capability-matrix validation, and diff checks pass. No database or provider
+was used. Checklist: 1,850 complete / 25 open; TODO: 493 checked / 16 open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows; strict private Gateway response contracts total 176.
+Evidence: [adoption drafts, benchmark projection, and energy CLI](builds/2026-10-29-recovery/adoption-drafts-benchmark-energy-preflight.json).

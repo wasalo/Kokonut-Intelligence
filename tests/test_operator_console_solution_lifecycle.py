@@ -1146,6 +1146,25 @@ def test_adoption_program_review_queue_binds_page_and_reports_offset_cap():
     assert "nextOffset <= 10000" in queue
 
 
+def test_adoption_program_drafts_bind_page_and_report_offset_cap():
+    source = CONSOLE.read_text(encoding="utf-8")
+    queue = _function(
+        source,
+        "async function loadSolutionLifecycleAdoptionProgramDrafts(append = false)",
+        "function appendSolutionLifecycleAdoptionProgramRevision(",
+    )
+    assert "solutionLifecycleSubmitLocations.has(locationId)" in queue
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/programs/drafts?${params}`' in queue
+    assert "result.location_id !== locationId" in queue
+    assert "result.limit !== solutionLifecycleAdoptionProgramPageSize" in queue
+    assert "result.offset !== offset" in queue
+    assert "result.offset_limited === true" in queue
+    assert "10,000-offset limit; additional drafts remain" in queue
+    assert "nextOffset === offset + drafts.length" in queue
+    assert "nextOffset <= 10000" in queue
+    assert 'credentials: "same-origin"' in queue and 'cache: "no-store"' in queue
+
+
 def test_replication_review_console_is_grant_gated_private_independent_and_retry_safe():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(r'<section id="solution-lifecycle-replication-review".*?</section>', source, re.DOTALL)

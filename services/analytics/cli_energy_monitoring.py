@@ -48,6 +48,10 @@ _LOCATION_SCOPED_COMMANDS = {
     "carbon-intensity",
     "cost-analysis",
 }
+_DATE_ARGUMENTS = {
+    "add-source": ("installation_date", "--installation-date"),
+    "record": ("date", "--date"),
+}
 
 
 def _render(result, args, human):
@@ -162,6 +166,15 @@ cli.subcommand("cost-analysis", "Energy cost analysis") \
 def main(argv=None):
     parser = cli.build_parser()
     args = parser.parse_args(argv)
+    date_argument = _DATE_ARGUMENTS.get(args.command)
+    if date_argument is not None:
+        attribute, option = date_argument
+        value = getattr(args, attribute)
+        if value:
+            try:
+                date.fromisoformat(value)
+            except ValueError as exc:
+                parser.error(f"{option} must be a valid ISO date: {exc}")
     if args.command in _LOCATION_SCOPED_COMMANDS:
         try:
             args.location_id = str(UUID(args.location_id))

@@ -24521,3 +24521,19 @@ validation, and diff checks pass. No database, provider, candidate, or legacy
 state was used. Checklist: 1,845 complete / 25 open; TODO: 488 checked / 16
 open; strict private Gateway response contracts total 175. Evidence:
 [adoption review, competitive projections, and trust CLI](builds/2026-10-29-recovery/adoption-review-competitive-projections-trust-cli.json).
+
+### Progress addendum — adoption drafts, benchmark projection, and energy CLI — 29 October 2026
+
+The own-drafts adoption-program route now validates the exact migration-520
+projection, draft status, consent tuple, location/page echo, and SQL order. It
+marks a capped SQL lookahead explicitly and the console explains when additional
+drafts remain outside the 10,000-offset range. Customer-value benchmark reads
+now select migration 285's explicit columns without changing filters, ordering,
+or UUID-cleaned payloads. Energy-monitoring CLI date inputs are rejected before
+the shared command runner acquires PostgreSQL; valid dates and omitted/empty
+fallback behavior remain intact. The approved offline selection passes 25
+focused checks; Ruff, Python compilation, capability validation, and diff checks
+pass. No database, provider, candidate, or legacy state was used. Checklist:
+1,850 complete / 25 open; TODO: 493 checked / 16 open; strict private Gateway
+response contracts total 176. Evidence:
+[adoption drafts, benchmark projection, and energy CLI](builds/2026-10-29-recovery/adoption-drafts-benchmark-energy-preflight.json).

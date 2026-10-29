@@ -3287,3 +3287,21 @@ check (53 total). Ruff, compilation, matrix validation, and diff checks pass.
 No database or provider was used. Checklist: 488 checked / 16 open; strict
 private Gateway response contracts total 175. Evidence:
 `builds/2026-10-29-recovery/adoption-review-competitive-projections-trust-cli.json`.
+
+## Completed — adoption drafts, benchmark projection, and energy CLI, 29 October
+
+- [x] Add the strict migration-520 adoption-drafts page and item response,
+  including consent tuple, draft-only, SQL order, and offset-cap invariants.
+- [x] Update the operator console to verify page echo and report capped results.
+- [x] Replace the customer-value benchmark wildcard projection with explicit
+  migration-285 columns and verify payload parity.
+- [x] Validate energy CLI dates before connection acquisition while preserving
+  optional date behavior.
+- [x] Run approved focused checks and record the evidence.
+
+The focused selection passes 14 Gateway, one console, one benchmark, eight CLI,
+and one JavaScript syntax check (25 total). Ruff, compilation, matrix
+validation, and diff checks pass. No database or provider was used. Checklist:
+493 checked / 16 open; strict private Gateway response contracts total 176.
+Evidence:
+`builds/2026-10-29-recovery/adoption-drafts-benchmark-energy-preflight.json`.
