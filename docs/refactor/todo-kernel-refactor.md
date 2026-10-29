@@ -3210,3 +3210,19 @@ capability-matrix validation, and diff checks pass. No database or provider was
 used. Checklist: 471 checked / 16 open; strict private Gateway response
 contracts total 166. Evidence:
 `builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-response-contract.json`.
+
+## Completed — farm-activity draft and transition response contracts, 29 October
+
+- [x] Add exact OpenAPI/runtime response contracts for draft create/edit and
+  the six supported lifecycle commands.
+- [x] Verify response field allowlists, route identity/action binding,
+  draft-only writes, state transitions, reason requirements, and HTTP 201
+  create documentation.
+- [x] Verify malformed service output fails closed with sanitized no-store
+  behavior and record the focused evidence.
+
+The approved focused Gateway route suite passes 45 tests; Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. No database or
+provider was used. Checklist: 474 checked / 16 open; strict private Gateway
+response contracts total 169. Evidence:
+`builds/2026-10-29-recovery/farm-activity-write-response-contracts.json`.

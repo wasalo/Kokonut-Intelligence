@@ -6,6 +6,7 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import (
+    AwareDatetime,
     BaseModel,
     BeforeValidator,
     ConfigDict,
@@ -51,7 +52,7 @@ def _response_datetime(value):
 
 _ResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
 _ResponseDate = Annotated[date, BeforeValidator(_response_date)]
-_ResponseDateTime = Annotated[datetime, BeforeValidator(_response_datetime)]
+_ResponseDateTime = Annotated[AwareDatetime, BeforeValidator(_response_datetime)]
 
 
 def _response_decimal(value):
@@ -77,6 +78,22 @@ FarmActivityOperatorAction = Literal[
     "rejected",
     "rework_requested",
     "exception_closed",
+]
+FarmActivityTransitionAction = Literal[
+    "submitted",
+    "verified",
+    "published",
+    "rejected",
+    "rework_requested",
+    "exception_closed",
+]
+FarmActivityRouteAction = Literal[
+    "submit",
+    "verify",
+    "reject",
+    "request-rework",
+    "publish",
+    "close-exception",
 ]
 FarmActivityChangedField = Literal[
     "plot_id",
@@ -163,6 +180,71 @@ class FarmActivityDetailResponse(BaseModel):
     data: FarmActivityDetailResponseData
 
 
+class FarmActivityDraftWriteResponseData(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _ResponseUUID
+    location_id: _ResponseUUID
+    plot_id: _ResponseUUID | None
+    crop_cycle_id: _ResponseUUID | None
+    activity_type: str = Field(min_length=1, max_length=100)
+    activity_date: _ResponseDate
+    description: str | None
+    labor_hours: _ResponseDecimal | None
+    labor_cost: _ResponseDecimal | None
+    materials_used: JsonValue
+    evidence_urls: list[str | None] | None
+    notes: str | None
+    status: Literal["draft"]
+    source_system: Literal["kokonut_gateway"]
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+    event_id: _ResponseUUID
+
+
+class FarmActivityDraftWriteResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    data: FarmActivityDraftWriteResponseData
+
+
+class FarmActivityTransitionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _ResponseUUID
+    activity_id: _ResponseUUID
+    location_id: _ResponseUUID
+    action: FarmActivityTransitionAction
+    from_status: FarmActivityStatus | None
+    to_status: FarmActivityStatus
+    reason: str | None
+    created_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_transition(self):
+        expected = {
+            "submitted": ("draft", "submitted"),
+            "verified": ("submitted", "verified"),
+            "rejected": ({"submitted", "verified"}, "rejected"),
+            "rework_requested": ("rejected", "draft"),
+            "published": ("verified", "published"),
+            "exception_closed": ("rejected", "rejected"),
+        }[self.action]
+        allowed_from, expected_to = expected
+        if self.to_status != expected_to:
+            raise ValueError("farm activity transition action and result do not match")
+        allowed_from_statuses = (
+            allowed_from if isinstance(allowed_from, set) else {allowed_from}
+        )
+        if self.from_status not in allowed_from_statuses:
+            raise ValueError("farm activity transition source status does not match its action")
+        if self.action in {"rejected", "rework_requested", "exception_closed"} and (
+            not self.reason or not self.reason.strip()
+        ):
+            raise ValueError("this farm activity transition requires a reason")
+        return self
+
+
 def register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -184,7 +266,7 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         from services.common.logging import get_logger
 
         get_logger("gateway.farm_activity_records").warning(
-            "Farm activity summary response rejected (%s)", type(exc).__name__
+            "Farm activity response rejected (%s)", type(exc).__name__
         )
         return JSONResponse(
             status_code=500,
@@ -226,6 +308,21 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
             return _invalid_projection(exc)
         return JSONResponse(
             jsonable_encoder(response.model_dump()),
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    def _draft_write_response(result, location_id, *, activity_id=None, status_code=200):
+        try:
+            response = FarmActivityDraftWriteResponse.model_validate({"data": result})
+            if response.data.location_id != UUID(location_id):
+                raise ValueError("farm activity draft response does not match request location")
+            if activity_id is not None and response.data.id != UUID(activity_id):
+                raise ValueError("farm activity draft response does not match request identifier")
+        except (ValidationError, TypeError, ValueError) as exc:
+            return _invalid_projection(exc)
+        return JSONResponse(
+            jsonable_encoder(response.model_dump()),
+            status_code=status_code,
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
@@ -377,7 +474,11 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
             )
         return _detail_response(result, activity_id, location_id, published_only=False)
 
-    @router.post("/operator/api/farm-activity-records")
+    @router.post(
+        "/operator/api/farm-activity-records",
+        status_code=201,
+        response_model=FarmActivityDraftWriteResponse,
+    )
     async def create_farm_activity_record_route(
         request: Request, location_id: str, body: dict
     ):
@@ -397,13 +498,12 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         )
         if isinstance(result, JSONResponse):
             return result
-        return JSONResponse(
-            {"data": jsonable_encoder(result)},
-            status_code=201,
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
-        )
+        return _draft_write_response(result, location_id, status_code=201)
 
-    @router.patch("/operator/api/farm-activity-records/{activity_id}/draft")
+    @router.patch(
+        "/operator/api/farm-activity-records/{activity_id}/draft",
+        response_model=FarmActivityDraftWriteResponse,
+    )
     async def edit_farm_activity_record_route(
         request: Request, activity_id: str, location_id: str, body: dict
     ):
@@ -431,14 +531,18 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
                 content={"error": "Editable draft farm activity record not found"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
-        return JSONResponse(
-            {"data": jsonable_encoder(result)},
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
-        )
+        return _draft_write_response(result, location_id, activity_id=activity_id)
 
-    @router.post("/operator/api/farm-activity-records/{activity_id}/{action}")
+    @router.post(
+        "/operator/api/farm-activity-records/{activity_id}/{action}",
+        response_model=FarmActivityTransitionResponse,
+    )
     async def transition_farm_activity_record_route(
-        request: Request, activity_id: str, action: str, location_id: str, body: dict | None = None
+        request: Request,
+        activity_id: str,
+        action: FarmActivityRouteAction,
+        location_id: str,
+        body: dict | None = None,
     ):
         if provider is None:
             return _disabled()
@@ -465,7 +569,25 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
                 content={"error": "Farm activity record not found or transition grant unavailable"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        try:
+            response = FarmActivityTransitionResponse.model_validate(result)
+            expected_action = {
+                "submit": "submitted",
+                "verify": "verified",
+                "reject": "rejected",
+                "request-rework": "rework_requested",
+                "publish": "published",
+                "close-exception": "exception_closed",
+            }.get(action)
+            if (
+                response.activity_id != UUID(activity_id)
+                or response.location_id != UUID(location_id)
+                or response.action != expected_action
+            ):
+                raise ValueError("farm activity transition response does not match request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            return _invalid_projection(exc)
         return JSONResponse(
-            {"data": jsonable_encoder(result)},
+            jsonable_encoder(response.model_dump()),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )

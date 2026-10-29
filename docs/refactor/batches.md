@@ -8120,3 +8120,25 @@ Checklist: 1,820 complete / 25 open (1,845 total); TODO: 471 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 166. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — farm-activity write response contracts — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime response schemas for farm-activity draft
+  creation and editing, with only migration-backed fields.
+- [x] Bind draft responses to the requested location/activity and enforce the
+  first-write `draft` state and `kokonut_gateway` source.
+- [x] Enumerate the six supported transition commands in OpenAPI and validate
+  returned event action, location, activity, and from/to lifecycle states.
+- [x] Preserve HTTP 201 for draft creation and no-store error handling; reject
+  malformed or mismatched service output with a sanitized response.
+- [x] Add/run approved focused route/OpenAPI checks and record evidence.
+
+The focused farm-activity Gateway suite passes 45 tests. Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. The checks
+use mocks only; no database, provider, candidate, or legacy state was used.
+Evidence: [farm-activity write response contracts](builds/2026-10-29-recovery/farm-activity-write-response-contracts.json).
+
+Checklist: 1,825 complete / 25 open (1,850 total); TODO: 474 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 169. C2 remains open for broader route/auth and live-runtime parity.

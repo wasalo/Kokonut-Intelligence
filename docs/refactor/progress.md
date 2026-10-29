@@ -24432,3 +24432,19 @@ and diff checks pass. No database or provider was used. Checklist: 1,820
 complete / 25 open; TODO: 471 checked / 16 open; strict private Gateway
 response contracts total 166. Evidence:
 [resource fulfillment response contract](builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-response-contract.json).
+
+### Progress addendum — farm-activity draft and transition response contracts — 29 October 2026
+
+Farm-activity draft create and edit now publish a strict 17-field response
+under `data`, bound to the requested location and activity. New writes must
+remain `draft` and use the Gateway source marker; creation documents HTTP 201.
+Lifecycle commands are enumerated in OpenAPI, and each response must bind its
+location, activity, and persisted event action to the URL command while
+matching the transition's source and resulting states. Rejection, rework, and
+exception closure require a nonblank reason. Malformed service output remains
+a generic no-store error. The approved mock-only route suite passes 45 tests;
+Ruff, Python compilation, capability validation, and diff checks pass. No
+database, provider, candidate, or legacy state was used. Checklist: 1,825
+complete / 25 open; TODO: 474 checked / 16 open; strict private Gateway
+response contracts total 169. Evidence:
+[farm-activity write response contracts](builds/2026-10-29-recovery/farm-activity-write-response-contracts.json).
