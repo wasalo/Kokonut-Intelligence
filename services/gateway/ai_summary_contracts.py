@@ -79,5 +79,38 @@ class AiSummaryDraftResponse(StrictAiSummaryModel):
         return self
 
 
+class AiSummaryReviewDecisionRequest(StrictAiSummaryModel):
+    decision: Literal["approve", "reject"]
+    request_id: StrictUuid
+    reason_code: Literal[
+        "approved_after_review",
+        "insufficient_evidence",
+        "privacy_concern",
+        "unsupported_claim",
+        "other",
+    ]
+
+    @model_validator(mode="after")
+    def validate_decision_reason(self):
+        if (self.decision == "approve") != (self.reason_code == "approved_after_review"):
+            raise ValueError("Review decision and reason code do not match")
+        return self
+
+
+class AiSummaryReviewDecisionResponse(StrictAiSummaryModel):
+    review_id: StrictUuid
+    summary_id: StrictUuid
+    decision: Literal["approve", "reject"]
+    resulting_status: Literal["verified", "rejected"]
+    created_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_resulting_status(self):
+        expected_status = "verified" if self.decision == "approve" else "rejected"
+        if self.resulting_status != expected_status:
+            raise ValueError("Review decision and resulting lifecycle status do not match")
+        return self
+
+
 class AiSummaryContractError(StrictAiSummaryModel):
     error: str

@@ -2,6 +2,28 @@
 
 ### Progress addendum — AI-summary draft response contract — 29 October 2026
 
+### Progress addendum — AI-summary human review decision contract — 29 October 2026
+
+The private operator decision endpoint now publishes strict request and
+response OpenAPI schemas. The body is limited to approve/reject, a UUID retry
+ID, and one of the migration-defined reason codes; approval must use
+`approved_after_review`, while rejection must use a rejection reason. The
+location and summary path IDs are validated before service dispatch. Returned
+data must match the exact five migration-defined fields and bind the summary,
+decision, and lifecycle result. Approval maps only to `verified`; rejection
+maps only to `rejected`, preserving human review and leaving publication to a
+separate governed action. Invalid service output returns a generic no-store
+failure. The route continues to return HTTP 200 for the decision endpoint.
+
+The focused AI-summary review and draft selection passes 77 tests. Ruff,
+Python compilation, capability-matrix validation, and `git diff --check` pass.
+Mocks only; no database, provider, candidate, legacy, or production state was
+used. PostgreSQL idempotency and live OIDC remain separate acceptance gates.
+No migration is required. Evidence:
+[focused checks](builds/2026-10-29-recovery/ai-summary-human-review-decision-contract.json).
+
+### Progress addendum — AI-summary draft response contract — 29 October 2026
+
 The private, authenticated AI-summary draft route now publishes strict
 request/response schemas aligned with migrations 522, 523, and 540. It accepts
 only the four summary types supported by the generator and a UUID retry key,

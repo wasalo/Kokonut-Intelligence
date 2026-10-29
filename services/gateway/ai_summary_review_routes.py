@@ -6,7 +6,12 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, model_validator
 
-from services.gateway.ai_summary_contracts import AiSummarySourceReference
+from services.gateway.ai_summary_contracts import (
+    AiSummaryContractError,
+    AiSummaryReviewDecisionRequest,
+    AiSummaryReviewDecisionResponse,
+    AiSummarySourceReference,
+)
 
 _SOURCE_TABLE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 
@@ -106,10 +111,6 @@ class AiSummaryReviewPage(_StrictResponseModel):
         return self
 
 
-class AiSummaryReviewError(_StrictResponseModel):
-    error: str
-
-
 def register_ai_summary_review_routes(router, provider, run_in_threadpool, psycopg2):
     import json
 
@@ -138,7 +139,7 @@ def register_ai_summary_review_routes(router, provider, run_in_threadpool, psyco
     }
     error_responses = {
         status: {
-            "model": AiSummaryReviewError,
+            "model": AiSummaryContractError,
             "description": description,
             "headers": documented_error_headers,
         }
@@ -247,7 +248,19 @@ def register_ai_summary_review_routes(router, provider, run_in_threadpool, psyco
         return JSONResponse(page.model_dump(mode="json"), headers=headers)
 
     @router.post(
-        "/operator/api/ai-summaries/{location_id}/reviews/{summary_id}/decision"
+        "/operator/api/ai-summaries/{location_id}/reviews/{summary_id}/decision",
+        response_model=AiSummaryReviewDecisionResponse,
+        responses=error_responses,
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": AiSummaryReviewDecisionRequest.model_json_schema()
+                    }
+                },
+            }
+        },
     )
     async def decide_summary_review(
         request: Request,
@@ -264,25 +277,25 @@ def register_ai_summary_review_routes(router, provider, run_in_threadpool, psyco
             payload = await request.json()
         except (json.JSONDecodeError, UnicodeDecodeError):
             return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
-        if not isinstance(payload, dict) or set(payload) != {
-            "decision",
-            "request_id",
-            "reason_code",
-        }:
+        try:
+            decision_request = AiSummaryReviewDecisionRequest.model_validate(payload)
+            requested_location_id = UUID(location_id)
+            requested_summary_id = UUID(summary_id)
+        except (ValidationError, TypeError, ValueError):
             return JSONResponse(
                 status_code=400,
-                content={"error": "Body must contain decision, request_id, and reason_code only"},
+                content={"error": "AI-summary review request is invalid"},
                 headers=headers,
             )
         try:
             result = await run_in_threadpool(
                 decide_location_ai_summary_review,
                 request.state.operator_session.operator.operator_id,
-                location_id,
-                summary_id,
-                decision=payload["decision"],
-                request_id=payload["request_id"],
-                reason_code=payload["reason_code"],
+                str(requested_location_id),
+                str(requested_summary_id),
+                decision=decision_request.decision,
+                request_id=str(decision_request.request_id),
+                reason_code=decision_request.reason_code,
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -290,8 +303,35 @@ def register_ai_summary_review_routes(router, provider, run_in_threadpool, psyco
                 content={"error": "Tenant-qualified AI-summary review access is required"},
                 headers=headers,
             )
-        except AiSummaryReviewInvalid as exc:
-            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except AiSummaryReviewInvalid:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "AI-summary review request is invalid"},
+                headers=headers,
+            )
         except psycopg2.Error as exc:
             return database_error(exc)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            decision = AiSummaryReviewDecisionResponse.model_validate(result)
+            if (
+                decision.summary_id != requested_summary_id
+                or decision.decision != decision_request.decision
+                or decision.resulting_status
+                != ("verified" if decision_request.decision == "approve" else "rejected")
+            ):
+                raise ValueError("Review decision result does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.ai_summary_review").warning(
+                "AI summary review decision rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "AI summary review unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(decision.model_dump(mode="python")),
+            headers=headers,
+        )

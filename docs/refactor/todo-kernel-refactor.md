@@ -10,6 +10,16 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Publish the strict human review decision request and response schemas
+  for approved/rejected AI summaries, including reason-code/lifecycle mapping
+  ([evidence](builds/2026-10-29-recovery/ai-summary-human-review-decision-contract.json)).
+- [x] Bind response summary, decision, and resulting status to the request and
+  reject invalid paths/reason pairings before service access
+  ([same evidence](builds/2026-10-29-recovery/ai-summary-human-review-decision-contract.json)).
+- [x] Preserve the existing 200 decision response and sanitize malformed
+  service results with no-store errors; publish the response contract in
+  OpenAPI ([same evidence](builds/2026-10-29-recovery/ai-summary-human-review-decision-contract.json)).
+
 - [x] Add the strict authenticated AI-summary draft request/response contract,
   bind service output to the requested location/type, and validate lifecycle,
   source lineage, and no-store failures

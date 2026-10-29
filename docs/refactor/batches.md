@@ -6941,3 +6941,27 @@ Checklist: 1,632 complete / 25 open (1,657 total); TODO: 327 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 107. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — AI-summary human review decision contract — 29 October 2026
+
+- [x] Publish strict OpenAPI request and response contracts for the
+  location-scoped human decision endpoint using migration 521/522 fields.
+- [x] Validate the exact request allowlist, UUID retry ID, decision/reason-code
+  pairing, and path identifiers before service dispatch.
+- [x] Validate the exact five-field decision result, bind its summary and
+  decision to the request, and require the database lifecycle mapping:
+  approval verifies; rejection rejects; neither publishes.
+
+The focused AI-summary review and draft selection passes 77 tests. Ruff,
+Python compilation, capability-matrix validation, and `git diff --check` pass.
+Tests use mocked route/service results only; no database, provider, candidate,
+legacy, or production state was used. The route preserves HTTP 200 for its
+decision response; this source-only acceptance does not exercise PostgreSQL
+idempotency or live OIDC. No migration is needed. Rollback reverts the shared
+contracts, route validation, focused tests, and evidence without database
+changes ([evidence](builds/2026-10-29-recovery/ai-summary-human-review-decision-contract.json)).
+
+Checklist: 1,635 complete / 25 open (1,660 total); TODO: 330 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 108. MAN-CAP acceptance is unchanged.

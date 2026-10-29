@@ -602,6 +602,148 @@ def test_decision_route_returns_bad_request_for_malformed_field_types(payload):
     assert response.headers["cache-control"] == "no-store"
 
 
+def _valid_decision_result(request_decision="approve", **overrides):
+    result = {
+        "review_id": str(uuid4()),
+        "summary_id": SUMMARY_ID,
+        "decision": request_decision,
+        "resulting_status": "verified" if request_decision == "approve" else "rejected",
+        "created_at": datetime(2026, 10, 29, tzinfo=UTC),
+    }
+    result.update(overrides)
+    return result
+
+
+@pytest.mark.parametrize(
+    ("decision", "reason_code", "resulting_status"),
+    [
+        ("approve", "approved_after_review", "verified"),
+        ("reject", "privacy_concern", "rejected"),
+    ],
+)
+def test_decision_route_publishes_and_validates_schema(decision, reason_code, resulting_status):
+    captured = []
+    result = _valid_decision_result(decision)
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        captured.append((func, args, kwargs))
+        return result
+
+    app = _make_app(
+        object(),
+        {review.decide_location_ai_summary_review: lambda *_a, **_k: result},
+        run_in_threadpool,
+    )
+    operation = app.openapi()["paths"][
+        "/operator/api/ai-summaries/{location_id}/reviews/{summary_id}/decision"
+    ]["post"]
+    schemas = app.openapi()["components"]["schemas"]
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["required"]) == {"decision", "request_id", "reason_code"}
+    assert request_schema["properties"]["decision"]["enum"] == ["approve", "reject"]
+    assert request_schema["properties"]["reason_code"]["enum"] == [
+        "approved_after_review",
+        "insufficient_evidence",
+        "privacy_concern",
+        "unsupported_claim",
+        "other",
+    ]
+    assert response_schema == {"$ref": "#/components/schemas/AiSummaryReviewDecisionResponse"}
+    assert schemas["AiSummaryReviewDecisionResponse"]["additionalProperties"] is False
+    assert operation["responses"]["500"]["headers"]["Cache-Control"]["schema"][
+        "example"
+    ] == "no-store"
+
+    response = TestClient(app).post(
+        f"/operator/api/ai-summaries/{LOCATION_ID}/reviews/{SUMMARY_ID}/decision",
+        json={"decision": decision, "request_id": REQUEST_ID, "reason_code": reason_code},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["summary_id"] == SUMMARY_ID
+    assert response.json()["resulting_status"] == resulting_status
+    assert response.headers["cache-control"] == "no-store"
+    assert len(captured) == 1
+    assert captured[0][1][1:3] == (LOCATION_ID, SUMMARY_ID)
+    assert captured[0][2] == {
+        "decision": decision,
+        "request_id": REQUEST_ID,
+        "reason_code": reason_code,
+    }
+
+
+@pytest.mark.parametrize(
+    ("location_id", "summary_id"),
+    [("invalid-location", SUMMARY_ID), (LOCATION_ID, "invalid-summary")],
+)
+def test_invalid_decision_path_identifiers_fail_before_service(location_id, summary_id):
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("invalid path identifiers must not invoke the decision service")
+
+    client = TestClient(_make_app(object(), {}, run_in_threadpool))
+    response = client.post(
+        f"/operator/api/ai-summaries/{location_id}/reviews/{summary_id}/decision",
+        json={
+            "decision": "reject",
+            "request_id": REQUEST_ID,
+            "reason_code": "other",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    ("decision", "reason_code"),
+    [("approve", "privacy_concern"), ("reject", "approved_after_review")],
+)
+def test_decision_route_rejects_inconsistent_reason_before_service(decision, reason_code):
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("inconsistent decision reason must fail before service dispatch")
+
+    client = TestClient(_make_app(object(), {}, run_in_threadpool))
+    response = client.post(
+        f"/operator/api/ai-summaries/{LOCATION_ID}/reviews/{SUMMARY_ID}/decision",
+        json={"decision": decision, "request_id": REQUEST_ID, "reason_code": reason_code},
+    )
+
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "malformed_result",
+    [
+        _valid_decision_result("approve", summary_id=str(uuid4())),
+        _valid_decision_result("approve", decision="approve", resulting_status="verified"),
+        _valid_decision_result("approve", resulting_status="published"),
+        _valid_decision_result("reject", extra="private"),
+        _valid_decision_result("reject", created_at="not-a-timestamp"),
+    ],
+)
+def test_malformed_decision_result_fails_closed_without_store(malformed_result):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return malformed_result
+
+    client = TestClient(_make_app(object(), {}, run_in_threadpool))
+    response = client.post(
+        f"/operator/api/ai-summaries/{LOCATION_ID}/reviews/{SUMMARY_ID}/decision",
+        json={
+            "decision": "reject",
+            "request_id": REQUEST_ID,
+            "reason_code": "other",
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "AI summary review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
 def test_routes_fail_closed_when_oidc_is_disabled():
     async def run_in_threadpool(*_args, **_kwargs):
         pytest.fail("OIDC-disabled request must not reach service")
