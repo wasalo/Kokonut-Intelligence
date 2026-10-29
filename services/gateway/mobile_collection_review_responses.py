@@ -154,3 +154,78 @@ class MobileCollectionReviewDetailResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
     data: MobileCollectionReviewDetailResponseData
+
+
+class MobileCollectionDispositionCollectionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    sync_status: Literal["synced"]
+    form_id: str | None = Field(max_length=200)
+    form_version: str | None = Field(max_length=50)
+    has_participant_link: bool = Field(strict=True)
+    has_collection_consent_reference: bool = Field(strict=True)
+    has_sync_consent_reference: bool = Field(strict=True)
+    payload_bytes: int = Field(ge=0, strict=True)
+    payload_field_count: int = Field(ge=0, strict=True)
+    photo_reference_count: int = Field(ge=0, strict=True)
+    has_coordinates: bool = Field(strict=True)
+
+
+class MobileCollectionDispositionMediaResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    object_count: int = Field(ge=0, strict=True)
+    total_bytes: int = Field(ge=0, strict=True)
+    by_status: dict[Literal["uploaded", "attached", "expired"], int]
+
+    @model_validator(mode="after")
+    def validate_counts(self):
+        if any(count < 0 for count in self.by_status.values()):
+            raise ValueError("private media counts must not be negative")
+        if sum(self.by_status.values()) != self.object_count:
+            raise ValueError("private media status counts do not match total")
+        return self
+
+
+class MobileCollectionDispositionActivityResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    total: int = Field(ge=0, strict=True)
+    by_status: dict[Literal["draft", "submitted", "verified", "published", "rejected"], int]
+
+    @model_validator(mode="after")
+    def validate_counts(self):
+        if any(count < 0 for count in self.by_status.values()):
+            raise ValueError("canonical activity counts must not be negative")
+        if sum(self.by_status.values()) != self.total:
+            raise ValueError("canonical activity status counts do not match total")
+        return self
+
+
+class MobileCollectionDispositionInventoryData(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    collection_id: _MobileResponseUUID
+    location_id: _MobileResponseUUID
+    eligible_for_use: bool = Field(strict=True)
+    eligibility_reason: _MobileEligibilityReason
+    inventory_scope: Literal["known_direct_lineage_only"]
+    collection: MobileCollectionDispositionCollectionResponse
+    private_media: MobileCollectionDispositionMediaResponse
+    canonical_activity: MobileCollectionDispositionActivityResponse
+    workflow_event_count: int = Field(ge=0, strict=True)
+    review_event_count: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_inventory_scope(self):
+        if self.eligible_for_use != (self.eligibility_reason == "eligible"):
+            raise ValueError("collection eligibility reason does not match eligibility")
+        if self.eligible_for_use:
+            raise ValueError("eligible collection is outside the disposition inventory")
+        return self
+
+
+class MobileCollectionDispositionInventoryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    data: MobileCollectionDispositionInventoryData

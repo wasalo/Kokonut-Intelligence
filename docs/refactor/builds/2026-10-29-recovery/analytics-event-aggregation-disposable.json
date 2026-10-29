@@ -1,0 +1,32 @@
+{
+  "result": "passed",
+  "database": "disposable PostgreSQL 16",
+  "candidate_or_legacy_modified": false,
+  "provider_contacted": false,
+  "network_isolated": true,
+  "host_port_published": false,
+  "postgresql_version": "16",
+  "fixtures": {
+    "harvest_events": 3,
+    "weather_observations": 3,
+    "revenue_events": 3,
+    "expense_events": 4
+  },
+  "weather_growth": {
+    "harvest_kg": 15.0,
+    "harvest_event_count": 2,
+    "unique_weather_observation_count": 3,
+    "rainfall_mm": 10.0,
+    "average_temperature_c": 30.0,
+    "average_humidity_pct": 70.0,
+    "cross_location_cycle_rows": 0
+  },
+  "revenue_per_acre": {
+    "revenue_usd": 300.0,
+    "expenses_usd": 60.0,
+    "roi_pct": 400.0,
+    "no_event_cycle_zero_totals": true,
+    "cross_location_events_excluded": true
+  },
+  "cleanup": "complete"
+}

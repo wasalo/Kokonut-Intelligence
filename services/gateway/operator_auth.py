@@ -3973,6 +3973,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         FarmActivityIntakeQueueResponse,
     )
     from services.gateway.mobile_collection_review_responses import (
+        MobileCollectionDispositionInventoryResponse,
         MobileCollectionReviewDetailResponse,
         MobileCollectionReviewQueueResponse,
     )
@@ -4861,7 +4862,8 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         )
 
     @router.get(
-        "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory"
+        "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
+        response_model=MobileCollectionDispositionInventoryResponse,
     )
     async def mobile_collection_disposition_inventory(
         request: Request, collection_id: str, location_id: str
@@ -4913,10 +4915,30 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Disposition inventory not found or not authorized"},
                 headers={"Cache-Control": "no-store"},
             )
+        try:
+            response = MobileCollectionDispositionInventoryResponse.model_validate(
+                {"data": row}
+            )
+            if (
+                response.data.collection_id != UUID(collection_id)
+                or response.data.location_id != UUID(location_id)
+            ):
+                raise ValueError("Disposition inventory does not match requested scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile disposition inventory response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile disposition inventory unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(row)},
+            jsonable_encoder(response.model_dump(mode="json")),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 

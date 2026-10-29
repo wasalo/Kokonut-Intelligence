@@ -139,6 +139,152 @@ def test_scheduled_weekly_runs_only_climate_refresh() -> None:
     climate.assert_called_once_with()
 
 
+def test_market_data_prefect_adapter_is_default_off_and_enabled_mode_dispatches() -> None:
+    from unittest.mock import patch
+
+    from services.flows.market_data import dispatch_market_data_job
+
+    skipped = {
+        "status": "skipped",
+        "reason": "isolated_market_data_worker_disabled",
+    }
+    with (
+        patch("services.flows.market_data.is_enabled", return_value=False),
+        patch("services.flows.market_data.run_job") as run_job,
+    ):
+        assert dispatch_market_data_job() == skipped
+    run_job.assert_not_called()
+
+    expected = {"status": "success", "output": "synthetic"}
+    with (
+        patch("services.flows.market_data.is_enabled", return_value=True),
+        patch("services.flows.market_data.run_job", return_value=expected) as run_job,
+    ):
+        assert dispatch_market_data_job() == expected
+    run_job.assert_called_once_with("market_data")
+
+
+def test_market_data_catalog_dispatch_skips_without_fallback() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import _dispatch_catalog_job
+
+    with (
+        patch("services.flows.market_data.is_enabled", return_value=False),
+        patch("services.flows.market_data.run_job") as run_job,
+    ):
+        result = _dispatch_catalog_job("market_data")
+
+    assert result == {
+        "status": "skipped",
+        "reason": "isolated_market_data_worker_disabled",
+    }
+    run_job.assert_not_called()
+
+
+def test_scheduled_daily_continues_after_default_off_market_data_skip() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import scheduled_daily
+
+    calls: list[str] = []
+    with (
+        patch(
+            "services.flows.market_data.market_data_flow",
+            side_effect=lambda: calls.append("market_data")
+            or {
+                "status": "skipped",
+                "reason": "isolated_market_data_worker_disabled",
+            },
+        ),
+        patch("services.flows.market_data.run_job") as run_job,
+        patch(
+            "services.flows.metrics.metrics_computation_flow",
+            side_effect=lambda: calls.append("metrics"),
+        ),
+        patch(
+            "services.flows.credit_adjustment.credit_adjustment_flow",
+            side_effect=lambda: calls.append("credit_adjustment"),
+        ),
+    ):
+        scheduled_daily.fn()
+
+    run_job.assert_not_called()
+    assert calls == ["market_data", "metrics", "credit_adjustment"]
+
+
+def test_scheduled_every_6h_skips_default_off_dashboard_and_continues() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import scheduled_every_6h
+
+    calls: list[str] = []
+    weather_result = {"status": "weather-complete"}
+    remote_result = {"status": "remote-complete"}
+    with (
+        patch("services.flows.pipelines.is_enabled", return_value=False),
+        patch(
+            "services.flows.weather.weather_ingestion_flow",
+            side_effect=lambda: calls.append("weather") or weather_result,
+        ),
+        patch("services.flows.dashboards.dashboard_refresh_flow") as dashboard,
+        patch(
+            "services.flows.remote_sensing.remote_sensing_flow",
+            side_effect=lambda: calls.append("remote_sensing") or remote_result,
+        ),
+    ):
+        result = scheduled_every_6h.fn()
+
+    assert calls == ["weather", "remote_sensing"]
+    dashboard.assert_not_called()
+    assert result == {
+        "status": "success",
+        "weather": weather_result,
+        "dashboard_refresh": {
+            "status": "skipped",
+            "reason": "legacy_dataset_sql_disabled",
+        },
+        "remote_sensing": remote_result,
+    }
+
+
+def test_scheduled_every_6h_preserves_enabled_dashboard_order() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import scheduled_every_6h
+
+    calls: list[str] = []
+    expected = {
+        "weather": {"status": "weather-complete"},
+        "dashboard": {"status": "dashboard-complete"},
+        "remote_sensing": {"status": "remote-complete"},
+    }
+    with (
+        patch("services.flows.pipelines.is_enabled", return_value=True),
+        patch(
+            "services.flows.weather.weather_ingestion_flow",
+            side_effect=lambda: calls.append("weather") or expected["weather"],
+        ),
+        patch(
+            "services.flows.dashboards.dashboard_refresh_flow",
+            side_effect=lambda: calls.append("dashboard") or expected["dashboard"],
+        ),
+        patch(
+            "services.flows.remote_sensing.remote_sensing_flow",
+            side_effect=lambda: calls.append("remote_sensing") or expected["remote_sensing"],
+        ),
+    ):
+        result = scheduled_every_6h.fn()
+
+    assert calls == ["weather", "dashboard", "remote_sensing"]
+    assert result == {
+        "status": "success",
+        "weather": expected["weather"],
+        "dashboard_refresh": expected["dashboard"],
+        "remote_sensing": expected["remote_sensing"],
+    }
+
+
 def test_anomaly_prefect_flow_uses_owner_scoped_location_fanout() -> None:
     from unittest.mock import patch
 

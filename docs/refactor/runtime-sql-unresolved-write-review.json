@@ -394,10 +394,10 @@
       "reason": "Reviewed list_location_realization_summaries: its WITH clause selects the bounded, location-filtered geostat_realization page and aggregates point values; no DML or mutating SQL is present. This edit only clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative manual review; this is not an ACL approval."
     },
     {
-      "fingerprint": "974e74f0353f82e0dab460547c67576fd88887fb51184b915c9019c90759010a",
+      "fingerprint": "c79b8dc7d13e757d434cbfbd8cb3cb9b93af6145ad7eb609e698c3116ddfb6af",
       "review_status": "reviewed_unresolved",
       "reviewed_by": "Codex source review",
-      "reviewed_on": "2026-10-28",
+      "reviewed_on": "2026-10-29",
       "reason": "Reviewed generate_farm_summary at services/export/reports/core.py:100 after its explicit schema projection change: both CTEs perform SELECT and aggregation, and the top-level statement selects the resulting bounded summary; there is no DML or mutating function. The inventory conservatively retains WITH for manual review. This source review is not an ACL approval."
     },
     {
@@ -413,6 +413,27 @@
       "reviewed_by": "Codex source review",
       "reviewed_on": "2026-10-28",
       "reason": "Reviewed the module-level _CONFIRMED_OPERATING_TENANT_MAP_SQL constant used by collect_inventory in services/mobile/tenant_preflight.py: its CTE uses VALUES and SELECT/COUNT/EXISTS checks only, with a SELECT-only final projection and no DML or mutating function. The inventory conservatively retains WITH; this source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "61a9801fd5f81646491577ecc4161007a78a2cd6e0214221e9bae8712865661e",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-29",
+      "reason": "Reviewed compute_labor_efficiency at services/analytics/resource_efficiency.py:15: its CTEs pre-aggregate verified harvest and labor rows by cycle and the final statement is a SELECT-only location-scoped projection; there is no DML or mutating function. The inventory conservatively retains WITH; this source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "e1ecf40f407d6a861b1ca52cdf0cbd843599a0603c6c9cde4f0c4e1f391a56e9",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-29",
+      "reason": "Reviewed compute_weather_growth_correlation at services/analytics/gap_closures.py:321: CTEs aggregate verified harvests and distinct matched weather observations in separate read-only SELECTs, require harvest/crop-cycle location parity, and join results at the existing location/month/crop/unit grain. No DML or mutating function is present. The inventory conservatively retains WITH; this source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "8ac0300b99a07b6b48181c8dfe95710341354ca22a7052c72a6ddc76501f2699",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-29",
+      "reason": "Reviewed compute_revenue_per_acre at services/analytics/economic_performance.py:15: its CTEs select eligible location-scoped cycles and independently aggregate verified revenue and expense events by cycle with matching event/cycle location IDs; the final statement is SELECT-only and no DML or mutating function is present. The inventory conservatively retains WITH; this source review is not an ACL approval."
     }
   ]
 }

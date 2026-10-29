@@ -320,25 +320,71 @@ def compute_weather_growth_correlation(conn, location_id: str) -> dict[str, Any]
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT he.location_id,
-               DATE_TRUNC('month', he.harvest_date) AS harvest_month,
-               c.name AS crop_name,
-               SUM(he.quantity) AS total_harvest_kg,
-               he.unit AS harvest_unit,
-               AVG(wo.temperature_c) AS avg_temperature_c,
-               AVG(wo.humidity_pct) AS avg_humidity_pct,
-               SUM(wo.rainfall_mm) AS total_rainfall_mm,
-               COUNT(DISTINCT he.id) AS harvest_count,
-               COUNT(DISTINCT wo.id) AS weather_obs_count
-        FROM harvest_event he
-        JOIN crop_cycle cc ON cc.id = he.crop_cycle_id
-        JOIN crop c ON c.id = cc.crop_id
-        LEFT JOIN weather_observation wo ON wo.location_id = he.location_id
-            AND wo.observation_date BETWEEN (he.harvest_date - INTERVAL '30 days') AND he.harvest_date
-        WHERE he.location_id = %s
-          AND he.status IN ('verified', 'published')
-        GROUP BY he.location_id, DATE_TRUNC('month', he.harvest_date), c.name, he.unit
-        ORDER BY harvest_month DESC
+        WITH harvest_source AS (
+            SELECT he.id AS harvest_id,
+                   he.location_id,
+                   he.harvest_date,
+                   DATE_TRUNC('month', he.harvest_date) AS harvest_month,
+                   c.name AS crop_name,
+                   he.quantity,
+                   he.unit AS harvest_unit
+            FROM harvest_event he
+            JOIN crop_cycle cc ON cc.id = he.crop_cycle_id
+                                  AND cc.location_id = he.location_id
+            JOIN crop c ON c.id = cc.crop_id
+            WHERE he.location_id = %s
+              AND he.status IN ('verified', 'published')
+        ), harvest_by_group AS (
+            SELECT location_id,
+                   harvest_month,
+                   crop_name,
+                   harvest_unit,
+                   SUM(quantity) AS total_harvest_kg,
+                   COUNT(DISTINCT harvest_id) AS harvest_count
+            FROM harvest_source
+            GROUP BY location_id, harvest_month, crop_name, harvest_unit
+        ), weather_by_group AS (
+            SELECT DISTINCT hs.location_id,
+                   hs.harvest_month,
+                   hs.crop_name,
+                   hs.harvest_unit,
+                   wo.id AS weather_id,
+                   wo.temperature_c,
+                   wo.humidity_pct,
+                   wo.rainfall_mm
+            FROM harvest_source hs
+            JOIN weather_observation wo ON wo.location_id = hs.location_id
+                AND wo.observation_date BETWEEN (hs.harvest_date - INTERVAL '30 days')
+                                             AND hs.harvest_date
+        ), weather_aggregate AS (
+            SELECT location_id,
+                   harvest_month,
+                   crop_name,
+                   harvest_unit,
+                   AVG(temperature_c) AS avg_temperature_c,
+                   AVG(humidity_pct) AS avg_humidity_pct,
+                   SUM(rainfall_mm) AS total_rainfall_mm,
+                   COUNT(weather_id) AS weather_obs_count
+            FROM weather_by_group
+            GROUP BY location_id, harvest_month, crop_name, harvest_unit
+        )
+        SELECT hg.location_id,
+               hg.harvest_month,
+               hg.crop_name,
+               hg.total_harvest_kg,
+               hg.harvest_unit,
+               wa.avg_temperature_c,
+               wa.avg_humidity_pct,
+               wa.total_rainfall_mm,
+               hg.harvest_count,
+               COALESCE(wa.weather_obs_count, 0) AS weather_obs_count
+        FROM harvest_by_group hg
+        LEFT JOIN weather_aggregate wa
+          ON wa.location_id = hg.location_id
+         AND wa.harvest_month = hg.harvest_month
+         AND wa.crop_name = hg.crop_name
+         AND wa.harvest_unit = hg.harvest_unit
+        ORDER BY hg.harvest_month DESC
         """,
         (location_id,),
     )

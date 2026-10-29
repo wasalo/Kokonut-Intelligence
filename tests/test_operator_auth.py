@@ -531,6 +531,39 @@ def _set_operator_cookies(client, *, csrf=False):
         )
 
 
+def _mobile_disposition_inventory_row(collection_id="22222222-2222-4222-8222-222222222222"):
+    return {
+        "collection_id": collection_id,
+        "location_id": LOCATION_ID,
+        "eligible_for_use": False,
+        "eligibility_reason": "review_required",
+        "inventory_scope": "known_direct_lineage_only",
+        "collection": {
+            "sync_status": "synced",
+            "form_id": "field_note_v1",
+            "form_version": "1.1.0",
+            "has_participant_link": True,
+            "has_collection_consent_reference": True,
+            "has_sync_consent_reference": False,
+            "payload_bytes": 72,
+            "payload_field_count": 4,
+            "photo_reference_count": 1,
+            "has_coordinates": True,
+        },
+        "private_media": {
+            "object_count": 1,
+            "total_bytes": 2048,
+            "by_status": {"attached": 1},
+        },
+        "canonical_activity": {
+            "total": 1,
+            "by_status": {"verified": 1},
+        },
+        "workflow_event_count": 0,
+        "review_event_count": 1,
+    }
+
+
 def test_operator_list_routes_publish_and_enforce_pagination_bounds_before_service(
     monkeypatch,
 ):
@@ -1467,12 +1500,8 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
         "services.gateway.audit.GatewayAudit.log",
         lambda _self, **record: audit_records.append(record),
     )
-    reader = MagicMock(
-        return_value={
-            "collection_id": "22222222-2222-4222-8222-222222222222",
-            "inventory_scope": "known_direct_lineage_only",
-        }
-    )
+    inventory_row = _mobile_disposition_inventory_row()
+    reader = MagicMock(return_value=inventory_row)
     monkeypatch.setattr(
         "services.gateway.operator_mobile_review.get_mobile_collection_disposition_inventory",
         reader,
@@ -1494,7 +1523,12 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
     assert response.status_code == 200, response.text
     assert response.headers["cache-control"] == "no-store"
     assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
-    assert response.json()["data"]["inventory_scope"] == "known_direct_lineage_only"
+    assert response.json() == {"data": inventory_row}
+    operation = create_app().openapi()["paths"][
+        "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory"
+    ]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("MobileCollectionDispositionInventoryResponse")
     assert provider.scopes_seen == [
         (OPERATOR_ID, "mobile_collection_retention", "inventory", LOCATION_ID),
         (OPERATOR_ID, "mobile_collection_review", "read", LOCATION_ID),
@@ -1506,6 +1540,109 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
     )
     assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
     assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
+@pytest.mark.parametrize(
+    "malformation",
+    [
+        "extra_sensitive_field",
+        "extra_nested_sensitive_field",
+        "media_count_mismatch",
+        "eligibility_mismatch",
+    ],
+)
+def test_mobile_disposition_inventory_sanitizes_malformed_service_response(
+    monkeypatch, malformation
+):
+    provider = _DispositionProvider(
+        allowed_scopes={
+            ("mobile_collection_retention", "inventory"),
+            ("mobile_collection_review", "read"),
+        }
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    row = _mobile_disposition_inventory_row()
+    if malformation == "extra_sensitive_field":
+        row["payload"] = {"participant_name": "must not be returned"}
+    elif malformation == "extra_nested_sensitive_field":
+        row["collection"]["participant_link_id"] = "private-link-id"
+    elif malformation == "media_count_mismatch":
+        row["private_media"]["object_count"] = 2
+    else:
+        row["eligibility_reason"] = "eligible"
+    reader = MagicMock(return_value=row)
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection_disposition_inventory",
+        reader,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue/"
+            "22222222-2222-4222-8222-222222222222/disposition-inventory",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Mobile disposition inventory unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert {value.strip() for value in response.headers["vary"].split(",")} == {
+        "Cookie",
+        "Origin",
+    }
+    assert "must not be returned" not in response.text
+    assert "private-link-id" not in response.text
+    reader.assert_called_once()
+
+
+@pytest.mark.parametrize("mismatched_field", ["collection_id", "location_id"])
+def test_mobile_disposition_inventory_binds_success_to_requested_scope(
+    monkeypatch, mismatched_field
+):
+    provider = _DispositionProvider(
+        allowed_scopes={
+            ("mobile_collection_retention", "inventory"),
+            ("mobile_collection_review", "read"),
+        }
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    row = _mobile_disposition_inventory_row()
+    row[mismatched_field] = (
+        "33333333-3333-4333-8333-333333333333"
+        if mismatched_field == "collection_id"
+        else "99999999-9999-4999-8999-999999999999"
+    )
+    reader = MagicMock(return_value=row)
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection_disposition_inventory",
+        reader,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue/"
+            "22222222-2222-4222-8222-222222222222/disposition-inventory",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Mobile disposition inventory unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert {value.strip() for value in response.headers["vary"].split(",")} == {
+        "Cookie",
+        "Origin",
+    }
+    reader.assert_called_once()
 
 
 def test_mobile_disposition_inventory_denies_when_grants_resolve_to_different_tenants(

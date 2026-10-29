@@ -7213,3 +7213,35 @@ Checklist: 1,669 complete / 25 open (1,694 total); TODO: 357 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 increase to 112. MAN-CAP acceptance is unchanged.
+
+### Source continuation in progress — Gateway, Prefect and analytics — 29 October 2026
+
+- [x] Verify the private mobile-disposition inventory's exact nested response,
+  request binding, count invariants, and sanitized failure contract (13 tests).
+- [x] Verify the default-off legacy dashboard stage is skipped in composite
+  Prefect flows while later stages continue; verify the explicitly enabled
+  path retains its ordering and standalone refresh remains fail-closed. Verify
+  the default-off isolated market-data worker similarly skips in Prefect
+  composites while direct worker/CLI execution remains fail-closed (30 workflow/
+  worker tests and five Prefect runtime acceptance tests).
+- [x] Verify weather-growth and revenue-per-acre aggregation against synthetic
+  PostgreSQL rows with multiple harvest/weather and revenue/expense events;
+  joins must not multiply either measure, and harvest/financial events whose
+  location disagrees with the crop cycle must remain excluded. PostgreSQL 16
+  reports 15 kg from two harvests, three unique overlapping-window weather
+  observations and 10 mm rainfall; revenue/expense totals remain $300/$60 with
+  400% ROI, and mismatched-location events are excluded.
+
+The source changes are present locally in the private Gateway response model,
+`services/flows/market_data.py`, `services/flows/pipelines.py`,
+`services/analytics/gap_closures.py`, and
+`services/analytics/economic_performance.py`. The runtime SQL inventory and its
+conservative read-only CTE review ledger have been refreshed and pass the
+freshness check. Python compilation, Ruff and `git diff --check` pass. Gateway
+acceptance passes 13 tests; Prefect workflow/worker checks pass 30 tests and
+runtime acceptance passes five. The disposable PostgreSQL 16 analytics check
+also passes. Ruff, compilation, `git diff --check`, and SQL inventory freshness
+pass. No candidate or legacy database, provider, or migration was touched. The
+code-only sub-slices are verified; broader C2/C4/C5 work stays open for other
+acceptance and owner-dependent gates. Evidence:
+[analytics aggregation](builds/2026-10-29-recovery/analytics-event-aggregation-disposable.json).

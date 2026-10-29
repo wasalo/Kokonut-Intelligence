@@ -4,6 +4,7 @@ Defines the orchestration DAG for all Kokonut Intelligence workflows.
 """
 
 from services.core.adapters.prefect import flow, task
+from services.core.features import is_enabled
 from services.core.jobs import (
     JOBS,
     run_job,
@@ -13,8 +14,20 @@ from services.core.jobs import (
 )
 
 
+def _dashboard_refresh_skip_result():
+    """Describe the default-off legacy dashboard stage in composite flows."""
+    return {
+        "status": "skipped",
+        "reason": "legacy_dataset_sql_disabled",
+    }
+
+
 def _dispatch_catalog_job(job_id):
     """Fan out scoped jobs only through their explicit catalog adapters."""
+    if job_id == "market_data":
+        from .market_data import dispatch_market_data_job
+
+        return dispatch_market_data_job()
     if "location_id" in JOBS[job_id].required_inputs:
         return run_job_for_kokonut_network_locations(job_id)
     if job_id == "eas":
@@ -70,20 +83,34 @@ def monitoring_pipeline():
 
 @flow(name="analytics-pipeline", retries=1)
 def analytics_pipeline():
-    """Run metrics computation, then dashboard refresh."""
+    """Run metrics and credit work; legacy dashboard refresh is opt-in."""
 
     # Metrics first
     metrics_future = _submit_job("metrics")
     metrics_future.result()
 
-    # Then dashboards and credit adjustment (parallel)
-    dashboard_future = _submit_job("dashboards")
+    # The stored-SQL dashboard refresher is retained for compatibility, but it
+    # is disabled in the Kernel profile. Do not let that optional legacy job
+    # prevent credit adjustment or the rest of the full pipeline from running.
+    dashboard_future = (
+        _submit_job("dashboards")
+        if is_enabled("legacy_dataset_sql")
+        else None
+    )
     credit_future = _submit_job("credit_adjustment")
 
-    dashboard_future.result()
+    dashboard_result = (
+        dashboard_future.result()
+        if dashboard_future is not None
+        else _dashboard_refresh_skip_result()
+    )
     credit_future.result()
 
-    return {"status": "success", "analytics": "complete"}
+    return {
+        "status": "success",
+        "analytics": "complete",
+        "dashboard_refresh": dashboard_result,
+    }
 
 
 @flow(name="full-pipeline", retries=1)
@@ -122,14 +149,24 @@ def scheduled_hourly():
 
 @flow(name="scheduled-every-6h", retries=1)
 def scheduled_every_6h():
-    """Every 6 hours: weather, dashboard refresh, remote sensing."""
+    """Every 6 hours: weather, optional legacy dashboard, remote sensing."""
     from .dashboards import dashboard_refresh_flow
     from .remote_sensing import remote_sensing_flow
     from .weather import weather_ingestion_flow
 
-    weather_ingestion_flow()
-    dashboard_refresh_flow()
-    remote_sensing_flow()
+    weather_result = weather_ingestion_flow()
+    dashboard_result = (
+        dashboard_refresh_flow()
+        if is_enabled("legacy_dataset_sql")
+        else _dashboard_refresh_skip_result()
+    )
+    remote_sensing_result = remote_sensing_flow()
+    return {
+        "status": "success",
+        "weather": weather_result,
+        "dashboard_refresh": dashboard_result,
+        "remote_sensing": remote_sensing_result,
+    }
 
 
 @flow(name="scheduled-daily", retries=1)
