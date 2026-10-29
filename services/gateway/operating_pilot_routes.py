@@ -137,6 +137,82 @@ class OperatingPilotCapacityReviewDecisionResponse(BaseModel):
         return self
 
 
+class OperatingPilotDemandDraftCreateResponse(BaseModel):
+    """Minimal response for creating or replaying an operating demand draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    signal_id: _ResponseUUID
+    status: Literal[
+        "draft", "submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"
+    ]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_creation(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new demand draft must remain a draft")
+        return self
+
+
+class OperatingPilotDemandDraftRevisionResponse(BaseModel):
+    """Minimal response for replacing a private demand draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    signal_id: _ResponseUUID
+    replaced_signal_id: _ResponseUUID
+    status: Literal[
+        "draft", "submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"
+    ]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_replacement(self):
+        if self.signal_id == self.replaced_signal_id:
+            raise ValueError("Demand revision must produce a replacement signal")
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new demand revision must remain a draft")
+        return self
+
+
+class OperatingPilotDemandDraftSubmissionResponse(BaseModel):
+    """Minimal response for submitting a private demand draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    signal_id: _ResponseUUID
+    status: Literal["submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_submission(self):
+        if not self.replayed and self.status != "submitted":
+            raise ValueError("A new demand submission must remain submitted")
+        return self
+
+
+class OperatingPilotDemandReviewDecisionResponse(BaseModel):
+    """Minimal response for an independent demand review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    signal_id: _ResponseUUID
+    status: Literal["approved", "rejected"]
+    decision: Literal["approved", "rejected"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_decision(self):
+        if self.status != self.decision:
+            raise ValueError("Demand review status must match the decision")
+        return self
+
+
 def _response_decimal(value):
     if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
         raise ValueError("numeric value is invalid")
@@ -1539,7 +1615,11 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(response.model_dump(mode="json")), headers=headers
         )
 
-    @router.post("/operator/api/operating-pilot/{location_id}/demand-signals")
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/demand-signals",
+        status_code=201,
+        response_model=OperatingPilotDemandDraftCreateResponse,
+    )
     async def create_operating_pilot_demand_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -1612,7 +1692,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotDemandDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Demand draft response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )
 
     @router.post("/operator/api/operating-pilot/{location_id}/resource-requests")
     async def create_operating_pilot_resource_draft(request: Request, location_id: str):
@@ -2324,7 +2423,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/submit"
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/submit",
+        response_model=OperatingPilotDemandDraftSubmissionResponse,
     )
     async def submit_operating_pilot_demand_draft(
         request: Request, location_id: str, signal_id: str
@@ -2401,9 +2501,31 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand submission unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotDemandDraftSubmissionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.signal_id != UUID(signal_id):
+                raise ValueError("Demand submission response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.put("/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand-submission response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
+    @router.put(
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}",
+        response_model=OperatingPilotDemandDraftRevisionResponse,
+    )
     async def revise_operating_pilot_demand_draft(request: Request, location_id: str, signal_id: str):
         if provider is None:
             return JSONResponse(
@@ -2485,7 +2607,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand revision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotDemandDraftRevisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.replaced_signal_id != UUID(signal_id)
+            ):
+                raise ValueError("Demand revision response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand-revision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.get("/operator/api/operating-pilot/{location_id}/summary")
     async def location_operating_pilot_summary(request: Request, location_id: str):
@@ -4156,7 +4300,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/review"
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/review",
+        response_model=OperatingPilotDemandReviewDecisionResponse,
     )
     async def review_operating_pilot_demand_signal(
         request: Request, location_id: str, signal_id: str
@@ -4241,7 +4386,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotDemandReviewDecisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.signal_id != UUID(signal_id):
+                raise ValueError("Demand review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.get(
         "/operator/api/operating-pilot/{location_id}/work-claims",

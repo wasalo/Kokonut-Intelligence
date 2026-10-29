@@ -24327,3 +24327,18 @@ capability validation, and diff checks pass. No database or provider was used.
 Checklist: 1,786 complete / 25 open; TODO: 450 checked / 16 open; strict
 private Gateway response contracts total 145. Evidence:
 [capacity submit/review contracts](builds/2026-10-29-recovery/operating-pilot-capacity-submit-review-response-contracts.json).
+
+### Progress addendum — operating-demand lifecycle response contracts — 29 October 2026
+
+Demand draft creation, revision, submission, and independent review now expose
+strict OpenAPI/runtime responses. Each response binds location and signal IDs
+to the path; first create/revision and submission results remain in their
+required lifecycle states; replay can preserve later terminal states, including
+`fulfilled` and `cancelled`; and review status must match its decision. OpenAPI
+now declares the existing create status as HTTP 201. The approved mock-only
+selection passes 28 tests (207 unrelated tests deselected), including malformed
+output and no-store behavior. Ruff, Python compilation, capability validation,
+and diff checks pass. No database or provider was used. Checklist: 1,791
+complete / 25 open; TODO: 453 checked / 16 open; strict private Gateway
+response contracts total 149. Evidence:
+[demand lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-demand-lifecycle-response-contracts.json).
