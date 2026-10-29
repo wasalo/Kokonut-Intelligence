@@ -26,7 +26,9 @@ class PrivateArtifactStore(Protocol):
 
     def write(self, artifact_id: UUID | str, content: bytes) -> None: ...
 
-    def read(self, artifact_id: UUID | str) -> bytes: ...
+    def read(
+        self, artifact_id: UUID | str, *, max_bytes: int | None = None
+    ) -> bytes: ...
 
     def delete(self, artifact_id: UUID | str) -> None: ...
 
@@ -133,9 +135,17 @@ class LocalPrivateArtifactStore:
                 self._remove_temporary(directory_fd, temporary_name)
             os.close(directory_fd)
 
-    def read(self, artifact_id: UUID | str) -> bytes:
-        """Read an artifact without following links or exposing its path."""
+    def read(
+        self, artifact_id: UUID | str, *, max_bytes: int | None = None
+    ) -> bytes:
+        """Read an artifact, optionally enforcing a strict in-memory size cap."""
         filename = _artifact_name(artifact_id)
+        if max_bytes is not None and (
+            isinstance(max_bytes, bool)
+            or not isinstance(max_bytes, int)
+            or max_bytes < 0
+        ):
+            raise ValueError("artifact read limit must be a non-negative integer")
         directory_fd = self._open_directory()
         file_fd: int | None = None
         try:
@@ -145,12 +155,26 @@ class LocalPrivateArtifactStore:
                 dir_fd=directory_fd,
             )
             self._require_private_regular_file(file_fd)
+            if max_bytes is not None and os.fstat(file_fd).st_size > max_bytes:
+                raise ArtifactStorageError("private artifact exceeds read limit")
             chunks: list[bytes] = []
+            total = 0
             while True:
-                chunk = os.read(file_fd, 1024 * 1024)
+                remaining_with_overflow_byte = (
+                    None if max_bytes is None else max_bytes + 1 - total
+                )
+                chunk_size = (
+                    1024 * 1024
+                    if remaining_with_overflow_byte is None
+                    else min(64 * 1024, remaining_with_overflow_byte)
+                )
+                chunk = os.read(file_fd, chunk_size)
                 if not chunk:
                     return b"".join(chunks)
                 chunks.append(chunk)
+                total += len(chunk)
+                if max_bytes is not None and total > max_bytes:
+                    raise ArtifactStorageError("private artifact exceeds read limit")
         except OSError:
             raise ArtifactStorageError("private artifact is unavailable") from None
         finally:

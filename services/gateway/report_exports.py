@@ -283,7 +283,7 @@ def download_report_export(
             raise ReportExportArtifactUnavailable("Report export could not be verified")
         try:
             store = (artifact_store_factory or _artifact_store)()
-            content = store.read(artifact_id)
+            content = store.read(artifact_id, max_bytes=expected_size)
         except (ArtifactStorageError, OSError, ValueError):
             raise ReportExportArtifactUnavailable(
                 "Report export is temporarily unavailable"

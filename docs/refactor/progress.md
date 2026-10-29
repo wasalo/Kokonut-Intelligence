@@ -22761,7 +22761,9 @@ rows, so its normal transactions call only fixed bounded read functions rather
 than using PostgreSQL `READ ONLY`, which is incompatible with those locks.
 
 The integrated focused Gateway/worker/migration-contract/runtime-role/route
-policy and worker-inventory selection passes **238 tests**. The
+policy and worker-inventory selection passes **238 tests**; the bounded-read
+follow-up passes **65 storage/Gateway/worker tests**, and the refreshed worker
+function-graph regression passes **13 tests**. The
 network-disabled disposable PostgreSQL 16 acceptance applies and replays
 migration 683 on native x86_64 and ARM64/QEMU (`aarch64`), verifying synthetic
 two-tenant authorization, lifecycle/hash checks, forced RLS, direct-table and
@@ -22777,10 +22779,11 @@ Candidate and legacy databases remain untouched; live OIDC, candidate rollout,
 browser/worker recovery, R2, retention ownership, populated report parity, and
 stakeholder access remain open. C2 and MAN-CAP acceptance are not complete.
 Evidence: [contract](report-snapshot-export-contract.md),
+[bounded-read checks](builds/2026-10-28-recovery/report-snapshot-export-bounded-read-checks.json),
 [integrated checks](builds/2026-10-28-recovery/report-snapshot-export-integration-checks.json),
 [disposable acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-disposable.json).
 
-Checklist: 1,518 complete / 25 open; TODO: 223 checked / 16 open. The matrix
+Checklist: 1,519 complete / 25 open; TODO: 224 checked / 16 open. The matrix
 remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); the three
 strict export create/list/detail contracts bring its recorded private-response
 count to 90. Capability classifications and MAN-CAP acceptance are unchanged.

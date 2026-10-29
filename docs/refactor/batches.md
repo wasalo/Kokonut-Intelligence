@@ -6077,10 +6077,14 @@ open. Capability classifications and MAN-CAP acceptance remain unchanged.
   inaccessible directly, revalidates the current grant and source lifecycle,
   fences worker leases, and delays/bounds retry. No automatic artifact or
   history pruning is introduced.
+- [x] Pass the bounded expected response size into private artifact reads and
+  reject oversized artifacts before reading their bytes into memory; retain
+  exact-size and SHA-256 verification before serving a download.
 
 The integrated Gateway, contract, worker, migration-contract, runtime-role,
-route-policy, and worker-inventory selection passes **238 tests**.
-Ruff, Python compilation, seven worker/runtime SQL inventory checks,
+route-policy, and worker-inventory selection passes **238 tests**; the
+bounded-read follow-up passes **65 storage/Gateway/worker tests**, and the refreshed worker-function graph regression passes **13 tests**. Ruff,
+Python compilation, seven worker/runtime SQL inventory checks,
 capability-matrix validation, dependency-group alignment, provider-boundary
 checks, and `git diff --check` pass. Network-disabled disposable PostgreSQL 16
 acceptance applies and replays migration 683 on native x86_64 and ARM64/QEMU
@@ -6100,9 +6104,10 @@ and browser behavior, runtime worker recovery, artifact orphan reconciliation,
 R2 listing/deletion, configurable retention, populated report parity, and
 stakeholder audience/access contracts. Evidence:
 [export contract](report-snapshot-export-contract.md),
+[bounded-read checks](builds/2026-10-28-recovery/report-snapshot-export-bounded-read-checks.json),
 [integrated checks](builds/2026-10-28-recovery/report-snapshot-export-integration-checks.json),
 [native migration acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-disposable.json),
 [ARM64 migration acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-arm64-disposable.json).
 
-Checklist: 1,518 complete / 25 open (1,543 total); TODO: 223 checked / 16
+Checklist: 1,519 complete / 25 open (1,544 total); TODO: 224 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

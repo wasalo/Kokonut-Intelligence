@@ -302,8 +302,9 @@ def test_download_reads_private_store_while_authorization_transaction_is_open(co
     connection = FakeConnection()
 
     class Store:
-        def read(self, artifact_id):
+        def read(self, artifact_id, *, max_bytes):
             assert str(artifact_id) == ARTIFACT_ID
+            assert max_bytes == len(content)
             assert not connection.closed
             return content
 
@@ -328,7 +329,8 @@ def test_download_rejects_hash_or_size_mismatch(content, context_calls):
     connection = FakeConnection()
 
     class Store:
-        def read(self, _artifact_id):
+        def read(self, _artifact_id, *, max_bytes):
+            assert max_bytes == len(b'{"summary":"safe"}')
             return content
 
     with pytest.raises(ReportExportArtifactUnavailable):

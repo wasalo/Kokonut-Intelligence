@@ -1972,12 +1972,16 @@ open. Capability classifications and MAN-CAP acceptance remain unchanged.
   binds reads/downloads to current location grants, and denies direct access to
   export request/attempt tables. Retries are delayed and bounded; artifacts
   stay private and are never automatically pruned.
+- [x] Bound artifact bytes at the storage read boundary using the
+  database-authorized expected size, rejecting oversized files before content
+  is loaded and detecting growth during streaming.
 
 The integrated Gateway, route-policy, worker, migration-contract, runtime-role,
-and static worker-inventory selection passes **238 tests**. Ruff,
-Python compilation, all seven worker/runtime SQL inventory checks, capability
-matrix validation, dependency-group alignment, provider-boundary checks, and
-diff checks pass. Network-disabled disposable PostgreSQL 16 acceptance applies
+and static worker-inventory selection passes **238 tests**. The bounded-read
+follow-up passes **65 storage/Gateway/worker tests**, and the refreshed worker function graph regression passes **13 tests**. Ruff, Python compilation,
+all seven worker/runtime SQL inventory checks, capability matrix validation,
+dependency-group alignment, provider-boundary checks, and diff checks pass.
+Network-disabled disposable PostgreSQL 16 acceptance applies
 and replays migration 683 on both native x86_64 and ARM64/QEMU (`aarch64`),
 validating synthetic tenant grants, source lifecycle, role boundaries, forced
 RLS, retries, and worker lease fencing. ARM64/QEMU is code-level portability
@@ -1991,11 +1995,12 @@ rollout, browser acceptance, worker runtime recovery, artifact orphan
 reconciliation, R2 inventory/deletion, configurable retention, broader report
 parity, stakeholder access contracts, and MAN-CAP review. Evidence:
 [contract](report-snapshot-export-contract.md),
+[bounded-read checks](builds/2026-10-28-recovery/report-snapshot-export-bounded-read-checks.json),
 [integrated checks](builds/2026-10-28-recovery/report-snapshot-export-integration-checks.json),
 [native migration acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-disposable.json),
 [ARM64 migration acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-arm64-disposable.json).
 
-Checklist: 1,518 complete / 25 open (1,543 total); TODO: 223 checked / 16
+Checklist: 1,519 complete / 25 open (1,544 total); TODO: 224 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
 
 

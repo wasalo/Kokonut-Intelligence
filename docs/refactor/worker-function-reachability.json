@@ -17699,7 +17699,7 @@
           "qualname": "PrivateArtifactStore.delete",
           "class_scope": "PrivateArtifactStore",
           "source": "services/export/artifact_storage.py",
-          "line": 31
+          "line": 33
         },
         {
           "key": "services.export.artifact_storage:PrivateArtifactStore.write",

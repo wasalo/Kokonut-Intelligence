@@ -26,6 +26,36 @@ def test_local_store_round_trips_private_artifact_without_exposing_path(tmp_path
     assert str(directory) not in repr(store)
 
 
+def test_store_rejects_oversized_artifact_before_reading_bytes(tmp_path, monkeypatch):
+    store = LocalPrivateArtifactStore(tmp_path / "private-exports")
+    artifact_id = uuid4()
+    store.write(artifact_id, b"larger than the declared response limit")
+
+    def unexpected_read(*_args, **_kwargs):
+        raise AssertionError("oversized artifact bytes were read")
+
+    monkeypatch.setattr(artifact_storage.os, "read", unexpected_read)
+    with pytest.raises(ArtifactStorageError, match="exceeds read limit"):
+        store.read(artifact_id, max_bytes=8)
+
+
+@pytest.mark.parametrize("limit", [True, -1, 1.5, "10"])
+def test_store_rejects_invalid_read_limits(tmp_path, limit):
+    store = LocalPrivateArtifactStore(tmp_path / "private-exports")
+
+    with pytest.raises(ValueError, match="non-negative integer"):
+        store.read(uuid4(), max_bytes=limit)
+
+
+def test_store_reads_artifact_within_limit(tmp_path):
+    store = LocalPrivateArtifactStore(tmp_path / "private-exports")
+    artifact_id = uuid4()
+    payload = b"bounded report content"
+    store.write(artifact_id, payload)
+
+    assert store.read(artifact_id, max_bytes=len(payload)) == payload
+
+
 @pytest.mark.parametrize(
     "artifact_id",
     [
