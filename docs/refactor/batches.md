@@ -7846,3 +7846,29 @@ Checklist: 1,761 complete / 25 open (1,786 total); TODO: 434 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 138. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — Delphi operator invite issue/revoke response contracts — 29 October 2026
+
+- [x] Publish strict creation/revocation success models in OpenAPI and validate
+  exact migration-backed fields at runtime.
+- [x] Bind issue responses to requested location/study and revocation responses
+  to the invite path ID.
+- [x] Preserve the one-time-token boundary: a new invite returns the token,
+  retries return null, and revocation requires the fixed `revoked` state.
+- [x] Sanitize malformed or mismatched service results with no-store errors;
+  never echo invalid one-time tokens.
+- [x] Run focused mock-only operator invite route/OpenAPI checks and record
+  the evidence.
+
+The existing operator invite route suite passes 45 tests. It covers the exact
+response schemas, request/path binding, first-issue versus replay behavior,
+revocation status, malformed/extra service fields, and no-store token
+sanitization. Ruff, compilation, response-schema generation, capability-matrix
+validation, and diff checks pass. No database, provider, candidate, or legacy
+state was used. Evidence:
+[operator invite response contracts](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json).
+
+Checklist: 1,766 complete / 25 open (1,791 total); TODO: 437 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 140. C2 remains open for broader route/auth and live-runtime parity.

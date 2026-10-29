@@ -47,6 +47,13 @@ _StrictAwareDatetime = Annotated[AwareDatetime, BeforeValidator(_strict_aware_da
 _NOTICE_VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,39}$")
 
 
+def _matches_path_uuid(response_value: UUID, path_value: str) -> bool:
+    try:
+        return response_value == UUID(path_value)
+    except (TypeError, ValueError):
+        return False
+
+
 class _ParticipantInviteResponseModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -90,6 +97,37 @@ class ParticipantInviteListResponse(_ParticipantInviteResponseModel):
         return self
 
 
+class ParticipantInviteCreateResponse(_ParticipantInviteResponseModel):
+    invite_id: _StrictUuid
+    location_id: _StrictUuid
+    study_id: _StrictUuid
+    consent_notice_id: _StrictUuid
+    consent_notice_version: str = Field(
+        min_length=1, max_length=40, pattern=_NOTICE_VERSION_PATTERN.pattern
+    )
+    consent_notice_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    invite_token: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    expires_at: _StrictAwareDatetime
+    status: Literal["pending", "accepted", "revoked", "expired"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_secret_replay(self):
+        if self.replayed and self.invite_token is not None:
+            raise ValueError("An invite token must not be returned on replay")
+        if not self.replayed and (self.status != "pending" or self.invite_token is None):
+            raise ValueError("A new invite must include its pending one-time token")
+        return self
+
+
+class ParticipantInviteRevokeResponse(_ParticipantInviteResponseModel):
+    invite_id: _StrictUuid
+    study_id: _StrictUuid
+    status: Literal["revoked"]
+    revoked_at: _StrictAwareDatetime
+    replayed: bool
+
+
 def register_delphi_participant_invite_routes(router, provider, run_in_threadpool, psycopg2):
     import json
 
@@ -107,6 +145,25 @@ def register_delphi_participant_invite_routes(router, provider, run_in_threadpoo
     )
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+
+    def validate_success_response(model, result, label):
+        try:
+            payload = jsonable_encoder(result)
+            return model.model_validate_json(json.dumps(payload), strict=True)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_participant_invite").warning(
+                "%s response violated its contract (%s)", label, type(exc).__name__
+            )
+            return None
+
+    def invalid_success_response():
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Delphi invite service unavailable"},
+            headers={**headers, "Retry-After": "30"},
+        )
 
     def database_error(exc):
         code = getattr(exc, "pgcode", None)
@@ -227,7 +284,12 @@ def register_delphi_participant_invite_routes(router, provider, run_in_threadpoo
             jsonable_encoder(page.model_dump(mode="json")), headers=headers
         )
 
-    @router.post("/operator/api/delphi/{location_id}/studies/{study_id}/invites")
+    @router.post(
+        "/operator/api/delphi/{location_id}/studies/{study_id}/invites",
+        response_model=ParticipantInviteCreateResponse,
+        status_code=201,
+        responses={200: {"model": ParticipantInviteCreateResponse}},
+    )
     async def issue_invite(request: Request, location_id: str, study_id: str):
         if provider is None:
             return JSONResponse(
@@ -265,14 +327,24 @@ def register_delphi_participant_invite_routes(router, provider, run_in_threadpoo
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
+        response = validate_success_response(
+            ParticipantInviteCreateResponse, result, "Delphi invite creation"
+        )
+        if (
+            response is None
+            or not _matches_path_uuid(response.location_id, location_id)
+            or not _matches_path_uuid(response.study_id, study_id)
+        ):
+            return invalid_success_response()
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
+            jsonable_encoder(response.model_dump(mode="json")),
+            status_code=200 if response.replayed else 201,
             headers=headers,
         )
 
     @router.post(
-        "/operator/api/delphi/{location_id}/invites/{invite_id}/revoke"
+        "/operator/api/delphi/{location_id}/invites/{invite_id}/revoke",
+        response_model=ParticipantInviteRevokeResponse,
     )
     async def revoke_invite(request: Request, location_id: str, invite_id: str):
         if provider is None:
@@ -308,4 +380,9 @@ def register_delphi_participant_invite_routes(router, provider, run_in_threadpoo
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        response = validate_success_response(
+            ParticipantInviteRevokeResponse, result, "Delphi invite revocation"
+        )
+        if response is None or not _matches_path_uuid(response.invite_id, invite_id):
+            return invalid_success_response()
+        return JSONResponse(jsonable_encoder(response.model_dump(mode="json")), headers=headers)

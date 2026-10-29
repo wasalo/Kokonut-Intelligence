@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for Delphi operator invite issue/revoke responses.",
+  "command": "python3 -m pytest -q tests/test_gateway_delphi_participant_invites.py",
+  "result": {
+    "passed": 45,
+    "failed": 0,
+    "deselected": 0
+  },
+  "coverage": [
+    "OpenAPI publishes exact strict response schemas for invite creation and revocation",
+    "A first invite returns a 64-character one-time token and a pending status; request replay returns null token and HTTP 200",
+    "Invite creation binds returned location and study to route path parameters",
+    "Revocation requires the fixed revoked status and binds the returned invite ID to the path",
+    "Malformed, extra, and mismatched service output returns a sanitized no-store 503 without token leakage"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "response_schema_generation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

@@ -1174,11 +1174,13 @@ that its full source-plan phase is complete.
   backed export requests and broader route/SDK parity remain open. The private
   mobile-disposition inventory now has a strict nested success model, request
   collection/location binding, count invariants, and sanitized no-store failure
-  behavior; 13 focused Gateway/auth checks pass. The next source slice has
-  strict OpenAPI/runtime success contracts in progress for participant invite
-  preview, consent acceptance and withdrawal, questionnaire contribution, and
-  minority-report submission. Focused mock-only route acceptance is pending
-  approval, so this slice is not counted complete yet. Sources:
+  behavior; 13 focused Gateway/auth checks pass. Strict response contracts now
+  cover public Delphi participant invite preview, consent acceptance and
+  withdrawal, questionnaire contribution, and minority-report submission.
+  Operator invite issue/revoke routes now also validate strict OpenAPI/runtime
+  contracts, including first-issue versus replay token behavior and path binding;
+  45 focused checks pass ([evidence](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json)).
+  Sources:
   [API/SDK gates](batches.md#L3226),
   [Phase 7](implementation-plan-alignment.md#L27).
 - [x] Add strict OpenAPI/runtime contracts for Delphi participant invite
@@ -1189,6 +1191,13 @@ that its full source-plan phase is complete.
 - [x] Add/run mock-only route checks for exact response fields, OpenAPI,
   malformed-result sanitization, no-store headers, and acceptance cookies
   ([evidence](builds/2026-10-29-recovery/delphi-participant-write-response-contracts.json)).
+- [x] Declare strict operator invite issue/revoke response schemas and bind
+  returned location, study, and invite identities to the route.
+- [x] Preserve one-time token semantics: return only on first issue and null
+  on request replay; require `revoked` on the revoke result.
+- [x] Add/run 45 focused mock-only operator invite route checks for OpenAPI,
+  exact fields, path binding, replay behavior, and sanitized failures
+  ([evidence](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json)).
 - [ ] **C3 — Finish the optional Directus adapter boundary.** Close code-verifiable
   role, field, row and hook gaps for collections still retained; keep native
   farm activity in Gateway. Workflow-role authorization cache freshness is

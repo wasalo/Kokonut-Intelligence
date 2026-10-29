@@ -24255,3 +24255,18 @@ checks pass; no database or provider was used. Checklist: 1,761 complete / 25
 open; TODO: 434 checked / 16 open; strict private Gateway response contracts
 total 138. Evidence:
 [participant response contracts](builds/2026-10-29-recovery/delphi-participant-write-response-contracts.json).
+
+### Progress addendum — Delphi operator invite issue/revoke responses — 29 October 2026
+
+Operator invite issuance and revocation now declare strict response schemas.
+Issuance validates location/study binding, notice digest/version, lifecycle,
+and the one-time token rule: a first issue returns a token, while replay must
+return null. Revocation validates its fixed `revoked` state and binds the invite
+ID to the path. Malformed service output gets a sanitized no-store 503. Ruff,
+Python compilation, response-schema generation, and diff checks pass. The
+focused operator invite suite passes 45 tests for OpenAPI, field and path
+binding, one-time token replay behavior, revocation, and sanitized failures.
+Capability-matrix validation passes; no database or provider was used.
+Checklist: 1,766 complete / 25 open; TODO: 437 checked / 16 open; strict
+private Gateway response contracts total 140. Evidence:
+[operator invite response contracts](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json).
