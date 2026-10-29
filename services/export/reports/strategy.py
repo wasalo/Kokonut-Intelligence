@@ -552,7 +552,24 @@ def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, peri
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
         internal = dict(cur.fetchone())
-        cur.execute("SELECT * FROM v_public_stakeholder_cockpit")
+        cur.execute(
+            """
+            SELECT public_party_count,
+                   representation_summary_count,
+                   verified_outcome_count,
+                   verified_impact_claim_count,
+                   verified_distribution_count,
+                   ecological_stewardship_count,
+                   published_feedback_count,
+                   privacy_limitation,
+                   uncertainty_limitation,
+                   generated_at,
+                   published_alliance_count,
+                   verified_alliance_benefit_count,
+                   published_alliance_knowledge_count
+            FROM v_public_stakeholder_cockpit
+            """
+        )
         public = dict(cur.fetchone())
     return {
         "report_type": "stakeholder_cockpit",
@@ -573,7 +590,17 @@ def generate_coordination_cockpit(conn, location_id=None, period_start=None, per
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_coordination_cockpit_internal ORDER BY name")
         internal = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_public_coordination_alliance ORDER BY name")
+        cur.execute(
+            """
+            SELECT alliance_id, name, coordination_type, market_cycle, public_summary,
+                   public_evidence, public_limitations, review_due_at,
+                   verified_benefit_count, published_knowledge_count,
+                   verified_outcome_change_count, privacy_limitation,
+                   uncertainty_limitation
+            FROM v_public_coordination_alliance
+            ORDER BY name
+            """
+        )
         public = [dict(row) for row in cur.fetchall()]
     return {
         "report_type": "coordination_cockpit",

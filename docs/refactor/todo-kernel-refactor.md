@@ -10,6 +10,15 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Replace the public stakeholder-cockpit and coordination-alliance
+  wildcards with their exact 13-column migration-238 projections, preserving
+  network-wide behavior and internal/public response separation
+  ([evidence](builds/2026-10-29-recovery/kernel-strategy-cockpit-report-projections.json)).
+- [x] Verify exact column order and unchanged public/internal payloads with a
+  focused fake-cursor test; the report-source scan now finds no
+  `SELECT * FROM v_public_*` in `services/export/reports`
+  ([same evidence](builds/2026-10-29-recovery/kernel-strategy-cockpit-report-projections.json)).
+
 - [x] Replace the organic readiness, transition, certification, prohibited-
   substance, input-audit, and harvest-segregation wildcards with exact ordered
   migration-055 public projections; retain their current location filters and

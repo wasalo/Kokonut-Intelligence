@@ -2996,13 +2996,13 @@
         {
           "caller": "generate_capital_accounting",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 896,
+          "line": 923,
           "depth": 1
         },
         {
           "caller": "generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 899,
+          "line": 926,
           "depth": 1
         },
         {
@@ -3828,13 +3828,13 @@
         {
           "caller": "services/export/reports/strategy.py:generate_capital_accounting",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 896,
+          "line": 923,
           "depth": 2
         },
         {
           "caller": "services/export/reports/strategy.py:generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 899,
+          "line": 926,
           "depth": 2
         },
         {
@@ -4262,7 +4262,7 @@
         {
           "caller": "generate_coordination_cockpit",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 572,
+          "line": 589,
           "depth": 1
         }
       ],
@@ -4532,19 +4532,19 @@
         {
           "caller": "generate_env_scan_report",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 713,
+          "line": 740,
           "depth": 1
         },
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:list_scans",
-          "line": 716,
+          "line": 743,
           "depth": 1
         },
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:render_markdown",
-          "line": 725,
+          "line": 752,
           "depth": 1
         }
       ],
@@ -4965,13 +4965,13 @@
         {
           "caller": "generate_fork_opportunities",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 747,
+          "line": 774,
           "depth": 1
         },
         {
           "caller": "generate_fork_opportunities",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 750,
+          "line": 777,
           "depth": 1
         }
       ],
@@ -5128,7 +5128,7 @@
         {
           "caller": "generate_governance_coordination_health",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 594,
+          "line": 621,
           "depth": 1
         }
       ],
@@ -6025,19 +6025,19 @@
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 629,
+          "line": 656,
           "depth": 1
         },
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:list_analyses",
-          "line": 632,
+          "line": 659,
           "depth": 1
         },
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:render_markdown",
-          "line": 641,
+          "line": 668,
           "depth": 1
         }
       ],
@@ -6118,13 +6118,13 @@
         {
           "caller": "generate_pin_dependency",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 765,
+          "line": 792,
           "depth": 1
         },
         {
           "caller": "generate_pin_dependency",
           "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
-          "line": 768,
+          "line": 795,
           "depth": 1
         },
         {
@@ -7388,13 +7388,13 @@
         {
           "caller": "generate_promotion_ladder",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 784,
+          "line": 811,
           "depth": 1
         },
         {
           "caller": "generate_promotion_ladder",
           "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
-          "line": 787,
+          "line": 814,
           "depth": 1
         }
       ],
@@ -7450,25 +7450,25 @@
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 683,
+          "line": 710,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_publics",
-          "line": 686,
+          "line": 713,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_segments",
-          "line": 687,
+          "line": 714,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:influence_interest_matrix",
-          "line": 688,
+          "line": 715,
           "depth": 1
         },
         {
@@ -7823,19 +7823,19 @@
         {
           "caller": "generate_regional_readiness",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 656,
+          "line": 683,
           "depth": 1
         },
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:list_assessments",
-          "line": 659,
+          "line": 686,
           "depth": 1
         },
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:render_markdown",
-          "line": 668,
+          "line": 695,
           "depth": 1
         }
       ],
@@ -8483,31 +8483,31 @@
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 853,
+          "line": 880,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/analytics/digital_twin.py:list_twins",
-          "line": 870,
+          "line": 897,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/analytics/digital_twin.py:monte_carlo_yield",
-          "line": 872,
+          "line": 899,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/simulation/clash_examples.py:stress_reserve",
-          "line": 874,
+          "line": 901,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/common/errors.py:safe_exception_class",
-          "line": 877,
+          "line": 904,
           "depth": 1
         },
         {
@@ -10204,37 +10204,37 @@
         {
           "caller": "generate_tactical_layer",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 802,
+          "line": 829,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 809,
+          "line": 836,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/threatcasting/preempt.py:plan_preemptive_actions",
-          "line": 810,
+          "line": 837,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
-          "line": 811,
+          "line": 838,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/feedback/automation.py:detect_zwischenzug",
-          "line": 812,
+          "line": 839,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
-          "line": 813,
+          "line": 840,
           "depth": 1
         },
         {

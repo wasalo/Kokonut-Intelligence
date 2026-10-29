@@ -23233,3 +23233,23 @@ Checklist: 1,595 complete / 25 open (1,620 total); TODO: 290 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+### Progress addendum — stakeholder and coordination cockpit projections — 29 October 2026
+
+The public stakeholder cockpit and published coordination-alliance reports
+now select their exact 13 migration-238 view fields. Both retain network-wide
+scope; the internal aggregate paths and public response sections remain
+separate. The focused fake-cursor regression verifies exact order and
+payloads. A bounded scan found no remaining `SELECT * FROM v_public_*` query
+in `services/export/reports`; this does not cover private/internal views or
+direct table reads.
+
+The focused test passes. Ruff, Python compilation, all three report
+inventories, capability-matrix validation, and diff checks pass. No database,
+provider, candidate, or live service was used. This does not establish
+populated-data parity, content privacy, live OIDC, or tenant isolation.
+Evidence: [batch](builds/2026-10-29-recovery/kernel-strategy-cockpit-report-projections.json).
+
+Checklist: 1,597 complete / 25 open (1,622 total); TODO: 292 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

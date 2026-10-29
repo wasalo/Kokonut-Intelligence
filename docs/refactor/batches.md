@@ -19,14 +19,39 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,595 checklist items complete and 25
-open (1,620 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,597 checklist items complete and 25
+open (1,622 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### Latest local continuation — stakeholder and coordination cockpit projections — 29 October 2026
+
+- [x] Replace the public stakeholder-cockpit wildcard with all 13 ordered
+  fields from migration 238; retain the existing network-wide scope and
+  internal/public response separation.
+- [x] Replace the public coordination-alliance wildcard with all 13 ordered
+  fields from migration 238; retain the published-alliance filter, name order,
+  and report payload.
+
+The focused synthetic regression passes. Ruff, Python compilation, all three
+report inventories, capability-matrix validation, and diff checks pass. The
+source audit now finds no `SELECT * FROM v_public_*` in
+`services/export/reports`; private/internal views and direct table wildcard
+queries remain outside this bounded scan. No database, provider, candidate,
+or live service was used. This does not establish populated-data parity,
+content privacy, live OIDC, or tenant isolation. Rollback reverts the two
+projections and their regression; no migration or data rollback is needed.
+Evidence:
+[batch](builds/2026-10-29-recovery/kernel-strategy-cockpit-report-projections.json).
+
+Checklist: 1,597 complete / 25 open (1,622 total); TODO: 292 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
 
 ### Latest local continuation — organic certification report projections — 29 October 2026
 

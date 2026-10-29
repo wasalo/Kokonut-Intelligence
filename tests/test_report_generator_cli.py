@@ -278,6 +278,139 @@ def test_stakeholder_representation_uses_exact_public_projection_and_preserves_p
     assert distribution_params is None
 
 
+def test_stakeholder_and_coordination_cockpits_use_exact_public_projections() -> None:
+    stakeholder_columns = [
+        "public_party_count",
+        "representation_summary_count",
+        "verified_outcome_count",
+        "verified_impact_claim_count",
+        "verified_distribution_count",
+        "ecological_stewardship_count",
+        "published_feedback_count",
+        "privacy_limitation",
+        "uncertainty_limitation",
+        "generated_at",
+        "published_alliance_count",
+        "verified_alliance_benefit_count",
+        "published_alliance_knowledge_count",
+    ]
+    coordination_columns = [
+        "alliance_id",
+        "name",
+        "coordination_type",
+        "market_cycle",
+        "public_summary",
+        "public_evidence",
+        "public_limitations",
+        "review_due_at",
+        "verified_benefit_count",
+        "published_knowledge_count",
+        "verified_outcome_change_count",
+        "privacy_limitation",
+        "uncertainty_limitation",
+    ]
+    stakeholder_internal = {"active_party_count": 4, "open_grievance_count": 1}
+    stakeholder_public = {
+        "public_party_count": 3,
+        "representation_summary_count": 2,
+        "verified_outcome_count": 5,
+        "verified_impact_claim_count": 4,
+        "verified_distribution_count": 2,
+        "ecological_stewardship_count": 1,
+        "published_feedback_count": 3,
+        "privacy_limitation": "Private and small-group records are excluded.",
+        "uncertainty_limitation": "Counts do not prove satisfaction.",
+        "generated_at": "2026-10-29T12:00:00Z",
+        "published_alliance_count": 2,
+        "verified_alliance_benefit_count": 1,
+        "published_alliance_knowledge_count": 1,
+    }
+    coordination_internal = [{"name": "Internal alliance", "status": "active"}]
+    coordination_public = [
+        {
+            "alliance_id": "00000000-0000-4000-8000-000000000001",
+            "name": "Watershed learning alliance",
+            "coordination_type": "learning",
+            "market_cycle": "slow",
+            "public_summary": "A published collaboration summary.",
+            "public_evidence": {"review": "synthetic"},
+            "public_limitations": ["Planning signal only."],
+            "review_due_at": "2026-12-01T00:00:00Z",
+            "verified_benefit_count": 2,
+            "published_knowledge_count": 3,
+            "verified_outcome_change_count": 1,
+            "privacy_limitation": "Private evidence is excluded.",
+            "uncertainty_limitation": "Published evidence does not prove success.",
+        }
+    ]
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            if "v_stakeholder_cockpit_internal" in self.current_query:
+                return stakeholder_internal
+            if "v_public_stakeholder_cockpit" in self.current_query:
+                return stakeholder_public
+            return None
+
+        def fetchall(self):
+            if "v_coordination_cockpit_internal" in self.current_query:
+                return coordination_internal
+            if "v_public_coordination_alliance" in self.current_query:
+                return coordination_public
+            return []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+    class Connection:
+        def __init__(self):
+            self.cursors = []
+
+        def cursor(self, cursor_factory=None):
+            cursor = Cursor()
+            self.cursors.append(cursor)
+            return cursor
+
+    connection = Connection()
+    stakeholder_report = generate_stakeholder_cockpit(connection)
+    stakeholder_cursor = connection.cursors[-1]
+    stakeholder_query, stakeholder_params = stakeholder_cursor.calls[1]
+    stakeholder_projection = re.search(
+        r"SELECT (.*?) FROM v_public_stakeholder_cockpit", stakeholder_query
+    )
+    assert stakeholder_projection is not None
+    assert [column.strip() for column in stakeholder_projection.group(1).split(",")] == stakeholder_columns
+    assert stakeholder_params is None
+    assert "WHERE" not in stakeholder_query
+    assert stakeholder_report["internal"] == stakeholder_internal
+    assert stakeholder_report["public_safe"] == stakeholder_public
+
+    coordination_report = generate_coordination_cockpit(connection)
+    coordination_cursor = connection.cursors[-1]
+    coordination_query, coordination_params = coordination_cursor.calls[1]
+    coordination_projection = re.search(
+        r"SELECT (.*?) FROM v_public_coordination_alliance", coordination_query
+    )
+    assert coordination_projection is not None
+    assert [column.strip() for column in coordination_projection.group(1).split(",")] == coordination_columns
+    assert coordination_params is None
+    assert "WHERE" not in coordination_query
+    assert "ORDER BY name" in coordination_query
+    assert coordination_report["internal"] == coordination_internal
+    assert coordination_report["public_safe"] == coordination_public
+
+
 def test_check_report_empty_reports_empty_primary_sections(capsys) -> None:
     is_empty = report_generator._check_report_empty({"farms": []}, "farm_summary")
 

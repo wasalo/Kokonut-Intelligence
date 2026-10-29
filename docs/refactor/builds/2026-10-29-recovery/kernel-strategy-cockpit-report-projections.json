@@ -1,0 +1,44 @@
+{
+  "batch": "stakeholder-and-coordination-cockpit-public-projections",
+  "date": "2026-10-29",
+  "base_commit": "b2e4c709",
+  "scope": "Replace wildcard reads of the public stakeholder and coordination cockpit views with their exact migration-defined projections, preserving network-wide semantics and report payloads.",
+  "projections": [
+    {
+      "report": "stakeholder_cockpit",
+      "view": "v_public_stakeholder_cockpit",
+      "schema": "schemas/postgres/238_coordination_governance_cockpit.sql",
+      "column_count": 13,
+      "columns": ["public_party_count", "representation_summary_count", "verified_outcome_count", "verified_impact_claim_count", "verified_distribution_count", "ecological_stewardship_count", "published_feedback_count", "privacy_limitation", "uncertainty_limitation", "generated_at", "published_alliance_count", "verified_alliance_benefit_count", "published_alliance_knowledge_count"]
+    },
+    {
+      "report": "coordination_cockpit",
+      "view": "v_public_coordination_alliance",
+      "schema": "schemas/postgres/238_coordination_governance_cockpit.sql",
+      "column_count": 13,
+      "columns": ["alliance_id", "name", "coordination_type", "market_cycle", "public_summary", "public_evidence", "public_limitations", "review_due_at", "verified_benefit_count", "published_knowledge_count", "verified_outcome_change_count", "privacy_limitation", "uncertainty_limitation"]
+    }
+  ],
+  "focused_check": {
+    "command": "python3 -m pytest -q tests/test_report_generator_cli.py::test_stakeholder_and_coordination_cockpits_use_exact_public_projections",
+    "passed": 1,
+    "boundary": "Synthetic rows and fake cursors only; no database, provider, candidate, legacy service, or live route was used."
+  },
+  "source_audit": "No SELECT * FROM v_public_* occurrences remain under services/export/reports. This bounded source scan does not cover private/internal views or table wildcard queries.",
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_generator_source_inventory": "check passed",
+    "report_generator_query_scope_inventory": "check passed",
+    "report_generator_helper_scope_inventory": "check passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "rollback": "Revert the two public-view projections, focused regression, generated inventory refresh, and progress records. No migration or data rollback is needed.",
+  "tracked_progress": {
+    "checklist": "1597 complete / 25 open (1622 total)",
+    "todo": "292 checked / 16 open",
+    "capability_matrix": "67 rows; 24 baseline-retained, 7 deployed, 36 prepared; 99 strict private Gateway response contracts",
+    "man_cap_acceptance": "unchanged; separately gated"
+  }
+}
