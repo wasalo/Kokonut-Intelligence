@@ -22,7 +22,7 @@
   },
   "database_scope": "temporary container, empty database, synthetic relation definitions",
   "engine": "PostgreSQL 16",
-  "mutation_only_tables_select_only": 46,
+  "mutation_only_tables_select_only": 47,
   "private_tables_without_runtime_access": 79,
   "read_only_advisory_rule": {
     "insert_update_delete_denied": true,
@@ -270,6 +270,16 @@
     "references_and_column_grants_denied": true,
     "select_allowed": true
   },
+  "read_only_service_registry": {
+    "capability_service_mapping_remains_writable": true,
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_triggers_and_column_grants_denied": true,
+    "select_allowed": true,
+    "tenant_isolation_established": false
+  },
   "read_only_waste_type": {
     "insert_update_delete_truncate_denied": true,
     "migration_applied_and_replayed": true,
@@ -289,6 +299,6 @@
   },
   "requested_platform": "docker-default",
   "result": "passed",
-  "tables_exercised": 127,
-  "timestamp": "2026-10-28T09:40:21Z"
+  "tables_exercised": 128,
+  "timestamp": "2026-10-29T01:57:33Z"
 }

@@ -6131,3 +6131,14 @@ Evidence: [contract](report-snapshot-export-contract.md),
 
 Checklist: 1,520 complete / 25 open (1,545 total); TODO: 225 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed C1 verification — runtime-role provisioner against current code — 28 October 2026
+
+After migrations 682–683 were added, the documented disposable runtime-role
+check passed against the current provisioner. It reapplied the boundary after
+compatibility grants and verified 79 private, 47 mutation-only, and two
+append-only controls across 128 synthetic PostgreSQL 16 tables. The check does
+not install source migrations or exercise bounded Gateway functions; full
+schema replay evidence remains through migration 681. This does not establish
+tenant isolation, populated-data behavior, or production grants. See
+[evidence](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json).

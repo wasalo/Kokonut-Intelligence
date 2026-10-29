@@ -22807,3 +22807,13 @@ and orphan reconciliation remain open. Evidence:
 
 Checklist: 1,520 complete / 25 open; TODO: 225 checked / 16 open. Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared.
+
+### C1 runtime-role regression check — 28 October 2026
+
+Following migrations 682–683, the documented disposable runtime-role check
+passed against the current provisioner. Compatibility grants were reapplied
+before verifying 79 private, 47 mutation-only, and two append-only boundaries
+across 128 synthetic PostgreSQL 16 tables. Source migrations and bounded
+Gateway functions were not installed or exercised; full-schema replay remains
+through migration 681. Tenant isolation and production grant acceptance remain
+open ([evidence](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json)).

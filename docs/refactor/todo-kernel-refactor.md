@@ -755,6 +755,13 @@ that its full source-plan phase is complete.
   RLS is disabled; external writers, populated tenant isolation, and
   production state remain outside the report
   ([report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json)).
+  After migrations 682–683, the documented disposable runtime-role check also
+  passes against the current provisioner: it reapplies the role boundary after
+  compatibility grants and preserves 79 private, 47 mutation-only, and two
+  append-only controls across 128 synthetic tables. This check does not install
+  the source migration chain or exercise bounded Gateway functions; the full
+  schema replay evidence remains through migration 681, and tenant isolation
+  remains open ([check](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json)).
 - [ ] **C2 — Finish Gateway and SDK contract parity.** Audit registered routes,
   auth/action/scope policy, pagination, error models and SDK behavior; close
   source-verifiable gaps without exposing generic CRUD or weakening default
