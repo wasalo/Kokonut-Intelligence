@@ -24372,3 +24372,17 @@ pass. No database or provider was used. Checklist: 1,801 complete / 25 open;
 TODO: 459 checked / 16 open; strict private Gateway response contracts total
 157. Evidence:
 [competency lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-competency-lifecycle-response-contracts.json).
+
+### Progress addendum — operating-pilot learning-plan review and activation response contracts — 29 October 2026
+
+Learning-plan review and activation now expose strict OpenAPI/runtime response
+models. Both bind location and plan IDs to the request path. Approval remains
+`submitted` until a separate activation action; rejection returns the plan to
+`draft`; activation reports `active`. Exact retries preserve the recorded
+decision or active state, while malformed or mismatched service data produces
+a sanitized no-store 503. The approved mock-only selection passes 13 tests
+(273 unrelated tests deselected). Ruff, Python compilation, and diff checks
+pass. No database or provider was used. Checklist: 1,805 complete / 25 open;
+TODO: 462 checked / 16 open; strict private Gateway response contracts total
+159. Evidence:
+[learning-plan review/activation response contracts](builds/2026-10-29-recovery/operating-pilot-learning-plan-review-activation-response-contracts.json).

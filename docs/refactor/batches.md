@@ -8029,3 +8029,25 @@ Checklist: 1,801 complete / 25 open (1,826 total); TODO: 459 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 157. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — operating-pilot learning-plan review and activation response contracts — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime responses for independent learning-plan
+  review and activation.
+- [x] Bind location and plan IDs to the request path and enforce
+  decision-to-status mapping: approval remains submitted until activation;
+  rejection returns the plan to draft.
+- [x] Preserve replay semantics and sanitize malformed or mismatched results
+  with no-store errors.
+- [x] Add/run the approved focused mock-only route/OpenAPI checks and record
+  machine-readable evidence.
+
+The focused selection passes 13 tests (273 unrelated tests deselected). Ruff,
+Python compilation, and diff checks pass. No database, provider, candidate, or
+legacy state was used. Evidence:
+[learning-plan review/activation response contracts](builds/2026-10-29-recovery/operating-pilot-learning-plan-review-activation-response-contracts.json).
+
+Checklist: 1,805 complete / 25 open (1,830 total); TODO: 462 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 159. C2 remains open for broader route/auth and live-runtime parity.

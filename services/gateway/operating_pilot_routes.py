@@ -336,6 +336,36 @@ class OperatingPilotCompetencyReviewDecisionResponse(BaseModel):
         return self
 
 
+class OperatingPilotLearningPlanReviewDecisionResponse(BaseModel):
+    """Minimal response for an independent learning-plan review decision."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    decision: Literal["approved", "rejected"]
+    status: Literal["submitted", "draft"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_decision(self):
+        expected_status = "submitted" if self.decision == "approved" else "draft"
+        if self.status != expected_status:
+            raise ValueError("Learning-plan review status must match its decision")
+        return self
+
+
+class OperatingPilotLearningPlanActivationResponse(BaseModel):
+    """Minimal response for activating an independently approved plan."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    status: Literal["active"]
+    replayed: bool
+
+
 def _response_decimal(value):
     if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
         raise ValueError("numeric value is invalid")
@@ -3847,7 +3877,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/review"
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/review",
+        response_model=OperatingPilotLearningPlanReviewDecisionResponse,
     )
     async def review_operating_pilot_learning_plan(
         request: Request, location_id: str, learning_plan_id: str
@@ -3927,10 +3958,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotLearningPlanReviewDecisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.learning_plan_id != UUID(learning_plan_id)
+            ):
+                raise ValueError("Learning-plan review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/activate"
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/activate",
+        response_model=OperatingPilotLearningPlanActivationResponse,
     )
     async def activate_operating_pilot_learning_plan(
         request: Request, location_id: str, learning_plan_id: str
@@ -4004,7 +4058,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan activation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotLearningPlanActivationResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.learning_plan_id != UUID(learning_plan_id)
+            ):
+                raise ValueError("Learning-plan activation response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-activation response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan activation unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.get("/operator/api/operating-pilot/{location_id}/demand-review-queue")
     async def location_operating_pilot_demand_review_queue(
