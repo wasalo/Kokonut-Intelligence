@@ -1,5 +1,6 @@
 """Open Source Capitalist scaling economics, barriers, stress, and reuse tests."""
 
+import re
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -278,6 +279,70 @@ def test_open_source_capitalist_report_generators_public_safe() -> None:
     open_source = generate_open_source_impact(conn)
     assert open_source["report_type"] == "open_source_impact"
     assert "Hypercert" in open_source["limitations"][1]
+
+
+def test_open_source_impact_uses_exact_projection_and_preserves_payload() -> None:
+    expected_columns = [
+        "id", "artifact_name", "artifact_type", "repository_path", "external_url",
+        "license", "version", "reuse_status", "reuse_count", "supported_use_cases",
+        "verification_outputs", "maintenance_owner", "public_summary",
+        "evidence_maturity", "evidence_maturity_label", "metadata",
+    ]
+    artifact = {
+        "id": "artifact-1",
+        "artifact_name": "Kokonut data schema",
+        "artifact_type": "schema",
+        "repository_path": "schemas/postgres/",
+        "external_url": "https://example.test/schema",
+        "license": "Apache-2.0",
+        "version": "1.2.0",
+        "reuse_status": "in_use",
+        "reuse_count": 4,
+        "supported_use_cases": ["farm evidence", "reporting"],
+        "verification_outputs": ["schema tests"],
+        "maintenance_owner": "Technology Guild",
+        "public_summary": "A public governed schema artifact.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "field_validated",
+        "metadata": {"source": "catalog"},
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.sql = ""
+            self.params = None
+
+        def execute(self, sql, params=None):
+            self.sql = " ".join(sql.split())
+            self.params = params
+
+        def fetchall(self):
+            return [artifact]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_open_source_impact(conn)
+    projection = re.search(
+        r"SELECT (.*?) FROM v_public_open_source_impact_artifact", conn.cursor_value.sql
+    )
+
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == expected_columns
+    assert "ORDER BY reuse_count DESC, artifact_type, artifact_name" in conn.cursor_value.sql
+    assert conn.cursor_value.params == ()
+    assert report["location_id"] is None
+    assert report["artifacts"] == [artifact]
+    assert report["artifact_count"] == 1
+    assert report["total_reuse_count"] == 4
 
 
 def test_adoption_barrier_report_rejects_missing_location_before_database_access() -> None:

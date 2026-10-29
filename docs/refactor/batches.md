@@ -6423,3 +6423,29 @@ service, provider, or production resource was used. Evidence:
 
 Checklist: 1,563 complete / 25 open (1,588 total); TODO: 266 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — report projections and operating-pilot response — 29 October 2026
+
+- [x] Replace all five ecological-modeling report wildcards with their exact
+  ordered public-view columns; preserve location/date bindings, ordering,
+  returned fields, and aggregates.
+- [x] Replace the Bio Factory regional-input wildcard with the complete
+  15-column public-view projection and preserve region counts and payload.
+- [x] Replace the Open Source Impact wildcard with the complete 16-column
+  public-view projection and preserve artifact/reuse aggregates.
+- [x] Publish and enforce a strict own-learning-plans response contract for
+  the private operating-pilot route, including request-bound pagination,
+  continuation, ordered unique IDs, review metadata, and no-store failures.
+
+The combined synthetic selection passes 41 tests. Ruff and Python compilation
+pass for changed source and tests; the report source, query-scope, and
+helper-scope inventories and capability-matrix validation pass. No database,
+provider, candidate, legacy service, or production resource was used. The
+checks do not establish populated-data parity, content-level privacy, live
+OIDC, database behavior, or tenant isolation. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-parallel-ecological-biofactory-operating-pilot-contracts.json).
+
+Checklist: 1,567 complete / 25 open (1,592 total); TODO: 266 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts now
+total 98. MAN-CAP acceptance is unchanged.

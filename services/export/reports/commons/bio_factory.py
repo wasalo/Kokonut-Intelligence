@@ -205,7 +205,21 @@ def generate_bio_regional_input(
     require_network_scope("bio_regional_input", location_id)
     regional = query(conn,
         """
-        SELECT *
+        SELECT id,
+               region_scope,
+               input_name,
+               input_category,
+               country,
+               subregion,
+               seasonality,
+               cautions,
+               quality_considerations,
+               typical_suppliers,
+               source_reference,
+               public_summary,
+               evidence_maturity,
+               evidence_maturity_label,
+               metadata
         FROM v_public_bio_regional_input_summary
         ORDER BY region_scope, input_name
         """

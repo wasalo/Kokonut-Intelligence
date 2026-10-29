@@ -1946,7 +1946,7 @@
       "callable": "generate_trophic_pyramid",
       "source_module": "services.export.reports.commons.ecological",
       "source_file": "services/export/reports/commons/ecological.py",
-      "source_line": 106,
+      "source_line": 182,
       "parameters": [
         "conn",
         "location_id",

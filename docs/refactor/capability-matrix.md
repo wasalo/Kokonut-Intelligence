@@ -15,6 +15,8 @@ contracts. Checklist: 1,563 complete / 25 open (1,588 total); TODO: 266
 checked / 16 open; MAN-CAP acceptance and classifications are unchanged
 ([evidence](builds/2026-10-28-recovery/kernel-parallel-operations-governance-sdk-error-contracts.json)).
 
+**Latest parallel continuation — ecological, Bio Factory, Open Source Impact, and operating-pilot contracts (29 October 2026):** five ecological report queries, Bio Factory regional inputs, and Open Source Impact now use exact ordered public-view projections. The private own-learning-plans route validates its strict response schema, request-bound pagination and continuation, review metadata, and returned order/location. The combined mocked selection passes 41 tests; Ruff, compilation, all three report inventories, capability validation, and diff checks pass. No live database/provider or candidate was used. This is source-level evidence only; populated-data parity, content privacy, live OIDC, and tenant isolation remain open ([evidence](builds/2026-10-29-recovery/kernel-parallel-ecological-biofactory-operating-pilot-contracts.json)). Checklist: 1,567 complete / 25 open (1,592 total); TODO: 266 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows, with 98 strict private Gateway response contracts; MAN-CAP acceptance is unchanged.
+
 **Previous parallel C2/C5 operations and Gateway batch — 28 October 2026:** the
 location-governance summary now has an exact location-bound response and
 OpenAPI contract; malformed results fail closed. Resource-efficiency,

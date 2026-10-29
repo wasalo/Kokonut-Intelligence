@@ -52,6 +52,59 @@ class _Cursor:
         return (self.connection.row,)
 
 
+def _own_learning_plan_page(*, location_id=LOCATION_ID, limit=7, offset=14, items=None):
+    item = {
+        "learning_plan_id": str(uuid4()),
+        "title": "Private synthetic goal",
+        "competency_goals": [{"competency": "soil_observation"}],
+        "support_requested": ["mentor time"],
+        "target_date": "2026-12-01",
+        "status": "draft",
+        "review_decision": None,
+        "review_reason": None,
+        "reviewed_at": None,
+        "created_at": "2026-10-28T12:00:00+00:00",
+        "updated_at": "2026-10-28T12:00:00+00:00",
+    }
+    return {
+        "location_id": location_id,
+        "limit": limit,
+        "offset": offset,
+        "items": [item] if items is None else items,
+        "has_more": False,
+        "next_offset": None,
+    }
+
+
+def _own_learning_plan_http_app(monkeypatch, result):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_own_learning_plans",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or result,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app, calls
+
+
 def test_own_learning_plans_use_read_only_exact_tenant_context_and_cleanup():
     page = {"items": [{"title": "Private goal"}], "has_more": False}
     connection = _Connection(page)
@@ -136,31 +189,8 @@ def test_learning_plan_history_policy_is_exact_location_and_read_own_only():
 
 
 def test_http_own_learning_plans_are_no_store_and_paginated(monkeypatch):
-    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
-
-    calls = []
-    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
-    monkeypatch.setattr(
-        "services.gateway.operating_pilot_reads.get_location_operating_pilot_own_learning_plans",
-        lambda *args, **kwargs: calls.append((args, kwargs)) or page,
-    )
-    app = FastAPI()
-    router = APIRouter()
-
-    async def run_in_threadpool(function, *args, **kwargs):
-        return function(*args, **kwargs)
-
-    register_operating_pilot_routes(
-        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
-    )
-    app.include_router(router)
-
-    @app.middleware("http")
-    async def add_operator(request, call_next):
-        request.state.operator_session = SimpleNamespace(
-            operator=SimpleNamespace(operator_id=OPERATOR_ID)
-        )
-        return await call_next(request)
+    page = _own_learning_plan_page()
+    app, calls = _own_learning_plan_http_app(monkeypatch, page)
 
     with TestClient(app) as client:
         response = client.get(
@@ -169,8 +199,177 @@ def test_http_own_learning_plans_are_no_store_and_paginated(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json() == page
+    body = response.json()
+    assert body["location_id"] == LOCATION_ID
+    assert body["limit"] == 7
+    assert body["offset"] == 14
+    assert body["has_more"] is False
+    assert body["next_offset"] is None
+    assert body["items"][0]["learning_plan_id"] == page["items"][0]["learning_plan_id"]
+    assert body["items"][0]["competency_goals"] == page["items"][0]["competency_goals"]
+    assert body["items"][0]["support_requested"] == page["items"][0]["support_requested"]
+    assert body["items"][0]["target_date"] == "2026-12-01"
+    assert body["items"][0]["status"] == "draft"
+    assert body["items"][0]["review_decision"] is None
+    assert body["items"][0]["review_reason"] is None
     assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 7, "offset": 14})]
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        pytest.param(lambda page: page["items"][0].pop("title"), id="missing-field"),
+        pytest.param(lambda page: page["items"][0].update(party_id=str(uuid4())), id="extra-field"),
+        pytest.param(lambda page: page.update(location_id=str(uuid4())), id="wrong-location"),
+        pytest.param(lambda page: page.update(limit=8), id="wrong-limit"),
+        pytest.param(lambda page: page.update(offset=13), id="wrong-offset"),
+        pytest.param(lambda page: page.update(unexpected="private"), id="extra-page-field"),
+    ],
+)
+def test_http_own_learning_plans_reject_malformed_or_mismatched_provider_page(
+    monkeypatch, mutate
+):
+    page = _own_learning_plan_page()
+    mutate(page)
+    app, _calls = _own_learning_plan_http_app(monkeypatch, page)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/my-learning-plans?limit=7&offset=14"
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Own learning-plan history unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+@pytest.mark.parametrize(
+    "review, expected_status",
+    [
+        pytest.param(
+            {"review_decision": "approved", "review_reason": None,
+             "reviewed_at": "2026-10-28T13:00:00+00:00"},
+            200,
+            id="approved-without-feedback",
+        ),
+        pytest.param(
+            {"review_decision": "rejected", "review_reason": "Add field evidence",
+             "reviewed_at": "2026-10-28T13:00:00+00:00"},
+            200,
+            id="rejected-with-owner-feedback",
+        ),
+        pytest.param(
+            {"review_decision": "approved", "review_reason": "unexpected",
+             "reviewed_at": "2026-10-28T13:00:00+00:00"},
+            500,
+            id="approved-with-reason",
+        ),
+        pytest.param(
+            {"review_decision": "rejected", "review_reason": None,
+             "reviewed_at": "2026-10-28T13:00:00+00:00"},
+            500,
+            id="rejected-without-reason",
+        ),
+        pytest.param(
+            {"review_decision": None, "review_reason": "orphan feedback",
+             "reviewed_at": None},
+            500,
+            id="feedback-without-decision",
+        ),
+        pytest.param(
+            {"review_decision": "approved", "review_reason": None,
+             "reviewed_at": None},
+            500,
+            id="decision-without-timestamp",
+        ),
+    ],
+)
+def test_http_own_learning_plans_validate_review_metadata(monkeypatch, review, expected_status):
+    page = _own_learning_plan_page()
+    page["items"][0].update(review)
+    app, _calls = _own_learning_plan_http_app(monkeypatch, page)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/my-learning-plans?limit=7&offset=14"
+        )
+
+    assert response.status_code == expected_status
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    if expected_status == 200:
+        assert response.json()["items"][0]["review_decision"] == review["review_decision"]
+    else:
+        assert response.json() == {"error": "Own learning-plan history unavailable"}
+
+
+@pytest.mark.parametrize("violation", ["duplicate", "ascending"])
+def test_http_own_learning_plans_reject_duplicate_or_out_of_order_items(
+    monkeypatch, violation
+):
+    first = _own_learning_plan_page()["items"][0]
+    second = {**first, "learning_plan_id": str(uuid4())}
+    if violation == "duplicate":
+        second["learning_plan_id"] = first["learning_plan_id"]
+    else:
+        first["learning_plan_id"] = "00000000-0000-4000-8000-000000000001"
+        second["learning_plan_id"] = "00000000-0000-4000-8000-000000000002"
+    page = _own_learning_plan_page(items=[first, second])
+    app, _calls = _own_learning_plan_http_app(monkeypatch, page)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/my-learning-plans?limit=7&offset=14"
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Own learning-plan history unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+@pytest.mark.parametrize(
+    "continuation, expected_status",
+    [
+        pytest.param("valid", 200, id="full-page-with-continuation"),
+        pytest.param("short", 500, id="short-page-with-continuation"),
+        pytest.param("wrong-offset", 500, id="wrong-continuation-offset"),
+        pytest.param("terminal-offset", 500, id="terminal-page-with-continuation"),
+    ],
+)
+def test_http_own_learning_plans_validate_continuation_page_contract(
+    monkeypatch, continuation, expected_status
+):
+    first = _own_learning_plan_page()["items"][0]
+    second = {
+        **first,
+        "learning_plan_id": "00000000-0000-4000-8000-000000000001",
+        "created_at": "2026-10-27T12:00:00+00:00",
+        "updated_at": "2026-10-27T12:00:00+00:00",
+    }
+    first["learning_plan_id"] = "00000000-0000-4000-8000-000000000002"
+    page = _own_learning_plan_page(limit=2, items=[first, second])
+    page["has_more"] = continuation != "terminal-offset"
+    page["next_offset"] = 16 if continuation != "wrong-offset" else 15
+    if continuation == "short":
+        page["items"] = [first]
+    app, _calls = _own_learning_plan_http_app(monkeypatch, page)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/my-learning-plans?limit=2&offset=14"
+        )
+
+    assert response.status_code == expected_status
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    if expected_status == 200:
+        assert response.json()["has_more"] is True
+        assert len(response.json()["items"]) == 2
+        assert response.json()["next_offset"] == 16
+    else:
+        assert response.json() == {"error": "Own learning-plan history unavailable"}
 
 
 def test_http_learning_plans_fail_closed_when_oidc_is_disabled(monkeypatch):

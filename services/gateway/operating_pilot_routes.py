@@ -11,6 +11,7 @@ from pydantic import (
     BeforeValidator,
     ConfigDict,
     Field,
+    JsonValue,
     ValidationError,
     field_validator,
     model_validator,
@@ -513,6 +514,66 @@ class OperatingPilotOwnResourceRequestsPage(BaseModel):
             for previous, current in zip(self.items, self.items[1:])
         ):
             raise ValueError("own resource page is not in descending SQL order")
+        return self
+
+
+class OperatingPilotOwnLearningPlanItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    learning_plan_id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    competency_goals: list[JsonValue] = Field(max_length=50)
+    support_requested: list[JsonValue] = Field(max_length=50)
+    target_date: _ResponseDate | None
+    status: Literal["draft", "submitted", "active", "completed", "paused", "cancelled"]
+    review_decision: Literal["approved", "rejected"] | None
+    review_reason: str | None = Field(max_length=2000)
+    reviewed_at: _ResponseDateTime | None
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_review_feedback(self):
+        if self.review_decision is not None and self.reviewed_at is None:
+            raise ValueError("review decision requires a review timestamp")
+        if self.review_decision == "approved" and self.review_reason is not None:
+            raise ValueError("approved learning plan cannot include a review reason")
+        if self.review_decision == "rejected" and not (self.review_reason or "").strip():
+            raise ValueError("rejected learning plan requires a review reason")
+        if self.review_decision is None and (self.review_reason is not None or self.reviewed_at is not None):
+            raise ValueError("unreviewed learning plan cannot include review metadata")
+        return self
+
+
+class OperatingPilotOwnLearningPlansPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotOwnLearningPlanItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own learning-plan page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("own learning-plan continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own learning-plan page cannot continue")
+
+        ids = [item.learning_plan_id for item in self.items]
+        if len(ids) != len(set(ids)):
+            raise ValueError("own learning-plan page contains duplicate IDs")
+        if any(
+            (previous.created_at, previous.learning_plan_id.int)
+            < (current.created_at, current.learning_plan_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own learning-plan page is not in descending SQL order")
         return self
 
 
@@ -2520,7 +2581,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(page), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-learning-plans")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-learning-plans",
+        response_model=OperatingPilotOwnLearningPlansPage,
+    )
     async def location_operating_pilot_own_learning_plans(
         request: Request,
         location_id: str,
@@ -2579,7 +2643,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own learning-plan history unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotOwnLearningPlansPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own learning-plan page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Own learning-plan response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own learning-plan history unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
 
     @router.get("/operator/api/operating-pilot/{location_id}/my-coaching-sessions")
     async def location_operating_pilot_own_coaching_sessions(

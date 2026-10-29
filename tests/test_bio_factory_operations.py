@@ -1,5 +1,6 @@
 """Bio-organic fertilizer operations hub tests."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -490,6 +491,67 @@ def test_bio_factory_report_generators_public_safe() -> None:
     assert "smallholder pilot evidence" in batch["limitations"][0].lower()
     assert "advisory" in quality["limitations"][0].lower() or "certification" in quality["limitations"][0].lower()
     assert "salts and arsenic" in regional["limitations"][0].lower() or "sourcing notes" in regional["limitations"][0].lower()
+
+
+def test_bio_regional_input_uses_exact_projection_and_preserves_payload() -> None:
+    expected_columns = [
+        "id", "region_scope", "input_name", "input_category", "country", "subregion",
+        "seasonality", "cautions", "quality_considerations", "typical_suppliers",
+        "source_reference", "public_summary", "evidence_maturity",
+        "evidence_maturity_label", "metadata",
+    ]
+    row = {
+        "id": "regional-input-1",
+        "region_scope": "caribbean",
+        "input_name": "Sargassum",
+        "input_category": "marine_material",
+        "country": "Dominican Republic",
+        "subregion": "Monte Plata",
+        "seasonality": {"months": [5, 6, 7]},
+        "cautions": ["Test for arsenic before use."],
+        "quality_considerations": {"moisture_pct": "variable"},
+        "typical_suppliers": ["Regional cooperative"],
+        "source_reference": "regional-survey-2026",
+        "public_summary": "Documented regional input availability.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "field_validated",
+        "metadata": {"reviewed": True},
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.sql = ""
+            self.params = None
+
+        def execute(self, sql, params=None):
+            self.sql = " ".join(sql.split())
+            self.params = params
+
+        def fetchall(self):
+            return [row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_bio_regional_input(conn)
+    projection = re.search(
+        r"SELECT (.*?) FROM v_public_bio_regional_input_summary", conn.cursor_value.sql
+    )
+
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == expected_columns
+    assert "ORDER BY region_scope, input_name" in conn.cursor_value.sql
+    assert conn.cursor_value.params == ()
+    assert report["regional_inputs"] == [row]
+    assert report["region_breakdown"] == {"caribbean": 1}
 
 
 def test_eas_bio_batch_placeholder_is_inactive() -> None:

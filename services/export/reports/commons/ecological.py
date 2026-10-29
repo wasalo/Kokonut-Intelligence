@@ -19,7 +19,24 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_ecological_interaction_summary
+            SELECT id,
+                   location_id,
+                   location_name,
+                   zone_id,
+                   zone_name,
+                   species_a_name,
+                   species_a_common,
+                   species_a_trophic,
+                   species_b_name,
+                   species_b_common,
+                   species_b_trophic,
+                   interaction_type,
+                   interaction_strength,
+                   description,
+                   notes,
+                   evidence_adequate,
+                   status
+            FROM v_public_ecological_interaction_summary
             WHERE location_id = %s ORDER BY interaction_strength DESC
             """,
             (location_id,),
@@ -27,7 +44,20 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         interactions = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_ecological_model_summary
+            SELECT id,
+                   location_id,
+                   location_name,
+                   zone_id,
+                   zone_name,
+                   model_name,
+                   model_type,
+                   run_date,
+                   confidence_level,
+                   input_parameters,
+                   output_predictions,
+                   notes,
+                   status
+            FROM v_public_ecological_model_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR run_date >= %s::date)
               AND (%s::date IS NULL OR run_date <= %s::date)
@@ -38,7 +68,22 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         models = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_population_dynamics_summary
+            SELECT id,
+                   location_id,
+                   location_name,
+                   plot_id,
+                   plot_name,
+                   species_name,
+                   species_common_name,
+                   trophic_level,
+                   record_date,
+                   population_count,
+                   population_density_per_m2,
+                   growth_rate_estimate,
+                   method,
+                   notes,
+                   status
+            FROM v_public_population_dynamics_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR record_date >= %s::date)
               AND (%s::date IS NULL OR record_date <= %s::date)
@@ -49,7 +94,22 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         populations = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_energy_flow_summary
+            SELECT id,
+                   location_id,
+                   location_name,
+                   zone_id,
+                   zone_name,
+                   measurement_date,
+                   from_trophic_level,
+                   to_trophic_level,
+                   biomass_transferred_kg,
+                   conversion_efficiency_pct,
+                   measurement_method,
+                   period_start,
+                   period_end,
+                   notes,
+                   status
+            FROM v_public_energy_flow_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR measurement_date >= %s::date)
               AND (%s::date IS NULL OR measurement_date <= %s::date)
@@ -60,7 +120,23 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         energy_flows = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_soil_input_retention
+            SELECT id,
+                   location_id,
+                   location_name,
+                   plot_id,
+                   plot_name,
+                   application_date,
+                   input_type,
+                   input_name,
+                   quantity_kg,
+                   application_method,
+                   depth_cm,
+                   decomposition_status,
+                   residual_pct,
+                   residual_measurement_date,
+                   notes,
+                   status
+            FROM v_public_soil_input_retention
             WHERE location_id = %s
               AND (%s::date IS NULL OR application_date >= %s::date)
               AND (%s::date IS NULL OR application_date <= %s::date)
@@ -114,7 +190,14 @@ def generate_trophic_pyramid(conn, location_id: str, period_start: str = None, p
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_energy_flow_efficiency
+            SELECT location_id,
+                   location_name,
+                   from_trophic_level,
+                   to_trophic_level,
+                   total_biomass_kg,
+                   avg_efficiency_pct,
+                   measurement_count
+            FROM v_energy_flow_efficiency
             WHERE location_id = %s ORDER BY from_trophic_level, to_trophic_level
             """,
             (location_id,),

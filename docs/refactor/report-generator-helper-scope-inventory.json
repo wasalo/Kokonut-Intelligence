@@ -649,7 +649,7 @@
         {
           "caller": "generate_bio_regional_input",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 221,
+          "line": 235,
           "depth": 1
         },
         {
@@ -4472,31 +4472,31 @@
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 82,
+          "line": 158,
           "depth": 1
         },
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 83,
+          "line": 159,
           "depth": 1
         },
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 84,
+          "line": 160,
           "depth": 1
         },
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 85,
+          "line": 161,
           "depth": 1
         },
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 86,
+          "line": 162,
           "depth": 1
         },
         {
@@ -5490,7 +5490,7 @@
         {
           "caller": "generate_open_source_impact",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 173,
+          "line": 190,
           "depth": 1
         },
         {
@@ -10749,25 +10749,25 @@
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 108,
+          "line": 184,
           "depth": 1
         },
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 152,
+          "line": 235,
           "depth": 1
         },
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 153,
+          "line": 236,
           "depth": 1
         },
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 154,
+          "line": 237,
           "depth": 1
         },
         {

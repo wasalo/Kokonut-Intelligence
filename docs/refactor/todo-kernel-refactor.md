@@ -2237,3 +2237,26 @@ checks pass. Evidence:
 
 Checklist: 1,563 complete / 25 open (1,588 total); TODO: 266 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — report projections and operating-pilot response — 29 October 2026
+
+- [x] Replace all five ecological-modeling report wildcards with the exact
+  ordered public-view columns and preserve output, scope, and aggregates.
+- [x] Replace the Bio Factory regional-input wildcard with the complete
+  schema-backed public-view projection and preserve payload behavior.
+- [x] Replace the Open Source Impact wildcard with its complete public-view
+  projection and preserve counts and reuse totals.
+- [x] Add a strict, location-bound own-learning-plans response contract with
+  pagination, ordering, review metadata, and sanitized-failure validation.
+
+The approved synthetic selection passes 41 tests. Ruff, compilation, all three
+report inventories, capability-matrix validation, and diff checks pass. No
+database, provider, candidate, legacy service, or production resource was
+used. These source checks do not prove populated-data parity, content privacy,
+live OIDC, or tenant isolation. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-parallel-ecological-biofactory-operating-pilot-contracts.json).
+
+Checklist: 1,567 complete / 25 open (1,592 total); TODO: 266 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 98 strict private Gateway response contracts.
+MAN-CAP acceptance and classifications remain unchanged.

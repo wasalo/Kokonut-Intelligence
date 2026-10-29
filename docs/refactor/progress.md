@@ -23064,3 +23064,26 @@ Checklist: 1,563 complete / 25 open (1,588 total); TODO: 266 checked / 16
 open. The capability matrix remains 67 rows (24 baseline-retained,
 7 deployed, 36 prepared), with 97 strict private Gateway response contracts;
 MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — report projections and operating-pilot response — 29 October 2026
+
+The ecological-modeling report now selects the complete ordered public views
+for interactions, model runs, population dynamics, energy flows, and soil
+input retention. Bio Factory regional inputs and Open Source Impact now also
+use their complete schema-backed public projections. The private operating-
+pilot own-learning-plans route publishes and enforces a strict response model
+for item fields, review metadata, location identity, ordering, and bounded
+continuation; malformed service results fail with a sanitized no-store 500.
+
+The approved synthetic selection passes 41 tests. Ruff, Python compilation,
+the three report inventories, capability-matrix validation, and diff checks
+pass. No database, migration, candidate, provider, legacy service, or
+production resource was used. These source contracts do not establish
+populated-data parity, content-level privacy, live OIDC, or tenant isolation.
+Evidence:
+[batch](builds/2026-10-29-recovery/kernel-parallel-ecological-biofactory-operating-pilot-contracts.json).
+
+Checklist: 1,567 complete / 25 open (1,592 total); TODO: 266 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 98 strict private Gateway response contracts;
+MAN-CAP acceptance and classifications are unchanged.
