@@ -416,8 +416,10 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     async def private_report_export_headers(request: Request, call_next):
         """Keep export API success, denial, validation, and error responses private."""
         response = await call_next(request)
-        if request.url.path == "/operator/api/report-exports" or request.url.path.startswith(
-            "/operator/api/report-exports/"
+        if (
+            request.url.path == "/operator/api/report-export-snapshots"
+            or request.url.path == "/operator/api/report-exports"
+            or request.url.path.startswith("/operator/api/report-exports/")
         ):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Pragma"] = "no-cache"
@@ -433,8 +435,10 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     @app.exception_handler(RequestValidationError)
     async def report_export_validation_error(request: Request, exc: RequestValidationError):
-        if request.url.path == "/operator/api/report-exports" or request.url.path.startswith(
-            "/operator/api/report-exports/"
+        if (
+            request.url.path == "/operator/api/report-export-snapshots"
+            or request.url.path == "/operator/api/report-exports"
+            or request.url.path.startswith("/operator/api/report-exports/")
         ):
             return JSONResponse(
                 status_code=422,

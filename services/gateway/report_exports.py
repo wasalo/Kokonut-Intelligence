@@ -180,6 +180,57 @@ def list_report_exports(
             connection.close()
 
 
+def list_exportable_report_snapshots(
+    operator_id: str,
+    location_id: str,
+    limit: int = 25,
+    offset: int = 0,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List reviewed, exact-location snapshots eligible for private export."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
+        raise ValueError("limit must be between 1 and 50")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 5000:
+        raise ValueError("offset must be between 0 and 5000")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '5s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+            _set_context(
+                connection,
+                operator_id=operator_id,
+                location_id=location_id,
+                action="read",
+            )
+            cursor.execute(
+                """SELECT snapshot_id, location_id, report_name, report_type,
+                          status, period_start, period_end, snapshot_hash, created_at
+                     FROM kokonut_security.list_report_snapshot_export_candidates(
+                         %s::uuid, %s::integer, %s::integer
+                     )""",
+                (location_id, limit, offset),
+            )
+            rows = _rows(cursor, cursor.fetchall())
+            has_more = len(rows) > limit
+            return {
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "has_more": has_more,
+                "data": rows[:limit],
+            }
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
 def get_report_export(
     operator_id: str,
     location_id: str,

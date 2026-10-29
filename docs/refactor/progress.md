@@ -23345,3 +23345,35 @@ Checklist: 1,607 complete / 25 open (1,632 total); TODO: 302 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 100. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — private report-export candidate listing and console — 29 October 2026
+
+Migration 684 adds a bounded SECURITY DEFINER projection that lists only
+exact-location verified/published snapshots with a valid SHA-256-form digest,
+object-shaped JSON, and a payload within the worker's size bound. The Gateway
+route requires the independent export read grant, binds the response to the
+requested location/page, and returns private headers for success, denial, and
+validation paths. Runtime provisioning now includes the listing function.
+
+The operator console now lists eligible snapshots and export status, gates
+creation and download actions independently, retries uncertain submissions
+with the same session idempotency key, polls active requests, and offers
+completed-only private JSON downloads. It renders fixed metadata through
+text nodes and stops pagination at the configured browse limit.
+
+Focused route-policy, service, migration-contract, OpenAPI, console, and
+migration tests pass 88 checks. Disposable PostgreSQL 16 applies/replays 683
+and 684 and verifies exact-location scope, read-grant separation, lifecycle,
+hash/size filtering, pagination, and role boundaries. Ruff, runtime SQL
+inventory, provider-boundary checks, matrix validation, JavaScript syntax, and
+diff checks pass. Candidate and legacy databases remain untouched; migration
+684 is not rolled out. Live OIDC/browser use, populated report parity, worker
+recovery, R2, and production download ownership remain separate gates.
+Evidence: [disposable acceptance](builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json),
+[focused checks](builds/2026-10-29-recovery/report-snapshot-export-console-contracts.json),
+[contract](report-snapshot-export-contract.md).
+
+Checklist: 1,611 complete / 25 open (1,636 total); TODO: 306 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 101. MAN-CAP acceptance is unchanged.

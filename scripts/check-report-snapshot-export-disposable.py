@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay migration 683 and exercise its scoped export queue on disposable PG 16."""
+"""Replay migrations 683/684 and exercise scoped report exports on disposable PG 16."""
 
 from __future__ import annotations
 
@@ -14,7 +14,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "schemas/postgres/683_location_scoped_report_snapshot_exports.sql"
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-28-recovery/report-snapshot-export-migration-disposable.json"
+CANDIDATE_MIGRATION = ROOT / "schemas/postgres/684_report_snapshot_export_candidates.sql"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json"
 
 ORG_A = "10000000-0000-0000-0000-000000000001"
 ORG_B = "10000000-0000-0000-0000-000000000002"
@@ -26,6 +27,8 @@ SNAPSHOT_A = "40000000-0000-0000-0000-000000000001"
 SNAPSHOT_A_DRAFT = "40000000-0000-0000-0000-000000000002"
 SNAPSHOT_A_OTHER = "40000000-0000-0000-0000-000000000003"
 SNAPSHOT_B = "40000000-0000-0000-0000-000000000004"
+SNAPSHOT_BAD_HASH = "40000000-0000-0000-0000-000000000005"
+SNAPSHOT_TOO_LARGE = "40000000-0000-0000-0000-000000000006"
 EXPORT_HASH = hashlib.sha256(json.dumps({"value": 1}, sort_keys=True).encode()).hexdigest()
 OTHER_HASH = hashlib.sha256(json.dumps({"value": 2}, sort_keys=True).encode()).hexdigest()
 
@@ -134,7 +137,8 @@ $$;
 CREATE TABLE public.report_snapshot (
     id UUID PRIMARY KEY, report_name VARCHAR(255) NOT NULL, report_type VARCHAR(100),
     location_id UUID REFERENCES public.location(id), period_start DATE, period_end DATE,
-    report_data JSONB NOT NULL, snapshot_hash VARCHAR(255), status VARCHAR(50) NOT NULL
+    report_data JSONB NOT NULL, snapshot_hash VARCHAR(255), status VARCHAR(50) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT pg_catalog.clock_timestamp()
 );
 
 INSERT INTO public.organization VALUES ('{ORG_A}', 'active'), ('{ORG_B}', 'active');
@@ -150,11 +154,20 @@ SELECT '{OPERATOR_A}'::UUID, '{ORG_A}'::UUID, 'report_snapshot_export', action, 
 UNION ALL
 SELECT '{OPERATOR_B}'::UUID, '{ORG_B}'::UUID, 'report_snapshot_export', action, '{LOCATION_B}'::UUID
   FROM unnest(ARRAY['create', 'read', 'download']) AS action;
-INSERT INTO public.report_snapshot VALUES
+INSERT INTO public.report_snapshot (
+    id, report_name, report_type, location_id, period_start, period_end,
+    report_data, snapshot_hash, status
+) VALUES
   ('{SNAPSHOT_A}', 'Synthetic report A', 'impact', '{LOCATION_A}', NULL, NULL, '{{"value":1}}'::jsonb, '{EXPORT_HASH}', 'verified'),
   ('{SNAPSHOT_A_DRAFT}', 'Synthetic draft', 'impact', '{LOCATION_A}', NULL, NULL, '{{"value":1}}'::jsonb, '{EXPORT_HASH}', 'draft'),
   ('{SNAPSHOT_A_OTHER}', 'Synthetic report A2', 'impact', '{LOCATION_A}', NULL, NULL, '{{"value":2}}'::jsonb, '{OTHER_HASH}', 'published'),
   ('{SNAPSHOT_B}', 'Synthetic report B', 'impact', '{LOCATION_B}', NULL, NULL, '{{"value":1}}'::jsonb, '{EXPORT_HASH}', 'verified');
+INSERT INTO public.report_snapshot (
+    id, report_name, report_type, location_id, report_data, snapshot_hash, status
+) VALUES
+  ('{SNAPSHOT_BAD_HASH}', 'Synthetic malformed digest', 'impact', '{LOCATION_A}', '{{"value":3}}'::jsonb, 'not-a-sha256', 'verified'),
+  ('{SNAPSHOT_TOO_LARGE}', 'Synthetic oversized report', 'impact', '{LOCATION_A}',
+   pg_catalog.jsonb_build_object('payload', pg_catalog.repeat('x', 524289)), '{OTHER_HASH}', 'verified');
 
 ALTER TABLE public.organization ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization FORCE ROW LEVEL SECURITY;
@@ -462,6 +475,100 @@ END;
 $$;
 """
 
+CANDIDATE_ACCEPTANCE = f"""
+SET SESSION AUTHORIZATION kokonut_runtime;
+DO $$
+DECLARE result_count INTEGER; page_count INTEGER; first_snapshot UUID; returned_snapshots UUID[];
+BEGIN
+    IF NOT has_function_privilege(
+        'kokonut_runtime',
+        'kokonut_security.list_report_snapshot_export_candidates(uuid,integer,integer)',
+        'EXECUTE'
+    ) THEN
+        RAISE EXCEPTION 'runtime lacks bounded eligible snapshot listing function';
+    END IF;
+    IF has_function_privilege(
+        'kokonut_directus_runtime',
+        'kokonut_security.list_report_snapshot_export_candidates(uuid,integer,integer)',
+        'EXECUTE'
+    ) THEN
+        RAISE EXCEPTION 'Directus unexpectedly has report export candidate function access';
+    END IF;
+    IF pg_catalog.pg_get_function_result(
+        'kokonut_security.list_report_snapshot_export_candidates(uuid,integer,integer)'::regprocedure
+    ) ~ '(report_data|file_url)' THEN
+        RAISE EXCEPTION 'candidate listing signature exposes private payload or storage metadata';
+    END IF;
+    PERFORM kokonut_security.test_set_context('{ORG_A}', '{LOCATION_A}', '{OPERATOR_A}');
+    SELECT count(*) INTO result_count
+      FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 25, 0);
+    SELECT array_agg(snapshot_id) INTO returned_snapshots
+      FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 25, 0);
+    IF result_count <> 2 THEN
+        RAISE EXCEPTION 'candidate list returned % rows (%) instead of two eligible snapshots',
+            result_count, returned_snapshots;
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 25, 0)
+         WHERE location_id <> '{LOCATION_A}'::UUID
+            OR status NOT IN ('verified', 'published')
+            OR snapshot_hash !~ '^[0-9a-f]{{64}}$'
+    ) THEN
+        RAISE EXCEPTION 'candidate list included an invalid location, state, or hash';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 25, 0)
+         WHERE snapshot_id NOT IN ('{SNAPSHOT_A}'::UUID, '{SNAPSHOT_A_OTHER}'::UUID)
+    ) THEN
+        RAISE EXCEPTION 'draft, malformed-hash, oversized, or cross-location snapshot was exposed';
+    END IF;
+    SELECT count(*) INTO page_count
+      FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 1, 0);
+    IF page_count <> 2 THEN
+        RAISE EXCEPTION 'bounded first page did not provide one-row lookahead';
+    END IF;
+    SELECT snapshot_id INTO first_snapshot
+      FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 1, 0)
+     LIMIT 1;
+    IF first_snapshot IS NULL THEN
+        RAISE EXCEPTION 'candidate page ordering returned no first row';
+    END IF;
+    SELECT count(*) INTO page_count
+      FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 1, 1);
+    IF page_count <> 1 THEN
+        RAISE EXCEPTION 'second candidate page did not return one remaining row';
+    END IF;
+    PERFORM kokonut_security.test_set_context('{ORG_B}', '{LOCATION_B}', '{OPERATOR_B}');
+    BEGIN
+        PERFORM * FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 25, 0);
+        RAISE EXCEPTION 'cross-location candidate listing unexpectedly succeeded';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END;
+$$;
+RESET SESSION AUTHORIZATION;
+
+UPDATE public.operator_scope_grant SET revoked_at = pg_catalog.clock_timestamp()
+ WHERE operator_id = '{OPERATOR_A}' AND resource = 'report_snapshot_export'
+   AND action = 'read' AND location_id = '{LOCATION_A}' AND revoked_at IS NULL;
+SET SESSION AUTHORIZATION kokonut_runtime;
+DO $$
+BEGIN
+    PERFORM kokonut_security.test_set_context('{ORG_A}', '{LOCATION_A}', '{OPERATOR_A}');
+    BEGIN
+        PERFORM * FROM kokonut_security.list_report_snapshot_export_candidates('{LOCATION_A}', 25, 0);
+        RAISE EXCEPTION 'candidate listing unexpectedly used a create-only grant';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+END;
+$$;
+RESET SESSION AUTHORIZATION;
+
+UPDATE public.operator_scope_grant SET revoked_at = NULL
+ WHERE operator_id = '{OPERATOR_A}' AND resource = 'report_snapshot_export'
+   AND action = 'read' AND location_id = '{LOCATION_A}';
+"""
+
 
 def run(command: list[str], *, input_text: str | None = None) -> str:
     result = subprocess.run(command, input=input_text, text=True, capture_output=True, check=False)
@@ -510,6 +617,7 @@ def main() -> int:
     container = f"kokonut-report-export-{secrets.token_hex(4)}"
     output = args.output or DEFAULT_OUTPUT
     migration = MIGRATION.read_text(encoding="utf-8")
+    candidate_migration = CANDIDATE_MIGRATION.read_text(encoding="utf-8")
     created = False
     try:
         command = [docker, "run", "-d", "--rm", "--network", "none", "--name", container]
@@ -525,13 +633,19 @@ def main() -> int:
             raise RuntimeError("disposable PostgreSQL container architecture mismatch")
         docker_sql(docker, container, FIXTURE)
         docker_sql(docker, container, migration)
+        docker_sql(docker, container, candidate_migration)
         docker_sql(docker, container, REPLAY_SETUP)
         docker_sql(docker, container, migration)
+        docker_sql(docker, container, candidate_migration)
+        docker_sql(docker, container, CANDIDATE_ACCEPTANCE)
         docker_sql(docker, container, ACCEPTANCE)
         evidence = {
-            "date": "2026-10-28",
-            "migration": MIGRATION.name,
-            "migration_sha256": hashlib.sha256(migration.encode()).hexdigest(),
+            "date": "2026-10-29",
+            "migrations": [MIGRATION.name, CANDIDATE_MIGRATION.name],
+            "migration_sha256": {
+                MIGRATION.name: hashlib.sha256(migration.encode()).hexdigest(),
+                CANDIDATE_MIGRATION.name: hashlib.sha256(candidate_migration.encode()).hexdigest(),
+            },
             "database": "PostgreSQL 16 disposable container; Docker network disabled",
             "database_image": args.image,
             "requested_platform": args.platform,
@@ -545,6 +659,8 @@ def main() -> int:
                 "forced-RLS source relations receive function-owner SELECT policies",
                 "claims are bounded and lease-token/worker fenced; source loads are exact-location and lifecycle scoped",
                 "download authorization returns opaque artifact UUID, digest, and size only to the current location download grant",
+                "eligible snapshot listing returns only exact-location verified/published records with bounded JSON payloads and valid SHA-256 text",
+                "eligible snapshot listing enforces its own read grant, preserves bounded pagination, and exposes no report payload or storage path",
                 "request state and append-only attempt receipts commit atomically",
                 "transient storage failure respects available_at and dead-letters at attempt eight; deterministic source change dead-letters immediately",
             ],

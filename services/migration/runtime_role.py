@@ -106,6 +106,7 @@ _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS = (
 _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS = (
     "kokonut_security.request_report_snapshot_export(uuid,uuid,uuid)",
     "kokonut_security.list_report_snapshot_exports(uuid,integer)",
+    "kokonut_security.list_report_snapshot_export_candidates(uuid,integer,integer)",
     "kokonut_security.get_report_snapshot_export(uuid,uuid)",
     "kokonut_security.authorize_report_snapshot_export_download(uuid,uuid)",
 )
@@ -1855,7 +1856,7 @@ def provision_runtime_role(
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 683 report snapshot export functions must be applied before "
+                    "migrations 683 and 684 report snapshot export functions must be applied before "
                     "provisioning its dedicated login"
                 )
         if notification_delivery_user is not None:

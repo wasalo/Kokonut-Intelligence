@@ -41,6 +41,7 @@ def test_report_snapshot_export_role_function_allowlists_are_separate():
     assert runtime_role._REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS == (
         "kokonut_security.request_report_snapshot_export(uuid,uuid,uuid)",
         "kokonut_security.list_report_snapshot_exports(uuid,integer)",
+        "kokonut_security.list_report_snapshot_export_candidates(uuid,integer,integer)",
         "kokonut_security.get_report_snapshot_export(uuid,uuid)",
         "kokonut_security.authorize_report_snapshot_export_download(uuid,uuid)",
     )
@@ -60,7 +61,7 @@ def test_runtime_role_reapplies_user_grants_and_worker_login_allowlist():
     assert "report_snapshot_export_password: str | None = None" in source
     assert "KOKONUT_REPORT_SNAPSHOT_EXPORT_USER" in source
     assert "KOKONUT_REPORT_SNAPSHOT_EXPORT_PASSWORD" in source
-    assert "migration 683 report snapshot export functions must be applied" in source
+    assert "migrations 683 and 684 report snapshot export functions must be applied" in source
     assert "_verify_bounded_indexer_login(" in source
     assert "_REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS" in source
 
@@ -72,6 +73,24 @@ def test_runtime_role_reapplies_user_grants_and_worker_login_allowlist():
     )
     assert runtime_grant < runtime_worker_revoke
     assert "report snapshot export login must connect only to its configured database" in source
+
+
+def test_candidate_migration_is_bounded_location_scoped_and_payload_free():
+    source = _CHECKER.CANDIDATE_MIGRATION.read_text(encoding="utf-8")
+    assert "requested_limit NOT BETWEEN 1 AND 50" in source
+    assert "requested_offset NOT BETWEEN 0 AND 5000" in source
+    assert "context_record.location_id IS DISTINCT FROM requested_location_id" in source
+    assert "'report_snapshot_export', 'read', requested_location_id" in source
+    assert "snapshot.status IN ('verified', 'published')" in source
+    assert "snapshot.snapshot_hash ~ '^[0-9a-f]{64}$'" in source
+    assert "jsonb_typeof(snapshot.report_data) = 'object'" in source
+    assert "octet_length(" in source
+    assert "LIMIT requested_limit + 1" in source
+    assert "OFFSET requested_offset" in source
+    assert "snapshot.report_data," not in source
+    assert "file_url" not in source
+    assert "TO kokonut_runtime" in source
+    assert "FROM kokonut_directus_runtime" in source
 
 
 def test_runtime_role_compose_keeps_export_worker_password_optional():

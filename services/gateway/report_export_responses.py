@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -37,8 +37,20 @@ def _aware_datetime(value):
     raise ValueError("Timestamp value is invalid")
 
 
+def _response_date(value):
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("date value is invalid") from exc
+    raise ValueError("date value is invalid")
+
+
 _ResponseUUID = Annotated[UUID, BeforeValidator(_uuid)]
 _ResponseDateTime = Annotated[AwareDatetime, BeforeValidator(_aware_datetime)]
+_ResponseDate = Annotated[date, BeforeValidator(_response_date)]
 ReportExportStatus = Literal[
     "pending",
     "processing",
@@ -97,3 +109,29 @@ class ReportExportDetailResponse(BaseModel):
 
     location_id: _ResponseUUID
     data: ReportExportSummary
+
+
+class ReportExportCandidate(BaseModel):
+    """Safe, bounded metadata for one reviewed snapshot eligible for export."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    snapshot_id: _ResponseUUID
+    location_id: _ResponseUUID
+    report_name: str = Field(max_length=255)
+    report_type: str | None = Field(max_length=100)
+    status: Literal["verified", "published"]
+    period_start: _ResponseDate | None
+    period_end: _ResponseDate | None
+    snapshot_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    created_at: _ResponseDateTime | None
+
+
+class ReportExportCandidateListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50)
+    offset: int = Field(ge=0, le=5000)
+    has_more: bool
+    data: list[ReportExportCandidate] = Field(max_length=50)

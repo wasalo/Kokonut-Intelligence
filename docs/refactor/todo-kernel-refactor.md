@@ -2436,3 +2436,25 @@ Checklist: 1,587 complete / 25 open (1,612 total); TODO: 286 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — private report-export operator-console flow — 29 October 2026
+
+- [x] Add a bounded, exact-location eligible-snapshot database projection
+  with the independent export `read` grant and reviewed-status/hash/size filters.
+- [x] Bind the strict Gateway route, page contract, no-store validation errors,
+  route policy, and runtime-function allowlist to migration 684.
+- [x] Add a console flow that keeps read/create/download grants independent,
+  retries with a stable session idempotency key, polls active requests, and
+  only downloads completed artifacts.
+- [x] Apply/replay migrations 683 and 684 on disposable PostgreSQL 16 and
+  verify exact scope, separate grants, eligibility, pagination, and role limits.
+
+Focused migration, Gateway, route-policy, OpenAPI, and console checks pass 88
+tests. Ruff, runtime SQL inventory, provider-boundary, capability-matrix,
+JavaScript syntax, and diff checks pass. The disposable acceptance is
+network-disabled; candidate and legacy databases are untouched. Evidence:
+[migration acceptance](builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json),
+[focused checks](builds/2026-10-29-recovery/report-snapshot-export-console-contracts.json).
+
+Checklist: 306 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged.

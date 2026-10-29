@@ -21,6 +21,12 @@ location. The three actions are independent:
 | `report_snapshot_export:read` | Read request status and bounded history |
 | `report_snapshot_export:download` | Fetch completed artifact bytes |
 
+The operator console preserves this split. A read grant lists eligible
+snapshots and request status. Create controls appear only when the same
+location has a create grant; download controls appear only for completed
+requests when the location has a download grant. One action does not imply
+another through the UI or Gateway.
+
 Gateway handlers establish `set_operator_tenant_context()` on the same database
 connection and transaction as the bounded database function. Legacy
 location-only grants fail closed. The database rechecks the exact grant,
@@ -49,6 +55,7 @@ return `Cache-Control: no-store` and `Vary: Cookie` where applicable.
 
 | Method and path | Grant | Contract |
 | --- | --- | --- |
+| `GET /operator/api/report-export-snapshots?location_id=UUID&limit=N&offset=N` | `read` | Bounded page of exact-location verified/published snapshots with a valid SHA-256 digest and export-size-compatible JSON object; omits report payload and storage metadata |
 | `POST /operator/api/report-exports?location_id=UUID` | `create` | Strict body `{report_snapshot_id, idempotency_key}`; returns opaque request ID and state |
 | `GET /operator/api/report-exports?location_id=UUID&limit=N` | `read` | Bounded newest-first status list; never includes report payload |
 | `GET /operator/api/report-exports/{request_id}?location_id=UUID` | `read` | One request's status and safe error class |
@@ -60,6 +67,13 @@ different source is a conflict. The service generates the request ID and a
 distinct opaque artifact ID for each worker attempt. No API accepts an output
 path, storage key, arbitrary table, export format, organization ID, or caller
 selected report payload.
+
+The console uses a per-location/per-snapshot `sessionStorage` idempotency key
+and retains it when a POST response is uncertain, so retrying cannot create a
+second request. It polls pending, processing, and retryable requests at a
+bounded interval, renders only fixed metadata with text nodes, and downloads
+private bytes only for completed requests. Candidate pages stop at offset
+5,000; report payloads are never rendered into the page.
 
 The serializer exports only `report_data`, verifies the canonical snapshot
 hash, requires exact non-null location scope and `verified` or `published`
@@ -115,3 +129,10 @@ Compose profile to stop request processing. Keep queue rows and files intact
 until a reviewed disposition policy exists. A future rollback migration may
 revoke execution and stop new requests, but must not delete request history or
 artifacts automatically.
+
+Migration 684 adds only the bounded eligible-snapshot projection used by the
+console. It is additive and runs after migration 683. Disposable PostgreSQL 16
+acceptance covers apply/replay, location and read-grant separation, lifecycle,
+hash/size filtering, pagination, and role boundaries. The candidate and legacy
+databases remain untouched; live OIDC, browser acceptance, populated-data
+review, and candidate rollout are still separate gates.

@@ -17,6 +17,7 @@ from services.gateway.report_exports import (
     ReportExportNotFound,
     download_report_export,
     get_report_export,
+    list_exportable_report_snapshots,
     list_report_exports,
     request_report_export,
 )
@@ -77,7 +78,7 @@ class FakeCursor:
         if row is not None:
             self.description = [SimpleNamespace(name=key) for key in row]
             self.one = tuple(row.values())
-        if "list_report_snapshot_exports" in sql:
+        if "list_report_snapshot_exports" in sql or "list_report_snapshot_export_candidates" in sql:
             self.description = [SimpleNamespace(name=key) for key in self.many[0]] if self.many else []
             self.many = [tuple(row.values()) for row in self.many]
 
@@ -190,6 +191,70 @@ def test_report_export_list_uses_read_grant_and_bounded_location_scope(context_c
     )
     assert query[1] == (LOCATION_ID, 25)
     assert connection.rolled_back and connection.closed
+
+
+def test_candidate_list_uses_same_transaction_read_context_and_overfetch_pagination(context_calls):
+    candidate = {
+        "snapshot_id": UUID(SNAPSHOT_ID),
+        "location_id": UUID(LOCATION_ID),
+        "report_name": "Synthetic impact report",
+        "report_type": "impact",
+        "status": "verified",
+        "period_start": None,
+        "period_end": None,
+        "snapshot_hash": "a" * 64,
+        "created_at": NOW,
+    }
+    connection = FakeConnection(many=[candidate, {**candidate, "snapshot_id": UUID(ARTIFACT_ID)}])
+
+    result = list_exportable_report_snapshots(
+        OPERATOR_ID,
+        LOCATION_ID,
+        1,
+        7,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "limit": 1,
+        "offset": 7,
+        "has_more": True,
+        "data": [candidate],
+    }
+    _assert_context_precedes_function(
+        connection, context_calls, "list_report_snapshot_export_candidates", "read"
+    )
+    query = next(
+        (sql, params)
+        for sql, params in connection.statements
+        if "list_report_snapshot_export_candidates" in sql
+    )
+    assert query[1] == (LOCATION_ID, 1, 7)
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize(
+    ("limit", "offset"),
+    [(0, 0), (51, 0), (1, -1), (1, 5001), (True, 0), (1, True)],
+)
+def test_invalid_candidate_list_page_fails_before_database_open(limit, offset):
+    opened = False
+
+    def connect():
+        nonlocal opened
+        opened = True
+        return FakeConnection()
+
+    with pytest.raises(ValueError):
+        list_exportable_report_snapshots(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit,
+            offset,
+            connection_factory=connect,
+        )
+    assert not opened
 
 
 @pytest.mark.parametrize("limit", [0, 51])

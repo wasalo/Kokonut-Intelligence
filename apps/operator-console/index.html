@@ -111,6 +111,30 @@
             <pre id="report-data"></pre>
           </section>
         </section>
+        <section id="report-exports" hidden aria-labelledby="report-exports-heading">
+          <h2 id="report-exports-heading">Private report exports</h2>
+          <p class="muted">Request a private JSON copy of a verified or published report snapshot. Reading eligible snapshots, creating an export, and downloading completed bytes require separate location grants. Export artifacts are private and are never published or shared by this console.</p>
+          <div class="toolbar">
+            <label for="report-export-location">Granted location</label>
+            <select id="report-export-location"></select>
+            <button id="report-export-refresh" type="button">Refresh exports</button>
+          </div>
+          <p id="report-export-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Eligible report</th><th>Period</th><th>Created</th><th>Snapshot digest</th><th></th></tr></thead>
+              <tbody id="report-export-candidates"></tbody>
+            </table>
+          </div>
+          <button id="report-export-more" class="secondary" type="button" hidden>Load more eligible reports</button>
+          <h3>Recent export requests</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Report snapshot</th><th>Status</th><th>Attempts</th><th>Updated</th><th></th></tr></thead>
+              <tbody id="report-export-requests"></tbody>
+            </table>
+          </div>
+        </section>
         <section id="delphi-recommendation-review" hidden aria-labelledby="delphi-recommendation-review-heading">
           <h2 id="delphi-recommendation-review-heading">Delphi recommendation review</h2>
           <p class="muted">Review facilitator recommendation drafts for locations explicitly granted to your account. Approval requires a separate reviewer, a recorded diversity assessment, and completed minority-report review. This records an approval decision only; it does not publish the recommendation.</p>
@@ -3001,7 +3025,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, management workflow, competitive landscape, strategy, threatcasting, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, report export, governance, collection review, coordination, business architecture, business-planning, planning budget, management workflow, competitive landscape, strategy, threatcasting, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -3017,6 +3041,22 @@
       const queueStatus = document.querySelector("#queue-status");
       const detail = document.querySelector("#report-detail");
       const reportData = document.querySelector("#report-data");
+      const reportExports = document.querySelector("#report-exports");
+      const reportExportLocation = document.querySelector("#report-export-location");
+      const reportExportStatus = document.querySelector("#report-export-status");
+      const reportExportCandidates = document.querySelector("#report-export-candidates");
+      const reportExportRequests = document.querySelector("#report-export-requests");
+      const reportExportMore = document.querySelector("#report-export-more");
+      let reportExportReadLocations = new Set();
+      let reportExportCreateLocations = new Set();
+      let reportExportDownloadLocations = new Set();
+      let reportExportCandidateOffset = 0;
+      let reportExportCandidateHasMore = false;
+      let reportExportCandidatesById = new Map();
+      let reportExportRequestsById = new Map();
+      let reportExportPendingSnapshots = new Set();
+      let reportExportRequestVersion = 0;
+      let reportExportPollTimer = null;
       const delphiRecommendationReview = document.querySelector("#delphi-recommendation-review");
       const delphiRecommendationReviewLocation = document.querySelector("#delphi-recommendation-review-location");
       const delphiRecommendationReviewStatus = document.querySelector("#delphi-recommendation-review-status");
@@ -4378,6 +4418,332 @@
         const item = document.cookie.split("; ")
           .find((value) => value.startsWith("kokonut_operator_csrf="));
         return item ? decodeURIComponent(item.split("=").slice(1).join("=")) : "";
+      }
+
+      const reportExportUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const reportExportCandidateFields = [
+        "snapshot_id", "location_id", "report_name", "report_type", "status",
+        "period_start", "period_end", "snapshot_hash", "created_at"
+      ].sort().join(",");
+      const reportExportRequestFields = [
+        "request_id", "snapshot_id", "location_id", "status", "attempt_count",
+        "artifact_size", "created_at", "updated_at", "completed_at", "last_error_class"
+      ].sort().join(",");
+
+      function isReportExportCandidate(value, locationId) {
+        if (!value || typeof value !== "object" || Array.isArray(value)
+            || Object.keys(value).sort().join(",") !== reportExportCandidateFields) return false;
+        return reportExportUuidPattern.test(value.snapshot_id)
+          && value.location_id === locationId
+          && typeof value.report_name === "string"
+          && (value.report_type === null || typeof value.report_type === "string")
+          && ["verified", "published"].includes(value.status)
+          && (value.period_start === null || /^\d{4}-\d{2}-\d{2}$/.test(value.period_start))
+          && (value.period_end === null || /^\d{4}-\d{2}-\d{2}$/.test(value.period_end))
+          && typeof value.snapshot_hash === "string"
+          && /^[0-9a-f]{64}$/.test(value.snapshot_hash)
+          && (value.created_at === null
+            || (typeof value.created_at === "string" && Number.isFinite(Date.parse(value.created_at))));
+      }
+
+      function isReportExportSummary(value, locationId) {
+        if (!value || typeof value !== "object" || Array.isArray(value)
+            || Object.keys(value).sort().join(",") !== reportExportRequestFields) return false;
+        return reportExportUuidPattern.test(value.request_id)
+          && reportExportUuidPattern.test(value.snapshot_id)
+          && value.location_id === locationId
+          && ["pending", "processing", "retryable", "dead_letter", "completed", "cancelled"].includes(value.status)
+          && Number.isInteger(value.attempt_count) && value.attempt_count >= 0
+          && (value.artifact_size === null
+            || (Number.isInteger(value.artifact_size) && value.artifact_size > 0 && value.artifact_size <= 524288))
+          && [value.created_at, value.updated_at].every((item) =>
+            typeof item === "string" && Number.isFinite(Date.parse(item)))
+          && (value.completed_at === null
+            || (typeof value.completed_at === "string" && Number.isFinite(Date.parse(value.completed_at))))
+          && (value.last_error_class === null
+            || (typeof value.last_error_class === "string" && /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(value.last_error_class)));
+      }
+
+      function reportExportLocationHas(set, locationId) {
+        return typeof locationId === "string" && set.has(locationId);
+      }
+
+      function reportExportRequestKey(locationId, snapshotId) {
+        return `kokonut.report-export.idempotency:${locationId}:${snapshotId}`;
+      }
+
+      function renderReportExportCandidates() {
+        reportExportCandidates.replaceChildren();
+        for (const candidate of reportExportCandidatesById.values()) {
+          const row = document.createElement("tr");
+          const title = document.createElement("td");
+          title.textContent = `${candidate.report_name} (${candidate.report_type || "report"})`;
+          const period = document.createElement("td");
+          period.textContent = [candidate.period_start, candidate.period_end].filter(Boolean).join(" – ") || "—";
+          const created = document.createElement("td");
+          created.textContent = candidate.created_at ? new Date(candidate.created_at).toLocaleString() : "—";
+          const digest = document.createElement("td");
+          digest.textContent = candidate.snapshot_hash;
+          const action = document.createElement("td");
+          const existing = [...reportExportRequestsById.values()].find((item) =>
+            item.snapshot_id === candidate.snapshot_id && item.status !== "cancelled");
+          if (reportExportLocationHas(reportExportCreateLocations, candidate.location_id)) {
+            const create = document.createElement("button");
+            create.type = "button";
+            create.textContent = existing ? `Export ${existing.status}` : "Request private export";
+            create.disabled = Boolean(existing) || reportExportPendingSnapshots.has(candidate.snapshot_id);
+            if (!existing) create.addEventListener("click", () => createReportExport(candidate, create));
+            action.append(create);
+          }
+          row.append(title, period, created, digest, action);
+          reportExportCandidates.append(row);
+        }
+        reportExportMore.hidden = !reportExportCandidateHasMore;
+      }
+
+      function renderReportExportRequests() {
+        reportExportRequests.replaceChildren();
+        for (const item of reportExportRequestsById.values()) {
+          const row = document.createElement("tr");
+          const snapshot = document.createElement("td");
+          snapshot.textContent = item.snapshot_id;
+          const state = document.createElement("td");
+          state.textContent = item.status;
+          const attempts = document.createElement("td");
+          attempts.textContent = String(item.attempt_count);
+          const updated = document.createElement("td");
+          updated.textContent = new Date(item.updated_at).toLocaleString();
+          const action = document.createElement("td");
+          if (item.status === "completed"
+              && reportExportLocationHas(reportExportDownloadLocations, item.location_id)) {
+            const download = document.createElement("button");
+            download.type = "button";
+            download.className = "secondary";
+            download.textContent = "Download private JSON";
+            download.addEventListener("click", () => downloadReportExport(item, download));
+            action.append(download);
+          }
+          row.append(snapshot, state, attempts, updated, action);
+          reportExportRequests.append(row);
+        }
+        const active = [...reportExportRequestsById.values()].some((item) =>
+          ["pending", "processing", "retryable"].includes(item.status));
+        if (reportExportPollTimer !== null) window.clearTimeout(reportExportPollTimer);
+        reportExportPollTimer = active
+          ? window.setTimeout(() => loadReportExportRequests({ poll: true }), 5000)
+          : null;
+      }
+
+      async function loadReportExportCandidates({ append = false, requestVersion = reportExportRequestVersion } = {}) {
+        const locationId = reportExportLocation.value;
+        if (!reportExportLocationHas(reportExportReadLocations, locationId)) {
+          reportExportCandidatesById.clear();
+          reportExportCandidateOffset = 0;
+          reportExportCandidateHasMore = false;
+          renderReportExportCandidates();
+          reportExportStatus.textContent = "A separate report snapshot export read grant is required to list eligible reports.";
+          return;
+        }
+        if (!append) {
+          reportExportCandidateOffset = 0;
+          reportExportCandidateHasMore = false;
+          reportExportCandidatesById.clear();
+          renderReportExportCandidates();
+        }
+        const offset = reportExportCandidateOffset;
+        const params = new URLSearchParams({ location_id: locationId, limit: "25", offset: String(offset) });
+        try {
+          const response = await fetch(`/operator/api/report-export-snapshots?${params}`, {
+            credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" }
+          });
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or separate location read grant is no longer valid.");
+          }
+          if (!response.ok) throw new Error("Eligible report snapshots are unavailable.");
+          const result = await response.json();
+          if (requestVersion !== reportExportRequestVersion || locationId !== reportExportLocation.value) return;
+          if (!result || Object.keys(result).sort().join(",") !== "data,has_more,limit,location_id,offset"
+              || result.location_id !== locationId || result.limit !== 25 || result.offset !== offset
+              || typeof result.has_more !== "boolean" || !Array.isArray(result.data)
+              || result.data.length > 25 || !result.data.every((item) => isReportExportCandidate(item, locationId))) {
+            throw new Error("The eligible report list did not match the expected location or page.");
+          }
+          for (const candidate of result.data) reportExportCandidatesById.set(candidate.snapshot_id, candidate);
+          reportExportCandidateOffset = offset + result.data.length;
+          reportExportCandidateHasMore = result.has_more && reportExportCandidateOffset <= 5000;
+          renderReportExportCandidates();
+          reportExportStatus.textContent = reportExportCandidatesById.size
+            ? `${reportExportCandidatesById.size} eligible verified or published report snapshot(s).`
+            : "No verified or published report snapshots are currently eligible for private export.";
+          if (result.has_more && !reportExportCandidateHasMore) {
+            reportExportStatus.textContent = "The eligible report list reached the 5,000-row browsing limit.";
+          }
+        } catch (error) {
+          if (requestVersion === reportExportRequestVersion) reportExportStatus.textContent = error.message;
+        }
+      }
+
+      async function loadReportExportRequests({ poll = false, requestVersion = reportExportRequestVersion } = {}) {
+        const locationId = reportExportLocation.value;
+        if (!reportExportLocationHas(reportExportReadLocations, locationId)) {
+          reportExportRequestsById.clear();
+          renderReportExportRequests();
+          return;
+        }
+        if (!poll) {
+          reportExportRequestsById.clear();
+          renderReportExportRequests();
+        }
+        const params = new URLSearchParams({ location_id: locationId, limit: "50" });
+        try {
+          const response = await fetch(`/operator/api/report-exports?${params}`, {
+            credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" }
+          });
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or separate location read grant is no longer valid.");
+          }
+          if (!response.ok) throw new Error("Private export request status is unavailable.");
+          const result = await response.json();
+          if (requestVersion !== reportExportRequestVersion || locationId !== reportExportLocation.value) return;
+          if (!result || Object.keys(result).sort().join(",") !== "data,location_id"
+              || result.location_id !== locationId || !Array.isArray(result.data)
+              || result.data.length > 50 || !result.data.every((item) => isReportExportSummary(item, locationId))) {
+            throw new Error("The export request list did not match the expected location.");
+          }
+          reportExportRequestsById = new Map(result.data.map((item) => [item.request_id, item]));
+          renderReportExportRequests();
+          renderReportExportCandidates();
+          if (!poll) reportExportStatus.textContent = "Private export requests are available only to operators with this location's read grant.";
+        } catch (error) {
+          if (requestVersion === reportExportRequestVersion) {
+            if (reportExportPollTimer !== null) window.clearTimeout(reportExportPollTimer);
+            reportExportPollTimer = null;
+            reportExportStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function refreshReportExports() {
+        const requestVersion = ++reportExportRequestVersion;
+        if (reportExportPollTimer !== null) window.clearTimeout(reportExportPollTimer);
+        reportExportPollTimer = null;
+        reportExportStatus.textContent = "Refreshing private report exports…";
+        await Promise.all([
+          loadReportExportCandidates({ requestVersion }),
+          loadReportExportRequests({ requestVersion })
+        ]);
+      }
+
+      async function createReportExport(candidate, button) {
+        const locationId = reportExportLocation.value;
+        if (candidate.location_id !== locationId
+            || reportExportCandidatesById.get(candidate.snapshot_id) !== candidate
+            || !reportExportLocationHas(reportExportCreateLocations, locationId)) {
+          reportExportStatus.textContent = "A separate create grant and a current eligible snapshot are required.";
+          return;
+        }
+        const csrf = csrfToken();
+        const storageKey = reportExportRequestKey(locationId, candidate.snapshot_id);
+        let idempotencyKey;
+        try {
+          idempotencyKey = sessionStorage.getItem(storageKey);
+          if (!reportExportUuidPattern.test(idempotencyKey || "")) {
+            idempotencyKey = globalThis.crypto?.randomUUID?.();
+            if (!idempotencyKey) throw new Error("secure random UUID generation is unavailable");
+            sessionStorage.setItem(storageKey, idempotencyKey);
+          }
+        } catch {
+          reportExportStatus.textContent = "Secure session storage is required to retry an export safely.";
+          return;
+        }
+        if (!csrf) {
+          reportExportStatus.textContent = "Refresh the secure operator session before requesting an export.";
+          return;
+        }
+        reportExportPendingSnapshots.add(candidate.snapshot_id);
+        button.disabled = true;
+        renderReportExportCandidates();
+        reportExportStatus.textContent = "Submitting a private export request…";
+        try {
+          const response = await fetch(`/operator/api/report-exports?location_id=${encodeURIComponent(locationId)}`, {
+            method: "POST", credentials: "same-origin", cache: "no-store",
+            headers: {
+              "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf
+            },
+            body: JSON.stringify({ report_snapshot_id: candidate.snapshot_id, idempotency_key: idempotencyKey })
+          });
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            sessionStorage.removeItem(storageKey);
+            throw new Error("Your session or separate location create grant is no longer valid.");
+          }
+          if (response.status === 404) {
+            sessionStorage.removeItem(storageKey);
+            throw new Error("This snapshot is no longer eligible for export. Refresh the list.");
+          }
+          if (!response.ok) {
+            if (response.status < 500 && response.status !== 429) sessionStorage.removeItem(storageKey);
+            throw new Error(result.error || "The private export request could not be confirmed. Retry to reuse its request ID.");
+          }
+          if (response.status !== 202 || !result || Object.keys(result).sort().join(",") !== "created_at,request_id,status"
+              || !reportExportUuidPattern.test(result.request_id)
+              || !["pending", "processing", "retryable", "dead_letter", "completed", "cancelled"].includes(result.status)
+              || typeof result.created_at !== "string" || !Number.isFinite(Date.parse(result.created_at))) {
+            throw new Error("The export request response did not match the expected receipt.");
+          }
+          reportExportStatus.textContent = `Private export request ${result.request_id} is ${result.status}.`;
+          await loadReportExportRequests();
+          if (reportExportRequestsById.has(result.request_id)
+              && reportExportRequestsById.get(result.request_id).snapshot_id === candidate.snapshot_id) {
+            sessionStorage.removeItem(storageKey);
+          } else {
+            reportExportStatus.textContent = "The export was accepted, but its status is not confirmed yet. Retry to reuse the same request ID.";
+          }
+        } catch (error) {
+          reportExportStatus.textContent = error.message;
+        } finally {
+          reportExportPendingSnapshots.delete(candidate.snapshot_id);
+          renderReportExportCandidates();
+        }
+      }
+
+      async function downloadReportExport(item, button) {
+        const locationId = reportExportLocation.value;
+        if (item.location_id !== locationId || item.status !== "completed"
+            || !reportExportLocationHas(reportExportDownloadLocations, locationId)) {
+          reportExportStatus.textContent = "A separate download grant and a completed export for this location are required.";
+          return;
+        }
+        button.disabled = true;
+        try {
+          const params = new URLSearchParams({ location_id: locationId });
+          const response = await fetch(
+            `/operator/api/report-exports/${encodeURIComponent(item.request_id)}/artifact?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or separate location download grant is no longer valid.");
+          }
+          if (!response.ok || !response.headers.get("content-type")?.toLowerCase().includes("application/json")
+              || !response.headers.get("cache-control")?.toLowerCase().includes("no-store")) {
+            throw new Error("Only a completed private JSON artifact can be downloaded.");
+          }
+          const blob = await response.blob();
+          if (blob.size < 1 || blob.size > 524288) throw new Error("The export artifact exceeds the safe download size.");
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement("a");
+          anchor.href = url;
+          anchor.download = `kokonut-report-export-${item.request_id}.json`;
+          document.body.append(anchor);
+          anchor.click();
+          anchor.remove();
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+          reportExportStatus.textContent = "Private export downloaded. Keep this file within your authorized workspace.";
+        } catch (error) {
+          reportExportStatus.textContent = error.message;
+        } finally {
+          button.disabled = false;
+        }
       }
 
       function renderIdentity(operator) {
@@ -21205,6 +21571,22 @@
           const reviewLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "report_snapshot_review" && scope.action === "read")
             .map((scope) => scope.location_id))];
+          const reportExportScopeLocations = (action) => [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "report_snapshot_export" && scope.action === action)
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && reportExportUuidPattern.test(locationId)))];
+          const reportExportReadLocationIds = reportExportScopeLocations("read");
+          const reportExportCreateLocationIds = reportExportScopeLocations("create");
+          const reportExportDownloadLocationIds = reportExportScopeLocations("download");
+          reportExportReadLocations = new Set(reportExportReadLocationIds);
+          reportExportCreateLocations = new Set(reportExportCreateLocationIds);
+          reportExportDownloadLocations = new Set(reportExportDownloadLocationIds);
+          const reportExportAccessibleLocationIds = [...new Set([
+            ...reportExportReadLocationIds,
+            ...reportExportCreateLocationIds,
+            ...reportExportDownloadLocationIds
+          ])];
           const operatingPilotLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -22150,6 +22532,17 @@
             }
             review.hidden = false;
             await loadQueue();
+            hasAuthorizedSurface = true;
+          }
+          if (reportExportAccessibleLocationIds.length) {
+            for (const locationId of reportExportAccessibleLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              reportExportLocation.append(option);
+            }
+            reportExports.hidden = false;
+            await refreshReportExports();
             hasAuthorizedSurface = true;
           }
           if (delphiReviewLocationIds.length) {
@@ -26935,6 +27328,10 @@
 
       document.querySelector("#refresh").addEventListener("click", loadQueue);
       locationSelect.addEventListener("change", loadQueue);
+      document.querySelector("#report-export-refresh").addEventListener("click", refreshReportExports);
+      reportExportLocation.addEventListener("change", refreshReportExports);
+      reportExportMore.addEventListener("click", () =>
+        loadReportExportCandidates({ append: true, requestVersion: reportExportRequestVersion }));
       document.querySelector("#delphi-recommendation-review-refresh").addEventListener("click", () => loadDelphiRecommendationReviewQueue());
       delphiRecommendationReviewLocation.addEventListener("change", () => loadDelphiRecommendationReviewQueue());
       delphiRecommendationReviewMore.addEventListener("click", () => loadDelphiRecommendationReviewQueue(true));

@@ -3828,7 +3828,9 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
     report_export_action = None
-    if path == "/operator/api/report-exports":
+    if path == "/operator/api/report-export-snapshots" and method.upper() == "GET":
+        report_export_action = "read"
+    elif path == "/operator/api/report-exports":
         report_export_action = {
             "POST": "create",
             "GET": "read",
@@ -3978,6 +3980,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     )
     from services.gateway.operator_review_responses import ReportReviewQueueResponse
     from services.gateway.report_export_responses import (
+        ReportExportCandidateListResponse,
         ReportExportCreateResponse,
         ReportExportDetailResponse,
         ReportExportListResponse,
@@ -4372,6 +4375,94 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
             get_logger("gateway.report_exports").warning(
                 "Report export list unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Report export service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            jsonable_encoder(response.model_dump()),
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get(
+        "/operator/api/report-export-snapshots",
+        response_model=ReportExportCandidateListResponse,
+    )
+    async def list_exportable_report_snapshots(
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=5000),
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.report_exports import (
+            list_exportable_report_snapshots as list_candidates,
+        )
+
+        try:
+            result = await run_in_threadpool(
+                list_candidates,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+                offset,
+            )
+            response = ReportExportCandidateListResponse.model_validate(result)
+            if (
+                response.location_id != UUID(location_id)
+                or response.limit != limit
+                or response.offset != offset
+                or any(item.location_id != response.location_id for item in response.data)
+            ):
+                from services.common.logging import get_logger
+
+                get_logger("gateway.report_exports").warning(
+                    "Report export candidate response rejected (scope or page mismatch)"
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Report export candidates unavailable"},
+                    headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValidationError as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export candidate response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Report export candidates unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report export candidate request is invalid"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export candidates unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(
                 status_code=503,
