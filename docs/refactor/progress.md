@@ -23665,3 +23665,24 @@ connections only; no live database/provider was touched. Evidence:
 Checklist: 324 checked / 16 open. Capability classifications and MAN-CAP
 acceptance remain unchanged; strict private Gateway response contracts now
 total 106.
+
+### Progress addendum — full ARM64/QEMU schema replay through migration 684 — 29 October 2026
+
+A fresh, network-disabled ARM64 PostgreSQL 16/PostGIS database applied all 675
+ordered schemas through migration 684 under QEMU. The database ran with a
+verified 1.5 GiB/two-CPU limit, reported `aarch64`, and finished with zero
+pending or failed migrations, zero seeds, no farm data, no OOM, and successful
+disposable cleanup. Candidate and legacy databases were not touched. The
+optional two-tenant operator-scope probe was not run; this establishes schema
+portability under software emulation only. Physical Raspberry Pi performance,
+power-loss/storage behavior, populated-data parity, tenant acceptance on ARM64,
+and whole-platform recovery remain open.
+
+The focused farm-summary/Gateway geometry contract selection passes 145 tests.
+Ruff, Python compilation, all three report-inventory freshness checks,
+capability-matrix validation, and `git diff --check` pass. The capability matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); strict private
+Gateway response contracts remain 109. Current checklist: 1,658 complete / 25
+open (1,683 total); TODO: 353 checked / 16 open. Evidence:
+[ARM64/QEMU replay](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json)
+and [farm-summary GeoJSON contract](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json).

@@ -10,6 +10,9 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Replay all 675 ordered schema migrations through migration 684 on ARM64
+  PostgreSQL/PostGIS under QEMU with verified resource limits, zero failures,
+  zero seeds, and disposable cleanup ([evidence](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json)).
 - [x] Convert farm/plot PostGIS boundaries and centers into explicit GeoJSON
   JSONB projections rather than serializing raw geometry
   ([evidence](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json)).
@@ -1246,8 +1249,8 @@ that its full source-plan phase is complete.
   populated-source acceptance. Sources: [CAP-035](batches.md#L3484),
   [CAP-036](batches.md#L3574), [CAP-037](batches.md#L3582),
   [CAP-038](batches.md#L3652).
-- [ ] **C7 — Finish software-only ARM64 and recovery evidence.** The full
-  ARM64/QEMU schema replay now passes all 672 files through migration 681
+- [ ] **C7 — Finish software-only ARM64 and recovery evidence.** The latest
+  ARM64/QEMU schema replay passes all 675 files through migration 684
   under a verified 1.5 GiB/two-CPU database budget. The network was disabled,
   no ports, seeds, or farm data were used, no OOM occurred, and cleanup passed.
   That replay did not enable its optional operator-scope probe. The native full

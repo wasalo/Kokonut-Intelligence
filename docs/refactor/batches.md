@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,657 checklist items complete and 25
-open (1,682 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,658 checklist items complete and 25
+open (1,683 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -2513,8 +2513,9 @@ these new tags are build candidates only.
   - The previous source smoke from `829376b4` also displayed migration CLI help and constructed a synthetic RPC balance snapshot ([earlier app smoke](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-829376b4.json)).
   - A separate clean, network-disabled PostgreSQL 16 replay applied all 618 current schema files through migration 627 with zero pending/failed, no seeds or farm data, no host ports, and successful `aarch64` cleanup ([schema replay](builds/2026-10-25-recovery/arm64-qemu-current-schema-627.json)).
   - [x] Refresh the clean full-schema ARM64/QEMU replay through migration 639: all 630 ordered schemas applied with zero pending/failed, zero seeds, no farm data, no network or host ports, and successful cleanup. PostgreSQL reported `aarch64`; this is software-emulation evidence only, not physical Pi acceptance ([evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-639.json)).
+  - [x] Refresh the clean full-schema ARM64/QEMU replay through migration 684: all 675 ordered schemas applied with zero pending/failed, zero seeds, no farm data, no network or host ports, a verified 1.5 GiB/two-CPU budget, no OOM, and successful cleanup. PostgreSQL reported `aarch64`; the optional operator-scope probe was not run, so this is schema-portability evidence only ([evidence](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json)).
   All software checks left candidate and legacy services untouched and removed temporary resources. QEMU is software-emulation evidence only; physical Pi performance, thermal/storage endurance, power loss, network/device restart, and long-duration recovery remain open. Public ingress, trusted-proxy hops, credentialed browser CORS, alert routing/on-call, dynamically approved retention, 24-hour recovery scheduling, and production replica/failover gates are tracked separately and remain open where applicable.
-- [x] Keep fresh schema replay compatible with the optional Directus profile being disabled. A clean current-source ARM64 replay reached migration 595 after applying 585 schemas, then exposed a missing historical `directus` role ([failed replay](builds/2026-10-23-recovery/arm64-qemu-current-schema-597.json)). The clean-bootstrap role fixture now creates `directus` as `NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS` only when absent; this satisfies historical revokes in migrations 595–597 without granting the optional `kokonut_directus_runtime` account or changing an existing role. The migration CLI and bootstrap contract regressions pass within 40 focused tests; Ruff, Python compilation, and diff checks pass. On isolated ARM64/QEMU PostgreSQL 16, the bootstrap ran twice and the role retained all seven locked flags; cleanup removed its temporary project and volume ([evidence](builds/2026-10-23-recovery/optional-directus-placeholder-role-arm64.json)). A subsequent attempt caught a checker finalization bug; the checker is fixed and covered, and a corrected full replay is in progress. No candidate or legacy database was touched.
+- [x] Keep fresh schema replay compatible with the optional Directus profile being disabled. A clean current-source ARM64 replay reached migration 595 after applying 585 schemas, then exposed a missing historical `directus` role ([failed replay](builds/2026-10-23-recovery/arm64-qemu-current-schema-597.json)). The clean-bootstrap role fixture now creates `directus` as `NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS` only when absent; this satisfies historical revokes in migrations 595–597 without granting the optional `kokonut_directus_runtime` account or changing an existing role. The migration CLI and bootstrap contract regressions pass within 40 focused tests; Ruff, Python compilation, and diff checks pass. On isolated ARM64/QEMU PostgreSQL 16, the bootstrap ran twice and the role retained all seven locked flags; cleanup removed its temporary project and volume ([evidence](builds/2026-10-23-recovery/optional-directus-placeholder-role-arm64.json)). A subsequent attempt caught a checker finalization bug; the checker is fixed and covered, and a corrected full replay later passed all 675 schemas through migration 684 ([replay evidence](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json)). No candidate or legacy database was touched.
   - [x] Add and runtime-smoke a schema-only Docker Compose profile with `network_mode: none`, no host port, pinned PostgreSQL/PostGIS, `psql` access through `docker compose exec`, and automatic temporary volume cleanup. The container reached healthy, returned `kokonut:kokonut_intelligence`, and the container/volume were removed. Two focused Compose contract tests verify the pinned default image and ARM64 image override preserve isolation. This smoke ran no migrations and is separate from the 516-file replay, which used a private bridge ([profile](../../docker-compose.schema-bootstrap.yml); [tests](../../tests/test_schema_bootstrap_profile.py); [evidence](builds/2026-10-20-recovery/schema-bootstrap-networkless-smoke.json)).
   - [x] Verify a successful Field Collector media upload returns the exact configured `Access-Control-Allow-Origin` and credentialed CORS headers through the actual Gateway middleware and upload handler. The in-process TestClient run returns 201 and verifies `Vary: Origin`; token resolution, PostgreSQL, and media storage are synthetic/mocked. Two focused CORS checks and Ruff pass. This does not close real device-token, OIDC, browser-through-proxy, or public-ingress acceptance ([evidence](builds/2026-10-18-recovery/mobile-upload-success-cors.json)).
 - [x] Refresh the current-source ARM64/QEMU smoke through migration 434: the clean-bootstrap role placeholders were installed first, all 425 ordered schemas applied with zero failures, the ARM64 app and PostgreSQL/PostGIS both reported `aarch64`, `/health` returned 200, and the anonymous protected route returned 401 under 1 GiB/two-CPU app and 1.5 GiB/two-CPU database limits. The internal-only project had no published host port and was removed; candidate IDs and health, legacy stack, seeds, farm data, providers, and physical Raspberry Pi were untouched. The harness returned a false negative because it treated a null host binding as published and compared relative uptime; captured container IDs/health and null port binding verify the acceptance criteria ([evidence](builds/2026-10-18-recovery/arm64-qemu-current-schema-434.json)).
@@ -7126,7 +7127,24 @@ production state was used. No migration is required. Rollback reverts the
 PostGIS projections, GeoJSON response models/scope checks, tests, and evidence
 ([evidence](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json)).
 
-Checklist: 1,657 complete / 25 open (1,682 total); TODO: 352 checked / 16
+Checklist: 1,658 complete / 25 open (1,683 total); TODO: 353 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 109. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — full ARM64/QEMU schema replay — 29 October 2026
+
+A fresh, network-disabled ARM64 PostgreSQL 16/PostGIS replay applied all 675
+ordered schemas through migration 684. The run used verified limits of 1.5 GiB
+and two CPUs, no network or host ports, no seeds or farm data, and no candidate
+or legacy database. PostgreSQL reported `aarch64`; there were zero pending or
+failed migrations, no OOM, and disposable resource cleanup completed. The
+optional operator-scope probe was not run, so this confirms schema portability
+under QEMU only. Physical Raspberry Pi performance, power-loss/storage behavior,
+populated-data parity, and whole-platform recovery remain open. Evidence:
+[ARM64/QEMU replay](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json).
+
+Checklist: 1,658 complete / 25 open (1,683 total); TODO: 353 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 109. MAN-CAP acceptance is unchanged.
