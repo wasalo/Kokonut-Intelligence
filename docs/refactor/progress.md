@@ -24313,3 +24313,17 @@ pass. No database or provider was used. Checklist: 1,781 complete / 25 open;
 TODO: 447 checked / 16 open; strict private Gateway response contracts total
 143. Evidence:
 [capacity-draft revision response contract](builds/2026-10-29-recovery/operating-pilot-capacity-draft-revision-response-contract.json).
+
+### Progress addendum — capacity submission and review response contracts — 29 October 2026
+
+Capacity submission and independent review now publish strict OpenAPI response
+models. Both bind location and profile IDs to the route and reject extra or
+malformed service fields with a sanitized no-store 503. A first submission must
+remain `submitted`, while a replay may report the profile's current lifecycle;
+review status must match its `approved` or `rejected` decision. The approved
+focused mock-only selection passes 25 tests (190 unrelated tests deselected),
+including replay and path-binding behavior. Ruff, Python compilation,
+capability validation, and diff checks pass. No database or provider was used.
+Checklist: 1,786 complete / 25 open; TODO: 450 checked / 16 open; strict
+private Gateway response contracts total 145. Evidence:
+[capacity submit/review contracts](builds/2026-10-29-recovery/operating-pilot-capacity-submit-review-response-contracts.json).

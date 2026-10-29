@@ -7939,3 +7939,26 @@ Checklist: 1,781 complete / 25 open (1,806 total); TODO: 447 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 143. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — capacity submission and review response contracts — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime models for capacity submission and
+  independent review results.
+- [x] Bind location/profile identities to the route and constrain submission
+  lifecycle plus review decision/status consistency.
+- [x] Preserve current lifecycle and decision on exact retries; reject
+  malformed, mismatched, or undeclared service output with no-store errors.
+- [x] Add and run focused mock-only route/OpenAPI checks for both responses,
+  including replay, path binding, and sanitization.
+- [x] Record machine-readable evidence and update progress/TODO counts.
+
+The approved focused selection passes 25 tests (190 unrelated tests
+deselected). Ruff, Python compilation, capability-matrix validation, and diff
+checks pass. No database, provider, candidate, or legacy state was used.
+Evidence:
+[capacity submit/review contracts](builds/2026-10-29-recovery/operating-pilot-capacity-submit-review-response-contracts.json).
+
+Checklist: 1,786 complete / 25 open (1,811 total); TODO: 450 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 145. C2 remains open for broader route/auth and live-runtime parity.

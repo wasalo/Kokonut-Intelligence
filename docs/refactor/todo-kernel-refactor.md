@@ -1190,6 +1190,10 @@ that its full source-plan phase is complete.
   and location, requires a new draft on first write, and preserves HTTP 200;
   12 focused checks pass
   ([evidence](builds/2026-10-29-recovery/operating-pilot-capacity-draft-revision-response-contract.json)).
+  The capacity submit and independent-review routes now also expose strict
+  response models, bind location/profile IDs, enforce first-write lifecycle
+  and decision/status invariants, and sanitize malformed output; 25 focused
+  checks pass ([evidence](builds/2026-10-29-recovery/operating-pilot-capacity-submit-review-response-contracts.json)).
   Sources:
   [API/SDK gates](batches.md#L3226),
   [Phase 7](implementation-plan-alignment.md#L27).
@@ -1232,6 +1236,13 @@ that its full source-plan phase is complete.
   ([evidence](builds/2026-10-29-recovery/operating-pilot-capacity-draft-revision-response-contract.json)).
 - [x] Verify generated OpenAPI and Python compilation for the capacity revision
   response model; preserve HTTP 200 and no-store failure behavior.
+- [x] Declare strict capacity submission and independent-review responses with
+  path-bound location/profile IDs and source-defined lifecycle/decision rules.
+- [x] Preserve current lifecycle on exact submission/review replay and return
+  sanitized no-store failures for malformed service output.
+- [x] Add/run 25 focused mock-only route/OpenAPI checks for both responses,
+  replay, path binding, and malformed results
+  ([evidence](builds/2026-10-29-recovery/operating-pilot-capacity-submit-review-response-contracts.json)).
 - [ ] **C3 — Finish the optional Directus adapter boundary.** Close code-verifiable
   role, field, row and hook gaps for collections still retained; keep native
   farm activity in Gateway. Workflow-role authorization cache freshness is
