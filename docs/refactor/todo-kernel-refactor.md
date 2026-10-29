@@ -2540,3 +2540,19 @@ no live service or database was used. Evidence:
 Checklist: 318 checked / 16 open. Capability classifications and MAN-CAP
 acceptance remain unchanged; strict private Gateway response contracts now
 total 104.
+
+### Latest local continuation — registered AI-synthesis task receipt contract — 29 October 2026
+
+- [x] Document strict registered task and summary inputs and enforce their
+  cross-field pairing before dispatch.
+- [x] Validate exact, location-bound authorization receipt output.
+- [x] Keep idempotent retry status and no-store errors intact.
+
+The focused Gateway task-request/draft selection passes 30 tests. Ruff,
+compilation, matrix validation, and diff checks pass. No live DB/provider was
+used. Evidence:
+[focused checks](builds/2026-10-29-recovery/ai-synthesis-task-receipt-gateway-contract.json).
+
+Checklist: 321 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 105.

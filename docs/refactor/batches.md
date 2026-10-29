@@ -6876,3 +6876,23 @@ Checklist: 1,623 complete / 25 open (1,648 total); TODO: 318 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 104. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — registered AI-synthesis task receipt contract — 29 October 2026
+
+- [x] Publish the registered task and summary enums and enforce their allowed
+  pairings, UUID request ID, and strict body shape before service dispatch.
+- [x] Validate the exact authorization receipt and bind its task, summary,
+  request, and location to the input.
+- [x] Preserve 201 creation/200 retry behavior and generic no-store failures.
+
+The focused AI-summary task-request/draft selection passes 30 tests. Ruff,
+Python compilation, capability-matrix validation, and `git diff --check` pass.
+Checks use synthetic connections and mocks only; no live database/provider,
+candidate, legacy, or production resource was touched. No migration is required.
+Rollback reverts the route contract, tests, and evidence without database
+changes ([evidence](builds/2026-10-29-recovery/ai-synthesis-task-receipt-gateway-contract.json)).
+
+Checklist: 1,626 complete / 25 open (1,651 total); TODO: 321 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 105. MAN-CAP acceptance is unchanged.

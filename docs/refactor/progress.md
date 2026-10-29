@@ -23452,3 +23452,22 @@ accessed. Evidence:
 Checklist: 318 checked / 16 open. Capability classifications and MAN-CAP
 acceptance remain unchanged; strict private Gateway response contracts now
 total 104.
+
+### Progress addendum — registered AI-synthesis task receipt contract — 29 October 2026
+
+The operator synthesis-request route now publishes task-key and summary-type
+enums and validates the registry pairing before work is dispatched. Its
+response is a strict receipt containing only request/location identity, task,
+summary, creation time, replay flag, and authorized status. Runtime checks
+bind receipt identity to the request and preserve the existing 201 new / 200
+replay semantics with no-store errors.
+
+The focused task-request/draft selection passes 30 tests. Ruff, Python
+compilation, matrix validation, and diff checks pass. Synthetic connections
+and mocks only; no live database/provider, candidate, or legacy service was
+used. Evidence:
+[focused checks](builds/2026-10-29-recovery/ai-synthesis-task-receipt-gateway-contract.json).
+
+Checklist: 321 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 105.

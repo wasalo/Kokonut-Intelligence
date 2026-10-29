@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "scope": "Strict registered AI-synthesis task authorization receipt contract",
+  "focused_test_command": "python3 -m pytest tests/test_gateway_ai_summary_task_request.py tests/test_gateway_ai_summary_draft.py -q",
+  "focused_test_result": {
+    "passed": 30,
+    "failed": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "OpenAPI request enums enumerate the registered synthesis tasks and summary types",
+    "Runtime request validation enforces task/summary pairings, UUID request IDs, and rejects undeclared fields before service access",
+    "The exact receipt fields, authorized status, and timestamp are validated and location/request-bound",
+    "New receipts preserve HTTP 201 and idempotent retries preserve HTTP 200",
+    "Malformed or mismatched service output returns a generic no-store error",
+    "The bounded service continues to establish signed location-scoped draft authorization"
+  ],
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_or_external_state_used": false,
+  "migration_required": false,
+  "rollback": "Revert the task receipt models/route validation, focused tests, and evidence; no database rollback is required."
+}
