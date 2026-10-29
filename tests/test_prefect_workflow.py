@@ -132,14 +132,40 @@ def test_scheduled_hourly_waits_for_explicit_sensor_source_mapping() -> None:
     )
 
 
-def test_scheduled_weekly_runs_only_climate_refresh() -> None:
+def test_scheduled_weekly_skips_default_off_climate_before_flow() -> None:
     from unittest.mock import patch
 
     from services.flows.pipelines import scheduled_weekly
 
-    with patch("services.flows.climate_data.climate_data_flow") as climate:
-        scheduled_weekly.fn()
+    with (
+        patch("services.flows.pipelines.is_enabled", return_value=False),
+        patch("services.flows.climate_data.climate_data_flow") as climate,
+    ):
+        result = scheduled_weekly.fn()
 
+    assert result == {
+        "status": "skipped",
+        "reason": "signed_climate_worker_disabled",
+    }
+    climate.assert_not_called()
+
+
+def test_scheduled_weekly_runs_climate_when_signed_worker_is_enabled() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import scheduled_weekly
+
+    expected = {"status": "success", "locations": 2, "failed": 0}
+    with (
+        patch("services.flows.pipelines.is_enabled", return_value=True),
+        patch(
+            "services.flows.climate_data.climate_data_flow",
+            return_value=expected,
+        ) as climate,
+    ):
+        result = scheduled_weekly.fn()
+
+    assert result == expected
     climate.assert_called_once_with()
 
 

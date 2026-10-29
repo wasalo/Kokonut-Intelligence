@@ -23796,6 +23796,32 @@ and 36 prepared across 67 rows; strict private Gateway response contracts
 total 115. Broader C2/C4/C5, production OIDC, populated-data parity, and
 candidate/legacy migration acceptance remain open.
 
+### Progress addendum — climate worker boundary, TCO projection, and SDK parity — 29 October 2026
+
+The weekly Prefect deployment now skips climate refresh before location
+fanout when `signed_climate_worker` is disabled. Enabling the feature preserves
+the flow call and result, and direct worker behavior remains fail-closed.
+Two weekly-flow checks and one direct-worker check pass.
+
+The total-cost-of-ownership analytics query now selects the nine ordered
+columns defined by migration 196 instead of using a wildcard. It preserves
+unfiltered, location-only, process-only, and combined filters, bind parameter
+ordering, descending cost sort, and serialized rows. Four fake-cursor checks
+pass without database access.
+
+The Python public REST SDK now rejects finite timeout values above the
+JavaScript timer-safe maximum of 2,147,483.647 seconds before networking. Its
+10-second default and maximum boundary are preserved. The Python suite passes
+156 tests; the JavaScript timeout selection passes six. Ruff and Python
+compilation pass. Runtime SQL and worker reachability inventories are current.
+Evidence: [climate, TCO, and SDK checks](builds/2026-10-29-recovery/climate-tco-sdk-parity.json).
+
+Checklist: 1,681 complete / 20 open (1,701 total); TODO: 366 checked / 11
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. Broader C2/C4/C5, production OIDC, populated-data parity, and
+candidate/legacy migration acceptance remain open.
+
 ### Progress addendum — health contract and pest projections — 29 October 2026
 
 The authenticated detailed health route now publishes and validates a strict

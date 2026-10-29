@@ -32,6 +32,7 @@ _RFC3339_DATETIME_PATTERN = re.compile(
     r"(?P<minute>[0-9]{2}):(?P<second>[0-9]{2})(?:\.[0-9]+)?"
     r"(?P<zone>Z|[+-](?P<offset_hour>[0-9]{2}):(?P<offset_minute>[0-9]{2}))$"
 )
+_MAX_TIMEOUT_SECONDS = 2_147_483.647
 
 
 def _normalized_uuid(value: Any) -> str | None:
@@ -635,11 +636,14 @@ class KokonutPublicApiClient:
                 and isinstance(timeout, (int, float))
                 and math.isfinite(timeout)
                 and timeout > 0
+                and timeout <= _MAX_TIMEOUT_SECONDS
             )
         except (OverflowError, TypeError):
             valid_timeout = False
         if not valid_timeout:
-            raise ValueError("timeout must be a finite positive number of seconds")
+            raise ValueError(
+                "timeout must be finite, positive, and at most 2147483.647 seconds"
+            )
         self.base_url = base_url.rstrip("/") + "/api/v1"
         self.timeout = timeout
         self.session = session or requests.Session()

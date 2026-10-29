@@ -6,9 +6,8 @@ computation for the tables and views introduced in migration 196.
 
 from __future__ import annotations
 
-import json
 import uuid as uuid_mod
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -200,7 +199,16 @@ def total_cost_of_ownership(
 
     where = " AND ".join(clauses) if clauses else "TRUE"
     sql = f"""
-        SELECT * FROM v_total_cost_of_ownership
+        SELECT process_key,
+               process_name,
+               process_type,
+               location_id,
+               period,
+               instance_count,
+               total_cost,
+               cost_per_instance,
+               currency
+        FROM v_total_cost_of_ownership
         WHERE {where}
         ORDER BY total_cost DESC
     """

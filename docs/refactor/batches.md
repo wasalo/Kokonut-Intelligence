@@ -7297,3 +7297,27 @@ Checklist: 1,678 complete / 23 open (1,701 total); TODO: 363 checked / 14
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 116. Broader C2/C4/C5 acceptance remains open.
+
+### Source continuation — climate dispatch, cost projection, and SDK timeout — 29 October 2026
+
+- [x] Make the weekly Prefect composite skip default-off signed climate work
+  before location/database fanout, retaining enabled and direct-worker
+  fail-closed behavior.
+- [x] Replace `v_total_cost_of_ownership` wildcard selection with the exact
+  nine migration-196 columns, preserving filters, parameter ordering, sorting,
+  and serialized rows.
+- [x] Align Python REST SDK timeout bounds with JavaScript's safe timer range,
+  rejecting finite oversized values before network calls while retaining the
+  default and maximum boundary.
+
+The weekly climate Prefect and direct-worker checks pass 2 and 1 tests; the
+TCO mock-cursor projection checks pass 4. The Python public SDK suite passes
+156 tests and JavaScript timeout checks pass 6. Ruff and compilation pass, and
+runtime SQL/worker inventories are current. Mocks only; the isolated TCO test
+blocked shared DB access. No provider, candidate, or legacy service was used.
+Evidence: [climate/TCO/SDK checks](builds/2026-10-29-recovery/climate-tco-sdk-parity.json).
+
+Checklist: 1,681 complete / 20 open (1,701 total); TODO: 366 checked / 11
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. Broader C2/C4/C5 acceptance remains open.

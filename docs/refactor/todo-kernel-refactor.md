@@ -855,6 +855,15 @@ Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-report-gateway-acce
 - [x] Replace the pest-trend and biocontrol report wildcards with exact
   migration-047 projections while preserving filters, binds, ordering, and
   report output ([same evidence](builds/2026-10-29-recovery/health-and-pest-projection-contracts.json)).
+- [x] Skip weekly climate work before location fanout while the signed worker
+  is default-off; keep the enabled and direct-worker boundaries intact
+  ([evidence](builds/2026-10-29-recovery/climate-tco-sdk-parity.json)).
+- [x] Replace the TCO wildcard with its exact migration-196 view projection,
+  preserving filters, bind order, sorting, and serialized rows
+  ([same evidence](builds/2026-10-29-recovery/climate-tco-sdk-parity.json)).
+- [x] Align Python REST SDK timeout bounds to JavaScript and reject finite
+  oversized values before networking
+  ([same evidence](builds/2026-10-29-recovery/climate-tco-sdk-parity.json)).
 
 ## Code work to continue without owner input
 

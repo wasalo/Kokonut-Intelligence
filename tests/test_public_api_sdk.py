@@ -105,11 +105,39 @@ def test_public_api_uses_a_bounded_default_request_timeout() -> None:
 
 @pytest.mark.parametrize(
     "timeout",
-    [None, 0, -1, float("nan"), float("inf"), 10**1000, True, "10"],
+    [
+        None,
+        0,
+        -1,
+        float("nan"),
+        float("inf"),
+        10**1000,
+        2_147_483.648,
+        True,
+        "10",
+    ],
 )
 def test_public_api_rejects_invalid_request_timeouts(timeout: Any) -> None:
-    with pytest.raises(ValueError, match="timeout must be a finite positive number of seconds"):
-        KokonutPublicApiClient("https://gateway.example", timeout=timeout)
+    session = FakeSession([])
+    with pytest.raises(
+        ValueError,
+        match="timeout must be finite, positive, and at most 2147483.647 seconds",
+    ):
+        KokonutPublicApiClient(
+            "https://gateway.example", timeout=timeout, session=session
+        )
+    assert session.calls == []
+
+
+def test_public_api_accepts_javascript_timer_safe_timeout_boundary() -> None:
+    session = FakeSession([FakeResponse(200, {"data": [LOCATION]})])
+    client = KokonutPublicApiClient(
+        "https://gateway.example", timeout=2_147_483.647, session=session
+    )
+
+    client.locations.list()
+
+    assert session.calls[0][1] == {"timeout": 2_147_483.647}
 
 
 def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> None:

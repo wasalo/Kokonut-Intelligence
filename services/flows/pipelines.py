@@ -203,4 +203,10 @@ def scheduled_daily():
 def scheduled_weekly():
     """Refresh climate datasets weekly; ML model retraining is not scheduled."""
     from .climate_data import climate_data_flow
-    climate_data_flow()
+
+    if not is_enabled("signed_climate_worker"):
+        return {
+            "status": "skipped",
+            "reason": "signed_climate_worker_disabled",
+        }
+    return climate_data_flow()
