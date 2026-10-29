@@ -22,6 +22,30 @@ const crispAssessment = {
   score_computed_at: '2026-10-14T12:35:00+00:00',
   status: 'published',
 };
+const metricSummary = {
+  location_id: location.id,
+  computed: [
+    {
+      metric_key: 'soil_carbon',
+      display_name: 'Soil carbon',
+      unit: 't/ha',
+      value: 12.5,
+      computed_at: '2026-10-14T12:30:00Z',
+    },
+  ],
+  total_computed: 1,
+};
+const locationSummary = {
+  summary_type: 'public_location_summary',
+  location_id: location.id,
+  location,
+  metrics: { metric_count: 1, latest_computed_at: '2026-10-14T12:30:00Z' },
+  attestations: {
+    total_attestations: 2,
+    published_count: 2,
+    latest_attestation: '2026-10-14T12:35:00+00:00',
+  },
+};
 
 function response(status: number, payload?: unknown, invalidJson = false): PublicFetchResponse {
   return {
@@ -41,21 +65,7 @@ describe('KokonutPublicApiClient', () => {
       .mockResolvedValueOnce(response(200, { data: [location] }))
       .mockResolvedValueOnce(response(200, { data: location }))
       .mockResolvedValueOnce(
-        response(200, {
-          data: {
-            location_id: 'location-1',
-            computed: [
-              {
-                metric_key: 'soil_carbon',
-                display_name: 'Soil carbon',
-                unit: 't/ha',
-                value: 12.5,
-                computed_at: '2026-10-14T12:30:00Z',
-              },
-            ],
-            total_computed: 1,
-          },
-        }),
+        response(200, { data: metricSummary }),
       )
       .mockResolvedValueOnce(
         response(200, {
@@ -65,22 +75,7 @@ describe('KokonutPublicApiClient', () => {
         }),
       )
       .mockResolvedValueOnce(
-        response(200, {
-          data: {
-            summary_type: 'public_location_summary',
-            location_id: 'location-1',
-            location,
-            metrics: {
-              metric_count: 1,
-              latest_computed_at: '2026-10-14T12:30:00Z',
-            },
-            attestations: {
-              total_attestations: 2,
-              published_count: 2,
-              latest_attestation: '2026-10-14T12:35:00+00:00',
-            },
-          },
-        }),
+        response(200, { data: locationSummary }),
       );
 
     const client = new KokonutPublicApiClient('https://gateway.example///', {
@@ -90,9 +85,9 @@ describe('KokonutPublicApiClient', () => {
 
     const locations = await client.locations.list();
     const detail = await client.locations.get('a/b +?');
-    const metrics = await client.metrics.get('location-1');
+    const metrics = await client.metrics.get(location.id);
     const crisp = await client.crisp.get(location.id);
-    const summary = await client.analytics.getSummary('location-1');
+    const summary = await client.analytics.getSummary(location.id);
 
     expect(locations).toEqual([location]);
     expect(detail).toEqual(location);
@@ -102,13 +97,186 @@ describe('KokonutPublicApiClient', () => {
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([
       'https://gateway.example/api/v1/locations',
       'https://gateway.example/api/v1/locations/a%2Fb%20%2B%3F',
-      'https://gateway.example/api/v1/metrics/location-1',
+      `https://gateway.example/api/v1/metrics/${location.id}`,
       `https://gateway.example/api/v1/crisp/${location.id}`,
-      'https://gateway.example/api/v1/analytics/location-1/summary',
+      `https://gateway.example/api/v1/analytics/${location.id}/summary`,
     ]);
     expect(fetch.mock.calls.every(([, init]) => init.headers.Accept === 'application/json')).toBe(true);
     expect(fetch.mock.calls.every(([, init]) => init.headers['x-api-key'] === 'test-key')).toBe(true);
     expect(fetch.mock.calls.every(([, init]) => init.signal !== undefined)).toBe(true);
+  });
+
+  it.each([
+    metricSummary,
+    { ...metricSummary, computed: [], total_computed: 0 },
+    {
+      ...metricSummary,
+      computed: [
+        {
+          ...metricSummary.computed[0],
+          unit: null,
+          value: null,
+          computed_at: null,
+        },
+      ],
+    },
+    {
+      ...metricSummary,
+      computed: [{ ...metricSummary.computed[0], unit: null, value: -2.5 }],
+    },
+  ])('accepts exact scoped metric summaries', async (summary) => {
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(response(200, { data: summary }));
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    await expect(client.metrics.get(location.id)).resolves.toMatchObject({
+      location_id: location.id,
+      total_computed: summary.computed.length,
+    });
+  });
+
+  it.each([
+    { ...metricSummary, unexpected: 'field' },
+    Object.fromEntries(Object.entries(metricSummary).filter(([key]) => key !== 'total_computed')),
+    { ...metricSummary, location_id: 'not-a-uuid' },
+    { ...metricSummary, location_id: 'c0000000-0000-4000-8000-000000000001' },
+    { ...metricSummary, computed: {} },
+    { ...metricSummary, total_computed: -1 },
+    { ...metricSummary, total_computed: 1.5 },
+    { ...metricSummary, total_computed: true },
+    { ...metricSummary, total_computed: 0 },
+    {
+      ...metricSummary,
+      computed: [{ ...metricSummary.computed[0], extra: 'field' }],
+    },
+    {
+      ...metricSummary,
+      computed: [
+        Object.fromEntries(
+          Object.entries(metricSummary.computed[0]).filter(([key]) => key !== 'unit'),
+        ),
+      ],
+    },
+    { ...metricSummary, computed: [{ ...metricSummary.computed[0], metric_key: 1 }] },
+    { ...metricSummary, computed: [{ ...metricSummary.computed[0], display_name: null }] },
+    { ...metricSummary, computed: [{ ...metricSummary.computed[0], unit: 4 }] },
+    { ...metricSummary, computed: [{ ...metricSummary.computed[0], value: true }] },
+    { ...metricSummary, computed: [{ ...metricSummary.computed[0], value: Number.POSITIVE_INFINITY }] },
+    { ...metricSummary, computed: [{ ...metricSummary.computed[0], value: '12.5' }] },
+    {
+      ...metricSummary,
+      computed: [{ ...metricSummary.computed[0], computed_at: '2026-10-14T12:30:00' }],
+    },
+    {
+      ...metricSummary,
+      computed: [{ ...metricSummary.computed[0], computed_at: '2026-02-30T12:30:00Z' }],
+    },
+    {
+      ...metricSummary,
+      computed: [{ ...metricSummary.computed[0], computed_at: '2026-10-14T12:30:00+01:60' }],
+    },
+  ])('rejects malformed or wrong-scope metric summaries', async (summary) => {
+    const mockResponse = response(200, { data: summary });
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+    const error = await client.metrics.get(location.id).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PublicApiError);
+    expect(error).toMatchObject({
+      message: 'Invalid public API response envelope',
+      statusCode: 200,
+    });
+    expect((error as PublicApiError).response).toBe(mockResponse);
+  });
+
+  it.each([
+    locationSummary,
+    {
+      ...locationSummary,
+      location: { ...location, country: null, region: null },
+      metrics: { metric_count: 0, latest_computed_at: null },
+      attestations: {
+        total_attestations: 1,
+        published_count: 2,
+        latest_attestation: null,
+      },
+    },
+  ])('accepts exact scoped location summaries without invented count relationships', async (summary) => {
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(response(200, { data: summary }));
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+
+    await expect(client.analytics.getSummary(location.id)).resolves.toMatchObject({
+      location_id: location.id,
+      location: { id: location.id },
+      attestations: { published_count: summary.attestations.published_count },
+    });
+  });
+
+  it.each([
+    { ...locationSummary, unexpected: 'field' },
+    Object.fromEntries(Object.entries(locationSummary).filter(([key]) => key !== 'summary_type')),
+    { ...locationSummary, summary_type: 'other' },
+    { ...locationSummary, location_id: 'not-a-uuid' },
+    { ...locationSummary, location_id: 'c0000000-0000-4000-8000-000000000001' },
+    {
+      ...locationSummary,
+      location: { ...location, id: 'c0000000-0000-4000-8000-000000000001' },
+    },
+    { ...locationSummary, location: { ...location, status: 'draft' } },
+    {
+      ...locationSummary,
+      location: Object.fromEntries(
+        Object.entries(location).filter(([key]) => key !== 'region'),
+      ),
+    },
+    { ...locationSummary, location: { ...location, extra: 'field' } },
+    {
+      ...locationSummary,
+      metrics: Object.fromEntries(
+        Object.entries(locationSummary.metrics).filter(([key]) => key !== 'latest_computed_at'),
+      ),
+    },
+    { ...locationSummary, metrics: { ...locationSummary.metrics, extra: 'field' } },
+    { ...locationSummary, metrics: { metric_count: -1, latest_computed_at: null } },
+    { ...locationSummary, metrics: { metric_count: true, latest_computed_at: null } },
+    { ...locationSummary, metrics: { metric_count: 1.5, latest_computed_at: null } },
+    {
+      ...locationSummary,
+      metrics: { metric_count: 1, latest_computed_at: '2026-10-14T12:30:00' },
+    },
+    {
+      ...locationSummary,
+      attestations: Object.fromEntries(
+        Object.entries(locationSummary.attestations).filter(([key]) => key !== 'published_count'),
+      ),
+    },
+    { ...locationSummary, attestations: { ...locationSummary.attestations, extra: 'field' } },
+    {
+      ...locationSummary,
+      attestations: { ...locationSummary.attestations, total_attestations: -1 },
+    },
+    {
+      ...locationSummary,
+      attestations: { ...locationSummary.attestations, published_count: true },
+    },
+    {
+      ...locationSummary,
+      attestations: {
+        ...locationSummary.attestations,
+        latest_attestation: '2026-10-14T12:35:00+01:60',
+      },
+    },
+  ])('rejects malformed or wrong-scope location summaries', async (summary) => {
+    const mockResponse = response(200, { data: summary });
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(mockResponse);
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+    const error = await client.analytics.getSummary(location.id).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PublicApiError);
+    expect(error).toMatchObject({
+      message: 'Invalid public API response envelope',
+      statusCode: 200,
+    });
+    expect((error as PublicApiError).response).toBe(mockResponse);
   });
 
   it.each([

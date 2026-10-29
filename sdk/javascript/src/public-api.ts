@@ -206,6 +206,108 @@ function isPublicCrispAssessment(
   );
 }
 
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+function isPublicMetricSummary(
+  value: unknown,
+  requestedLocationId: string,
+): value is PublicMetricSummaryV1 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const expectedLocationId = normalizedUuid(requestedLocationId);
+  if (
+    Object.keys(candidate).length !== 3 ||
+    !Object.prototype.hasOwnProperty.call(candidate, 'location_id') ||
+    !Object.prototype.hasOwnProperty.call(candidate, 'computed') ||
+    !Object.prototype.hasOwnProperty.call(candidate, 'total_computed') ||
+    expectedLocationId === undefined ||
+    normalizedUuid(candidate.location_id) !== expectedLocationId ||
+    !Array.isArray(candidate.computed) ||
+    !isNonNegativeInteger(candidate.total_computed) ||
+    candidate.total_computed !== candidate.computed.length
+  ) {
+    return false;
+  }
+
+  return candidate.computed.every((row: unknown) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+    const metric = row as Record<string, unknown>;
+    return (
+      Object.keys(metric).length === 5 &&
+      Object.prototype.hasOwnProperty.call(metric, 'metric_key') &&
+      Object.prototype.hasOwnProperty.call(metric, 'display_name') &&
+      Object.prototype.hasOwnProperty.call(metric, 'unit') &&
+      Object.prototype.hasOwnProperty.call(metric, 'value') &&
+      Object.prototype.hasOwnProperty.call(metric, 'computed_at') &&
+      typeof metric.metric_key === 'string' &&
+      typeof metric.display_name === 'string' &&
+      (metric.unit === null || typeof metric.unit === 'string') &&
+      (metric.value === null ||
+        (typeof metric.value === 'number' && Number.isFinite(metric.value))) &&
+      (metric.computed_at === null || isRfc3339DateTime(metric.computed_at))
+    );
+  });
+}
+
+function isPublicLocationSummary(
+  value: unknown,
+  requestedLocationId: string,
+): value is PublicLocationSummaryV1 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const expectedLocationId = normalizedUuid(requestedLocationId);
+  if (
+    Object.keys(candidate).length !== 5 ||
+    !Object.prototype.hasOwnProperty.call(candidate, 'summary_type') ||
+    !Object.prototype.hasOwnProperty.call(candidate, 'location_id') ||
+    !Object.prototype.hasOwnProperty.call(candidate, 'location') ||
+    !Object.prototype.hasOwnProperty.call(candidate, 'metrics') ||
+    !Object.prototype.hasOwnProperty.call(candidate, 'attestations') ||
+    expectedLocationId === undefined ||
+    candidate.summary_type !== 'public_location_summary' ||
+    normalizedUuid(candidate.location_id) !== expectedLocationId ||
+    !isPublicLocation(candidate.location)
+  ) {
+    return false;
+  }
+
+  const location = candidate.location;
+  const metrics = candidate.metrics;
+  const attestations = candidate.attestations;
+  if (
+    normalizedUuid(location.id) !== expectedLocationId ||
+    !metrics ||
+    typeof metrics !== 'object' ||
+    Array.isArray(metrics) ||
+    !attestations ||
+    typeof attestations !== 'object' ||
+    Array.isArray(attestations)
+  ) {
+    return false;
+  }
+
+  const metricCounts = metrics as Record<string, unknown>;
+  const attestationCounts = attestations as Record<string, unknown>;
+  return (
+    Object.keys(metricCounts).length === 2 &&
+    Object.prototype.hasOwnProperty.call(metricCounts, 'metric_count') &&
+    Object.prototype.hasOwnProperty.call(metricCounts, 'latest_computed_at') &&
+    isNonNegativeInteger(metricCounts.metric_count) &&
+    (metricCounts.latest_computed_at === null ||
+      isRfc3339DateTime(metricCounts.latest_computed_at)) &&
+    Object.keys(attestationCounts).length === 3 &&
+    Object.prototype.hasOwnProperty.call(attestationCounts, 'total_attestations') &&
+    Object.prototype.hasOwnProperty.call(attestationCounts, 'published_count') &&
+    Object.prototype.hasOwnProperty.call(attestationCounts, 'latest_attestation') &&
+    isNonNegativeInteger(attestationCounts.total_attestations) &&
+    isNonNegativeInteger(attestationCounts.published_count) &&
+    (attestationCounts.latest_attestation === null ||
+      isRfc3339DateTime(attestationCounts.latest_attestation))
+  );
+}
+
 function isDriverCatalogResponse(
   value: unknown,
   expectedLimit: number,
@@ -337,6 +439,7 @@ export class KokonutPublicApiClient {
             encodePathSegment(locationId),
           ),
           'object',
+          (value) => isPublicMetricSummary(value, locationId),
         ),
     };
     this.crisp = {
@@ -358,6 +461,7 @@ export class KokonutPublicApiClient {
             encodePathSegment(locationId),
           ),
           'object',
+          (value) => isPublicLocationSummary(value, locationId),
         ),
     };
   }

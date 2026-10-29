@@ -82,6 +82,8 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
     sections["regenerative_outcomes"] = _regenerative_outcomes_section(location_id)
     sections["gnh_alignment"] = _gnh_alignment_section(location_id)
     sections["capital_efficiency"] = _capital_efficiency_section(location_id)
+    sections["community_governance"] = _community_governance_section(location_id)
+    sections["foundational_wellbeing"] = _foundational_wellbeing_section(location_id)
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -607,6 +609,103 @@ def _capital_efficiency_section(location_id=LOCATION_ID):
     }
 
 
+def _community_governance_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "community_governance",
+        "location_id": location_id,
+        "mechanisms": [
+            {
+                "id": str(uuid4()),
+                "location_id": None,
+                "farm_id": None,
+                "mechanism_name": "Network-wide review pathway",
+                "governance_level": "network",
+                "decision_body": "Network stewards",
+                "decision_method": "consensus",
+                "quorum_rule": "A simple majority of stewards",
+                "voting_or_consensus_rights": "Each steward participates equally.",
+                "community_veto_rights": "Participants may defer publication.",
+                "escalation_path": "Network governance council",
+                "power_distribution_summary": "Shared across network stewards.",
+                "participation_cadence": "quarterly",
+                "public_summary": "Published shared governance mechanism.",
+                "evidence_maturity": 4,
+                "evidence_maturity_label": "Evidence-linked record",
+                "metadata": {"public_tag": "synthetic", "scope": "shared"},
+            },
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "farm_id": str(uuid4()),
+                "mechanism_name": "Farm-level stewardship council",
+                "governance_level": "farm",
+                "decision_body": "Farm operators and guild delegates",
+                "decision_method": "hybrid",
+                "quorum_rule": None,
+                "voting_or_consensus_rights": None,
+                "community_veto_rights": None,
+                "escalation_path": None,
+                "power_distribution_summary": "Operators and guild delegates share decisions.",
+                "participation_cadence": None,
+                "public_summary": "Published location governance mechanism.",
+                "evidence_maturity": 3,
+                "evidence_maturity_label": "Reviewed record",
+                "metadata": {"public_tag": "synthetic", "scope": "location"},
+            },
+        ],
+        "limitations": [
+            "Governance reports summarize public mechanisms and do not expose private participant identities.",
+            "Power-sharing claims should be read alongside participation, veto, and escalation details.",
+            "Agent-generated outputs remain draft-only and cannot verify or publish governance decisions.",
+        ],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
+def _foundational_wellbeing_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "foundational_wellbeing",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "observations": [
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "farm_id": None,
+                "observation_date": "2025-10-15",
+                "wellbeing_domain": "belonging",
+                "stakeholder_group": "community members",
+                "score_value": None,
+                "count_value": None,
+                "public_summary": "Published qualitative belonging observation.",
+                "evidence_maturity": 3,
+                "evidence_maturity_label": "Reviewed record",
+                "metadata": {"public_tag": "synthetic", "method": "qualitative"},
+            },
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "farm_id": str(uuid4()),
+                "observation_date": "2025-11-01",
+                "wellbeing_domain": "food_security",
+                "stakeholder_group": None,
+                "score_value": Decimal("8.50"),
+                "count_value": 12,
+                "public_summary": "Published quantitative food security observation.",
+                "evidence_maturity": 4,
+                "evidence_maturity_label": "Evidence-linked record",
+                "metadata": {"public_tag": "synthetic", "method": "survey"},
+            },
+        ],
+        "limitations": [
+            "Foundational well-being signals are public-safe summaries, not clinical or external certification.",
+            "Private feedback, household-level observations, and unresolved allegations remain excluded from public output.",
+            "Scores should be read alongside qualitative limitations and evidence maturity labels.",
+        ],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
 class _Connection:
     autocommit = False
 
@@ -846,6 +945,15 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert capital["scenarios"][0]["net_output_value_usd"] == -250.0
     assert capital["regenerative_efficiency"][0]["cost_savings_pct"] == -25.0
     assert capital["regenerative_efficiency"][0]["incremental_output_value_usd"] == -10.0
+    community = response.json()["locations"][0]["sections"]["community_governance"]
+    assert len(community["mechanisms"]) == 2
+    assert community["mechanisms"][0]["location_id"] is None
+    assert community["mechanisms"][0]["metadata"]["scope"] == "shared"
+    assert community["mechanisms"][1]["location_id"] == LOCATION_ID
+    foundational = response.json()["locations"][0]["sections"]["foundational_wellbeing"]
+    assert foundational["observations"][0]["score_value"] is None
+    assert foundational["observations"][0]["count_value"] is None
+    assert foundational["observations"][0]["metadata"]["method"] == "qualitative"
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -1108,6 +1216,72 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "evidence_maturity_label",
         "metadata",
     }
+    community_schema = section_schema["properties"]["community_governance"]
+    assert len(community_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusCommunityGovernance"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusCommunityGovernanceMechanism"][
+        "additionalProperties"
+    ] is False
+    assert set(schemas["ComprehensiveStatusCommunityGovernance"]["properties"]) == {
+        "report_type",
+        "location_id",
+        "mechanisms",
+        "limitations",
+        "generated_at",
+    }
+    assert set(
+        schemas["ComprehensiveStatusCommunityGovernanceMechanism"]["properties"]
+    ) == {
+        "id",
+        "location_id",
+        "farm_id",
+        "mechanism_name",
+        "governance_level",
+        "decision_body",
+        "decision_method",
+        "quorum_rule",
+        "voting_or_consensus_rights",
+        "community_veto_rights",
+        "escalation_path",
+        "power_distribution_summary",
+        "participation_cadence",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    }
+    foundational_schema = section_schema["properties"]["foundational_wellbeing"]
+    assert len(foundational_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusFoundationalWellbeing"][
+        "additionalProperties"
+    ] is False
+    assert schemas["ComprehensiveStatusFoundationalWellbeingObservation"][
+        "additionalProperties"
+    ] is False
+    assert set(schemas["ComprehensiveStatusFoundationalWellbeing"]["properties"]) == {
+        "report_type",
+        "location_id",
+        "location_name",
+        "observations",
+        "limitations",
+        "generated_at",
+    }
+    assert set(
+        schemas["ComprehensiveStatusFoundationalWellbeingObservation"]["properties"]
+    ) == {
+        "id",
+        "location_id",
+        "farm_id",
+        "observation_date",
+        "wellbeing_domain",
+        "stakeholder_group",
+        "score_value",
+        "count_value",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    }
 
 
 def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
@@ -1136,6 +1310,12 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "error": "report section failed (DataError)"
     }
     payload["locations"][0]["sections"]["capital_efficiency"] = {
+        "error": "report section failed (DataError)"
+    }
+    payload["locations"][0]["sections"]["community_governance"] = {
+        "error": "report section failed (DataError)"
+    }
+    payload["locations"][0]["sections"]["foundational_wellbeing"] = {
         "error": "report section failed (DataError)"
     }
     monkeypatch.setattr(
@@ -1188,6 +1368,12 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["capital_efficiency"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["community_governance"] == {
+        "error": "report section failed (DataError)"
+    }
+    assert response.json()["locations"][0]["sections"]["foundational_wellbeing"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -1225,6 +1411,14 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "capital_observation_savings_low", "capital_observation_savings_high",
         "capital_observation_implementation_negative", "capital_observation_payback_negative",
         "capital_error_contract",
+        "community_report_wrong_location", "community_foreign_row_location",
+        "community_mechanism_extra", "community_invalid_governance_level",
+        "community_error_contract",
+        "foundational_report_wrong_location", "foundational_row_wrong_location",
+        "foundational_observation_extra", "foundational_invalid_domain",
+        "foundational_score_below_min", "foundational_score_above_max",
+        "foundational_count_negative", "foundational_numeric_string",
+        "foundational_error_contract",
     ],
 )
 def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_projection):
@@ -1475,6 +1669,62 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         ][0]["payback_months"] = Decimal("-1.00")
     elif invalid_projection == "capital_error_contract":
         payload["locations"][0]["sections"]["capital_efficiency"] = {
+            "error": "database connection failed with private SQL"
+        }
+    elif invalid_projection == "community_report_wrong_location":
+        payload["locations"][0]["sections"]["community_governance"][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "community_foreign_row_location":
+        payload["locations"][0]["sections"]["community_governance"]["mechanisms"][1][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "community_mechanism_extra":
+        payload["locations"][0]["sections"]["community_governance"]["mechanisms"][0][
+            "source_raw"
+        ] = {"private": "must not escape"}
+    elif invalid_projection == "community_invalid_governance_level":
+        payload["locations"][0]["sections"]["community_governance"]["mechanisms"][0][
+            "governance_level"
+        ] = "unregistered_level"
+    elif invalid_projection == "community_error_contract":
+        payload["locations"][0]["sections"]["community_governance"] = {
+            "error": "database connection failed with private SQL"
+        }
+    elif invalid_projection == "foundational_report_wrong_location":
+        payload["locations"][0]["sections"]["foundational_wellbeing"][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "foundational_row_wrong_location":
+        payload["locations"][0]["sections"]["foundational_wellbeing"]["observations"][0][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "foundational_observation_extra":
+        payload["locations"][0]["sections"]["foundational_wellbeing"]["observations"][0][
+            "qualitative_signal"
+        ] = "must not escape through this view"
+    elif invalid_projection == "foundational_invalid_domain":
+        payload["locations"][0]["sections"]["foundational_wellbeing"]["observations"][0][
+            "wellbeing_domain"
+        ] = "unregistered_domain"
+    elif invalid_projection == "foundational_score_below_min":
+        payload["locations"][0]["sections"]["foundational_wellbeing"]["observations"][1][
+            "score_value"
+        ] = Decimal("-0.01")
+    elif invalid_projection == "foundational_score_above_max":
+        payload["locations"][0]["sections"]["foundational_wellbeing"]["observations"][1][
+            "score_value"
+        ] = Decimal("10.01")
+    elif invalid_projection == "foundational_count_negative":
+        payload["locations"][0]["sections"]["foundational_wellbeing"]["observations"][1][
+            "count_value"
+        ] = -1
+    elif invalid_projection == "foundational_numeric_string":
+        payload["locations"][0]["sections"]["foundational_wellbeing"]["observations"][1][
+            "score_value"
+        ] = "8.50"
+    elif invalid_projection == "foundational_error_contract":
+        payload["locations"][0]["sections"]["foundational_wellbeing"] = {
             "error": "database connection failed with private SQL"
         }
     else:

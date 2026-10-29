@@ -370,6 +370,98 @@ class ComprehensiveStatusCapitalEfficiency(_ComprehensiveStatusModel):
         return self
 
 
+class ComprehensiveStatusCommunityGovernanceMechanism(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid | None
+    farm_id: ReportUuid | None
+    mechanism_name: str = Field(max_length=255)
+    governance_level: Literal["farm", "guild", "dao", "network", "publication_review", "other"]
+    decision_body: str = Field(max_length=255)
+    decision_method: Literal[
+        "consensus",
+        "consent",
+        "token_vote",
+        "multisig",
+        "steward_review",
+        "hybrid",
+        "other",
+    ]
+    quorum_rule: str | None
+    voting_or_consensus_rights: str | None
+    community_veto_rights: str | None
+    escalation_path: str | None
+    power_distribution_summary: str
+    participation_cadence: str | None = Field(max_length=100)
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusCommunityGovernance(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["community_governance"]
+    location_id: ReportUuid
+    mechanisms: list[ComprehensiveStatusCommunityGovernanceMechanism]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_location_mechanisms_in_scope(self):
+        if any(
+            mechanism.location_id is not None and mechanism.location_id != self.location_id
+            for mechanism in self.mechanisms
+        ):
+            raise ValueError("Community governance mechanism is outside report location scope")
+        return self
+
+
+class ComprehensiveStatusFoundationalWellbeingObservation(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    observation_date: ReportDate
+    wellbeing_domain: Literal[
+        "happiness",
+        "peace",
+        "safety",
+        "food_security",
+        "basic_needs",
+        "dignity",
+        "belonging",
+        "other",
+    ]
+    stakeholder_group: str | None = Field(max_length=100)
+    score_value: ReportNumber | None = Field(ge=0, le=10)
+    count_value: int | None = Field(ge=0, strict=True)
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusFoundationalWellbeing(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["foundational_wellbeing"]
+    location_id: ReportUuid
+    location_name: str | None
+    observations: list[ComprehensiveStatusFoundationalWellbeingObservation]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_observations_in_scope(self):
+        if any(observation.location_id != self.location_id for observation in self.observations):
+            raise ValueError("Foundational wellbeing observation is outside report location scope")
+        return self
+
+
 class ComprehensiveStatusClimateCarbonBalance(_ComprehensiveStatusModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
 
@@ -836,10 +928,14 @@ class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     )
     gnh_alignment: ComprehensiveStatusGnhAlignment | ComprehensiveStatusSectionError
     capital_efficiency: ComprehensiveStatusCapitalEfficiency | ComprehensiveStatusSectionError
+    community_governance: (
+        ComprehensiveStatusCommunityGovernance | ComprehensiveStatusSectionError
+    )
     holistic_wellbeing: JsonValue
-    community_governance: JsonValue
     training_impact: JsonValue
-    foundational_wellbeing: JsonValue
+    foundational_wellbeing: (
+        ComprehensiveStatusFoundationalWellbeing | ComprehensiveStatusSectionError
+    )
     stakeholder_outcomes: JsonValue
     capital_accounting: JsonValue
 
@@ -896,6 +992,18 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             and capital_efficiency.location_id != self.location_id
         ):
             raise ValueError("Capital efficiency section is outside the composed location scope")
+        community_governance = self.sections.community_governance
+        if (
+            isinstance(community_governance, ComprehensiveStatusCommunityGovernance)
+            and community_governance.location_id != self.location_id
+        ):
+            raise ValueError("Community governance section is outside the composed location scope")
+        foundational_wellbeing = self.sections.foundational_wellbeing
+        if (
+            isinstance(foundational_wellbeing, ComprehensiveStatusFoundationalWellbeing)
+            and foundational_wellbeing.location_id != self.location_id
+        ):
+            raise ValueError("Foundational wellbeing section is outside the composed location scope")
         return self
 
 

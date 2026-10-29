@@ -454,6 +454,137 @@ def test_renewable_energy_projection_preserves_full_payload_and_status_counts() 
     assert report["implemented_count"] == 1
 
 
+def test_vulnerable_access_projection_preserves_full_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "plan_date": date(2026, 3, 31),
+        "access_scope": "field_training",
+        "vulnerable_groups": ["caregivers"],
+        "access_barriers": ["limited transport"],
+        "accommodations": ["flexible session times"],
+        "participation_pathways": ["community liaison"],
+        "accountable_role": "Field coordinator",
+        "implementation_status": "planned",
+        "access_coverage_pct": 62.5,
+        "public_summary": "Reviewed group-level access plan.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "cycle": "Q1"},
+    }
+    columns = (
+        "id, location_id, farm_id, plan_date, access_scope, vulnerable_groups, access_barriers, "
+        "accommodations, participation_pathways, accountable_role, implementation_status, "
+        "access_coverage_pct, public_summary, evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_vulnerable_access(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_vulnerable_access_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR plan_date >= %s::date) "
+        "AND (%s::date IS NULL OR plan_date <= %s::date) "
+        "ORDER BY plan_date DESC, access_scope"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "vulnerable_access"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["plans"] == [{**source_row, "plan_date": "2026-03-31"}]
+
+
+def test_foundational_wellbeing_projection_preserves_full_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "observation_date": date(2026, 3, 31),
+        "wellbeing_domain": "community_connection",
+        "stakeholder_group": "farm_workers",
+        "score_value": 7.5,
+        "count_value": 12,
+        "public_summary": "Reviewed group-level wellbeing observation.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "cycle": "Q1"},
+    }
+    columns = (
+        "id, location_id, farm_id, observation_date, wellbeing_domain, stakeholder_group, "
+        "score_value, count_value, public_summary, evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_foundational_wellbeing(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_foundational_wellbeing_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR observation_date >= %s::date) "
+        "AND (%s::date IS NULL OR observation_date <= %s::date) "
+        "ORDER BY observation_date DESC, wellbeing_domain"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "foundational_wellbeing"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["observations"] == [
+        {**source_row, "observation_date": "2026-03-31"}
+    ]
+
+
 if __name__ == "__main__":
     test_gnh_schema_defines_records_and_public_views()
     test_gnh_seed_and_dashboards_exist()

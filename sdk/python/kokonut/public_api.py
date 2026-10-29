@@ -76,6 +76,15 @@ def _is_rfc3339_datetime(value: Any) -> bool:
     return parsed.utcoffset() is not None
 
 
+def _is_finite_number(value: Any) -> bool:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
+
 def _is_public_crisp_assessment(value: Any, requested_location_id: str) -> bool:
     if not isinstance(value, dict) or set(value) != {
         "assessment_id",
@@ -139,6 +148,102 @@ def _is_public_crisp_assessment(value: Any, requested_location_id: str) -> bool:
         )
         and isinstance(value["status"], str)
         and value["status"] == "published"
+    )
+
+
+def _is_public_metric_summary(value: Any, requested_location_id: str) -> bool:
+    if not isinstance(value, dict) or set(value) != {
+        "location_id",
+        "computed",
+        "total_computed",
+    }:
+        return False
+
+    expected_location_id = _normalized_uuid(requested_location_id)
+    computed = value["computed"]
+    total_computed = value["total_computed"]
+    if (
+        expected_location_id is None
+        or _normalized_uuid(value["location_id"]) != expected_location_id
+        or not isinstance(computed, list)
+        or isinstance(total_computed, bool)
+        or not isinstance(total_computed, int)
+        or total_computed < 0
+        or total_computed != len(computed)
+    ):
+        return False
+
+    for row in computed:
+        if not isinstance(row, dict) or set(row) != {
+            "metric_key",
+            "display_name",
+            "unit",
+            "value",
+            "computed_at",
+        }:
+            return False
+        metric_value = row["value"]
+        if (
+            not isinstance(row["metric_key"], str)
+            or not isinstance(row["display_name"], str)
+            or (row["unit"] is not None and not isinstance(row["unit"], str))
+            or (
+                metric_value is not None
+                and not _is_finite_number(metric_value)
+            )
+            or (
+                row["computed_at"] is not None
+                and not _is_rfc3339_datetime(row["computed_at"])
+            )
+        ):
+            return False
+    return True
+
+
+def _is_nonnegative_integer(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _is_public_location_summary(value: Any, requested_location_id: str) -> bool:
+    if not isinstance(value, dict) or set(value) != {
+        "summary_type",
+        "location_id",
+        "location",
+        "metrics",
+        "attestations",
+    }:
+        return False
+
+    expected_location_id = _normalized_uuid(requested_location_id)
+    location = value["location"]
+    metrics = value["metrics"]
+    attestations = value["attestations"]
+    if (
+        expected_location_id is None
+        or value["summary_type"] != "public_location_summary"
+        or _normalized_uuid(value["location_id"]) != expected_location_id
+        or not _is_public_location(location)
+        or _normalized_uuid(location["id"]) != expected_location_id
+        or not isinstance(metrics, dict)
+        or set(metrics) != {"metric_count", "latest_computed_at"}
+        or not isinstance(attestations, dict)
+        or set(attestations)
+        != {"total_attestations", "published_count", "latest_attestation"}
+    ):
+        return False
+
+    return (
+        _is_nonnegative_integer(metrics["metric_count"])
+        and (
+            metrics["latest_computed_at"] is None
+            or _is_rfc3339_datetime(metrics["latest_computed_at"])
+        )
+        and _is_nonnegative_integer(attestations["total_attestations"])
+        and _is_nonnegative_integer(attestations["published_count"])
+        and (
+            attestations["latest_attestation"] is None
+            or _is_rfc3339_datetime(attestations["latest_attestation"])
+        )
     )
 
 
@@ -457,7 +562,11 @@ class PublicMetricMethods:
 
     def get(self, location_id: str) -> PublicMetricSummary:
         path = self._client._path("getPublicMetricSummaryV1", location_id=location_id)
-        payload = self._client._get(path, data_shape="object")["data"]
+        payload = self._client._get(
+            path,
+            data_shape="object",
+            data_validator=lambda value: _is_public_metric_summary(value, location_id),
+        )["data"]
         return PublicMetricSummary.from_payload(payload)
 
 
@@ -481,7 +590,11 @@ class PublicAnalyticsMethods:
 
     def get_summary(self, location_id: str) -> PublicLocationSummary:
         path = self._client._path("getPublicLocationSummaryV1", location_id=location_id)
-        payload = self._client._get(path, data_shape="object")["data"]
+        payload = self._client._get(
+            path,
+            data_shape="object",
+            data_validator=lambda value: _is_public_location_summary(value, location_id),
+        )["data"]
         return PublicLocationSummary.from_payload(payload)
 
 

@@ -6310,3 +6310,34 @@ provider, or production resource was used. Evidence:
 
 Checklist: 1,541 complete / 25 open (1,566 total); TODO: 244 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed parallel C2/C5 and SDK metrics/summary batch — 28 October 2026
+
+- [x] Add a strict Comprehensive Status community-governance contract while
+  preserving shared mechanisms whose `location_id` is null; location rows must
+  match the selected location.
+- [x] Add a strict foundational-wellbeing contract with row/location binding
+  and support for qualitative-only rows with nullable score and count.
+- [x] Replace vulnerable-access `SELECT *` with all 16 ordered public-view
+  columns while preserving filters, ordering, and returned fields.
+- [x] Replace foundational-wellbeing `SELECT *` with all 12 ordered view
+  columns and preserve current query and serialization behavior.
+- [x] Replace community-governance `SELECT *` with all 17 ordered view
+  columns; preserve both location-specific and shared null-location rows.
+- [x] Add Python and TypeScript runtime validation for public metric-summary
+  responses, including exact request location and count-to-row parity.
+- [x] Add matching nested response validation for public location summaries,
+  including both location identities and nullable timestamp fields.
+
+The integrated focused Python selection passes 278 tests and the TypeScript
+public-API selection passes 121; `npm run build` passes. Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+`git diff --check` pass. Community null-location records remain shared, and
+foundational qualitative-only rows remain valid. Existing public summaries
+and metadata are preserved; content-level privacy and populated-data parity
+remain open. No migration, database, candidate, legacy service, provider, or
+production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-wellbeing-community-sdk-contracts.json).
+
+Checklist: 1,548 complete / 25 open (1,573 total); TODO: 251 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

@@ -83,7 +83,23 @@ def generate_community_governance(
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   mechanism_name,
+                   governance_level,
+                   decision_body,
+                   decision_method,
+                   quorum_rule,
+                   voting_or_consensus_rights,
+                   community_veto_rights,
+                   escalation_path,
+                   power_distribution_summary,
+                   participation_cadence,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_community_governance_mechanism
             WHERE location_id = %s OR location_id IS NULL
             ORDER BY governance_level, mechanism_name

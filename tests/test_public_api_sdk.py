@@ -40,6 +40,30 @@ CRISP_ASSESSMENT = {
     "score_computed_at": "2026-10-14T12:35:00+00:00",
     "status": "published",
 }
+METRIC_SUMMARY = {
+    "location_id": LOCATION["id"],
+    "computed": [
+        {
+            "metric_key": "soil_carbon",
+            "display_name": "Soil carbon",
+            "unit": "t/ha",
+            "value": 12.5,
+            "computed_at": "2026-10-14T12:30:00Z",
+        }
+    ],
+    "total_computed": 1,
+}
+LOCATION_SUMMARY = {
+    "summary_type": "public_location_summary",
+    "location_id": LOCATION["id"],
+    "location": LOCATION,
+    "metrics": {"metric_count": 1, "latest_computed_at": "2026-10-14T12:30:00Z"},
+    "attestations": {
+        "total_attestations": 2,
+        "published_count": 2,
+        "latest_attestation": "2026-10-14T12:35:00+00:00",
+    },
+}
 
 
 class FakeResponse:
@@ -89,29 +113,21 @@ def test_public_api_rejects_invalid_request_timeouts(timeout: Any) -> None:
 
 
 def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> None:
-    metric_time = "2026-10-14T12:30:00Z"
     crisp_time = "2026-10-14T12:35:00+00:00"
+    summary_payload = {
+        **LOCATION_SUMMARY,
+        "attestations": {
+            **LOCATION_SUMMARY["attestations"],
+            "latest_attestation": crisp_time,
+        },
+    }
     session = FakeSession(
         [
             FakeResponse(200, {"data": [LOCATION]}),
             FakeResponse(200, {"data": LOCATION}),
             FakeResponse(
                 200,
-                {
-                    "data": {
-                        "location_id": "location-1",
-                        "computed": [
-                            {
-                                "metric_key": "soil_carbon",
-                                "display_name": "Soil carbon",
-                                "unit": "t/ha",
-                                "value": 12.5,
-                                "computed_at": metric_time,
-                            }
-                        ],
-                        "total_computed": 1,
-                    }
-                },
+                {"data": METRIC_SUMMARY},
             ),
             FakeResponse(
                 200,
@@ -122,34 +138,16 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
                     }
                 },
             ),
-            FakeResponse(
-                200,
-                {
-                    "data": {
-                        "summary_type": "public_location_summary",
-                        "location_id": "location-1",
-                        "location": LOCATION,
-                        "metrics": {
-                            "metric_count": 1,
-                            "latest_computed_at": metric_time,
-                        },
-                        "attestations": {
-                            "total_attestations": 2,
-                            "published_count": 2,
-                            "latest_attestation": crisp_time,
-                        },
-                    }
-                },
-            ),
+            FakeResponse(200, {"data": summary_payload}),
         ]
     )
     client = KokonutPublicApiClient("https://gateway.example///", api_key="test-key", timeout=4.5, session=session)
 
     locations = client.locations.list()
     location = client.locations.get("a/b +?")
-    metrics = client.metrics.get("location-1")
+    metrics = client.metrics.get(LOCATION["id"])
     crisp = client.crisp.get(LOCATION["id"])
-    summary = client.analytics.get_summary("location-1")
+    summary = client.analytics.get_summary(LOCATION["id"])
 
     assert len(locations) == 1
     assert isinstance(locations[0], PublicLocation)
@@ -159,7 +157,7 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
         "Samaná",
     )
     assert (location.id, location.name) == (LOCATION["id"], "Kokonut Adelphi")
-    assert (metrics.location_id, metrics.total_computed) == ("location-1", 1)
+    assert (metrics.location_id, metrics.total_computed) == (LOCATION["id"], 1)
     assert metrics.computed[0].computed_at == datetime(2026, 10, 14, 12, 30, tzinfo=timezone.utc)
     assert (crisp.period_start, crisp.period_end, crisp.status) == (
         date(2026, 1, 1),
@@ -173,12 +171,264 @@ def test_all_native_public_reads_share_paths_headers_and_typed_payloads() -> Non
     assert [url for url, _ in session.calls] == [
         "https://gateway.example/api/v1/locations",
         "https://gateway.example/api/v1/locations/a%2Fb%20%2B%3F",
-        "https://gateway.example/api/v1/metrics/location-1",
+        f"https://gateway.example/api/v1/metrics/{LOCATION['id']}",
         f"https://gateway.example/api/v1/crisp/{LOCATION['id']}",
-        "https://gateway.example/api/v1/analytics/location-1/summary",
+        f"https://gateway.example/api/v1/analytics/{LOCATION['id']}/summary",
     ]
     assert all(kwargs == {"timeout": 4.5} for _, kwargs in session.calls)
     assert session.headers == {"Accept": "application/json", "x-api-key": "test-key"}
+
+
+@pytest.mark.parametrize(
+    ("requested_location_id", "summary"),
+    [
+        (LOCATION["id"], METRIC_SUMMARY),
+        (
+            LOCATION["id"].upper(),
+            {
+                **METRIC_SUMMARY,
+                "computed": [],
+                "total_computed": 0,
+            },
+        ),
+        (
+            LOCATION["id"],
+            {
+                **METRIC_SUMMARY,
+                "computed": [
+                    {
+                        **METRIC_SUMMARY["computed"][0],
+                        "unit": None,
+                        "value": None,
+                        "computed_at": None,
+                    }
+                ],
+            },
+        ),
+    ],
+)
+def test_metric_sdk_accepts_exact_scoped_summaries(
+    requested_location_id: str, summary: dict[str, Any]
+) -> None:
+    client = KokonutPublicApiClient(
+        "https://gateway.example",
+        session=FakeSession([FakeResponse(200, {"data": summary})]),
+    )
+
+    result = client.metrics.get(requested_location_id)
+
+    assert result.location_id == LOCATION["id"]
+    assert result.total_computed == len(result.computed)
+
+
+@pytest.mark.parametrize(
+    "summary",
+    [
+        {**METRIC_SUMMARY, "unexpected": "field"},
+        {key: value for key, value in METRIC_SUMMARY.items() if key != "total_computed"},
+        {**METRIC_SUMMARY, "location_id": "not-a-uuid"},
+        {**METRIC_SUMMARY, "location_id": "c0000000-0000-4000-8000-000000000001"},
+        {**METRIC_SUMMARY, "computed": {}},
+        {**METRIC_SUMMARY, "total_computed": -1},
+        {**METRIC_SUMMARY, "total_computed": 1.5},
+        {**METRIC_SUMMARY, "total_computed": True},
+        {**METRIC_SUMMARY, "total_computed": 0},
+        {
+            **METRIC_SUMMARY,
+            "computed": [{**METRIC_SUMMARY["computed"][0], "extra": "field"}],
+        },
+        {
+            **METRIC_SUMMARY,
+            "computed": [
+                {
+                    key: value
+                    for key, value in METRIC_SUMMARY["computed"][0].items()
+                    if key != "unit"
+                }
+            ],
+        },
+        {
+            **METRIC_SUMMARY,
+            "computed": [{**METRIC_SUMMARY["computed"][0], "metric_key": 1}],
+        },
+        {
+            **METRIC_SUMMARY,
+            "computed": [{**METRIC_SUMMARY["computed"][0], "display_name": None}],
+        },
+        {
+            **METRIC_SUMMARY,
+            "computed": [{**METRIC_SUMMARY["computed"][0], "unit": 4}],
+        },
+        {
+            **METRIC_SUMMARY,
+            "computed": [{**METRIC_SUMMARY["computed"][0], "value": True}],
+        },
+        {
+            **METRIC_SUMMARY,
+            "computed": [{**METRIC_SUMMARY["computed"][0], "value": float("inf")}],
+        },
+        {
+            **METRIC_SUMMARY,
+            "computed": [{**METRIC_SUMMARY["computed"][0], "value": "12.5"}],
+        },
+        {
+            **METRIC_SUMMARY,
+            "computed": [
+                {**METRIC_SUMMARY["computed"][0], "computed_at": "2026-10-14T12:30:00"}
+            ],
+        },
+        {
+            **METRIC_SUMMARY,
+            "computed": [
+                {**METRIC_SUMMARY["computed"][0], "computed_at": "2026-02-30T12:30:00Z"}
+            ],
+        },
+    ],
+)
+def test_metric_sdk_rejects_malformed_or_wrong_scope_summaries(
+    summary: dict[str, Any],
+) -> None:
+    response = FakeResponse(200, {"data": summary})
+    client = KokonutPublicApiClient(
+        "https://gateway.example", session=FakeSession([response])
+    )
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope") as exc_info:
+        client.metrics.get(LOCATION["id"])
+
+    assert exc_info.value.status_code == 200
+    assert exc_info.value.response is response
+
+
+@pytest.mark.parametrize(
+    ("requested_location_id", "summary"),
+    [
+        (LOCATION["id"], LOCATION_SUMMARY),
+        (
+            LOCATION["id"].upper(),
+            {
+                **LOCATION_SUMMARY,
+                "location": {**LOCATION, "country": None, "region": None},
+                "metrics": {"metric_count": 0, "latest_computed_at": None},
+                "attestations": {
+                    "total_attestations": 1,
+                    "published_count": 2,
+                    "latest_attestation": None,
+                },
+            },
+        ),
+    ],
+)
+def test_location_summary_sdk_accepts_exact_scoped_payloads_without_extra_count_rules(
+    requested_location_id: str, summary: dict[str, Any]
+) -> None:
+    client = KokonutPublicApiClient(
+        "https://gateway.example",
+        session=FakeSession([FakeResponse(200, {"data": summary})]),
+    )
+
+    result = client.analytics.get_summary(requested_location_id)
+
+    assert result.location_id == LOCATION["id"]
+    assert result.location.id == LOCATION["id"]
+    assert result.metrics.metric_count >= 0
+    assert result.attestations.published_count == summary["attestations"]["published_count"]
+
+
+@pytest.mark.parametrize(
+    "summary",
+    [
+        {**LOCATION_SUMMARY, "unexpected": "field"},
+        {key: value for key, value in LOCATION_SUMMARY.items() if key != "summary_type"},
+        {**LOCATION_SUMMARY, "summary_type": "other"},
+        {**LOCATION_SUMMARY, "location_id": "not-a-uuid"},
+        {**LOCATION_SUMMARY, "location_id": "c0000000-0000-4000-8000-000000000001"},
+        {
+            **LOCATION_SUMMARY,
+            "location": {**LOCATION, "id": "c0000000-0000-4000-8000-000000000001"},
+        },
+        {**LOCATION_SUMMARY, "location": {**LOCATION, "status": "draft"}},
+        {
+            **LOCATION_SUMMARY,
+            "location": {key: value for key, value in LOCATION.items() if key != "region"},
+        },
+        {**LOCATION_SUMMARY, "location": {**LOCATION, "extra": "field"}},
+        {
+            **LOCATION_SUMMARY,
+            "metrics": {
+                key: value
+                for key, value in LOCATION_SUMMARY["metrics"].items()
+                if key != "latest_computed_at"
+            },
+        },
+        {
+            **LOCATION_SUMMARY,
+            "metrics": {**LOCATION_SUMMARY["metrics"], "extra": "field"},
+        },
+        {
+            **LOCATION_SUMMARY,
+            "metrics": {"metric_count": -1, "latest_computed_at": None},
+        },
+        {
+            **LOCATION_SUMMARY,
+            "metrics": {"metric_count": True, "latest_computed_at": None},
+        },
+        {
+            **LOCATION_SUMMARY,
+            "metrics": {"metric_count": 1.5, "latest_computed_at": None},
+        },
+        {
+            **LOCATION_SUMMARY,
+            "metrics": {"metric_count": 1, "latest_computed_at": "2026-10-14T12:30:00"},
+        },
+        {
+            **LOCATION_SUMMARY,
+            "attestations": {
+                key: value
+                for key, value in LOCATION_SUMMARY["attestations"].items()
+                if key != "published_count"
+            },
+        },
+        {
+            **LOCATION_SUMMARY,
+            "attestations": {**LOCATION_SUMMARY["attestations"], "extra": "field"},
+        },
+        {
+            **LOCATION_SUMMARY,
+            "attestations": {
+                **LOCATION_SUMMARY["attestations"],
+                "total_attestations": -1,
+            },
+        },
+        {
+            **LOCATION_SUMMARY,
+            "attestations": {
+                **LOCATION_SUMMARY["attestations"],
+                "published_count": True,
+            },
+        },
+        {
+            **LOCATION_SUMMARY,
+            "attestations": {
+                **LOCATION_SUMMARY["attestations"],
+                "latest_attestation": "2026-10-14T12:35:00+01:60",
+            },
+        },
+    ],
+)
+def test_location_summary_sdk_rejects_malformed_or_wrong_scope_payloads(
+    summary: dict[str, Any],
+) -> None:
+    response = FakeResponse(200, {"data": summary})
+    client = KokonutPublicApiClient(
+        "https://gateway.example", session=FakeSession([response])
+    )
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope") as exc_info:
+        client.analytics.get_summary(LOCATION["id"])
+
+    assert exc_info.value.status_code == 200
+    assert exc_info.value.response is response
 
 
 @pytest.mark.parametrize(

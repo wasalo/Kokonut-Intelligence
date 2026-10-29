@@ -41,6 +41,22 @@ the batch log and the affected capability/progress records are updated.
   including match to the requested location and date/status/value constraints
   ([evidence](builds/2026-10-28-recovery/kernel-parallel-capital-wellbeing-crisp-contracts.json)).
 
+- [x] Add a strict Comprehensive Status community-governance contract that
+  preserves shared null-location and selected-location mechanism rows.
+- [x] Add a strict location-bound foundational-wellbeing contract that allows
+  qualitative-only observations with null score and count.
+- [x] Replace vulnerable-access `SELECT *` with its exact 16-column projection
+  and verify serialized payload parity.
+- [x] Replace foundational-wellbeing `SELECT *` with its exact 12-column
+  projection and verify serialized payload parity.
+- [x] Replace community-governance `SELECT *` with its exact 17-column
+  projection and verify serialized payload parity, including shared rows.
+- [x] Validate public metrics responses in Python and TypeScript, including
+  requested-location identity and result-count parity.
+- [x] Validate nested public location summaries and both location identities
+  in Python and TypeScript without adding undeclared count relationships
+  ([evidence](builds/2026-10-28-recovery/kernel-parallel-wellbeing-community-sdk-contracts.json)).
+
 - [x] Add strict Comprehensive Status contracts for farm summary and published
   financial sustainability, including location binding and existing bounded
   error shapes; preserve current fields and report behavior
@@ -2135,7 +2151,7 @@ parity remain open. See
 Checklist: 1,536 complete / 25 open (1,561 total); TODO: 239 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
 
-### Latest local continuation — capital efficiency, wellbeing projections, and CRISP SDK parity — 28 October 2026
+### Previous local continuation — capital efficiency, wellbeing projections, and CRISP SDK parity — 28 October 2026
 
 The strict capital-efficiency contract now binds both nested row families to
 the requested location. GNH, cultural-preservation, and renewable-energy
@@ -2147,4 +2163,18 @@ privacy and populated-data parity remain open. See
 [batch evidence](builds/2026-10-28-recovery/kernel-parallel-capital-wellbeing-crisp-contracts.json).
 
 Checklist: 1,541 complete / 25 open (1,566 total); TODO: 244 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — community wellbeing and public SDK summary contracts — 28 October 2026
+
+The strict Comprehensive Status contracts preserve globally shared
+community-governance rows with null location scope and allow qualitative-only
+foundational-wellbeing observations. Three reports now select their exact
+public-view fields, and both REST SDKs validate metrics and nested location
+summaries against the request location. The integrated Python selection passes
+278 tests, TypeScript passes 121, and build/lint/compilation/inventory checks
+pass. Content privacy and populated parity remain open. See
+[batch evidence](builds/2026-10-28-recovery/kernel-parallel-wellbeing-community-sdk-contracts.json).
+
+Checklist: 1,548 complete / 25 open (1,573 total); TODO: 251 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.

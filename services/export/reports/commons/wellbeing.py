@@ -185,7 +185,22 @@ def generate_vulnerable_access(conn, location_id: str, period_start: str = None,
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   plan_date,
+                   access_scope,
+                   vulnerable_groups,
+                   access_barriers,
+                   accommodations,
+                   participation_pathways,
+                   accountable_role,
+                   implementation_status,
+                   access_coverage_pct,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_vulnerable_access_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR plan_date >= %s::date)
@@ -224,7 +239,18 @@ def generate_foundational_wellbeing(conn, location_id: str, period_start: str = 
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   observation_date,
+                   wellbeing_domain,
+                   stakeholder_group,
+                   score_value,
+                   count_value,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_foundational_wellbeing_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR observation_date >= %s::date)

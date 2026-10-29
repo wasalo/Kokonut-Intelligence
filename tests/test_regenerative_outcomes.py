@@ -370,6 +370,79 @@ def test_regenerative_outcomes_projection_preserves_complete_view_payload() -> N
     assert report["total_hectares_restored"] == 1.2346
 
 
+def test_community_governance_projection_preserves_location_and_global_payloads() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    local_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "mechanism_name": "Farm assembly",
+        "governance_level": "farm",
+        "decision_body": "Member assembly",
+        "decision_method": "consensus with vote fallback",
+        "quorum_rule": "two thirds of active members",
+        "voting_or_consensus_rights": "One member, one voice",
+        "community_veto_rights": "Community harm veto",
+        "escalation_path": "Facilitator review then assembly",
+        "power_distribution_summary": "Distributed authority",
+        "participation_cadence": "quarterly",
+        "public_summary": "Reviewed location governance mechanism.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "scope": "location"},
+    }
+    global_row = {
+        **local_row,
+        "id": "b0000000-0000-0000-0000-000000000002",
+        "location_id": None,
+        "farm_id": None,
+        "mechanism_name": "Network assembly principles",
+        "governance_level": "network",
+        "public_summary": "Reviewed network governance mechanism.",
+        "metadata": {"source": "reviewed", "scope": "network"},
+    }
+    source_rows = [local_row, global_row]
+    columns = (
+        "id, location_id, farm_id, mechanism_name, governance_level, decision_body, decision_method, "
+        "quorum_rule, voting_or_consensus_rights, community_veto_rights, escalation_path, "
+        "power_distribution_summary, participation_cadence, public_summary, evidence_maturity, "
+        "evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchall(self):
+            return source_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_community_governance(conn, location_id)
+    query, params = conn.cursor_value.executed[0]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_community_governance_mechanism "
+        "WHERE location_id = %s OR location_id IS NULL ORDER BY governance_level, mechanism_name"
+    )
+    assert params == (location_id,)
+    assert report["report_type"] == "community_governance"
+    assert report["location_id"] == location_id
+    assert report["mechanisms"] == source_rows
+
+
 def test_community_governance_rejects_missing_location_before_database_access() -> None:
     class Conn:
         def cursor(self, *args, **kwargs):

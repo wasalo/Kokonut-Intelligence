@@ -14,7 +14,7 @@
       "callable": "generate_adaptive_stewardship",
       "source_module": "services.export.reports.commons.stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 149,
+      "source_line": 165,
       "parameters": [
         "conn",
         "location_id",
@@ -745,7 +745,7 @@
       "callable": "generate_foundational_wellbeing",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 216,
+      "source_line": 231,
       "parameters": [
         "conn",
         "location_id",
@@ -1328,7 +1328,7 @@
       "callable": "generate_replication_readiness",
       "source_module": "services.export.reports.commons.stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 111,
+      "source_line": 127,
       "parameters": [
         "conn",
         "location_id",

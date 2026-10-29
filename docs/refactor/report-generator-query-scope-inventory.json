@@ -26,7 +26,7 @@
       "report_type": "adaptive_stewardship",
       "callable": "generate_adaptive_stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 149,
+      "source_line": 165,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -40,7 +40,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 156,
+          "line": 172,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -63,7 +63,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 158,
+          "line": 174,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2157,7 +2157,7 @@
       "report_type": "foundational_wellbeing",
       "callable": "generate_foundational_wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 216,
+      "source_line": 231,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -2171,7 +2171,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 223,
+          "line": 238,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2194,7 +2194,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 225,
+          "line": 240,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3655,7 +3655,7 @@
       "report_type": "replication_readiness",
       "callable": "generate_replication_readiness",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 111,
+      "source_line": 127,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -3669,7 +3669,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 120,
+          "line": 136,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

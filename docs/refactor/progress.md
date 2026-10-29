@@ -22968,3 +22968,27 @@ used. Evidence:
 
 Checklist: 1,541 complete / 25 open (1,566 total); TODO: 244 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — community wellbeing and public SDK summaries — 28 October 2026
+
+Comprehensive Status now validates the public community-governance and
+foundational-wellbeing sections. Community governance keeps globally shared
+records with null `location_id` separate from location-specific records;
+foundational wellbeing accepts qualitative-only source observations with
+nullable score/count. Vulnerable access, foundational wellbeing, and community
+governance use explicit projections of all 16, 12, and 17 current public-view
+columns. Both SDKs validate public metric summaries against the requested
+location and the Gateway's count semantics; nested location summaries validate
+both location identities and nullable timestamp fields.
+
+The integrated focused Python selection passes 278 tests and the TypeScript
+public-API selection passes 121. The TypeScript build, Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+diff checks pass. Public narratives and metadata remain unchanged; content
+privacy and populated-data parity are not established. No migration,
+database, candidate, legacy service, provider, or production resource was
+used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-wellbeing-community-sdk-contracts.json).
+
+Checklist: 1,548 complete / 25 open (1,573 total); TODO: 251 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

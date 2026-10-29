@@ -1,5 +1,22 @@
 # Capability preservation matrix
 
+**Latest parallel C2/C5 and SDK summary batch — 28 October 2026:**
+Comprehensive Status now validates community governance while retaining
+location-null shared mechanisms, and validates foundational-wellbeing rows
+without rejecting qualitative-only observations. Vulnerable-access,
+foundational-wellbeing, and community-governance reports use full explicit
+public-view projections. Python and TypeScript now validate public metrics and
+nested location summaries against the requested location. The integrated
+focused selection passes 278 Python and 121 TypeScript tests; the TypeScript
+build, Ruff, compilation, report inventories, matrix validation, and diff
+checks pass. No database, migration, provider, candidate, legacy service, or
+production resource was used. Existing public content is preserved; populated
+parity and content-level privacy remain open. Matrix classifications stay at
+67 rows (24 baseline-retained, 7 deployed, 36 prepared); private Gateway
+response contracts remain 94. Checklist: 1,548 complete / 25 open
+(1,573 total); MAN-CAP acceptance and classifications remain unchanged
+([evidence](builds/2026-10-28-recovery/kernel-parallel-wellbeing-community-sdk-contracts.json)).
+
 **Latest parallel C2/C5 and SDK CRISP batch — 28 October 2026:** the
 Comprehensive Status capital-efficiency section now has strict nested models
 and verifies both scenario and regenerative-efficiency rows match the requested

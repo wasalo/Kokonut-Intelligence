@@ -31,13 +31,13 @@
         {
           "caller": "generate_adaptive_stewardship",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 151,
+          "line": 167,
           "depth": 1
         },
         {
           "caller": "generate_adaptive_stewardship",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 176,
+          "line": 192,
           "depth": 1
         },
         {
@@ -3717,7 +3717,7 @@
         {
           "caller": "generate_community_governance",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 99,
+          "line": 115,
           "depth": 1
         },
         {
@@ -5046,13 +5046,13 @@
         {
           "caller": "generate_foundational_wellbeing",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 218,
+          "line": 233,
           "depth": 1
         },
         {
           "caller": "generate_foundational_wellbeing",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 243,
+          "line": 269,
           "depth": 1
         },
         {
@@ -7958,13 +7958,13 @@
         {
           "caller": "generate_replication_readiness",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 115,
+          "line": 131,
           "depth": 1
         },
         {
           "caller": "generate_replication_readiness",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 137,
+          "line": 153,
           "depth": 1
         },
         {
@@ -11123,7 +11123,7 @@
         {
           "caller": "generate_vulnerable_access",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 204,
+          "line": 219,
           "depth": 1
         },
         {

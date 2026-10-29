@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "eb669dd02ab156ff58935d7796e13583848c1de9",
+  "scope": "Community governance and foundational-wellbeing contracts, exact public-view projections, and Python/TypeScript metrics/location-summary parity",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_gateway_comprehensive_status_reads.py",
+    "tests/test_comprehensive_status.py",
+    "tests/test_gnh_alignment.py",
+    "tests/test_vulnerable_access_report_scope.py",
+    "tests/test_foundational_wellbeing_report_scope.py",
+    "tests/test_regenerative_outcomes.py",
+    "tests/test_stewardship_report_scope.py",
+    "tests/test_public_api_sdk.py",
+    "-q"
+  ],
+  "python_test_result": {"passed": 278, "failed": 0},
+  "javascript_test_command": [
+    "npm",
+    "test",
+    "--",
+    "--run",
+    "src/__tests__/public-api.test.ts"
+  ],
+  "javascript_working_directory": "sdk/javascript",
+  "javascript_test_result": {"passed": 121, "failed": 0},
+  "checks": {
+    "typescript_build": "passed with npm run build",
+    "ruff": "passed for changed Python source and tests",
+    "python_compile": "passed for changed Python source and tests",
+    "report_source_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "community_governance": "Strict success/error response; mechanism rows may be location-null shared records or match the selected location. Null rows remain null and are not treated as location-owned.",
+    "foundational_wellbeing": "Strict success/error response; observations must match the requested location. Nullable score and count are allowed for qualitative-only source rows whose qualitative signal is not included in the public projection.",
+    "public_wellbeing_views": "Vulnerable access selects 16, foundational wellbeing 12, and community governance 17 current public-view columns. Existing filters, bindings, ordering, serialized fields, and NULL-scope inclusion remain unchanged.",
+    "public_metrics_sdk": "Both SDKs validate exact summary and metric fields, request-location identity, count-to-row parity, nonnegative integer totals, finite nullable values, and nullable timestamps.",
+    "public_location_summary_sdk": "Both SDKs validate the exact nested public summary, fixed summary type, requested and nested location identity, active public location shape, nonnegative counts, and nullable timestamps without inventing count relationships."
+  },
+  "content_review": "Public narratives and metadata remain unchanged. This batch establishes source-level response and projection contracts, not content-level privacy or populated-data parity.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}
