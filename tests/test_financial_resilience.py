@@ -207,6 +207,70 @@ def test_financial_resilience_report_generators_public_safe() -> None:
     assert generate_green_paper_publication_status(conn, None)["report_type"] == "green_paper_publication_status"
 
 
+def test_green_paper_status_projects_public_view_columns_and_preserves_rows() -> None:
+    columns = [
+        "id",
+        "version",
+        "document_path",
+        "review_status",
+        "review_owner",
+        "target_publication_date",
+        "open_question_count",
+        "approval_record_count",
+        "publication_cid",
+        "publication_hash",
+        "published_at",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+    ]
+    row = {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "version": "1.0",
+        "document_path": "docs/green-paper.md",
+        "review_status": "published",
+        "review_owner": "Communications Guild",
+        "target_publication_date": "2026-07-31",
+        "open_question_count": 0,
+        "approval_record_count": 3,
+        "publication_cid": "bafybeigdyrzt",
+        "publication_hash": "a" * 64,
+        "published_at": "2026-07-29T12:00:00+00:00",
+        "public_summary": "Reviewed public summary.",
+        "evidence_maturity": 4,
+        "evidence_maturity_label": "Published",
+    }
+
+    class Cursor:
+        query = None
+
+        def execute(self, query, params=None):
+            self.query = " ".join(query.split())
+            assert params is None
+
+        def fetchall(self):
+            return [row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+
+    report = generate_green_paper_publication_status(conn, None)
+
+    projection = conn.cursor_value.query.split(" FROM ", maxsplit=1)[0]
+    assert projection == "SELECT " + ", ".join(columns)
+    assert "FROM v_public_green_paper_publication_status ORDER BY target_publication_date DESC, version DESC" in conn.cursor_value.query
+    assert report["reviews"] == [row]
+
+
 @pytest.mark.parametrize("location_id", [None, ""])
 def test_scaling_roadmap_requires_location_before_database_access(location_id) -> None:
     class NoDatabase:

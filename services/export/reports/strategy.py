@@ -430,7 +430,12 @@ def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, per
     _require_location_scope("stakeholder_outcomes", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         query = (
-            "SELECT * FROM stakeholder_outcome "
+            "SELECT id, location_id, farm_id, outcome_name, outcome_description, "
+            "stakeholder_group, stakeholder_description, importance, "
+            "importance_perspective, is_underserved, framework_key, "
+            "dimension_key, sdg_number, capital_key, pillar_key, "
+            "evidence_maturity, status, metadata, created_at, updated_at, "
+            "created_by, updated_by FROM stakeholder_outcome "
             "WHERE status IN ('verified', 'published') AND location_id = %s::uuid"
         )
         params = [location_id]

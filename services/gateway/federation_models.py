@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 
 class FederationNodeResponse(BaseModel):
@@ -14,7 +12,7 @@ class FederationNodeResponse(BaseModel):
     node_name: str
     node_url: str
     trust_level: str
-    shared_capabilities: Any
+    shared_capabilities: JsonValue
     last_sync_at: str | None
     status: str
     created_at: str

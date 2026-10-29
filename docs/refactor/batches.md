@@ -6224,3 +6224,33 @@ used. Evidence:
 
 Checklist: 1,528 complete / 25 open (1,553 total); TODO: 231 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed parallel C2/C5 contract and projection batch — 28 October 2026
+
+- [x] Give Comprehensive Status regenerative outcomes a strict success/error
+  contract. Bind the report and each outcome row to the selected location,
+  validate period order and the aggregate hectares total, and preserve the
+  current summary and metadata payload.
+- [x] Runtime-validate the federation node's `shared_capabilities` as arbitrary
+  JSON, preserving existing JSONB values. Route policy, pagination, and public
+  SDK exposure remain unchanged; Pydantic currently emits an empty OpenAPI
+  schema component for recursive `JsonValue`.
+- [x] Replace stakeholder-outcome `SELECT *` with the explicit 22-column
+  migration-aligned projection.
+- [x] Replace Green Paper publication-status `SELECT *` with the explicit
+  14-column public-view projection. Existing output fields and ordering remain
+  unchanged.
+
+The integrated Gateway, composite-report, federation, route-policy, SDK,
+financial-resilience, stakeholder, and report-inventory selection passes 525
+tests. Ruff, Python compilation, all three report-generator inventories,
+capability-matrix validation, and `git diff --check` pass. Existing summary,
+metadata, stakeholder descriptions/actors, and Green Paper paths/reviewer/CID/
+hash fields remain in the payload. These checks establish source contracts and
+projection stability, not content-level privacy or populated-data parity. No
+migration, database, candidate, legacy service, provider, or production resource
+was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-regenerative-federation-report-projections.json).
+
+Checklist: 1,532 complete / 25 open (1,557 total); TODO: 235 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

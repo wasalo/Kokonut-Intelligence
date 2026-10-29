@@ -1,5 +1,22 @@
 # Capability preservation matrix
 
+**Latest parallel C2/C5 contract and projection batch — 28 October 2026:**
+Comprehensive Status now validates regenerative-outcome report and row scope,
+period order, and hectares aggregation while retaining existing summary and
+metadata fields. Federation `shared_capabilities` now rejects non-JSON values
+without narrowing JSONB payloads or changing route/SDK behavior; Pydantic's
+recursive `JsonValue` still produces an empty OpenAPI schema component.
+Stakeholder outcomes and Green Paper publication status now use explicit
+22-column and 14-column projections. The integrated focused selection passes
+525 tests; Ruff, compilation, report inventories, matrix validation, and diff
+checks pass. Existing output fields remain, so content-level privacy and
+populated-data parity remain open. No database, migration, provider, candidate,
+legacy service, or production resource was used. The matrix remains 67 rows
+(24 baseline-retained, 7 deployed, 36 prepared); strict private Gateway
+response contracts remain 94. Checklist: 1,532 complete / 25 open
+(1,557 total); MAN-CAP acceptance and classifications are unchanged
+([evidence](builds/2026-10-28-recovery/kernel-parallel-regenerative-federation-report-projections.json)).
+
 **Latest C2/C5 climate and Statement of Work contracts — 28 October 2026:**
 the private Comprehensive Status climate-impact section now validates its
 nested projection and binds its calculations/stored summary to the selected

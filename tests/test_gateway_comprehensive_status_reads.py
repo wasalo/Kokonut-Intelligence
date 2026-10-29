@@ -79,6 +79,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
     sections["environmental"] = _environmental_section(location_id)
     sections["climate_impact"] = _climate_impact_section(location_id)
     sections["financial_sustainability"] = _financial_sustainability_section(location_id)
+    sections["regenerative_outcomes"] = _regenerative_outcomes_section(location_id)
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -473,6 +474,50 @@ def _climate_impact_section(location_id=LOCATION_ID):
     }
 
 
+def _regenerative_outcomes_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "regenerative_outcomes",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "outcomes": [
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "farm_id": str(uuid4()),
+                "period_start": "2025-01-01",
+                "period_end": "2025-12-31",
+                "summary_name": "Synthetic annual outcome",
+                "hectares_restored": Decimal("1.2500"),
+                "baseline_species_count": 8,
+                "latest_species_count": 12,
+                "species_diversity_delta": Decimal("4.0000"),
+                "baseline_soil_carbon_t_ha": Decimal("21.5000"),
+                "latest_soil_carbon_t_ha": Decimal("23.0000"),
+                "soil_carbon_delta_t_ha": Decimal("1.5000"),
+                "trees_planted_count": 100,
+                "trees_surviving_count": 92,
+                "tree_survival_rate_pct": Decimal("92.0000"),
+                "regenerative_score": Decimal("84.50"),
+                "jobs_or_roles_supported_count": 4,
+                "training_hours": Decimal("32.5000"),
+                "beneficiary_count": 18,
+                "evidence_confidence": "high",
+                "public_summary": "Published synthetic outcome summary.",
+                "evidence_maturity": 4,
+                "evidence_maturity_label": "Evidence-linked record",
+                "metadata": {"public_tag": "synthetic", "labels": ["reviewed"]},
+            }
+        ],
+        "total_hectares_restored": 1.25,
+        "limitations": [
+            "Regenerative outcome summaries consolidate source evidence for reviewers; source tables remain canonical.",
+            "Moderate or low confidence outcomes should not be treated as external certification.",
+            "Carbon-credit or biodiversity-credit claims require separate maturity and verification gates.",
+        ],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
 class _Connection:
     autocommit = False
 
@@ -680,6 +725,15 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert climate["stored_summary"]["status"] == "draft"
     assert climate["stored_summary"]["reviewed_by"]
     assert climate["stored_summary"]["notes"] == "Synthetic stored-summary note."
+    regenerative = response.json()["locations"][0]["sections"]["regenerative_outcomes"]
+    assert regenerative["outcomes"][0]["public_summary"] == (
+        "Published synthetic outcome summary."
+    )
+    assert regenerative["outcomes"][0]["metadata"] == {
+        "public_tag": "synthetic",
+        "labels": ["reviewed"],
+    }
+    assert regenerative["total_hectares_restored"] == 1.25
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -821,6 +875,46 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
         "created_at",
         "updated_at",
     }
+    regenerative_schema = section_schema["properties"]["regenerative_outcomes"]
+    assert len(regenerative_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusRegenerativeOutcomes"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusRegenerativeOutcome"]["additionalProperties"] is False
+    assert set(schemas["ComprehensiveStatusRegenerativeOutcomes"]["properties"]) == {
+        "report_type",
+        "location_id",
+        "location_name",
+        "outcomes",
+        "total_hectares_restored",
+        "limitations",
+        "generated_at",
+    }
+    assert set(schemas["ComprehensiveStatusRegenerativeOutcome"]["properties"]) == {
+        "id",
+        "location_id",
+        "farm_id",
+        "period_start",
+        "period_end",
+        "summary_name",
+        "hectares_restored",
+        "baseline_species_count",
+        "latest_species_count",
+        "species_diversity_delta",
+        "baseline_soil_carbon_t_ha",
+        "latest_soil_carbon_t_ha",
+        "soil_carbon_delta_t_ha",
+        "trees_planted_count",
+        "trees_surviving_count",
+        "tree_survival_rate_pct",
+        "regenerative_score",
+        "jobs_or_roles_supported_count",
+        "training_hours",
+        "beneficiary_count",
+        "evidence_confidence",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    }
 
 
 def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
@@ -840,6 +934,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "error": "report section failed (DataError)"
     }
     payload["locations"][0]["sections"]["climate_impact"] = {
+        "error": "report section failed (DataError)"
+    }
+    payload["locations"][0]["sections"]["regenerative_outcomes"] = {
         "error": "report section failed (DataError)"
     }
     monkeypatch.setattr(
@@ -883,6 +980,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["climate_impact"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["regenerative_outcomes"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -903,6 +1003,11 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "climate_report_wrong_location", "climate_calculator_wrong_location",
         "climate_stored_summary_wrong_location", "climate_stored_summary_wrong_year",
         "climate_nested_extra", "climate_numeric_string", "climate_error_contract",
+        "regenerative_report_wrong_location", "regenerative_outcome_wrong_location",
+        "regenerative_outcome_extra", "regenerative_numeric_string",
+        "regenerative_missing_field", "regenerative_invalid_confidence",
+        "regenerative_invalid_period", "regenerative_total_mismatch",
+        "regenerative_error_contract",
     ],
 )
 def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_projection):
@@ -1017,6 +1122,42 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         ] = "8.75"
     elif invalid_projection == "climate_error_contract":
         payload["locations"][0]["sections"]["climate_impact"] = {
+            "error": "database connection failed with private SQL"
+        }
+    elif invalid_projection == "regenerative_report_wrong_location":
+        payload["locations"][0]["sections"]["regenerative_outcomes"]["location_id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "regenerative_outcome_wrong_location":
+        payload["locations"][0]["sections"]["regenerative_outcomes"]["outcomes"][0][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "regenerative_outcome_extra":
+        payload["locations"][0]["sections"]["regenerative_outcomes"]["outcomes"][0][
+            "source_raw"
+        ] = {"private": "must not escape"}
+    elif invalid_projection == "regenerative_numeric_string":
+        payload["locations"][0]["sections"]["regenerative_outcomes"]["outcomes"][0][
+            "hectares_restored"
+        ] = "1.2500"
+    elif invalid_projection == "regenerative_missing_field":
+        payload["locations"][0]["sections"]["regenerative_outcomes"]["outcomes"][0].pop(
+            "public_summary"
+        )
+    elif invalid_projection == "regenerative_invalid_confidence":
+        payload["locations"][0]["sections"]["regenerative_outcomes"]["outcomes"][0][
+            "evidence_confidence"
+        ] = "unreviewed"
+    elif invalid_projection == "regenerative_invalid_period":
+        payload["locations"][0]["sections"]["regenerative_outcomes"]["outcomes"][0][
+            "period_start"
+        ] = "2026-01-01"
+    elif invalid_projection == "regenerative_total_mismatch":
+        payload["locations"][0]["sections"]["regenerative_outcomes"][
+            "total_hectares_restored"
+        ] = 9.0
+    elif invalid_projection == "regenerative_error_contract":
+        payload["locations"][0]["sections"]["regenerative_outcomes"] = {
             "error": "database connection failed with private SQL"
         }
     else:

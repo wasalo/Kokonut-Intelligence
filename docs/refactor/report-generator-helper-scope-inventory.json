@@ -2996,13 +2996,13 @@
         {
           "caller": "generate_capital_accounting",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 863,
+          "line": 868,
           "depth": 1
         },
         {
           "caller": "generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 866,
+          "line": 871,
           "depth": 1
         },
         {
@@ -3331,19 +3331,19 @@
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 280,
+          "line": 284,
           "depth": 1
         },
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 317,
+          "line": 321,
           "depth": 1
         },
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 318,
+          "line": 322,
           "depth": 1
         },
         {
@@ -3828,13 +3828,13 @@
         {
           "caller": "services/export/reports/strategy.py:generate_capital_accounting",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 863,
+          "line": 868,
           "depth": 2
         },
         {
           "caller": "services/export/reports/strategy.py:generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 866,
+          "line": 871,
           "depth": 2
         },
         {
@@ -4262,7 +4262,7 @@
         {
           "caller": "generate_coordination_cockpit",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 539,
+          "line": 544,
           "depth": 1
         }
       ],
@@ -4360,7 +4360,7 @@
         {
           "caller": "generate_dao_proposal_history",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 377,
+          "line": 381,
           "depth": 1
         }
       ],
@@ -4532,19 +4532,19 @@
         {
           "caller": "generate_env_scan_report",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 680,
+          "line": 685,
           "depth": 1
         },
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:list_scans",
-          "line": 683,
+          "line": 688,
           "depth": 1
         },
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:render_markdown",
-          "line": 692,
+          "line": 697,
           "depth": 1
         }
       ],
@@ -4965,13 +4965,13 @@
         {
           "caller": "generate_fork_opportunities",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 714,
+          "line": 719,
           "depth": 1
         },
         {
           "caller": "generate_fork_opportunities",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 717,
+          "line": 722,
           "depth": 1
         }
       ],
@@ -5128,7 +5128,7 @@
         {
           "caller": "generate_governance_coordination_health",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 561,
+          "line": 566,
           "depth": 1
         }
       ],
@@ -5200,13 +5200,13 @@
         {
           "caller": "generate_governance_throughput",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 332,
+          "line": 336,
           "depth": 1
         },
         {
           "caller": "generate_governance_throughput",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 357,
+          "line": 361,
           "depth": 1
         },
         {
@@ -5248,7 +5248,7 @@
         {
           "caller": "generate_green_paper_publication_status",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 269,
+          "line": 273,
           "depth": 1
         },
         {
@@ -6025,19 +6025,19 @@
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 596,
+          "line": 601,
           "depth": 1
         },
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:list_analyses",
-          "line": 599,
+          "line": 604,
           "depth": 1
         },
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:render_markdown",
-          "line": 608,
+          "line": 613,
           "depth": 1
         }
       ],
@@ -6118,13 +6118,13 @@
         {
           "caller": "generate_pin_dependency",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 732,
+          "line": 737,
           "depth": 1
         },
         {
           "caller": "generate_pin_dependency",
           "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
-          "line": 735,
+          "line": 740,
           "depth": 1
         },
         {
@@ -7388,13 +7388,13 @@
         {
           "caller": "generate_promotion_ladder",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 751,
+          "line": 756,
           "depth": 1
         },
         {
           "caller": "generate_promotion_ladder",
           "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
-          "line": 754,
+          "line": 759,
           "depth": 1
         }
       ],
@@ -7450,25 +7450,25 @@
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 650,
+          "line": 655,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_publics",
-          "line": 653,
+          "line": 658,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_segments",
-          "line": 654,
+          "line": 659,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:influence_interest_matrix",
-          "line": 655,
+          "line": 660,
           "depth": 1
         },
         {
@@ -7823,19 +7823,19 @@
         {
           "caller": "generate_regional_readiness",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 623,
+          "line": 628,
           "depth": 1
         },
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:list_assessments",
-          "line": 626,
+          "line": 631,
           "depth": 1
         },
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:render_markdown",
-          "line": 635,
+          "line": 640,
           "depth": 1
         }
       ],
@@ -8483,31 +8483,31 @@
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 820,
+          "line": 825,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/analytics/digital_twin.py:list_twins",
-          "line": 837,
+          "line": 842,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/analytics/digital_twin.py:monte_carlo_yield",
-          "line": 839,
+          "line": 844,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/simulation/clash_examples.py:stress_reserve",
-          "line": 841,
+          "line": 846,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/common/errors.py:safe_exception_class",
-          "line": 844,
+          "line": 849,
           "depth": 1
         },
         {
@@ -8750,7 +8750,7 @@
         {
           "caller": "generate_stakeholder_cockpit",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 518,
+          "line": 523,
           "depth": 1
         }
       ],
@@ -8974,7 +8974,7 @@
         {
           "caller": "generate_stakeholder_trust",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 457,
+          "line": 462,
           "depth": 1
         }
       ],
@@ -9002,7 +9002,7 @@
         {
           "caller": "generate_stakeholder_value_streams",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 487,
+          "line": 492,
           "depth": 1
         }
       ],
@@ -10204,37 +10204,37 @@
         {
           "caller": "generate_tactical_layer",
           "callee": "services/export/reports/strategy.py:_require_location_scope",
-          "line": 769,
+          "line": 774,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 776,
+          "line": 781,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/threatcasting/preempt.py:plan_preemptive_actions",
-          "line": 777,
+          "line": 782,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
-          "line": 778,
+          "line": 783,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/feedback/automation.py:detect_zwischenzug",
-          "line": 779,
+          "line": 784,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
-          "line": 780,
+          "line": 785,
           "depth": 1
         },
         {

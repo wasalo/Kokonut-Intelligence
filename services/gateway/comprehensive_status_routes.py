@@ -182,6 +182,65 @@ class ComprehensiveStatusFinancialSustainability(_ComprehensiveStatusModel):
         return self
 
 
+class ComprehensiveStatusRegenerativeOutcome(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    period_start: ReportDate
+    period_end: ReportDate
+    summary_name: str
+    hectares_restored: ReportNumber | None = Field(ge=0)
+    baseline_species_count: int | None = Field(ge=0, strict=True)
+    latest_species_count: int | None = Field(ge=0, strict=True)
+    species_diversity_delta: ReportNumber | None
+    baseline_soil_carbon_t_ha: ReportNumber | None
+    latest_soil_carbon_t_ha: ReportNumber | None
+    soil_carbon_delta_t_ha: ReportNumber | None
+    trees_planted_count: int | None = Field(ge=0, strict=True)
+    trees_surviving_count: int | None = Field(ge=0, strict=True)
+    tree_survival_rate_pct: ReportNumber | None = Field(ge=0, le=100)
+    regenerative_score: ReportNumber | None = Field(ge=0, le=100)
+    jobs_or_roles_supported_count: int | None = Field(ge=0, strict=True)
+    training_hours: ReportNumber | None = Field(ge=0)
+    beneficiary_count: int | None = Field(ge=0, strict=True)
+    evidence_confidence: Literal["high", "moderate", "low", "insufficient_evidence"] | None
+    public_summary: str | None
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+    @model_validator(mode="after")
+    def keep_period_order(self):
+        if self.period_start > self.period_end:
+            raise ValueError("Regenerative outcome period starts after it ends")
+        return self
+
+
+class ComprehensiveStatusRegenerativeOutcomes(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["regenerative_outcomes"]
+    location_id: ReportUuid
+    location_name: str | None
+    outcomes: list[ComprehensiveStatusRegenerativeOutcome]
+    total_hectares_restored: ReportNumber = Field(ge=0)
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_outcomes_in_scope_and_total_consistent(self):
+        if any(outcome.location_id != self.location_id for outcome in self.outcomes):
+            raise ValueError("Regenerative outcome is outside report location scope")
+        expected_hectares = round(
+            sum(float(outcome.hectares_restored or 0) for outcome in self.outcomes), 4
+        )
+        if self.total_hectares_restored != expected_hectares:
+            raise ValueError("Regenerative outcome total does not match its rows")
+        return self
+
+
 class ComprehensiveStatusClimateCarbonBalance(_ComprehensiveStatusModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
 
@@ -643,12 +702,14 @@ class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     financial_sustainability: (
         ComprehensiveStatusFinancialSustainability | ComprehensiveStatusSectionError
     )
+    regenerative_outcomes: (
+        ComprehensiveStatusRegenerativeOutcomes | ComprehensiveStatusSectionError
+    )
     capital_efficiency: JsonValue
     holistic_wellbeing: JsonValue
     community_governance: JsonValue
     gnh_alignment: JsonValue
     training_impact: JsonValue
-    regenerative_outcomes: JsonValue
     foundational_wellbeing: JsonValue
     stakeholder_outcomes: JsonValue
     capital_accounting: JsonValue
@@ -688,6 +749,12 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             and climate.location_id != self.location_id
         ):
             raise ValueError("Climate impact section is outside the composed location scope")
+        regenerative = self.sections.regenerative_outcomes
+        if (
+            isinstance(regenerative, ComprehensiveStatusRegenerativeOutcomes)
+            and regenerative.location_id != self.location_id
+        ):
+            raise ValueError("Regenerative outcomes section is outside the composed location scope")
         return self
 
 

@@ -290,7 +290,7 @@
       "callable": "generate_capital_accounting",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 850,
+      "source_line": 855,
       "parameters": [
         "conn",
         "location_id",
@@ -333,7 +333,7 @@
       "callable": "generate_capital_efficiency",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 278,
+      "source_line": 282,
       "parameters": [
         "conn",
         "location_id",
@@ -441,7 +441,7 @@
       "callable": "generate_coordination_cockpit",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 537,
+      "source_line": 542,
       "parameters": [
         "conn",
         "location_id",
@@ -506,7 +506,7 @@
       "callable": "generate_dao_proposal_history",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 368,
+      "source_line": 372,
       "parameters": [
         "conn",
         "location_id",
@@ -593,7 +593,7 @@
       "callable": "generate_env_scan_report",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 679,
+      "source_line": 684,
       "parameters": [
         "conn",
         "location_id",
@@ -724,7 +724,7 @@
       "callable": "generate_fork_opportunities",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 710,
+      "source_line": 715,
       "parameters": [
         "conn",
         "location_id",
@@ -789,7 +789,7 @@
       "callable": "generate_governance_coordination_health",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 559,
+      "source_line": 564,
       "parameters": [
         "conn",
         "location_id",
@@ -831,7 +831,7 @@
       "callable": "generate_governance_throughput",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 328,
+      "source_line": 332,
       "parameters": [
         "conn",
         "location_id",
@@ -1112,7 +1112,7 @@
       "callable": "generate_pestel_assessment",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 595,
+      "source_line": 600,
       "parameters": [
         "conn",
         "location_id",
@@ -1134,7 +1134,7 @@
       "callable": "generate_pin_dependency",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 730,
+      "source_line": 735,
       "parameters": [
         "conn",
         "location_id",
@@ -1198,7 +1198,7 @@
       "callable": "generate_promotion_ladder",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 749,
+      "source_line": 754,
       "parameters": [
         "conn",
         "location_id",
@@ -1219,7 +1219,7 @@
       "callable": "generate_publics_market_landscape",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 649,
+      "source_line": 654,
       "parameters": [
         "conn",
         "location_id",
@@ -1284,7 +1284,7 @@
       "callable": "generate_regional_readiness",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 622,
+      "source_line": 627,
       "parameters": [
         "conn",
         "location_id",
@@ -1501,7 +1501,7 @@
       "callable": "generate_simulation_wargame",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 806,
+      "source_line": 811,
       "parameters": [
         "conn",
         "location_id",
@@ -1522,7 +1522,7 @@
       "callable": "generate_stakeholder_cockpit",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 516,
+      "source_line": 521,
       "parameters": [
         "conn",
         "location_id",
@@ -1690,7 +1690,7 @@
       "callable": "generate_stakeholder_trust",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 455,
+      "source_line": 460,
       "parameters": [
         "conn",
         "location_id",
@@ -1711,7 +1711,7 @@
       "callable": "generate_stakeholder_value_streams",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 485,
+      "source_line": 490,
       "parameters": [
         "conn",
         "location_id",
@@ -1838,7 +1838,7 @@
       "callable": "generate_tactical_layer",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 767,
+      "source_line": 772,
       "parameters": [
         "conn",
         "location_id",

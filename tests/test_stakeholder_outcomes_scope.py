@@ -33,6 +33,45 @@ def test_location_report_reads_only_selected_location_outcomes():
     assert params == [LOCATION_ID]
 
 
+def test_location_report_projects_current_outcome_columns_and_preserves_rows():
+    columns = [
+        "id",
+        "location_id",
+        "farm_id",
+        "outcome_name",
+        "outcome_description",
+        "stakeholder_group",
+        "stakeholder_description",
+        "importance",
+        "importance_perspective",
+        "is_underserved",
+        "framework_key",
+        "dimension_key",
+        "sdg_number",
+        "capital_key",
+        "pillar_key",
+        "evidence_maturity",
+        "status",
+        "metadata",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+    ]
+    rows = [{column: f"value-{index}" for index, column in enumerate(columns)}]
+    conn, cursor = _connection([rows])
+
+    report = generate_stakeholder_outcomes(conn, LOCATION_ID)
+
+    query, params = cursor.execute.call_args.args
+    normalized_query = " ".join(query.split())
+    projection = normalized_query.split(" FROM ", maxsplit=1)[0]
+    assert projection == "SELECT " + ", ".join(columns)
+    assert "WHERE status IN ('verified', 'published') AND location_id = %s::uuid" in normalized_query
+    assert params == [LOCATION_ID]
+    assert report["outcomes"] == rows
+
+
 @pytest.mark.parametrize("location_id", [None, ""])
 def test_missing_location_fails_before_opening_cursor(location_id):
     conn, _cursor = _connection([])

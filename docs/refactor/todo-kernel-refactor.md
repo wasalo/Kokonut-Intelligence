@@ -18,6 +18,16 @@ the batch log and the affected capability/progress records are updated.
   with the complete current schema projections, preserving scope, ordering,
   and serialized fields ([same evidence](builds/2026-10-28-recovery/kernel-parallel-climate-sow-contracts.json)).
 
+- [x] Add a strict location-bound Comprehensive Status regenerative-outcomes
+  contract with period and aggregate validation, preserving current content.
+- [x] Validate federation `shared_capabilities` as JSON at runtime without
+  narrowing the existing JSONB payload or changing route/SDK behavior.
+- [x] Replace stakeholder-outcome and Green Paper publication-status
+  `SELECT *` with explicit schema-aligned column projections and parity checks.
+  These contracts preserve current data and do not establish content-level
+  privacy or populated-data parity
+  ([evidence](builds/2026-10-28-recovery/kernel-parallel-regenerative-federation-report-projections.json)).
+
 - [x] Add strict Comprehensive Status contracts for farm summary and published
   financial sustainability, including location binding and existing bounded
   error shapes; preserve current fields and report behavior
@@ -2083,4 +2093,17 @@ reconciliation remain open. Evidence:
 [adapter checks](builds/2026-10-28-recovery/report-snapshot-export-s3-adapter-checks.json).
 
 Checklist: 1,528 complete / 25 open (1,553 total); TODO: 231 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Latest local continuation — response and report projection contracts — 28 October 2026
+
+The current continuation adds the strict regenerative-outcomes section
+contract, runtime JSON validation for federation capabilities, and explicit
+schema projections for stakeholder outcomes and Green Paper publication
+status. Its integrated regression selection passes 525 tests; lint,
+compilation, report inventories, capability validation, and diff checks pass.
+Content-level privacy and populated-data parity remain open. See
+[batch evidence](builds/2026-10-28-recovery/kernel-parallel-regenerative-federation-report-projections.json).
+
+Checklist: 1,532 complete / 25 open (1,557 total); TODO: 235 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
