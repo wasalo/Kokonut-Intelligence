@@ -267,6 +267,75 @@ class OperatingPilotResourceReviewDecisionResponse(BaseModel):
     replayed: bool
 
 
+class OperatingPilotCompetencyDraftCreateResponse(BaseModel):
+    """Minimal response for creating or replaying a private competency draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["draft", "submitted", "rejected", "verified", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_creation(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new competency assessment must remain a draft")
+        return self
+
+
+class OperatingPilotCompetencyDraftRevisionResponse(BaseModel):
+    """Minimal response for replacing a private competency assessment draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["draft", "submitted", "rejected", "verified", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_revision(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new competency revision must remain a draft")
+        return self
+
+
+class OperatingPilotCompetencyDraftSubmissionResponse(BaseModel):
+    """Minimal response for submitting a private competency assessment."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["draft", "submitted", "rejected", "verified", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_submission(self):
+        if not self.replayed and self.status != "submitted":
+            raise ValueError("A new competency submission must remain submitted")
+        return self
+
+
+class OperatingPilotCompetencyReviewDecisionResponse(BaseModel):
+    """Minimal response for an independent competency assessment review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["verified", "rejected"]
+    decision: Literal["verified", "rejected"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_decision(self):
+        if self.status != self.decision:
+            raise ValueError("Competency review status must match the decision")
+        return self
+
+
 def _response_decimal(value):
     if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
         raise ValueError("numeric value is invalid")
@@ -2090,7 +2159,11 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.post("/operator/api/operating-pilot/{location_id}/competency-assessments")
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/competency-assessments",
+        status_code=201,
+        response_model=OperatingPilotCompetencyDraftCreateResponse,
+    )
     async def create_operating_pilot_competency_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -2165,10 +2238,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotCompetencyDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Competency draft response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating competency draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )
 
     @router.put(
-        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}"
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}",
+        response_model=OperatingPilotCompetencyDraftRevisionResponse,
     )
     async def revise_operating_pilot_competency_draft(
         request: Request, location_id: str, draft_id: str
@@ -2253,10 +2346,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency revision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotCompetencyDraftRevisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.draft_id == UUID(draft_id):
+                raise ValueError("Competency revision response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency-revision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating competency revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/submit"
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/submit",
+        response_model=OperatingPilotCompetencyDraftSubmissionResponse,
     )
     async def submit_operating_pilot_competency_draft(
         request: Request, location_id: str, draft_id: str
@@ -2333,7 +2446,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency submission unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotCompetencyDraftSubmissionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.draft_id != UUID(draft_id):
+                raise ValueError("Competency submission response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency-submission response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating competency submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.put(
         "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}",
@@ -4249,7 +4381,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/review"
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/review",
+        response_model=OperatingPilotCompetencyReviewDecisionResponse,
     )
     async def review_operating_pilot_competency_assessment(
         request: Request, location_id: str, draft_id: str
@@ -4334,7 +4467,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotCompetencyReviewDecisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.draft_id != UUID(draft_id):
+                raise ValueError("Competency review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating competency review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
         "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/review",

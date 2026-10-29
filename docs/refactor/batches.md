@@ -8007,3 +8007,25 @@ Checklist: 1,796 complete / 25 open (1,821 total); TODO: 456 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 153. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — operating-pilot competency lifecycle response contracts — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime responses for competency draft create,
+  revision, submission, and independent review.
+- [x] Bind location and draft IDs to their paths; require a distinct revision
+  ID and enforce first-write lifecycle and decision/status invariants.
+- [x] Preserve lifecycle on idempotent replay and reject malformed,
+  mismatched, or undeclared service results with sanitized no-store errors.
+- [x] Declare HTTP 201 for competency creation in OpenAPI, matching runtime.
+- [x] Add/run the approved focused mock-only route/OpenAPI checks and record
+  machine-readable evidence.
+
+The focused selection passes 22 tests (253 unrelated tests deselected). Ruff,
+Python compilation, capability-matrix validation, and diff checks pass. No
+database, provider, candidate, or legacy state was used. Evidence:
+[competency lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-competency-lifecycle-response-contracts.json).
+
+Checklist: 1,801 complete / 25 open (1,826 total); TODO: 459 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 157. C2 remains open for broader route/auth and live-runtime parity.

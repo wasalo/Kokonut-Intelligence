@@ -3141,3 +3141,17 @@ compilation, capability-matrix validation, and diff checks pass. No database
 or provider was used. Checklist: 431 checked / 16 open; strict private Gateway
 response contracts total 133. Evidence:
 `builds/2026-10-29-recovery/delphi-study-lifecycle-response-contracts.json`.
+
+## Completed — operating-pilot competency lifecycle response contracts, 29 October
+
+- [x] Add strict OpenAPI/runtime response models for competency draft create,
+  revision, submission, and independent review.
+- [x] Verify request binding, distinct revision IDs, first-write lifecycle,
+  replay, review decisions, and sanitized no-store failures with focused tests.
+- [x] Record machine-readable evidence and reconcile the progress ledgers.
+
+The approved focused selection passes 22 tests; Ruff, Python compilation,
+capability-matrix validation, and diff checks pass. No database or provider was
+used. Checklist: 459 checked / 16 open; strict private Gateway response
+contracts total 157. Evidence:
+`builds/2026-10-29-recovery/operating-pilot-competency-lifecycle-response-contracts.json`.

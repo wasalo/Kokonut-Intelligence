@@ -953,7 +953,14 @@ def test_demand_draft_route_policy_requires_exact_location_create_grant():
 
 
 def test_competency_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
-    action = MagicMock(return_value={"draft_id": PROFILE_ID, "status": "draft", "replayed": False})
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
     client = _route_app(
         monkeypatch,
         action,
@@ -967,10 +974,72 @@ def test_competency_draft_http_route_passes_request_id_and_uses_no_store(monkeyp
 
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
-    assert response.json() == {"draft_id": PROFILE_ID, "status": "draft", "replayed": False}
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/competency-assessments"
+    ]["post"]["responses"]["201"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCompetencyDraftCreateResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, COMPETENCY_PAYLOAD)
 
 
+def test_competency_draft_replay_preserves_verified_state(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "verified",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch, action, "create_location_operating_pilot_competency_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments",
+        json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "verified"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"status": "submitted"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_competency_draft_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch, action, "create_location_operating_pilot_competency_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments",
+        json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating competency draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 def test_learning_plan_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
     action = MagicMock(
         return_value={"learning_plan_id": PROFILE_ID, "status": "draft", "replayed": False}
@@ -1414,19 +1483,43 @@ def test_resource_draft_rejects_malformed_response(monkeypatch, update):
 
 
 def test_competency_revision_and_submission_routes_use_exact_own_actions(monkeypatch):
-    revise = MagicMock(return_value={"draft_id": REQUEST_ID, "status": "draft"})
+    revise = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": REQUEST_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
     client = _route_app(monkeypatch, revise, "revise_location_operating_pilot_competency_draft")
     revise_path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}"
     response = client.put(revise_path, json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID})
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}"
+    ]["put"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCompetencyDraftRevisionResponse")
     revise.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, COMPETENCY_PAYLOAD)
     assert auth_route_policy("PUT", revise_path, enabled=True) == {
         "resource": "operating_pilot", "action": "edit_own", "public": False,
         "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
     }
 
-    submit = MagicMock(return_value={"draft_id": PROFILE_ID, "status": "submitted"})
+    submit = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "submitted",
+            "replayed": False,
+        }
+    )
     client = _route_app(monkeypatch, submit, "submit_location_operating_pilot_competency_draft")
     submit_path = revise_path + "/submit"
     bad = client.post(submit_path, json={"request_id": REQUEST_ID, "status": "verified"})
@@ -1435,6 +1528,16 @@ def test_competency_revision_and_submission_routes_use_exact_own_actions(monkeyp
     response = client.post(submit_path, json={"request_id": REQUEST_ID})
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/submit"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCompetencyDraftSubmissionResponse")
     submit.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID)
     assert auth_route_policy("POST", submit_path, enabled=True) == {
         "resource": "operating_pilot", "action": "submit_own", "public": False,
@@ -3166,7 +3269,11 @@ def _competency_review_route_app(monkeypatch, action, provider=object()):
 
 def test_competency_review_http_route_requires_request_and_returns_no_store(monkeypatch):
     action = MagicMock(return_value={
-        "draft_id": PROFILE_ID, "status": "rejected", "decision": "rejected", "replayed": False,
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "rejected",
+        "decision": "rejected",
+        "replayed": False,
     })
     client = _competency_review_route_app(monkeypatch, action)
     path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/review"
@@ -3186,11 +3293,189 @@ def test_competency_review_http_route_requires_request_and_returns_no_store(monk
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["decision"] == "rejected"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "rejected",
+        "decision": "rejected",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/review"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCompetencyReviewDecisionResponse")
     action.assert_called_once_with(
         OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID,
         {"decision": "rejected", "reason": "Please provide clearer evidence."},
     )
+
+
+def test_competency_revision_replay_preserves_terminal_state_and_replacement_id(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": REQUEST_ID,
+            "status": "superseded",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch, action, "revise_location_operating_pilot_competency_draft"
+    )
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}",
+        json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["draft_id"] == REQUEST_ID
+    assert response.json()["draft_id"] != PROFILE_ID
+    assert response.json()["status"] == "superseded"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"draft_id": PROFILE_ID},
+        {"status": "submitted"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_competency_revision_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch, action, "revise_location_operating_pilot_competency_draft"
+    )
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}",
+        json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating competency revision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+
+
+def test_competency_submission_replay_preserves_review_state(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "rejected",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch, action, "submit_location_operating_pilot_competency_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "rejected"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"draft_id": REQUEST_ID},
+        {"status": "verified"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_competency_submission_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch, action, "submit_location_operating_pilot_competency_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating competency submission unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+
+
+def test_competency_review_replay_preserves_decision(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "verified",
+            "decision": "verified",
+            "replayed": True,
+        }
+    )
+    client = _competency_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "verified"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "verified"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"draft_id": REQUEST_ID},
+        {"status": "verified", "decision": "rejected"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_competency_review_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "rejected",
+        "decision": "rejected",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _competency_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "rejected", "reason": "Review"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating competency review decision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_competency_review_route_policy_requires_exact_location_review_grant():

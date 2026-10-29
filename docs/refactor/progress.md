@@ -24356,3 +24356,19 @@ compilation, capability validation, and diff checks pass. No database or
 provider was used. Checklist: 1,796 complete / 25 open; TODO: 456 checked / 16
 open; strict private Gateway response contracts total 153. Evidence:
 [resource lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-resource-lifecycle-response-contracts.json).
+
+### Progress addendum — operating-pilot competency lifecycle response contracts — 29 October 2026
+
+Competency draft create, revision, submission, and independent review now have
+strict OpenAPI/runtime response contracts. They bind returned locations and
+draft IDs to request paths, require replacement IDs to differ from the
+superseded draft, constrain first-write lifecycle states, and preserve current
+state on idempotent replay. Review status must match its `verified` or
+`rejected` decision. OpenAPI declares creation as HTTP 201, matching the
+existing runtime behavior. The approved mock-only selection passes 22 tests
+(253 unrelated tests deselected), including malformed-output and no-store
+handling. Ruff, Python compilation, capability validation, and diff checks
+pass. No database or provider was used. Checklist: 1,801 complete / 25 open;
+TODO: 459 checked / 16 open; strict private Gateway response contracts total
+157. Evidence:
+[competency lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-competency-lifecycle-response-contracts.json).
