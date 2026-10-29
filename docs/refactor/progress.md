@@ -24503,3 +24503,21 @@ state was used.
 Checklist: 1,840 complete / 25 open; TODO: 483 checked / 16 open; strict
 private Gateway response contracts total 174. Evidence:
 [competency queue and PESTEL projections](builds/2026-10-29-recovery/competency-queue-and-pestel-projections.json).
+
+### Progress addendum — adoption review, competitive projections, and trust CLI — 29 October 2026
+
+The solution-lifecycle adoption-program review queue now publishes and validates
+migration 520's exact ten-field item projection, consent-policy tuple, location
+and page binding, community-review state, and SQL order. Its lookahead is
+converted to an explicit bounded result at the 10,000-offset cap; the console
+discloses when additional programs remain outside that bound. The competitive
+report now selects explicit migration-268 landscape and migration-269 position
+columns with filters, ordering, UUID cleanup, and payload unchanged. The
+stakeholder-trust CLI validates and canonicalizes every supplied UUID-backed ID
+before it opens PostgreSQL, while optional IDs remain optional. The approved
+offline selection passes 53 focused checks across Gateway, console, report,
+unified CLI, and command preflight; Ruff, Python compilation, capability
+validation, and diff checks pass. No database, provider, candidate, or legacy
+state was used. Checklist: 1,845 complete / 25 open; TODO: 488 checked / 16
+open; strict private Gateway response contracts total 175. Evidence:
+[adoption review, competitive projections, and trust CLI](builds/2026-10-29-recovery/adoption-review-competitive-projections-trust-cli.json).

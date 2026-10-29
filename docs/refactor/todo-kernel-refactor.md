@@ -3268,3 +3268,22 @@ capability validation, and diff checks pass; no database or provider was used.
 Checklist: 483 checked / 16 open; strict private Gateway response contracts
 total 174. Evidence:
 `builds/2026-10-29-recovery/competency-queue-and-pestel-projections.json`.
+
+## Completed — adoption review, competitive projections, and trust CLI, 29 October
+
+- [x] Add the strict migration-520 adoption-program review queue response,
+  consent-policy coherence checks, request binding, and bounded continuation.
+- [x] Align the operator console with the response contract and identify when
+  additional records are beyond the 10,000-offset cap.
+- [x] Replace the two competitive-report wildcard reads with migration-backed
+  explicit columns and preserve filtering, ordering, and row cleanup.
+- [x] Fail malformed stakeholder-trust UUID CLI inputs before database access
+  and normalize supplied valid identifiers.
+- [x] Run approved offline regressions and record evidence.
+
+The focused selection passes 23 Gateway, two console, two competitive-report,
+20 CLI preflight, five unified-CLI parameter cases, and one JavaScript syntax
+check (53 total). Ruff, compilation, matrix validation, and diff checks pass.
+No database or provider was used. Checklist: 488 checked / 16 open; strict
+private Gateway response contracts total 175. Evidence:
+`builds/2026-10-29-recovery/adoption-review-competitive-projections-trust-cli.json`.

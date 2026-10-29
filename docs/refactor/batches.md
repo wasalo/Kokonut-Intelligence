@@ -8215,3 +8215,26 @@ Checklist: 1,840 complete / 25 open (1,865 total); TODO: 483 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 174. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — adoption review, competitive projections, and trust CLI — 29 October 2026
+
+- [x] Publish migration 520's strict adoption-program review queue contract,
+  including consent completeness, exact request/page binding, independent-review
+  state, stable order, and sanitized no-store failures.
+- [x] Cap unrequestable review-queue continuations at offset 10,000 and tell
+  console users when more programs remain beyond the supported page range.
+- [x] Replace competitive-landscape and strategy-position wildcard reads with
+  migration-268/269 ordered projections while preserving filters and output.
+- [x] Validate and canonicalize stakeholder-trust CLI UUID arguments before
+  PostgreSQL is opened; keep omitted optional IDs unset.
+- [x] Run approved focused checks and update the evidence and progress ledgers.
+
+The approved offline selection passes 23 adoption Gateway checks, two operator
+console checks, two competitive-projection checks, 20 CLI UUID-preflight tests,
+five unified-CLI parameter cases, and one inline-JavaScript syntax check (53
+total). Ruff, Python compilation, capability-matrix validation, and diff checks
+pass. No database or provider was used. Checklist: 1,845 complete / 25 open;
+TODO: 488 checked / 16 open. Capability classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private
+Gateway response contracts total 175. Evidence:
+[adoption review, competitive projections, and trust CLI](builds/2026-10-29-recovery/adoption-review-competitive-projections-trust-cli.json).

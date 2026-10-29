@@ -1347,10 +1347,10 @@ def test_database_backed_read_cli_output_matches_with_stubbed_query(
         (
             "stakeholder-trust",
             "services.analytics.cli_stakeholder_trust",
-            ["timeline", "synthetic-party"],
+            ["timeline", "a5b3e100-0b5d-4a66-9e90-35c9da193fe8"],
             "trust.evidence_timeline",
             "get_db",
-            ("<connection>", "synthetic-party"),
+            ("<connection>", "a5b3e100-0b5d-4a66-9e90-35c9da193fe8"),
             {},
         ),
     ],

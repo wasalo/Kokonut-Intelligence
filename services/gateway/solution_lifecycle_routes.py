@@ -81,6 +81,7 @@ _SolutionStage = Literal[
 ]
 
 _MAX_POSTGRES_BIGINT = 9_223_372_036_854_775_807
+_SOLUTION_LIFECYCLE_MAX_OFFSET = 10_000
 _SolutionLifecycleCount = Annotated[
     int,
     Field(ge=0, le=_MAX_POSTGRES_BIGINT, strict=True),
@@ -527,6 +528,87 @@ class SolutionLifecycleStageTransitionTargetPageResponse(BaseModel):
         solution_ids = [solution.solution_id for solution in self.solutions]
         if len(solution_ids) != len(set(solution_ids)):
             raise ValueError("Stage-transition target page contains duplicate solutions")
+        return self
+
+
+class SolutionAdoptionProgramReviewQueueItemResponse(BaseModel):
+    """Exact migration-520 projection for an independent adoption-program reviewer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    program_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    program_status: Literal["community_review"]
+    adoption_pathway: str = Field(min_length=1, max_length=2000, strict=True)
+    local_adaptation_policy: str | None = Field(max_length=4000, strict=True)
+    submitted_at: AwareDatetime
+    consent_data_category: Literal["solution_adoption_participation"] | None
+    consent_purpose: str | None = Field(min_length=1, max_length=255, strict=True)
+    consent_version: str | None = Field(
+        min_length=1,
+        max_length=30,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,29}$",
+        strict=True,
+    )
+
+    @model_validator(mode="after")
+    def validate_consent_policy(self):
+        consent_values = (
+            self.consent_data_category,
+            self.consent_purpose,
+            self.consent_version,
+        )
+        if any(value is None for value in consent_values) and any(
+            value is not None for value in consent_values
+        ):
+            raise ValueError("Adoption program consent policy projection is incomplete")
+        return self
+
+
+class SolutionAdoptionProgramReviewQueueResponse(BaseModel):
+    """Strict, location-bound page envelope for the migration-520 queue."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=25, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    programs: list[SolutionAdoptionProgramReviewQueueItemResponse] = Field(max_length=25)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.programs) > self.limit:
+            raise ValueError("Adoption program page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.programs) != self.limit
+                or self.offset + len(self.programs) <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.programs) != self.limit
+                or self.next_offset != self.offset + len(self.programs)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal adoption program page cannot continue")
+
+        program_ids = [program.program_id for program in self.programs]
+        if len(program_ids) != len(set(program_ids)):
+            raise ValueError("Adoption program page contains duplicate programs")
+        order = [(program.submitted_at, program.program_id) for program in self.programs]
+        if order != sorted(order):
+            raise ValueError("Adoption program page is not in SQL order")
         return self
 
 
@@ -2303,9 +2385,15 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(status_code=503, content={"error": "Solution adoption program submission unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/review-queue")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs/review-queue",
+        response_model=SolutionAdoptionProgramReviewQueueResponse,
+    )
     async def location_solution_adoption_program_review_queue(
-        request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=10, ge=1, le=25),
+        offset: int = Query(default=0, ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2332,7 +2420,43 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution adoption program review queue unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution adoption program review queue unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict):
+                raise ValueError("Adoption program review result is not an object")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            next_offset = result.get("next_offset")
+            if result.get("has_more") is True and type(next_offset) is int and (
+                next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                programs = result.get("programs")
+                if (
+                    not isinstance(programs, list)
+                    or len(programs) != limit
+                    or next_offset != offset + len(programs)
+                ):
+                    raise ValueError("Adoption program continuation is inconsistent")
+                page["has_more"] = False
+                page["next_offset"] = None
+                page["offset_limited"] = True
+            validated = SolutionAdoptionProgramReviewQueueResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution adoption program review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(validated.model_dump(mode="python")), headers=headers)
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/review")
     async def review_solution_adoption_program(request: Request, location_id: str, program_id: str):
