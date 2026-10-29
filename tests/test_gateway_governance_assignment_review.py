@@ -26,6 +26,25 @@ REVIEWER_PARTY_ID = str(uuid4())
 CREATED_AT = datetime(2026, 10, 18, tzinfo=timezone.utc)
 
 
+def _review_item(assignment_id, created_at):
+    return {
+        "assignment_id": assignment_id,
+        "request_id": REQUEST_ID,
+        "role_id": ROLE_ID,
+        "role_key": "field_coordinator",
+        "role_name": "Field Coordinator",
+        "nominee_party_id": REVIEWER_PARTY_ID,
+        "nominee_name": "Nominee",
+        "nominee_status": "active",
+        "submitted_by_party_id": str(uuid4()),
+        "submitted_by_name": "Submitter",
+        "assignment_type": "primary",
+        "mandate": None,
+        "role_status": "active",
+        "created_at": created_at,
+    }
+
+
 class _Cursor:
     def __init__(self, connection):
         self.connection = connection
@@ -338,4 +357,96 @@ def test_http_review_route_denies_missing_grant_before_service(monkeypatch):
             )
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_http_review_queue_validates_exact_location_bound_page_and_cursor(monkeypatch):
+    item = _review_item(ASSIGNMENT_ID, "2026-10-18T00:00:00+00:00")
+    queue_result = {
+        "location_id": LOCATION_ID,
+        "items": [item],
+        "next_cursor": {"created_at": item["created_at"], "assignment_id": ASSIGNMENT_ID},
+    }
+    with patch(
+        "services.gateway.governance_assignment_review.list_governance_assignment_reviews",
+        return_value=queue_result,
+    ):
+        with _client(monkeypatch, {"review"}) as client:
+            response = client.get(
+                f"/operator/api/governance/{LOCATION_ID}/assignment-review-queue?limit=1"
+            )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["location_id"] == LOCATION_ID
+    assert response.json()["items"] == [{
+        **item,
+        "created_at": "2026-10-18T00:00:00Z",
+    }]
+    assert response.json()["next_cursor"]["assignment_id"] == ASSIGNMENT_ID
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {"location_id": str(uuid4()), "items": [], "next_cursor": None},
+        {"location_id": LOCATION_ID, "items": [{"unexpected": True}], "next_cursor": None},
+        {
+            "location_id": LOCATION_ID,
+            "items": [],
+            "next_cursor": {"created_at": CREATED_AT.isoformat(), "assignment_id": ASSIGNMENT_ID},
+        },
+    ],
+)
+def test_http_review_queue_rejects_malformed_service_page_no_store(monkeypatch, result):
+    with patch(
+        "services.gateway.governance_assignment_review.list_governance_assignment_reviews",
+        return_value=result,
+    ):
+        with _client(monkeypatch, {"review"}) as client:
+            response = client.get(
+                f"/operator/api/governance/{LOCATION_ID}/assignment-review-queue"
+            )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Governance assignment review queue unavailable"}
+
+
+@pytest.mark.parametrize(
+    ("items", "query"),
+    [
+        (
+            [
+                _review_item(ASSIGNMENT_ID, "2026-10-18T00:00:00+00:00"),
+                _review_item(str(uuid4()), "2026-10-19T00:00:00+00:00"),
+            ],
+            "limit=2",
+        ),
+        (
+            [_review_item(ASSIGNMENT_ID, "2026-10-18T00:00:00+00:00")],
+            f"limit=1&cursor_created_at=2026-10-18T00%3A00%3A00%2B00%3A00&cursor_assignment_id={ASSIGNMENT_ID}",
+        ),
+        (
+            [
+                _review_item(ASSIGNMENT_ID, "2026-10-18T00:00:00+00:00"),
+                _review_item(str(uuid4()), "2026-10-17T00:00:00+00:00"),
+            ],
+            "limit=1",
+        ),
+    ],
+)
+def test_http_review_queue_rejects_order_cursor_and_page_bound_violations(monkeypatch, items, query):
+    result = {"location_id": LOCATION_ID, "items": items, "next_cursor": None}
+    with patch(
+        "services.gateway.governance_assignment_review.list_governance_assignment_reviews",
+        return_value=result,
+    ):
+        with _client(monkeypatch, {"review"}) as client:
+            response = client.get(
+                f"/operator/api/governance/{LOCATION_ID}/assignment-review-queue?{query}"
+            )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Governance assignment review queue unavailable"}
 

@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-29",
+  "scope": "Strict location-scoped governance assignment review queue contract",
+  "focused_test_command": "python3 -m pytest tests/test_gateway_governance_assignment_review.py tests/test_gateway_governance_role_pagination_openapi.py -q",
+  "focused_test_result": {
+    "passed": 24,
+    "failed": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "The strict response schema matches all 14 migration-defined queue columns",
+    "The returned page is bound to the requested location and service limit",
+    "Assignments are unique and sorted newest-first with valid continuation and input cursors",
+    "Malformed projections fail closed with generic no-store responses",
+    "The existing signed reviewer grant, person binding, and no-store behavior remain intact"
+  ],
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_or_external_state_used": false,
+  "migration_required": false,
+  "rollback": "Revert the queue response models/validation, focused tests, and evidence; no database rollback is required."
+}

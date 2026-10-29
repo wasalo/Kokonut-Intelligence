@@ -202,6 +202,109 @@ class GovernanceAssignmentProposalPageResponse(BaseModel):
         return self
 
 
+class GovernanceAssignmentReviewItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    assignment_id: _GovernanceResponseUUID
+    request_id: _GovernanceResponseUUID
+    role_id: _GovernanceResponseUUID
+    role_key: str = Field(max_length=120, strict=True)
+    role_name: str = Field(max_length=255, strict=True)
+    nominee_party_id: _GovernanceResponseUUID
+    nominee_name: str = Field(max_length=255, strict=True)
+    nominee_status: str = Field(max_length=30, strict=True)
+    submitted_by_party_id: _GovernanceResponseUUID
+    submitted_by_name: str = Field(max_length=255, strict=True)
+    assignment_type: _ASSIGNMENT_TYPE
+    mandate: str | None = Field(strict=True)
+    role_status: _ROLE_STATUS
+    created_at: AwareDatetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def parse_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("assignment review timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("assignment review timestamp must include a timezone")
+        return value
+
+
+class GovernanceAssignmentReviewCursorResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    created_at: AwareDatetime
+    assignment_id: _GovernanceResponseUUID
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def parse_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("assignment review cursor timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("assignment review cursor timestamp must include a timezone")
+        return value
+
+
+class GovernanceAssignmentReviewPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _GovernanceResponseUUID
+    items: list[GovernanceAssignmentReviewItemResponse] = Field(max_length=100)
+    next_cursor: GovernanceAssignmentReviewCursorResponse | None
+
+    def validate_request(
+        self,
+        *,
+        location_id: str,
+        limit: int,
+        cursor_created_at: str | None,
+        cursor_assignment_id: str | None,
+    ):
+        if self.location_id != UUID(location_id) or len(self.items) > limit:
+            raise ValueError("Governance assignment review page does not match request scope or bounds")
+        assignments = [item.assignment_id for item in self.items]
+        if len(assignments) != len(set(assignments)):
+            raise ValueError("Governance assignment review page contains duplicate assignments")
+        if any(
+            (previous.created_at, previous.assignment_id.int)
+            <= (current.created_at, current.assignment_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("Governance assignment review page is not in descending order")
+
+        if (cursor_created_at is None) != (cursor_assignment_id is None):
+            raise ValueError("Governance assignment review input cursor is incomplete")
+        if cursor_created_at is not None:
+            parsed_cursor = datetime.fromisoformat(cursor_created_at.replace("Z", "+00:00"))
+            cursor_key = (parsed_cursor, UUID(cursor_assignment_id).int)
+            if any((item.created_at, item.assignment_id.int) >= cursor_key for item in self.items):
+                raise ValueError("Governance assignment review page repeats its input cursor")
+
+        if self.next_cursor is not None:
+            if not self.items or len(self.items) != limit:
+                raise ValueError("Governance assignment review continuation does not match its page")
+            last = self.items[-1]
+            if (
+                self.next_cursor.created_at != last.created_at
+                or self.next_cursor.assignment_id != last.assignment_id
+            ):
+                raise ValueError("Governance assignment review continuation does not match its last item")
+        return self
+
+
+class GovernanceAssignmentReviewError(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str
+
+
 class GovernanceRoleListItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -846,7 +949,18 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         return JSONResponse(jsonable_encoder(page.model_dump(mode="json")), headers=headers)
 
     @router.get(
-        "/operator/api/governance/{location_id}/assignment-review-queue"
+        "/operator/api/governance/{location_id}/assignment-review-queue",
+        response_model=GovernanceAssignmentReviewPageResponse,
+        responses={
+            status: {"model": GovernanceAssignmentReviewError, "description": description}
+            for status, description in {
+                400: "The review cursor is invalid.",
+                403: "The operator lacks a current location review grant and person binding.",
+                404: "Operator OIDC is disabled.",
+                500: "The review projection failed its response contract.",
+                503: "The review service is unavailable.",
+            }.items()
+        },
     )
     async def governance_assignment_review_queue(
         request: Request,
@@ -903,7 +1017,26 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance assignment review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = GovernanceAssignmentReviewPageResponse.model_validate(result)
+            page.validate_request(
+                location_id=location_id,
+                limit=limit,
+                cursor_created_at=cursor_created_at,
+                cursor_assignment_id=cursor_assignment_id,
+            )
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_roles").warning(
+                "Governance assignment review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance assignment review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page.model_dump(mode="json")), headers=headers)
 
     async def decide_assignment_route(
         request: Request,

@@ -2556,3 +2556,18 @@ used. Evidence:
 Checklist: 321 checked / 16 open. Capability classifications and MAN-CAP
 acceptance remain unchanged; strict private Gateway response contracts now
 total 105.
+
+### Latest local continuation — governance assignment review queue contract — 29 October 2026
+
+- [x] Add the strict migration-aligned review item/page contract.
+- [x] Enforce page location, limit, order, uniqueness, and cursor invariants.
+- [x] Preserve no-store handling and reviewer authorization.
+
+The focused governance queue and pagination/OpenAPI selection passes 24 tests.
+Ruff, compilation, and diff checks pass. No live database/provider was used.
+Evidence:
+[focused checks](builds/2026-10-29-recovery/governance-assignment-review-queue-contract.json).
+
+Checklist: 324 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 106.

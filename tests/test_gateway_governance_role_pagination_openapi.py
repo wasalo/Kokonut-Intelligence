@@ -111,6 +111,34 @@ def test_tactical_session_openapi_declares_exact_page_and_item_contract(
     }
 
 
+def test_assignment_review_queue_openapi_declares_strict_migration_projection(
+    monkeypatch, isolated_audit
+):
+    schema = _app_with_operator(monkeypatch).openapi()
+    operation = schema["paths"][
+        "/operator/api/governance/{location_id}/assignment-review-queue"
+    ]["get"]
+    response_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    page = schema["components"]["schemas"][response_ref.rsplit("/", 1)[-1]]
+    item_ref = page["properties"]["items"]["items"]["$ref"]
+    item = schema["components"]["schemas"][item_ref.rsplit("/", 1)[-1]]
+
+    assert page["additionalProperties"] is False
+    assert set(page["properties"]) == {"location_id", "items", "next_cursor"}
+    assert page["properties"]["items"]["maxItems"] == 100
+    assert item["additionalProperties"] is False
+    assert set(item["properties"]) == {
+        "assignment_id", "request_id", "role_id", "role_key", "role_name",
+        "nominee_party_id", "nominee_name", "nominee_status",
+        "submitted_by_party_id", "submitted_by_name", "assignment_type", "mandate",
+        "role_status", "created_at",
+    }
+    assert item["properties"]["assignment_type"]["enum"] == [
+        "primary", "delegate", "representative", "interim"
+    ]
+    assert {"400", "403", "404", "500", "503"}.issubset(operation["responses"])
+
+
 def test_governance_list_routes_reject_invalid_limits_before_service_access(
     monkeypatch, isolated_audit
 ):

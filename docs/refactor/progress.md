@@ -23471,3 +23471,22 @@ used. Evidence:
 Checklist: 321 checked / 16 open. Capability classifications and MAN-CAP
 acceptance remain unchanged; strict private Gateway response contracts now
 total 105.
+
+### Progress addendum — governance assignment review queue contract — 29 October 2026
+
+The location-scoped governance assignment review queue now validates its
+fixed SQL projection in the Gateway and publishes the exact 14-field item
+schema. Page validation binds the location and limit, rejects duplicates and
+incorrect order, and checks both the request cursor and the continuation
+cursor against the final item. Errors stay generic and no-store; signed review
+scope and active governance-person binding remain in the service/database
+boundary.
+
+The focused assignment-review and pagination/OpenAPI selection passes 24
+tests. Ruff, compilation, and diff checks pass. Mocked routes and synthetic
+connections only; no live database/provider was touched. Evidence:
+[focused checks](builds/2026-10-29-recovery/governance-assignment-review-queue-contract.json).
+
+Checklist: 324 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 106.

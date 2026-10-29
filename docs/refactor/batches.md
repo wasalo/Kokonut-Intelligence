@@ -6896,3 +6896,24 @@ Checklist: 1,626 complete / 25 open (1,651 total); TODO: 321 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 105. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — governance assignment review queue contract — 29 October 2026
+
+- [x] Publish the migration-backed 14-field review projection and strict
+  OpenAPI page/item/cursor schemas.
+- [x] Bind the returned location, page size, uniqueness, ordering, and input
+  and continuation cursors to the request.
+- [x] Reject malformed service output with a generic no-store response while
+  preserving the existing reviewer grant and person-binding boundary.
+
+The focused governance assignment review and pagination/OpenAPI selection
+passes 24 tests. Ruff, Python compilation, and `git diff --check` pass. The
+checks use mocked routes and synthetic connections only; no database, provider,
+candidate, legacy, or production resource was used. No migration is required.
+Rollback reverts the route contract, tests, and evidence without database
+changes ([evidence](builds/2026-10-29-recovery/governance-assignment-review-queue-contract.json)).
+
+Checklist: 1,629 complete / 25 open (1,654 total); TODO: 324 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 106. MAN-CAP acceptance is unchanged.
