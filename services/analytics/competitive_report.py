@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from psycopg2.extras import RealDictCursor
 
@@ -14,7 +14,16 @@ def _clean(row):
 
 def health(conn, strategy_plan_id: str) -> Dict[str, Any]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_strategy_competitive_health WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
+        cur.execute(
+            """SELECT strategy_plan_id, scope_type, scope_id, landscape_count,
+                      verified_landscape_count, average_force_pressure_score,
+                      unreviewed_material_signal_count, approved_position_count,
+                      verified_advantage_count, unlinked_advantage_count,
+                      partial_advantage_count, open_competitive_review_count
+               FROM v_strategy_competitive_health
+               WHERE strategy_plan_id = %s::uuid""",
+            (strategy_plan_id,),
+        )
         row = cur.fetchone()
         if not row:
             raise ValueError("strategy competitive health not found")

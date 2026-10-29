@@ -45,6 +45,47 @@ def test_clean_helper_converts_uuids():
     assert cleaned["id"] == str(mock_uuid)
 
 
+def test_health_uses_migration_backed_projection_and_preserves_payload():
+    plan_id = uuid.uuid4()
+    scope_id = uuid.uuid4()
+    row = {
+        "strategy_plan_id": plan_id,
+        "scope_type": "organization",
+        "scope_id": scope_id,
+        "landscape_count": 2,
+        "verified_landscape_count": 2,
+        "average_force_pressure_score": 0.625,
+        "unreviewed_material_signal_count": 1,
+        "approved_position_count": 3,
+        "verified_advantage_count": 4,
+        "unlinked_advantage_count": 0,
+        "partial_advantage_count": 2,
+        "open_competitive_review_count": 1,
+    }
+    cursor = MagicMock()
+    cursor.fetchone.return_value = row
+    conn = MagicMock()
+    conn.cursor.return_value.__enter__.return_value = cursor
+
+    result = competitive_report.health(conn, str(plan_id))
+
+    sql, params = cursor.execute.call_args.args
+    assert " ".join(sql.split()) == (
+        "SELECT strategy_plan_id, scope_type, scope_id, landscape_count, "
+        "verified_landscape_count, average_force_pressure_score, "
+        "unreviewed_material_signal_count, approved_position_count, "
+        "verified_advantage_count, unlinked_advantage_count, "
+        "partial_advantage_count, open_competitive_review_count "
+        "FROM v_strategy_competitive_health WHERE strategy_plan_id = %s::uuid"
+    )
+    assert params == (str(plan_id),)
+    assert result == {
+        **row,
+        "strategy_plan_id": str(plan_id),
+        "scope_id": str(scope_id),
+    }
+
+
 def test_health_raises_when_not_found():
     mock_conn = MagicMock()
     mock_cursor = MagicMock()

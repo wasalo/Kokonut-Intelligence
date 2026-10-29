@@ -23841,3 +23841,30 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 116. Broader C2/C4/C5, production OIDC, populated-data parity, and
 candidate/legacy migration acceptance remain open.
+
+### Progress addendum — worker input and competitive-health projection — 29 October 2026
+
+The event and notification worker CLI now rejects NaN, infinite, zero, and
+negative polling intervals before feature checks or connection creation. Event
+processing batches are bounded to 1–100 before opening connections; the
+notification-only path keeps its existing 1–500 outbox bound. Finite positive
+poll intervals retain the existing retry/sleep behavior.
+
+The competitive-health reader now selects the exact 12 columns defined by
+migration 284. The technology-roadmap list now selects the exact 17 columns
+defined by migration 212, retaining all status/entity-type filter combinations,
+bindings, order, and serialization.
+
+The EventBus worker recovery suite passes 18 tests and 34 subtests. The
+technology-roadmap projection check passes four filter combinations; two
+competitive-health projection/not-found tests pass. Ruff, Python compilation,
+all worker/runtime SQL inventories, capability-matrix validation, and
+`git diff --check` pass. Mocks only; no database, provider, candidate, or legacy
+service was contacted. Evidence:
+[worker and projection checks](builds/2026-10-29-recovery/kernel-worker-input-and-competitive-projection.json).
+
+Checklist: 1,685 complete / 20 open (1,705 total); TODO: 370 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. PR #71's latest pushed head is `572885d69190a28c34a8037cbc49ada8b26fe1d6`;
+Security #672 passed and CI #948 is in progress. New local work is not yet pushed.

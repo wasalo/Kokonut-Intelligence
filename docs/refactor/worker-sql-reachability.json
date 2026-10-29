@@ -63,8 +63,8 @@
         "services/events/bus.py:421:16",
         "services/events/bus.py:450:16",
         "services/events/bus.py:458:16",
-        "services/events/cli.py:231:12",
-        "services/events/cli.py:260:12",
+        "services/events/cli.py:251:12",
+        "services/events/cli.py:280:12",
         "services/events/fork_detector.py:138:12",
         "services/events/fork_detector.py:41:12",
         "services/events/fork_detector.py:64:8",
@@ -6217,9 +6217,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:231:12",
+      "id": "services/events/cli.py:251:12",
       "source": "services/events/cli.py",
-      "line": 231,
+      "line": 251,
       "scope": "cmd_list_handlers",
       "method": "execute",
       "expression_kind": "literal",
@@ -6238,9 +6238,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:260:12",
+      "id": "services/events/cli.py:280:12",
       "source": "services/events/cli.py",
-      "line": 260,
+      "line": 280,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
       "expression_kind": "literal",

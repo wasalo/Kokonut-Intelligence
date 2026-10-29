@@ -20,6 +20,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import sys
 import time
@@ -30,6 +31,18 @@ from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("events.cli")
+
+MAX_EVENT_BATCH_SIZE = 100
+MAX_NOTIFICATION_BATCH_SIZE = 500
+
+
+def _validate_batch_size(batch_size: int, *, maximum: int) -> None:
+    if (
+        isinstance(batch_size, bool)
+        or not isinstance(batch_size, int)
+        or not 1 <= batch_size <= maximum
+    ):
+        raise ValueError(f"batch_size must be between 1 and {maximum}")
 
 
 def _preflight_fork_location(parser: argparse.ArgumentParser, args) -> None:
@@ -43,6 +56,7 @@ def _preflight_fork_location(parser: argparse.ArgumentParser, args) -> None:
 
 
 def cmd_process(args):
+    _validate_batch_size(args.batch_size, maximum=MAX_EVENT_BATCH_SIZE)
     from services.events.backend import get_event_store
 
     bus = get_event_store()
@@ -60,8 +74,14 @@ def cmd_process(args):
 def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
                 isolated_notification_delivery: bool = False,
                 isolated_event_dispatch: bool = False):
-    if args.poll_interval <= 0:
-        raise ValueError("poll_interval must be positive")
+    max_batch_size = (
+        MAX_EVENT_BATCH_SIZE
+        if process_events
+        else MAX_NOTIFICATION_BATCH_SIZE
+    )
+    _validate_batch_size(args.batch_size, maximum=max_batch_size)
+    if not math.isfinite(args.poll_interval) or args.poll_interval <= 0:
+        raise ValueError("poll_interval must be finite and positive")
 
     from services.core.features import is_enabled
 
@@ -310,6 +330,7 @@ def cmd_dispose_dead_letter(args):
 
 
 def cmd_notification_process(args):
+    _validate_batch_size(args.batch_size, maximum=MAX_NOTIFICATION_BATCH_SIZE)
     from services.common.database import get_connection
     from services.events.notification_outbox import deliver_batch
 
@@ -411,7 +432,12 @@ def main():
     group.add_argument("--add-rule", action="store_true",
                        help="Add a cross-domain rule (requires --source-domain/--target-domain/--pattern)")
 
-    parser.add_argument("--batch-size", type=int, default=100, help="Events per batch")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=100,
+        help="Events per batch (1-100; notification-only workers accept up to 500)",
+    )
     parser.add_argument("--worker-id", default=os.environ.get("HOSTNAME", "cli"), help="Worker identifier")
     parser.add_argument("--poll-interval", type=float, default=2.0)
     parser.add_argument("--lease-seconds", type=int, default=300)

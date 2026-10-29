@@ -1,6 +1,9 @@
 """Integration tests for the governed technology roadmap."""
 
 import uuid
+from contextlib import nullcontext
+from datetime import datetime, timezone
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -126,6 +129,68 @@ def test_seeded_roadmap_has_governed_structure():
         assert row[3] == 3
     finally:
         conn.close()
+
+
+def test_list_roadmaps_uses_exact_overview_projection_and_preserves_filters():
+    expected_columns = (
+        "roadmap_id, name, entity_type, entity_id, planning_horizon_start, "
+        "planning_horizon_end, detail_level, sponsor, owner, status, "
+        "next_review_at, requirement_count, technology_area_count, driver_count, "
+        "alternative_count, selected_alternative_count, last_reviewed_at"
+    )
+    roadmap_id = uuid.uuid4()
+    entity_id = uuid.uuid4()
+    reviewed_at = datetime(2026, 10, 29, 12, 30, tzinfo=timezone.utc)
+    row = {
+        "roadmap_id": roadmap_id,
+        "name": "Kernel roadmap",
+        "entity_type": "organization",
+        "entity_id": entity_id,
+        "planning_horizon_start": "2026-01-01",
+        "planning_horizon_end": "2027-12-31",
+        "detail_level": "portfolio",
+        "sponsor": "Kokonut Network",
+        "owner": "Operations",
+        "status": "approved",
+        "next_review_at": None,
+        "requirement_count": 2,
+        "technology_area_count": 3,
+        "driver_count": 4,
+        "alternative_count": 5,
+        "selected_alternative_count": 1,
+        "last_reviewed_at": reviewed_at,
+    }
+
+    for status, entity_type, suffix, expected_params in (
+        (None, None, "", []),
+        ("approved", None, " WHERE status = %s", ["approved"]),
+        (None, "organization", " WHERE entity_type = %s", ["organization"]),
+        (
+            "approved",
+            "organization",
+            " WHERE status = %s AND entity_type = %s",
+            ["approved", "organization"],
+        ),
+    ):
+        cursor = MagicMock()
+        cursor.fetchall.return_value = [row]
+        conn = MagicMock()
+        conn.cursor.return_value.__enter__.return_value = cursor
+
+        with patch.object(tr, "_conn", return_value=nullcontext(conn)):
+            result = tr.list_roadmaps(status=status, entity_type=entity_type)
+
+        sql, params = cursor.execute.call_args.args
+        assert sql == f"SELECT {expected_columns} FROM v_technology_roadmap_overview{suffix} ORDER BY name"
+        assert params == expected_params
+        assert result == [
+            {
+                **row,
+                "roadmap_id": str(roadmap_id),
+                "entity_id": str(entity_id),
+                "last_reviewed_at": reviewed_at.isoformat(),
+            }
+        ]
 
 
 def test_technology_roadmap_report_contains_requirements_and_alternatives():

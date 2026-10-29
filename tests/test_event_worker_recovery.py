@@ -9,7 +9,9 @@ from services.events import cli as events_cli
 from services.events.cli import (
     cmd_event_worker,
     cmd_isolated_event_worker,
+    cmd_notification_process,
     cmd_notification_worker,
+    cmd_process,
     cmd_worker,
 )
 
@@ -240,13 +242,114 @@ class EventWorkerRecoveryTests(TestCase):
             "Failed to close event worker bus (%s)", "RuntimeError"
         )
 
-    def test_worker_rejects_nonpositive_poll_interval(self):
+    def test_workers_reject_invalid_poll_intervals_before_features_or_connections(self):
+        for worker in (cmd_worker, cmd_event_worker, cmd_notification_worker):
+            for poll_interval in (float("nan"), float("inf"), -float("inf"), 0, -1):
+                with self.subTest(worker=worker.__name__, poll_interval=poll_interval):
+                    args = _args()
+                    args.poll_interval = poll_interval
+
+                    with (
+                        patch("services.core.features.is_enabled") as is_enabled,
+                        patch("services.events.backend.get_event_store") as get_bus,
+                        patch("services.common.database.get_connection") as get_connection,
+                    ):
+                        with self.assertRaisesRegex(
+                            ValueError, "poll_interval must be finite and positive"
+                        ):
+                            worker(args)
+
+                    is_enabled.assert_not_called()
+                    get_bus.assert_not_called()
+                    get_connection.assert_not_called()
+
+    def test_event_entrypoints_reject_invalid_batch_sizes_before_connections(self):
+        for batch_size in (0, -1, 101):
+            for command in (cmd_process, cmd_worker, cmd_event_worker):
+                with self.subTest(batch_size=batch_size, command=command.__name__):
+                    args = _args()
+                    args.batch_size = batch_size
+
+                    with (
+                        patch("services.core.features.is_enabled") as is_enabled,
+                        patch("services.events.backend.get_event_store") as get_bus,
+                        patch("services.common.database.get_connection") as get_connection,
+                    ):
+                        with self.assertRaisesRegex(
+                            ValueError, "batch_size must be between 1 and 100"
+                        ):
+                            command(args)
+
+                    is_enabled.assert_not_called()
+                    get_bus.assert_not_called()
+                    get_connection.assert_not_called()
+
+    def test_event_process_accepts_batch_boundaries_and_forwards_them(self):
+        for batch_size in (1, 100):
+            with self.subTest(batch_size=batch_size):
+                args = _args()
+                args.batch_size = batch_size
+                bus = Mock()
+                bus.process_pending.return_value = {"failed": 0}
+
+                with (
+                    patch("services.events.backend.get_event_store", return_value=bus),
+                    patch("services.events.cli.print_json"),
+                ):
+                    self.assertEqual(cmd_process(args), 0)
+
+                bus.process_pending.assert_called_once_with(
+                    batch_size=batch_size,
+                    worker_id="event-worker-test",
+                )
+                bus.close.assert_called_once()
+
+    def test_persistent_event_worker_accepts_batch_boundaries_and_forwards_them(self):
+        for batch_size in (1, 100):
+            with self.subTest(batch_size=batch_size):
+                args = _args()
+                args.batch_size = batch_size
+                bus = Mock()
+                bus.process_pending.return_value = {"processed": 0, "failed": 0}
+
+                with (
+                    patch("services.core.features.is_enabled", return_value=True),
+                    patch("services.events.backend.get_event_store", return_value=bus),
+                    patch("services.common.database.get_connection") as get_connection,
+                    patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+                ):
+                    self.assertEqual(cmd_event_worker(args), 0)
+
+                bus.process_pending.assert_called_once_with(batch_size, "event-worker-test")
+                bus.close.assert_called_once()
+                get_connection.assert_not_called()
+
+    def test_notification_process_rejects_above_provider_bound_before_connection(self):
         args = _args()
-        args.poll_interval = 0
+        args.batch_size = 501
 
-        with patch("services.events.backend.get_event_store") as get_bus:
-            with self.assertRaisesRegex(ValueError, "poll_interval must be positive"):
-                cmd_worker(args)
+        with patch("services.common.database.get_connection") as get_connection:
+            with self.assertRaisesRegex(
+                ValueError, "batch_size must be between 1 and 500"
+            ):
+                cmd_notification_process(args)
 
-        get_bus.assert_not_called()
+        get_connection.assert_not_called()
+
+    def test_notification_only_worker_keeps_its_500_item_bound(self):
+        args = _args()
+        args.batch_size = 500
+        connection = object()
+
+        with (
+            patch("services.core.features.is_enabled", return_value=True),
+            patch("services.common.database.get_connection", return_value=nullcontext(connection)),
+            patch("services.events.notification_outbox.deliver_batch", return_value={"claimed": 0}) as deliver,
+            patch("services.events.backend.get_event_store") as get_event_store,
+            patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+        ):
+            self.assertEqual(cmd_notification_worker(args), 0)
+
+        get_event_store.assert_not_called()
+        deliver.assert_called_once_with(connection, "event-worker-test", 500)
 

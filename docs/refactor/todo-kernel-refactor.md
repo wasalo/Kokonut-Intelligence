@@ -2782,3 +2782,21 @@ total 106.
   disposable PostgreSQL 16 check using multiple event rows and two crop types.
 - [x] Record focused test and static-check evidence for this batch in
   `builds/2026-10-29-recovery/kernel-next-operations-contract-batch.json`.
+
+## Completed in the 29 October reliability and projection continuation
+
+- [x] Reject NaN, infinities, zero, and negative event-worker poll intervals
+  before feature evaluation or database access; preserve finite positive
+  polling recovery behavior.
+- [x] Use the exact migration-284 competitive-health view projection and
+  verify ordered columns, UUID binding, payload normalization, and not-found
+  behavior with focused mock-cursor tests.
+- [x] Use migration 212's exact roadmap-overview view projection and verify
+  every status/entity-type filter combination, binding order, and serialized
+  row contract with mock cursors.
+- [x] Validate EventBus CLI batch-size bounds before connections while
+  retaining the notification-only outbox's 500-item limit.
+
+Checklist: 370 checked / 16 open (8 code work groups and 8 owner/environment
+gates remain). Capability acceptance remains partial; evidence is recorded in
+`batches.md` and the capability matrix.

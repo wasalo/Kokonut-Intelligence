@@ -3891,7 +3891,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Bound gRPC API-key lookup, request-interceptor, and optional-service import failures to exception classes while preserving generic auth failures, exception propagation, and optional service behavior. The 32-test gRPC/auth/policy suite passes with Ruff and compilation on mocked boundaries; no database or RPC provider was contacted ([evidence](builds/2026-10-17-recovery/grpc-auth-request-error-redaction.json)).
 - [x] Redact metadata batch-anchor and threatcasting trend-analysis failures without changing their skip/no-score fallbacks. Two mocked regressions pass with Ruff, compilation, and diff checks; no database or provider was contacted ([evidence](builds/2026-10-17-recovery/metadata-trend-error-redaction.json)).
 - [x] Redact demo sensor-reading insert failures so sensor names, timestamps, and database details are not emitted; preserve per-reading continuation and database cleanup. One mocked regression passes; test lint, source import/syntax checks, compilation, and diff checks pass. No database or provider was used ([evidence](builds/2026-10-17-recovery/mock-sensor-error-redaction.json)).
-- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On PR #71 head `460aaa27c136b544595a6f5d69e26828ef0d8847`, Security run [#40820987724](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40820987724) passed and CI run [#40820987702](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40820987702) is in progress. Each pushed batch starts a new exact-head gate; keep this item open until both required contexts pass together on the current head ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
+- [ ] Obtain passing release CI and Security checks for the latest pushed PR head. Check GitHub Actions against the exact current PR commit and keep this gate open until both required contexts, `CI / ci` and `Security / gitleaks`, pass on that same SHA. On PR #71 latest pushed head `572885d69190a28c34a8037cbc49ada8b26fe1d6`, Security run [#672](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40928110401) passed and CI run [#948](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40928110501) is in progress. Each pushed batch starts a new exact-head gate; keep this item open until both required contexts pass together on the current head ([Actions](https://github.com/wasalo/Kokonut-Intelligence/actions)).
 - [x] Align the active `Main branch protection` ruleset (ID `18234835`) with `CI / ci` and `Security / gitleaks`. GitHub API verification confirms the obsolete `Python checks`, `Directus hooks`, and `Foundry contracts` contexts were removed; pull-request/review, CODEOWNERS, thread-resolution, strict up-to-date, linear-history, deletion, force-push, and bypass settings remain. The separate active version-tag ruleset (ID `18234836`) was not changed ([settings audit](../github-actions.md#current-required-check-audit--14-october-2026)).
 - [x] Make encrypted checkpoints provider-aware: PostgreSQL-only backup/restore works without ClickHouse credentials or a running ClickHouse service; ClickHouse-enabled backup fails before creating partial artifacts if its service is unavailable, and restore preflights required services before database writes. The manifest explicitly records provider inclusion and exact archives; fake Compose acceptance covers both profiles and preflight ([evidence](builds/2026-10-14-recovery/provider-aware-backup-restore.json)).
 - [ ] Execute the reviewed cutover and retire dependencies only after the readiness gates close. The owner has approved cutover once ready; no gate may be skipped.
@@ -7321,3 +7321,29 @@ Checklist: 1,681 complete / 20 open (1,701 total); TODO: 366 checked / 11
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 116. Broader C2/C4/C5 acceptance remains open.
+
+### Source continuation — worker input and competitive projection — 29 October 2026
+
+- [x] Reject non-finite and non-positive event/notification poll intervals
+  before feature checks or database connections; retain finite positive retry
+  and sleep behavior.
+- [x] Replace the competitive-health view wildcard with migration 284's exact
+  12-column projection, preserving the strategy-plan filter and response shape.
+- [x] Replace the technology-roadmap overview wildcard with migration 212's
+  exact 17-column projection, retaining status/entity filters, binding, order,
+  and row serialization.
+- [x] Bound EventBus CLI batches to 1–100 before database access while
+  retaining the notification-only outbox's existing 1–500 bound.
+
+The EventBus worker recovery suite passes 18 tests and 34 subtests; the
+technology-roadmap filter/projection check passes across four combinations,
+and competitive-health projection/not-found checks pass 2 tests. Ruff,
+Python compilation, SQL/worker inventories, and diff checks pass. Mocks only;
+no database, provider, candidate, or legacy service was contacted. Evidence:
+[worker and projection checks](builds/2026-10-29-recovery/kernel-worker-input-and-competitive-projection.json).
+
+Checklist: 1,685 complete / 20 open (1,705 total); TODO: 370 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
+populated-data parity, and live provider gates remain open.
