@@ -7467,3 +7467,19 @@ open (8 code work groups and 8 owner/environment gates). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
 populated-data parity, and live provider gates remain open.
+
+### Source continuation — strategy advantage performance projection — 29 October 2026
+
+- [x] Replace `v_strategy_advantage_performance`'s wildcard with migration
+  286's exact 15-column projection while preserving strategy-plan binding,
+  ordering, UUID serialization, and response rows.
+
+The focused mock-cursor regression passes. Ruff, Python compilation, and diff
+checks pass. No database or provider was contacted. Evidence:
+[strategy advantage projection](builds/2026-10-29-recovery/strategy-advantage-performance-projection.json).
+
+Checklist: 1,696 complete / 25 open (1,721 total); TODO: 381 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
+populated-data parity, and live provider gates remain open.

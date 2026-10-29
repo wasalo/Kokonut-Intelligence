@@ -2856,3 +2856,11 @@ Checklist: 379 checked / 16 open. Evidence:
 
 Checklist: 380 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/prm-outcome-correlation-projection.json`.
+
+## Completed in the 29 October strategy advantage projection continuation
+
+- [x] Pin the strategy advantage performance reader to migration 286's exact
+  15-column view shape and verify scope, order, and UUID serialization.
+
+Checklist: 381 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/strategy-advantage-performance-projection.json`.

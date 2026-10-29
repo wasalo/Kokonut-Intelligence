@@ -23955,6 +23955,19 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts remain
 116. Production identity-provider and populated-data gates remain open.
 
+### Progress addendum — strategy advantage performance projection — 29 October 2026
+
+`performance()` now selects migration 286's exact 15 view columns and
+preserves its plan filter, stable sort, UUID serialization, and row shape. The
+focused mock-cursor check passes; Ruff, compilation, and diff checks pass. No
+database/provider was contacted. Evidence:
+[strategy advantage projection](builds/2026-10-29-recovery/strategy-advantage-performance-projection.json).
+
+Checklist: 1,696 complete / 25 open (1,721 total); TODO: 381 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.
+
 ### Progress addendum — PRM outcome-correlation projection — 29 October 2026
 
 `outcome_correlation()` now selects migration 196's exact seven view columns

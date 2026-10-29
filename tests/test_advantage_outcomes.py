@@ -8,7 +8,6 @@ import pytest
 from services.analytics import advantage_assessment, advantage_outcomes, strategy_kernel
 from services.ingestion.base import get_db
 
-
 PARTY_ID = "b0000000-0000-0000-0000-000000002707"
 
 
@@ -70,3 +69,66 @@ def test_performance_returns_list_shape():
     result = advantage_outcomes.performance(mock_conn, "plan-id")
     assert isinstance(result, list)
     assert result == []
+
+
+def test_performance_uses_exact_view_projection_and_preserves_rows():
+    expected_columns = (
+        "advantage_id",
+        "strategy_plan_id",
+        "name",
+        "advantage_status",
+        "defensibility_score",
+        "latest_outcome_type",
+        "baseline_value",
+        "actual_value",
+        "comparator_type",
+        "comparator_value",
+        "attribution_confidence",
+        "outcome_delta",
+        "renewal_event_count",
+        "erosion_event_count",
+        "completed_reinforcement_count",
+    )
+    plan_id = uuid.uuid4()
+    advantage_id = uuid.uuid4()
+    row = {
+        "advantage_id": advantage_id,
+        "strategy_plan_id": plan_id,
+        "name": "Trusted evidence",
+        "advantage_status": "active",
+        "defensibility_score": 82,
+        "latest_outcome_type": "price_premium",
+        "baseline_value": 100,
+        "actual_value": 115,
+        "comparator_type": "baseline",
+        "comparator_value": 100,
+        "attribution_confidence": "high",
+        "outcome_delta": 15,
+        "renewal_event_count": 2,
+        "erosion_event_count": 1,
+        "completed_reinforcement_count": 1,
+    }
+    mock_conn = MagicMock()
+    cursor_context = MagicMock()
+    mock_cursor = cursor_context.__enter__.return_value
+    mock_cursor.fetchall.return_value = [row]
+    mock_conn.cursor.return_value = cursor_context
+
+    result = advantage_outcomes.performance(mock_conn, str(plan_id))
+
+    query, params = mock_cursor.execute.call_args.args
+    normalized_query = " ".join(query.split())
+    projection = normalized_query.split(" FROM ", 1)[0].removeprefix("SELECT ")
+    assert tuple(column.strip() for column in projection.split(",")) == expected_columns
+    assert "FROM v_strategy_advantage_performance" in normalized_query
+    assert "WHERE strategy_plan_id = %s::uuid" in normalized_query
+    assert "ORDER BY defensibility_score DESC NULLS LAST, name" in normalized_query
+    assert params == (str(plan_id),)
+    assert result == [
+        {
+            **row,
+            "advantage_id": str(advantage_id),
+            "strategy_plan_id": str(plan_id),
+        }
+    ]
+    mock_cursor.execute.assert_called_once_with(query, (str(plan_id),))
