@@ -2812,3 +2812,15 @@ gates remain). Capability acceptance remains partial; evidence is recorded in
 
 Checklist: 373 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/kernel-analytics-and-ecocredit-input-contracts.json`.
+
+## Completed in the 29 October public read and verify preflight continuation
+
+- [x] Pin the public governance cockpit to its migration-defined aggregate
+  projection while preserving the existing payload.
+- [x] Block generic REST SDK mutations for report, NOI, attestation, and export
+  audit projections while preserving reads and unrelated writes.
+- [x] Reject malformed report-snapshot verification identifiers before
+  database acquisition; accept UUID and SHA-256 forms.
+
+Checklist: 376 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/kernel-public-read-and-verify-preflight.json`.

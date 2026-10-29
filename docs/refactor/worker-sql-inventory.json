@@ -6,8 +6,8 @@
     "operation_roots": 50,
     "source_files": 142,
     "execution_sites": 494,
-    "static_literal_sites": 407,
-    "composed_or_variable_sites": 87
+    "static_literal_sites": 406,
+    "composed_or_variable_sites": 88
   },
   "execution_sites": [
     {
@@ -5623,9 +5623,9 @@
       ]
     },
     {
-      "id": "services/export/reports/context.py:46:8",
+      "id": "services/export/reports/context.py:48:8",
       "source": "services/export/reports/context.py",
-      "line": 46,
+      "line": 48,
       "column": 8,
       "scope": "store_snapshot",
       "method": "execute",
@@ -5640,9 +5640,9 @@
       ]
     },
     {
-      "id": "services/export/reports/context.py:85:12",
+      "id": "services/export/reports/context.py:87:12",
       "source": "services/export/reports/context.py",
-      "line": 85,
+      "line": 87,
       "column": 12,
       "scope": "list_snapshots",
       "method": "execute",
@@ -5657,9 +5657,9 @@
       ]
     },
     {
-      "id": "services/export/reports/context.py:90:12",
+      "id": "services/export/reports/context.py:92:12",
       "source": "services/export/reports/context.py",
-      "line": 90,
+      "line": 92,
       "column": 12,
       "scope": "list_snapshots",
       "method": "execute",
@@ -5674,18 +5674,18 @@
       ]
     },
     {
-      "id": "services/export/reports/context.py:103:8",
+      "id": "services/export/reports/context.py:116:8",
       "source": "services/export/reports/context.py",
-      "line": 103,
+      "line": 116,
       "column": 8,
       "scope": "_verify_snapshot",
       "method": "execute",
-      "expression_kind": "literal",
+      "expression_kind": "fstring",
       "statement_kind": "SELECT",
       "candidate_relations": [
         "report_snapshot"
       ],
-      "static_sql_sha256": "480595130b6f1a1ab952cd60aee955a84a0f974e9b07c349a04844e68794d21f",
+      "static_sql_sha256": null,
       "operation_refs": [
         "isolated_worker:services.export.report_snapshot_export_worker"
       ]

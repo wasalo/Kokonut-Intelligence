@@ -113,7 +113,7 @@ def test_location_lineaged_stakeholder_reports_require_one_explicit_location(rep
         ("--auto", "--all"),
         ("--type", "farm_summary", "--location-id", LOCATION_A),
         ("--type", "state_of_kokonut"),
-        ("--verify", "snapshot-hash"),
+        ("--verify", "0000000000000000000000000000000000000000000000000000000000000000"),
         ("--list", "--location-id", LOCATION_A),
     ],
 )
@@ -973,6 +973,87 @@ def test_invalid_scope_exits_before_opening_postgres(monkeypatch, capsys) -> Non
 
     assert exc_info.value.code == 2
     assert "multiple --location-id values are not supported" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("identifier", ["bad", "g" * 64, "a" * 63, "a" * 65])
+def test_malformed_snapshot_verification_identifier_fails_before_database_access(
+    identifier, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        report_generator,
+        "_get_report_connection",
+        lambda: (_ for _ in ()).throw(AssertionError("database must not open")),
+    )
+    monkeypatch.setattr("sys.argv", ["report_generator", "--verify", identifier])
+
+    with pytest.raises(SystemExit) as exc_info:
+        report_generator.main()
+
+    assert exc_info.value.code == 2
+
+
+@pytest.mark.parametrize(
+    ("identifier", "expected"),
+    [
+        (
+            "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA",
+            "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        ),
+        ("A" * 64, "a" * 64),
+    ],
+)
+def test_snapshot_verification_accepts_uuid_and_sha256_before_database_access(
+    identifier, expected, monkeypatch
+) -> None:
+    connection = Mock()
+    verify = Mock()
+    monkeypatch.setattr(report_generator, "_get_report_connection", lambda: connection)
+    monkeypatch.setattr(report_generator, "_verify_snapshot", verify)
+    monkeypatch.setattr(report_generator, "_close_report_connection", Mock())
+    monkeypatch.setattr("sys.argv", ["report_generator", "--verify", identifier])
+
+    report_generator.main()
+
+    verify.assert_called_once_with(connection, expected)
+
+
+@pytest.mark.parametrize(
+    ("identifier", "predicate", "bound_identifier"),
+    [
+        (
+            "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA",
+            "id = %s",
+            "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        ),
+        ("A" * 64, "snapshot_hash = %s", "a" * 64),
+    ],
+)
+def test_snapshot_verification_uses_a_type_specific_database_predicate(
+    identifier, predicate, bound_identifier, capsys
+) -> None:
+    cursor = Mock()
+    cursor.fetchone.return_value = None
+    connection = Mock()
+    connection.cursor.return_value = cursor
+
+    report_generator._verify_snapshot(connection, identifier)
+
+    cursor.execute.assert_called_once_with(
+        "SELECT id, report_name, report_type, report_data, snapshot_hash, status "
+        f"FROM report_snapshot WHERE {predicate}",
+        (bound_identifier,),
+    )
+    cursor.close.assert_called_once_with()
+    assert "Snapshot not found" in capsys.readouterr().out
+
+
+def test_snapshot_verification_helper_rejects_malformed_identifier_before_cursor_access() -> None:
+    connection = Mock()
+
+    with pytest.raises(ValueError, match="UUID or 64-character SHA-256"):
+        report_generator._verify_snapshot(connection, "not-a-snapshot-id")
+
+    connection.cursor.assert_not_called()
 
 
 @pytest.mark.parametrize(

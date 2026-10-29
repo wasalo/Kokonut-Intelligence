@@ -2505,6 +2505,55 @@ def test_generic_crud_helpers_use_directus_item_routes_and_unwrap_data_without_n
     )
 
 
+@pytest.mark.parametrize(
+    "collection",
+    ["report_snapshot", "noi_snapshot", "attestation_record", "export_log"],
+)
+def test_generic_crud_rejects_mutations_to_read_only_projection_collections(collection):
+    from kokonut import KokonutClient, ValidationError
+
+    client = KokonutClient("http://localhost:8055")
+    client.session.post = Mock()
+    client.session.patch = Mock()
+    client.session.delete = Mock()
+
+    with pytest.raises(ValidationError, match="read-only collection"):
+        client.create_item(collection, {"status": "published"})
+    with pytest.raises(ValidationError, match="read-only collection"):
+        client.create_items(collection, [{"status": "published"}])
+    with pytest.raises(ValidationError, match="read-only collection"):
+        client.update_item(collection, "synthetic-id", {"status": "published"})
+    with pytest.raises(ValidationError, match="read-only collection"):
+        client.delete_item(collection, "synthetic-id")
+
+    client.session.post.assert_not_called()
+    client.session.patch.assert_not_called()
+    client.session.delete.assert_not_called()
+
+
+def test_read_only_projection_collections_remain_readable_and_generic_writes_remain_available():
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+
+    def response(data):
+        result = Mock()
+        result.ok = True
+        result.json.return_value = {"data": data}
+        return result
+
+    client.session.get = Mock(side_effect=[response([{"id": "report-1"}]), response({"id": "noi-1"})])
+    client.session.post = Mock(return_value=response({"id": "location-1"}))
+
+    assert client.list_items("report_snapshot") == [{"id": "report-1"}]
+    assert client.get_item("noi_snapshot", "noi-1") == {"id": "noi-1"}
+    assert client.create_item("location", {"name": "Synthetic"}) == {"id": "location-1"}
+
+    client.session.post.assert_called_once_with(
+        "http://localhost:8055/items/location", json={"name": "Synthetic"}
+    )
+
+
 def test_generic_crud_helpers_encode_untrusted_path_segments_before_request():
     from unittest.mock import call
 

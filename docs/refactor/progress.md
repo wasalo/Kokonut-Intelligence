@@ -23866,7 +23866,7 @@ service was contacted. Evidence:
 Checklist: 1,685 complete / 20 open (1,705 total); TODO: 370 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
-remain 116. Immediately before the current local analytics/SDK batch, PR #71 was
+remain 116. Immediately before the 29 October analytics/SDK batch, PR #71 was
 at `2008977759ee16bea323b73fc9858b4213c33932`; Security #673 passed and CI
 #949 was in progress.
 
@@ -23884,8 +23884,31 @@ passes 36. Ruff, Python compilation, `tsc --noEmit`, and diff checks pass.
 Mocks only; no database, provider, or live gRPC endpoint was used. Evidence:
 [analytics and Ecocredit checks](builds/2026-10-29-recovery/kernel-analytics-and-ecocredit-input-contracts.json).
 
-Checklist: 1,688 complete / 20 open (1,708 total); TODO: 373 checked / 16
+Checklist: 1,688 complete / 25 open (1,713 total); TODO: 373 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 116. These source checks do not close populated report parity, owner
 acceptance, or live provider/runtime gates.
+
+### Progress addendum — public read and verify preflight contracts — 29 October 2026
+
+The public governance cockpit now selects only the six aggregate/privacy
+columns defined by migration 249; its existing response and empty result are
+preserved. Python and JavaScript REST SDK generic writes now fail locally for
+report, NOI, attestation, and export audit projections; reads and unrelated
+writes remain available. Report snapshot verification now accepts UUID or
+64-character SHA-256 identifiers, rejects malformed input before opening
+PostgreSQL, and uses a UUID- or hash-specific lookup predicate to avoid type
+coercion errors.
+
+The focused governance tests pass two cases, Python SDK checks pass five,
+JavaScript client checks pass 50, the report CLI selection passes 20, and the
+snapshot cursor-cleanup selection passes four. Ruff, Python compilation, and
+the JavaScript SDK build pass. Mocks only; no database, provider, or live
+service was contacted. Evidence:
+[public read and verify checks](builds/2026-10-29-recovery/kernel-public-read-and-verify-preflight.json).
+
+Checklist: 1,691 complete / 25 open (1,716 total); TODO: 376 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. Populated report parity and live acceptance remain open.

@@ -110,6 +110,10 @@ from .types import (
     WeatherObservation,
 )
 
+_READ_ONLY_PROJECTION_COLLECTIONS = frozenset(
+    {"attestation_record", "export_log", "noi_snapshot", "report_snapshot"}
+)
+
 
 class KokonutError(Exception):
     """Base error for Kokonut SDK."""
@@ -445,26 +449,37 @@ class KokonutClient:
         return data.get("data", data)
 
     def create_item(self, collection: str, data: Dict[str, Any]) -> Any:
+        self._assert_generic_write_allowed(collection)
         resp = self.session.post(self._collection_url(collection), json=data)
         self._handle_error(resp)
         body = resp.json()
         return body.get("data", body)
 
     def create_items(self, collection: str, data: List[Dict[str, Any]]) -> List[Any]:
+        self._assert_generic_write_allowed(collection)
         resp = self.session.post(self._collection_url(collection), json=data)
         self._handle_error(resp)
         body = resp.json()
         return body.get("data", body)
 
     def update_item(self, collection: str, item_id: str, data: Dict[str, Any]) -> Any:
+        self._assert_generic_write_allowed(collection)
         resp = self.session.patch(self._item_url(collection, item_id), json=data)
         self._handle_error(resp)
         body = resp.json()
         return body.get("data", body)
 
     def delete_item(self, collection: str, item_id: str) -> None:
+        self._assert_generic_write_allowed(collection)
         resp = self.session.delete(self._item_url(collection, item_id))
         self._handle_error(resp)
+
+    @staticmethod
+    def _assert_generic_write_allowed(collection: str) -> None:
+        if collection in _READ_ONLY_PROJECTION_COLLECTIONS:
+            raise ValidationError(
+                f"Generic SDK mutations are disabled for read-only collection '{collection}'"
+            )
 
     # -- Aggregate -------------------------------------------------------------
 

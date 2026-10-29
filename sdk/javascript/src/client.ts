@@ -11,7 +11,7 @@ import {
   aggregate as aggregateItems,
 } from '@directus/sdk';
 import type { AuthenticationData } from '@directus/sdk';
-import { normalizeDirectusError } from './errors.js';
+import { normalizeDirectusError, ValidationError } from './errors.js';
 import type {
   AssessmentDimension,
   AssessmentSignal,
@@ -99,6 +99,7 @@ function encodeDirectusPathSegment(value: string, name: string): string {
   }
   return encodeURIComponent(value);
 }
+
 import {
   buildLocationReadMethods,
   buildReferenceReadMethods,
@@ -125,6 +126,13 @@ import {
   buildExportMethods,
   buildNoiMethods,
 } from './methods.js';
+
+const READ_ONLY_PROJECTION_COLLECTIONS = new Set([
+  'attestation_record',
+  'export_log',
+  'noi_snapshot',
+  'report_snapshot',
+]);
 import type {
   LocationReadMethods,
   ReferenceReadMethods,
@@ -434,18 +442,21 @@ export class KokonutClient {
   }
 
   async createItem(collection: string, data: Record<string, any>): Promise<any> {
+    this.assertGenericWriteAllowed(collection);
     return this.execute(() =>
       this.directus.request(createItem(encodeDirectusPathSegment(collection, 'collection'), data)),
     );
   }
 
   async createItems(collection: string, data: Record<string, any>[]): Promise<any[]> {
+    this.assertGenericWriteAllowed(collection);
     return this.execute(() =>
       this.directus.request(createItems(encodeDirectusPathSegment(collection, 'collection'), data)),
     );
   }
 
   async updateItem(collection: string, id: string, data: Record<string, any>): Promise<any> {
+    this.assertGenericWriteAllowed(collection);
     return this.execute(() =>
       this.directus.request(
         updateItem(
@@ -458,6 +469,7 @@ export class KokonutClient {
   }
 
   async deleteItem(collection: string, id: string): Promise<void> {
+    this.assertGenericWriteAllowed(collection);
     await this.execute(() =>
       this.directus.request(
         deleteItem(
@@ -479,6 +491,14 @@ export class KokonutClient {
   private async execute<T>(operation: () => Promise<T>): Promise<T> {
     await this.ready;
     return this.run(operation);
+  }
+
+  private assertGenericWriteAllowed(collection: string): void {
+    if (READ_ONLY_PROJECTION_COLLECTIONS.has(collection)) {
+      throw new ValidationError(
+        `Generic SDK mutations are disabled for read-only collection '${collection}'`,
+      );
+    }
   }
 
   private async run<T>(operation: () => Promise<T>): Promise<T> {

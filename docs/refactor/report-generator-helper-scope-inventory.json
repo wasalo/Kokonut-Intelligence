@@ -967,33 +967,15 @@
           "depth": 3
         },
         {
-          "caller": "services/analytics/competitive_report.py:report",
-          "callee": "services/analytics/competitive_report.py:_clean",
-          "line": 27,
-          "depth": 4
-        },
-        {
           "caller": "services/planning/sandop.py:cockpit",
           "callee": "services/planning/sandop.py:_coerce_uuid",
           "line": 27,
           "depth": 4
         },
         {
-          "caller": "services/analytics/competitive_report.py:report",
-          "callee": "services/analytics/competitive_report.py:_clean",
-          "line": 29,
-          "depth": 4
-        },
-        {
           "caller": "services/planning/sandop.py:cockpit",
           "callee": "services/planning/sandop.py:_rows",
           "line": 29,
-          "depth": 4
-        },
-        {
-          "caller": "services/analytics/competitive_report.py:report",
-          "callee": "services/analytics/competitive_report.py:_clean",
-          "line": 31,
           "depth": 4
         },
         {
@@ -1004,8 +986,26 @@
         },
         {
           "caller": "services/analytics/competitive_report.py:report",
+          "callee": "services/analytics/competitive_report.py:_clean",
+          "line": 36,
+          "depth": 4
+        },
+        {
+          "caller": "services/analytics/competitive_report.py:report",
+          "callee": "services/analytics/competitive_report.py:_clean",
+          "line": 38,
+          "depth": 4
+        },
+        {
+          "caller": "services/analytics/competitive_report.py:report",
+          "callee": "services/analytics/competitive_report.py:_clean",
+          "line": 40,
+          "depth": 4
+        },
+        {
+          "caller": "services/analytics/competitive_report.py:report",
           "callee": "services/analytics/competitive_report.py:health",
-          "line": 32,
+          "line": 41,
           "depth": 4
         },
         {
@@ -1071,7 +1071,7 @@
         {
           "caller": "services/analytics/competitive_report.py:health",
           "callee": "services/analytics/competitive_report.py:_clean",
-          "line": 21,
+          "line": 30,
           "depth": 5
         }
       ],
@@ -1107,7 +1107,7 @@
         {
           "source_file": "services/analytics/competitive_report.py",
           "callable": "report",
-          "line": 26,
+          "line": 35,
           "relations": [
             "competitive_landscape"
           ],
@@ -1133,7 +1133,7 @@
         {
           "source_file": "services/analytics/competitive_report.py",
           "callable": "report",
-          "line": 28,
+          "line": 37,
           "relations": [
             "strategy_position"
           ],
@@ -1159,7 +1159,7 @@
         {
           "source_file": "services/analytics/competitive_report.py",
           "callable": "report",
-          "line": 30,
+          "line": 39,
           "relations": [
             "v_strategy_advantage_fit"
           ],
@@ -2409,37 +2409,37 @@
         {
           "caller": "services/analytics/capability_map.py:get_capability_dashboard",
           "callee": "services/analytics/capability_map.py:_conn",
-          "line": 282,
+          "line": 287,
           "depth": 2
         },
         {
           "caller": "services/analytics/capability_map.py:get_capability_dashboard",
           "callee": "services/analytics/capability_map.py:_row_to_dict",
-          "line": 289,
-          "depth": 2
-        },
-        {
-          "caller": "services/analytics/capability_map.py:get_coverage_analysis",
-          "callee": "services/analytics/capability_map.py:_conn",
           "line": 294,
           "depth": 2
         },
         {
           "caller": "services/analytics/capability_map.py:get_coverage_analysis",
-          "callee": "services/analytics/capability_map.py:_row_to_dict",
-          "line": 305,
+          "callee": "services/analytics/capability_map.py:_conn",
+          "line": 299,
           "depth": 2
         },
         {
           "caller": "services/analytics/capability_map.py:get_coverage_analysis",
           "callee": "services/analytics/capability_map.py:_row_to_dict",
-          "line": 313,
+          "line": 310,
           "depth": 2
         },
         {
           "caller": "services/analytics/capability_map.py:get_coverage_analysis",
           "callee": "services/analytics/capability_map.py:_row_to_dict",
-          "line": 321,
+          "line": 318,
+          "depth": 2
+        },
+        {
+          "caller": "services/analytics/capability_map.py:get_coverage_analysis",
+          "callee": "services/analytics/capability_map.py:_row_to_dict",
+          "line": 326,
           "depth": 2
         },
         {
@@ -2454,7 +2454,7 @@
         {
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_capability_dashboard",
-          "line": 284,
+          "line": 289,
           "relations": [
             "v_capability_dashboard"
           ],
@@ -2465,7 +2465,7 @@
               {
                 "conditions": [
                   {
-                    "line": 278,
+                    "line": 283,
                     "branch": 0
                   }
                 ],
@@ -2476,7 +2476,7 @@
               {
                 "conditions": [
                   {
-                    "line": 278,
+                    "line": 283,
                     "branch": 1
                   }
                 ],
@@ -2500,7 +2500,7 @@
         {
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_coverage_analysis",
-          "line": 296,
+          "line": 301,
           "relations": [
             "business_capability",
             "capability_process_map",
@@ -2526,7 +2526,7 @@
         {
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_coverage_analysis",
-          "line": 307,
+          "line": 312,
           "relations": [
             "capability_process_map",
             "process_map"
@@ -2551,7 +2551,7 @@
         {
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_coverage_analysis",
-          "line": 315,
+          "line": 320,
           "relations": [
             "capability_service_map",
             "service_registry"
@@ -2619,37 +2619,37 @@
         {
           "caller": "services/analytics/capability_map.py:get_capability_dashboard",
           "callee": "services/analytics/capability_map.py:_conn",
-          "line": 282,
+          "line": 287,
           "depth": 2
         },
         {
           "caller": "services/analytics/capability_map.py:get_capability_dashboard",
           "callee": "services/analytics/capability_map.py:_row_to_dict",
-          "line": 289,
-          "depth": 2
-        },
-        {
-          "caller": "services/analytics/capability_map.py:get_coverage_analysis",
-          "callee": "services/analytics/capability_map.py:_conn",
           "line": 294,
           "depth": 2
         },
         {
           "caller": "services/analytics/capability_map.py:get_coverage_analysis",
-          "callee": "services/analytics/capability_map.py:_row_to_dict",
-          "line": 305,
+          "callee": "services/analytics/capability_map.py:_conn",
+          "line": 299,
           "depth": 2
         },
         {
           "caller": "services/analytics/capability_map.py:get_coverage_analysis",
           "callee": "services/analytics/capability_map.py:_row_to_dict",
-          "line": 313,
+          "line": 310,
           "depth": 2
         },
         {
           "caller": "services/analytics/capability_map.py:get_coverage_analysis",
           "callee": "services/analytics/capability_map.py:_row_to_dict",
-          "line": 321,
+          "line": 318,
+          "depth": 2
+        },
+        {
+          "caller": "services/analytics/capability_map.py:get_coverage_analysis",
+          "callee": "services/analytics/capability_map.py:_row_to_dict",
+          "line": 326,
           "depth": 2
         },
         {
@@ -2664,7 +2664,7 @@
         {
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_capability_dashboard",
-          "line": 284,
+          "line": 289,
           "relations": [
             "v_capability_dashboard"
           ],
@@ -2675,7 +2675,7 @@
               {
                 "conditions": [
                   {
-                    "line": 278,
+                    "line": 283,
                     "branch": 0
                   }
                 ],
@@ -2686,7 +2686,7 @@
               {
                 "conditions": [
                   {
-                    "line": 278,
+                    "line": 283,
                     "branch": 1
                   }
                 ],
@@ -2710,7 +2710,7 @@
         {
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_coverage_analysis",
-          "line": 296,
+          "line": 301,
           "relations": [
             "business_capability",
             "capability_process_map",
@@ -2736,7 +2736,7 @@
         {
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_coverage_analysis",
-          "line": 307,
+          "line": 312,
           "relations": [
             "capability_process_map",
             "process_map"
@@ -2761,7 +2761,7 @@
         {
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_coverage_analysis",
-          "line": 315,
+          "line": 320,
           "relations": [
             "capability_service_map",
             "service_registry"
@@ -4292,31 +4292,31 @@
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 158,
+          "line": 165,
           "depth": 1
         },
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 159,
+          "line": 166,
           "depth": 1
         },
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 160,
+          "line": 167,
           "depth": 1
         },
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 161,
+          "line": 168,
           "depth": 1
         },
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 162,
+          "line": 169,
           "depth": 1
         },
         {
@@ -5619,7 +5619,7 @@
         {
           "source_file": "services/analytics/pest_management.py",
           "callable": "get_pest_management_report",
-          "line": 898,
+          "line": 918,
           "relations": [
             "v_public_biocontrol_effectiveness"
           ],
@@ -6423,13 +6423,13 @@
         {
           "caller": "services/analytics/predictive_bpm.py:breaches",
           "callee": "services/analytics/predictive_bpm.py:current_state_of",
-          "line": 159,
+          "line": 180,
           "depth": 3
         },
         {
           "caller": "services/analytics/predictive_bpm.py:breaches",
           "callee": "services/analytics/predictive_bpm.py:predict",
-          "line": 162,
+          "line": 183,
           "depth": 3
         },
         {
@@ -6471,25 +6471,25 @@
         {
           "caller": "services/analytics/predictive_bpm.py:predict",
           "callee": "services/analytics/predictive_bpm.py:compute_state_durations",
-          "line": 89,
+          "line": 110,
           "depth": 4
         },
         {
           "caller": "services/analytics/predictive_bpm.py:predict",
           "callee": "services/analytics/predictive_bpm.py:predict_remaining",
-          "line": 90,
+          "line": 111,
           "depth": 4
         },
         {
           "caller": "services/analytics/predictive_bpm.py:current_state_of",
           "callee": "services/analytics/process_mining.py:load_model",
-          "line": 135,
+          "line": 156,
           "depth": 4
         },
         {
           "caller": "services/analytics/predictive_bpm.py:current_state_of",
           "callee": "services/analytics/process_mining.py:load_model",
-          "line": 136,
+          "line": 157,
           "depth": 4
         },
         {
@@ -6543,43 +6543,43 @@
         {
           "caller": "services/analytics/predictive_bpm.py:compute_state_durations",
           "callee": "services/analytics/process_mining.py:get_traces",
-          "line": 41,
+          "line": 62,
           "depth": 5
         },
         {
           "caller": "services/analytics/predictive_bpm.py:compute_state_durations",
           "callee": "services/analytics/predictive_bpm.py:_iter_traces",
-          "line": 45,
+          "line": 66,
           "depth": 5
         },
         {
           "caller": "services/analytics/predictive_bpm.py:compute_state_durations",
           "callee": "services/analytics/process_mining.py:load_model",
-          "line": 46,
+          "line": 67,
           "depth": 5
         },
         {
           "caller": "services/analytics/predictive_bpm.py:compute_state_durations",
           "callee": "services/analytics/process_mining.py:goal_state",
-          "line": 47,
+          "line": 68,
           "depth": 5
         },
         {
           "caller": "services/analytics/predictive_bpm.py:predict_remaining",
           "callee": "services/analytics/predictive_bpm.py:compute_state_durations",
-          "line": 73,
+          "line": 94,
           "depth": 5
         },
         {
           "caller": "services/analytics/predictive_bpm.py:predict_remaining",
           "callee": "services/analytics/predictive_bpm.py:_median",
-          "line": 75,
+          "line": 96,
           "depth": 5
         },
         {
           "caller": "services/analytics/predictive_bpm.py:predict_remaining",
           "callee": "services/analytics/predictive_bpm.py:_median",
-          "line": 78,
+          "line": 99,
           "depth": 5
         }
       ],
@@ -6588,7 +6588,7 @@
         {
           "source_file": "services/analytics/predictive_bpm.py",
           "callable": "current_state_of",
-          "line": 130,
+          "line": 151,
           "relations": [
             "lifecycle_transition"
           ],
@@ -9466,7 +9466,7 @@
         {
           "caller": "services/analytics/competitive_report.py:health",
           "callee": "services/analytics/competitive_report.py:_clean",
-          "line": 21,
+          "line": 30,
           "depth": 2
         },
         {
@@ -10299,25 +10299,25 @@
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 184,
+          "line": 191,
           "depth": 1
         },
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 235,
+          "line": 242,
           "depth": 1
         },
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 236,
+          "line": 243,
           "depth": 1
         },
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 237,
+          "line": 244,
           "depth": 1
         },
         {

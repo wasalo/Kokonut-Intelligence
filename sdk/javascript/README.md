@@ -368,6 +368,12 @@ verify, attest, confirm commitments, or mutate governed lifecycle state. Stored
 forecast, metric, and trend outputs are returned without recalculation or an
 assertion that they are current or verified.
 
+The base client's generic `createItem`, `createItems`, `updateItem`, and
+`deleteItem` helpers also reject writes to `report_snapshot`, `noi_snapshot`,
+`attestation_record`, and `export_log`. This local guard prevents accidental
+bypass of their typed read-only contract; Directus permissions remain the
+authorization boundary.
+
 `exports` exposes read-only access to canonical export audit records. Export
 generation runs through `services.export.exporter`; the SDK does not create
 pending rows because `export_log` is an audit table, not a request queue.

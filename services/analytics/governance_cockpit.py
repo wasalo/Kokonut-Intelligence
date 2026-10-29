@@ -20,6 +20,10 @@ def internal_cockpit(conn) -> Dict[str, Any]:
 
 
 def public_cockpit(conn) -> Dict[str, Any]:
+    projection = (
+        "active_circle_count, active_role_count, resolved_tension_count, "
+        "implemented_proposal_count, privacy_limitation, generated_at"
+    )
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_governance_cockpit_public")
+        cur.execute(f"SELECT {projection} FROM v_governance_cockpit_public")
         return _row(cur.fetchone()) or {}

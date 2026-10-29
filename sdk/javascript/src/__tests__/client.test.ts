@@ -1289,6 +1289,37 @@ describe('KokonutClient', () => {
     expect(client.noi).not.toHaveProperty('delete');
   });
 
+  it('blocks generic mutations to read-only projections before transport', async () => {
+    const directus = (client as any).directus as {
+      request: (command: unknown) => Promise<unknown>;
+    };
+    const request = vi.spyOn(directus, 'request').mockResolvedValue({ id: 'synthetic' });
+    const protectedCollections = [
+      'report_snapshot',
+      'noi_snapshot',
+      'attestation_record',
+      'export_log',
+    ];
+    const mutations = [
+      (collection: string) => client.createItem(collection, { status: 'published' }),
+      (collection: string) => client.createItems(collection, [{ status: 'published' }]),
+      (collection: string) => client.updateItem(collection, 'synthetic-id', { status: 'published' }),
+      (collection: string) => client.deleteItem(collection, 'synthetic-id'),
+    ];
+
+    for (const collection of protectedCollections) {
+      for (const mutate of mutations) {
+        await expect(mutate(collection)).rejects.toBeInstanceOf(ValidationError);
+      }
+    }
+    expect(request).not.toHaveBeenCalled();
+
+    await client.listItems('report_snapshot');
+    await client.getItem('noi_snapshot', 'noi-1');
+    await client.createItem('location', { name: 'Synthetic Location' });
+    expect(request).toHaveBeenCalledTimes(3);
+  });
+
   it('keeps required convenience filters authoritative and forwards list options', async () => {
     const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
 

@@ -5754,7 +5754,7 @@
       "report_type": "trophic_pyramid",
       "callable": "generate_trophic_pyramid",
       "source_file": "services/export/reports/commons/ecological.py",
-      "source_line": 182,
+      "source_line": 189,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 4,
       "static_positional_arity_site_count": 4,
@@ -5768,7 +5768,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 189,
+          "line": 196,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5791,7 +5791,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 191,
+          "line": 198,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5814,7 +5814,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 206,
+          "line": 213,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -5837,7 +5837,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 217,
+          "line": 224,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

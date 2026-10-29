@@ -2,6 +2,8 @@
 
 import hashlib
 import json
+import re
+import uuid
 from datetime import datetime, timezone
 
 import psycopg2
@@ -97,12 +99,24 @@ def list_snapshots(conn, location_id: str = None):
 
 def _verify_snapshot(conn, snapshot_id_or_hash: str) -> None:
     """Verify a snapshot's hash integrity."""
+    if _looks_like_uuid(snapshot_id_or_hash):
+        predicate = "id = %s"
+        identifier = str(uuid.UUID(snapshot_id_or_hash))
+    elif isinstance(snapshot_id_or_hash, str) and re.fullmatch(
+        r"[0-9a-fA-F]{64}", snapshot_id_or_hash
+    ):
+        predicate = "snapshot_hash = %s"
+        identifier = snapshot_id_or_hash.lower()
+    else:
+        raise ValueError("snapshot identifier must be a UUID or 64-character SHA-256 hash")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
         cur.execute(
-            "SELECT id, report_name, report_type, report_data, snapshot_hash, status FROM report_snapshot WHERE id = %s OR snapshot_hash = %s",
-            (snapshot_id_or_hash, snapshot_id_or_hash),
+            "SELECT id, report_name, report_type, report_data, snapshot_hash, status "
+            f"FROM report_snapshot WHERE {predicate}",
+            (identifier,),
         )
         row = cur.fetchone()
     finally:
