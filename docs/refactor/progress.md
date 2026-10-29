@@ -24640,3 +24640,26 @@ candidate, or legacy state was used; migration 517 was not applied. Checklist:
 1,872 complete / 25 open; TODO: 511 checked / 16 open; strict private Gateway
 response contracts total 180. Evidence:
 [governance CLI, carbon-credit lookup, and configuration review queue](builds/2026-10-29-recovery/governance-cli-carbon-lookup-configuration-review-queue.json).
+
+### Progress addendum — consent expiry, capacity projection, and operating-pilot summary — 29 October 2026
+
+The `record-consent --expires-at` value is now parsed before PostgreSQL access
+and must include an explicit timezone offset, so its TIMESTAMPTZ meaning does
+not vary with session configuration. `capacity_signals.list_gaps()` now
+selects migration 251's exact ten-column view projection, retaining its
+optional scope filters, bind order, sort, UUID conversion, and payload.
+
+The private migration-461 operating-pilot summary route now publishes and
+validates a strict nested response contract. It binds `location_id` to the
+request path; constrains counts and numeric measures; enforces nullability for
+suppressed participant aggregates; and returns a sanitized no-store failure
+for malformed service output. The existing auth and tenant checks remain
+before the summary read.
+
+The approved mock-only selection passes 211 tests. Ruff, compilation,
+capability validation, refreshed runtime SQL inventory, provider-boundary and
+dependency-group checks, and diff checks pass. No database/provider,
+candidate, or legacy state was used; no migration was applied. Checklist:
+1,877 complete / 25 open; TODO: 515 checked / 16 open; strict private Gateway
+response contracts total 181. Evidence:
+[consent, capacity, and operating-pilot contracts](builds/2026-10-29-recovery/consent-capacity-operating-pilot-contracts.json).

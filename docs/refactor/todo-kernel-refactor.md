@@ -3381,3 +3381,21 @@ candidate, or legacy state was used; no migration was applied. Checklist:
 511 checked / 16 open; strict private Gateway response contracts total 180.
 Evidence:
 `builds/2026-10-29-recovery/governance-cli-carbon-lookup-configuration-review-queue.json`.
+
+## Completed — consent expiry, capacity projection, and operating-pilot summary, 29 October
+
+- [x] Require and preflight an explicit timezone on consent expiry datetimes
+  before PostgreSQL access.
+- [x] Pin operating-capacity gap reads to migration 251's exact ten-column
+  projection and verify optional scope/bind/order/payload behavior.
+- [x] Validate the strict migration-461 operating-pilot summary shape, path
+  location, suppression/nullability, and authenticated error behavior.
+- [x] Run 211 approved focused checks and refresh/check SQL inventory; record
+  evidence and progress updates.
+
+Ruff, compilation, capability-matrix validation, provider-boundary,
+dependency-group, SQL-inventory, and diff checks pass. No database, provider,
+candidate, or legacy state was used; no migration was applied. Checklist:
+515 checked / 16 open; strict private Gateway response contracts total 181.
+Evidence:
+`builds/2026-10-29-recovery/consent-capacity-operating-pilot-contracts.json`.

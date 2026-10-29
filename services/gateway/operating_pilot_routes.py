@@ -1,8 +1,9 @@
 """OIDC routes for location-scoped operating-pilot reads and private drafts."""
 
+import math
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, ClassVar, Literal
 from uuid import UUID
 
 from pydantic import (
@@ -485,6 +486,173 @@ def _response_decimal(value):
 
 
 _ResponseDecimal = Annotated[Decimal, BeforeValidator(_response_decimal)]
+
+
+def _operating_pilot_summary_number(value):
+    number = float(_response_decimal(value))
+    if not math.isfinite(number):
+        raise ValueError("numeric value is invalid")
+    return number
+
+
+_OperatingPilotSummaryNumber = Annotated[
+    float,
+    BeforeValidator(_operating_pilot_summary_number),
+]
+
+
+_OPERATING_PILOT_SUMMARY_MAX_COUNT = 9_223_372_036_854_775_807
+_OperatingPilotSummaryCount = Annotated[
+    int,
+    Field(ge=0, le=_OPERATING_PILOT_SUMMARY_MAX_COUNT, strict=True),
+]
+
+
+class _OperatingPilotSuppressedSummary(BaseModel):
+    """Shared suppression/nullability invariant for aggregate-only sections."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    _suppression_fields: ClassVar[tuple[str, ...]] = ()
+    suppressed: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_suppressed_values(self):
+        values = [getattr(self, name) for name in self._suppression_fields]
+        if self.suppressed and any(value is not None for value in values):
+            raise ValueError("suppressed operating-pilot aggregates must be null")
+        if not self.suppressed and any(value is None for value in values):
+            raise ValueError("unsuppressed operating-pilot aggregates must be present")
+        return self
+
+
+class OperatingPilotCapacitySummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "draft",
+        "submitted",
+        "approved",
+        "superseded",
+        "available_hours",
+        "committed_hours",
+        "protected_hours",
+    )
+
+    as_of_date: _ResponseDate
+    draft: _OperatingPilotSummaryCount | None
+    submitted: _OperatingPilotSummaryCount | None
+    approved: _OperatingPilotSummaryCount | None
+    superseded: _OperatingPilotSummaryCount | None
+    available_hours: _OperatingPilotSummaryNumber | None = Field(ge=0, strict=True)
+    committed_hours: _OperatingPilotSummaryNumber | None = Field(ge=0, strict=True)
+    protected_hours: _OperatingPilotSummaryNumber | None = Field(ge=0, strict=True)
+
+
+class OperatingPilotDemandSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    as_of_date: _ResponseDate
+    draft: _OperatingPilotSummaryCount
+    submitted: _OperatingPilotSummaryCount
+    approved: _OperatingPilotSummaryCount
+    fulfilled: _OperatingPilotSummaryCount
+    cancelled: _OperatingPilotSummaryCount
+    required_hours: _OperatingPilotSummaryNumber = Field(ge=0, strict=True)
+
+
+class OperatingPilotWorkItemSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    total: _OperatingPilotSummaryCount
+    open: _OperatingPilotSummaryCount
+    claimed: _OperatingPilotSummaryCount
+    allocated: _OperatingPilotSummaryCount
+    paused: _OperatingPilotSummaryCount
+    closed: _OperatingPilotSummaryCount
+
+
+class OperatingPilotWorkClaimSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "proposed",
+        "accepted",
+        "rejected",
+        "withdrawn",
+    )
+
+    proposed: _OperatingPilotSummaryCount | None
+    accepted: _OperatingPilotSummaryCount | None
+    rejected: _OperatingPilotSummaryCount | None
+    withdrawn: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotCompetencyReviewSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "submitted",
+        "verified",
+        "open_gap",
+    )
+
+    submitted: _OperatingPilotSummaryCount | None
+    verified: _OperatingPilotSummaryCount | None
+    open_gap: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotLearningPlanSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "draft",
+        "submitted",
+        "active",
+        "completed",
+        "paused",
+        "cancelled",
+    )
+
+    draft: _OperatingPilotSummaryCount | None
+    submitted: _OperatingPilotSummaryCount | None
+    active: _OperatingPilotSummaryCount | None
+    completed: _OperatingPilotSummaryCount | None
+    paused: _OperatingPilotSummaryCount | None
+    cancelled: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotResourceRequestSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "pending",
+        "approved",
+        "partially_approved",
+        "declined",
+        "fulfilled",
+    )
+
+    pending: _OperatingPilotSummaryCount | None
+    approved: _OperatingPilotSummaryCount | None
+    partially_approved: _OperatingPilotSummaryCount | None
+    declined: _OperatingPilotSummaryCount | None
+    fulfilled: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotAggregateCoachingSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = ("count",)
+
+    count: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotSummaryResponse(BaseModel):
+    """Exact location-scoped, aggregate-only migration-461 summary shape."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    scope_configured: bool = Field(strict=True)
+    capacity_profiles: OperatingPilotCapacitySummary
+    demand_signals: OperatingPilotDemandSummary
+    work_items: OperatingPilotWorkItemSummary
+    work_claims: OperatingPilotWorkClaimSummary
+    competency_reviews: OperatingPilotCompetencyReviewSummary
+    learning_plans: OperatingPilotLearningPlanSummary
+    resource_requests: OperatingPilotResourceRequestSummary
+    aggregate_only_coaching_sessions: OperatingPilotAggregateCoachingSummary
+
+
 def _response_competency_level(value):
     level = _response_decimal(value)
     if not 0 <= level <= 5:
@@ -3396,7 +3564,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(response.model_dump(mode="json")), headers=headers
         )
 
-    @router.get("/operator/api/operating-pilot/{location_id}/summary")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/summary",
+        response_model=OperatingPilotSummaryResponse,
+    )
     async def location_operating_pilot_summary(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -3435,6 +3606,22 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating pilot summary unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = OperatingPilotSummaryResponse.model_validate(result)
+            if response.location_id != UUID(location_id):
+                raise ValueError("Operating-pilot summary location does not match request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating pilot summary response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating pilot summary unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        # Keep PostgreSQL's JSON numeric representation (numbers, not Decimal strings).
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(

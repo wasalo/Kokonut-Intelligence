@@ -8386,3 +8386,31 @@ Checklist: 1,872 complete / 25 open (1,897 total); TODO: 511 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 180. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
+
+### Source continuation — consent expiry, capacity projection, and operating-pilot summary — 29 October 2026
+
+- [x] Parse consent expiry as an ISO-8601 timezone-aware timestamp before
+  database acquisition; preserve the omitted-expiry behavior.
+- [x] Replace the capacity-gap view wildcard with migration 251's exact
+  ordered ten-column projection while preserving scope filters, binds, sort,
+  and serialization.
+- [x] Add the migration-461 nested operating-pilot summary response schema,
+  location binding, suppression/nullability validation, and sanitized
+  no-store failure behavior in OpenAPI and runtime.
+- [x] Verify the CLI, query, and Gateway contracts with the approved mock-only
+  selection; refresh and check the runtime SQL inventory.
+- [x] Record focused evidence and update the capability/progress ledgers.
+
+The combined selection passes 211 tests (13 consent CLI, 5 capacity projection,
+193 operating-pilot Gateway). Ruff, Python compilation, capability-matrix
+validation, refreshed runtime SQL inventory, provider-boundary and
+dependency-group checks, and `git diff --check` pass. No database/provider,
+candidate, or legacy state was used; no migration was applied. Rollback
+reverts source, tests, evidence/progress, and inventory; no data rollback is
+needed. Evidence:
+[consent, capacity, and operating-pilot contracts](builds/2026-10-29-recovery/consent-capacity-operating-pilot-contracts.json).
+
+Checklist: 1,877 complete / 25 open (1,902 total); TODO: 515 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 181. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.

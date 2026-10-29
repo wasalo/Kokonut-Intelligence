@@ -80,3 +80,66 @@ def test_valid_location_filter_is_canonicalized_before_runner(
         cli_data_governance.cli.main,
         ["retention-policies", *expected_location_args],
     )
+
+
+@pytest.mark.parametrize(
+    "expires_at",
+    ["not-a-datetime", "2027-01-15T10:30:00"],
+    ids=["malformed", "timezone-naive"],
+)
+def test_consent_expiry_rejects_invalid_or_naive_values_before_connection(
+    monkeypatch, capsys, expires_at
+):
+    connection_calls = []
+
+    def connect():
+        connection_calls.append(True)
+        raise AssertionError("invalid consent expiry must fail before DB access")
+
+    monkeypatch.setattr(cli_data_governance.cli, "_connection_factory", connect)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli_data_governance.main([
+            "record-consent",
+            "--farmer-id", "farmer",
+            "--data-category", "soil",
+            "--scope", "collection",
+            "--expires-at", expires_at,
+        ])
+
+    assert exc_info.value.code == 2
+    assert "expiry must be an ISO-8601 datetime with a timezone" in capsys.readouterr().err
+    assert connection_calls == []
+
+
+@pytest.mark.parametrize(
+    ("expiry_args", "expected_expiry"),
+    [
+        (["--expires-at", "2027-01-15T10:30:00+02:00"], "2027-01-15T10:30:00+02:00"),
+        ([], None),
+    ],
+    ids=["aware-expiry", "no-expiry"],
+)
+def test_record_consent_receives_parsed_expiry(monkeypatch, expiry_args, expected_expiry):
+    connection = Mock()
+    handler = Mock(return_value={"consent_id": "consent-id"})
+    monkeypatch.setattr(cli_data_governance.cli, "_connection_factory", lambda: connection)
+    monkeypatch.setattr(cli_data_governance, "record_consent", handler)
+
+    cli_data_governance.main([
+        "record-consent",
+        "--farmer-id", "farmer",
+        "--data-category", "soil",
+        "--scope", "collection",
+        *expiry_args,
+    ])
+
+    expiry = handler.call_args.kwargs["expires_at"]
+    if expected_expiry is None:
+        assert expiry is None
+    else:
+        from datetime import datetime
+
+        assert isinstance(expiry, datetime)
+        assert expiry.isoformat() == expected_expiry
+    connection.close.assert_called_once()

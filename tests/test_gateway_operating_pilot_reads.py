@@ -1,5 +1,6 @@
 """Tests for the location-scoped operating-pilot Gateway projection."""
 
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -19,15 +20,67 @@ LOCATION_ID = str(uuid4())
 SUMMARY = {
     "scope_configured": True,
     "capacity_profiles": {
-        "suppressed": False, "submitted": 1, "approved": 2, "available_hours": 30,
+        "as_of_date": "2026-10-29",
+        "suppressed": False,
+        "draft": 0,
+        "submitted": 1,
+        "approved": 2,
+        "superseded": 0,
+        "available_hours": 30.0,
+        "committed_hours": 20.0,
+        "protected_hours": 2.0,
     },
-    "demand_signals": {"submitted": 1, "required_hours": 20},
-    "work_items": {"total": 2, "open": 1, "claimed": 1},
-    "work_claims": {"suppressed": False, "proposed": 1, "accepted": 1},
-    "competency_reviews": {"suppressed": False, "submitted": 1, "verified": 2, "open_gap": 2},
-    "learning_plans": {"suppressed": False, "active": 3},
-    "resource_requests": {"suppressed": False, "pending": 3},
-    "aggregate_only_coaching_sessions": {"suppressed": False, "count": 3},
+    "demand_signals": {
+        "as_of_date": "2026-10-29",
+        "draft": 0,
+        "submitted": 1,
+        "approved": 2,
+        "fulfilled": 0,
+        "cancelled": 0,
+        "required_hours": 20.0,
+    },
+    "work_items": {
+        "total": 2,
+        "open": 1,
+        "claimed": 1,
+        "allocated": 0,
+        "paused": 0,
+        "closed": 0,
+    },
+    "work_claims": {
+        "suppressed": False,
+        "proposed": 1,
+        "accepted": 1,
+        "rejected": 0,
+        "withdrawn": 0,
+    },
+    "competency_reviews": {
+        "suppressed": False,
+        "submitted": 1,
+        "verified": 2,
+        "open_gap": 2,
+    },
+    "learning_plans": {
+        "suppressed": False,
+        "draft": 0,
+        "submitted": 0,
+        "active": 3,
+        "completed": 0,
+        "paused": 0,
+        "cancelled": 0,
+    },
+    "resource_requests": {
+        "suppressed": False,
+        "pending": 3,
+        "approved": 0,
+        "partially_approved": 0,
+        "declined": 0,
+        "fulfilled": 0,
+    },
+    "aggregate_only_coaching_sessions": {
+        "suppressed": False,
+        "count": 3,
+    },
 }
 
 
@@ -1019,6 +1072,274 @@ def test_http_projection_is_no_store_and_operator_authenticated(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["scope_configured"] is True
+
+
+def _summary_route_app(monkeypatch, result):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_summary",
+        lambda *_args, **_kwargs: result,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(router, object(), run_in_threadpool,
+                                    SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
+
+
+def _summary_result():
+    return {"location_id": LOCATION_ID, **deepcopy(SUMMARY)}
+
+
+def _resolve_openapi_schema(schema, components):
+    while "$ref" in schema:
+        schema = components[schema["$ref"].rsplit("/", 1)[1]]
+    return schema
+
+
+def test_summary_openapi_matches_migration_461_projection(monkeypatch):
+    app = _summary_route_app(monkeypatch, _summary_result())
+    openapi = app.openapi()
+    components = openapi["components"]["schemas"]
+    operation = openapi["paths"][
+        "/operator/api/operating-pilot/{location_id}/summary"
+    ]["get"]
+    response = _resolve_openapi_schema(
+        operation["responses"]["200"]["content"]["application/json"]["schema"],
+        components,
+    )
+
+    expected_fields = {
+        "location_id",
+        "scope_configured",
+        "capacity_profiles",
+        "demand_signals",
+        "work_items",
+        "work_claims",
+        "competency_reviews",
+        "learning_plans",
+        "resource_requests",
+        "aggregate_only_coaching_sessions",
+    }
+    assert set(response["properties"]) == expected_fields
+    assert set(response["required"]) == expected_fields
+
+    expected_nested_fields = {
+        "capacity_profiles": {
+            "as_of_date", "suppressed", "draft", "submitted", "approved",
+            "superseded", "available_hours", "committed_hours", "protected_hours",
+        },
+        "demand_signals": {
+            "as_of_date", "draft", "submitted", "approved", "fulfilled",
+            "cancelled", "required_hours",
+        },
+        "work_items": {"total", "open", "claimed", "allocated", "paused", "closed"},
+        "work_claims": {"suppressed", "proposed", "accepted", "rejected", "withdrawn"},
+        "competency_reviews": {"suppressed", "submitted", "verified", "open_gap"},
+        "learning_plans": {
+            "suppressed", "draft", "submitted", "active", "completed", "paused", "cancelled",
+        },
+        "resource_requests": {
+            "suppressed", "pending", "approved", "partially_approved", "declined", "fulfilled",
+        },
+        "aggregate_only_coaching_sessions": {"suppressed", "count"},
+    }
+    nested = {}
+    for name, fields in expected_nested_fields.items():
+        nested[name] = _resolve_openapi_schema(response["properties"][name], components)
+        assert set(nested[name]["properties"]) == fields
+        assert set(nested[name]["required"]) == fields
+
+    def value_schema(schema):
+        if "anyOf" not in schema:
+            return schema
+        non_null = [item for item in schema["anyOf"] if item.get("type") != "null"]
+        assert len(non_null) == 1
+        return non_null[0]
+
+    assert response["properties"]["scope_configured"]["type"] == "boolean"
+    assert nested["capacity_profiles"]["properties"]["as_of_date"]["format"] == "date"
+    assert nested["demand_signals"]["properties"]["as_of_date"]["format"] == "date"
+    assert nested["work_items"]["properties"]["total"]["type"] == "integer"
+    assert value_schema(
+        nested["capacity_profiles"]["properties"]["draft"]
+    )["type"] == "integer"
+    assert value_schema(
+        nested["capacity_profiles"]["properties"]["available_hours"]
+    )["type"] == "number"
+    assert nested["capacity_profiles"]["properties"]["suppressed"]["type"] == "boolean"
+
+
+def test_summary_accepts_source_shaped_suppressed_aggregates(monkeypatch):
+    result = _summary_result()
+    suppressed_fields = {
+        "capacity_profiles": (
+            "draft", "submitted", "approved", "superseded", "available_hours",
+            "committed_hours", "protected_hours",
+        ),
+        "work_claims": ("proposed", "accepted", "rejected", "withdrawn"),
+        "competency_reviews": ("submitted", "verified", "open_gap"),
+        "learning_plans": (
+            "draft", "submitted", "active", "completed", "paused", "cancelled",
+        ),
+        "resource_requests": (
+            "pending", "approved", "partially_approved", "declined", "fulfilled",
+        ),
+        "aggregate_only_coaching_sessions": ("count",),
+    }
+    for section, fields in suppressed_fields.items():
+        result[section]["suppressed"] = True
+        for field in fields:
+            result[section][field] = None
+
+    app = _summary_route_app(monkeypatch, result)
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/operating-pilot/{LOCATION_ID}/summary")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["capacity_profiles"]["as_of_date"] == "2026-10-29"
+    assert response.json()["capacity_profiles"]["available_hours"] is None
+    assert response.json()["work_claims"]["proposed"] is None
+    assert response.json()["aggregate_only_coaching_sessions"]["count"] is None
+
+
+def _mutate_summary_missing_capacity(result):
+    del result["capacity_profiles"]["draft"]
+
+
+def _mutate_summary_extra_field(result):
+    result["work_items"]["private_party_ids"] = []
+
+
+def _mutate_summary_negative_count(result):
+    result["work_items"]["total"] = -1
+
+
+def _mutate_summary_fractional_count(result):
+    result["work_items"]["total"] = 1.5
+
+
+def _mutate_summary_nonfinite_hours(result):
+    result["capacity_profiles"]["available_hours"] = float("nan")
+
+
+def _mutate_summary_negative_hours(result):
+    result["demand_signals"]["required_hours"] = -1
+
+
+def _mutate_summary_suppressed_nonnull(result):
+    result["work_claims"]["suppressed"] = True
+
+
+def _mutate_summary_unsuppressed_null(result):
+    result["learning_plans"]["active"] = None
+
+
+@pytest.mark.parametrize("mutate", [
+    _mutate_summary_missing_capacity,
+    _mutate_summary_extra_field,
+    _mutate_summary_negative_count,
+    _mutate_summary_fractional_count,
+    _mutate_summary_nonfinite_hours,
+    _mutate_summary_negative_hours,
+    _mutate_summary_suppressed_nonnull,
+    _mutate_summary_unsuppressed_null,
+])
+def test_summary_rejects_malformed_output_with_sanitized_no_store_response(monkeypatch, mutate):
+    result = _summary_result()
+    mutate(result)
+    app = _summary_route_app(monkeypatch, result)
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/operating-pilot/{LOCATION_ID}/summary")
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating pilot summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.headers["retry-after"] == "30"
+
+
+def test_summary_rejects_projection_for_another_location(monkeypatch):
+    result = _summary_result()
+    result["location_id"] = str(uuid4())
+    app = _summary_route_app(monkeypatch, result)
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/operating-pilot/{LOCATION_ID}/summary")
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating pilot summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_operator_scope_denial_precedes_operating_pilot_summary_query(monkeypatch):
+    from services.gateway.app import create_app
+
+    class _RateLimiter:
+        def check(self, *_args, **_kwargs):
+            return True
+
+        def retry_after(self, *_args, **_kwargs):
+            return 0
+
+    class _Audit:
+        def capture_status(self):
+            return "ok"
+
+        def log(self, **_kwargs):
+            return None
+
+        def replay_pending(self, *_args, **_kwargs):
+            return 0
+
+    class _UnauthenticatedOperatorProvider:
+        settings = SimpleNamespace(state_secret="test-session-secret-" + "x" * 32)
+
+        def authenticate_request(self, _request):
+            return None
+
+    monkeypatch.setattr(
+        "services.gateway.operator_auth.create_provider",
+        lambda: _UnauthenticatedOperatorProvider(),
+    )
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit", _Audit)
+    summary_calls = []
+
+    def forbidden_summary_query(*_args, **_kwargs):
+        summary_calls.append(True)
+        pytest.fail("operator denial must precede summary query")
+
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_summary",
+        forbidden_summary_query,
+    )
+    app = create_app(rate_limiter=_RateLimiter())
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/operating-pilot/{LOCATION_ID}/summary")
+
+    assert response.status_code == 401
+    assert response.json()["error"] == "Unauthorized"
+    assert response.json()["reason"] == "operator_session_required"
+    assert response.headers["cache-control"] == "no-store"
+    assert summary_calls == []
 
 
 def test_http_projection_fails_closed_when_oidc_is_disabled(monkeypatch):
