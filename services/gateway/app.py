@@ -435,6 +435,12 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     @app.exception_handler(RequestValidationError)
     async def report_export_validation_error(request: Request, exc: RequestValidationError):
+        if request.url.path == "/api/data-stream/post":
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Data Stream post request is invalid"},
+                headers={"Cache-Control": "no-store"},
+            )
         if (
             request.url.path == "/operator/api/report-export-snapshots"
             or request.url.path == "/operator/api/report-exports"

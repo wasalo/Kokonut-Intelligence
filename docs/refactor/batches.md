@@ -6813,3 +6813,22 @@ Checklist: 1,614 complete / 25 open (1,639 total); TODO: 309 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; the 101 strict private Gateway response
 contracts are unchanged. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — Data Stream draft-create Gateway contract — 29 October 2026
+
+- [x] Publish the 15 source-defined post types and strict allowlisted request
+  fields with generated OpenAPI request and response schemas.
+- [x] Reject spoofed creator, lifecycle, metadata, source, and undeclared fields
+  before service/database access; sanitize no-store validation failures.
+- [x] Validate successful post UUID output while preserving the `post_id`
+  response, location-scoped authorization, and draft-only service behavior.
+
+The focused Gateway create/auth selection passes 39 tests. Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. No database,
+provider, candidate, or legacy service was used. Live OIDC/browser and populated
+data acceptance remain open ([evidence](builds/2026-10-29-recovery/data-stream-create-gateway-contract.json)).
+
+Checklist: 1,617 complete / 25 open (1,642 total); TODO: 312 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; private Gateway response-contract count is
+unchanged. MAN-CAP acceptance is unchanged.

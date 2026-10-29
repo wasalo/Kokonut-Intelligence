@@ -23,6 +23,10 @@ try:
         model_validator,
     )
 
+    from services.gateway.data_stream_models import (
+        DataStreamPostCreateRequest,
+        DataStreamPostCreateResponse,
+    )
     from services.gateway.federation_models import FederationNodesPage
     from services.gateway.governance_responses import (
         BaalAuthorizationError,
@@ -185,6 +189,7 @@ except ImportError:
     _DataStreamFileListEnvelope = None
     PublicLocationIriDocument = None
     _JsonLdResponse = None
+    DataStreamPostCreateRequest = DataStreamPostCreateResponse = None
     ValidationError = None
 
 router = APIRouter()
@@ -645,21 +650,31 @@ async def get_data_stream_post_attestation(post_id: str, request: Request):
         return _internal_error(exc)
 
 
-@router.post("/data-stream/post")
-async def create_data_stream_post(request: Request):
+@router.post(
+    "/data-stream/post",
+    response_model=DataStreamPostCreateResponse,
+    status_code=201,
+    responses={400: {"model": PublicError}, 401: {"model": PublicError},
+               403: {"model": PublicError}, 422: {"model": PublicError},
+               500: {"model": PublicError}},
+    operation_id="createDataStreamPost",
+)
+async def create_data_stream_post(body: DataStreamPostCreateRequest, request: Request):
     """Create a tenant-scoped draft Data Stream post."""
     from starlette.concurrency import run_in_threadpool
 
     try:
-        body = await request.json()
         from services.gateway.data_stream import create_gateway_data_stream_post
 
         result = await run_in_threadpool(
             create_gateway_data_stream_post,
-            body,
+            body.model_dump(mode="json"),
             request.state.gateway_authorization,
         )
-        return _private_response({"post_id": result["id"]}, status_code=201)
+        response = DataStreamPostCreateResponse.model_validate({"post_id": result.get("id")})
+        return _private_response(response.model_dump(mode="json"), status_code=201)
+    except ValidationError as exc:
+        return _internal_error(exc, "Data Stream post creation unavailable")
     except ValueError as exc:
         return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:

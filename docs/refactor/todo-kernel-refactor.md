@@ -950,6 +950,12 @@ that its full source-plan phase is complete.
   OpenAPI advertises the `application/ld+json` schema and malformed documents
   fail closed with a sanitized no-store error. Thirteen focused resolver tests
   pass ([evidence](builds/2026-10-29-recovery/public-location-iri-jsonld-response-contract.json)).
+  The Data Stream draft-create route now has a strict allowlisted request and
+  UUID-only response schema. The 15 accepted post types are checked against
+  the domain service; creator/lifecycle/metadata/source fields are rejected
+  before writes, and request validation is sanitized/no-store. Thirty-nine
+  focused route/auth checks pass
+  ([evidence](builds/2026-10-29-recovery/data-stream-create-gateway-contract.json)).
   Python SDK timeouts now reject boolean, nonnumeric, non-finite, nonpositive,
   and overflow-sized values before networking while preserving the 10-second
   default; 17 focused tests pass
@@ -2480,4 +2486,22 @@ external JSON-LD interoperability, or tenant/RLS isolation. Evidence:
 [contract checks](builds/2026-10-29-recovery/public-location-iri-jsonld-response-contract.json).
 
 Checklist: 309 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+### Latest local continuation — Data Stream draft-create contract — 29 October 2026
+
+- [x] Publish the source-aligned 15-value post-type allowlist and strict
+  location/title/content/expiry request contract in OpenAPI.
+- [x] Reject undeclared identity, lifecycle, metadata, and source fields before
+  invoking the database service; return sanitized no-store validation errors.
+- [x] Validate the created post UUID and preserve the minimal `post_id` success
+  payload, tenant authorization, and default draft-only creation path.
+
+The focused Gateway create/auth selection passes 39 tests. Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. No database,
+provider, candidate, or legacy service was used. Live OIDC/browser and populated
+data acceptance remain open. Evidence:
+[focused checks](builds/2026-10-29-recovery/data-stream-create-gateway-contract.json).
+
+Checklist: 312 checked / 16 open. Capability classifications and MAN-CAP
 acceptance remain unchanged.

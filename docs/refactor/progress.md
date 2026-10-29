@@ -1,3 +1,20 @@
+### Progress addendum — Data Stream draft-create Gateway contract — 29 October 2026
+
+The tenant-scoped Data Stream create route now documents and validates only
+`location_id`, a domain-supported post type, title, content, and optional
+timezone-aware expiry. The request cannot choose creator identity, lifecycle
+status, metadata, or source lineage. Successful creation validates and returns
+only the generated post UUID; the underlying service continues to create
+drafts. Invalid request bodies receive a generic no-store 422 before the
+database service is invoked.
+
+The focused Gateway create/auth selection passes 39 tests. Ruff, Python
+compilation, capability-matrix validation, and `git diff --check` pass. No
+database, provider, candidate, or legacy service was used. This verifies the
+source/mock contract only; live OIDC/browser and populated-data acceptance
+remain open. Evidence:
+[focused checks](builds/2026-10-29-recovery/data-stream-create-gateway-contract.json).
+
 ### Progress addendum — public location IRI JSON-LD response contract — 29 October 2026
 
 The public location IRI route now publishes and validates the exact document

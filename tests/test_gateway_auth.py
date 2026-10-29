@@ -12,6 +12,8 @@ from starlette.testclient import TestClient  # noqa: E402
 
 from services.gateway.app import create_app  # noqa: E402
 
+DATA_STREAM_POST_ID = "33333333-3333-4333-8333-333333333333"
+
 
 @pytest.fixture(autouse=True)
 def isolated_gateway_audit_spool(tmp_path, monkeypatch):
@@ -277,7 +279,7 @@ def test_authenticated_write_passes_verified_middleware_context(monkeypatch):
     location_id = "11111111-1111-4111-8111-111111111111"
     with patch(
         "services.gateway.data_stream.create_gateway_data_stream_post",
-        return_value={"id": "post-1"},
+        return_value={"id": DATA_STREAM_POST_ID},
     ) as create_post:
         with TestClient(create_app()) as client:
             response = client.post(
@@ -286,14 +288,19 @@ def test_authenticated_write_passes_verified_middleware_context(monkeypatch):
                 json={
                     "location_id": location_id,
                     "title": "Report",
-                    "created_by": "spoofed-actor",
                 },
             )
 
     assert response.status_code == 201
-    assert response.json() == {"post_id": "post-1"}
+    assert response.json() == {"post_id": DATA_STREAM_POST_ID}
     assert response.headers["cache-control"] == "no-store"
-    assert create_post.call_args.args[0]["created_by"] == "spoofed-actor"
+    assert create_post.call_args.args[0] == {
+        "location_id": location_id,
+        "post_type": "monitoring_report",
+        "title": "Report",
+        "content": "",
+        "expires_at": None,
+    }
     assert create_post.call_args.args[1] == {
         "resource": "data_stream_post",
         "action": "create",
@@ -583,7 +590,7 @@ def test_capability_uses_route_resource_and_action():
         with TestClient(create_app()) as client:
             with patch(
                 "services.gateway.data_stream.create_gateway_data_stream_post",
-                return_value={"id": "post-1"},
+                return_value={"id": DATA_STREAM_POST_ID},
             ):
                 response = client.post(
                     "/api/data-stream/post",
@@ -624,7 +631,7 @@ def test_strict_scope_denies_two_part_scope(monkeypatch):
     monkeypatch.setenv("KOKONUT_API_KEYS", "secret-key:my-service")
     monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "my-service:data_stream_post:create")
     monkeypatch.setenv("KOKONUT_STRICT_LOCATION_SCOPE", "true")
-    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": "post-1"}):
+    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": DATA_STREAM_POST_ID}):
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/data-stream/post",
@@ -644,7 +651,7 @@ def test_strict_scope_allows_three_part_scope(monkeypatch):
         "my-service:data_stream_post:create:11111111-1111-4111-8111-111111111111",
     )
     monkeypatch.setenv("KOKONUT_STRICT_LOCATION_SCOPE", "true")
-    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": "post-1"}):
+    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": DATA_STREAM_POST_ID}):
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/data-stream/post",
@@ -662,7 +669,7 @@ def test_strict_scope_allows_wildcard_location(monkeypatch):
         "KOKONUT_API_KEY_SCOPES", "my-service:data_stream_post:create:*"
     )
     monkeypatch.setenv("KOKONUT_STRICT_LOCATION_SCOPE", "true")
-    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": "post-1"}):
+    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": DATA_STREAM_POST_ID}):
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/data-stream/post",
@@ -678,7 +685,7 @@ def test_strict_scope_off_allows_two_part_scope(monkeypatch):
     monkeypatch.setenv("KOKONUT_API_KEYS", "secret-key:my-service")
     monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "my-service:data_stream_post:create")
     monkeypatch.setenv("KOKONUT_STRICT_LOCATION_SCOPE", "false")
-    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": "post-1"}):
+    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": DATA_STREAM_POST_ID}):
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/data-stream/post",
