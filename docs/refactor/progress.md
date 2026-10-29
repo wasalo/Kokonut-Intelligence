@@ -1,3 +1,23 @@
+### Progress addendum — Comprehensive Status training-impact contract — 29 October 2026
+
+The optional operator route now validates training impact against strict
+section/session models matching the report generator's 15-field public-view
+projection. Sessions and the section bind to the containing location; only
+verified/published sessions and schema-defined session types are accepted.
+Nullable scores remain supported, and session/participant/hour/improvement
+aggregates must match their rows. Decimal mean calculation retains the
+generator's half-even rounding behavior.
+
+The focused Comprehensive Status Gateway selection passes 117 tests,
+including exact OpenAPI fields, location binding, malformed values and
+aggregates, nullable scores, rounding parity, and the established section error
+shape. Ruff, Python compilation, and `git diff --check` pass. Synthetic route
+fixtures only; no database/provider, candidate, legacy, or production state was
+used. No migration is required. The existing public view includes participant
+names, trainer names, and notes; this contract preserves that output and does
+not establish content privacy for the wider report audience. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json).
+
 ### Progress addendum — Comprehensive Status stakeholder-outcomes contract — 29 October 2026
 
 The optional operator route now validates stakeholder outcomes against a

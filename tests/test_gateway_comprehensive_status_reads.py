@@ -86,6 +86,7 @@ def _comprehensive_status_payload(location_id=LOCATION_ID):
     sections["holistic_wellbeing"] = _holistic_wellbeing_section(location_id)
     sections["foundational_wellbeing"] = _foundational_wellbeing_section(location_id)
     sections["stakeholder_outcomes"] = _stakeholder_outcomes_section(location_id)
+    sections["training_impact"] = _training_impact_section(location_id)
     return {
         "report_type": "comprehensive_status",
         "scope": "selected_locations",
@@ -366,6 +367,66 @@ def _stakeholder_outcomes_section(location_id=LOCATION_ID):
         ],
         "generated_at": "2026-10-28T00:00:00+00:00",
     }
+
+
+def _training_impact_section(location_id=LOCATION_ID):
+    return {
+        "report_type": "training_impact",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "sessions": [
+            {
+                "id": str(uuid4()),
+                "location_id": location_id,
+                "location_name": "Kokonut Adelphi",
+                "participant_name": "Synthetic participant",
+                "participant_role": None,
+                "session_date": "2026-09-01",
+                "session_topic": "Water stewardship",
+                "session_type": "water_management",
+                "duration_hours": 2.5,
+                "pre_score": None,
+                "post_score": 80.0,
+                "improvement_pct": None,
+                "trainer": None,
+                "notes": None,
+                "status": "verified",
+            }
+        ],
+        "total_sessions": 1,
+        "unique_participants": 1,
+        "total_training_hours": 2.5,
+        "avg_improvement_pct": 0.0,
+        "limitations": [
+            "Training scores are self-assessed or trainer-assessed, not independently verified.",
+            "Improvement percentages depend on baseline assessment quality.",
+            "Participant counts may undercount repeat attendees.",
+        ],
+        "generated_at": "2026-10-28T00:00:00+00:00",
+    }
+
+
+def test_training_impact_decimal_aggregate_matches_generator_rounding():
+    from services.gateway.comprehensive_status_routes import ComprehensiveStatusTrainingImpact
+
+    report = _training_impact_section()
+    first = dict(report["sessions"][0])
+    first.update(improvement_pct=1.22, duration_hours=2.5)
+    second = dict(first)
+    second.update(id=str(uuid4()), participant_name="Second synthetic participant")
+    second.update(improvement_pct=1.23, duration_hours=1.0)
+    report["sessions"] = [first, second]
+    report.update(
+        total_sessions=2,
+        unique_participants=2,
+        total_training_hours=3.5,
+        # The generator averages Decimal scores and uses half-even rounding.
+        avg_improvement_pct=1.22,
+    )
+
+    validated = ComprehensiveStatusTrainingImpact.model_validate(report)
+
+    assert validated.avg_improvement_pct == 1.22
 
 
 def _environmental_section(location_id=LOCATION_ID):
@@ -1058,6 +1119,12 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert outcomes["outcomes"][0]["importance"] is None
     assert outcomes["outcomes"][0]["status"] == "verified"
     assert outcomes["capability_and_value_stream_links"] == []
+    training = response.json()["locations"][0]["sections"]["training_impact"]
+    assert training["location_id"] == LOCATION_ID
+    assert training["total_sessions"] == len(training["sessions"]) == 1
+    assert training["unique_participants"] == 1
+    assert training["sessions"][0]["pre_score"] is None
+    assert training["sessions"][0]["status"] == "verified"
 
     response_schema = app.openapi()["paths"][
         "/operator/api/comprehensive-status/{location_id}"
@@ -1129,6 +1196,39 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     assert schemas["ComprehensiveStatusStakeholderOutcomes"]["properties"][
         "capability_and_value_stream_links"
     ]["maxItems"] == 0
+    training_schema = section_schema["properties"]["training_impact"]
+    assert len(training_schema["anyOf"]) == 2
+    assert schemas["ComprehensiveStatusTrainingImpact"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusTrainingSession"]["additionalProperties"] is False
+    assert set(schemas["ComprehensiveStatusTrainingImpact"]["properties"]) == {
+        "report_type",
+        "location_id",
+        "location_name",
+        "sessions",
+        "total_sessions",
+        "unique_participants",
+        "total_training_hours",
+        "avg_improvement_pct",
+        "limitations",
+        "generated_at",
+    }
+    assert set(schemas["ComprehensiveStatusTrainingSession"]["properties"]) == {
+        "id",
+        "location_id",
+        "location_name",
+        "participant_name",
+        "participant_role",
+        "session_date",
+        "session_topic",
+        "session_type",
+        "duration_hours",
+        "pre_score",
+        "post_score",
+        "improvement_pct",
+        "trainer",
+        "notes",
+        "status",
+    }
     crop_noi_schema = section_schema["properties"]["crop_noi"]
     assert len(crop_noi_schema["anyOf"]) == 2
     assert schemas["ComprehensiveStatusCropNoiReport"]["additionalProperties"] is False
@@ -1486,6 +1586,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     payload["locations"][0]["sections"]["stakeholder_outcomes"] = {
         "error": "report section failed (DataError)"
     }
+    payload["locations"][0]["sections"]["training_impact"] = {
+        "error": "report section failed (DataError)"
+    }
     monkeypatch.setattr(
         "services.gateway.comprehensive_status_reads.get_location_comprehensive_status",
         lambda *_args, **_kwargs: payload,
@@ -1548,6 +1651,9 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     assert response.json()["locations"][0]["sections"]["stakeholder_outcomes"] == {
         "error": "report section failed (DataError)"
     }
+    assert response.json()["locations"][0]["sections"]["training_impact"] == {
+        "error": "report section failed (DataError)"
+    }
 
 
 @pytest.mark.parametrize(
@@ -1568,6 +1674,11 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "stakeholder_row_extra", "stakeholder_draft_status",
         "stakeholder_invalid_importance", "stakeholder_count_mismatch",
         "stakeholder_links_unimplemented",
+        "training_wrong_location", "training_session_wrong_location",
+        "training_session_extra", "training_draft_status",
+        "training_type_invalid", "training_count_mismatch",
+        "training_participant_count_mismatch", "training_hours_mismatch",
+        "training_improvement_mismatch", "training_numeric_string",
         "financial_plan_extra", "financial_plan_wrong_location",
         "financial_report_wrong_location", "financial_numeric_string",
         "financial_error_contract",
@@ -1709,6 +1820,38 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         payload["locations"][0]["sections"]["stakeholder_outcomes"][
             "capability_and_value_stream_links"
         ] = [{"link_id": str(uuid4())}]
+    elif invalid_projection == "training_wrong_location":
+        payload["locations"][0]["sections"]["training_impact"]["location_id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "training_session_wrong_location":
+        payload["locations"][0]["sections"]["training_impact"]["sessions"][
+            0
+        ]["location_id"] = str(uuid4())
+    elif invalid_projection == "training_session_extra":
+        payload["locations"][0]["sections"]["training_impact"]["sessions"][
+            0
+        ]["source_raw"] = {"private": True}
+    elif invalid_projection == "training_draft_status":
+        payload["locations"][0]["sections"]["training_impact"]["sessions"][
+            0
+        ]["status"] = "draft"
+    elif invalid_projection == "training_type_invalid":
+        payload["locations"][0]["sections"]["training_impact"]["sessions"][
+            0
+        ]["session_type"] = "unapproved_type"
+    elif invalid_projection == "training_count_mismatch":
+        payload["locations"][0]["sections"]["training_impact"]["total_sessions"] = 2
+    elif invalid_projection == "training_participant_count_mismatch":
+        payload["locations"][0]["sections"]["training_impact"]["unique_participants"] = 0
+    elif invalid_projection == "training_hours_mismatch":
+        payload["locations"][0]["sections"]["training_impact"]["total_training_hours"] = 3.0
+    elif invalid_projection == "training_improvement_mismatch":
+        payload["locations"][0]["sections"]["training_impact"]["avg_improvement_pct"] = 10.0
+    elif invalid_projection == "training_numeric_string":
+        payload["locations"][0]["sections"]["training_impact"]["sessions"][0][
+            "post_score"
+        ] = "80.0"
     elif invalid_projection == "financial_plan_extra":
         payload["locations"][0]["sections"]["financial_sustainability"]["plans"][0][
             "counterparty_account"

@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-29",
+  "scope": "Comprehensive Status training-impact section response contract",
+  "focused_test_command": "python3 -m pytest tests/test_gateway_comprehensive_status_reads.py -q",
+  "focused_test_results": {
+    "passed": 117,
+    "failed": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "Strict response/OpenAPI models for the report section and exact 15-field source view projection",
+    "Section and session rows match the enclosing location",
+    "Only verified/published lifecycle and source-defined session types are accepted",
+    "Nullable score fields are preserved",
+    "Session, distinct participant, hours, and mean improvement aggregates match the rows",
+    "Decimal half-even mean rounding matches the generator",
+    "Malformed fields/aggregates and the existing section-error response are handled safely"
+  ],
+  "privacy_note": "The source public view includes participant_name, trainer, and notes. This contract preserves current payload behavior but does not establish content privacy or approval for broader report audiences.",
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_or_external_state_used": false,
+  "migration_required": false,
+  "rollback": "Revert the training-impact response models and location checks, focused route fixtures, and evidence; no database rollback is required."
+}

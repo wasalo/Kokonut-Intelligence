@@ -7060,3 +7060,26 @@ Checklist: 1,647 complete / 25 open (1,672 total); TODO: 342 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 109. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — Comprehensive Status training-impact contract — 29 October 2026
+
+- [x] Replace the training-impact `JsonValue` section with strict models
+  matching the report generator's exact 15-field session projection.
+- [x] Bind section and sessions to the composed location; validate published
+  lifecycle/session type, nullable score fields, and count/hour/improvement
+  aggregate parity while retaining the generator's Decimal rounding behavior.
+- [x] Verify strict OpenAPI fields, malformed output, and the established
+  isolated section-error response through synthetic fixtures.
+
+The focused Comprehensive Status Gateway suite passes 117 tests. Ruff, Python
+compilation, and `git diff --check` pass. No database/provider, candidate,
+legacy, or production state was used; no migration is required. The view's
+existing fields include participant names, trainers, and notes; this contract
+preserves them and does not establish content privacy or suitability for the
+wider stakeholder audience. Rollback reverts the response models, location
+checks, focused fixtures, and evidence ([evidence](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json)).
+
+Checklist: 1,650 complete / 25 open (1,675 total); TODO: 345 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 109. MAN-CAP acceptance is unchanged.

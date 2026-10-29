@@ -1017,6 +1017,77 @@ class ComprehensiveStatusStakeholderOutcomes(_ComprehensiveStatusModel):
         return self
 
 
+class ComprehensiveStatusTrainingSession(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    location_name: str
+    participant_name: str
+    participant_role: str | None
+    session_date: ReportDate
+    session_topic: str
+    session_type: Literal[
+        "soil_management",
+        "pest_management",
+        "harvesting",
+        "post_harvest",
+        "financial_management",
+        "organic_inputs",
+        "water_management",
+        "record_keeping",
+        "agroforestry",
+        "other",
+    ] | None
+    duration_hours: ReportNumber | None
+    pre_score: ReportNumber | None
+    post_score: ReportNumber | None
+    improvement_pct: ReportNumber | None
+    trainer: str | None
+    notes: str | None
+    status: Literal["verified", "published"]
+
+
+class ComprehensiveStatusTrainingImpact(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["training_impact"]
+    location_id: ReportUuid
+    location_name: str | None
+    sessions: list[ComprehensiveStatusTrainingSession]
+    total_sessions: int = Field(ge=0, strict=True)
+    unique_participants: int = Field(ge=0, strict=True)
+    total_training_hours: ReportNumber
+    avg_improvement_pct: ReportNumber
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def match_session_aggregates(self):
+        if self.total_sessions != len(self.sessions):
+            raise ValueError("Training session count does not match its rows")
+        expected_participants = len(
+            {session.participant_name for session in self.sessions if session.participant_name}
+        )
+        if self.unique_participants != expected_participants:
+            raise ValueError("Training participant count does not match its rows")
+        expected_hours = round(
+            sum(float(session.duration_hours or 0) for session in self.sessions), 2
+        )
+        if self.total_training_hours != expected_hours:
+            raise ValueError("Training hours do not match the session rows")
+        improvement_total = sum(
+            (Decimal(str(session.improvement_pct or 0)) for session in self.sessions),
+            Decimal("0"),
+        )
+        expected_improvement = float(
+            round(improvement_total / Decimal(max(len(self.sessions), 1)), 2)
+        )
+        if self.avg_improvement_pct != expected_improvement:
+            raise ValueError("Training improvement does not match the session rows")
+        return self
+
+
 class ComprehensiveStatusSections(_ComprehensiveStatusModel):
     farm_summary: ComprehensiveStatusFarmSummary | ComprehensiveStatusSectionError
     crop_noi: ComprehensiveStatusCropNoiReport | ComprehensiveStatusSectionError
@@ -1034,7 +1105,7 @@ class ComprehensiveStatusSections(_ComprehensiveStatusModel):
         ComprehensiveStatusCommunityGovernance | ComprehensiveStatusSectionError
     )
     holistic_wellbeing: ComprehensiveStatusHolisticWellbeing | ComprehensiveStatusSectionError
-    training_impact: JsonValue
+    training_impact: ComprehensiveStatusTrainingImpact | ComprehensiveStatusSectionError
     foundational_wellbeing: (
         ComprehensiveStatusFoundationalWellbeing | ComprehensiveStatusSectionError
     )
@@ -1122,6 +1193,16 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             outcome.location_id != self.location_id for outcome in stakeholder_outcomes.outcomes
         ):
             raise ValueError("Stakeholder outcome row is outside the composed location scope")
+        training_impact = self.sections.training_impact
+        if (
+            isinstance(training_impact, ComprehensiveStatusTrainingImpact)
+            and training_impact.location_id != self.location_id
+        ):
+            raise ValueError("Training impact section is outside the composed location scope")
+        if isinstance(training_impact, ComprehensiveStatusTrainingImpact) and any(
+            session.location_id != self.location_id for session in training_impact.sessions
+        ):
+            raise ValueError("Training session is outside the composed location scope")
         return self
 
 

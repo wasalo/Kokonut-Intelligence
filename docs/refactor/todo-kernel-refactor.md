@@ -10,6 +10,15 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Replace the Comprehensive Status training-impact `JsonValue` with strict
+  public-view-backed section and session models ([evidence](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json)).
+- [x] Bind the section and sessions to the composed location, preserve nullable
+  score fields, and validate lifecycle/type enums and exact count/hour/improvement
+  aggregates ([same evidence](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json)).
+- [x] Verify the exact OpenAPI projection, malformed-output rejection, Decimal
+  rounding parity, and the established section-error response
+  ([same evidence](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json)).
+
 - [x] Replace the Comprehensive Status stakeholder-outcomes `JsonValue` with
   a strict schema-aligned section and exact outcome-row model; preserve the
   source query's verified/published filter ([evidence](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json)).
@@ -1044,14 +1053,20 @@ that its full source-plan phase is complete.
   ([evidence](builds/2026-10-28-recovery/emergency-response-summary-contract.json)).
   Comprehensive Status validates its one-location envelope and exact canonical
   section set, with strict typed contracts for `crop_noi`, environmental,
-  holistic-wellbeing, and stakeholder-outcomes sections. The environmental model binds its four explicit
-  SQL arrays to the enclosing location and accepts PostgreSQL Decimal values;
-  the holistic section now binds to its location and derives exact row contracts
-  from the three consent/publication-filtered views. Stakeholder-outcomes rows
-  bind to the same location, preserve their verified/published lifecycle, and
-  match the aggregate count. The combined route selection passes 106 tests
+  holistic-wellbeing, stakeholder-outcomes, and training-impact sections. The
+  environmental model binds its four explicit SQL arrays to the enclosing
+  location and accepts PostgreSQL Decimal values; the holistic section derives
+  exact row contracts from three consent/publication-filtered views. Stakeholder
+  outcomes retain their verified/published filter and location binding. Training
+  sessions retain their verified/published public-view projection, exact location,
+  and generator aggregate math; its selection covers nullable scores and Decimal
+  half-even rounding. The combined route selection passes 117 tests
   ([holistic evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json);
-  [stakeholder evidence](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json)).
+  [stakeholder evidence](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json);
+  [training evidence](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json)).
+  Training records still expose participant names, trainers, and notes under the
+  legacy public view; strict shape validation does not settle content privacy or
+  broader-stakeholder disclosure.
   The farm-summary queries already use explicit current-schema projections and
   have strict nested models; the remaining semantic issue is that legacy
   `financial_transaction` has no lifecycle/status column while `expense_event`
