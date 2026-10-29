@@ -1,5 +1,6 @@
 """Location-scoped IPM commands reject malformed scope before database setup."""
 
+from datetime import date
 from unittest.mock import Mock
 
 import pytest
@@ -94,3 +95,111 @@ def test_valid_uppercase_location_is_canonical_before_database_handler(
 
     assert handler.call_args.args[1] == canonical_location
     connection.close.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["record-scouting", "--location-id", "00000000-0000-4000-8000-000000000001", "--pest", "aphid", "--date", "bad-date"],
+        ["record-intervention", "--location-id", "00000000-0000-4000-8000-000000000001", "--type", "cultural", "--date", "2026-02-30"],
+        ["record-pesticide", "--location-id", "00000000-0000-4000-8000-000000000001", "--product", "synthetic", "--date", "bad-date"],
+        ["record-resistance", "--location-id", "00000000-0000-4000-8000-000000000001", "--pest", "aphid", "--class", "pyrethroid", "--level", "high", "--date", "2026-02-30"],
+        ["record-degree-day", "--location-id", "00000000-0000-4000-8000-000000000001", "--pest", "aphid", "--date", "bad-date"],
+        ["create-schedule", "--location-id", "00000000-0000-4000-8000-000000000001", "--pest", "aphid", "--start-date", "2026-02-30"],
+        ["create-schedule", "--location-id", "00000000-0000-4000-8000-000000000001", "--pest", "aphid", "--end-date", "bad-date"],
+        ["record-compliance", "--schedule-id", "schedule-1", "--scouting-id", "scouting-1", "--date", "bad-date"],
+        ["schedule-re-scout", "--intervention-id", "intervention-1", "--date", "2026-02-30"],
+        ["compliance-score", "--location-id", "00000000-0000-4000-8000-000000000001", "--period-start", "2026-02-30"],
+        ["compliance-score", "--location-id", "00000000-0000-4000-8000-000000000001", "--period-end", "bad-date"],
+        ["add-trap", "--location-id", "00000000-0000-4000-8000-000000000001", "--name", "trap", "--type", "sticky", "--date", "bad-date"],
+        ["record-catch", "--trap-id", "trap-1", "--date", "2026-02-30"],
+        ["organic-pest-score", "--location-id", "00000000-0000-4000-8000-000000000001", "--period-start", "bad-date"],
+        ["generate-audit", "--location-id", "00000000-0000-4000-8000-000000000001", "--period-end", "2026-02-30"],
+    ],
+)
+def test_date_inputs_reject_invalid_values_before_database(monkeypatch, capsys, argv):
+    connection_factory = Mock(side_effect=AssertionError("database must not be opened"))
+    monkeypatch.setattr(
+        cli_pest_management.cli, "_connection_factory", connection_factory
+    )
+
+    with pytest.raises(SystemExit) as error:
+        cli_pest_management.main(argv)
+
+    assert error.value.code == 2
+    assert "must be a valid ISO date" in capsys.readouterr().err
+    connection_factory.assert_not_called()
+
+
+def test_schedule_re_scout_forwards_parsed_date(monkeypatch):
+    connection = Mock()
+    handler = Mock(return_value={"scheduled": True})
+    monkeypatch.setattr(
+        cli_pest_management.cli, "_connection_factory", lambda: connection
+    )
+    monkeypatch.setattr(cli_pest_management, "schedule_re_scout", handler)
+
+    cli_pest_management.main(
+        ["schedule-re-scout", "--intervention-id", "intervention-1", "--date", "2026-02-28"]
+    )
+
+    handler.assert_called_once_with(connection, "intervention-1", date(2026, 2, 28))
+    connection.close.assert_called_once_with()
+
+
+def test_record_scouting_forwards_optional_parsed_date(monkeypatch):
+    connection = Mock()
+    handler = Mock(return_value={"recorded": True})
+    monkeypatch.setattr(
+        cli_pest_management.cli, "_connection_factory", lambda: connection
+    )
+    monkeypatch.setattr(cli_pest_management, "record_scouting", handler)
+
+    cli_pest_management.main(
+        [
+            "record-scouting", "--location-id", "00000000-0000-4000-8000-000000000001",
+            "--pest", "aphid", "--date", "2026-02-28",
+        ]
+    )
+
+    assert handler.call_args.kwargs["scout_date"] == date(2026, 2, 28)
+    connection.close.assert_called_once_with()
+
+
+def test_create_schedule_forwards_parsed_date_range(monkeypatch):
+    connection = Mock()
+    handler = Mock(return_value={"scheduled": True})
+    monkeypatch.setattr(
+        cli_pest_management.cli, "_connection_factory", lambda: connection
+    )
+    monkeypatch.setattr(cli_pest_management, "create_scouting_schedule", handler)
+
+    cli_pest_management.main(
+        [
+            "create-schedule", "--location-id", "00000000-0000-4000-8000-000000000001",
+            "--pest", "aphid", "--start-date", "2026-02-01", "--end-date", "2026-03-01",
+        ]
+    )
+
+    assert handler.call_args.kwargs["start_date"] == date(2026, 2, 1)
+    assert handler.call_args.kwargs["end_date"] == date(2026, 3, 1)
+    connection.close.assert_called_once_with()
+
+
+def test_compliance_score_forwards_parsed_date_range(monkeypatch):
+    connection = Mock()
+    handler = Mock(return_value={"score": 1})
+    monkeypatch.setattr(
+        cli_pest_management.cli, "_connection_factory", lambda: connection
+    )
+    monkeypatch.setattr(cli_pest_management, "compute_ipm_compliance_score", handler)
+
+    cli_pest_management.main(
+        [
+            "compliance-score", "--location-id", "00000000-0000-4000-8000-000000000001",
+            "--period-start", "2026-02-01", "--period-end", "2026-03-01",
+        ]
+    )
+
+    assert handler.call_args.args[2:] == (date(2026, 2, 1), date(2026, 3, 1))
+    connection.close.assert_called_once_with()

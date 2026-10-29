@@ -1719,6 +1719,21 @@ def test_configuration_draft_submission_and_independent_review_console_contract(
     assert "/adoption/configurations/${encodeURIComponent(draft.configuration_id)}/submit" in submit
     assert '"X-CSRF-Token": csrf' in submit
 
+    drafts_load = _function(
+        source,
+        "async function loadSolutionLifecycleConfigurationDrafts(",
+        "function appendSolutionLifecycleConfigurationReview(",
+    )
+    assert "result.location_id === locationId" in drafts_load
+    assert "result.limit === solutionLifecycleConfigurationPageSize" in drafts_load
+    assert "result.offset === offset" in drafts_load
+    assert '"evidence_impact", "proposed_at"' in drafts_load
+    assert "result.offset_limited" in drafts_load
+    assert "solutionLifecycleConfigurationDraftsInSqlOrder(drafts)" in drafts_load
+    assert "BigInt(wholeSecondMilliseconds) * 1000n + microseconds" in source
+    assert "Configuration draft queue returned an invalid page." in drafts_load
+    assert "The 10,000-row paging limit has been reached." in drafts_load
+
     review = _function(
         source,
         "async function submitSolutionLifecycleConfigurationReview(",
@@ -1883,6 +1898,39 @@ def test_adoption_program_redesign_revision_console_contract():
     assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
     assert "Retry the unchanged adoption-program revision before changing locations." in source
     assert "innerHTML" not in submit
+
+
+def test_configuration_draft_console_order_preserves_postgres_microseconds():
+    node = shutil.which("node")
+    if node is None:
+        return
+    source = CONSOLE.read_text(encoding="utf-8")
+    comparator = _function(
+        source,
+        "function solutionLifecycleConfigurationDraftsInSqlOrder(",
+        "async function loadSolutionLifecycleConfigurationDrafts(",
+    )
+    valid = """
+      const drafts = [
+        {configuration_id: "00000000-0000-4000-8000-000000000001", proposed_at: "2026-10-20T12:00:00.123900Z"},
+        {configuration_id: "00000000-0000-4000-8000-000000000002", proposed_at: "2026-10-20T12:00:00.123100Z"},
+      ];
+      if (!solutionLifecycleConfigurationDraftsInSqlOrder(drafts)) process.exit(1);
+      if (solutionLifecycleConfigurationDraftsInSqlOrder([...drafts].reverse())) process.exit(2);
+      const equalInstant = [
+        {configuration_id: "00000000-0000-4000-8000-000000000002", proposed_at: "2026-10-20T12:00:00.123900Z"},
+        {configuration_id: "00000000-0000-4000-8000-000000000001", proposed_at: "2026-10-20T14:00:00.123900+02:00"},
+      ];
+      if (!solutionLifecycleConfigurationDraftsInSqlOrder(equalInstant)) process.exit(3);
+    """
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".js", encoding="utf-8") as script:
+        script.write(comparator)
+        script.write(valid)
+        script.flush()
+        result = subprocess.run(
+            [node, script.name], check=False, capture_output=True, text=True
+        )
+    assert result.returncode == 0, result.stderr
 
 
 def test_inline_javascript_parses_when_node_is_available():

@@ -8322,3 +8322,39 @@ Checklist: 1,861 complete / 25 open (1,886 total); TODO: 504 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 178. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
+
+### Source continuation — stakeholder projections, CLI preflight, and configuration drafts — 29 October 2026
+
+- [x] Replace migration-222 stakeholder trust wildcard reads with the exact
+  profile and evidence-timeline projections; preserve filtering, ordering,
+  serialization, and the internal/reviewed access boundary.
+- [x] Replace migration-227 identity-resolution wildcard reads with the exact
+  review-queue and verified-source-link projections while preserving filters,
+  order, payloads, and current review boundaries.
+- [x] Preflight every pest-management date/date-range argument before the
+  shared database connection is acquired, and forward valid values as parsed
+  dates.
+- [x] Preflight marketplace harvest dates and buyer preference/contact JSON
+  objects before `get_db()`; reject malformed or non-object values and pass
+  valid typed values to service functions.
+- [x] Add strict OpenAPI/runtime contracts for the migration-517
+  configuration-own-drafts queue and align the operator console to validate
+  exact fields, requested location/page, duplicate IDs, SQL ordering, and the
+  10,000-offset continuation cap.
+- [x] Run the approved offline selection, refresh runtime SQL inventory, and
+  record evidence and progress counters.
+
+The combined mock-only selection passes 177 tests. The console ordering check
+preserves PostgreSQL microsecond precision and normalizes equivalent timezone
+offsets while following migration 517's `proposed_at DESC, id DESC` tie-break.
+Ruff, Python compilation, capability-matrix validation, refreshed runtime SQL
+inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No
+database/provider, candidate, or legacy state was used, and migration 517 was
+not rolled out. Rollback reverts source, tests, evidence/progress, and the
+inventory snapshot; no data rollback is needed. Evidence:
+[stakeholder projections, marketplace/pest preflight, and configuration queue](builds/2026-10-29-recovery/stakeholder-projections-marketplace-pest-configuration-queue.json).
+
+Checklist: 1,867 complete / 25 open (1,892 total); TODO: 507 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 179. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.

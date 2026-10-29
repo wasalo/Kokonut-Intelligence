@@ -24584,3 +24584,33 @@ candidate/legacy state was used; no migration was required. Checklist: 1,861
 complete / 25 open; TODO: 504 checked / 16 open; strict private Gateway
 response contracts total 178. Evidence:
 [consent, readiness, and CLI preflight](builds/2026-10-29-recovery/consent-readiness-cli-preflight.json).
+
+### Progress addendum — stakeholder projections, CLI preflight, and configuration drafts — 29 October 2026
+
+The stakeholder trust readers now select migration 222's exact 13-column
+profile and 18-column evidence timeline. Identity resolution now selects the
+exact 12-column review queue and 11-column verified-source-link projections
+from migration 227. Their filters, ordering, payloads, and internal/reviewed
+access boundaries are unchanged.
+
+Pest-management date and date-range options are parsed in argparse before the
+database connection factory runs; valid dates reach the service functions as
+`datetime.date`. Marketplace harvest dates receive the same preflight, and
+buyer preference/contact inputs must be valid JSON objects before `get_db()`.
+
+The private migration-517 configuration own-drafts queue now has strict
+OpenAPI/runtime item and page schemas. The Gateway binds location and paging,
+validates unique configuration IDs and the database's `proposed_at DESC,
+id DESC` order, and returns a terminal `offset_limited` page when another
+continuation would exceed 10,000. The operator console validates the full
+response before rendering and reports the cap. Its ordering helper preserves
+PostgreSQL microseconds and normalizes timezone offsets before applying the
+UUID tie-break.
+
+The approved mock-only selection passes 177 tests. Ruff, Python compilation,
+capability validation, refreshed runtime SQL inventory, provider-boundary and
+dependency-group checks, and diff checks pass. No database/provider,
+candidate, or legacy state was used; migration 517 was not applied. Checklist:
+1,867 complete / 25 open; TODO: 507 checked / 16 open; strict private Gateway
+response contracts total 179. Evidence:
+[stakeholder projections, marketplace/pest preflight, and configuration queue](builds/2026-10-29-recovery/stakeholder-projections-marketplace-pest-configuration-queue.json).

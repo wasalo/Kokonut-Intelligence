@@ -1,5 +1,6 @@
 """Location UUID preflight for the hand-written marketplace CLI."""
 
+from datetime import date
 from unittest.mock import Mock
 from uuid import uuid4
 
@@ -166,4 +167,94 @@ def test_create_buyer_keeps_descriptive_location_value(monkeypatch):
 
     create_buyer.assert_called_once()
     assert create_buyer.call_args.args[3] == "Santo Domingo"
+    assert create_buyer.call_args.kwargs["preferences"] == {}
+    assert create_buyer.call_args.kwargs["contact_info"] == {}
+    db.close.assert_called_once_with()
+
+
+def test_create_listing_rejects_invalid_harvest_date_before_database(
+    monkeypatch, capsys
+):
+    get_db = Mock(side_effect=AssertionError("database must not be opened"))
+    monkeypatch.setattr("services.ingestion.base.get_db", get_db)
+
+    with pytest.raises(SystemExit) as error:
+        cli_marketplace.main(
+            [
+                "create-listing", "--location-id", str(uuid4()), "--crop", "yuca",
+                "--quantity", "1", "--harvest-date", "2026-02-30",
+            ]
+        )
+
+    assert error.value.code == 2
+    assert "--harvest-date must be a valid ISO date" in capsys.readouterr().err
+    get_db.assert_not_called()
+
+
+def test_create_listing_forwards_parsed_harvest_date(monkeypatch):
+    location_id = str(uuid4())
+    db = Mock()
+    get_db = Mock(return_value=db)
+    create_listing = Mock(return_value={"created": True})
+    monkeypatch.setattr("services.ingestion.base.get_db", get_db)
+    monkeypatch.setattr(cli_marketplace, "create_listing", create_listing)
+
+    cli_marketplace.main(
+        [
+            "create-listing", "--location-id", location_id, "--crop", "yuca",
+            "--quantity", "1", "--harvest-date", "2026-02-28", "--json",
+        ]
+    )
+
+    assert create_listing.call_args.kwargs["harvest_date"] == date(2026, 2, 28)
+    db.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "option,value",
+    [
+        ("--preferences", "not-json"),
+        ("--contact-info", "{broken"),
+        ("--preferences", "[]"),
+        ("--contact-info", '"email@example.test"'),
+    ],
+)
+def test_create_buyer_rejects_invalid_or_non_object_json_before_database(
+    monkeypatch, capsys, option, value
+):
+    get_db = Mock(side_effect=AssertionError("database must not be opened"))
+    monkeypatch.setattr("services.ingestion.base.get_db", get_db)
+
+    with pytest.raises(SystemExit) as error:
+        cli_marketplace.main(
+            ["create-buyer", "--name", "Test buyer", option, value]
+        )
+
+    assert error.value.code == 2
+    assert "must be a valid JSON object" in capsys.readouterr().err
+    get_db.assert_not_called()
+
+
+def test_create_buyer_forwards_decoded_json_values(monkeypatch):
+    db = Mock()
+    get_db = Mock(return_value=db)
+    create_buyer = Mock(return_value={"created": True})
+    monkeypatch.setattr("services.ingestion.base.get_db", get_db)
+    monkeypatch.setattr(cli_marketplace, "create_buyer_profile", create_buyer)
+
+    cli_marketplace.main(
+        [
+            "create-buyer", "--name", "Test buyer",
+            "--preferences", '{"crops":["yuca"],"volume":2}',
+            "--contact-info", '{"email":"buyer@example.test"}', "--json",
+        ]
+    )
+
+    assert create_buyer.call_args.kwargs["preferences"] == {
+        "crops": ["yuca"],
+        "volume": 2,
+    }
+    assert create_buyer.call_args.kwargs["contact_info"] == {
+        "email": "buyer@example.test"
+    }
     db.close.assert_called_once_with()

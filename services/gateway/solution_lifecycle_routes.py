@@ -832,6 +832,78 @@ class SolutionAdoptionProgramDraftPageResponse(BaseModel):
         return self
 
 
+class SolutionConfigurationDraftItemResponse(BaseModel):
+    """Exact migration-517 projection for the authenticated operator's draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    configuration_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    version: int = Field(ge=1, le=2_147_483_647, strict=True)
+    comparability_class: Literal[
+        "comparable", "partially_comparable", "not_comparable",
+    ]
+    evidence_impact: str = Field(min_length=1, max_length=4000, strict=True)
+    proposed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_evidence_impact(self):
+        if (
+            "\x00" in self.evidence_impact
+            or len(self.evidence_impact.encode("utf-8")) > 8000
+        ):
+            raise ValueError("Configuration draft evidence impact exceeds its storage bounds")
+        return self
+
+
+class SolutionConfigurationDraftPageResponse(BaseModel):
+    """Strict, location-bound page envelope for migration-517 own drafts."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=25, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    drafts: list[SolutionConfigurationDraftItemResponse] = Field(max_length=25)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.drafts) > self.limit:
+            raise ValueError("Configuration draft page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.drafts) != self.limit
+                or self.offset + len(self.drafts) <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Configuration draft offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.drafts) != self.limit
+                or self.next_offset != self.offset + len(self.drafts)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Configuration draft continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal configuration draft page cannot continue")
+
+        configuration_ids = [draft.configuration_id for draft in self.drafts]
+        if len(configuration_ids) != len(set(configuration_ids)):
+            raise ValueError("Configuration draft page contains duplicate configurations")
+        order = [
+            (draft.proposed_at, draft.configuration_id.int) for draft in self.drafts
+        ]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Configuration draft page is not in SQL order")
+        return self
+
+
 def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -3051,7 +3123,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(status_code=503, content={"error": "Solution configuration draft creation unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/drafts")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/configurations/drafts",
+        response_model=SolutionConfigurationDraftPageResponse,
+    )
     async def location_solution_configuration_drafts(
         request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
     ):
@@ -3080,7 +3155,53 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution configuration draft list unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution configuration draft list unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict) or set(result) != {
+                "drafts", "has_more", "next_offset",
+            }:
+                raise ValueError("Configuration draft result fields are invalid")
+            drafts = result["drafts"]
+            has_more = result["has_more"]
+            next_offset = result["next_offset"]
+            if not isinstance(drafts, list) or type(has_more) is not bool:
+                raise ValueError("Configuration draft result shape is invalid")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            if has_more:
+                if (
+                    type(next_offset) is not int
+                    or next_offset != offset + len(drafts)
+                ):
+                    raise ValueError("Configuration draft continuation is inconsistent")
+                if next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET:
+                    if len(drafts) != limit:
+                        raise ValueError("Configuration draft offset-cap page is incomplete")
+                    page["has_more"] = False
+                    page["next_offset"] = None
+                    page["offset_limited"] = True
+            elif next_offset is not None:
+                raise ValueError("Terminal configuration draft result has a cursor")
+            validated = SolutionConfigurationDraftPageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution configuration draft response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution configuration draft list unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/{configuration_id}/submit")
     async def submit_solution_configuration(request: Request, location_id: str, configuration_id: str):

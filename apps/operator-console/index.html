@@ -13425,6 +13425,27 @@
         }
       }
 
+      function solutionLifecycleConfigurationDraftsInSqlOrder(drafts) {
+        let previous = null;
+        for (const draft of drafts) {
+          const timestamp = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/i.exec(draft.proposed_at);
+          if (!timestamp) return false;
+          const zone = timestamp[3].toUpperCase() === "Z" ? "Z" : timestamp[3];
+          const wholeSecondMilliseconds = Date.parse(`${timestamp[1]}${zone}`);
+          if (!Number.isSafeInteger(wholeSecondMilliseconds)) return false;
+          const microseconds = BigInt((timestamp[2] || "").padEnd(6, "0").slice(0, 6));
+          const instantMicroseconds = BigInt(wholeSecondMilliseconds) * 1000n + microseconds;
+          const configurationId = draft.configuration_id.toLowerCase();
+          if (previous && (previous.instantMicroseconds < instantMicroseconds
+              || (previous.instantMicroseconds === instantMicroseconds
+                  && previous.configurationId < configurationId))) {
+            return false;
+          }
+          previous = { instantMicroseconds, configurationId };
+        }
+        return true;
+      }
+
       async function loadSolutionLifecycleConfigurationDrafts(append = false) {
         const locationId = solutionLifecycleLocation.value;
         const requestVersion = ++solutionLifecycleConfigurationDraftsRequestVersion;
@@ -13458,14 +13479,64 @@
           if (!response.ok) throw new Error(result.error || "Configuration drafts could not be loaded.");
           if (requestVersion !== solutionLifecycleConfigurationDraftsRequestVersion
               || locationId !== solutionLifecycleLocation.value) return;
-          const drafts = Array.isArray(result.drafts) ? result.drafts : [];
+          const expectedDraftFields = [
+            "configuration_id", "solution_id", "version", "comparability_class",
+            "evidence_impact", "proposed_at",
+          ].sort();
+          const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const validComparabilityClasses = new Set([
+            "comparable", "partially_comparable", "not_comparable",
+          ]);
+          const drafts = Array.isArray(result.drafts) ? result.drafts : null;
+          const seenConfigurationIds = new Set();
+          const validDrafts = drafts !== null
+            && drafts.length <= solutionLifecycleConfigurationPageSize
+            && drafts.every((draft) => {
+              if (!draft || typeof draft !== "object"
+                  || Object.keys(draft).sort().join("|") !== expectedDraftFields.join("|")
+                  || !validId.test(draft.configuration_id || "")
+                  || !validId.test(draft.solution_id || "")
+                  || !Number.isSafeInteger(draft.version) || draft.version < 1
+                  || !validComparabilityClasses.has(draft.comparability_class)
+                  || typeof draft.evidence_impact !== "string"
+                  || !draft.evidence_impact.trim() || draft.evidence_impact.length > 4000
+                  || typeof draft.proposed_at !== "string"
+                  || !/(?:Z|[+-]\d{2}:\d{2})$/i.test(draft.proposed_at)
+                  || !Number.isFinite(Date.parse(draft.proposed_at))) {
+                return false;
+              }
+              const configurationId = draft.configuration_id.toLowerCase();
+              if (seenConfigurationIds.has(configurationId)) return false;
+              seenConfigurationIds.add(configurationId);
+              return true;
+            });
+          const orderedDrafts = validDrafts
+            && solutionLifecycleConfigurationDraftsInSqlOrder(drafts);
+          const hasMore = typeof result.has_more === "boolean" && result.has_more;
+          const offsetLimited = typeof result.offset_limited === "boolean" && result.offset_limited;
+          const validPage = result.location_id === locationId
+            && result.limit === solutionLifecycleConfigurationPageSize
+            && result.offset === offset
+            && typeof result.has_more === "boolean"
+            && typeof result.offset_limited === "boolean"
+            && orderedDrafts
+            && (offsetLimited
+              ? !hasMore && result.next_offset === null
+                  && drafts.length === solutionLifecycleConfigurationPageSize
+                  && offset + drafts.length > 10000
+              : hasMore
+                ? drafts.length === solutionLifecycleConfigurationPageSize
+                    && result.next_offset === offset + drafts.length
+                    && result.next_offset <= 10000
+                : result.next_offset === null);
+          if (!validPage) throw new Error("Configuration draft queue returned an invalid page.");
           for (const draft of drafts) appendSolutionLifecycleConfigurationDraft(draft);
-          solutionLifecycleConfigurationDraftsOffset = Number.isInteger(result.next_offset)
-            && result.next_offset > offset && result.next_offset <= 10000 ? result.next_offset : offset;
-          solutionLifecycleConfigurationDraftsMore.hidden = result.has_more !== true
-            || solutionLifecycleConfigurationDraftsOffset <= offset;
-          solutionLifecycleConfigurationDraftsStatus.textContent = drafts.length
-            ? `${drafts.length} unsubmitted draft${drafts.length === 1 ? "" : "s"} loaded.`
+          solutionLifecycleConfigurationDraftsOffset = hasMore ? result.next_offset : offset;
+          solutionLifecycleConfigurationDraftsMore.hidden = !hasMore;
+          solutionLifecycleConfigurationDraftsStatus.textContent = offsetLimited
+            ? `${drafts.length} unsubmitted draft${drafts.length === 1 ? "" : "s"} loaded. The 10,000-row paging limit has been reached.`
+            : drafts.length
+              ? `${drafts.length} unsubmitted draft${drafts.length === 1 ? "" : "s"} loaded.`
             : "No unsubmitted configuration drafts.";
         } catch (error) {
           if (requestVersion !== solutionLifecycleConfigurationDraftsRequestVersion) return;

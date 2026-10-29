@@ -1407,6 +1407,19 @@ that its full source-plan phase is complete.
   locations excluded. The analytics source slice is verified, while C5 remains
   open for broader parity and reporting work
   ([evidence](builds/2026-10-29-recovery/analytics-event-aggregation-disposable.json)).
+  Completed source slices: stakeholder trust/identity readers now use exact
+  migration-backed projections; pest-management and marketplace CLI date/JSON
+  inputs fail before PostgreSQL access; the migration-517 configuration own-
+  drafts queue now has a strict, location/page-bound Gateway and console
+  contract with bounded continuation. These improve source contracts but do
+  not close the broader populated-data reporting parity gate.
+  - [x] Pin migration-222/227 stakeholder trust and identity-resolution read
+    projections while preserving their current filters, order, payload, and
+    access boundary.
+  - [x] Preflight all pest-management CLI dates and marketplace harvest dates
+    and buyer JSON objects before database acquisition.
+  - [x] Validate the private migration-517 configuration own-drafts response
+    and operator-console page, including ordering and the 10,000-offset cap.
   Sources:
   [report/query parity](batches.md#L2334),
   [consumer scope](batches.md#L3139).
