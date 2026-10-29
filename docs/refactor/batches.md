@@ -7185,3 +7185,31 @@ Checklist: 1,658 complete / 25 open (1,683 total); TODO: 353 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 109. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — Gateway, scheduler CLI, and resource-efficiency contracts — 29 October 2026
+
+- [x] Publish and enforce the private Field Collector collection-detail
+  response contract, including exact OpenAPI fields, collection/location
+  binding, flexible JSON form data under 512 KiB, bounded review-event and
+  evidence rows, and sanitized no-store handling.
+- [x] Expose and forward the required registered driver-instance UUID in
+  scheduler sensor job plans; missing inputs fail before database access and
+  plans stay disabled pending review.
+- [x] Prevent harvest/labor fan-out by pre-aggregating each event source per
+  crop cycle; use `crop_cycle.crop_id` and require event/cycle location parity.
+- [x] Verify the mobile detail and scheduler contracts with focused tests and
+  execute the resource-efficiency query against disposable PostgreSQL 16 rows.
+
+The focused Field Collector/Gateway selection passes 32 tests and the
+scheduler/command selection passes 155. The disposable PostgreSQL 16 check
+passes six assertions for per-cycle and overall totals, crop lookup, and
+cross-location event exclusion; candidate and legacy databases were not used.
+Ruff, Python compilation, capability-matrix validation, and `git diff --check`
+pass. No migration is required. Evidence:
+[batch summary](builds/2026-10-29-recovery/kernel-next-operations-contract-batch.json),
+[disposable analytics check](builds/2026-10-29-recovery/resource-efficiency-disposable.json).
+
+Checklist: 1,669 complete / 25 open (1,694 total); TODO: 357 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+increase to 112. MAN-CAP acceptance is unchanged.

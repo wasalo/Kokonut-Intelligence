@@ -1,7 +1,8 @@
 """Strict response models for private Field Collector review projections."""
 
+import json
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, BeforeValidator, ConfigDict, Field, model_validator
@@ -88,3 +89,68 @@ class MobileCollectionReviewQueueResponse(BaseModel):
             if row.eligible_for_use:
                 raise ValueError("eligible collection is outside the review queue")
         return self
+
+
+class MobileCollectionReviewEvidenceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    source: str = Field(min_length=1, max_length=1000)
+    basis: str = Field(min_length=1, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_non_blank_evidence(self):
+        if not self.source.strip() or not self.basis.strip():
+            raise ValueError("review evidence text must not be blank")
+        return self
+
+
+class MobileCollectionReviewEventResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    id: _MobileResponseUUID
+    actor_operator_id: _MobileResponseUUID
+    decision: Literal["reviewed", "needs_follow_up", "ineligibility_acknowledged"]
+    reason: str = Field(min_length=1, max_length=2000)
+    evidence: list[MobileCollectionReviewEvidenceResponse] = Field(min_length=1, max_length=20)
+    created_at: _MobileResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_non_blank_reason(self):
+        if not self.reason.strip():
+            raise ValueError("review reason must not be blank")
+        return self
+
+
+class MobileCollectionReviewDetailResponseData(MobileCollectionReviewSummaryResponse):
+    """Strict bounded collection detail; form payload keys remain form-defined."""
+
+    consent_policy_status: Literal["unclassified", "required", "not_required"] | None
+    photo_count: int = Field(strict=True, ge=0)
+    payload: dict[str, Any]
+    review_events: list[MobileCollectionReviewEventResponse] = Field(max_length=20)
+
+    @model_validator(mode="after")
+    def validate_review_scope(self):
+        if self.review_state != (
+            "pending_review" if self.form_review_required else "blocked_by_eligibility"
+        ):
+            raise ValueError("collection review state does not match review requirement")
+        if self.eligible_for_use != (self.eligibility_reason == "eligible"):
+            raise ValueError("collection eligibility reason does not match eligibility")
+        if self.eligible_for_use:
+            raise ValueError("eligible collection is outside the review queue")
+        try:
+            payload_size = len(
+                json.dumps(self.payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
+            )
+        except (TypeError, ValueError) as exc:
+            raise ValueError("collection payload must be JSON serializable") from exc
+        if payload_size > 524288:
+            raise ValueError("collection payload exceeds the 512 KiB response limit")
+        return self
+
+
+class MobileCollectionReviewDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    data: MobileCollectionReviewDetailResponseData

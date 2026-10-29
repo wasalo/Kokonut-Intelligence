@@ -3973,6 +3973,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         FarmActivityIntakeQueueResponse,
     )
     from services.gateway.mobile_collection_review_responses import (
+        MobileCollectionReviewDetailResponse,
         MobileCollectionReviewQueueResponse,
     )
     from services.gateway.mobile_operations_inventory_responses import (
@@ -4772,12 +4773,19 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/mobile-collection-review-queue/{collection_id}")
+    @router.get(
+        "/operator/api/mobile-collection-review-queue/{collection_id}",
+        response_model=MobileCollectionReviewDetailResponse,
+    )
     async def mobile_collection_review_detail(
         request: Request, collection_id: str, location_id: str
     ):
         if provider is None:
-            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_mobile_review import (
             MobileCollectionPayloadTooLarge,
@@ -4801,10 +4809,14 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             return JSONResponse(
                 status_code=413,
                 content={"error": "Collection exceeds the console read limit"},
-                headers={"Cache-Control": "no-store"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
-            return JSONResponse(status_code=400, content={"error": str(exc)})
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         except psycopg2.Error as exc:
             from services.common.logging import get_logger
 
@@ -4814,14 +4826,37 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             return JSONResponse(
                 status_code=503,
                 content={"error": "Mobile collection review service unavailable"},
-                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+                headers={
+                    "Retry-After": "30",
+                    "Cache-Control": "no-store",
+                    "Vary": "Cookie",
+                },
             )
         if row is None:
-            return JSONResponse(status_code=404, content={"error": "Mobile collection not found"})
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Mobile collection not found"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        try:
+            response = MobileCollectionReviewDetailResponse.model_validate({"data": row})
+            if response.data.id != UUID(collection_id) or response.data.location_id != UUID(location_id):
+                raise ValueError("Mobile collection detail does not match requested scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile collection review detail unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(row)},
+            jsonable_encoder(response.model_dump(mode="json")),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 

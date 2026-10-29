@@ -2712,3 +2712,15 @@ Evidence:
 Checklist: 324 checked / 16 open. Capability classifications and MAN-CAP
 acceptance remain unchanged; strict private Gateway response contracts now
 total 106.
+
+## Completed in the 29 October operations-contract batch
+
+- [x] Publish strict Field Collector collection-detail OpenAPI and runtime
+  contracts with request-bound IDs, bounded flexible payloads, review-event
+  limits, and sanitized no-store errors.
+- [x] Add scheduler CLI support for the driver-instance input required by
+  sensor plans, with offline missing-input rejection and disabled output.
+- [x] Correct resource-efficiency aggregation and location binding in a
+  disposable PostgreSQL 16 check using multiple event rows and two crop types.
+- [x] Record focused test and static-check evidence for this batch in
+  `builds/2026-10-29-recovery/kernel-next-operations-contract-batch.json`.

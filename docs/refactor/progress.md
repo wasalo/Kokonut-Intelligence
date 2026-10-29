@@ -23718,3 +23718,38 @@ production/provider state was used. Evidence:
 Checklist: 1,665 complete / 25 open (1,690 total); TODO: 353 checked / 16
 open. Capability matrix remains 67 rows (24 baseline-retained, 7 deployed,
 36 prepared); strict private Gateway response contracts now total 111.
+
+### Progress addendum — Gateway, scheduler CLI, and analytics contract batch — 29 October 2026
+
+The private Field Collector review-detail route now publishes a strict response
+schema and validates returned collection and location IDs against the request.
+Form fields remain extensible inside the JSON payload, with the same 512 KiB
+limit enforced at the Gateway boundary. Review events and evidence must match
+the database's decisions, nonblank text, UUID/timestamp types, and 20-item
+bounds; malformed results return a generic no-store response.
+
+The scheduler job-plan CLI now exposes `--driver-instance-id` and passes it to
+the job catalog. Sensor plans require both location and registered driver
+instance, still produce a disabled definition, and fail before database access
+when an input is missing.
+
+Resource-efficiency SQL now aggregates verified/published harvest and labor
+per crop cycle before joining, follows `crop_cycle.crop_id`, and includes only
+event rows whose location matches the cycle. Disposable PostgreSQL 16
+acceptance used two harvest and two labor rows on one cycle, another crop
+cycle, and deliberately mismatched event locations; it verified 190 kg,
+9 labor hours, and 21.11 kg/hour overall without fan-out or cross-location
+contribution.
+
+Focused checks pass 32 Field Collector/Gateway tests and 155 scheduler/command
+tests. Ruff, Python compilation, capability-matrix validation, and
+`git diff --check` pass. The query test used only a temporary local PostgreSQL
+container; candidate/legacy databases, providers, and production identity were
+not touched. No migration is required. Evidence:
+[contract batch](builds/2026-10-29-recovery/kernel-next-operations-contract-batch.json)
+and [disposable SQL acceptance](builds/2026-10-29-recovery/resource-efficiency-disposable.json).
+
+Checklist: 1,669 complete / 25 open (1,694 total); TODO: 357 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+increase to 112.

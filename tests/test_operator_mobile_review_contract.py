@@ -1,16 +1,21 @@
 """Strict route/OpenAPI contract for the mobile collection review queue."""
 
+import json
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 
 pytest.importorskip("fastapi")
 from starlette.testclient import TestClient  # noqa: E402
 
 from services.common.tenant_context import TenantContextDenied  # noqa: E402
 from services.gateway.app import create_app  # noqa: E402
+from services.gateway.mobile_collection_review_responses import (  # noqa: E402
+    MobileCollectionReviewDetailResponse,
+)
 from services.gateway.operator_auth import SESSION_COOKIE  # noqa: E402
 
 OPERATOR_ID = str(uuid4())
@@ -43,7 +48,26 @@ def _collection(**overrides):
     return {**result, **overrides}
 
 
-def _client(monkeypatch, service):
+def _detail(**overrides):
+    event = {
+        "id": str(uuid4()),
+        "actor_operator_id": OPERATOR_ID,
+        "decision": "reviewed",
+        "reason": "Compared with the field sheet",
+        "evidence": [{"source": "field_sheet", "basis": "Date and quantity match"}],
+        "created_at": SYNCED_AT,
+    }
+    return {
+        **_collection(),
+        "consent_policy_status": "required",
+        "photo_count": 1,
+        "payload": {"observed_quantity_kg": 12, "custom_form_field": {"notes": "checked"}},
+        "review_events": [event],
+        **overrides,
+    }
+
+
+def _client(monkeypatch, service, detail_service=None):
     session = SimpleNamespace(
         session_id=str(uuid4()),
         session_token_hash="b" * 64,
@@ -60,7 +84,7 @@ def _client(monkeypatch, service):
             return (
                 operator_id == OPERATOR_ID
                 and resource == "mobile_collection_review"
-                and action == "read"
+                and action in {"read", "read_detail"}
                 and location_id == LOCATION_ID
             )
 
@@ -80,6 +104,10 @@ def _client(monkeypatch, service):
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
     monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
     monkeypatch.setattr("services.gateway.operator_mobile_review.list_mobile_collections", service)
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection",
+        detail_service or (lambda *_args: None),
+    )
     return TestClient(create_app(), cookies={SESSION_COOKIE: "synthetic-session"})
 
 
@@ -158,5 +186,143 @@ def test_mobile_collection_queue_openapi_declares_strict_exact_projection(monkey
     for model in (
         "MobileCollectionReviewQueueResponse",
         "MobileCollectionReviewSummaryResponse",
+    ):
+        assert schema["components"]["schemas"][model]["additionalProperties"] is False
+
+
+def test_mobile_collection_detail_returns_exact_bound_flexible_payload(monkeypatch):
+    calls = []
+    detail = _detail()
+
+    def service(*args):
+        calls.append(args)
+        return detail
+
+    with _client(monkeypatch, lambda *_args: [], service) as client:
+        response = client.get(
+            f"/operator/api/mobile-collection-review-queue/{COLLECTION_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert "Cookie" in response.headers["vary"]
+    expected = MobileCollectionReviewDetailResponse.model_validate({"data": detail}).model_dump(
+        mode="json"
+    )
+    assert response.json() == expected
+    assert set(response.json()["data"]) == set(_collection()) | {
+        "consent_policy_status",
+        "photo_count",
+        "payload",
+        "review_events",
+    }
+    assert response.json()["data"]["payload"]["custom_form_field"] == {"notes": "checked"}
+    assert calls == [(OPERATOR_ID, COLLECTION_ID, LOCATION_ID)]
+
+
+@pytest.mark.parametrize(
+    "detail",
+    [
+        _detail(id=str(uuid4())),
+        _detail(location_id=str(uuid4())),
+        _detail(unexpected="private marker"),
+        _detail(review_events=[{**_detail()["review_events"][0], "decision": "published"}]),
+        _detail(review_events=[{**_detail()["review_events"][0], "reason": " "}]),
+        _detail(
+            review_events=[
+                {
+                    **_detail()["review_events"][0],
+                    "created_at": "2026-10-28T11:00:00",
+                }
+            ]
+        ),
+        _detail(
+            review_events=[
+                {
+                    **_detail()["review_events"][0],
+                    "evidence": [{"source": "field_sheet", "basis": " "}],
+                }
+            ]
+        ),
+        _detail(review_events=[_detail()["review_events"][0]] * 21),
+        _detail(
+            review_events=[
+                {
+                    **_detail()["review_events"][0],
+                    "evidence": [
+                        {"source": "field_sheet", "basis": "checked"}
+                    ] * 21,
+                }
+            ]
+        ),
+        _detail(payload={"private_marker": "x" * 524289}),
+    ],
+)
+def test_mobile_collection_detail_rejects_invalid_scope_or_unbounded_shape(monkeypatch, detail):
+    with _client(monkeypatch, lambda *_args: [], lambda *_args: detail) as client:
+        response = client.get(
+            f"/operator/api/mobile-collection-review-queue/{COLLECTION_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Mobile collection review detail unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "Cookie" in response.headers["vary"]
+    assert "private_marker" not in response.text
+
+
+def test_mobile_collection_detail_maps_service_payload_limit_to_sanitized_413(monkeypatch):
+    from services.gateway.operator_mobile_review import MobileCollectionPayloadTooLarge
+
+    def too_large(*_args):
+        raise MobileCollectionPayloadTooLarge("private collection content")
+
+    with _client(monkeypatch, lambda *_args: [], too_large) as client:
+        response = client.get(
+            f"/operator/api/mobile-collection-review-queue/{COLLECTION_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 413
+    assert response.json() == {"error": "Collection exceeds the console read limit"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "Cookie" in response.headers["vary"]
+    assert "private collection content" not in response.text
+
+
+def test_mobile_collection_detail_accepts_exact_serialized_payload_limit():
+    max_bytes = 524288
+    exact_payload = {"x": "a" * (max_bytes - len('{"x": ""}'))}
+    detail = MobileCollectionReviewDetailResponse.model_validate(
+        {"data": _detail(payload=exact_payload)}
+    )
+    serialized_size = len(
+        json.dumps(detail.data.payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    )
+    assert serialized_size == max_bytes
+
+    with pytest.raises(ValidationError):
+        MobileCollectionReviewDetailResponse.model_validate(
+            {"data": _detail(payload={"x": "a" * (max_bytes - len('{"x": ""}')) + "a"})}
+        )
+
+
+def test_mobile_collection_detail_openapi_declares_strict_nested_contract(monkeypatch):
+    with _client(monkeypatch, lambda *_args: []) as client:
+        schema = client.app.openapi()
+
+    operation = schema["paths"][
+        "/operator/api/mobile-collection-review-queue/{collection_id}"
+    ]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/MobileCollectionReviewDetailResponse"
+    }
+    for model in (
+        "MobileCollectionReviewDetailResponse",
+        "MobileCollectionReviewDetailResponseData",
+        "MobileCollectionReviewEventResponse",
+        "MobileCollectionReviewEvidenceResponse",
     ):
         assert schema["components"]["schemas"][model]["additionalProperties"] is False

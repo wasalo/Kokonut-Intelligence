@@ -1,0 +1,40 @@
+{
+  "assertions": {
+    "cycle_crop_names": true,
+    "cycle_names": true,
+    "cycle_totals": true,
+    "overall_kg_per_labor_hour": true,
+    "total_harvest_kg": true,
+    "total_labor_hours": true
+  },
+  "candidate_or_legacy_modified": false,
+  "cleanup": "passed",
+  "completed_at": "2026-10-29T16:15:42.731066+00:00",
+  "cycle_crop_names": [
+    "Corn",
+    "Beans"
+  ],
+  "cycle_names": [
+    "Target corn cycle",
+    "Target bean cycle"
+  ],
+  "cycle_totals": [
+    {
+      "harvest_kg": 150.0,
+      "kg_per_labor_hour": 30.0,
+      "labor_hours": 5.0
+    },
+    {
+      "harvest_kg": 40.0,
+      "kg_per_labor_hour": 10.0,
+      "labor_hours": 4.0
+    }
+  ],
+  "database": "disposable PostgreSQL 16",
+  "external_provider_contacted": false,
+  "network_isolated": true,
+  "overall_kg_per_labor_hour": 21.11,
+  "result": "passed",
+  "total_harvest_kg": 190.0,
+  "total_labor_hours": 9.0
+}

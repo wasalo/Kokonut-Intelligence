@@ -1398,7 +1398,30 @@ def test_mobile_collection_detail_uses_separate_grant_and_is_audited(monkeypatch
         "services.gateway.audit.GatewayAudit.log",
         lambda _self, **record: audit_records.append(record),
     )
-    detail_reader = MagicMock(return_value={"id": "collection-id", "payload": {"note": "private"}})
+    detail_reader = MagicMock(
+        return_value={
+            "id": "22222222-2222-4222-8222-222222222222",
+            "location_id": LOCATION_ID,
+            "form_id": "field_activity",
+            "form_version": "2.1.0",
+            "collection_type": "farm_activity",
+            "collected_at": "2026-10-29T12:00:00+00:00",
+            "synced_at": "2026-10-29T12:01:00+00:00",
+            "form_validation_status": "active",
+            "consent_validation_status": "granted",
+            "form_review_required": True,
+            "form_revision_id": None,
+            "form_name": None,
+            "form_revision_status": None,
+            "consent_policy_status": "required",
+            "eligible_for_use": False,
+            "eligibility_reason": "review_required",
+            "review_state": "pending_review",
+            "photo_count": 0,
+            "payload": {"note": "private"},
+            "review_events": [],
+        }
+    )
     monkeypatch.setattr(
         "services.gateway.operator_mobile_review.get_mobile_collection",
         detail_reader,
