@@ -12,9 +12,14 @@ import errno
 import os
 import secrets
 import stat
+from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
+from urllib.parse import urlsplit
 from uuid import UUID
+
+MAX_PRIVATE_EXPORT_BYTES = 512 * 1024
+_S3_EXPORT_PREFIX = "private/report-snapshot-exports/"
 
 
 class ArtifactStorageError(RuntimeError):
@@ -140,12 +145,7 @@ class LocalPrivateArtifactStore:
     ) -> bytes:
         """Read an artifact, optionally enforcing a strict in-memory size cap."""
         filename = _artifact_name(artifact_id)
-        if max_bytes is not None and (
-            isinstance(max_bytes, bool)
-            or not isinstance(max_bytes, int)
-            or max_bytes < 0
-        ):
-            raise ValueError("artifact read limit must be a non-negative integer")
+        _validate_read_limit(max_bytes)
         directory_fd = self._open_directory()
         file_fd: int | None = None
         try:
@@ -289,3 +289,201 @@ class LocalPrivateArtifactStore:
         except OSError:
             # Do not replace the original error with cleanup details or paths.
             pass
+
+
+class S3PrivateArtifactStore:
+    """Private S3-compatible store for report exports, including Cloudflare R2.
+
+    Object keys are derived only from canonical UUIDs. The adapter never
+    returns URLs, bucket names, keys, or provider exception details.
+    """
+
+    def __init__(self, client: Any, bucket: str, *, read_only: bool = False):
+        if client is None or not isinstance(bucket, str) or not bucket.strip():
+            raise ValueError("private export object storage is not configured")
+        self._client = client
+        self._bucket = bucket.strip()
+        self._read_only = read_only
+
+    def __repr__(self) -> str:
+        return "S3PrivateArtifactStore(<private>)"
+
+    def write(self, artifact_id: UUID | str, content: bytes) -> None:
+        if self._read_only:
+            raise ArtifactStorageError("private artifact store is read-only")
+        key = _S3_EXPORT_PREFIX + _artifact_name(artifact_id)
+        if not isinstance(content, bytes):
+            raise TypeError("artifact content must be bytes")
+        if not content or len(content) > MAX_PRIVATE_EXPORT_BYTES:
+            raise ArtifactStorageError(
+                "private artifact size is outside the allowed range"
+            )
+        try:
+            self._client.put_object(
+                Bucket=self._bucket,
+                Key=key,
+                Body=content,
+                ContentType="application/json",
+            )
+        except Exception:
+            raise ArtifactStorageError("private artifact write failed") from None
+
+    def read(
+        self, artifact_id: UUID | str, *, max_bytes: int | None = None
+    ) -> bytes:
+        key = _S3_EXPORT_PREFIX + _artifact_name(artifact_id)
+        _validate_read_limit(max_bytes)
+        if max_bytes is None:
+            raise ValueError("S3 artifact reads require a byte limit")
+        try:
+            response = self._client.get_object(Bucket=self._bucket, Key=key)
+        except Exception:
+            raise ArtifactStorageError("private artifact is unavailable") from None
+        if not isinstance(response, Mapping):
+            raise ArtifactStorageError("private artifact is unavailable")
+        body = response.get("Body")
+        if body is None or not callable(getattr(body, "read", None)):
+            raise ArtifactStorageError("private artifact is unavailable")
+        content_length = response.get("ContentLength")
+        if (
+            isinstance(content_length, bool)
+            or (content_length is not None and not isinstance(content_length, int))
+            or (content_length is not None and content_length < 0)
+        ):
+            self._close_body(body)
+            raise ArtifactStorageError("private artifact metadata is invalid")
+        if max_bytes is not None and content_length is not None and content_length > max_bytes:
+            self._close_body(body)
+            raise ArtifactStorageError("private artifact exceeds read limit")
+
+        chunks: list[bytes] = []
+        total = 0
+        try:
+            while True:
+                remaining_with_overflow_byte = (
+                    None if max_bytes is None else max_bytes + 1 - total
+                )
+                chunk_size = (
+                    64 * 1024
+                    if remaining_with_overflow_byte is None
+                    else min(64 * 1024, remaining_with_overflow_byte)
+                )
+                chunk = body.read(chunk_size)
+                if not isinstance(chunk, bytes):
+                    raise ArtifactStorageError("private artifact stream is invalid")
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                total += len(chunk)
+                if max_bytes is not None and total > max_bytes:
+                    raise ArtifactStorageError("private artifact exceeds read limit")
+            if content_length is not None and total != content_length:
+                raise ArtifactStorageError("private artifact size is inconsistent")
+            return b"".join(chunks)
+        except ArtifactStorageError:
+            raise
+        except Exception:
+            raise ArtifactStorageError("private artifact is unavailable") from None
+        finally:
+            self._close_body(body)
+
+    def delete(self, artifact_id: UUID | str) -> None:
+        if self._read_only:
+            raise ArtifactStorageError("private artifact store is read-only")
+        key = _S3_EXPORT_PREFIX + _artifact_name(artifact_id)
+        try:
+            self._client.delete_object(Bucket=self._bucket, Key=key)
+        except Exception:
+            raise ArtifactStorageError("private artifact deletion failed") from None
+
+    @staticmethod
+    def _close_body(body: Any) -> None:
+        close = getattr(body, "close", None)
+        if callable(close):
+            try:
+                close()
+            except Exception:
+                pass
+
+
+def _validate_read_limit(max_bytes: int | None) -> None:
+    if max_bytes is not None and (
+        isinstance(max_bytes, bool)
+        or not isinstance(max_bytes, int)
+        or max_bytes < 0
+    ):
+        raise ValueError("artifact read limit must be a non-negative integer")
+
+
+def _default_s3_client_factory(**kwargs):
+    try:
+        import boto3
+        from botocore.config import Config
+    except ImportError as exc:
+        raise ArtifactStorageError(
+            "S3-compatible artifact storage client is unavailable"
+        ) from exc
+    return boto3.client("s3", config=Config(signature_version="s3v4"), **kwargs)
+
+
+def create_private_artifact_store(
+    environ: Mapping[str, str] | None = None,
+    *,
+    client_factory: Callable[..., Any] | None = None,
+    access: str = "worker",
+) -> PrivateArtifactStore:
+    """Create the configured local or optional S3-compatible artifact adapter."""
+    if access not in {"reader", "worker"}:
+        raise ArtifactStorageError("unknown private export storage access role")
+    source = os.environ if environ is None else environ
+    provider = str(source.get("KOKONUT_PRIVATE_EXPORT_PROVIDER", "local")).strip().lower()
+    if provider == "local":
+        directory = str(source.get("KOKONUT_PRIVATE_EXPORT_DIR", "")).strip()
+        if not directory:
+            raise ArtifactStorageError("private export storage is not configured")
+        return LocalPrivateArtifactStore(directory)
+    if provider != "s3":
+        raise ArtifactStorageError("unknown private export storage provider")
+
+    access_key_name = f"KOKONUT_PRIVATE_EXPORT_S3_{access.upper()}_ACCESS_KEY_ID"
+    secret_key_name = f"KOKONUT_PRIVATE_EXPORT_S3_{access.upper()}_SECRET_ACCESS_KEY"
+    names = (
+        "KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT",
+        "KOKONUT_PRIVATE_EXPORT_S3_BUCKET",
+        access_key_name,
+        secret_key_name,
+        "KOKONUT_PRIVATE_EXPORT_S3_REGION",
+    )
+    values = {name: str(source.get(name, "")).strip() for name in names}
+    if any(not value for value in values.values()):
+        raise ArtifactStorageError("private export object storage is not configured")
+    endpoint = urlsplit(values["KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT"])
+    local_http = endpoint.scheme == "http" and endpoint.hostname in {
+        "localhost", "127.0.0.1", "::1"
+    }
+    if (
+        not endpoint.hostname
+        or (endpoint.scheme != "https" and not local_http)
+        or endpoint.username
+        or endpoint.password
+        or endpoint.query
+        or endpoint.fragment
+    ):
+        raise ArtifactStorageError("private export endpoint must use HTTPS")
+    factory = client_factory or _default_s3_client_factory
+    try:
+        client = factory(
+            endpoint_url=values["KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT"],
+            region_name=values["KOKONUT_PRIVATE_EXPORT_S3_REGION"],
+            aws_access_key_id=values[access_key_name],
+            aws_secret_access_key=values[secret_key_name],
+        )
+    except ArtifactStorageError:
+        raise
+    except Exception:
+        raise ArtifactStorageError("private export object storage is unavailable") from None
+    return S3PrivateArtifactStore(
+        client,
+        values["KOKONUT_PRIVATE_EXPORT_S3_BUCKET"],
+        read_only=access == "reader",
+    )

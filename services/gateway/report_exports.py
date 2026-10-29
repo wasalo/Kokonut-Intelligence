@@ -16,8 +16,8 @@ import psycopg2
 from services.common.tenant_context import set_operator_tenant_context
 from services.export.artifact_storage import (
     ArtifactStorageError,
-    LocalPrivateArtifactStore,
     PrivateArtifactStore,
+    create_private_artifact_store,
 )
 
 MAX_ARTIFACT_BYTES = 512 * 1024
@@ -220,10 +220,7 @@ def get_report_export(
 
 
 def _artifact_store() -> PrivateArtifactStore:
-    directory = os.environ.get("KOKONUT_PRIVATE_EXPORT_DIR", "").strip()
-    if not directory:
-        raise ArtifactStorageError("private export storage is not configured")
-    return LocalPrivateArtifactStore(directory)
+    return create_private_artifact_store(os.environ, access="reader")
 
 
 def download_report_export(

@@ -22,8 +22,8 @@ from services.common.worker_database import get_worker_db
 from services.core.features import require_feature
 from services.export.artifact_storage import (
     ArtifactStorageError,
-    LocalPrivateArtifactStore,
     PrivateArtifactStore,
+    create_private_artifact_store,
 )
 from services.export.report_snapshot_export import (
     ReportSnapshotExportError,
@@ -33,7 +33,6 @@ from services.export.report_snapshot_export import (
 
 _WORKER_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,98}$")
 _FEATURE = "isolated_report_snapshot_export_worker"
-_ARTIFACT_DIRECTORY_ENV = "KOKONUT_PRIVATE_EXPORT_DIR"
 _MAX_BATCH_SIZE = 20
 _MAX_LEASE_SECONDS = 900
 _MAX_ATTEMPTS = 8
@@ -259,12 +258,11 @@ def _process_claim(
 
 def _artifact_store_from_environment(
     environ: Mapping[str, str] | None = None,
-) -> LocalPrivateArtifactStore:
-    source = os.environ if environ is None else environ
-    directory = source.get(_ARTIFACT_DIRECTORY_ENV, "")
-    if not isinstance(directory, str) or not directory.strip():
-        raise RuntimeError(f"{_ARTIFACT_DIRECTORY_ENV} is required")
-    return LocalPrivateArtifactStore(directory)
+) -> PrivateArtifactStore:
+    return create_private_artifact_store(
+        os.environ if environ is None else environ,
+        access="worker",
+    )
 
 
 def run_once(

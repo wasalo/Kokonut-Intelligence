@@ -6111,3 +6111,23 @@ stakeholder audience/access contracts. Evidence:
 
 Checklist: 1,519 complete / 25 open (1,544 total); TODO: 224 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Completed C2 continuation — optional S3-compatible private artifact adapter — 28 October 2026
+
+- [x] Add a lazy, optional S3-compatible store behind `PrivateArtifactStore`;
+  local storage remains the default. R2 objects use an explicit bucket and a
+  private UUID-only prefix, and reads require a bounded response size.
+- [x] Give the Gateway a read-only credential and the export worker separate
+  write/delete credentials; neither role receives bucket listing. Keep boto3
+  within the optional exports dependency group.
+
+The focused storage/Gateway/worker tests pass 77 cases; worker-inventory regressions pass 67 tests after refreshing all seven reports. Ruff, compilation,
+dependency-group alignment, and provider-boundary checks pass. Tests use only a
+synthetic S3 client. No live R2 account, database, candidate, legacy stack, or
+production bucket was contacted. Live endpoint/bucket policy verification,
+orphan inventory/deletion, and retention/backup acceptance remain open.
+Evidence: [contract](report-snapshot-export-contract.md),
+[adapter checks](builds/2026-10-28-recovery/report-snapshot-export-s3-adapter-checks.json).
+
+Checklist: 1,520 complete / 25 open (1,545 total); TODO: 225 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

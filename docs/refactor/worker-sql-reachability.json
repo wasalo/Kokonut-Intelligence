@@ -764,9 +764,9 @@
       "statically_reachable_sql_site_count": 4,
       "statically_reachable_sql_site_ids": [
         "services/common/worker_database.py:143:12",
-        "services/export/report_snapshot_export_worker.py:102:12",
-        "services/export/report_snapshot_export_worker.py:155:12",
-        "services/export/report_snapshot_export_worker.py:79:12"
+        "services/export/report_snapshot_export_worker.py:101:12",
+        "services/export/report_snapshot_export_worker.py:154:12",
+        "services/export/report_snapshot_export_worker.py:78:12"
       ]
     },
     {
@@ -7178,9 +7178,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/export/report_snapshot_export_worker.py:79:12",
+      "id": "services/export/report_snapshot_export_worker.py:78:12",
       "source": "services/export/report_snapshot_export_worker.py",
-      "line": 79,
+      "line": 78,
       "scope": "_claim",
       "method": "execute",
       "expression_kind": "literal",
@@ -7199,9 +7199,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/export/report_snapshot_export_worker.py:102:12",
+      "id": "services/export/report_snapshot_export_worker.py:101:12",
       "source": "services/export/report_snapshot_export_worker.py",
-      "line": 102,
+      "line": 101,
       "scope": "_read_source",
       "method": "execute",
       "expression_kind": "literal",
@@ -7220,9 +7220,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/export/report_snapshot_export_worker.py:155:12",
+      "id": "services/export/report_snapshot_export_worker.py:154:12",
       "source": "services/export/report_snapshot_export_worker.py",
-      "line": 155,
+      "line": 154,
       "scope": "_finish",
       "method": "execute",
       "expression_kind": "literal",

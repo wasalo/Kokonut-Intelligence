@@ -1550,7 +1550,7 @@
     {
       "module": "services.export.report_snapshot_export_worker",
       "worker_key": "report_snapshot_export",
-      "scope": "Default-off one-shot export worker for existing location-scoped report snapshots. It requires the isolated_report_snapshot_export_worker feature and dedicated export-worker DSN, uses migration 683 bounded claim/source/finish functions, rechecks the current operator create grant and exact verified/published source location, and has no direct access to request, attempt, or snapshot tables. It is not a signed farm-context worker: migration functions enforce the request lease, source lineage, and current grant before returning report data.",
+      "scope": "Default-off one-shot export worker for existing location-scoped report snapshots. It requires the isolated_report_snapshot_export_worker feature and dedicated export-worker DSN, uses migration 683 bounded claim/source/finish functions, rechecks the current operator create grant and exact verified/published source location, and has no direct access to request, attempt, or snapshot tables. It is not a signed farm-context worker: migration functions enforce the request lease, source lineage, and current grant before returning report data. Private storage defaults to the local volume; optional S3-compatible storage uses a dedicated worker credential limited to object writes and explicit lease-rejection deletes.",
       "reads": [
         "public.report_snapshot through kokonut_security.read_report_snapshot_export_source",
         "public.report_snapshot_export_request through bounded claim/source/finish functions"
@@ -1558,13 +1558,13 @@
       "writes": [
         "public.report_snapshot_export_request through bounded claim/finish functions",
         "public.report_snapshot_export_attempt through append-only finish receipts",
-        "Private local report-snapshot artifact files keyed by attempt-specific UUID"
+        "Private local or S3-compatible report artifacts under UUID-derived keys; only explicit rejected-lease cleanup deletes an artifact"
       ],
       "external_effects": [
-        "Writes private JSON artifacts to the dedicated local volume; no provider or network call"
+        "Local default writes private JSON artifacts to the dedicated volume; if S3-compatible storage is explicitly configured, the worker performs PutObject and explicit DeleteObject calls without bucket listing"
       ],
       "idempotency": "Operator request UUID keys are scoped to operator/location/snapshot; repeated identical keys replay the same request. Attempt-specific artifact UUIDs prevent stale writes from replacing a newer attempt, and a stale worker cannot complete or delete a newer lease artifact.",
-      "retry_boundary": "Each bounded claim commits before private file work; completion/retry writes are fenced by worker ID, lease token, and expiry. Deterministic source or serialization errors dead-letter immediately; transient storage errors retry with bounded delay and dead-letter at eight attempts. Disable the feature or Compose profile to stop processing. There is no automatic artifact/history pruning; no automatic artifact/history pruning is introduced.",
+      "retry_boundary": "Each bounded claim commits before private file/object work; completion/retry writes are fenced by worker ID, lease token, and expiry. Deterministic source or serialization errors dead-letter immediately; transient storage errors retry with bounded delay and dead-letter at eight attempts. Disable the feature or Compose profile to stop processing. There is no automatic artifact/history pruning; no automatic artifact/history pruning is introduced.",
       "sources": [
         "services/export/report_snapshot_export_worker.py",
         "services/export/report_snapshot_export.py",
@@ -1576,6 +1576,7 @@
         "docker-compose.worker.yml",
         "docker-compose.kernel-runtime-role.yml",
         "scripts/check-report-snapshot-export-disposable.py",
+        "tests/test_export_artifact_s3.py",
         "tests/test_report_snapshot_export_worker.py",
         "tests/test_report_snapshot_export_migration_contract.py"
       ]

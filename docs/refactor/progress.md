@@ -22787,3 +22787,23 @@ Checklist: 1,519 complete / 25 open; TODO: 224 checked / 16 open. The matrix
 remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); the three
 strict export create/list/detail contracts bring its recorded private-response
 count to 90. Capability classifications and MAN-CAP acceptance are unchanged.
+
+### Progress addendum — optional S3-compatible report artifact storage — 28 October 2026
+
+The report artifact port now has a lazy S3-compatible adapter for optional R2
+use while retaining local storage as the default. It accepts only UUID-derived
+keys below a fixed private prefix, requires bounded streaming reads, and does
+not expose provider URLs or exception text. Compose passes separate Gateway
+read-only and worker write/delete credentials; neither needs `ListBucket`.
+The optional boto3 import stays within the exports dependency group.
+
+The focused storage/Gateway/worker selection passes 77 tests, and the worker-inventory regression selection passes 67 tests with all seven generated reports current. Ruff,
+compilation, dependency-group alignment, and provider-boundary checks pass.
+Coverage uses a synthetic client and did not contact R2 or any database.
+Production bucket policy/connectivity, inventory and deletion, backup/retention,
+and orphan reconciliation remain open. Evidence:
+[contract](report-snapshot-export-contract.md),
+[adapter checks](builds/2026-10-28-recovery/report-snapshot-export-s3-adapter-checks.json).
+
+Checklist: 1,520 complete / 25 open; TODO: 225 checked / 16 open. Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared.

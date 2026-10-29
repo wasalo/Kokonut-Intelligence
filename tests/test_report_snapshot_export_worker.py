@@ -276,6 +276,8 @@ def test_compose_worker_is_opt_in_one_shot_and_has_no_shared_database_credential
     assert worker_service["environment"]["KOKONUT_PRIVATE_EXPORT_DIR"] == (
         "/var/lib/kokonut/report-snapshot-exports"
     )
+    assert "KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID" in worker_service["environment"]
+    assert "KOKONUT_PRIVATE_EXPORT_S3_READER_ACCESS_KEY_ID" not in worker_service["environment"]
     assert not {"PG_USER", "PG_PASSWORD", "POSTGRES_PASSWORD"} & set(
         worker_service["environment"]
     )
@@ -287,6 +289,8 @@ def test_compose_worker_is_opt_in_one_shot_and_has_no_shared_database_credential
     assert gateway_service["environment"]["KOKONUT_PRIVATE_EXPORT_DIR"] == (
         "/var/lib/kokonut/report-snapshot-exports"
     )
+    assert "KOKONUT_PRIVATE_EXPORT_S3_READER_ACCESS_KEY_ID" in gateway_service["environment"]
+    assert "KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID" not in gateway_service["environment"]
     assert gateway_service["volumes"] == [
         "report-snapshot-export-artifacts:/var/lib/kokonut/report-snapshot-exports:ro"
     ]

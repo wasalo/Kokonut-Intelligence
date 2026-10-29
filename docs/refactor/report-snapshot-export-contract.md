@@ -89,16 +89,23 @@ an inaccessible orphan for later reconciliation.
 
 ## Storage and deployment boundary
 
-The first worker uses the owner-only local artifact adapter behind
-`PrivateArtifactStore`. The storage directory is dedicated, private, and
-mounted only into the worker and Gateway services that need it. No HTTP static
-file route is exposed. The worker is default-off and runs under an explicit
-Compose profile with its own database DSN and no shared `PG_*` environment.
+The worker and Gateway use the provider-neutral `PrivateArtifactStore` port.
+Local storage remains the default and uses an owner-only directory mounted
+read/write for the worker and read-only for the Gateway. An optional S3
+compatible adapter supports private R2 buckets under
+`private/report-snapshot-exports/`; only UUID-derived keys are accepted, reads
+are streamed under the database-authorized size limit, and no public ACL or
+URL is created. The adapter is lazy-loaded from the optional exports
+dependency group.
 
-R2 remains a future adapter. Adding it requires a private bucket contract,
-least-privilege credentials, retry/consistency tests, inventory and deletion
-acceptance, and backup/retention ownership. It is not required for this local
-development slice.
+The S3 adapter uses separate credentials: the Gateway reader needs only
+`GetObject`, and the worker needs `PutObject` plus `DeleteObject` for an
+explicitly rejected lease. Neither role needs `ListBucket`. HTTPS, a private
+bucket, explicit bucket selection, and encrypted secret provisioning are
+required. The worker remains default-off under its explicit Compose profile,
+with its own database DSN and no shared `PG_*` environment. This code-level
+adapter and mock coverage do not establish live R2 connectivity, access-policy
+correctness, listing, deletion, backup, or retention acceptance.
 
 ## Rollback
 
