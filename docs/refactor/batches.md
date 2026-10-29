@@ -6986,3 +6986,29 @@ Checklist: 1,638 complete / 25 open (1,663 total); TODO: 333 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 108. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — submitted-report detail Gateway contract — 29 October 2026
+
+- [x] Publish a strict response contract for the location-authorized report
+  detail route, preserving the exact summary fields and arbitrary JSON report
+  object under the existing 512 KiB limit.
+- [x] Bind the service report UUID to the request; reject unknown top-level
+  fields, wrong lifecycle, non-object JSON, non-JSON values, and oversized
+  service output with a sanitized error.
+- [x] Apply no-store and session-varying headers consistently to private
+  success and handled error responses while preserving the existing review
+  authorization and 404 behavior.
+
+The focused report-detail contract and service selection passes 23 tests; two
+operator authorization integration checks also pass. Ruff, Python compilation,
+capability-matrix validation, and `git diff --check` pass. Tests use mocks and
+synthetic report JSON only; no database, provider, candidate, legacy, or
+production state was used. The existing database reader still enforces the
+location grant and 512 KiB query bound; this does not establish populated
+report privacy/parity. No migration is required. Rollback reverts the response
+models, route validation/headers, focused tests, and evidence ([evidence](builds/2026-10-29-recovery/submitted-report-detail-gateway-contract.json)).
+
+Checklist: 1,641 complete / 25 open (1,666 total); TODO: 336 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 109. MAN-CAP acceptance is unchanged.

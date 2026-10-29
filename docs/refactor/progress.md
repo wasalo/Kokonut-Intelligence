@@ -6,6 +6,28 @@
 
 ### Progress addendum — AI-summary review-page integrity — 29 October 2026
 
+### Progress addendum — submitted-report detail Gateway contract — 29 October 2026
+
+The optional operator console's submitted-report detail route now publishes a
+strict success schema. Its top-level projection matches the summary contract
+and retains the frozen report payload as an object bounded to 512 KiB. The
+route validates the returned report ID against the requested report and
+rejects extra fields, wrong lifecycle state, invalid payloads, and oversized
+data with a generic no-store failure. Missing records, authorization denials,
+invalid requests, over-limit reads, and service failures also keep private
+no-store headers. The existing same-transaction location grant remains the
+source of authorization.
+
+The focused report-detail contract/service selection passes 23 tests and two
+operator authorization integration checks pass. Ruff, compilation,
+capability-matrix validation, and diff checks pass. Mocks and synthetic report
+JSON only; no live database/provider, candidate, legacy, or production state
+was used. Populated report privacy/parity and live OIDC remain open. No
+migration is needed. Evidence:
+[focused checks](builds/2026-10-29-recovery/submitted-report-detail-gateway-contract.json).
+
+### Progress addendum — AI-summary review-page integrity — 29 October 2026
+
 The private human-review page validates the same stable ascending
 `created_at, id` order as the database function, including PostgreSQL's
 NULL-last behavior, and rejects duplicate summary IDs. The page item also

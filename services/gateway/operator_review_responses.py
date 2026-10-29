@@ -1,10 +1,20 @@
 """Strict response models for the private report-review read projections."""
 
+import json
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, BeforeValidator, ConfigDict, Field
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    field_validator,
+)
+
+MAX_REPORT_DETAIL_BYTES = 512 * 1024
 
 
 def _response_uuid(value):
@@ -64,3 +74,34 @@ class ReportReviewQueueResponse(BaseModel):
 
     data: list[SubmittedReportSummaryResponse] = Field(max_length=100)
     location_id: _ReportResponseUUID
+
+
+class SubmittedReportDetail(SubmittedReportSummaryResponse):
+    report_data: dict[str, Any] = Field(
+        description="Frozen JSON report object, limited to 524288 UTF-8 bytes."
+    )
+
+    @field_validator("report_data")
+    @classmethod
+    def validate_report_payload(cls, value):
+        try:
+            encoded = json.dumps(
+                value, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError, RecursionError) as exc:
+            raise ValueError("Report payload must contain JSON-compatible values") from exc
+        if len(encoded) > MAX_REPORT_DETAIL_BYTES:
+            raise ValueError("Report payload exceeds the private review response limit")
+        return value
+
+
+class SubmittedReportDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    data: SubmittedReportDetail
+
+
+class ReportReviewErrorResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str

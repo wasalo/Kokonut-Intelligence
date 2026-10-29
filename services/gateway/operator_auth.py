@@ -3978,7 +3978,11 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.mobile_operations_inventory_responses import (
         MobileOperationsInventoryResponse,
     )
-    from services.gateway.operator_review_responses import ReportReviewQueueResponse
+    from services.gateway.operator_review_responses import (
+        ReportReviewErrorResponse,
+        ReportReviewQueueResponse,
+        SubmittedReportDetailResponse,
+    )
     from services.gateway.report_export_responses import (
         ReportExportCandidateListResponse,
         ReportExportCreateResponse,
@@ -4168,10 +4172,38 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/report-review-queue/{report_id}")
+    report_detail_errors = {
+        status: {
+            "model": ReportReviewErrorResponse,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The report detail request is invalid.",
+            403: "The operator lacks a current location-scoped report review grant.",
+            404: "The submitted report is unavailable.",
+            413: "The report exceeds the private review response limit.",
+            500: "The submitted report failed its response contract.",
+            503: "The report review service is unavailable.",
+        }.items()
+    }
+
+    @router.get(
+        "/operator/api/report-review-queue/{report_id}",
+        response_model=SubmittedReportDetailResponse,
+        responses=report_detail_errors,
+    )
     async def submitted_report_detail(request: Request, report_id: str, location_id: str):
+        detail_headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
         if provider is None:
-            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=detail_headers,
+            )
         from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_review import (
             ReportPayloadTooLarge,
@@ -4179,26 +4211,39 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         )
 
         try:
+            requested_report_id = UUID(report_id)
+            requested_location_id = UUID(location_id)
+        except (TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report review request is invalid"},
+                headers=detail_headers,
+            )
+        try:
             row = await run_in_threadpool(
                 get_submitted_report,
                 request.state.operator_session.operator.operator_id,
-                report_id,
-                location_id,
+                str(requested_report_id),
+                str(requested_location_id),
             )
         except TenantContextDenied:
             return JSONResponse(
                 status_code=403,
                 content={"error": "Tenant-qualified operator access is required"},
-                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                headers=detail_headers,
             )
         except ReportPayloadTooLarge:
             return JSONResponse(
                 status_code=413,
                 content={"error": "Report exceeds the console read limit"},
-                headers={"Cache-Control": "no-store"},
+                headers=detail_headers,
             )
-        except ValueError as exc:
-            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report review request is invalid"},
+                headers=detail_headers,
+            )
         except psycopg2.Error as exc:
             from services.common.logging import get_logger
 
@@ -4208,15 +4253,34 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             return JSONResponse(
                 status_code=503,
                 content={"error": "Report review service unavailable"},
-                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+                headers={**detail_headers, "Retry-After": "30"},
             )
         if row is None:
-            return JSONResponse(status_code=404, content={"error": "Submitted report not found"})
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Submitted report not found"},
+                headers=detail_headers,
+            )
+        try:
+            detail = SubmittedReportDetailResponse.model_validate({"data": row})
+            if detail.data.id != requested_report_id:
+                raise ValueError("Submitted report does not match the requested identifier")
+        except (ValidationError, TypeError, ValueError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_review").warning(
+                "Submitted report projection rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Report review service unavailable"},
+                headers=detail_headers,
+            )
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(row)},
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            jsonable_encoder(detail.model_dump(mode="python")),
+            headers=detail_headers,
         )
 
     @router.post(

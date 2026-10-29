@@ -10,6 +10,15 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Add a strict OpenAPI/runtime detail model for submitted report snapshots,
+  preserving the dynamic report JSON object under the existing 512 KiB cap
+  ([evidence](builds/2026-10-29-recovery/submitted-report-detail-gateway-contract.json)).
+- [x] Bind the returned report ID to the requested path and reject undeclared
+  fields, invalid status/data shape, and oversized payloads
+  ([same evidence](builds/2026-10-29-recovery/submitted-report-detail-gateway-contract.json)).
+- [x] Make success and error responses consistently private/no-store, including
+  400/403/404/413/500/503 paths ([same evidence](builds/2026-10-29-recovery/submitted-report-detail-gateway-contract.json)).
+
 - [x] Enforce the database review queue's stable ascending `created_at, id`
   order and unique summary IDs at the Gateway boundary
   ([evidence](builds/2026-10-29-recovery/ai-summary-review-page-integrity.json)).

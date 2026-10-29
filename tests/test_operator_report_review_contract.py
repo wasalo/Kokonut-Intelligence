@@ -34,7 +34,7 @@ def _report(**overrides):
     return {**result, **overrides}
 
 
-def _client(monkeypatch, service):
+def _client(monkeypatch, service, detail_service=None):
     session = SimpleNamespace(
         session_id=str(uuid4()),
         session_token_hash="a" * 64,
@@ -71,6 +71,10 @@ def _client(monkeypatch, service):
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
     monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
     monkeypatch.setattr("services.gateway.operator_review.list_submitted_reports", service)
+    monkeypatch.setattr(
+        "services.gateway.operator_review.get_submitted_report",
+        detail_service or (lambda *_args: None),
+    )
     return TestClient(create_app(), cookies={SESSION_COOKIE: "synthetic-session"})
 
 
@@ -141,3 +145,156 @@ def test_report_queue_openapi_declares_exact_strict_projection(monkeypatch):
     assert schema["components"]["schemas"]["SubmittedReportSummaryResponse"][
         "properties"
     ]["status"]["const"] == "submitted"
+
+
+def _report_detail(**overrides):
+    return {
+        **_report(),
+        "report_data": {"summary": "Reviewed fixture", "counts": {"harvests": 3}},
+        **overrides,
+    }
+
+
+def test_submitted_report_detail_returns_exact_bounded_private_projection(monkeypatch):
+    calls = []
+
+    def service(*args):
+        calls.append(args)
+        return _report_detail()
+
+    with _client(monkeypatch, lambda *_args: [], detail_service=service) as client:
+        response = client.get(
+            f"/operator/api/report-review-queue/{REPORT_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"data": _report_detail()}
+    assert response.headers["cache-control"] == "no-store"
+    assert "Cookie" in response.headers["vary"]
+    assert calls == [(OPERATOR_ID, REPORT_ID, LOCATION_ID)]
+
+
+@pytest.mark.parametrize(
+    "report",
+    [
+        _report_detail(id=str(uuid4())),
+        _report_detail(status="verified"),
+        _report_detail(report_size=10),
+        _report_detail(report_data=[]),
+        _report_detail(report_data={"large": "x" * (512 * 1024 + 1)}),
+    ],
+)
+def test_submitted_report_detail_rejects_malformed_or_oversized_projection(monkeypatch, report):
+    with _client(
+        monkeypatch, lambda *_args: [], detail_service=lambda *_args: report
+    ) as client:
+        response = client.get(
+            f"/operator/api/report-review-queue/{REPORT_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Report review service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "Cookie" in response.headers["vary"]
+    assert "large" not in response.text
+
+
+def test_unmatched_report_detail_path_fails_closed_before_service(monkeypatch):
+    def service(*_args):
+        pytest.fail("invalid report identifier must fail before service dispatch")
+
+    with _client(monkeypatch, lambda *_args: [], detail_service=service) as client:
+        response = client.get(
+            "/operator/api/report-review-queue/not-a-uuid",
+            params={"location_id": LOCATION_ID},
+        )
+
+    # The Gateway catch-all policy rejects a malformed report UUID before the
+    # route is selected, so the private handler never gets to validate it.
+    assert response.status_code == 401
+
+
+def test_invalid_report_location_fails_before_service_and_is_private(monkeypatch):
+    def service(*_args):
+        pytest.fail("invalid location identifier must fail before service dispatch")
+
+    with _client(monkeypatch, lambda *_args: [], detail_service=service) as client:
+        response = client.get(
+            f"/operator/api/report-review-queue/{REPORT_ID}",
+            params={"location_id": "not-a-uuid"},
+        )
+
+    # Authorization evaluates tenant scope before the handler's UUID parser.
+    # The invalid location is therefore denied without disclosing its value.
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+    assert "not-a-uuid" not in response.text
+
+
+def test_submitted_report_detail_not_found_and_too_large_are_private(monkeypatch):
+    from services.gateway.operator_review import ReportPayloadTooLarge
+
+    with _client(monkeypatch, lambda *_args: [], detail_service=lambda *_args: None) as client:
+        missing = client.get(
+            f"/operator/api/report-review-queue/{REPORT_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+    with _client(
+        monkeypatch,
+        lambda *_args: [],
+        detail_service=lambda *_args: (_ for _ in ()).throw(ReportPayloadTooLarge()),
+    ) as client:
+        oversized = client.get(
+            f"/operator/api/report-review-queue/{REPORT_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert missing.status_code == 404
+    assert missing.headers["cache-control"] == "no-store"
+    assert oversized.status_code == 413
+    assert oversized.headers["cache-control"] == "no-store"
+    assert "Cookie" in oversized.headers["vary"]
+
+
+def test_submitted_report_detail_rejects_deeply_nested_json_safely(monkeypatch):
+    nested = {}
+    cursor = nested
+    for _ in range(1100):
+        child = {}
+        cursor["next"] = child
+        cursor = child
+
+    with _client(
+        monkeypatch,
+        lambda *_args: [],
+        detail_service=lambda *_args: _report_detail(report_data=nested),
+    ) as client:
+        response = client.get(
+            f"/operator/api/report-review-queue/{REPORT_ID}",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Report review service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_report_detail_openapi_declares_strict_bounded_schema(monkeypatch):
+    with _client(monkeypatch, lambda *_args: []) as client:
+        schema = client.app.openapi()
+
+    operation = schema["paths"][
+        "/operator/api/report-review-queue/{report_id}"
+    ]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SubmittedReportDetailResponse"
+    }
+    assert operation["responses"]["413"]["headers"]["Cache-Control"]["schema"][
+        "example"
+    ] == "no-store"
+    components = schema["components"]["schemas"]
+    assert components["SubmittedReportDetailResponse"]["additionalProperties"] is False
+    assert components["SubmittedReportDetail"]["additionalProperties"] is False
+    assert components["SubmittedReportDetail"]["properties"]["report_data"]["type"] == "object"
