@@ -60,6 +60,61 @@ def test_list_active_accepts_valid_location_filter(monkeypatch):
 
 
 @pytest.mark.parametrize(
+    "option,value",
+    [
+        ("--limit", "0"),
+        ("--limit", "-1"),
+        ("--limit", "101"),
+        ("--limit", "1000000"),
+        ("--limit", "not-an-int"),
+        ("--offset", "-1"),
+        ("--offset", "10001"),
+        ("--offset", "not-an-int"),
+    ],
+)
+def test_list_active_rejects_bad_pagination_before_database(monkeypatch, option, value):
+    get_db = Mock(side_effect=AssertionError("database must not be opened"))
+    monkeypatch.setattr("services.ingestion.base.get_db", get_db)
+
+    with pytest.raises(SystemExit) as error:
+        cli_marketplace.main(["list-active", option, value])
+
+    assert error.value.code == 2
+    get_db.assert_not_called()
+
+
+@pytest.mark.parametrize("limit,offset", [(1, 0), (100, 10_000)])
+def test_list_active_forwards_valid_pagination_boundaries(monkeypatch, limit, offset):
+    db = Mock()
+    get_db = Mock(return_value=db)
+    list_active = Mock(return_value={"total": 0, "listings": []})
+    monkeypatch.setattr("services.ingestion.base.get_db", get_db)
+    monkeypatch.setattr(cli_marketplace, "list_active_listings", list_active)
+
+    cli_marketplace.main(
+        ["list-active", "--limit", str(limit), "--offset", str(offset), "--json"]
+    )
+
+    list_active.assert_called_once_with(db, None, None, limit, offset)
+    db.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "limit,offset",
+    [(0, 0), (101, 0), (50, -1), (50, 10_001), ("50", 0), (50, True)],
+)
+def test_list_active_service_rejects_invalid_pagination_before_cursor(
+    limit, offset
+):
+    db = Mock()
+
+    with pytest.raises(ValueError, match="limit|offset"):
+        cli_marketplace.list_active_listings(db, limit=limit, offset=offset)
+
+    db.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize(
     "argv, operation",
     [
         (

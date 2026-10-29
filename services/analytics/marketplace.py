@@ -34,6 +34,8 @@ ACTIVE_LISTING_WHERE = (
     "ml.status = 'published' AND ml.sold_at IS NULL "
     "AND (ml.expires_at IS NULL OR ml.expires_at > now())"
 )
+MAX_ACTIVE_LISTINGS_LIMIT = 100
+MAX_ACTIVE_LISTINGS_OFFSET = 10_000
 
 
 def _positive_market_value(name: str, value: float) -> float:
@@ -225,6 +227,15 @@ def list_active_listings(
     offset: int = 0,
 ) -> dict:
     """List active marketplace listings with optional filters."""
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_ACTIVE_LISTINGS_LIMIT:
+        raise ValueError(
+            f"limit must be between 1 and {MAX_ACTIVE_LISTINGS_LIMIT}"
+        )
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= MAX_ACTIVE_LISTINGS_OFFSET:
+        raise ValueError(
+            f"offset must be between 0 and {MAX_ACTIVE_LISTINGS_OFFSET}"
+        )
+
     cur = conn.cursor()
 
     where = ACTIVE_LISTING_WHERE

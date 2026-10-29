@@ -2872,3 +2872,11 @@ Checklist: 381 checked / 16 open. Evidence:
 
 Checklist: 382 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/gateway-standard-auth-openapi.json`.
+
+## Completed in the 29 October marketplace pagination continuation
+
+- [x] Bound marketplace list pages and reject invalid CLI/service pagination
+  before PostgreSQL connection or cursor acquisition.
+
+Checklist: 383 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/marketplace-pagination-preflight.json`.

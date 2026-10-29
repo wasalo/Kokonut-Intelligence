@@ -7499,3 +7499,19 @@ open (8 code work groups and 8 owner/environment gates). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
 populated-data parity, and live provider gates remain open.
+
+### Source continuation — marketplace pagination preflight — 29 October 2026
+
+- [x] Bound marketplace `list-active` pages to limit 1–100 and offset 0–10,000
+  in both CLI and service entry points; reject invalid input before database
+  acquisition/cursor creation while preserving valid boundary values.
+
+The focused marketplace CLI scope selection passes 27 tests. Ruff, Python
+compilation, and diff checks pass. No database or provider was contacted.
+Evidence: [marketplace pagination preflight](builds/2026-10-29-recovery/marketplace-pagination-preflight.json).
+
+Checklist: 1,698 complete / 25 open (1,723 total); TODO: 383 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
+populated-data parity, and live provider gates remain open.

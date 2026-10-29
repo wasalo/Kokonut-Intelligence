@@ -12,6 +12,8 @@ from datetime import date
 from uuid import UUID
 
 from .marketplace import (
+    MAX_ACTIVE_LISTINGS_LIMIT,
+    MAX_ACTIVE_LISTINGS_OFFSET,
     create_buyer_profile,
     create_listing,
     create_order,
@@ -65,8 +67,18 @@ def main(argv=None):
     la = sub.add_parser("list-active", help="List active listings")
     la.add_argument("--location-id")
     la.add_argument("--crop")
-    la.add_argument("--limit", type=int, default=50)
-    la.add_argument("--offset", type=int, default=0)
+    la.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help=f"Page size (1-{MAX_ACTIVE_LISTINGS_LIMIT}; default: 50)",
+    )
+    la.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help=f"Page offset (0-{MAX_ACTIVE_LISTINGS_OFFSET}; default: 0)",
+    )
     la.add_argument("--json", action="store_true")
 
     # create-buyer
@@ -144,6 +156,12 @@ def main(argv=None):
     if not args.command:
         parser.print_help()
         return
+
+    if args.command == "list-active":
+        if not 1 <= args.limit <= MAX_ACTIVE_LISTINGS_LIMIT:
+            parser.error(f"--limit must be between 1 and {MAX_ACTIVE_LISTINGS_LIMIT}")
+        if not 0 <= args.offset <= MAX_ACTIVE_LISTINGS_OFFSET:
+            parser.error(f"--offset must be between 0 and {MAX_ACTIVE_LISTINGS_OFFSET}")
 
     if args.command in {"create-listing", "market-overview", "create-alert"} or (
         args.command == "list-active" and args.location_id is not None

@@ -23995,3 +23995,17 @@ Checklist: 1,697 complete / 25 open (1,722 total); TODO: 382 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts remain
 116. Production identity-provider and populated-data gates remain open.
+
+### Progress addendum — marketplace pagination preflight — 29 October 2026
+
+Marketplace `list-active` now bounds `limit` to 1–100 and `offset` to
+0–10,000 at the CLI and service boundary. Invalid input fails before
+`get_db()` or cursor acquisition; valid endpoint values are preserved. The
+focused marketplace suite passes 27 tests; Ruff, compilation, and diff checks
+pass. No database/provider was used. Evidence:
+[marketplace pagination](builds/2026-10-29-recovery/marketplace-pagination-preflight.json).
+
+Checklist: 1,698 complete / 25 open (1,723 total); TODO: 383 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.
