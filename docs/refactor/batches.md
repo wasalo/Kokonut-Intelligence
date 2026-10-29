@@ -7680,8 +7680,38 @@ used. Evidence:
 [pollinator response](builds/2026-10-29-recovery/pollinator-observation-create-response-contract.json),
 and [migration 688](builds/2026-10-29-recovery/governance-tension-created-at-disposable.json).
 
-Checklist: 1,725 complete / 25 open (1,750 total); TODO: 410 checked / 16
+Checklist: 1,725 complete / 25 open (1,750 total); TODO: 405 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 123. C2/C4/C5, populated-data parity, and live provider gates remain
+open.
+
+### Source continuation — pesticide capture and strategy-fit projections — 29 October 2026
+
+- [x] Add the strict six-field migration-620 pesticide capture model to
+  OpenAPI and validate both create and idempotent replay responses.
+- [x] Bind returned location, toxicity, and application date to the request;
+  reject malformed output with sanitized no-store behavior.
+- [x] Verify exact success/replay fields, request binding, and malformed
+  writer results with focused mock-only Gateway checks.
+- [x] Replace all three `v_strategy_advantage_fit` wildcards with migration
+  271's exact ten-column projection in strategy coherence, competitive report,
+  and advantage assessment.
+- [x] Preserve plan scope, report/dashboard ordering, findings, and serialized
+  output with focused mock-cursor checks.
+- [x] Refresh runtime SQL inventory and record response/projection evidence.
+
+Pesticide capture checks pass 12 tests, including exact 201/200 OpenAPI and
+runtime fields plus sanitized location/date/enum/lifecycle failures. Strategy
+projection checks pass three mock-cursor tests across all readers. Ruff,
+compilation, SQL inventory, and diff checks pass; legacy import-order rules
+are excluded only for the pre-existing strategy module warning. No database,
+provider, candidate, or legacy service was used. Evidence:
+[pesticide capture](builds/2026-10-29-recovery/pesticide-impact-create-response-contract.json),
+[strategy projections](builds/2026-10-29-recovery/strategy-advantage-fit-projections.json).
+
+Checklist: 1,731 complete / 25 open (1,756 total); TODO: 408 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts now
+total 124. C2/C4/C5, populated-data parity, and live provider gates remain
 open.

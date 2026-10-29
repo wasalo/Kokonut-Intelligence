@@ -24139,3 +24139,26 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 123. C2/C4/C5, populated-data parity, and live provider gates remain
 open.
+
+### Progress addendum — pesticide capture and strategy-fit projections — 29 October 2026
+
+The private pesticide-impact capture route now validates the exact six-field
+migration-620 result, publishes the same schema for 201 creation and 200
+replay, binds location/toxicity/date to the request, and returns sanitized
+no-store errors for malformed results. Three remaining strategy readers now
+select migration 271's exact ordered advantage-fit projection: coherence,
+competitive report, and fit dashboard. Plan filters, existing report/dashboard
+ordering, and finding/row serialization remain unchanged.
+
+Pesticide checks pass 12 mock-only tests; strategy-fit checks pass three
+mock-cursor tests. Ruff, Python compilation, runtime SQL inventory, and diff
+checks pass. No database/provider, candidate, or legacy state was used.
+Evidence:
+[pesticide capture](builds/2026-10-29-recovery/pesticide-impact-create-response-contract.json),
+[strategy projections](builds/2026-10-29-recovery/strategy-advantage-fit-projections.json).
+
+Checklist: 1,731 complete / 25 open (1,756 total); TODO: 408 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 124. C2/C4/C5, populated-data parity, and live provider gates remain
+open.

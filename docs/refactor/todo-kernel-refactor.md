@@ -2970,3 +2970,17 @@ Checklist: 401 checked / 16 open. Evidence:
 Checklist: 405 checked / 16 open. Capability matrix: 67 rows; 24
 baseline-retained, 7 deployed, 36 prepared. Strict private Gateway response
 contracts: 123.
+
+## Completed in the 29 October pesticide and strategy-fit continuation
+
+- [x] Validate the private pesticide-report create/replay response against
+  migration 620, bind request scope and fields, and verify sanitized errors
+  ([evidence](builds/2026-10-29-recovery/pesticide-impact-create-response-contract.json)).
+- [x] Pin the strategy-fit view projection in all three readers, preserve
+  filters/order/output, and verify mock-cursor parity
+  ([evidence](builds/2026-10-29-recovery/strategy-advantage-fit-projections.json)).
+- [x] Refresh the runtime SQL inventory and reconcile progress records.
+
+Checklist: 408 checked / 16 open. Capability matrix: 67 rows; 24
+baseline-retained, 7 deployed, 36 prepared. Strict private Gateway response
+contracts: 124.
