@@ -170,7 +170,10 @@ def _farm_summary_section(location_id=LOCATION_ID):
                 "farm_type": "agroforestry",
                 "total_area": 10.0,
                 "area_unit": "hectares",
-                "boundary": {"type": "Polygon", "coordinates": []},
+                "boundary": {
+                    "type": "Polygon",
+                    "coordinates": [[[-69.9, 18.5], [-69.8, 18.5], [-69.8, 18.6], [-69.9, 18.5]]],
+                },
                 "center": None,
                 "status": "active",
                 "metadata": {"profile": "synthetic"},
@@ -1143,6 +1146,15 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    farm_summary = response.json()["locations"][0]["sections"]["farm_summary"]
+    assert farm_summary["farms"][0]["boundary"]["type"] == "Polygon"
+    assert farm_summary["farms"][0]["boundary"]["coordinates"][0][0] == [-69.9, 18.5]
+    assert farm_summary["farms"][0]["center"] is None
+    assert farm_summary["plots"][0]["boundary"] is None
+    assert farm_summary["plots"][0]["center"] == {
+        "type": "Point",
+        "coordinates": [-69.9, 18.5],
+    }
     assert response.headers["vary"] == "Cookie"
     assert response.json()["report_type"] == "comprehensive_status"
     assert response.json()["locations"][0]["location_id"] == LOCATION_ID
@@ -1357,6 +1369,16 @@ def test_http_route_is_no_store_and_requires_operator_session(monkeypatch):
     farm_summary_schema = section_schema["properties"]["farm_summary"]
     assert len(farm_summary_schema["anyOf"]) == 2
     assert schemas["ComprehensiveStatusFarmSummary"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusPolygonGeometry"]["additionalProperties"] is False
+    assert schemas["ComprehensiveStatusPointGeometry"]["additionalProperties"] is False
+    assert set(schemas["ComprehensiveStatusPolygonGeometry"]["properties"]) == {
+        "type",
+        "coordinates",
+    }
+    assert set(schemas["ComprehensiveStatusPointGeometry"]["properties"]) == {
+        "type",
+        "coordinates",
+    }
     assert schemas["ComprehensiveStatusFarmLocation"]["additionalProperties"] is False
     assert schemas["ComprehensiveStatusFarmRecord"]["additionalProperties"] is False
     assert schemas["ComprehensiveStatusFarmPlot"]["additionalProperties"] is False
@@ -1786,6 +1808,20 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
     ]
 
 
+def test_geojson_contract_accepts_empty_geometry_values():
+    from services.gateway.comprehensive_status_routes import (
+        ComprehensiveStatusPointGeometry,
+        ComprehensiveStatusPolygonGeometry,
+    )
+
+    assert ComprehensiveStatusPolygonGeometry.model_validate(
+        {"type": "Polygon", "coordinates": []}
+    ).model_dump(mode="json") == {"type": "Polygon", "coordinates": []}
+    assert ComprehensiveStatusPointGeometry.model_validate(
+        {"type": "Point", "coordinates": []}
+    ).model_dump(mode="json") == {"type": "Point", "coordinates": []}
+
+
 @pytest.mark.parametrize(
     "invalid_projection",
     [
@@ -1798,6 +1834,11 @@ def test_http_route_accepts_the_generator_section_failure_shape(monkeypatch):
         "environmental_error_contract",
         "farm_summary_extra", "farm_summary_plot_extra",
         "farm_summary_numeric_string", "farm_summary_error_contract",
+        "farm_summary_location_wrong_location", "farm_summary_farm_wrong_location",
+        "farm_summary_plot_unlinked", "farm_summary_cycle_unlinked",
+        "farm_boundary_wrong_type", "farm_boundary_open_ring",
+        "farm_center_wrong_type", "farm_center_invalid_coordinates",
+        "farm_geometry_extra", "farm_polygon_invalid_dimension",
         "holistic_wrong_location", "holistic_context_extra",
         "holistic_metric_maturity_out_of_range", "holistic_metric_numeric_string",
         "stakeholder_wrong_location", "stakeholder_row_wrong_location",
@@ -1913,6 +1954,46 @@ def test_http_route_rejects_malformed_success_projection(monkeypatch, invalid_pr
         payload["locations"][0]["sections"]["farm_summary"] = {
             "error": "database connection failed with private SQL"
         }
+    elif invalid_projection == "farm_summary_location_wrong_location":
+        payload["locations"][0]["sections"]["farm_summary"]["location"]["id"] = str(
+            uuid4()
+        )
+    elif invalid_projection == "farm_summary_farm_wrong_location":
+        payload["locations"][0]["sections"]["farm_summary"]["farms"][0][
+            "location_id"
+        ] = str(uuid4())
+    elif invalid_projection == "farm_summary_plot_unlinked":
+        payload["locations"][0]["sections"]["farm_summary"]["plots"][0][
+            "farm_id"
+        ] = str(uuid4())
+    elif invalid_projection == "farm_summary_cycle_unlinked":
+        payload["locations"][0]["sections"]["farm_summary"]["crop_cycles"][0][
+            "plot_id"
+        ] = str(uuid4())
+    elif invalid_projection == "farm_boundary_wrong_type":
+        payload["locations"][0]["sections"]["farm_summary"]["farms"][0][
+            "boundary"
+        ]["type"] = "MultiPolygon"
+    elif invalid_projection == "farm_boundary_open_ring":
+        payload["locations"][0]["sections"]["farm_summary"]["farms"][0][
+            "boundary"
+        ]["coordinates"][0][-1] = [-69.9, 18.6]
+    elif invalid_projection == "farm_center_wrong_type":
+        payload["locations"][0]["sections"]["farm_summary"]["farms"][0][
+            "center"
+        ] = {"type": "Polygon", "coordinates": []}
+    elif invalid_projection == "farm_center_invalid_coordinates":
+        payload["locations"][0]["sections"]["farm_summary"]["farms"][0][
+            "center"
+        ] = {"type": "Point", "coordinates": [-69.9]}
+    elif invalid_projection == "farm_geometry_extra":
+        payload["locations"][0]["sections"]["farm_summary"]["farms"][0][
+            "boundary"
+        ]["source_raw"] = "must not escape"
+    elif invalid_projection == "farm_polygon_invalid_dimension":
+        payload["locations"][0]["sections"]["farm_summary"]["farms"][0][
+            "boundary"
+        ]["coordinates"][0][0] = [-69.9]
     elif invalid_projection == "holistic_wrong_location":
         payload["locations"][0]["sections"]["holistic_wellbeing"]["location_id"] = str(
             uuid4()

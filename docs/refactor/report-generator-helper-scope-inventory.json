@@ -3245,31 +3245,31 @@
         {
           "caller": "generate_climate_impact",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 528,
+          "line": 532,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_carbon_balance",
-          "line": 601,
+          "line": 605,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_ghg_emissions",
-          "line": 602,
+          "line": 606,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_tree_carbon",
-          "line": 603,
+          "line": 607,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_regenerative_score",
-          "line": 604,
+          "line": 608,
           "depth": 1
         },
         {
@@ -4110,7 +4110,7 @@
         {
           "caller": "generate_crop_noi",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 240,
+          "line": 244,
           "depth": 1
         }
       ],
@@ -4443,7 +4443,7 @@
         {
           "caller": "generate_environmental",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 351,
+          "line": 355,
           "depth": 1
         }
       ],
@@ -4479,25 +4479,25 @@
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_value",
-          "line": 218,
+          "line": 222,
           "depth": 1
         },
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 219,
+          "line": 223,
           "depth": 1
         },
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 220,
+          "line": 224,
           "depth": 1
         },
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 221,
+          "line": 225,
           "depth": 1
         },
         {
@@ -4666,7 +4666,7 @@
         {
           "caller": "generate_forecast_summary",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 446,
+          "line": 450,
           "depth": 1
         }
       ],
@@ -7597,13 +7597,13 @@
         {
           "caller": "generate_revenue_multiplier",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 425,
+          "line": 429,
           "depth": 1
         },
         {
           "caller": "generate_revenue_multiplier",
           "callee": "services/revenue_multiplier/analyzer.py:analyze_location",
-          "line": 432,
+          "line": 436,
           "depth": 1
         },
         {

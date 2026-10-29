@@ -10,6 +10,18 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Convert farm/plot PostGIS boundaries and centers into explicit GeoJSON
+  JSONB projections rather than serializing raw geometry
+  ([evidence](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json)).
+- [x] Add strict Polygon/Point contracts for valid, null, and empty geometry;
+  reject invalid coordinate structures and unexpected fields
+  ([same evidence](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json)).
+- [x] Bind farm-summary location, farm, plot, and crop-cycle rows to the
+  requested location and their parent records
+  ([same evidence](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json)).
+- [x] Verify source projections and malformed/scope failures in focused
+  mocked report and Gateway checks ([same evidence](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json)).
+
 - [x] Replace Comprehensive Status capital accounting's `JsonValue` with
   strict models for all four independently failure-tolerant projections
   ([evidence](builds/2026-10-29-recovery/comprehensive-status-capital-accounting-contract.json)).
@@ -1061,27 +1073,36 @@ that its full source-plan phase is complete.
   existing authorization/error/cache behavior
   ([evidence](builds/2026-10-28-recovery/emergency-response-summary-contract.json)).
   Comprehensive Status validates its one-location envelope and exact canonical
-  section set, with strict typed contracts for `crop_noi`, environmental,
-  holistic-wellbeing, stakeholder-outcomes, and training-impact sections. The
+  section set, with strict typed success/error contracts for all 14 sections.
+  Farm and plot geometry is projected as GeoJSON, with Polygon/Point structure
+  and the farm/plot/crop-cycle location hierarchy validated at the Gateway. The
   environmental model binds its four explicit SQL arrays to the enclosing
   location and accepts PostgreSQL Decimal values; the holistic section derives
   exact row contracts from three consent/publication-filtered views. Stakeholder
   outcomes retain their verified/published filter and location binding. Training
   sessions retain their verified/published public-view projection, exact location,
   and generator aggregate math; its selection covers nullable scores and Decimal
-  half-even rounding. The combined route selection passes 117 tests
+  half-even rounding. Capital accounting preserves all four partial-failure
+  sections, exact location/period and derived-field parity, advisory-only
+  status, and a draft-only credit ledger. The combined farm-summary and
+  Comprehensive Status route selection passes 145 tests
   ([holistic evidence](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json);
   [stakeholder evidence](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json);
-  [training evidence](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json)).
+  [training evidence](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json);
+  [capital evidence](builds/2026-10-29-recovery/comprehensive-status-capital-accounting-contract.json);
+  [GeoJSON evidence](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json)).
   Training records still expose participant names, trainers, and notes under the
   legacy public view; strict shape validation does not settle content privacy or
   broader-stakeholder disclosure.
-  The farm-summary queries already use explicit current-schema projections and
-  have strict nested models; the remaining semantic issue is that legacy
+  The farm-summary queries use explicit current-schema projections and strict
+  nested models. PostGIS geometry is now emitted as GeoJSON rather than raw
+  driver values, and returned farms, plots, and crop cycles are cross-checked
+  against the selected location hierarchy. Nested JSONB metadata and assumption
+  fields remain flexible because their schema explicitly defines them as JSON.
+  The remaining semantic issue is that legacy
   `financial_transaction` has no lifecycle/status column while `expense_event`
   includes only verified/published rows. Do not infer a financial inclusion
-  policy or add a filter without reconciling the source lifecycle. Other section
-  bodies remain JSON-compatible pending generator audits. The original envelope
+  policy or add a filter without reconciling the source lifecycle. The original envelope
   selection has 20 route tests
   ([evidence](builds/2026-10-28-recovery/comprehensive-status-response-contract.json)).
   Energy monitoring validates nested source, renewable, efficiency, and cost

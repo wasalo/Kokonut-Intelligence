@@ -746,6 +746,41 @@ class ComprehensiveStatusFarmLocation(_ComprehensiveStatusModel):
     baseline_recorded_at: ReportDateTime | None
 
 
+GeoJSONPosition = Annotated[list[ReportNumber], Field(min_length=2, max_length=3)]
+
+
+class ComprehensiveStatusPolygonGeometry(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    type: Literal["Polygon"]
+    coordinates: list[list[GeoJSONPosition]]
+
+    @model_validator(mode="after")
+    def validate_rings(self):
+        positions = [position for ring in self.coordinates for position in ring]
+        if not self.coordinates:
+            return self
+        if any(len(ring) < 4 or ring[0] != ring[-1] for ring in self.coordinates):
+            raise ValueError("Polygon rings must contain four positions and be closed")
+        dimensions = {len(position) for position in positions}
+        if len(dimensions) > 1:
+            raise ValueError("Polygon positions must use a consistent coordinate dimension")
+        return self
+
+
+class ComprehensiveStatusPointGeometry(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    type: Literal["Point"]
+    coordinates: list[ReportNumber]
+
+    @model_validator(mode="after")
+    def validate_coordinates(self):
+        if self.coordinates and len(self.coordinates) not in {2, 3}:
+            raise ValueError("Point coordinates must contain two or three ordinates")
+        return self
+
+
 class ComprehensiveStatusFarmRecord(_ComprehensiveStatusModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
 
@@ -757,10 +792,8 @@ class ComprehensiveStatusFarmRecord(_ComprehensiveStatusModel):
     farm_type: str | None
     total_area: ReportNumber | None
     area_unit: str | None
-    # PostGIS driver serialization is deliberately left JSON-compatible until
-    # the separate geometry exposure review establishes its runtime shape.
-    boundary: JsonValue
-    center: JsonValue
+    boundary: ComprehensiveStatusPolygonGeometry | None
+    center: ComprehensiveStatusPointGeometry | None
     status: str | None
     metadata: JsonValue
     created_at: ReportDateTime | None
@@ -791,10 +824,8 @@ class ComprehensiveStatusFarmPlot(_ComprehensiveStatusModel):
     description: str | None
     area: ReportNumber | None
     area_unit: str | None
-    # Keep the current geometry values intact while their encoded form is
-    # reviewed independently.
-    boundary: JsonValue
-    center: JsonValue
+    boundary: ComprehensiveStatusPolygonGeometry | None
+    center: ComprehensiveStatusPointGeometry | None
     soil_type: str | None
     water_source: str | None
     elevation_m: ReportNumber | None
@@ -1320,6 +1351,21 @@ class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
             and section.location_id != self.location_id
         ):
             raise ValueError("Crop NOI section is outside the composed location scope")
+        farm_summary = self.sections.farm_summary
+        if isinstance(farm_summary, ComprehensiveStatusFarmSummary):
+            if farm_summary.location.id != self.location_id:
+                raise ValueError("Farm summary location is outside the composed location scope")
+            farm_ids = {farm.id for farm in farm_summary.farms}
+            if any(farm.location_id != self.location_id for farm in farm_summary.farms):
+                raise ValueError("Farm summary farm is outside the composed location scope")
+            plot_ids = {plot.id for plot in farm_summary.plots}
+            if any(plot.farm_id not in farm_ids for plot in farm_summary.plots):
+                raise ValueError("Farm summary plot is outside the composed farm scope")
+            if any(
+                cycle.location_id != self.location_id or cycle.plot_id not in plot_ids
+                for cycle in farm_summary.crop_cycles
+            ):
+                raise ValueError("Farm summary crop cycle is outside the composed location scope")
         environmental = self.sections.environmental
         if (
             isinstance(environmental, ComprehensiveStatusEnvironmental)

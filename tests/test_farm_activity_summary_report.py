@@ -11,7 +11,7 @@ LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 
 
 class FarmSummaryCursor:
-    def __init__(self, activity_rows, harvest_summary=None):
+    def __init__(self, activity_rows, harvest_summary=None, farm_rows=None, plot_rows=None):
         self.activity_rows = activity_rows
         self.harvest_summary = harvest_summary or {
             "total_harvests": 0,
@@ -24,6 +24,8 @@ class FarmSummaryCursor:
         self.rows = []
         self.one = None
         self.statements = []
+        self.farm_rows = farm_rows if farm_rows is not None else [{"id": "farm-id", "name": "Pilot"}]
+        self.plot_rows = plot_rows if plot_rows is not None else []
 
     def execute(self, sql, params=()):
         statement = " ".join(sql.split())
@@ -31,9 +33,9 @@ class FarmSummaryCursor:
         if "FROM location WHERE" in statement:
             self.one = {"id": LOCATION_ID, "name": "Pilot farm", "boundary": "private", "center": "private"}
         elif "FROM farm WHERE" in statement:
-            self.rows = [{"id": "farm-id", "name": "Pilot"}]
+            self.rows = self.farm_rows
         elif "FROM plot p JOIN" in statement:
-            self.rows = []
+            self.rows = self.plot_rows
         elif "FROM crop_cycle cc" in statement:
             self.rows = []
         elif "FROM harvest_event" in statement:
@@ -60,8 +62,10 @@ class FarmSummaryCursor:
 
 
 class FarmSummaryConnection:
-    def __init__(self, activity_rows, harvest_summary=None):
-        self.cursor_instance = FarmSummaryCursor(activity_rows, harvest_summary)
+    def __init__(self, activity_rows, harvest_summary=None, farm_rows=None, plot_rows=None):
+        self.cursor_instance = FarmSummaryCursor(
+            activity_rows, harvest_summary, farm_rows=farm_rows, plot_rows=plot_rows
+        )
         self.snapshot_cursor = SnapshotCursor()
         self.cursor_calls = 0
         self.committed = False
@@ -174,7 +178,9 @@ def test_farm_summary_selects_only_the_current_schema_projection():
         ],
         "FROM farm WHERE": [
             "id", "location_id", "name", "slug", "description", "farm_type",
-            "total_area", "area_unit", "boundary", "center", "status",
+            "total_area", "area_unit",
+            "ST_AsGeoJSON(boundary)::jsonb AS boundary",
+            "ST_AsGeoJSON(center)::jsonb AS center", "status",
             "metadata", "created_at", "updated_at", "created_by", "updated_by",
             "property_id", "schema_version", "logo_url", "logo_file_id",
             "traditional_name", "languages", "global_standard_certifications",
@@ -183,7 +189,8 @@ def test_farm_summary_selects_only_the_current_schema_projection():
         ],
         "FROM plot p JOIN farm": [
             "p.id", "p.farm_id", "p.name", "p.slug", "p.description", "p.area",
-            "p.area_unit", "p.boundary", "p.center", "p.soil_type",
+            "p.area_unit", "ST_AsGeoJSON(p.boundary)::jsonb AS boundary",
+            "ST_AsGeoJSON(p.center)::jsonb AS center", "p.soil_type",
             "p.water_source", "p.elevation_m", "p.slope_pct", "p.aspect",
             "p.status", "p.metadata", "p.created_at", "p.updated_at",
             "p.created_by", "p.updated_by", "p.schema_version", "p.bed_count",
@@ -215,6 +222,52 @@ def test_farm_summary_selects_only_the_current_schema_projection():
 
     assert "boundary" not in report["location"]
     assert "center" not in report["location"]
+
+
+def test_farm_summary_projects_postgis_geometry_as_geojson_objects():
+    polygon = {
+        "type": "Polygon",
+        "coordinates": [[[-69.9, 18.5], [-69.8, 18.5], [-69.8, 18.6], [-69.9, 18.5]]],
+    }
+    point = {"type": "Point", "coordinates": [-69.85, 18.55]}
+    connection = FarmSummaryConnection(
+        [],
+        farm_rows=[
+            {
+                "id": "farm-id",
+                "location_id": LOCATION_ID,
+                "name": "Pilot",
+                "boundary": polygon,
+                "center": None,
+            }
+        ],
+        plot_rows=[
+            {
+                "id": "plot-id",
+                "farm_id": "farm-id",
+                "name": "North",
+                "boundary": None,
+                "center": point,
+            }
+        ],
+    )
+
+    report = generate_farm_summary(connection, LOCATION_ID)
+
+    assert report["farms"][0]["boundary"] == polygon
+    assert report["farms"][0]["center"] is None
+    assert report["plots"][0]["boundary"] is None
+    assert report["plots"][0]["center"] == point
+    farm_query = next(
+        sql for sql, _params in connection.cursor_instance.statements if "FROM farm WHERE" in sql
+    )
+    plot_query = next(
+        sql for sql, _params in connection.cursor_instance.statements if "FROM plot p JOIN" in sql
+    )
+    assert "ST_AsGeoJSON(boundary)::jsonb AS boundary" in farm_query
+    assert "ST_AsGeoJSON(center)::jsonb AS center" in farm_query
+    assert "ST_AsGeoJSON(p.boundary)::jsonb AS boundary" in plot_query
+    assert "ST_AsGeoJSON(p.center)::jsonb AS center" in plot_query
 
 
 

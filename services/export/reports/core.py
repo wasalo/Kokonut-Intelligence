@@ -44,7 +44,9 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         cur.execute(
             """
             SELECT id, location_id, name, slug, description, farm_type,
-                   total_area, area_unit, boundary, center, status, metadata,
+                   total_area, area_unit,
+                   ST_AsGeoJSON(boundary)::jsonb AS boundary,
+                   ST_AsGeoJSON(center)::jsonb AS center, status, metadata,
                    created_at, updated_at, created_by, updated_by, property_id,
                    schema_version, logo_url, logo_file_id, traditional_name,
                    languages, global_standard_certifications, economic_sectors,
@@ -61,7 +63,9 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         cur.execute(
             """
             SELECT p.id, p.farm_id, p.name, p.slug, p.description, p.area,
-                   p.area_unit, p.boundary, p.center, p.soil_type,
+                   p.area_unit,
+                   ST_AsGeoJSON(p.boundary)::jsonb AS boundary,
+                   ST_AsGeoJSON(p.center)::jsonb AS center, p.soil_type,
                    p.water_source, p.elevation_m, p.slope_pct, p.aspect,
                    p.status, p.metadata, p.created_at, p.updated_at,
                    p.created_by, p.updated_by, p.schema_version, p.bed_count,

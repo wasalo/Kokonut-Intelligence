@@ -1,3 +1,20 @@
+### Progress addendum — farm-summary GeoJSON and location hierarchy — 29 October 2026
+
+Farm and plot summary queries now convert PostGIS boundaries and centers into
+GeoJSON JSONB objects. The Gateway validates Polygon/Point types, finite
+coordinate arrays, closed Polygon rings, and valid/null/empty geometry. It also
+binds the farm-summary location to the request and checks farm, plot, and crop
+cycle parent/location relationships.
+
+The focused farm-summary and Comprehensive Status selection passes 145 tests,
+including SQL projection checks, GeoJSON output, malformed coordinates,
+location mismatches, and invalid farm/plot/crop relationships. Ruff, Python
+compilation, all three report-inventory freshness checks, capability-matrix
+validation, and `git diff --check` pass. The tests use synthetic rows and
+payloads only; no database/provider, candidate, legacy, or production state was
+used. No migration is required. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json).
+
 ### Progress addendum — Comprehensive Status capital-accounting contract — 29 October 2026
 
 The optional operator route now validates capital accounting against strict

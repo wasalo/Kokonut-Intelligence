@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,653 checklist items complete and 25
-open (1,678 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,657 checklist items complete and 25
+open (1,682 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -7103,6 +7103,30 @@ or content privacy. Rollback reverts the response models, location binding,
 fixtures, and evidence ([evidence](builds/2026-10-29-recovery/comprehensive-status-capital-accounting-contract.json)).
 
 Checklist: 1,653 complete / 25 open (1,678 total); TODO: 348 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 109. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — farm-summary GeoJSON and location hierarchy — 29 October 2026
+
+- [x] Project farm and plot PostGIS `boundary`/`center` columns through
+  `ST_AsGeoJSON(...)::jsonb`, preserving null and empty geometries as JSON.
+- [x] Validate exact GeoJSON Polygon and Point response shapes, coordinate
+  dimensions and closed polygon rings in the Gateway schema.
+- [x] Bind the embedded location, farms, plots and crop cycles to the requested
+  location and parent relationships; reject malformed scope before response.
+- [x] Verify report SQL projections, GeoJSON pass-through, valid/null/empty
+  geometries, malformed geometry and cross-location links with mock checks.
+
+The focused farm-summary and Comprehensive Status selection passes 145 tests.
+Ruff, Python compilation, all three report-inventory freshness checks,
+capability-matrix validation, and `git diff --check` pass. Synthetic database
+rows and route payloads only; no live database/provider, candidate, legacy, or
+production state was used. No migration is required. Rollback reverts the
+PostGIS projections, GeoJSON response models/scope checks, tests, and evidence
+([evidence](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json)).
+
+Checklist: 1,657 complete / 25 open (1,682 total); TODO: 352 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 109. MAN-CAP acceptance is unchanged.
