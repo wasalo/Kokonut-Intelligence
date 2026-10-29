@@ -7985,3 +7985,25 @@ Checklist: 1,791 complete / 25 open (1,816 total); TODO: 453 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 149. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — resource-request lifecycle response contracts — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime responses for resource-request create,
+  revision, submission, and independent review.
+- [x] Bind location and draft/request IDs to route parameters and enforce
+  distinct replacement identities plus source lifecycle/decision limits.
+- [x] Preserve replay semantics, keep review separate from fulfillment, and
+  sanitize malformed or mismatched results with no-store failures.
+- [x] Declare HTTP 201 for resource creation in OpenAPI, matching its existing
+  runtime response status.
+- [x] Add/run focused mock-only route/OpenAPI checks and record evidence.
+
+The approved selection passes 27 tests (229 unrelated tests deselected).
+Ruff, Python compilation, capability-matrix validation, and diff checks pass.
+No database, provider, candidate, or legacy state was used. Evidence:
+[resource lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-resource-lifecycle-response-contracts.json).
+
+Checklist: 1,796 complete / 25 open (1,821 total); TODO: 456 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 153. C2 remains open for broader route/auth and live-runtime parity.

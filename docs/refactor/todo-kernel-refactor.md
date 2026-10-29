@@ -1197,6 +1197,9 @@ that its full source-plan phase is complete.
   The demand draft create/revise/submit/review routes now enforce the same
   response boundary with migration-defined terminal replay states; 28 focused
   checks pass ([evidence](builds/2026-10-29-recovery/operating-pilot-demand-lifecycle-response-contracts.json)).
+  Resource-request create/revise/submit/review routes now also validate exact
+  migration-backed responses and path identities; 27 focused checks pass
+  ([evidence](builds/2026-10-29-recovery/operating-pilot-resource-lifecycle-response-contracts.json)).
   Sources:
   [API/SDK gates](batches.md#L3226),
   [Phase 7](implementation-plan-alignment.md#L27).
@@ -1253,6 +1256,13 @@ that its full source-plan phase is complete.
 - [x] Add/run 28 focused mock-only route/OpenAPI checks for exact output,
   terminal replay, binding, and sanitized failures
   ([evidence](builds/2026-10-29-recovery/operating-pilot-demand-lifecycle-response-contracts.json)).
+- [x] Add strict resource-request create, revision, submission, and review
+  response models with path-bound identities and lifecycle/decision limits.
+- [x] Match the documented resource-create HTTP 201 status to runtime behavior
+  and preserve exact idempotent response semantics.
+- [x] Add/run 27 focused mock-only route/OpenAPI checks for the four routes,
+  replay, path binding, and sanitized failures
+  ([evidence](builds/2026-10-29-recovery/operating-pilot-resource-lifecycle-response-contracts.json)).
 - [ ] **C3 — Finish the optional Directus adapter boundary.** Close code-verifiable
   role, field, row and hook gaps for collections still retained; keep native
   farm activity in Gateway. Workflow-role authorization cache freshness is

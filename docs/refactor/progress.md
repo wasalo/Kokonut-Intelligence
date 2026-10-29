@@ -24342,3 +24342,17 @@ and diff checks pass. No database or provider was used. Checklist: 1,791
 complete / 25 open; TODO: 453 checked / 16 open; strict private Gateway
 response contracts total 149. Evidence:
 [demand lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-demand-lifecycle-response-contracts.json).
+
+### Progress addendum — resource-request lifecycle response contracts — 29 October 2026
+
+Resource-request draft create, revision, submission, and independent review
+now expose strict OpenAPI/runtime response models. The responses bind location
+and draft/request IDs to the route, constrain first-time revisions to drafts,
+and restrict the review projection to `reviewed` with an approved/rejected
+decision. OpenAPI declares the existing create response as HTTP 201. The
+approved mock-only selection passes 27 tests (229 unrelated tests deselected),
+including replay, malformed-output, and no-store behavior. Ruff, Python
+compilation, capability validation, and diff checks pass. No database or
+provider was used. Checklist: 1,796 complete / 25 open; TODO: 456 checked / 16
+open; strict private Gateway response contracts total 153. Evidence:
+[resource lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-resource-lifecycle-response-contracts.json).

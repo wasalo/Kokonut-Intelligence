@@ -213,6 +213,60 @@ class OperatingPilotDemandReviewDecisionResponse(BaseModel):
         return self
 
 
+class OperatingPilotResourceDraftCreateResponse(BaseModel):
+    """Minimal response for creating or replaying a resource-request draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["draft"]
+    replayed: bool
+
+
+class OperatingPilotResourceDraftRevisionResponse(BaseModel):
+    """Minimal response for replacing a private resource-request draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    replaced_draft_id: _ResponseUUID
+    status: Literal["draft", "submitted", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_replacement(self):
+        if self.draft_id == self.replaced_draft_id:
+            raise ValueError("Resource revision must produce a replacement draft")
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new resource revision must remain a draft")
+        return self
+
+
+class OperatingPilotResourceDraftSubmissionResponse(BaseModel):
+    """Minimal response for submitting a private resource-request draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["submitted"]
+    replayed: bool
+
+
+class OperatingPilotResourceReviewDecisionResponse(BaseModel):
+    """Minimal response for an independent resource-request review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    resource_request_id: _ResponseUUID
+    status: Literal["reviewed"]
+    decision: Literal["approved", "rejected"]
+    replayed: bool
+
+
 def _response_decimal(value):
     if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
         raise ValueError("numeric value is invalid")
@@ -1713,7 +1767,11 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
         )
 
-    @router.post("/operator/api/operating-pilot/{location_id}/resource-requests")
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/resource-requests",
+        status_code=201,
+        response_model=OperatingPilotResourceDraftCreateResponse,
+    )
     async def create_operating_pilot_resource_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -1788,7 +1846,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotResourceDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Resource draft response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )
 
     @router.post("/operator/api/operating-pilot/{location_id}/learning-plans")
     async def create_operating_pilot_learning_plan_draft(request: Request, location_id: str):
@@ -2258,7 +2335,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.put("/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}")
+    @router.put(
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}",
+        response_model=OperatingPilotResourceDraftRevisionResponse,
+    )
     async def revise_operating_pilot_resource_draft(request: Request, location_id: str, draft_id: str):
         if provider is None:
             return JSONResponse(
@@ -2340,10 +2420,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource revision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotResourceDraftRevisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.replaced_draft_id != UUID(draft_id)
+            ):
+                raise ValueError("Resource revision response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-revision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}/submit"
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}/submit",
+        response_model=OperatingPilotResourceDraftSubmissionResponse,
     )
     async def submit_operating_pilot_resource_draft(
         request: Request, location_id: str, draft_id: str
@@ -2420,7 +2523,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource submission unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotResourceDraftSubmissionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.draft_id != UUID(draft_id):
+                raise ValueError("Resource submission response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-submission response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
         "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/submit",
@@ -3936,7 +4058,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/review"
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/review",
+        response_model=OperatingPilotResourceReviewDecisionResponse,
     )
     async def review_operating_pilot_resource_request(
         request: Request, location_id: str, resource_request_id: str
@@ -4021,7 +4144,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotResourceReviewDecisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.resource_request_id != UUID(resource_request_id)
+            ):
+                raise ValueError("Resource review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
         "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill"
