@@ -523,6 +523,153 @@ def test_trend_route_policy_is_exact_location_scoped_read_only():
     assert auth_route_policy("DELETE", forecast_path, enabled=True) is None
 
 
+def test_forecast_create_openapi_publishes_strict_request_and_created_reused_results(monkeypatch):
+    app = _register_route(monkeypatch, lambda *_args, **_kwargs: {})
+    operation = app.openapi()["paths"]["/operator/api/trends/{location_id}/forecast"]["post"]
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    responses = app.openapi()["components"]["schemas"]
+    result_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["properties"]) == {
+        "metric_key", "forecast_horizon", "confidence"
+    }
+    assert request_schema["required"] == ["metric_key"]
+    assert request_schema["properties"]["forecast_horizon"]["minimum"] == 1
+    assert request_schema["properties"]["forecast_horizon"]["maximum"] == 100
+    assert request_schema["properties"]["confidence"]["enum"] == [0.9, 0.95, 0.99]
+    assert result_schema["discriminator"]["propertyName"] == "created"
+    assert {ref.rsplit("/", 1)[-1] for ref in result_schema["discriminator"]["mapping"].values()} == {
+        "TrendForecastCreatedResponse", "TrendForecastReusedResponse"
+    }
+    assert responses["TrendForecastCreatedResponse"]["additionalProperties"] is False
+    assert "forecast_at" in responses["TrendForecastCreatedResponse"]["properties"]
+    assert "forecast_at" not in responses["TrendForecastReusedResponse"]["properties"]
+    created_result_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    assert created_result_schema["oneOf"] == result_schema["oneOf"]
+    assert created_result_schema["discriminator"] == result_schema["discriminator"]
+
+
+@pytest.mark.parametrize(
+    ("created", "expected_status", "includes_forecast_at"),
+    [(True, 201, True), (False, 200, False)],
+)
+def test_forecast_create_preserves_created_and_reused_response_shapes(
+    monkeypatch, created, expected_status, includes_forecast_at
+):
+    forecast_id = "33333333-3333-4333-8333-333333333333"
+    result = {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "forecast_id": forecast_id,
+        "status": "active",
+        "created": created,
+        "forecast_horizon": 12,
+        "time_unit": "day",
+        "training_points": 3,
+    }
+    if includes_forecast_at:
+        result["forecast_at"] = "2026-10-29T12:00:00+00:00"
+    calls = []
+
+    def writer(*args, **kwargs):
+        calls.append((args, kwargs))
+        return result
+
+    app = _register_route(monkeypatch, lambda *_args, **_kwargs: {}, forecast_writer=writer)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast",
+            json={"metric_key": "soil_carbon", "forecast_horizon": 12, "confidence": 0.95},
+        )
+
+    assert response.status_code == expected_status
+    assert response.headers["cache-control"] == "no-store"
+    expected = dict(result)
+    if includes_forecast_at:
+        expected["forecast_at"] = "2026-10-29T12:00:00Z"
+    assert response.json() == expected
+    assert calls == [
+        ((OPERATOR_ID, LOCATION_ID, "soil_carbon"), {"forecast_horizon": 12, "confidence": 0.95})
+    ]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"forecast_horizon": 12},
+        {"metric_key": "soil_carbon", "forecast_horizon": 0},
+        {"metric_key": "soil_carbon", "forecast_horizon": 101},
+        {"metric_key": "soil_carbon", "forecast_horizon": True},
+        {"metric_key": "soil_carbon", "confidence": 0.93},
+        {"metric_key": "soil_carbon", "confidence": "0.95"},
+        {"metric_key": "soil_carbon", "confidence": True},
+        {"metric_key": " soil_carbon "},
+        {"metric_key": "soil_carbon", "unexpected": "field"},
+    ],
+)
+def test_invalid_forecast_create_request_fails_before_service(monkeypatch, payload):
+    calls = []
+
+    def writer(*args, **kwargs):
+        calls.append((args, kwargs))
+        return {}
+
+    app = _register_route(monkeypatch, lambda *_args, **_kwargs: {}, forecast_writer=writer)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast", json=payload
+        )
+
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Forecast request is invalid"}
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {"created": True},
+        {
+            "location_id": "99999999-9999-4999-8999-999999999999",
+            "metric_key": "soil_carbon",
+            "forecast_id": "33333333-3333-4333-8333-333333333333",
+            "status": "active",
+            "created": True,
+            "forecast_horizon": 12,
+            "time_unit": "day",
+            "training_points": 3,
+            "forecast_at": "2026-10-29T12:00:00+00:00",
+        },
+        {
+            "location_id": LOCATION_ID,
+            "metric_key": "soil_carbon",
+            "forecast_id": "33333333-3333-4333-8333-333333333333",
+            "status": "active",
+            "created": False,
+            "forecast_horizon": 12,
+            "time_unit": "day",
+            "training_points": 3,
+            "forecast_at": "2026-10-29T12:00:00+00:00",
+        },
+    ],
+)
+def test_malformed_or_mismatched_forecast_result_fails_closed(monkeypatch, result):
+    app = _register_route(
+        monkeypatch, lambda *_args, **_kwargs: {}, forecast_writer=lambda *_args, **_kwargs: result
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast",
+            json={"metric_key": "soil_carbon"},
+        )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Trend forecast compute unavailable"}
+
+
 def _register_route(
     monkeypatch, reader, smoothing_reader=None, change_points_reader=None,
     decomposition_reader=None, forecast_reader=None, forecast_writer=None,
@@ -781,6 +928,10 @@ def test_forecast_compute_http_route_is_no_store_and_passes_bounded_request(monk
             "forecast_id": "33333333-3333-4333-8333-333333333333",
             "status": "active",
             "created": True,
+            "forecast_horizon": forecast_horizon,
+            "time_unit": "day",
+            "training_points": 3,
+            "forecast_at": "2026-10-29T12:00:00+00:00",
         }
 
     app = _register_route(

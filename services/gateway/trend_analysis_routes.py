@@ -1,10 +1,18 @@
 """OIDC routes for saved, location-scoped trend-analysis outputs."""
 
 import json
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, ValidationError
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    ValidationError,
+    field_validator,
+)
 
 
 class _TrendResponseModel(BaseModel):
@@ -124,6 +132,56 @@ class TrendForecastResultResponse(_TrendResponseModel):
     location_id: UUID
     metric_key: str = Field(min_length=1, max_length=100)
     item: TrendForecastResponse | None
+
+
+class TrendForecastCreateRequest(_TrendResponseModel):
+    metric_key: str = Field(min_length=1, max_length=100)
+    forecast_horizon: int = Field(default=12, ge=1, le=100, strict=True)
+    confidence: Literal[0.9, 0.95, 0.99] = 0.95
+
+    @field_validator("metric_key")
+    @classmethod
+    def metric_key_matches_service_rules(cls, value: str) -> str:
+        if value != value.strip() or any(ord(char) < 32 or ord(char) == 127 for char in value):
+            raise ValueError("metric_key is invalid")
+        return value
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def confidence_is_supported_json_number(cls, value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError("confidence must be a JSON number")
+        return value
+
+
+class TrendForecastCreateResponseBase(_TrendResponseModel):
+    location_id: UUID
+    metric_key: str = Field(min_length=1, max_length=100)
+    forecast_id: UUID
+    status: Literal["active"]
+    forecast_horizon: int = Field(ge=1, le=100, strict=True)
+    time_unit: str = Field(min_length=1, max_length=20)
+    training_points: int = Field(ge=0, strict=True)
+
+
+class TrendForecastCreatedResponse(TrendForecastCreateResponseBase):
+    created: Literal[True]
+    forecast_at: AwareDatetime
+
+
+class TrendForecastReusedResponse(TrendForecastCreateResponseBase):
+    created: Literal[False]
+
+
+TrendForecastCreateResponse = Annotated[
+    TrendForecastCreatedResponse | TrendForecastReusedResponse,
+    Field(discriminator="created"),
+]
+_trend_forecast_create_response_adapter = TypeAdapter(TrendForecastCreateResponse)
+
+
+class TrendForecastErrorResponse(_TrendResponseModel):
+    error: str
 
 
 def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2):
@@ -386,7 +444,31 @@ def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2
             metric_key=metric_key,
         )
 
-    @router.post("/operator/api/trends/{location_id}/forecast")
+    forecast_create_request_body = {
+        "required": True,
+        "content": {
+            "application/json": {
+                "schema": TrendForecastCreateRequest.model_json_schema()
+            }
+        },
+    }
+    forecast_create_errors = {
+        status: {"model": TrendForecastErrorResponse, "description": description}
+        for status, description in {
+            400: "The forecast request is invalid.",
+            403: "The operator lacks a location-scoped compute grant.",
+            404: "Operator OIDC is disabled.",
+            500: "The forecast computation returned an invalid result.",
+            503: "The forecast computation service is unavailable.",
+        }.items()
+    }
+
+    @router.post(
+        "/operator/api/trends/{location_id}/forecast",
+        response_model=TrendForecastCreateResponse,
+        responses={201: {"model": TrendForecastCreateResponse}, **forecast_create_errors},
+        openapi_extra={"requestBody": forecast_create_request_body},
+    )
     async def generate_trend_forecast(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -400,18 +482,29 @@ def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2
                 if len(body) + len(chunk) > 4096:
                     raise ValueError("Forecast request must not exceed 4 KiB")
                 body.extend(chunk)
-            payload = json.loads(bytes(body))
-            if not isinstance(payload, dict) or set(payload) - {
-                "metric_key", "forecast_horizon", "confidence"
-            }:
-                raise ValueError("Forecast request must contain supported fields")
+            try:
+                raw_payload = json.loads(bytes(body))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Forecast request is invalid"},
+                    headers=headers,
+                )
+            try:
+                payload = TrendForecastCreateRequest.model_validate(raw_payload)
+            except (ValidationError, TypeError, ValueError):
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Forecast request is invalid"},
+                    headers=headers,
+                )
             result = await run_in_threadpool(
                 create_location_time_series_forecast,
                 request.state.operator_session.operator.operator_id,
                 location_id,
-                payload.get("metric_key"),
-                forecast_horizon=payload.get("forecast_horizon", 12),
-                confidence=payload.get("confidence", 0.95),
+                payload.metric_key,
+                forecast_horizon=payload.forecast_horizon,
+                confidence=payload.confidence,
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -432,9 +525,28 @@ def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2
                 content={"error": "Trend forecast compute unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = _trend_forecast_create_response_adapter.validate_python(result)
+            if (
+                response.location_id != UUID(location_id)
+                or response.metric_key != payload.metric_key
+                or response.forecast_horizon != payload.forecast_horizon
+            ):
+                raise ValueError("forecast result does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.trend_analysis").warning(
+                "Trend forecast create projection rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Trend forecast compute unavailable"},
+                headers=headers,
+            )
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=201 if result.get("created") else 200,
+            jsonable_encoder(response.model_dump(mode="json")),
+            status_code=201 if response.created else 200,
             headers=headers,
         )
 

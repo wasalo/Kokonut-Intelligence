@@ -23412,3 +23412,43 @@ Checklist: 1,611 complete / 25 open (1,636 total); TODO: 306 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 101. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — stakeholder identity proposal and decision contracts — 29 October 2026
+
+The location-scoped stakeholder identity Gateway now validates proposal and
+independent-decision inputs against migration-backed UUID, enum, confidence,
+and precision constraints before service access. OpenAPI publishes exact
+request and typed response models. Service results are validated before
+return; malformed data produces generic no-store errors. The database-backed
+service remains responsible for signed location context, transaction
+ownership, and enforcing that the reviewer differs from the proposer.
+
+The focused route/service/OpenAPI selection passes 36 tests. Ruff, Python
+compilation, capability-matrix validation, and `git diff --check` pass. All
+HTTP service behavior checks use mocks; no candidate/legacy database or
+provider was touched. Live OIDC/browser, populated data, and broad tenant/RLS
+acceptance remain open. No migration or data rollback is needed. Evidence:
+[focused checks](builds/2026-10-29-recovery/stakeholder-identity-write-gateway-contracts.json).
+
+Checklist: 315 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 103.
+
+### Progress addendum — signed trend-forecast creation contract — 29 October 2026
+
+The signed trend-forecast POST now advertises and validates a strict request:
+one supported metric key, a bounded integer horizon, and one supported
+confidence level. OpenAPI documents a discriminated created/reused result.
+Runtime validation preserves the established 201 response for a new forecast
+and 200 response for reuse, rejects response identity/options that do not
+match the request, and returns a generic no-store error for malformed results.
+
+The focused route/compute suites pass 66 tests. Ruff, Python compilation, and
+`git diff --check` pass. The checks use fake database connections and mocked
+forecast models; no live database/provider, candidate, or legacy service was
+accessed. Evidence:
+[focused checks](builds/2026-10-29-recovery/trend-forecast-create-gateway-contract.json).
+
+Checklist: 318 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 104.

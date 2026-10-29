@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "scope": "Strict location-scoped stakeholder identity proposal and independent decision Gateway contracts",
+  "focused_test_command": "python3 -m pytest tests/test_gateway_stakeholder_identity_write_contract.py tests/test_gateway_stakeholder_identity.py tests/test_gateway_stakeholder_identity_pagination_openapi.py -q",
+  "focused_test_result": {
+    "passed": 36,
+    "failed": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "Exact strict proposal and decision request fields, enums, UUIDs, confidence bounds, and precision are published in OpenAPI",
+    "Malformed and undeclared proposal/decision fields return generic no-store errors before service access",
+    "Proposal success preserves its 201 response and decision remains an independent review operation",
+    "Proposal and decision response fields are exact; terminal decisions cannot return the proposed status",
+    "Proposal and decision service responses are schema-validated and malformed output fails closed without exposing details",
+    "The service still owns signed location context, transaction handling, and independent-review enforcement"
+  ],
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_or_external_state_used": false,
+  "migration_required": false,
+  "rollback": "Revert the route models, strict write contracts, focused tests, and evidence entry; no database rollback is required."
+}

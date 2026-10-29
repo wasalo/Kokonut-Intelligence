@@ -2505,3 +2505,38 @@ data acceptance remain open. Evidence:
 
 Checklist: 312 checked / 16 open. Capability classifications and MAN-CAP
 acceptance remain unchanged.
+
+### Latest local continuation — stakeholder identity write contracts — 29 October 2026
+
+- [x] Add migration-aligned proposal and decision request/response contracts.
+- [x] Publish strict OpenAPI schemas and reject invalid input before invoking
+  the service, with generic no-store errors.
+- [x] Validate proposal/decision output and retain the independent-review
+  service boundary.
+
+The focused stakeholder-identity Gateway/service/OpenAPI checks pass 36 tests;
+Ruff, Python compilation, matrix validation, and diff checks pass. Mock-only;
+no database, provider, candidate, legacy, or production resource was used.
+Live identity-provider/browser behavior, populated data, and tenant/RLS
+acceptance remain open. Evidence:
+[focused checks](builds/2026-10-29-recovery/stakeholder-identity-write-gateway-contracts.json).
+
+Checklist: 315 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 103.
+
+### Latest local continuation — signed trend-forecast creation contract — 29 October 2026
+
+- [x] Define and document strict request bounds for the signed forecast writer.
+- [x] Validate created and reused response variants against the requested
+  location, metric, and horizon.
+- [x] Add focused no-store and service-boundary regressions.
+
+The focused Gateway and forecast-compute selection passes 66 tests. Ruff,
+Python compilation, and diff checks pass. Synthetic/fake dependencies only;
+no live service or database was used. Evidence:
+[focused checks](builds/2026-10-29-recovery/trend-forecast-create-gateway-contract.json).
+
+Checklist: 318 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 104.

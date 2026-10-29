@@ -6832,3 +6832,47 @@ Checklist: 1,617 complete / 25 open (1,642 total); TODO: 312 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; private Gateway response-contract count is
 unchanged. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — stakeholder identity write contracts — 29 October 2026
+
+- [x] Define strict proposal/decision request and response models from the
+  migration's enum, UUID, confidence, and review-result constraints.
+- [x] Publish exact request and response schemas in OpenAPI while rejecting
+  malformed, undeclared, or spoofed inputs before service access.
+- [x] Validate service responses and preserve no-store errors and the
+  independent reviewer decision boundary.
+
+The focused stakeholder-identity route, service, OpenAPI, and write-contract
+selection passes 36 tests. Ruff, Python compilation, capability-matrix
+validation, and `git diff --check` pass. Checks use mocks only; no database,
+provider, candidate, legacy service, or production resource was touched. The
+work does not establish live OIDC/browser, populated data, or tenant/RLS
+acceptance. No migration is required. Rollback reverts the route models,
+contracts, focused tests, and evidence; no database rollback is needed
+([evidence](builds/2026-10-29-recovery/stakeholder-identity-write-gateway-contracts.json)).
+
+Checklist: 1,620 complete / 25 open (1,645 total); TODO: 315 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 103. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — signed trend-forecast creation contract — 29 October 2026
+
+- [x] Define a strict allowlisted request with bounded metric key, integer
+  horizon 1–100, and supported confidence levels.
+- [x] Publish a discriminated response contract for created versus reused
+  forecasts while preserving 201/200 status codes and payloads.
+- [x] Reject malformed and request-mismatched service output with a generic
+  no-store failure while retaining signed compute scope.
+
+The focused Gateway/compute selection passes 66 tests. Ruff, Python
+compilation, and `git diff --check` pass. Checks use fake readers/connections
+and a mocked forecasting engine; no live database, provider, candidate, legacy,
+or production resource was used. No migration is required. Rollback reverts the
+route contract, tests, and evidence without database changes
+([evidence](builds/2026-10-29-recovery/trend-forecast-create-gateway-contract.json)).
+
+Checklist: 1,623 complete / 25 open (1,648 total); TODO: 318 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 104. MAN-CAP acceptance is unchanged.
