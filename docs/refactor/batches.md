@@ -7799,3 +7799,22 @@ in progress on that exact head. The source contract count is now 130. Current
 checklist: 1,751 complete / 25 open (1,776 total); TODO: 427 checked / 16
 open. Evidence:
 [Delphi decision contracts](builds/2026-10-29-recovery/delphi-review-decision-response-contracts.json).
+
+### Source continuation — Delphi study lifecycle response contracts — 29 October 2026
+
+- [x] Add strict transition response models for study open/close and bind
+  returned study, location, action status, and timestamp lifecycle to the path.
+- [x] Add a strict stopping-evaluation response with exact item/outcome fields,
+  timestamp parsing, scope binding, and cross-item stop-state consistency.
+- [x] Publish both contracts in OpenAPI and keep malformed service results
+  behind sanitized no-store errors.
+- [x] Add/run focused mock-only response/OpenAPI acceptance for transition
+  and stopping-evaluation routes.
+
+The focused selection passes 20 tests. Ruff, Python compilation, capability
+matrix, and diff checks pass. No database, candidate, legacy service, or
+provider was used. Current checklist: 1,755 complete / 25 open (1,780 total);
+TODO: 431 checked / 16 open. The last pushed feature head is
+`ef0de332e89f9ea189e10a58fc2cb26d58a69c6a`; hosted statuses are separate from
+this unpushed slice. Evidence:
+[lifecycle response contracts](builds/2026-10-29-recovery/delphi-study-lifecycle-response-contracts.json).

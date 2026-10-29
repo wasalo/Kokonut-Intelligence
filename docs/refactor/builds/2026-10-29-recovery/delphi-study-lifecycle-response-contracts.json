@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for strict Delphi study transition and stopping-evaluation responses.",
+  "command": "python3 -m pytest -q tests/test_gateway_delphi_study_lifecycle.py -k 'test_route_uses_session_identity_exact_action_and_private_response or test_stopping_route_uses_session_identity_and_no_store or test_lifecycle_routes_publish_strict_transition_and_stopping_schemas or test_transition_route_sanitizes_invalid_service_response or test_stopping_route_sanitizes_invalid_service_response'",
+  "result": {
+    "passed": 20,
+    "failed": 0,
+    "deselected": 35
+  },
+  "coverage": [
+    "Open and close transitions preserve request identity and publish the exact strict six-field response schema",
+    "Transition responses bind study/location IDs and require correct status/timestamp combinations",
+    "Stopping-evaluation OpenAPI declares exact top-level and nested item fields",
+    "Only schema-defined outcomes are accepted; item stop flags, aggregate stop state, and empty-item outcome remain consistent",
+    "Stopping evaluation binds study/location IDs and accepts an aware timestamp from the JSONB service result",
+    "Malformed, mismatched, extra, or inconsistent service results return sanitized no-store errors"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service results and an in-process FastAPI TestClient with a synthetic OIDC provider."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

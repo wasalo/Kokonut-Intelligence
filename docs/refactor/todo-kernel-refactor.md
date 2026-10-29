@@ -3038,3 +3038,20 @@ Twelve focused checks pass. Source changes pass Ruff, Python compilation, and
 diff checks. Strict private Gateway response contracts total 130. Checklist:
 427 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/delphi-review-decision-response-contracts.json`.
+
+## In progress — Delphi study lifecycle response contracts, 29 October
+
+- [x] Declare strict open/close transition response fields and validate
+  request-bound study/location IDs, resulting action status, and timestamps.
+- [x] Declare a strict stopping-evaluation response and validate item fields,
+  result enums, aggregate stop-state consistency, and path binding.
+- [x] Publish the response schemas in OpenAPI and sanitize malformed service
+  results without changing lifecycle transitions.
+- [x] Add/run focused mocked tests for OpenAPI fields, valid lifecycle results,
+  malformed result rejection, location/study binding, and no-store errors.
+
+The focused lifecycle response selection passes 20 tests. Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. No database
+or provider was used. Checklist: 431 checked / 16 open; strict private Gateway
+response contracts total 133. Evidence:
+`builds/2026-10-29-recovery/delphi-study-lifecycle-response-contracts.json`.

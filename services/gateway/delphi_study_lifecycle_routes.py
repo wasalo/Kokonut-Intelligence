@@ -1,9 +1,11 @@
 """OIDC routes for Delphi study opening readiness and lifecycle transitions."""
 
+from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import (
+    AwareDatetime,
     BaseModel,
     BeforeValidator,
     ConfigDict,
@@ -25,6 +27,107 @@ def _strict_response_uuid(value):
 
 
 _ResponseUUID = Annotated[UUID, BeforeValidator(_strict_response_uuid)]
+
+
+def _strict_response_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("timestamp value is invalid") from exc
+    raise ValueError("timestamp value is invalid")
+
+
+_ResponseDateTime = Annotated[AwareDatetime, BeforeValidator(_strict_response_datetime)]
+
+
+class _DelphiLifecycleResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+
+class DelphiStudyTransitionResponse(_DelphiLifecycleResponse):
+    study_id: _ResponseUUID
+    location_id: _ResponseUUID
+    status: Literal["open", "closed"]
+    opened_at: _ResponseDateTime | None
+    closed_at: _ResponseDateTime | None
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_transition_state(self):
+        if self.opened_at is None:
+            raise ValueError("a transitioned study must have an opened timestamp")
+        if self.status == "open" and self.closed_at is not None:
+            raise ValueError("an open study cannot have a closed timestamp")
+        if self.status == "closed" and self.closed_at is None:
+            raise ValueError("a closed study requires a closed timestamp")
+        return self
+
+
+class DelphiStoppingItemResponse(_DelphiLifecycleResponse):
+    item_id: _ResponseUUID
+    should_stop: bool
+    outcome: Literal[
+        "time_limit_with_consensus",
+        "consensus_reached",
+        "time_limit_without_consensus",
+        "stable_without_consensus",
+        "insufficient_participation",
+        "insufficient_stability_history",
+        "continue",
+    ]
+
+    @model_validator(mode="after")
+    def validate_item_stop_state(self):
+        expected_stop = self.outcome in {
+            "time_limit_with_consensus",
+            "consensus_reached",
+            "time_limit_without_consensus",
+            "stable_without_consensus",
+        }
+        if self.should_stop != expected_stop:
+            raise ValueError("stopping item outcome does not match should_stop")
+        return self
+
+
+class DelphiStoppingEvaluationResponse(_DelphiLifecycleResponse):
+    study_id: _ResponseUUID
+    location_id: _ResponseUUID
+    should_stop: bool
+    outcome: Literal[
+        "incomplete_items",
+        "time_limit_with_consensus",
+        "consensus_reached",
+        "time_limit_without_consensus",
+        "stable_without_consensus",
+        "insufficient_participation",
+        "insufficient_stability_history",
+        "continue",
+    ]
+    items: list[DelphiStoppingItemResponse]
+    evaluated_at: _ResponseDateTime
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_evaluation_state(self):
+        if not self.items:
+            if self.should_stop or self.outcome != "incomplete_items":
+                raise ValueError("empty stopping evaluation must report incomplete items")
+            return self
+        all_items_stopped = all(item.should_stop for item in self.items)
+        if self.should_stop != all_items_stopped:
+            raise ValueError("study stopping state does not match item results")
+        stopping_outcomes = {
+            "time_limit_with_consensus",
+            "consensus_reached",
+            "time_limit_without_consensus",
+            "stable_without_consensus",
+        }
+        if self.should_stop != (self.outcome in stopping_outcomes):
+            raise ValueError("study stopping outcome does not match should_stop")
+        return self
 
 
 class DelphiStudyOpenReadinessResponse(BaseModel):
@@ -147,7 +250,31 @@ def register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, 
                 content={"error": "Delphi study lifecycle request unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=200, headers=headers)
+        try:
+            response = DelphiStudyTransitionResponse.model_validate(result)
+            expected_status = "open" if action == "open" else "closed"
+            if (
+                response.study_id != UUID(study_id)
+                or response.location_id != UUID(location_id)
+                or response.status != expected_status
+            ):
+                raise ValueError("Delphi transition response does not match request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_study_lifecycle").warning(
+                "Delphi study transition response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Delphi study lifecycle request unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")),
+            status_code=200,
+            headers=headers,
+        )
 
     @router.get(
         "/operator/api/delphi/{location_id}/studies/{study_id}/open-readiness",
@@ -215,16 +342,23 @@ def register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, 
             jsonable_encoder(readiness.model_dump()), status_code=200, headers=headers
         )
 
-    @router.post("/operator/api/delphi/{location_id}/studies/{study_id}/open")
+    @router.post(
+        "/operator/api/delphi/{location_id}/studies/{study_id}/open",
+        response_model=DelphiStudyTransitionResponse,
+    )
     async def open_study(request: Request, location_id: str, study_id: str):
         return await transition(request, location_id, study_id, "open")
 
-    @router.post("/operator/api/delphi/{location_id}/studies/{study_id}/close")
+    @router.post(
+        "/operator/api/delphi/{location_id}/studies/{study_id}/close",
+        response_model=DelphiStudyTransitionResponse,
+    )
     async def close_study(request: Request, location_id: str, study_id: str):
         return await transition(request, location_id, study_id, "close")
 
     @router.post(
-        "/operator/api/delphi/{location_id}/studies/{study_id}/stopping-evaluation"
+        "/operator/api/delphi/{location_id}/studies/{study_id}/stopping-evaluation",
+        response_model=DelphiStoppingEvaluationResponse,
     )
     async def evaluate_stopping(request: Request, location_id: str, study_id: str):
         if provider is None:
@@ -287,4 +421,26 @@ def register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, 
                 content={"error": "Delphi stopping evaluation is unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=200, headers=headers)
+        try:
+            response = DelphiStoppingEvaluationResponse.model_validate(result)
+            if (
+                response.study_id != UUID(study_id)
+                or response.location_id != UUID(location_id)
+            ):
+                raise ValueError("Delphi stopping response does not match request scope")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_study_lifecycle").warning(
+                "Delphi stopping response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Delphi stopping evaluation is unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")),
+            status_code=200,
+            headers=headers,
+        )

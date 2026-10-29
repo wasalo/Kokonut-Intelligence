@@ -24222,3 +24222,19 @@ TODO: 427 checked / 16 open; strict private Gateway response contracts total
 [Delphi decision contracts](builds/2026-10-29-recovery/delphi-review-decision-response-contracts.json).
 On feature head `eaefae7dee6484b8df6bbd5d6f1b47b5ded57864`, Gitleaks passed and
 CI was still in progress at last check.
+
+### Progress addendum — Delphi study lifecycle response schemas — 29 October 2026
+
+Study open/close routes now declare a strict shared response schema and check
+the returned study/location, requested action state, and timestamp lifecycle.
+Stopping evaluation now declares a strict nested response for the study and
+item outcomes, accepts only source-defined outcomes, checks aggregate stop
+state against item results, and binds response IDs to the request path.
+Malformed results receive sanitized no-store responses. The approved mock-only
+selection passes 20 tests, including exact OpenAPI response shapes, valid
+open/close and evaluation results, path binding, timestamp/status checks,
+malformed nested rows, and sanitized no-store errors. Ruff, Python compilation,
+capability validation, and diff checks pass. No database or provider was used.
+Checklist: 1,755 complete / 25 open; TODO: 431 checked / 16 open; strict
+private Gateway response contracts total 133. Evidence:
+[lifecycle response contracts](builds/2026-10-29-recovery/delphi-study-lifecycle-response-contracts.json).
