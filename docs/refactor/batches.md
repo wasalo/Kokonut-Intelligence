@@ -7451,3 +7451,19 @@ open (8 code work groups and 8 owner/environment gates). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
 populated-data parity, and live provider gates remain open.
+
+### Source continuation — PRM outcome-correlation projection — 29 October 2026
+
+- [x] Replace `v_process_outcome_correlation`'s wildcard with migration 196's
+  exact seven-column projection while preserving maturity ordering and row
+  serialization.
+
+The focused mock-cursor check passes. Ruff, Python compilation, and diff checks
+pass. No database or provider was contacted. Evidence:
+[PRM outcome correlation](builds/2026-10-29-recovery/prm-outcome-correlation-projection.json).
+
+Checklist: 1,695 complete / 25 open (1,720 total); TODO: 380 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
+populated-data parity, and live provider gates remain open.

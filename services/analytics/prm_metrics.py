@@ -320,7 +320,12 @@ def cost_efficiency_ranking(
 
 def outcome_correlation() -> List[Dict[str, Any]]:
     """Query the v_process_outcome_correlation view."""
-    sql = "SELECT * FROM v_process_outcome_correlation ORDER BY process_key, maturity_level"
+    sql = """
+        SELECT process_key, process_name, maturity_level, maturity_name,
+               metric_count, avg_metric_value, location_count
+        FROM v_process_outcome_correlation
+        ORDER BY process_key, maturity_level
+    """
 
     try:
         with _conn() as conn:

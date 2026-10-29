@@ -2848,3 +2848,11 @@ Checklist: 378 checked / 16 open. Evidence:
 
 Checklist: 379 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/gateway-openapi-operator-cookie-security.json`.
+
+## Completed in the 29 October PRM outcome-correlation continuation
+
+- [x] Pin the outcome-correlation reader to migration 196's exact seven-column
+  view contract and verify order plus row serialization.
+
+Checklist: 380 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/prm-outcome-correlation-projection.json`.
