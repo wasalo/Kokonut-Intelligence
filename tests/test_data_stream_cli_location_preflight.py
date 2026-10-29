@@ -84,3 +84,40 @@ def test_search_without_location_preserves_unfiltered_mode(monkeypatch):
     data_stream_cli.main()
 
     assert calls == [None]
+
+
+@pytest.mark.parametrize("limit", [0, -1, 101, 1_000_000])
+def test_process_rejects_out_of_range_batch_before_database_access(monkeypatch, limit):
+    monkeypatch.setattr(
+        data_stream_cli,
+        "get_connection",
+        lambda: pytest.fail("invalid signer batch limit must fail before database access"),
+    )
+    monkeypatch.setattr(sys, "argv", ["data-stream", "process", "--limit", str(limit)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        data_stream_cli.main()
+
+    assert exc_info.value.code == 2
+
+
+@pytest.mark.parametrize("limit", [1, 100])
+def test_process_forwards_valid_batch_limit_unchanged_before_database_access(
+    monkeypatch, limit
+):
+    calls = []
+    monkeypatch.setattr(
+        data_stream_cli,
+        "cmd_process_pending",
+        lambda args: calls.append(args.limit),
+    )
+    monkeypatch.setattr(
+        data_stream_cli,
+        "get_connection",
+        lambda: pytest.fail("handler stub should prevent database access"),
+    )
+    monkeypatch.setattr(sys, "argv", ["data-stream", "process", "--limit", str(limit)])
+
+    data_stream_cli.main()
+
+    assert calls == [limit]

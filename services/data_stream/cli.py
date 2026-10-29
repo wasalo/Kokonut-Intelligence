@@ -239,6 +239,8 @@ def main():
             args.location_id = str(UUID(args.location_id))
         except (AttributeError, TypeError, ValueError):
             parser.error("--location-id must be a valid UUID")
+    if args.command == "process" and not 1 <= args.limit <= 100:
+        parser.error("--limit must be between 1 and 100 for attestation processing")
     args.func(args)
 
 

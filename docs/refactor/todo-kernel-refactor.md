@@ -2824,3 +2824,11 @@ Checklist: 373 checked / 16 open. Evidence:
 
 Checklist: 376 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/kernel-public-read-and-verify-preflight.json`.
+
+## Completed in the 29 October Data Stream signer CLI continuation
+
+- [x] Bound signer CLI batches to 1–100 and verify malformed values fail
+  before database acquisition while valid limits are forwarded unchanged.
+
+Checklist: 377 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/datastream-signer-cli-batch-bound.json`.

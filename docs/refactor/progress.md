@@ -23912,3 +23912,17 @@ Checklist: 1,691 complete / 25 open (1,716 total); TODO: 376 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 116. Populated report parity and live acceptance remain open.
+
+### Progress addendum — Data Stream signer CLI batch bound — 29 October 2026
+
+The Data Stream signer CLI now limits each `process --limit` invocation to
+1–100 and rejects invalid values before handler/database access. Values 1 and
+100 are forwarded unchanged to the signer handler. The focused CLI suite passes
+19 tests; Ruff, Python compilation, and diff checks pass. No database, chain,
+or provider was contacted. Evidence:
+[signer CLI checks](builds/2026-10-29-recovery/datastream-signer-cli-batch-bound.json).
+
+Checklist: 1,692 complete / 25 open (1,717 total); TODO: 377 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. Production/provider and populated-data gates remain open.

@@ -7390,11 +7390,29 @@ report-generator CLI selection passes 20, and the snapshot cursor-cleanup
 selection passes four. Ruff, Python compilation, and the JavaScript SDK
 TypeScript build pass. Mocks only; no database, provider, or live service was
 contacted. Immediately before this source continuation, PR
-#71 was at `63ff97fad77aad6b1363538514b3201269c0a48b`; CI #950 was pending and
-Security #674 was in progress. Evidence:
+#71 was at `3eedbc1578a8e8aa159c355fc3f87d1f12186f99`; Security #675 passed and
+CI #951 was in progress. Evidence:
 [public read and verify preflight contracts](builds/2026-10-29-recovery/kernel-public-read-and-verify-preflight.json).
 
 Checklist: 1,691 complete / 25 open (1,716 total); TODO: 376 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
+populated-data parity, and live provider gates remain open.
+
+### Source continuation — Data Stream signer CLI batch bound — 29 October 2026
+
+- [x] Bound `data-stream process --limit` to 1–100 before handler dispatch or
+  database access, limiting a single operator invocation's on-chain signer
+  batch while preserving valid endpoint values.
+
+The focused Data Stream CLI preflight suite passes 19 tests. Ruff, Python
+compilation, and diff checks pass. Invalid 0, negative, 101, and oversized
+limits fail before the handler; valid 1 and 100 reach the stubbed handler
+unchanged. No database, chain, or provider was contacted. Evidence:
+[signer CLI batch bound](builds/2026-10-29-recovery/datastream-signer-cli-batch-bound.json).
+
+Checklist: 1,692 complete / 25 open (1,717 total); TODO: 377 checked / 16
 open (8 code work groups and 8 owner/environment gates). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
