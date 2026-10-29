@@ -2351,3 +2351,24 @@ Checklist: 1,584 complete / 25 open (1,609 total); TODO: 283 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — scaling-economics report projections — 29 October 2026
+
+- [x] Replace both network and location `v_public_farm_launch_unit_economics`
+  wildcards with its complete 27-column migration-040 projection.
+- [x] Replace adoption-barrier wildcard with all 17 public-view columns,
+  preserving selected/shared scope, date filtering, and active counts.
+- [x] Replace perpetual-value stress wildcard with all 20 public-view
+  columns, preserving selected/shared scope, date filtering, and watchlist.
+
+The focused synthetic selection passes 1 test. It validates exact order,
+network/location query branches, request scope and dates, sorting, output
+payloads, and aggregates. Ruff, Python compilation, report inventories,
+capability validation, and diff checks pass. No database/provider or candidate
+was used. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-scaling-report-projection-batch.json).
+
+Checklist: 1,587 complete / 25 open (1,612 total); TODO: 286 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

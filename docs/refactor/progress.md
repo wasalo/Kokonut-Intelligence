@@ -23172,3 +23172,23 @@ Checklist: 1,584 complete / 25 open (1,609 total); TODO: 283 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — scaling-economics report projections — 29 October 2026
+
+The scaling-economics report now selects all 27 fields from the migration-040
+farm-launch unit-economics view in both network and farm modes. Adoption
+barriers and perpetual-value stress select their complete 17- and 20-column
+views. The focused regression retains existing scope/date predicates, order,
+payloads, capital totals, active-barrier count, and watchlist count.
+
+The focused selection passes 1 test. Ruff, compilation, all report
+inventories, capability validation, and diff checks pass. No database,
+migration, provider, candidate, legacy service, or production resource was
+used. This does not establish populated-data parity, tenant isolation, live
+OIDC, or content-level privacy. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-scaling-report-projection-batch.json).
+
+Checklist: 1,587 complete / 25 open (1,612 total); TODO: 286 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

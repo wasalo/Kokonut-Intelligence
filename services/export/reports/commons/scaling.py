@@ -20,11 +20,69 @@ def generate_scaling_economics(conn, location_id: str = None, period_start: str 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         if network_scope:
-            cur.execute("SELECT * FROM v_public_farm_launch_unit_economics ORDER BY target_region, economics_name")
+            cur.execute(
+                """
+                SELECT id,
+                       location_id,
+                       source_scaling_milestone_id,
+                       economics_name,
+                       farm_model,
+                       target_region,
+                       planned_farm_count,
+                       planned_hectares,
+                       expected_beneficiary_count,
+                       setup_cost_usd,
+                       first_year_operating_cost_usd,
+                       verification_overhead_usd,
+                       total_launch_cost_usd,
+                       cost_per_farm_usd,
+                       cost_per_hectare_usd,
+                       cost_per_beneficiary_usd,
+                       projected_annual_revenue_usd,
+                       projected_annual_noi_usd,
+                       projected_roi_pct,
+                       payback_months,
+                       launch_timeline_months,
+                       assumptions,
+                       evidence_confidence,
+                       public_summary,
+                       evidence_maturity,
+                       evidence_maturity_label,
+                       metadata
+                FROM v_public_farm_launch_unit_economics
+                ORDER BY target_region, economics_name
+                """
+            )
         else:
             cur.execute(
                 """
-                SELECT *
+                SELECT id,
+                       location_id,
+                       source_scaling_milestone_id,
+                       economics_name,
+                       farm_model,
+                       target_region,
+                       planned_farm_count,
+                       planned_hectares,
+                       expected_beneficiary_count,
+                       setup_cost_usd,
+                       first_year_operating_cost_usd,
+                       verification_overhead_usd,
+                       total_launch_cost_usd,
+                       cost_per_farm_usd,
+                       cost_per_hectare_usd,
+                       cost_per_beneficiary_usd,
+                       projected_annual_revenue_usd,
+                       projected_annual_noi_usd,
+                       projected_roi_pct,
+                       payback_months,
+                       launch_timeline_months,
+                       assumptions,
+                       evidence_confidence,
+                       public_summary,
+                       evidence_maturity,
+                       evidence_maturity_label,
+                       metadata
                 FROM v_public_farm_launch_unit_economics
                 WHERE location_id = %s::uuid
                 ORDER BY target_region, economics_name
@@ -105,7 +163,23 @@ def generate_adoption_barriers(conn, location_id: str = None, period_start: str 
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   assessment_date,
+                   barrier_category,
+                   barrier_name,
+                   affected_scope,
+                   severity,
+                   likelihood,
+                   resolution_status,
+                   owner_role,
+                   mitigation_plan,
+                   estimated_mitigation_cost_usd,
+                   target_resolution_date,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_adoption_barrier_assessment
             WHERE (location_id = %s OR location_id IS NULL)
               AND (%s::date IS NULL OR assessment_date >= %s::date)
@@ -145,7 +219,26 @@ def generate_perpetual_value_stress(
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   financial_sustainability_plan_id,
+                   scenario_name,
+                   scenario_date,
+                   stress_type,
+                   revenue_change_pct,
+                   cost_change_pct,
+                   grant_delay_months,
+                   yield_change_pct,
+                   baseline_runway_months,
+                   downside_runway_months,
+                   baseline_noi_usd,
+                   downside_noi_usd,
+                   solvency_status,
+                   mitigation_actions,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_perpetual_value_stress_test
             WHERE (location_id = %s OR location_id IS NULL)
               AND (%s::date IS NULL OR scenario_date >= %s::date)

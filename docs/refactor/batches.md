@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,584 checklist items complete and 25
-open (1,609 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,587 checklist items complete and 25
+open (1,612 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -101,6 +101,28 @@ projections; no migration or data rollback is needed. Evidence:
 [batch](builds/2026-10-29-recovery/kernel-bio-factory-report-projection-batch.json).
 
 Checklist: 1,584 complete / 25 open (1,609 total); TODO: 283 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 99 strict private Gateway response contracts.
+MAN-CAP acceptance and capability classifications remain unchanged.
+
+### Latest local continuation — scaling-economics report projections — 29 October 2026
+
+- [x] Replace the farm-launch unit-economics wildcard in both network and
+  location branches with all 27 migration-040 view columns.
+- [x] Replace adoption-barrier wildcard with all 17 ordered fields; keep the
+  selected-location/shared-row predicate, period filter, and active count.
+- [x] Replace perpetual-value stress wildcard with all 20 ordered fields;
+  keep the selected-location/shared-row predicate, period filter, and status
+  aggregate.
+
+The approved synthetic/mock selection passes 1 test. Ruff, Python
+compilation, all three report inventories, capability validation, and diff
+checks pass. No database, candidate, provider, legacy service, or production
+resource was used. Rollback consists of reverting these three report query
+projections; no migration or data rollback is needed. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-scaling-report-projection-batch.json).
+
+Checklist: 1,587 complete / 25 open (1,612 total); TODO: 286 checked / 16
 open. The capability matrix remains 67 rows (24 baseline-retained,
 7 deployed, 36 prepared), with 99 strict private Gateway response contracts.
 MAN-CAP acceptance and capability classifications remain unchanged.

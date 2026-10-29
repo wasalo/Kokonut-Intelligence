@@ -73,13 +73,13 @@
         {
           "caller": "generate_adoption_barriers",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 101,
+          "line": 159,
           "depth": 1
         },
         {
           "caller": "generate_adoption_barriers",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 124,
+          "line": 198,
           "depth": 1
         },
         {
@@ -5478,19 +5478,19 @@
         {
           "caller": "generate_open_source_impact",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 185,
+          "line": 278,
           "depth": 1
         },
         {
           "caller": "generate_open_source_impact",
           "callee": "services/common/database.py:query",
-          "line": 186,
+          "line": 279,
           "depth": 1
         },
         {
           "caller": "generate_open_source_impact",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 209,
+          "line": 302,
           "depth": 1
         },
         {
@@ -5517,7 +5517,7 @@
           "caller_sites": [
             {
               "caller": "generate_open_source_impact",
-              "line": 186
+              "line": 279
             }
           ],
           "sql_inventory": "caller callsite in the direct report inventory or helper query site"
@@ -5875,13 +5875,13 @@
         {
           "caller": "generate_perpetual_value_stress",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 141,
+          "line": 215,
           "depth": 1
         },
         {
           "caller": "generate_perpetual_value_stress",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 168,
+          "line": 261,
           "depth": 1
         },
         {
@@ -8386,13 +8386,13 @@
         {
           "caller": "generate_scaling_economics",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 86,
+          "line": 144,
           "depth": 1
         },
         {
           "caller": "generate_scaling_economics",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 87,
+          "line": 145,
           "depth": 1
         },
         {
