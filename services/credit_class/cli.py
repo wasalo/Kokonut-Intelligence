@@ -419,10 +419,11 @@ def main():
     if not args.command:
         parser.print_help()
         sys.exit(1)
-    if args.command == "enrollment" and args.subcommand == "list-by-project":
+    location_id = getattr(args, "location_id", None)
+    if location_id is not None:
         try:
-            UUID(args.location_id)
-        except ValueError:
+            args.location_id = str(UUID(location_id))
+        except (AttributeError, TypeError, ValueError):
             parser.error("--location-id must be a valid UUID")
     args.func(args)
 

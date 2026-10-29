@@ -1862,6 +1862,27 @@ Checklist: 1,503 complete / 25 open (1,528 total); TODO: 209 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
 
 
+### Completed parallel continuation — solution lifecycle gates and CLI UUID preflight — 28 October 2026
+
+- [x] Add a strict request-bound response contract for the private
+  solution-lifecycle gate page, including its exact migration projection,
+  bounded maturity, unique IDs, stable order, pagination, and continuation.
+- [x] Preflight and canonicalize location UUIDs for all 13 database-backed
+  Analytics CLI operations before module dispatch or database access.
+- [x] Apply the same fail-before-dispatch UUID contract to Credit Class batch
+  and enrollment location operations.
+
+The combined Gateway/CLI regression selection passes 159 tests. Ruff,
+compilation, matrix validation, and diff checks pass. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-cli-boundaries.json).
+Strict private Gateway response contracts: 82; CLI location UUID preflight:
+27 groups. No live database/provider was used; this does not prove tenant row
+isolation or populated parity.
+
+Checklist: 1,506 complete / 25 open (1,531 total); TODO: 212 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
 ### Completed parallel continuation — operating-pilot response, report scope, and CLI preflight — 28 October 2026
 
 - [x] Add strict request-bound OpenAPI/runtime response contracts for the

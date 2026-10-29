@@ -1,9 +1,17 @@
 """OIDC routes for location-scoped solution lifecycle reads."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    model_validator,
+)
 
 
 def _solution_response_uuid(value):
@@ -46,6 +54,82 @@ class SolutionRetirementCandidatesResponse(BaseModel):
                 raise ValueError("Retirement candidate continuation is inconsistent")
         elif self.next_offset is not None:
             raise ValueError("Terminal retirement candidate page cannot continue")
+        return self
+
+
+_SolutionStage = Literal[
+    "discovered", "triaged", "framed", "experiment_ready", "testing",
+    "validated", "investment_ready", "funded", "pilot_active",
+    "adoption_ready", "adopting", "scaled", "maintained", "paused",
+    "superseded", "retired", "failed",
+]
+
+
+class SolutionLifecycleGateItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused", "retired", "superseded"]
+    gate_id: _SolutionResponseUUID
+    from_stage: _SolutionStage
+    to_stage: _SolutionStage
+    gate_criterion: str | None = Field(max_length=4000)
+    required_evidence_maturity: int | None = Field(
+        default=None, ge=1, le=6, strict=True
+    )
+    required_experiment_count: int = Field(ge=0, strict=True)
+    requires_human_approval: bool = Field(strict=True)
+    gate_status: Literal["draft", "ready", "approved", "failed", "retired"]
+    gate_created_at: AwareDatetime
+    latest_evaluation_passed: bool | None = Field(strict=True)
+    latest_evaluated_at: AwareDatetime | None
+
+    @model_validator(mode="after")
+    def validate_latest_evaluation(self):
+        if (self.latest_evaluation_passed is None) != (
+            self.latest_evaluated_at is None
+        ):
+            raise ValueError("Latest solution gate evaluation fields are inconsistent")
+        return self
+
+
+class SolutionLifecycleGatePageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    gates: list[SolutionLifecycleGateItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more:
+            if not self.gates or self.next_offset is None:
+                raise ValueError("Solution gate continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal solution gate page cannot continue")
+        seen_gate_ids = set()
+        previous = None
+        for gate in self.gates:
+            if gate.gate_id in seen_gate_ids:
+                raise ValueError("Solution gate page contains a duplicate gate")
+            seen_gate_ids.add(gate.gate_id)
+            if previous is not None and (
+                previous.gate_created_at < gate.gate_created_at
+                or (
+                    previous.gate_created_at == gate.gate_created_at
+                    and previous.gate_id.int > gate.gate_id.int
+                )
+            ):
+                raise ValueError("Solution gate page order is inconsistent")
+            previous = gate
         return self
 
 
@@ -4669,7 +4753,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/gates")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/gates",
+        response_model=SolutionLifecycleGatePageResponse,
+    )
     async def location_solution_lifecycle_gates(
         request: Request,
         location_id: str,
@@ -4717,7 +4804,42 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution lifecycle gates unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        except Exception as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution lifecycle gates unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution lifecycle gates unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        try:
+            validated = SolutionLifecycleGatePageResponse.model_validate(result)
+            expected_location = UUID(location_id)
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != expected_location
+                or validated.offset != offset
+                or validated.next_offset != expected_next_offset
+                or len(validated.gates) > limit
+            ):
+                raise ValueError("Solution gate response does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution lifecycle gate response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution lifecycle gates unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get(
         "/operator/api/solution-lifecycle/{location_id}/stage-transition-targets"

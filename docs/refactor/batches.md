@@ -5934,3 +5934,28 @@ parity remain separate gates. Evidence:
 
 Checklist: 1,503 complete / 25 open (1,528 total); TODO: 209 checked / 16
 open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+
+### Completed parallel continuation — solution lifecycle gate contract and CLI UUID preflight — 28 October 2026
+
+- [x] Add a strict request-bound response contract to the private
+  `GET /operator/api/solution-lifecycle/{location_id}/gates` page. Validate its
+  exact 16-field projection, requested location and pagination, maturity range,
+  unique gate IDs, SQL ordering, and exact continuation semantics.
+- [x] Validate and canonicalize location UUIDs for all 13 database-backed
+  Analytics CLI commands before module dispatch or database access while
+  preserving each command's missing-scope error.
+- [x] Validate and canonicalize Credit Class batch and enrollment location
+  arguments before dispatch; malformed IDs fail before database access.
+
+The combined Gateway and CLI regression selection passes 159 tests. Ruff,
+Python compilation, capability-matrix validation, and `git diff --check` pass.
+The capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); strict private Gateway response endpoints now total 82, and 27 CLI
+groups have location UUID preflight. No database, provider, candidate, legacy
+service, or live network was used. The response contract and UUID guards do not
+prove tenant row-level isolation, live OIDC, or populated-data parity. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-cli-boundaries.json).
+
+Checklist: 1,506 complete / 25 open (1,531 total); TODO: 212 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.

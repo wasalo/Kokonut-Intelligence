@@ -1,5 +1,6 @@
 """Tests for the location-scoped solution lifecycle Gateway projection."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -33,6 +34,30 @@ SUMMARY = {
     "learning_decision_counts": {"accepted": 1},
     "retirement_status_counts": {"proposed": 1},
 }
+
+
+def _gate_projection(
+    gate_id="e0000000-0000-4000-8000-000000000001",
+    created_at=datetime(2026, 10, 18, tzinfo=timezone.utc),
+):
+    return {
+        "solution_id": "c0000000-0000-4000-8000-000000000001",
+        "solution_name": "Soil cover",
+        "solution_type": "practice",
+        "current_stage": "testing",
+        "solution_status": "active",
+        "gate_id": gate_id,
+        "from_stage": "testing",
+        "to_stage": "validated",
+        "gate_criterion": "Independent field measurements support the expected outcome.",
+        "required_evidence_maturity": 3,
+        "required_experiment_count": 2,
+        "requires_human_approval": True,
+        "gate_status": "ready",
+        "gate_created_at": created_at,
+        "latest_evaluation_passed": True,
+        "latest_evaluated_at": datetime(2026, 10, 19, tzinfo=timezone.utc),
+    }
 
 
 class _Connection:
@@ -1009,12 +1034,7 @@ def test_adoption_route_policy_uses_the_exact_solution_location_read_grant():
 def test_gate_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch):
     from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
 
-    gate = {
-        "solution_id": "c0000000-0000-4000-8000-000000000001",
-        "solution_name": "Soil cover",
-        "gate_id": "e0000000-0000-4000-8000-000000000001",
-        "gate_status": "ready",
-    }
+    gate = _gate_projection()
     monkeypatch.setattr(
         "services.gateway.solution_lifecycle_reads.list_location_solution_gates",
         lambda *_args, **_kwargs: {
@@ -1046,6 +1066,27 @@ def test_gate_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch)
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["gates"][0]["gate_status"] == "ready"
+    gate_schema = app.openapi()["paths"][
+        "/operator/api/solution-lifecycle/{location_id}/gates"
+    ]["get"]["responses"]["200"]
+    assert gate_schema["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/SolutionLifecycleGatePageResponse"
+    )
+    schemas = app.openapi()["components"]["schemas"]
+    page_schema = schemas["SolutionLifecycleGatePageResponse"]
+    assert set(page_schema["properties"]) == {
+        "location_id", "offset", "gates", "has_more", "next_offset"
+    }
+    assert page_schema["additionalProperties"] is False
+    item_schema = schemas["SolutionLifecycleGateItemResponse"]
+    assert set(item_schema["properties"]) == {
+        "solution_id", "solution_name", "solution_type", "current_stage",
+        "solution_status", "gate_id", "from_stage", "to_stage",
+        "gate_criterion", "required_evidence_maturity",
+        "required_experiment_count", "requires_human_approval", "gate_status",
+        "gate_created_at", "latest_evaluation_passed", "latest_evaluated_at",
+    }
+    assert item_schema["additionalProperties"] is False
 
     disabled = FastAPI()
     disabled_router = APIRouter()
@@ -1056,6 +1097,183 @@ def test_gate_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch)
         no_oidc = client.get(path)
     assert no_oidc.status_code == 404
     assert no_oidc.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda page: page.update(location_id="d0000000-0000-4000-8000-000000000001"),
+        lambda page: page.update(offset=4),
+        lambda page: page.update(gates=[{}, {}]),
+        lambda page: page.update(
+            gates=[{**_gate_projection(), "required_evidence_maturity": 0}]
+        ),
+        lambda page: page.update(
+            gates=[{**_gate_projection(), "required_evidence_maturity": 7}]
+        ),
+        lambda page: page.update(unexpected="private"),
+        lambda page: page.update(
+            gates=[
+                _gate_projection(
+                    "e0000000-0000-4000-8000-000000000001",
+                    datetime(2026, 10, 18, tzinfo=timezone.utc),
+                ),
+                _gate_projection(
+                    "e0000000-0000-4000-8000-000000000002",
+                    datetime(2026, 10, 19, tzinfo=timezone.utc),
+                ),
+            ],
+            has_more=True,
+            next_offset=7,
+        ),
+        lambda page: page.update(
+            gates=[
+                _gate_projection(),
+                _gate_projection(
+                    created_at=datetime(2026, 10, 17, tzinfo=timezone.utc)
+                ),
+            ],
+            has_more=True,
+            next_offset=7,
+        ),
+        lambda page: page.update(
+            gates=[
+                _gate_projection("e0000000-0000-4000-8000-000000000002"),
+                _gate_projection("e0000000-0000-4000-8000-000000000001"),
+            ],
+            has_more=True,
+            next_offset=7,
+        ),
+    ],
+    ids=[
+        "wrong-location", "wrong-offset", "malformed-item", "low-maturity",
+        "high-maturity", "extra-field", "out-of-order", "tie-break-order",
+        "duplicate-gate-id",
+    ],
+)
+def test_gate_http_route_rejects_malformed_projection_with_generic_no_store_error(
+    monkeypatch, mutation
+):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    page = {
+        "location_id": LOCATION_ID,
+        "offset": 5,
+        "gates": [],
+        "has_more": False,
+        "next_offset": None,
+    }
+    mutation(page)
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.list_location_solution_gates",
+        lambda *_args, **_kwargs: page,
+    )
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/gates"
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": "2", "offset": "5"})
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution lifecycle gates unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_gate_http_route_binds_continuation_to_requested_limit(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    gate = _gate_projection()
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.list_location_solution_gates",
+        lambda *_args, **_kwargs: {
+            "location_id": LOCATION_ID,
+            "offset": 5,
+            "gates": [gate],
+            "has_more": True,
+            "next_offset": 7,
+        },
+    )
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/gates"
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": "1", "offset": "5"})
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution lifecycle gates unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_gate_http_route_hides_unexpected_read_failure_and_sets_no_store(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    def fail_read(*_args, **_kwargs):
+        raise RuntimeError("sensitive database detail")
+
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.list_location_solution_gates",
+        fail_read,
+    )
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/gates"
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Solution lifecycle gates unavailable"}
+    assert "sensitive database detail" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
 
 
 def test_experiment_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch):

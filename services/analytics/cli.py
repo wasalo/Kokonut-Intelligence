@@ -94,6 +94,12 @@ def main():
         if getattr(args, attr):
             if not args.location_id:
                 parser.error(f"--{attr.replace('_', '-')} requires --location-id")
+            try:
+                args.location_id = str(UUID(args.location_id))
+            except (AttributeError, TypeError, ValueError):
+                parser.error(
+                    f"--location-id must be a valid UUID for --{attr.replace('_', '-')}"
+                )
             from importlib import import_module
 
             mod = import_module(f"services.analytics.{module_name}")
