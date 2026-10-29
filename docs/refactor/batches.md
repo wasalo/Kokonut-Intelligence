@@ -8098,3 +8098,25 @@ Checklist: 1,815 complete / 25 open (1,840 total); TODO: 468 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 165. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — operating-pilot resource fulfillment response contract — 29 October 2026
+
+- [x] Publish the strict OpenAPI/runtime response for separate resource
+  fulfillment confirmation.
+- [x] Bind location and resource-request IDs to the path and allow only the
+  closed/fulfilled result defined by the migration.
+- [x] Preserve replay behavior and keep fulfillment distinct from approval,
+  payment, and inventory execution.
+- [x] Sanitize malformed/mismatched service output and retain no-store
+  handling; add the approved focused route/OpenAPI checks.
+- [x] Record machine-readable evidence and reconcile progress ledgers.
+
+The focused selection passes 7 tests (316 unrelated tests deselected). Ruff,
+Python compilation, capability-matrix validation, and diff checks pass. No
+database, provider, candidate, or legacy state was used. Evidence:
+[resource fulfillment response contract](builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-response-contract.json).
+
+Checklist: 1,820 complete / 25 open (1,845 total); TODO: 471 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 166. C2 remains open for broader route/auth and live-runtime parity.

@@ -24418,3 +24418,17 @@ database or provider was used. Checklist: 1,815 complete / 25 open; TODO: 468
 checked / 16 open; strict private Gateway response contracts total 165.
 Evidence:
 [work-claim lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-work-claim-lifecycle-response-contracts.json).
+
+### Progress addendum — operating-pilot resource fulfillment response contract — 29 October 2026
+
+The separately authorized resource-fulfillment operation now has a strict
+OpenAPI/runtime response model. It binds location and resource-request IDs to
+the route and accepts only the migration's `closed` status with `fulfilled`
+decision. The response keeps fulfillment distinct from approval, payment, and
+inventory execution, preserves exact replay, and sanitizes malformed results
+with a no-store 503. The approved mock-only selection passes 7 tests (316
+unrelated tests deselected). Ruff, Python compilation, capability validation,
+and diff checks pass. No database or provider was used. Checklist: 1,820
+complete / 25 open; TODO: 471 checked / 16 open; strict private Gateway
+response contracts total 166. Evidence:
+[resource fulfillment response contract](builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-response-contract.json).

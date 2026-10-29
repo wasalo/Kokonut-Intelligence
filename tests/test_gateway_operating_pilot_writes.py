@@ -4598,6 +4598,7 @@ def _resource_fulfillment_route_app(monkeypatch, action, provider=object()):
 
 def test_resource_fulfillment_http_route_is_exact_and_no_store(monkeypatch):
     action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
         "resource_request_id": PROFILE_ID,
         "status": "closed",
         "decision": "fulfilled",
@@ -4611,8 +4612,72 @@ def test_resource_fulfillment_http_route_is_exact_and_no_store(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["decision"] == "fulfilled"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "resource_request_id": PROFILE_ID,
+        "status": "closed",
+        "decision": "fulfilled",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotResourceFulfillmentResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID)
+
+
+def test_resource_fulfillment_replay_preserves_closed_fulfilled_state(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "resource_request_id": PROFILE_ID,
+            "status": "closed",
+            "decision": "fulfilled",
+            "replayed": True,
+        }
+    )
+    client = _resource_fulfillment_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}/fulfill",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"resource_request_id": REQUEST_ID},
+        {"status": "approved"},
+        {"private_fulfiller_party_id": OPERATOR_ID},
+    ],
+)
+def test_resource_fulfillment_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "resource_request_id": PROFILE_ID,
+        "status": "closed",
+        "decision": "fulfilled",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _resource_fulfillment_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}/fulfill",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating resource fulfillment unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_resource_fulfillment_http_route_rejects_extra_payload_fields(monkeypatch):

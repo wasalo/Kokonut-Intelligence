@@ -267,6 +267,18 @@ class OperatingPilotResourceReviewDecisionResponse(BaseModel):
     replayed: bool
 
 
+class OperatingPilotResourceFulfillmentResponse(BaseModel):
+    """Minimal response for independently confirmed resource fulfillment."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    resource_request_id: _ResponseUUID
+    status: Literal["closed"]
+    decision: Literal["fulfilled"]
+    replayed: bool
+
+
 class OperatingPilotCompetencyDraftCreateResponse(BaseModel):
     """Minimal response for creating or replaying a private competency draft."""
 
@@ -4574,7 +4586,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill"
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill",
+        response_model=OperatingPilotResourceFulfillmentResponse,
     )
     async def fulfill_operating_pilot_resource_request(
         request: Request, location_id: str, resource_request_id: str
@@ -4651,7 +4664,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource fulfillment unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotResourceFulfillmentResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.resource_request_id != UUID(resource_request_id)
+            ):
+                raise ValueError("Resource fulfillment response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-fulfillment response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource fulfillment unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
         "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/review",

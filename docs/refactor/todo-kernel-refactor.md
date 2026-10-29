@@ -3196,3 +3196,17 @@ capability-matrix validation, and diff checks pass. No database or provider was
 used. Checklist: 468 checked / 16 open; strict private Gateway response
 contracts total 165. Evidence:
 `builds/2026-10-29-recovery/operating-pilot-work-claim-lifecycle-response-contracts.json`.
+
+## Completed — operating-pilot resource fulfillment response, 29 October
+
+- [x] Add the strict OpenAPI/runtime fulfillment response and bind request
+  identities to the location/resource path.
+- [x] Preserve the migration's closed/fulfilled lifecycle and exact replay
+  while returning only a sanitized no-store error on malformed output.
+- [x] Run the approved focused checks, record evidence, and reconcile ledgers.
+
+The focused route selection passes 7 tests; Ruff, Python compilation,
+capability-matrix validation, and diff checks pass. No database or provider was
+used. Checklist: 471 checked / 16 open; strict private Gateway response
+contracts total 166. Evidence:
+`builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-response-contract.json`.
