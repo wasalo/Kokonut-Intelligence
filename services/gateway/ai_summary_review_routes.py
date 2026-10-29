@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, model_validator
 
+from services.gateway.ai_summary_contracts import AiSummarySourceReference
+
 _SOURCE_TABLE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 
 
@@ -42,23 +44,6 @@ class _StrictResponseModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
-class AiSummarySourceReference(_StrictResponseModel):
-    record_ids: list[StrictUuid] = Field(max_length=50)
-    row_count: int = Field(ge=0, le=9_223_372_036_854_775_807)
-    truncated: bool
-    scope: Literal["location", "network", "location_or_network"] | None = None
-
-    @model_validator(mode="after")
-    def validate_counts(self):
-        if len(set(self.record_ids)) != len(self.record_ids):
-            raise ValueError("Source-reference IDs must be unique")
-        if self.row_count < len(self.record_ids):
-            raise ValueError("Source-reference row count is smaller than its sample")
-        if self.truncated != (self.row_count > len(self.record_ids)):
-            raise ValueError("Source-reference truncation flag is inconsistent")
-        return self
-
-
 class AiSummaryReviewItem(_StrictResponseModel):
     summary_id: StrictUuid
     summary_type: str | None = Field(
@@ -68,7 +53,7 @@ class AiSummaryReviewItem(_StrictResponseModel):
     content_truncated: bool
     source_tables: list[str] = Field(max_length=20)
     source_references: dict[str, AiSummarySourceReference] = Field(
-        max_length=10,
+        max_length=20,
         json_schema_extra={
             "propertyNames": {"pattern": _SOURCE_TABLE_PATTERN.pattern}
         },

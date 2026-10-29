@@ -6917,3 +6917,27 @@ Checklist: 1,629 complete / 25 open (1,654 total); TODO: 324 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 106. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — AI-summary draft response contract — 29 October 2026
+
+- [x] Publish the migration-aligned strict request and response schemas for
+  private operator AI-summary draft creation, including the four supported
+  summary types and exact success fields.
+- [x] Bind returned location and summary type to the request; validate the
+  governed lifecycle status, content limit, model metadata, unique source
+  tables, source-reference IDs/count/truncation, and scope labels.
+- [x] Reuse a shared source-reference contract in both draft and review routes;
+  reject malformed input before dispatch and malformed output with generic
+  no-store failures while preserving 201 creation and 200 replay.
+
+The focused AI-summary draft, task receipt, and human-review selection passes
+86 tests. Ruff, Python compilation, capability-matrix validation, and
+`git diff --check` pass. Tests use mocks and synthetic connections; no live
+database, provider, candidate, legacy, or production state was used. No
+migration is required. Rollback reverts the shared and route contracts, tests,
+and evidence; no database rollback is needed ([evidence](builds/2026-10-29-recovery/ai-summary-draft-response-contract.json)).
+
+Checklist: 1,632 complete / 25 open (1,657 total); TODO: 327 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 107. MAN-CAP acceptance is unchanged.

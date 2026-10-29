@@ -10,6 +10,17 @@ the batch log and the affected capability/progress records are updated.
 
 ## Completed in the current continuation
 
+- [x] Add the strict authenticated AI-summary draft request/response contract,
+  bind service output to the requested location/type, and validate lifecycle,
+  source lineage, and no-store failures
+  ([evidence](builds/2026-10-29-recovery/ai-summary-draft-response-contract.json)).
+- [x] Reuse one strict source-reference model across draft and review routes,
+  including bounded UUID samples, count/truncation consistency, and scope labels
+  ([same evidence](builds/2026-10-29-recovery/ai-summary-draft-response-contract.json)).
+- [x] Verify OpenAPI, malformed requests/responses, retries, and reviewed-state
+  replay with focused route tests; no live database or provider was used
+  ([same evidence](builds/2026-10-29-recovery/ai-summary-draft-response-contract.json)).
+
 - [x] Replace both callsites for the internal stakeholder cockpit and the
   coordination-cockpit wildcard with the exact migration-238 summary fields
   ([evidence](builds/2026-10-29-recovery/kernel-strategy-internal-cockpit-projections.json)).

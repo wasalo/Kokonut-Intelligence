@@ -404,7 +404,7 @@ def test_review_route_validates_response_and_documents_strict_projection():
     assert item_schema["properties"]["content"]["maxLength"] == 20000
     assert source_schema["additionalProperties"] is False
     assert source_schema["properties"]["record_ids"]["items"]["format"] == "uuid"
-    assert reference_map_schema["maxProperties"] == 10
+    assert reference_map_schema["maxProperties"] == 20
     assert reference_map_schema["propertyNames"]["pattern"] == "^[a-z][a-z0-9_]{0,62}$"
     assert source_schema["properties"]["scope"]["anyOf"][0]["enum"] == [
         "location",
@@ -430,14 +430,15 @@ def test_review_route_accepts_network_reference_scope_and_unregistered_worker_bl
 
     response_body = _valid_review_response()
     summary = response_body["summaries"][0]
-    summary["source_tables"] = ["network_scaling_target"]
+    summary["source_tables"] = [f"network_source_{index:02d}" for index in range(12)]
     summary["source_references"] = {
-        "network_scaling_target": {
+        table: {
             "record_ids": [REQUEST_ID],
             "row_count": 1,
             "truncated": False,
             "scope": "network",
         }
+        for table in summary["source_tables"]
     }
     summary["blocked_reasons"] = ["worker_task_unregistered"]
     summary["review_ready"] = False
@@ -450,8 +451,9 @@ def test_review_route_accepts_network_reference_scope_and_unregistered_worker_bl
     )
 
     assert response.status_code == 200
+    assert len(response.json()["summaries"][0]["source_references"]) == 12
     assert response.json()["summaries"][0]["source_references"][
-        "network_scaling_target"
+        "network_source_00"
     ]["scope"] == "network"
     assert response.json()["summaries"][0]["blocked_reasons"] == [
         "worker_task_unregistered"

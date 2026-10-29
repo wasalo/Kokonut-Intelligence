@@ -1,5 +1,27 @@
 ### Progress addendum — Data Stream draft-create Gateway contract — 29 October 2026
 
+### Progress addendum — AI-summary draft response contract — 29 October 2026
+
+The private, authenticated AI-summary draft route now publishes strict
+request/response schemas aligned with migrations 522, 523, and 540. It accepts
+only the four summary types supported by the generator and a UUID retry key,
+rejecting malformed or extra request fields before service dispatch. The
+response binds location and summary type to the request and validates its
+governed lifecycle state, bounded content, unique source tables, and bounded
+source-reference sample/count/truncation/scope fields. Draft and review routes
+now share the same provenance model. New drafts remain HTTP 201; idempotent
+replays remain HTTP 200, including summaries that have since been reviewed.
+Invalid output returns a generic no-store error.
+
+The focused AI-summary draft/task/review selection passes 86 tests. Ruff,
+Python compilation, capability-matrix validation, and `git diff --check` pass.
+These checks use mocks and synthetic connections only; no database, provider,
+candidate, legacy, or production state was used. No migration is needed, and
+rollback is source-only. Evidence:
+[focused checks](builds/2026-10-29-recovery/ai-summary-draft-response-contract.json).
+
+### Progress addendum — Data Stream draft-create Gateway contract — 29 October 2026
+
 The tenant-scoped Data Stream create route now documents and validates only
 `location_id`, a domain-supported post type, title, content, and optional
 timezone-aware expiry. The request cannot choose creator identity, lifecycle
