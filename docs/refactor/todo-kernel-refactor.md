@@ -848,6 +848,13 @@ Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-report-gateway-acce
   OpenAPI fields, request-bound location/study IDs, malformed-output rejection,
   NUMERIC(8,4) bounds, and 200/201 create/replay behavior
   ([evidence](builds/2026-10-29-recovery/delphi-study-item-response-contract.json)).
+- [x] Publish and validate a strict response for authenticated
+  `/api/health/services`; malformed probes fail with a generic no-store error,
+  and authorization remains before dependency probing
+  ([evidence](builds/2026-10-29-recovery/health-and-pest-projection-contracts.json)).
+- [x] Replace the pest-trend and biocontrol report wildcards with exact
+  migration-047 projections while preserving filters, binds, ordering, and
+  report output ([same evidence](builds/2026-10-29-recovery/health-and-pest-projection-contracts.json)).
 
 ## Code work to continue without owner input
 

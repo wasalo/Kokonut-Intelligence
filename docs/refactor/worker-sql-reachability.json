@@ -711,12 +711,12 @@
         "services/analytics/ecological_modeling.py:16:4",
         "services/analytics/ecological_modeling.py:52:4",
         "services/analytics/ecological_modeling.py:92:4",
-        "services/analytics/ecological_modeling_v2.py:114:4",
+        "services/analytics/ecological_modeling_v2.py:129:4",
         "services/analytics/ecological_modeling_v2.py:15:4",
-        "services/analytics/ecological_modeling_v2.py:166:4",
         "services/analytics/ecological_modeling_v2.py:181:4",
-        "services/analytics/ecological_modeling_v2.py:223:4",
-        "services/analytics/ecological_modeling_v2.py:58:4",
+        "services/analytics/ecological_modeling_v2.py:196:4",
+        "services/analytics/ecological_modeling_v2.py:238:4",
+        "services/analytics/ecological_modeling_v2.py:73:4",
         "services/analytics/livestock_feed.py:15:4",
         "services/analytics/livestock_feed.py:66:4",
         "services/analytics/organic_certification.py:125:4",
@@ -3669,9 +3669,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:58:4",
+      "id": "services/analytics/ecological_modeling_v2.py:73:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 58,
+      "line": 73,
       "scope": "compute_pest_trends",
       "method": "execute",
       "expression_kind": "literal",
@@ -3690,36 +3690,15 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:114:4",
+      "id": "services/analytics/ecological_modeling_v2.py:129:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 114,
+      "line": 129,
       "scope": "compute_biocontrol_effectiveness",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
         "biocontrol_release"
-      ],
-      "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
-      ],
-      "statically_reachable_operations": [
-        "isolated_worker:services.agents.worker_cli"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
-    },
-    {
-      "id": "services/analytics/ecological_modeling_v2.py:166:4",
-      "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 166,
-      "scope": "compute_resource_efficiency",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "resource_consumption"
       ],
       "import_closure_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -3740,6 +3719,27 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
+        "resource_consumption"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.agents.worker_cli"
+      ],
+      "statically_reachable_operations": [
+        "isolated_worker:services.agents.worker_cli"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/analytics/ecological_modeling_v2.py:196:4",
+      "source": "services/analytics/ecological_modeling_v2.py",
+      "line": 196,
+      "scope": "compute_resource_efficiency",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
         "ecological_harvest_event",
         "location"
       ],
@@ -3754,9 +3754,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:223:4",
+      "id": "services/analytics/ecological_modeling_v2.py:238:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 223,
+      "line": 238,
       "scope": "compute_conservation_status_summary",
       "method": "execute",
       "expression_kind": "literal",

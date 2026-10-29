@@ -886,7 +886,27 @@ def get_pest_management_report(
     location = cur.fetchone()
     cur.execute(
         """
-        SELECT * FROM v_public_pest_trends
+        SELECT id,
+               location_id,
+               location_name,
+               plot_id,
+               plot_name,
+               observation_date,
+               observation_month,
+               pest_species,
+               pest_common_name,
+               pest_category,
+               severity,
+               incidence_count,
+               affected_area_pct,
+               predator_count,
+               natural_enemy_present,
+               outbreak_probability_pct,
+               temperature_c,
+               humidity_pct,
+               notes,
+               status
+        FROM v_public_pest_trends
         WHERE location_id = %s
           AND (%s::date IS NULL OR observation_date >= %s::date)
           AND (%s::date IS NULL OR observation_date <= %s::date)
@@ -897,7 +917,23 @@ def get_pest_management_report(
     pest_trends = [dict(r) for r in cur.fetchall()]
     cur.execute(
         """
-        SELECT * FROM v_public_biocontrol_effectiveness
+        SELECT id,
+               location_id,
+               location_name,
+               plot_id,
+               plot_name,
+               release_date,
+               predator_species,
+               predator_common_name,
+               release_count,
+               target_pest,
+               follow_up_date,
+               follow_up_count,
+               effectiveness_pct,
+               pest_reduction_pct,
+               notes,
+               status
+        FROM v_public_biocontrol_effectiveness
         WHERE location_id = %s
           AND (%s::date IS NULL OR release_date >= %s::date)
           AND (%s::date IS NULL OR release_date <= %s::date)
@@ -2461,7 +2497,6 @@ def generate_ipm_audit(
 
     compliance = compute_ipm_compliance_score(conn, location_id, period_start, period_end)
 
-    ladder_types = [i["intervention_type"] for i in interventions]
     ipm_ladder_ok = chem_interventions <= total_interventions * 0.5 if total_interventions > 0 else True
 
     rotation_check = check_rotation(conn, location_id, "unknown")

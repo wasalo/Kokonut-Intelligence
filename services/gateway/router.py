@@ -12,6 +12,7 @@ from services.common.logging import get_logger
 
 try:
     from fastapi import APIRouter, Query, Request
+    from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from pydantic import (
         AwareDatetime,
@@ -49,6 +50,7 @@ try:
         PublicMetricSummary,
         PublicMetricSummaryEnvelope,
     )
+    from services.gateway.service_health_responses import ServiceHealthResponse
 
     class _DataStreamAttestationRecord(BaseModel):
         model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
@@ -773,15 +775,33 @@ async def list_public_drivers_v1(
         return _internal_error(exc)
 
 
-@router.get("/health/services")
+@router.get(
+    "/health/services",
+    response_model=ServiceHealthResponse,
+)
 async def service_health():
     """Get health status of all services."""
     try:
         from services.core.health import overall_health
+        from services.gateway.service_health_responses import ServiceHealthResponse
+
         result = overall_health()
-        return JSONResponse(content=result)
+        validated = ServiceHealthResponse.model_validate(result)
+        return JSONResponse(
+            content=jsonable_encoder(validated.model_dump(mode="python")),
+            headers={"Cache-Control": "no-store"},
+        )
     except Exception as exc:
-        return _internal_error(exc)
+        from services.common.logging import get_logger
+
+        get_logger("gateway.service_health").warning(
+            "Detailed service health response rejected (%s)", type(exc).__name__
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Service health unavailable"},
+            headers={"Cache-Control": "no-store"},
+        )
 
 
 @router.get(

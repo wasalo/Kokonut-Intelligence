@@ -7277,3 +7277,23 @@ Checklist: 1,676 complete / 25 open (1,701 total); TODO: 361 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 115. Broader C2/C4/C5 acceptance remains open.
+
+### Source continuation — health response and pest projections — 29 October 2026
+
+- [x] Validate authenticated `/api/health/services` against a strict
+  OpenAPI/runtime response contract, including dependency states, aggregate
+  consistency, sanitized no-store failure, and authorization before probing.
+- [x] Replace pest-trend and biocontrol `SELECT *` with ordered migration-047
+  columns; preserve location/date predicates, bind order, row shape, sorting,
+  and aggregate output.
+
+The health route selection passes 9 focused tests and the pest-report
+projection selection passes 2. Ruff, Python compilation, and diff checks pass.
+The changes use mocked responses/cursors only; no database, provider,
+candidate, or legacy service was used. Evidence:
+[health and pest contracts](builds/2026-10-29-recovery/health-and-pest-projection-contracts.json).
+
+Checklist: 1,678 complete / 23 open (1,701 total); TODO: 363 checked / 14
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 116. Broader C2/C4/C5 acceptance remains open.

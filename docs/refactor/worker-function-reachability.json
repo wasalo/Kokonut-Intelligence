@@ -15585,7 +15585,7 @@
           "qualname": "compute_biocontrol_effectiveness",
           "class_scope": null,
           "source": "services/analytics/ecological_modeling_v2.py",
-          "line": 111
+          "line": 126
         },
         {
           "key": "services.analytics.ecological_modeling_v2:compute_conservation_status_summary",
@@ -15593,7 +15593,7 @@
           "qualname": "compute_conservation_status_summary",
           "class_scope": null,
           "source": "services/analytics/ecological_modeling_v2.py",
-          "line": 220
+          "line": 235
         },
         {
           "key": "services.analytics.ecological_modeling_v2:compute_pest_trends",
@@ -15601,7 +15601,7 @@
           "qualname": "compute_pest_trends",
           "class_scope": null,
           "source": "services/analytics/ecological_modeling_v2.py",
-          "line": 55
+          "line": 70
         },
         {
           "key": "services.analytics.ecological_modeling_v2:compute_resource_efficiency",
@@ -15609,7 +15609,7 @@
           "qualname": "compute_resource_efficiency",
           "class_scope": null,
           "source": "services/analytics/ecological_modeling_v2.py",
-          "line": 163
+          "line": 178
         },
         {
           "key": "services.analytics.ecological_modeling_v2:compute_soil_input_retention",

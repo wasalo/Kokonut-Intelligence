@@ -2326,15 +2326,15 @@
       "candidate_relations": [
         "soil_input_application"
       ],
-      "static_sql_sha256": "70609491377c3ca7df49323081b25dd467bc0651739978fb482922c4a2a126b3",
+      "static_sql_sha256": "73503fc168f33ec216789f8de678f5c75f93fb675ba7e857cd6153e426373454",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli"
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:58:4",
+      "id": "services/analytics/ecological_modeling_v2.py:73:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 58,
+      "line": 73,
       "column": 4,
       "scope": "compute_pest_trends",
       "method": "execute",
@@ -2349,9 +2349,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:114:4",
+      "id": "services/analytics/ecological_modeling_v2.py:129:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 114,
+      "line": 129,
       "column": 4,
       "scope": "compute_biocontrol_effectiveness",
       "method": "execute",
@@ -2366,9 +2366,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:166:4",
+      "id": "services/analytics/ecological_modeling_v2.py:181:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 166,
+      "line": 181,
       "column": 4,
       "scope": "compute_resource_efficiency",
       "method": "execute",
@@ -2383,9 +2383,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:181:4",
+      "id": "services/analytics/ecological_modeling_v2.py:196:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 181,
+      "line": 196,
       "column": 4,
       "scope": "compute_resource_efficiency",
       "method": "execute",
@@ -2401,9 +2401,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:223:4",
+      "id": "services/analytics/ecological_modeling_v2.py:238:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 223,
+      "line": 238,
       "column": 4,
       "scope": "compute_conservation_status_summary",
       "method": "execute",

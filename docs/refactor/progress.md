@@ -23795,3 +23795,23 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 115. Broader C2/C4/C5, production OIDC, populated-data parity, and
 candidate/legacy migration acceptance remain open.
+
+### Progress addendum — health contract and pest projections — 29 October 2026
+
+The authenticated detailed health route now publishes and validates a strict
+OpenAPI response for dependency status, readiness, and aggregate counts. It
+returns generic no-store errors for malformed health output; authorization
+still runs before any dependency probe. Nine focused route checks pass.
+
+Pest-management reports now select the exact migration-047 columns from the
+pest-trend and biocontrol views instead of using wildcards. Location and
+optional period predicates, positional binds, descending order, result rows,
+and aggregate calculations are unchanged. Two focused mock-cursor checks pass.
+Ruff, compilation, and diff checks pass; the checks used mocks only. Evidence:
+[health and pest contracts](builds/2026-10-29-recovery/health-and-pest-projection-contracts.json).
+
+Checklist: 1,678 complete / 23 open (1,701 total); TODO: 363 checked / 14
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 116. Broader C2/C4/C5, production OIDC, populated-data parity, and
+candidate/legacy migration acceptance remain open.

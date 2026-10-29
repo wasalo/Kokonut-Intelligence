@@ -60,6 +60,133 @@ def test_anonymous_detailed_service_health_is_denied_without_probing(monkeypatch
     assert liveness.json()["status"] == "ok"
 
 
+def _service_health_fixture():
+    return {
+        "healthy": False,
+        "ready": False,
+        "version": "0.1.0",
+        "git_sha": "abc1234",
+        "critical_failures": 1,
+        "services": [
+            {
+                "service": "database",
+                "healthy": False,
+                "critical": True,
+                "message": "PostgreSQL unavailable",
+                "latency_ms": 12,
+                "checked_at": "2026-10-29T12:00:00+00:00",
+                "state": "checked",
+            },
+            {
+                "service": "clickhouse",
+                "healthy": True,
+                "critical": False,
+                "message": "Provider disabled",
+                "latency_ms": 0,
+                "checked_at": "2026-10-29T12:00:00+00:00",
+                "state": "disabled",
+            },
+            {
+                "service": "directus",
+                "healthy": True,
+                "critical": True,
+                "message": "Directus responding",
+                "latency_ms": 4,
+                "checked_at": "2026-10-29T12:00:00+00:00",
+                "state": "checked",
+            },
+            {
+                "service": "forecast_worker",
+                "healthy": True,
+                "critical": False,
+                "message": "No health check defined",
+                "latency_ms": 0,
+                "checked_at": "2026-10-29T12:00:00+00:00",
+                "state": "unmonitored",
+            },
+        ],
+    }
+
+
+def _configure_service_health_reader(monkeypatch):
+    monkeypatch.setenv("KOKONUT_API_KEYS", "health-key:health-reader")
+    monkeypatch.setenv(
+        "KOKONUT_API_KEY_SCOPES",
+        "health-reader:service_health:read",
+    )
+
+
+def test_detailed_service_health_validates_optional_critical_and_provider_states(
+    monkeypatch,
+):
+    _configure_service_health_reader(monkeypatch)
+    expected = _service_health_fixture()
+    monkeypatch.setattr("services.core.health.overall_health", lambda: expected)
+
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/health/services",
+            headers={"x-api-key": "health-key"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == expected
+    assert response.headers["cache-control"] == "no-store"
+    assert {item["state"] for item in response.json()["services"]} == {
+        "checked",
+        "disabled",
+        "unmonitored",
+    }
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda payload: payload.update(healthy=True),
+        lambda payload: payload.update(ready=True),
+        lambda payload: payload.update(critical_failures=0),
+        lambda payload: payload["services"].append(payload["services"][0]),
+        lambda payload: payload["services"][1].update(state="unknown"),
+        lambda payload: payload["services"][0].update(latency_ms=True),
+    ],
+    ids=["health-aggregate", "readiness-aggregate", "critical-count", "duplicate-service", "invalid-state", "boolean-latency"],
+)
+def test_detailed_service_health_rejects_inconsistent_or_malformed_output(
+    monkeypatch, caplog, mutate
+):
+    _configure_service_health_reader(monkeypatch)
+    result = _service_health_fixture()
+    mutate(result)
+    result["private_debug"] = "secret-health-marker"
+    monkeypatch.setattr("services.core.health.overall_health", lambda: result)
+
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/health/services",
+            headers={"x-api-key": "health-key"},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Service health unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "secret-health-marker" not in response.text
+    assert "secret-health-marker" not in caplog.text
+
+
+def test_detailed_service_health_openapi_declares_exact_response(monkeypatch):
+    schema = create_app().openapi()
+    operation = schema["paths"]["/api/health/services"]["get"]
+
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ServiceHealthResponse")
+    model = schema["components"]["schemas"]["ServiceHealthResponse"]
+    assert model["additionalProperties"] is False
+    assert set(model["required"]) == {
+        "healthy", "ready", "version", "git_sha", "critical_failures", "services"
+    }
+
+
 def test_mobile_upload_cors_requires_allowlisted_origin_and_allows_device_headers(monkeypatch):
     monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://collector.example")
     headers = {
