@@ -7483,3 +7483,19 @@ open (8 code work groups and 8 owner/environment gates). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
 populated-data parity, and live provider gates remain open.
+
+### Source continuation — standard Gateway credential OpenAPI contracts — 29 October 2026
+
+- [x] Document API-key and capability-token alternatives on private Data Stream
+  and detailed health routes; leave public catalog/liveness and opaque-device-
+  token mobile sync outside generic credential security.
+
+The focused OpenAPI selection passes two tests. Ruff, Python compilation, and
+diff checks pass. No database or provider was contacted. Evidence:
+[standard Gateway auth](builds/2026-10-29-recovery/gateway-standard-auth-openapi.json).
+
+Checklist: 1,697 complete / 25 open (1,722 total); TODO: 382 checked / 16
+open (8 code work groups and 8 owner/environment gates). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; strict private Gateway response contracts remain 116. C2/C4/C5,
+populated-data parity, and live provider gates remain open.

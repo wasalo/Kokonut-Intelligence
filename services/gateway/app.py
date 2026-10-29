@@ -568,17 +568,36 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     original_openapi = app.openapi
 
-    def openapi_with_operator_session_security():
-        """Describe the middleware-enforced session cookie on private operator APIs."""
+    def openapi_with_gateway_security():
+        """Document middleware-enforced credentials on private Gateway operations."""
         schema = app.openapi_schema or original_openapi()
         security_schemes = schema.setdefault("components", {}).setdefault(
             "securitySchemes", {}
         )
+        security_schemes["GatewayApiKey"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": "x-api-key",
+            "description": "Scoped Gateway service API key.",
+        }
+        security_schemes["GatewayCapabilityToken"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": "x-capability-token",
+            "description": "Resource-scoped Gateway capability token.",
+        }
         security_schemes["OperatorSessionCookie"] = {
             "type": "apiKey",
             "in": "cookie",
             "name": SESSION_COOKIE,
             "description": "HTTP-only OIDC operator session cookie.",
+        }
+        standard_private_operations = {
+            ("/api/health/services", "get"),
+            ("/api/data-stream/posts", "get"),
+            ("/api/data-stream/posts/{post_id}/files", "get"),
+            ("/api/data-stream/posts/{post_id}/attestation", "get"),
+            ("/api/data-stream/post", "post"),
         }
         for path, path_item in schema.get("paths", {}).items():
             for method, operation in path_item.items():
@@ -592,11 +611,16 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                 )
                 if private_operator_api or private_auth_session:
                     operation["security"] = [{"OperatorSessionCookie": []}]
+                elif (path, method) in standard_private_operations:
+                    operation["security"] = [
+                        {"GatewayApiKey": []},
+                        {"GatewayCapabilityToken": []},
+                    ]
 
         app.openapi_schema = schema
         return schema
 
-    app.openapi = openapi_with_operator_session_security
+    app.openapi = openapi_with_gateway_security
 
     logger.info("Gateway application created")
     return app

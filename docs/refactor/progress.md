@@ -23955,6 +23955,19 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts remain
 116. Production identity-provider and populated-data gates remain open.
 
+### Progress addendum — PRM outcome-correlation projection — 29 October 2026
+
+`outcome_correlation()` now selects migration 196's exact seven view columns
+and retains its sort order and serialized rows. The focused mock-cursor check
+passes; Ruff, compilation, and diff checks pass. No database/provider was
+contacted. Evidence:
+[PRM projection](builds/2026-10-29-recovery/prm-outcome-correlation-projection.json).
+
+Checklist: 1,695 complete / 25 open (1,720 total); TODO: 380 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.
+
 ### Progress addendum — strategy advantage performance projection — 29 October 2026
 
 `performance()` now selects migration 286's exact 15 view columns and
@@ -23968,15 +23981,17 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts remain
 116. Production identity-provider and populated-data gates remain open.
 
-### Progress addendum — PRM outcome-correlation projection — 29 October 2026
+### Progress addendum — standard Gateway credential OpenAPI contracts — 29 October 2026
 
-`outcome_correlation()` now selects migration 196's exact seven view columns
-and retains its sort order and serialized rows. The focused mock-cursor check
-passes; Ruff, compilation, and diff checks pass. No database/provider was
-contacted. Evidence:
-[PRM projection](builds/2026-10-29-recovery/prm-outcome-correlation-projection.json).
+OpenAPI now documents API-key or capability-token authentication for private
+Data Stream post/list/attachment/attestation and detailed health operations.
+Public drivers, lightweight liveness, and device-token Field Collector sync
+remain outside generic credential requirements. Two focused contract tests
+pass; Ruff, compilation, and diff checks pass. No database/provider was used.
+Evidence:
+[standard Gateway security](builds/2026-10-29-recovery/gateway-standard-auth-openapi.json).
 
-Checklist: 1,695 complete / 25 open (1,720 total); TODO: 380 checked / 16
+Checklist: 1,697 complete / 25 open (1,722 total); TODO: 382 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts remain
 116. Production identity-provider and populated-data gates remain open.

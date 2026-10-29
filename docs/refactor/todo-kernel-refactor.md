@@ -2864,3 +2864,11 @@ Checklist: 380 checked / 16 open. Evidence:
 
 Checklist: 381 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/strategy-advantage-performance-projection.json`.
+
+## Completed in the 29 October standard Gateway auth documentation continuation
+
+- [x] Publish API-key/capability-token alternatives for private Data Stream
+  and detailed health routes without marking public or device-token routes.
+
+Checklist: 382 checked / 16 open. Evidence:
+`builds/2026-10-29-recovery/gateway-standard-auth-openapi.json`.

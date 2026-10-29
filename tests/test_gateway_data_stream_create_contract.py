@@ -27,10 +27,11 @@ def _client(monkeypatch, tmp_path):
 
 def test_create_post_openapi_matches_source_types_and_exact_success_shape(monkeypatch, tmp_path):
     client = _client(monkeypatch, tmp_path)
-    operation = client.app.openapi()["paths"]["/api/data-stream/post"]["post"]
+    schema = client.app.openapi()
+    operation = schema["paths"]["/api/data-stream/post"]["post"]
     request_schema_ref = operation["requestBody"]["content"]["application/json"]["schema"]["$ref"]
     response_schema_ref = operation["responses"]["201"]["content"]["application/json"]["schema"]["$ref"]
-    schemas = client.app.openapi()["components"]["schemas"]
+    schemas = schema["components"]["schemas"]
     request_schema = schemas[request_schema_ref.rsplit("/", 1)[-1]]
     response_schema = schemas[response_schema_ref.rsplit("/", 1)[-1]]
 
@@ -45,6 +46,48 @@ def test_create_post_openapi_matches_source_types_and_exact_success_shape(monkey
     assert response_schema["additionalProperties"] is False
     assert set(response_schema["properties"]) == {"post_id"}
     assert "422" in operation["responses"]
+
+
+def test_private_standard_routes_document_alternative_gateway_credentials(
+    monkeypatch, tmp_path
+):
+    app = _client(monkeypatch, tmp_path).app
+    schema = app.openapi()
+    expected_security = [
+        {"GatewayApiKey": []},
+        {"GatewayCapabilityToken": []},
+    ]
+    schemes = schema["components"]["securitySchemes"]
+
+    assert schemes["GatewayApiKey"] == {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Scoped Gateway service API key.",
+    }
+    assert schemes["GatewayCapabilityToken"] == {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-capability-token",
+        "description": "Resource-scoped Gateway capability token.",
+    }
+    protected_operations = (
+        ("/api/data-stream/post", "post"),
+        ("/api/data-stream/posts", "get"),
+        ("/api/data-stream/posts/{post_id}/files", "get"),
+        ("/api/data-stream/posts/{post_id}/attestation", "get"),
+        ("/api/health/services", "get"),
+    )
+    for path, method in protected_operations:
+        assert schema["paths"][path][method]["security"] == expected_security
+
+    public_or_self_authenticated = (
+        ("/api/drivers", "get"),
+        ("/health", "get"),
+        ("/api/mobile/sync", "post"),
+    )
+    for path, method in public_or_self_authenticated:
+        assert "security" not in schema["paths"][path][method]
 
 
 def test_create_post_returns_only_the_draft_identifier_and_passes_allowlisted_input(
