@@ -2952,3 +2952,21 @@ Checklist: 398 checked / 16 open. Evidence:
 
 Checklist: 401 checked / 16 open. Evidence:
 `builds/2026-10-29-recovery/business-canvas-draft-create-contracts.json`.
+
+## Completed in the 29 October CRISP, pollinator, and governance-tension continuation
+
+- [x] Reject malformed, impossible, noncanonical, and reversed CRISP periods
+  before database access while preserving canonical valid periods
+  ([evidence](builds/2026-10-29-recovery/crisp-cli-period-preflight.json)).
+- [x] Add strict migration-aligned pollinator observation create/replay
+  response validation, request binding, OpenAPI schemas, and sanitized no-store
+  failures ([evidence](builds/2026-10-29-recovery/pollinator-observation-create-response-contract.json)).
+- [x] Add migration 688 for the missing governance-tension `created_at`
+  projection, pin service reads, and prove apply/replay plus real scoped sort
+  on disposable PostgreSQL 16
+  ([evidence](builds/2026-10-29-recovery/governance-tension-created-at-disposable.json)).
+- [x] Refresh runtime SQL inventory and reconcile capability/progress records.
+
+Checklist: 405 checked / 16 open. Capability matrix: 67 rows; 24
+baseline-retained, 7 deployed, 36 prepared. Strict private Gateway response
+contracts: 123.

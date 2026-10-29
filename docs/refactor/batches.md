@@ -7645,3 +7645,43 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts now
 total 122. C2/C4/C5, populated-data parity, and live provider gates remain
 open.
+
+### Source continuation — CRISP period, pollinator capture, and governance tension ordering — 29 October 2026
+
+- [x] Validate CRISP `--composite` and `--rate` dates before opening the
+  database, requiring canonical `YYYY-MM-DD` values and start on/before end.
+- [x] Preserve valid same-day and ordered period forwarding to the scorer.
+- [x] Verify malformed, impossible, noncanonical, and reversed periods fail
+  before database access with focused mock-only checks.
+- [x] Add exact migration-619 pollinator observation create/replay response
+  models to OpenAPI and validate the 9-field result at runtime.
+- [x] Bind pollinator response location and submitted observation fields to
+  the request; derive 201/200 only after validation and sanitize malformed
+  no-store responses.
+- [x] Verify the pollinator observation response shape, replay semantics,
+  request binding, malformed results, and no-store behavior with mock tests.
+- [x] Add migration 688 to append `created_at` to migration 244's tension
+  health view without editing the historical migration; pin the service's
+  detail/list projection to the resulting 29-column contract.
+- [x] Apply and replay migration 688 on disposable PostgreSQL 16; verify the
+  previous missing-column failure and the real service's scoped detail/list
+  queries and severity/urgency/time ordering.
+- [x] Refresh the runtime SQL inventory and record test, migration, matrix,
+  and rollback evidence.
+
+CRISP CLI preflight passes 36 focused tests. Pollinator observation response
+checks pass 12 focused tests (89 unrelated tests deselected). Migration 688
+passes five disposable PostgreSQL 16 assertions, including apply/replay,
+column order, old failure reproduction, scoped service ordering, and detail
+serialization. Ruff, compilation, runtime SQL inventory, capability matrix,
+and diff checks pass. Candidate and legacy databases and providers were not
+used. Evidence:
+[CRISP preflight](builds/2026-10-29-recovery/crisp-cli-period-preflight.json),
+[pollinator response](builds/2026-10-29-recovery/pollinator-observation-create-response-contract.json),
+and [migration 688](builds/2026-10-29-recovery/governance-tension-created-at-disposable.json).
+
+Checklist: 1,725 complete / 25 open (1,750 total); TODO: 410 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 123. C2/C4/C5, populated-data parity, and live provider gates remain
+open.

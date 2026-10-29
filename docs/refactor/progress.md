@@ -24110,3 +24110,32 @@ open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts now
 total 122. C2/C4/C5, populated-data parity, and live provider gates remain
 open.
+
+### Progress addendum — CRISP dates, pollinator capture, and tension ordering — 29 October 2026
+
+CRISP composite and rate commands now reject invalid/noncanonical dates and
+reversed ranges before connecting, with valid dates passed as canonical ISO
+strings. The pollinator observation capture route now validates the exact
+migration-619 nine-field response, binds location and submitted observation
+values, publishes created/replay OpenAPI responses, and returns generic
+no-store errors for malformed writer output. Migration 688 appends the
+existing `created_at` value to governance tension health, and the analytics
+service now explicitly selects the 29-column view contract. Migration 244 was
+left unchanged.
+
+The CRISP selection passes 36 tests; pollinator response checks pass 12 tests
+with 89 unrelated tests deselected. Migration 688 applies and replays on a
+disposable PostgreSQL 16 instance, reproduces the old missing-column error,
+and verifies actual list/detail service queries plus ordering in five
+assertions. Ruff, Python compilation, runtime SQL inventory, capability-matrix
+validation, and diff checks pass. Candidate and legacy databases were not
+contacted. Evidence:
+[CRISP](builds/2026-10-29-recovery/crisp-cli-period-preflight.json),
+[pollinator](builds/2026-10-29-recovery/pollinator-observation-create-response-contract.json),
+[migration 688](builds/2026-10-29-recovery/governance-tension-created-at-disposable.json).
+
+Checklist: 1,725 complete / 25 open (1,750 total); TODO: 405 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 123. C2/C4/C5, populated-data parity, and live provider gates remain
+open.
