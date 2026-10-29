@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,575 checklist items complete and 25
-open (1,600 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,584 checklist items complete and 25
+open (1,609 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -78,6 +78,29 @@ projection changes; no migration or data rollback is required. Evidence:
 [batch](builds/2026-10-29-recovery/kernel-wellbeing-risk-capital-governance-projections.json).
 
 Checklist: 1,580 complete / 25 open (1,605 total); TODO: 279 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 99 strict private Gateway response contracts.
+MAN-CAP acceptance and capability classifications remain unchanged.
+
+### Latest local continuation — Bio Factory public report projections — 29 October 2026
+
+- [x] Replace Bio Factory batch `SELECT *` with the exact 21-column
+  migration-043 projection; preserve scope, dates, order, and totals.
+- [x] Replace input provenance wildcard with the exact 20-column projection;
+  preserve selected/shared scope, order, and regional-origin aggregates.
+- [x] Replace recipe-library wildcard with its complete 23-column projection;
+  preserve location/shared scope, ordering, and recipe-type totals.
+- [x] Replace quality-test wildcard with its complete 18-column projection;
+  preserve location/shared scope, dates, ordering, and pass-rate behavior.
+
+The approved synthetic selection passes 1 focused test. Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+diff checks pass. No database, candidate, provider, legacy service, or
+production resource was used. Rollback consists of reverting the four
+projections; no migration or data rollback is needed. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-bio-factory-report-projection-batch.json).
+
+Checklist: 1,584 complete / 25 open (1,609 total); TODO: 283 checked / 16
 open. The capability matrix remains 67 rows (24 baseline-retained,
 7 deployed, 36 prepared), with 99 strict private Gateway response contracts.
 MAN-CAP acceptance and capability classifications remain unchanged.

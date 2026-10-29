@@ -23152,3 +23152,23 @@ Checklist: 1,580 complete / 25 open (1,605 total); TODO: 279 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — Bio Factory public report projections — 29 October 2026
+
+Bio Factory batch, input-provenance, recipe-library, and quality-test reports
+now select all 21, 20, 23, and 18 fields in migration 043's public views.
+The focused mock regression checks each projection and retains the existing
+location-plus-network and date predicates, ordering, serialization, regional
+input share, recipe breakdown, production totals, and quality pass rate.
+
+The focused selection passes 1 test. Ruff, compilation, all report
+inventories, matrix validation, and diff checks pass. No database, migration,
+provider, candidate, legacy service, or production resource was used. This
+does not prove populated-data parity, tenant isolation, live OIDC, or
+content-level privacy. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-bio-factory-report-projection-batch.json).
+
+Checklist: 1,584 complete / 25 open (1,609 total); TODO: 283 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

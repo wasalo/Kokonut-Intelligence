@@ -234,7 +234,7 @@
       "report_type": "bio_input_provenance",
       "callable": "generate_bio_input_provenance",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 57,
+      "source_line": 77,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -248,7 +248,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 64,
+          "line": 84,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -271,7 +271,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 66,
+          "line": 86,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -299,7 +299,7 @@
       "report_type": "bio_quality_test",
       "callable": "generate_bio_quality_test",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 157,
+      "source_line": 218,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -313,7 +313,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 164,
+          "line": 225,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -336,7 +336,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 166,
+          "line": 227,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -364,7 +364,7 @@
       "report_type": "bio_recipe_library",
       "callable": "generate_bio_recipe_library",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 115,
+      "source_line": 154,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -378,7 +378,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 124,
+          "line": 163,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -406,7 +406,7 @@
       "report_type": "bio_regional_input",
       "callable": "generate_bio_regional_input",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 201,
+      "source_line": 279,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -418,7 +418,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 205,
+          "line": 283,
           "report_type": "bio_regional_input",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -427,7 +427,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 206,
+          "line": 284,
           "method": "query",
           "sql_source": "static_or_resolved",
           "relations": [

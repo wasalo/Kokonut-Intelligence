@@ -2333,3 +2333,21 @@ Checklist: 1,580 complete / 25 open (1,605 total); TODO: 279 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 remain 99. MAN-CAP acceptance is unchanged.
+
+### Latest local continuation — Bio Factory public report projections — 29 October 2026
+
+- [x] Replace the Bio Factory batch wildcard with all 21 migration-043 fields.
+- [x] Replace input-provenance `SELECT *` with its complete 20-column view.
+- [x] Replace recipe-library `SELECT *` with its complete 23-column view.
+- [x] Replace quality-test `SELECT *` with its complete 18-column view.
+
+The focused synthetic selection passes 1 test. It validates exact field order,
+location-plus-network and date predicates, output payloads, and report
+aggregates. Ruff, Python compilation, report inventories, matrix validation,
+and diff checks pass. No database/provider or candidate was used. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-bio-factory-report-projection-batch.json).
+
+Checklist: 1,584 complete / 25 open (1,609 total); TODO: 283 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.

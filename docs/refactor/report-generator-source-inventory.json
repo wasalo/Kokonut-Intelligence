@@ -121,7 +121,7 @@
       "callable": "generate_bio_input_provenance",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 57,
+      "source_line": 77,
       "parameters": [
         "conn",
         "location_id",
@@ -143,7 +143,7 @@
       "callable": "generate_bio_quality_test",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 157,
+      "source_line": 218,
       "parameters": [
         "conn",
         "location_id",
@@ -165,7 +165,7 @@
       "callable": "generate_bio_recipe_library",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 115,
+      "source_line": 154,
       "parameters": [
         "conn",
         "location_id",
@@ -186,7 +186,7 @@
       "callable": "generate_bio_regional_input",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 201,
+      "source_line": 279,
       "parameters": [
         "conn",
         "location_id",

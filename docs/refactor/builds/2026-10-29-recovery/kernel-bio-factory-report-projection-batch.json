@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-29",
+  "base_commit": "6ab20c99",
+  "scope": "Four exact Bio Factory report projections from schema migration 043",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/test_bio_factory_operations.py::test_bio_factory_reports_use_exact_public_projections_and_preserve_payload"
+  ],
+  "python_test_result": {
+    "passed": 1,
+    "failed": 0
+  },
+  "checks": {
+    "ruff": "passed for changed source and test",
+    "python_compile": "passed for changed source and test",
+    "report_source_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "projections": {
+    "bio_factory_batch": "21 ordered public-view fields; preserves selected/shared scope predicate, date bounds, order, serialized rows, and weight/volume totals.",
+    "bio_input_provenance": "20 ordered public-view fields; preserves selected/shared scope predicate, order, source payload, and LAC source count/share.",
+    "bio_recipe_library": "23 ordered public-view fields; preserves selected/shared scope predicate, order, recipe data, and recipe-type breakdown.",
+    "bio_factory_quality_test": "18 ordered public-view fields; preserves selected/shared scope predicate, date bounds, order, and pass/fail aggregates."
+  },
+  "limitations": "One synthetic mocked source-contract regression only. No database, migration, candidate, legacy service, provider, or production resource was used. It does not establish populated-data parity, effective tenant isolation, live OIDC, or content-level privacy.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

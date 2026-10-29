@@ -22,7 +22,27 @@ def generate_bio_factory_batch(conn, location_id: str, period_start: str = None,
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   batch_name,
+                   batch_type,
+                   production_method,
+                   production_start_date,
+                   production_end_date,
+                   input_kg_total,
+                   output_kg_total,
+                   output_liters_total,
+                   batch_yield_pct,
+                   moisture_pct,
+                   temperature_c,
+                   ph_level,
+                   microbial_strain,
+                   public_summary,
+                   limitations,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_bio_factory_batch_summary
             WHERE (location_id = %s OR location_id IS NULL)
               AND (%s::date IS NULL OR production_start_date >= %s::date)
@@ -65,7 +85,26 @@ def generate_bio_input_provenance(conn, location_id: str, period_start: str = No
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   batch_id,
+                   input_name,
+                   input_category,
+                   supplier_name,
+                   supplier_verified,
+                   organic_certified,
+                   origin_country,
+                   origin_region,
+                   input_kg,
+                   nutrient_n_pct,
+                   nutrient_p_pct,
+                   nutrient_k_pct,
+                   quality_warnings,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_bio_input_provenance_summary
             WHERE (location_id = %s OR location_id IS NULL)
             ORDER BY input_category, input_name
@@ -123,7 +162,29 @@ def generate_bio_recipe_library(
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   recipe_name,
+                   recipe_type,
+                   recipe_category,
+                   description,
+                   ingredients,
+                   ratios,
+                   process_steps,
+                   fermentation_days,
+                   target_c_n_ratio,
+                   target_moisture_pct,
+                   target_temperature_c,
+                   target_ph,
+                   dilution_ratio,
+                   application_method,
+                   quality_warnings,
+                   source_reference,
+                   public_summary,
+                   limitations,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_bio_recipe_library_summary
             WHERE (location_id = %s OR location_id IS NULL)
             ORDER BY recipe_type, recipe_name
@@ -165,7 +226,24 @@ def generate_bio_quality_test(conn, location_id: str, period_start: str = None, 
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   batch_id,
+                   test_date,
+                   test_type,
+                   parameter_name,
+                   measured_value,
+                   unit,
+                   target_min,
+                   target_max,
+                   pass_fail,
+                   lab_name,
+                   lab_accredited,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_bio_factory_quality_test_summary
             WHERE (location_id = %s OR location_id IS NULL)
               AND (%s::date IS NULL OR test_date >= %s::date)
