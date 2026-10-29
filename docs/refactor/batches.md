@@ -8165,3 +8165,26 @@ Checklist: 1,830 complete / 25 open (1,855 total); TODO: 477 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 171. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — business-canvas edit response contracts — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime response models for draft block and
+  metadata edits, with exact migration-backed fields.
+- [x] Bind each result to its location/canvas path and enforce draft status,
+  expected-version increment, timezone-aware timestamp, replay semantics,
+  block name, and sorted allowlisted metadata fields.
+- [x] Return only validated output; malformed or mismatched service results
+  receive a sanitized no-store response.
+- [x] Add/run approved focused mock-only route/OpenAPI checks for both PATCH
+  routes, including rejection cases and exact retries.
+- [x] Record machine-readable evidence and reconcile the progress ledgers.
+
+The focused selection across business-canvas block edits, metadata edits, and
+version history passes 71 tests. Ruff, Python compilation, capability-matrix
+validation, and diff checks pass. No database, provider, candidate, or legacy
+state was used. Evidence: [business-canvas edit response contracts](builds/2026-10-29-recovery/business-canvas-edit-response-contracts.json).
+
+Checklist: 1,835 complete / 25 open (1,860 total); TODO: 480 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 173. C2 remains open for broader route/auth and live-runtime parity.

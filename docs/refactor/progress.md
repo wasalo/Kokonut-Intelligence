@@ -24464,3 +24464,20 @@ provider, candidate, or legacy state was used. Checklist: 1,830 complete / 25
 open; TODO: 477 checked / 16 open; strict private Gateway response contracts
 total 171. Evidence:
 [work-claim queue response contracts](builds/2026-10-29-recovery/operating-pilot-work-claim-queue-contracts.json).
+
+### Progress addendum — business-canvas edit response contracts — 29 October 2026
+
+The block-edit and metadata-edit PATCH routes now return strict migration-
+backed response projections in OpenAPI and at runtime. Both bind location and
+canvas IDs to the path, preserve draft-only lifecycle, require the returned
+version to equal the submitted expected version plus one for writes and exact
+retries, and require an aware update timestamp. Block names and metadata
+`changed_fields` are constrained to the migration-backed allowlists; metadata
+fields must match the submitted editable keys in sorted unique order. Invalid
+or mismatched service output is replaced with a generic no-store 503. The
+approved mock-only route/OpenAPI selection passes 71 tests. Ruff, Python
+compilation, capability validation, and diff checks pass. No database,
+provider, candidate, or legacy state was used. Checklist: 1,835 complete / 25
+open; TODO: 480 checked / 16 open; strict private Gateway response contracts
+total 173. Evidence:
+[business-canvas edit response contracts](builds/2026-10-29-recovery/business-canvas-edit-response-contracts.json).

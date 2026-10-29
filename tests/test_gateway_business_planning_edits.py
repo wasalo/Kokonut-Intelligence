@@ -376,6 +376,119 @@ def test_patch_route_returns_no_store_draft_edit(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["version"] == 2
+    assert response.json() == {
+        **monkeypatch_payload,
+        "updated_at": "2026-10-19T12:00:00Z",
+    }
+
+
+def test_block_edit_route_preserves_exact_replay_result(monkeypatch):
+    result = {
+        "location_id": LOCATION_ID,
+        "canvas_id": CANVAS_ID,
+        "block_name": "key_partners",
+        "status": "draft",
+        "version": 2,
+        "updated_at": EXPECTED_UPDATED_AT,
+        "replayed": True,
+    }
+    app = _app(monkeypatch, write=lambda *_a, **_k: result)
+    path = (
+        f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}"
+        "/blocks/key_partners"
+    )
+    with TestClient(app) as client:
+        response = client.patch(path, json=_payload())
+    assert response.status_code == 200
+    assert response.json()["version"] == 2
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result.update(location_id=str(uuid4())),
+        lambda result: result.update(canvas_id=str(uuid4())),
+        lambda result: result.update(status="submitted"),
+        lambda result: result.update(version=1),
+        lambda result: result.update(updated_at="2026-10-19T12:00:00"),
+        lambda result: result.update(replayed="false"),
+        lambda result: result.update(block_name="channels"),
+        lambda result: result.update(private_note="must not leak"),
+    ],
+)
+def test_patch_route_rejects_malformed_write_result_without_leaking(monkeypatch, mutate):
+    result = {
+        "location_id": LOCATION_ID,
+        "canvas_id": CANVAS_ID,
+        "block_name": "key_partners",
+        "status": "draft",
+        "version": 2,
+        "updated_at": EXPECTED_UPDATED_AT,
+        "replayed": False,
+    }
+    mutate(result)
+    app = _app(monkeypatch, write=lambda *_a, **_k: result)
+    path = (
+        f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}"
+        "/blocks/key_partners"
+    )
+
+    with TestClient(app) as client:
+        response = client.patch(path, json=_payload())
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Business canvas edit unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.headers["retry-after"] == "30"
+    assert "must not leak" not in response.text
+
+
+def test_canvas_edit_openapi_declares_exact_strict_write_models(monkeypatch):
+    app = _app(monkeypatch, write=lambda *_a, **_k: {})
+    paths = app.openapi()["paths"]
+    schemas = app.openapi()["components"]["schemas"]
+    block_operation = paths[
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/blocks/{block_name}"
+    ]["patch"]
+    metadata_operation = paths[
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/metadata"
+    ]["patch"]
+
+    assert block_operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/BusinessCanvasBlockEditResponse"
+    }
+    assert metadata_operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/BusinessCanvasMetadataEditResponse"
+    }
+    block_schema = schemas["BusinessCanvasBlockEditResponse"]
+    metadata_schema = schemas["BusinessCanvasMetadataEditResponse"]
+    common_fields = {"location_id", "canvas_id", "status", "version", "updated_at", "replayed"}
+    assert set(block_schema["properties"]) == common_fields | {"block_name"}
+    assert set(metadata_schema["properties"]) == common_fields | {"changed_fields"}
+    assert set(block_schema["required"]) == common_fields | {"block_name"}
+    assert set(metadata_schema["required"]) == common_fields | {"changed_fields"}
+    assert block_schema["additionalProperties"] is False
+    assert metadata_schema["additionalProperties"] is False
+    assert block_schema["properties"]["status"]["const"] == "draft"
+    assert block_schema["properties"]["block_name"]["enum"] == [
+        "key_partners",
+        "key_activities",
+        "key_resources",
+        "value_propositions",
+        "customer_relationships",
+        "channels",
+        "customer_segments",
+        "revenue_streams",
+        "cost_structure",
+    ]
+    assert metadata_schema["properties"]["changed_fields"]["items"]["enum"] == [
+        "canvas_name",
+        "description",
+        "fiscal_year",
+        "tags",
+    ]
 
 
 def test_patch_route_maps_invalid_body_and_tenant_denial(monkeypatch):

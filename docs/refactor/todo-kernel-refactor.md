@@ -3241,3 +3241,16 @@ compilation, capability-matrix validation, and diff checks pass. No database or
 provider was used. Checklist: 477 checked / 16 open; strict private Gateway
 response contracts total 171. Evidence:
 `builds/2026-10-29-recovery/operating-pilot-work-claim-queue-contracts.json`.
+
+## Completed — business-canvas edit response contracts, 29 October
+
+- [x] Add strict OpenAPI/runtime response models for both draft edit routes.
+- [x] Verify path/version/time/replay and allowlisted block/metadata binding,
+  including sanitized no-store rejection behavior.
+- [x] Record focused test evidence and update the capability/progress ledgers.
+
+The approved mock-only Gateway selection passes 71 tests; Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. No database
+or provider was used. Checklist: 480 checked / 16 open; strict private
+Gateway response contracts total 173. Evidence:
+`builds/2026-10-29-recovery/business-canvas-edit-response-contracts.json`.
