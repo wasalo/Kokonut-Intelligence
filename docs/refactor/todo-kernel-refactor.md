@@ -850,7 +850,7 @@ that its full source-plan phase is complete.
   table/column privilege violations. The observed report still has 992
   relations with effective DML while RLS is disabled, so broad runtime access
   and universal application tenant isolation remain open. ARM64/QEMU now also
-  replays all 672 schema files through migration 681 under network-disabled
+  replays all 675 schema files through migration 684 under network-disabled
   1.5 GiB/two-CPU limits, with zero pending/failed files and cleanup complete.
   That run did not execute the optional operator-scope probe; it is
   schema/portability evidence only, not ARM64 ACL-probe or physical Raspberry
