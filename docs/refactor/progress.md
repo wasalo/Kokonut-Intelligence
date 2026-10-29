@@ -24386,3 +24386,19 @@ pass. No database or provider was used. Checklist: 1,805 complete / 25 open;
 TODO: 462 checked / 16 open; strict private Gateway response contracts total
 159. Evidence:
 [learning-plan review/activation response contracts](builds/2026-10-29-recovery/operating-pilot-learning-plan-review-activation-response-contracts.json).
+
+### Progress addendum — operating-pilot learning-plan write response contracts — 29 October 2026
+
+Learning-plan draft create, revision, and submission now expose strict
+OpenAPI/runtime response models. Each binds the returned location and plan to
+the request path; first writes must remain draft or submitted as appropriate,
+while replays may reflect later valid lifecycle states. Revision responses
+include a timezone-aware `updated_at`. Create is declared HTTP 201 in OpenAPI,
+matching runtime behavior. These contracts complete the response layer across
+learning-plan create, revision, submission, review, and activation while
+keeping review and activation as independent transitions. The approved
+mock-only selection passes 32 tests (268 unrelated tests deselected). Ruff,
+Python compilation, capability validation, and diff checks pass. No database
+or provider was used. Checklist: 1,810 complete / 25 open; TODO: 465 checked /
+16 open; strict private Gateway response contracts total 162. Evidence:
+[learning-plan write response contracts](builds/2026-10-29-recovery/operating-pilot-learning-plan-write-response-contracts.json).

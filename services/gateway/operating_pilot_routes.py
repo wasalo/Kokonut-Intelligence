@@ -366,6 +366,58 @@ class OperatingPilotLearningPlanActivationResponse(BaseModel):
     replayed: bool
 
 
+class OperatingPilotLearningPlanDraftCreateResponse(BaseModel):
+    """Minimal response for creating or replaying an own learning-plan draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    status: Literal["draft", "submitted", "active", "completed", "paused", "cancelled"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_creation(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new learning-plan must remain a draft")
+        return self
+
+
+class OperatingPilotLearningPlanDraftRevisionResponse(BaseModel):
+    """Minimal response for revising an own learning-plan draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    status: Literal["draft", "submitted", "active", "completed", "paused", "cancelled"]
+    updated_at: _ResponseDateTime
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_revision(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new learning-plan revision must remain a draft")
+        return self
+
+
+class OperatingPilotLearningPlanDraftSubmissionResponse(BaseModel):
+    """Minimal response for submitting an own learning-plan draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    status: Literal["draft", "submitted", "active", "completed", "paused", "cancelled"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_submission(self):
+        if not self.replayed and self.status != "submitted":
+            raise ValueError("A new learning-plan submission must remain submitted")
+        return self
+
+
 def _response_decimal(value):
     if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
         raise ValueError("numeric value is invalid")
@@ -1966,7 +2018,11 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
         )
 
-    @router.post("/operator/api/operating-pilot/{location_id}/learning-plans")
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/learning-plans",
+        status_code=201,
+        response_model=OperatingPilotLearningPlanDraftCreateResponse,
+    )
     async def create_operating_pilot_learning_plan_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -2030,10 +2086,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotLearningPlanDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Learning-plan draft response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )
 
     @router.put(
-        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}"
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}",
+        response_model=OperatingPilotLearningPlanDraftRevisionResponse,
     )
     async def revise_operating_pilot_learning_plan_draft(
         request: Request, location_id: str, learning_plan_id: str
@@ -2101,10 +2177,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan revision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotLearningPlanDraftRevisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.learning_plan_id != UUID(learning_plan_id)
+            ):
+                raise ValueError("Learning-plan revision response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-revision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/submit"
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/submit",
+        response_model=OperatingPilotLearningPlanDraftSubmissionResponse,
     )
     async def submit_operating_pilot_learning_plan(
         request: Request, location_id: str, learning_plan_id: str
@@ -2176,18 +2275,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan submission unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        result_plan_id = result.get("learning_plan_id")
-        if (
-            not isinstance(result_plan_id, str)
-            or result_plan_id.lower() != learning_plan_id.lower()
-            or result.get("status") not in {"draft", "submitted", "active", "completed", "paused", "cancelled"}
-        ):
-            return JSONResponse(
-                status_code=409,
-                content={"error": "The learning plan is no longer pending submission; refresh your history"},
-                headers=headers,
+        try:
+            response = OperatingPilotLearningPlanDraftSubmissionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+            if (
+                response.location_id != UUID(location_id)
+                or response.learning_plan_id != UUID(learning_plan_id)
+            ):
+                raise ValueError("Learning-plan submission response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-submission response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
         "/operator/api/operating-pilot/{location_id}/competency-assessments",

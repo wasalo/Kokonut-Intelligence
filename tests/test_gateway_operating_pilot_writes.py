@@ -1042,7 +1042,12 @@ def test_competency_draft_rejects_malformed_response(monkeypatch, update):
     assert response.headers["retry-after"] == "30"
 def test_learning_plan_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
     action = MagicMock(
-        return_value={"learning_plan_id": PROFILE_ID, "status": "draft", "replayed": False}
+        return_value={
+            "location_id": LOCATION_ID,
+            "learning_plan_id": PROFILE_ID,
+            "status": "draft",
+            "replayed": False,
+        }
     )
     client = _route_app(
         monkeypatch,
@@ -1058,11 +1063,71 @@ def test_learning_plan_draft_http_route_passes_request_id_and_uses_no_store(monk
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == {
+        "location_id": LOCATION_ID,
         "learning_plan_id": PROFILE_ID,
         "status": "draft",
         "replayed": False,
     }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/learning-plans"
+    ]["post"]["responses"]["201"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotLearningPlanDraftCreateResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, LEARNING_PLAN_PAYLOAD)
+
+
+def test_learning_plan_draft_replay_preserves_current_lifecycle(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "learning_plan_id": PROFILE_ID,
+            "status": "cancelled",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch, action, "create_location_operating_pilot_learning_plan_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans",
+        json={**LEARNING_PLAN_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "cancelled"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"status": "submitted"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_learning_plan_draft_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch, action, "create_location_operating_pilot_learning_plan_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans",
+        json={**LEARNING_PLAN_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating learning-plan draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_learning_plan_draft_http_route_rejects_oversized_body_before_database(monkeypatch):
@@ -1122,7 +1187,17 @@ def test_learning_plan_revision_http_route_uses_edit_own_and_returns_no_store(mo
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
-    assert response.json() == action.return_value
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "draft",
+        "updated_at": "2026-10-24T12:01:00Z",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}"
+    ]["put"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotLearningPlanDraftRevisionResponse")
     action.assert_called_once_with(
         OPERATOR_ID,
         LOCATION_ID,
@@ -1130,6 +1205,70 @@ def test_learning_plan_revision_http_route_uses_edit_own_and_returns_no_store(mo
         REQUEST_ID,
         LEARNING_PLAN_REVISION_PAYLOAD,
     )
+
+
+def test_learning_plan_revision_replay_preserves_current_lifecycle_and_timestamp(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "learning_plan_id": PROFILE_ID,
+            "status": "active",
+            "updated_at": "2026-10-24T12:01:00+00:00",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch,
+        action,
+        "revise_location_operating_pilot_learning_plan_draft",
+    )
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}",
+        json={**LEARNING_PLAN_REVISION_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "active"
+    assert response.json()["replayed"] is True
+    assert response.json()["updated_at"] == "2026-10-24T12:01:00Z"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"learning_plan_id": REQUEST_ID},
+        {"status": "submitted"},
+        {"updated_at": "invalid"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_learning_plan_revision_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "draft",
+        "updated_at": "2026-10-24T12:01:00+00:00",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch,
+        action,
+        "revise_location_operating_pilot_learning_plan_draft",
+    )
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}",
+        json={**LEARNING_PLAN_REVISION_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating learning-plan revision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_learning_plan_revision_route_policy_requires_exact_location_edit_own_grant():
@@ -1162,6 +1301,10 @@ def test_learning_plan_submission_http_route_uses_submit_own_and_returns_no_stor
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == action.return_value
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/submit"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotLearningPlanDraftSubmissionResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID.upper(), REQUEST_ID)
 
 
@@ -1182,6 +1325,37 @@ def test_learning_plan_submission_http_route_replay_accepts_current_lifecycle_st
     assert response.status_code == 200
     assert response.json()["status"] == "active"
     assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"learning_plan_id": REQUEST_ID},
+        {"status": "active"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_learning_plan_submission_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "submit_location_operating_pilot_learning_plan")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating learning-plan submission unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_learning_plan_submission_rejects_oversized_body_before_database(monkeypatch):

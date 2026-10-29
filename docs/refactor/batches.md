@@ -8051,3 +8051,27 @@ Checklist: 1,805 complete / 25 open (1,830 total); TODO: 462 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 159. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — operating-pilot learning-plan write response contracts — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime responses for learning-plan draft create,
+  revision, and submission.
+- [x] Bind location and plan IDs to request paths and validate the revision
+  timestamp plus first-write lifecycle states.
+- [x] Preserve lifecycle state on replay and keep the separate review and
+  activation transitions intact.
+- [x] Declare HTTP 201 for draft creation in OpenAPI, matching runtime, and
+  return only the validated projection.
+- [x] Add/run the approved focused mock-only lifecycle checks and record
+  machine-readable evidence.
+
+The focused selection across create, revision, submission, review, and
+activation passes 32 tests (268 unrelated tests deselected). Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. No database,
+provider, candidate, or legacy state was used. Evidence:
+[learning-plan write response contracts](builds/2026-10-29-recovery/operating-pilot-learning-plan-write-response-contracts.json).
+
+Checklist: 1,810 complete / 25 open (1,835 total); TODO: 465 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 162. C2 remains open for broader route/auth and live-runtime parity.

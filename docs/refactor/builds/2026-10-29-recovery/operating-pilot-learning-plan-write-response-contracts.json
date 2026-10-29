@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for operating-pilot learning-plan draft create, revision, submission, review, and activation response contracts.",
+  "command": "python3 -m pytest -q tests/test_gateway_operating_pilot_writes.py -k 'learning_plan_draft_http_route or learning_plan_draft_replay or learning_plan_draft_rejects_malformed_response or learning_plan_revision_http_route or learning_plan_revision_replay or learning_plan_revision_rejects_malformed_response or learning_plan_submission_http_route or learning_plan_submission_replay or learning_plan_submission_rejects_malformed_response or learning_plan_review_http_route or learning_plan_review_replay or learning_plan_review_rejects_malformed_response or learning_plan_activation_http_route or learning_plan_activation_replay or learning_plan_activation_rejects_malformed_response'",
+  "result": {
+    "passed": 32,
+    "failed": 0,
+    "deselected": 268
+  },
+  "coverage": [
+    "OpenAPI publishes strict create, revision, submission, review, and activation response schemas",
+    "Responses bind location and learning-plan identities to the request path",
+    "New create/revision results remain draft and new submissions remain submitted; replay preserves later lifecycle state",
+    "Revision output includes a valid timezone-aware updated_at timestamp",
+    "Review maps approval to submitted and rejection to draft; activation is a separate active transition",
+    "Malformed, mismatched, or undeclared output returns sanitized no-store 503",
+    "The documented create status is HTTP 201, matching runtime behavior"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}
