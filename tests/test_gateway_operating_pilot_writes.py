@@ -18,6 +18,7 @@ OPERATOR_ID = "a0000000-0000-4000-8000-000000000001"
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
 REQUEST_ID = "c0000000-0000-4000-8000-000000000001"
 PROFILE_ID = "d0000000-0000-4000-8000-000000000001"
+CLAIM_ID = "e0000000-0000-4000-8000-000000000001"
 CAPACITY_PAYLOAD = {
     "period_start": "2026-11-01",
     "period_end": "2026-11-30",
@@ -831,6 +832,258 @@ def _route_app(monkeypatch, action, operation="create_location_operating_pilot_d
         return await call_next(request)
 
     return TestClient(app)
+
+
+def test_work_claim_proposal_route_publishes_strict_response_and_binds_work_item(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "work_item_id": PROFILE_ID,
+            "claim_id": CLAIM_ID,
+            "status": "proposed",
+            "replayed": False,
+        }
+    )
+    client = _route_app(monkeypatch, action, "claim_location_operating_pilot_work")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-opportunities/{PROFILE_ID}/claims",
+        json={"request_id": REQUEST_ID, "proposed_effort_hours": "12.5"},
+    )
+
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/work-opportunities/{work_item_id}/claims"
+    ]["post"]["responses"]["201"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotWorkClaimProposalResponse")
+    action.assert_called_once_with(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        {"proposed_effort_hours": "12.5"},
+    )
+
+
+def test_work_claim_proposal_replay_preserves_current_claim_status(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "work_item_id": PROFILE_ID,
+            "claim_id": CLAIM_ID,
+            "status": "withdrawn",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "claim_location_operating_pilot_work")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-opportunities/{PROFILE_ID}/claims",
+        json={"request_id": REQUEST_ID, "proposed_effort_hours": "12.5"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "withdrawn"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"work_item_id": REQUEST_ID},
+        {"status": "accepted"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_work_claim_proposal_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "work_item_id": PROFILE_ID,
+        "claim_id": CLAIM_ID,
+        "status": "proposed",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "claim_location_operating_pilot_work")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-opportunities/{PROFILE_ID}/claims",
+        json={"request_id": REQUEST_ID, "proposed_effort_hours": "12.5"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating work-claim proposal unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+
+
+def test_work_claim_review_route_publishes_decision_response_and_binds_claim(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "claim_id": CLAIM_ID,
+            "status": "accepted",
+            "replayed": False,
+        }
+    )
+    client = _route_app(monkeypatch, action, "review_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "accepted"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotWorkClaimReviewResponse")
+    action.assert_called_once_with(
+        OPERATOR_ID,
+        LOCATION_ID,
+        CLAIM_ID,
+        REQUEST_ID,
+        {"decision": "accepted"},
+    )
+
+
+def test_work_claim_review_replay_preserves_rejection(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "claim_id": CLAIM_ID,
+            "status": "rejected",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "review_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "rejected", "reason": "Not eligible"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "rejected"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"claim_id": REQUEST_ID},
+        {"status": "proposed"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_work_claim_review_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "claim_id": CLAIM_ID,
+        "status": "accepted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "review_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "accepted"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating work-claim review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+
+
+def test_work_claim_allocation_route_publishes_separate_allocation_response(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "claim_id": CLAIM_ID,
+            "work_item_id": PROFILE_ID,
+            "allocation_status": "allocated",
+            "replayed": False,
+        }
+    )
+    client = _route_app(monkeypatch, action, "allocate_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/allocate",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/allocate"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotWorkClaimAllocationResponse")
+    action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, CLAIM_ID, REQUEST_ID)
+
+
+def test_work_claim_allocation_replay_preserves_allocated_state(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "claim_id": CLAIM_ID,
+            "work_item_id": PROFILE_ID,
+            "allocation_status": "allocated",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "allocate_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/allocate",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["allocation_status"] == "allocated"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"claim_id": REQUEST_ID},
+        {"allocation_status": "open"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_work_claim_allocation_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "claim_id": CLAIM_ID,
+        "work_item_id": PROFILE_ID,
+        "allocation_status": "allocated",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "allocate_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/allocate",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating work-claim allocation unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_demand_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):

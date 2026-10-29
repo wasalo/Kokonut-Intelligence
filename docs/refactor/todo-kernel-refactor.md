@@ -3182,3 +3182,17 @@ compilation, capability-matrix validation, and diff checks pass. No database
 or provider was used. Checklist: 465 checked / 16 open; strict private Gateway
 response contracts total 162. Evidence:
 `builds/2026-10-29-recovery/operating-pilot-learning-plan-write-response-contracts.json`.
+
+## Completed — operating-pilot work-claim lifecycle responses, 29 October
+
+- [x] Add strict OpenAPI/runtime response models for proposal, independent
+  review, and separate allocation.
+- [x] Verify path binding, lifecycle states, replay, HTTP status, and sanitized
+  no-store failures with focused Gateway checks.
+- [x] Record machine-readable evidence and reconcile progress ledgers.
+
+The approved focused selection passes 18 tests; Ruff, Python compilation,
+capability-matrix validation, and diff checks pass. No database or provider was
+used. Checklist: 468 checked / 16 open; strict private Gateway response
+contracts total 165. Evidence:
+`builds/2026-10-29-recovery/operating-pilot-work-claim-lifecycle-response-contracts.json`.

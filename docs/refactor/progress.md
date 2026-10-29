@@ -24402,3 +24402,19 @@ Python compilation, capability validation, and diff checks pass. No database
 or provider was used. Checklist: 1,810 complete / 25 open; TODO: 465 checked /
 16 open; strict private Gateway response contracts total 162. Evidence:
 [learning-plan write response contracts](builds/2026-10-29-recovery/operating-pilot-learning-plan-write-response-contracts.json).
+
+### Progress addendum — operating-pilot work-claim lifecycle response contracts — 29 October 2026
+
+Work-claim proposal, independent review, and separate allocation now expose
+strict OpenAPI/runtime responses. The proposal binds its work item to the
+request path and remains `proposed` on first write; an exact replay may report
+the claim's later valid state. Review is limited to `accepted` or `rejected`,
+and allocation returns the distinct `allocated` status. Every route binds its
+location and claim/work-item IDs and sanitizes invalid service output with a
+no-store 503. The proposal remains HTTP 201 in both OpenAPI and runtime. The
+approved mock-only selection passes 18 tests (300 unrelated tests deselected).
+Ruff, Python compilation, capability validation, and diff checks pass. No
+database or provider was used. Checklist: 1,815 complete / 25 open; TODO: 468
+checked / 16 open; strict private Gateway response contracts total 165.
+Evidence:
+[work-claim lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-work-claim-lifecycle-response-contracts.json).

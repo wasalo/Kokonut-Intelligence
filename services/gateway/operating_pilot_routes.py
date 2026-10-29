@@ -418,6 +418,47 @@ class OperatingPilotLearningPlanDraftSubmissionResponse(BaseModel):
         return self
 
 
+class OperatingPilotWorkClaimProposalResponse(BaseModel):
+    """Minimal response for a self-attributed work-claim proposal."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    work_item_id: _ResponseUUID
+    claim_id: _ResponseUUID
+    status: Literal["proposed", "accepted", "rejected", "withdrawn"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_proposal(self):
+        if not self.replayed and self.status != "proposed":
+            raise ValueError("A new work claim must remain proposed")
+        return self
+
+
+class OperatingPilotWorkClaimReviewResponse(BaseModel):
+    """Minimal response for an independent work-claim decision."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    claim_id: _ResponseUUID
+    status: Literal["accepted", "rejected"]
+    replayed: bool
+
+
+class OperatingPilotWorkClaimAllocationResponse(BaseModel):
+    """Minimal response for separately allocating an accepted work claim."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    claim_id: _ResponseUUID
+    work_item_id: _ResponseUUID
+    allocation_status: Literal["allocated"]
+    replayed: bool
+
+
 def _response_decimal(value):
     if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
         raise ValueError("numeric value is invalid")
@@ -1384,7 +1425,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review"
+        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review",
+        response_model=OperatingPilotWorkClaimReviewResponse,
     )
     async def review_location_operating_pilot_work_claim_route(
         request: Request,
@@ -1471,7 +1513,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim review unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotWorkClaimReviewResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.claim_id != UUID(claim_id)
+            ):
+                raise ValueError("Work-claim review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-claim-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating work-claim review unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.get(
         "/operator/api/operating-pilot/{location_id}/work-claim-allocation-queue"
@@ -1537,7 +1601,8 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/allocate"
+        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/allocate",
+        response_model=OperatingPilotWorkClaimAllocationResponse,
     )
     async def allocate_location_operating_pilot_work_claim_route(
         request: Request,
@@ -1617,7 +1682,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim allocation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotWorkClaimAllocationResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.claim_id != UUID(claim_id)
+            ):
+                raise ValueError("Work-claim allocation response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-claim-allocation response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating work-claim allocation unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.put(
         "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}",
@@ -5117,7 +5204,9 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/work-opportunities/{work_item_id}/claims"
+        "/operator/api/operating-pilot/{location_id}/work-opportunities/{work_item_id}/claims",
+        status_code=201,
+        response_model=OperatingPilotWorkClaimProposalResponse,
     )
     async def claim_location_operating_pilot_work_route(
         request: Request,
@@ -5204,4 +5293,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim proposal unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotWorkClaimProposalResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.work_item_id != UUID(work_item_id)
+            ):
+                raise ValueError("Work-claim proposal response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-claim-proposal response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating work-claim proposal unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )

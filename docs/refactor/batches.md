@@ -8075,3 +8075,26 @@ Checklist: 1,810 complete / 25 open (1,835 total); TODO: 465 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 now total 162. C2 remains open for broader route/auth and live-runtime parity.
+
+### Source continuation — operating-pilot work-claim lifecycle response contracts — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime response models for self-claim proposal,
+  independent review, and separate allocation.
+- [x] Bind location/work-item/claim identities to their paths and enforce
+  first-proposal, review, and allocation states.
+- [x] Preserve idempotent replay behavior without merging review and allocation
+  into one transition.
+- [x] Return sanitized no-store errors for malformed, mismatched, or
+  undeclared service output; retain the existing HTTP 201 proposal status.
+- [x] Add/run approved focused mock-only route/OpenAPI acceptance and record
+  machine-readable evidence.
+
+The focused selection passes 18 tests (300 unrelated tests deselected). Ruff,
+Python compilation, capability-matrix validation, and diff checks pass. No
+database, provider, candidate, or legacy state was used. Evidence:
+[work-claim lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-work-claim-lifecycle-response-contracts.json).
+
+Checklist: 1,815 complete / 25 open (1,840 total); TODO: 468 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 165. C2 remains open for broader route/auth and live-runtime parity.
