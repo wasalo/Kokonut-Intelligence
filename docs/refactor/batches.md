@@ -7814,7 +7814,35 @@ open. Evidence:
 The focused selection passes 20 tests. Ruff, Python compilation, capability
 matrix, and diff checks pass. No database, candidate, legacy service, or
 provider was used. Current checklist: 1,755 complete / 25 open (1,780 total);
-TODO: 431 checked / 16 open. The last pushed feature head is
-`ef0de332e89f9ea189e10a58fc2cb26d58a69c6a`; hosted statuses are separate from
-this unpushed slice. Evidence:
+TODO: 431 checked / 16 open. The lifecycle slice was pushed as
+`ff59afa40a2800f75afd2ae79cee2526db278044`; hosted statuses are separate from
+that pushed head. Evidence:
 [lifecycle response contracts](builds/2026-10-29-recovery/delphi-study-lifecycle-response-contracts.json).
+
+### Source continuation — Delphi participant write response contracts — 29 October 2026
+
+- [x] Add strict OpenAPI/runtime models for invite preview and participant
+  consent acceptance/withdrawal.
+- [x] Add exact response models for questionnaire contribution and
+  participant minority-report submission.
+- [x] Validate lifecycle states, aware timestamps, consent scopes, UUIDs,
+  replay flags, and returned contribution-item binding.
+- [x] Preserve secure cookie creation/clearing and sanitize malformed
+  responses without exposing participant or service fields.
+- [x] Run focused mock-only Gateway/OpenAPI checks across all three existing
+  participant route suites.
+- [x] Record the acceptance result and reconcile the C2 and progress ledgers.
+
+The three participant route suites pass 56 tests. Coverage includes all five
+strict response schemas, exact fields, accepted/withdrawn/submitted states,
+timestamp validity, contribution request binding, 201/200 replay behavior,
+no-store failure handling, and session-cookie creation/clearing behavior.
+Ruff, Python compilation, response-schema generation, capability-matrix
+validation, and diff checks pass. No database, provider, candidate, or legacy
+state was used. Evidence:
+[participant response contracts](builds/2026-10-29-recovery/delphi-participant-write-response-contracts.json).
+
+Checklist: 1,761 complete / 25 open (1,786 total); TODO: 434 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 138. C2 remains open for broader route/auth and live-runtime parity.

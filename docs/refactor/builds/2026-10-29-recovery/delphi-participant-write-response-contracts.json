@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for strict Delphi participant invite and write response contracts.",
+  "command": "python3 -m pytest -q tests/test_gateway_delphi_participant_acceptance.py tests/test_gateway_delphi_participant_workspace.py tests/test_gateway_delphi_participant_minority_reports.py",
+  "result": {
+    "passed": 56,
+    "failed": 0,
+    "deselected": 0
+  },
+  "coverage": [
+    "Invite preview publishes a strict six-field OpenAPI/runtime response and rejects undeclared participant data",
+    "Consent acceptance validates its five public fields and expiry window before setting secure session and CSRF cookies",
+    "Withdrawal validates status and timestamp before clearing participant cookies",
+    "Questionnaire contribution publishes an exact five-field schema and binds the returned item ID to the request",
+    "Minority-report submission publishes an exact four-field schema and preserves 201/200 replay semantics",
+    "Malformed service results return sanitized no-store responses without echoing private fields or setting acceptance cookies"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service responses and in-process FastAPI TestClient; no live participant session or external service."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "response_schema_generation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

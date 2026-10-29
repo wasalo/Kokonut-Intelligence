@@ -24238,3 +24238,20 @@ capability validation, and diff checks pass. No database or provider was used.
 Checklist: 1,755 complete / 25 open; TODO: 431 checked / 16 open; strict
 private Gateway response contracts total 133. Evidence:
 [lifecycle response contracts](builds/2026-10-29-recovery/delphi-study-lifecycle-response-contracts.json).
+
+### Progress addendum — Delphi participant write response contracts — 29 October 2026
+
+Strict OpenAPI/runtime response models are implemented for invite preview,
+consent acceptance and withdrawal, questionnaire contribution, and minority-
+report submission. They bind fixed lifecycle states, identifiers, timestamps,
+consent scopes, and replay status to the migration-backed service outputs.
+Malformed success data receives a sanitized no-store 503; consent tokens are
+not set when acceptance output is invalid, and withdrawal cookies are cleared
+only after a valid withdrawal response. The three focused participant route
+suites pass 56 tests, including OpenAPI fields, lifecycle/replay behavior,
+request binding, malformed response rejection, and cookie behavior. Ruff,
+Python compilation, schema generation, capability-matrix validation, and diff
+checks pass; no database or provider was used. Checklist: 1,761 complete / 25
+open; TODO: 434 checked / 16 open; strict private Gateway response contracts
+total 138. Evidence:
+[participant response contracts](builds/2026-10-29-recovery/delphi-participant-write-response-contracts.json).

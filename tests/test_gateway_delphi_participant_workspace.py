@@ -273,7 +273,11 @@ def test_contribution_route_forwards_only_valid_fields_and_supports_retry_status
             "replayed": len(calls) > 1,
         }
 
-    client = TestClient(_app(run_in_threadpool), base_url="https://testserver")
+    app = _app(run_in_threadpool)
+    schema = app.openapi()["paths"]["/api/participation/delphi/contributions"]["post"][
+        "responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("DelphiParticipantContributionResponse")
+    client = TestClient(app, base_url="https://testserver")
     client.cookies.set("kokonut_delphi_participant_session", SESSION,
                        path="/api/participation/delphi")
     client.cookies.set("kokonut_delphi_participant_csrf", CSRF,
@@ -291,7 +295,41 @@ def test_contribution_route_forwards_only_valid_fields_and_supports_retry_status
     )
     assert response.status_code == 201 and replay.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    assert set(response.json()) == {
+        "status", "item_id", "contribution_id", "updated_at", "replayed"
+    }
     assert SESSION not in response.text and CSRF not in response.text
     assert calls[0][0] is workspace.submit_location_delphi_participant_contribution
     assert calls[0][1] == (SESSION, CSRF, ITEM, 0.5, "private", REQUEST)
     assert calls[0][2] == {}
+
+
+def test_contribution_response_is_bound_to_item_and_sanitized_on_failure():
+    async def run_in_threadpool(*_args, **_kwargs):
+        return {
+            "status": "submitted",
+            "item_id": str(uuid4()),
+            "contribution_id": str(uuid4()),
+            "updated_at": "2026-10-25T12:00:00Z",
+            "replayed": False,
+            "participant_id": "private",
+        }
+
+    client = TestClient(_app(run_in_threadpool), base_url="https://testserver")
+    client.cookies.set(
+        "kokonut_delphi_participant_session", SESSION,
+        path="/api/participation/delphi",
+    )
+    client.cookies.set(
+        "kokonut_delphi_participant_csrf", CSRF,
+        path="/api/participation/delphi",
+    )
+    response = client.post(
+        "/api/participation/delphi/contributions",
+        headers={"X-Kokonut-CSRF": CSRF},
+        json={"item_id": ITEM, "score": 0.5, "reasoning": None, "request_id": REQUEST},
+    )
+    assert response.status_code == 503
+    assert response.json() == {"error": "Delphi participant service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "participant_id" not in response.text
