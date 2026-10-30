@@ -27,7 +27,13 @@ def refresh_active_locations() -> dict:
             result = run_job("climate", location_id=location_id)
             outcome = {"location_id": location_id, "returncode": 0, "output": result["output"][-200:]}
         except JobFailed as exc:
-            outcome = {"location_id": location_id, "returncode": exc.returncode, "output": exc.output[-200:]}
+            # Child stderr may contain provider credentials or diagnostic data.
+            # Keep the aggregate retry report useful without persisting it.
+            outcome = {
+                "location_id": location_id,
+                "returncode": exc.returncode,
+                "output": str(exc),
+            }
         except subprocess.TimeoutExpired:
             outcome = {"location_id": location_id, "returncode": None, "output": "Climate command timed out"}
         results.append(outcome)

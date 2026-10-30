@@ -1361,6 +1361,11 @@ populated tenant isolation, and production state remain outside the report
   historical bounded output attribute. Its focused 41-test JobSpec contract
   module passes; no live provider or scheduler was exercised
   ([evidence](builds/2026-10-30-recovery/provider-job-error-and-catalog-parity.json)).
+  The climate fan-out now also records only the safe `JobFailed` message in its
+  aggregate result rather than propagating bounded raw stderr into Prefect task
+  state. Its mock-only location/exit-code regression passes; provider and
+  database access remain untested and untouched
+  ([evidence](builds/2026-10-30-recovery/climate-fanout-stderr-redaction.json)).
   A further source audit found composite analytics and six-hour Prefect flows
   still dispatch the legacy stored-SQL dashboard job when its feature is off
   by default. The composite paths now skip that stage with an explicit reason

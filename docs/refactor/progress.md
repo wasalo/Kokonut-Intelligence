@@ -25005,3 +25005,16 @@ scheduler state was accessed; no schedule activation is implied
 Current totals: 2,061 complete / 25 open; TODO 682 checked / 16 open; 222
 strict private Gateway response contracts across 67 capability rows
 (24 baseline-retained, 7 deployed, 36 prepared).
+
+### Progress addendum — climate fan-out stderr redaction — 30 October 2026
+
+The climate Prefect fan-out previously copied `JobFailed.output` into its
+aggregate report. It now preserves the location and exit code while storing
+only the safe exception message. A focused mocked regression confirms synthetic
+provider stderr is absent from the report; Ruff, compilation, and diff checks
+pass. No database, provider, or external schedule was accessed
+([evidence](builds/2026-10-30-recovery/climate-fanout-stderr-redaction.json)).
+
+Current totals: 2,062 complete / 25 open; TODO 682 checked / 16 open; 222
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
