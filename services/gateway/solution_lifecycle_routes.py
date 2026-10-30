@@ -867,6 +867,52 @@ class SolutionLifecycleFundingTargetsPageResponse(BaseModel):
         return self
 
 
+class SolutionLifecycleFundingTrancheReviewDetailResponse(BaseModel):
+    """Exact private tranche-review projection from migration 492."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    funding_case_id: _SolutionResponseUUID
+    tranche_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    case_decision_status: Literal["draft", "submitted", "approved", "rejected", "closed"]
+    case_currency: str = Field(min_length=1, max_length=10, strict=True)
+    case_submitter_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+    is_case_approver: bool = Field(strict=True)
+    tranche_number: int = Field(ge=1, strict=True)
+    tranche_amount: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    milestone_conditions: dict[str, Any]
+    tranche_status: Literal["proposed", "approved", "released", "blocked", "returned"]
+    tranche_approved_at: AwareDatetime | None
+    eligible_for_independent_approval: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_tranche_review(self):
+        if self.eligible_for_independent_approval and (
+            self.case_decision_status != "approved"
+            or self.tranche_status != "proposed"
+            or not self.case_submitter_attributed
+            or self.is_self_authored
+            or self.is_case_approver
+        ):
+            raise ValueError("Funding tranche eligibility is inconsistent")
+        try:
+            encoded = json.dumps(
+                self.milestone_conditions,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Funding tranche terms must be finite JSON data") from exc
+        if len(encoded) > 8192:
+            raise ValueError("Funding tranche terms exceed their storage bound")
+        return self
+
+
 class SolutionLifecycleGateItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -6530,7 +6576,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review"
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review",
+        response_model=SolutionLifecycleFundingTrancheReviewDetailResponse,
     )
     async def location_solution_funding_tranche_review_detail(
         request: Request, location_id: str, funding_case_id: str, tranche_id: str
@@ -6571,7 +6618,30 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution funding tranche review unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution funding tranche review unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleFundingTrancheReviewDetailResponse.model_validate(
+                result
+            )
+            if (
+                validated.funding_case_id != UUID(funding_case_id)
+                or validated.tranche_id != UUID(tranche_id)
+            ):
+                raise ValueError("Funding tranche review response does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding tranche review response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding tranche review unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve"

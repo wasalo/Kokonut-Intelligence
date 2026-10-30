@@ -46,6 +46,22 @@ TRANCHE_RESULT = {
     "approved_at": "2026-10-20T12:00:00+00:00",
     "replayed": False,
 }
+TRANCHE_REVIEW_DETAIL = {
+    "funding_case_id": RESULT["funding_case_id"],
+    "tranche_id": TRANCHE_RESULT["tranche_id"],
+    "solution_name": "Watershed restoration",
+    "case_decision_status": "approved",
+    "case_currency": "cUSD",
+    "case_submitter_attributed": True,
+    "is_self_authored": False,
+    "is_case_approver": False,
+    "tranche_number": 1,
+    "tranche_amount": 300,
+    "milestone_conditions": {"step": "review"},
+    "tranche_status": "proposed",
+    "tranche_approved_at": None,
+    "eligible_for_independent_approval": True,
+}
 PROPOSAL = {
     "capital_stage": "pilot",
     "funding_instrument": "community_fund",
@@ -686,16 +702,10 @@ def test_funding_approval_route_maps_tenant_denial_to_forbidden(monkeypatch):
 
 
 def test_funding_tranche_review_and_approval_routes_are_private_and_exact(monkeypatch):
-    detail = {
-        "funding_case_id": RESULT["funding_case_id"],
-        "tranche_id": TRANCHE_RESULT["tranche_id"],
-        "tranche_status": "proposed",
-        "eligible_for_independent_approval": True,
-    }
     calls = []
     app = _app(
         object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
-        tranche_detail_action=lambda *args: calls.append(("detail", args)) or detail,
+        tranche_detail_action=lambda *args: calls.append(("detail", args)) or TRANCHE_REVIEW_DETAIL,
         tranche_approval_action=lambda *args: calls.append(("approve", args)) or TRANCHE_RESULT,
     )
 
@@ -719,7 +729,7 @@ def test_funding_tranche_review_and_approval_routes_are_private_and_exact(monkey
             f"{base}/approve", json={"request_id": REQUEST_ID, "acknowledged": True, "amount": 300}
         )
     assert detail_response.status_code == 200
-    assert detail_response.json() == detail
+    assert detail_response.json() == TRANCHE_REVIEW_DETAIL
     assert detail_response.headers["cache-control"] == "no-store"
     assert approval_response.status_code == 201
     assert approval_response.json() == TRANCHE_RESULT
@@ -732,6 +742,57 @@ def test_funding_tranche_review_and_approval_routes_are_private_and_exact(monkey
             TRANCHE_RESULT["tranche_id"], REQUEST_ID, True,
         )),
     ]
+
+
+def test_funding_tranche_review_declares_exact_openapi_response(monkeypatch):
+    app = _app(object(), monkeypatch, lambda *_args, **_kwargs: RESULT)
+
+    response_schema = app.openapi()["paths"][
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+
+    assert response_schema == {
+        "$ref": "#/components/schemas/SolutionLifecycleFundingTrancheReviewDetailResponse"
+    }
+    properties = app.openapi()["components"]["schemas"][
+        "SolutionLifecycleFundingTrancheReviewDetailResponse"
+    ]["properties"]
+    assert set(properties) == set(TRANCHE_REVIEW_DETAIL)
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result.update(tranche_id=str(uuid4())),
+        lambda result: result.update(unexpected="private detail"),
+        lambda result: result.update(milestone_conditions={"invalid": float("nan")}),
+    ],
+)
+def test_funding_tranche_review_rejects_malformed_service_output(monkeypatch, mutate):
+    malformed = dict(TRANCHE_REVIEW_DETAIL)
+    mutate(malformed)
+    app = _app(
+        object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
+        tranche_detail_action=lambda *_args: malformed,
+    )
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/tranches/{TRANCHE_RESULT['tranche_id']}/review"
+    )
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution funding tranche review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_funding_review_routes_are_private_no_store_and_call_review_readers(monkeypatch):

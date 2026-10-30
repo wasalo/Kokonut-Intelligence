@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-30",
+  "source_revision": "2c80d878",
+  "working_tree_dirty": true,
+  "result": "passed",
+  "capability": "CAP-035",
+  "route": "GET /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review",
+  "migration": 492,
+  "response_fields": [
+    "funding_case_id",
+    "tranche_id",
+    "solution_name",
+    "case_decision_status",
+    "case_currency",
+    "case_submitter_attributed",
+    "is_self_authored",
+    "is_case_approver",
+    "tranche_number",
+    "tranche_amount",
+    "milestone_conditions",
+    "tranche_status",
+    "tranche_approved_at",
+    "eligible_for_independent_approval"
+  ],
+  "path_identity_binding": "funding_case_id and tranche_id",
+  "checks": {
+    "strict_openapi_model": true,
+    "status_and_independent_eligibility_consistency": true,
+    "milestone_json_bound": 8192,
+    "malformed_service_output_sanitized": true,
+    "no_store_preserved": true,
+    "authorization_policy_unchanged": true
+  },
+  "test_command": "python3 -m pytest tests/test_gateway_solution_lifecycle_funding_proposals.py -q -k funding_tranche_review",
+  "tests_passed": 6,
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_accessed": false,
+  "candidate_or_legacy_state_changed": false
+}

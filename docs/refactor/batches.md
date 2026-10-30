@@ -4070,6 +4070,8 @@ Schema inventory matches; empty workloads do not close complete recovery accepta
 
   - [x] Retire the unscoped CAP-035 readiness and configuration writers. `assess_readiness` no longer writes a caller-derived `ready` state, and `approve_configuration` no longer inserts directly approved rows; both fail before database access. Migration 514 revokes runtime and Directus table/column DML on `solution_adopter_readiness` and `solution_configuration`, preserving read access. The five-test legacy adoption suite, Ruff, Python compilation, migration apply/replay, and five disposable PostgreSQL 16 privilege checks pass. Candidate and legacy remain untouched. Location-scoped assessment/review and configuration draft/approval actions remain implementation work ([audit](solution-lifecycle-source-route-audit.md); [write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/514_location_solution_adoption_write_boundary.sql); [tests](../../tests/test_solution_adoption.py); [disposable checker](../../scripts/check-solution-adoption-write-boundary-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-adoption-write-boundary-disposable.json)). Checklist: 768 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
 
+- [x] Add the migration-492 solution-funding tranche review detail's exact 14-field OpenAPI/runtime contract. The Gateway binds both returned IDs to the request, validates status/eligibility consistency and the 8 KiB milestone JSON bound, and sanitizes malformed service output while preserving no-store and the existing review grant. Six focused route/OpenAPI checks pass with Ruff, compilation, and diff checks; no database/provider or candidate/legacy state was touched ([migration](../schemas/postgres/492_location_solution_funding_tranche_review.sql); [test](../../tests/test_gateway_solution_lifecycle_funding_proposals.py); [evidence](builds/2026-10-30-recovery/solution-funding-tranche-review-response-contract.json)).
+
 ### CAP-036 first sequential evidence Kernel summary — 19 October 2026
 
 - [x] Add the protected location sequential-evidence summary at `/operator/api/sequential-evidence/{location_id}/summary` under exact `sequential_evidence:read` and signed tenant context. Migration 460 returns aggregate hypothesis lifecycle, evidence-quality, posterior-update, applied-event, and latest threshold-action counts for location-scoped strategy plans, threats, and explicitly location-linked solutions. It excludes statements, event IDs, source references, values, likelihoods, probabilities, identities, and unscoped subjects; evidence writes and calculation behavior are unchanged. Focused Gateway/route-policy/migration-metadata plus legacy decision checks pass 53 tests with two database-dependent skips; disposable PostgreSQL 16 applies/replays migration 460 and passes six scope, lineage, privacy, and privilege assertions. Candidate and legacy databases are untouched; migration 460 is not rolled out ([contract](sequential-decision-kernel-read-contract.md); [migration](../schemas/postgres/460_location_scoped_sequential_decision_summary.sql); [evidence](builds/2026-10-19-recovery/cap-036-sequential-decision-disposable.json)).
@@ -8985,7 +8987,8 @@ and broad C1 boundaries remain open. The temporary ARM64 client image was
 removed; the locked ARM64 PostGIS image remains available for another isolated
 replay. No persistent database, schema, seed, or application data was changed.
 
-Checklist: 2,063 complete / 25 open (2,088 total); TODO: 682 checked / 16 open.
+Checklist: 2,064 complete / 25 open (2,089 total); TODO: 682 checked / 16 open.
 Capability classifications remain 24 baseline-retained, 7 deployed, and 36
-prepared across 67 rows. The local parity-tool commit and this evidence batch
-remain unpushed pending the next grouped push.
+prepared across 67 rows; strict private Gateway response contracts total 223.
+The local parity-tool commit and this evidence batch remain unpushed pending
+the next grouped push.

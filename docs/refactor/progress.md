@@ -25029,6 +25029,20 @@ JobSpec registration until its persistence and human-attestation behavior is
 corrected ([evidence](builds/2026-10-30-recovery/legacy-prefect-error-redaction.json);
 [source audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json)).
 
-Current totals: 2,063 complete / 25 open; TODO 682 checked / 16 open; 222
+Current totals: 2,064 complete / 25 open; TODO 682 checked / 16 open; 223
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
+
+### Progress addendum — funding-tranche review response contract — 30 October 2026
+
+The CAP-035 migration-492 funding-tranche detail route now publishes and
+validates its exact 14-field response, binds funding and tranche IDs to the
+path, checks its approval eligibility invariants and milestone JSON limit, and
+returns sanitized no-store errors. Six focused Gateway/OpenAPI checks pass with
+Ruff, compilation, and diff checks. No database, provider, or candidate/legacy
+state was touched
+([evidence](builds/2026-10-30-recovery/solution-funding-tranche-review-response-contract.json)).
+
+Current totals: 2,064 complete / 25 open; TODO 682 checked / 16 open; 223
 strict private Gateway response contracts across 67 capability rows
 (24 baseline-retained, 7 deployed, 36 prepared).

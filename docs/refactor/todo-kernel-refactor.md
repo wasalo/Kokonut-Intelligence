@@ -1271,6 +1271,12 @@ populated tenant isolation, and production state remain outside the report
 - [x] Add/run 27 focused mock-only route/OpenAPI checks for the four routes,
   replay, path binding, and sanitized failures
   ([evidence](builds/2026-10-29-recovery/operating-pilot-resource-lifecycle-response-contracts.json)).
+- [x] Declare the migration-492 funding-tranche review detail as an exact
+  14-field response model with funding/tranche path binding, status and
+  eligibility checks, bounded milestone JSON, and sanitized no-store failure.
+- [x] Add/run six focused mock-only Gateway/OpenAPI checks for the response,
+  binding, eligibility, and malformed service output
+  ([evidence](builds/2026-10-30-recovery/solution-funding-tranche-review-response-contract.json)).
 - [ ] **C3 — Finish the optional Directus adapter boundary.** Close code-verifiable
   role, field, row and hook gaps for collections still retained; keep native
   farm activity in Gateway. Workflow-role authorization cache freshness is
