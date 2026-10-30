@@ -8614,3 +8614,15 @@ Checklist: 1,912 complete / 25 open (1,937 total); TODO: 543 checked / 16 open. 
 The focused Gateway selection passes 30 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the Gateway model/route, fixture, tests, and progress records; no data rollback is needed. Evidence: [activation-queue response contract](builds/2026-10-29-recovery/operating-pilot-learning-plan-activation-queue-response-contract.json).
 
 Checklist: 1,917 complete / 25 open (1,942 total); TODO: 547 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 190. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
+
+
+### Source continuation — solution-adoption event-summary response contract — 29 October 2026
+
+- [x] Publish migration 493's exact eight-field event-summary response in OpenAPI and enforce it at the Gateway boundary.
+- [x] Bind location and program IDs to the request path; enforce the SQL suppression contract: all five counts are null when suppressed, otherwise each is zero or at least five.
+- [x] Preserve the private exact-location `solution_lifecycle:read` policy, signed tenant context, no-store behavior, and sanitized malformed-output errors; do not expose adopter, event, evidence, or identity details.
+- [x] Run the approved mock-only route/OpenAPI checks and refresh capability, SQL, helper-scope, provider, dependency, and source-lint checks.
+
+The focused mock-only selection passes 7 tests. Default/source-security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the response model/route, focused test, and progress records; no data rollback is needed. Evidence: [solution-adoption event-summary response contract](builds/2026-10-29-recovery/solution-adoption-event-summary-response-contract.json).
+
+Checklist: 1,922 complete / 25 open (1,947 total); TODO: 551 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 191. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.

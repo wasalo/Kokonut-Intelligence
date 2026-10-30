@@ -1550,6 +1550,110 @@ def test_adoption_event_summary_http_route_is_no_store_and_oidc_disabled_fails_c
     assert no_oidc.headers["cache-control"] == "no-store"
 
 
+def test_adoption_event_summary_response_contract_is_strict_location_bound_and_suppressed(
+    monkeypatch,
+):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    program_id = "f4000000-0000-4000-8000-000000000001"
+    valid = {
+        "location_id": LOCATION_ID,
+        "program_id": program_id,
+        "engagement_reference_count": 8,
+        "commitment_reference_count": 5,
+        "use_reference_count": 6,
+        "advocacy_reference_count": 0,
+        "paused_or_abandoned_reference_count": 0,
+        "breakdown_suppressed": False,
+    }
+    result = {"value": valid}
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.get_location_solution_adoption_event_summary",
+        lambda *_args, **_kwargs: result["value"],
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path_template = "/operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events"
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/{program_id}/events"
+    assert auth_route_policy("GET", path, enabled=True) == {
+        "resource": "solution_lifecycle",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", path, enabled=True) is None
+    assert auth_route_policy("GET", path + "/extra", enabled=True) is None
+    operation = app.openapi()["paths"][path_template]["get"]
+    schema_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    schema_name = schema_ref.rsplit("/", 1)[-1]
+    response_schema = app.openapi()["components"]["schemas"][schema_name]
+    expected_fields = {
+        "location_id", "program_id", "engagement_reference_count",
+        "commitment_reference_count", "use_reference_count", "advocacy_reference_count",
+        "paused_or_abandoned_reference_count", "breakdown_suppressed",
+    }
+    assert set(response_schema["properties"]) == expected_fields
+    assert set(response_schema["required"]) == expected_fields
+    assert response_schema["additionalProperties"] is False
+
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == valid
+
+    suppressed = {
+        **valid,
+        "engagement_reference_count": None,
+        "commitment_reference_count": None,
+        "use_reference_count": None,
+        "advocacy_reference_count": None,
+        "paused_or_abandoned_reference_count": None,
+        "breakdown_suppressed": True,
+    }
+    result["value"] = suppressed
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 200
+    assert response.json() == suppressed
+
+    malformed_results = [
+        {**valid, "engagement_reference_count": 4},
+        {**suppressed, "engagement_reference_count": 5},
+        {**valid, "commitment_reference_count": None},
+        {**valid, "use_reference_count": True},
+        {**valid, "location_id": str(uuid4())},
+        {**valid, "program_id": str(uuid4())},
+        {**valid, "adopter_ref": "private-reference"},
+    ]
+    for malformed in malformed_results:
+        result["value"] = malformed
+        with TestClient(app) as client:
+            rejected = client.get(path)
+        assert rejected.status_code == 500
+        assert rejected.headers["cache-control"] == "no-store"
+        assert rejected.headers["vary"] == "Cookie"
+        assert rejected.json() == {"error": "Solution adoption event summary unavailable"}
+
+
 def test_scale_gate_list_uses_signed_context_bounded_page_and_allowlisted_status():
     columns = (
         "solution_id", "solution_name", "solution_type", "current_stage",

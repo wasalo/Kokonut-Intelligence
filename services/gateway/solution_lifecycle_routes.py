@@ -253,6 +253,47 @@ class SolutionLifecycleSummaryResponse(BaseModel):
         return self
 
 
+class SolutionAdoptionEventSummaryResponse(BaseModel):
+    """Private coarse counts for one exact-location adoption program."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    program_id: _SolutionResponseUUID
+    engagement_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    commitment_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    use_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    advocacy_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    paused_or_abandoned_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    breakdown_suppressed: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_small_cohort_suppression(self):
+        counts = (
+            self.engagement_reference_count,
+            self.commitment_reference_count,
+            self.use_reference_count,
+            self.advocacy_reference_count,
+            self.paused_or_abandoned_reference_count,
+        )
+        if self.breakdown_suppressed:
+            if any(count is not None for count in counts):
+                raise ValueError("Suppressed adoption breakdown must omit all phase counts")
+        elif any(count is None or 0 < count < 5 for count in counts):
+            raise ValueError("Adoption phase counts violate the suppression threshold")
+        return self
+
+
 class SolutionLifecycleExperimentItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -3524,7 +3565,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events"
+        "/operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events",
+        response_model=SolutionAdoptionEventSummaryResponse,
     )
     async def location_solution_lifecycle_adoption_event_summary(
         request: Request, location_id: str, program_id: str
@@ -3582,7 +3624,28 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution adoption event summary unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionAdoptionEventSummaryResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.program_id != UUID(program_id)
+            ):
+                raise ValueError("Adoption event summary does not match request scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption event summary response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution adoption event summary unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/events"

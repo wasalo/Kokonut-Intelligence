@@ -3527,3 +3527,13 @@ No database/provider, candidate, or legacy state was used; no migration was appl
 - [x] Run 30 approved mock-only checks and refresh refactor evidence/inventories.
 
 No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 547 checked / 16 open; strict private Gateway response contracts total 190. Evidence: `builds/2026-10-29-recovery/operating-pilot-learning-plan-activation-queue-response-contract.json`.
+
+
+## Completed — solution-adoption event-summary response contract, 29 October
+
+- [x] Publish migration 493's exact event-summary fields in OpenAPI and validate service output strictly at runtime.
+- [x] Bind location/program IDs to the route and enforce the five-count cohort-suppression invariant.
+- [x] Preserve the private exact-location read grant, signed context, privacy projection, and sanitized no-store failures.
+- [x] Run 7 approved mock-only checks; refresh source, capability, and evidence records.
+
+No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 551 checked / 16 open; strict private Gateway response contracts total 191. Evidence: `builds/2026-10-29-recovery/solution-adoption-event-summary-response-contract.json`.
