@@ -3642,3 +3642,14 @@ The focused selection passes 21 tests and the complete governance-operations mod
 - [x] Run focused and full-module pytest plus Ruff, compilation, capability, SQL/helper, provider, dependency, and diff checks; record evidence.
 
 The focused selection passes 21 tests and the full governance-operations module passes 57. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: `builds/2026-10-29-recovery/governance-tactical-item-create-contract.json`. Current tracked totals: 600 checked / 16 open; strict private Gateway response contracts total 198.
+
+
+## Completed — tactical content update response contracts, 29 October
+
+- [x] Define strict partial-update request schemas matching migration 445 for tactical items and sessions.
+- [x] Require at least one update field and validate request/path UUIDs, enum/text bounds, field nullability, and aware timestamps before service access.
+- [x] Validate the migration action result and bind operation/item/session identifiers to the route; omit the actor identity.
+- [x] Preserve exact-location update authorization, signed scope, HTTP 200 replay behavior, and no-store/cookie variance.
+- [x] Run approved focused tests, full governance-operation tests, and static/inventory checks; record evidence.
+
+The focused update selection passes 19 tests and the complete governance-operations module passes 76. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: `builds/2026-10-29-recovery/governance-tactical-content-update-contracts.json`. Current tracked totals: 605 checked / 16 open; strict private Gateway response contracts total 200.

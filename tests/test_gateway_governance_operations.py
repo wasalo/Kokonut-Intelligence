@@ -99,6 +99,39 @@ def _valid_tactical_item_create_result(**updates):
     return result
 
 
+def _valid_tactical_item_update_request(**updates):
+    request = {
+        "request_id": str(uuid4()),
+        "reason": "Clarify the requested field follow-up",
+        "requested_next_action": "Review the soil evidence with the farm team",
+    }
+    request.update(updates)
+    return request
+
+
+def _valid_tactical_session_update_request(**updates):
+    request = {
+        "request_id": str(uuid4()),
+        "reason": "Clarify the session agenda",
+        "agenda_scope": "Review field evidence and unresolved questions",
+    }
+    request.update(updates)
+    return request
+
+
+def _valid_tactical_content_update_result(route_operation, **updates):
+    result = {
+        "event_id": str(uuid4()),
+        "operation": route_operation,
+        "session_id": TACTICAL_SESSION_ID,
+        "item_id": ITEM_ID if route_operation == "update_item" else None,
+        "actor_party_id": str(uuid4()),
+        "created_at": CREATED_AT,
+    }
+    result.update(updates)
+    return result
+
+
 def _authorized_governance_client(
     monkeypatch,
     service_result,
@@ -1061,6 +1094,285 @@ def test_tactical_item_create_requires_exact_create_grant(monkeypatch):
     assert response.status_code == 403
     assert calls == []
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_tactical_content_update_routes_publish_strict_contracts_and_exact_policy(monkeypatch):
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="update"
+    ) as client:
+        schema = client.app.openapi()
+
+    operations = [
+        (
+            "/operator/api/governance/{location_id}/tactical-items/{item_id}",
+            "update_item",
+            {
+                "request_id",
+                "reason",
+                "requested_next_action",
+                "tension_id",
+                "work_item_id",
+                "decision_id",
+                "owner_role_id",
+                "owner_party_id",
+                "priority",
+                "due_at",
+            },
+            {"event_id", "operation", "session_id", "item_id", "created_at"},
+        ),
+        (
+            "/operator/api/governance/{location_id}/tactical-sessions/{session_id}",
+            "update_session",
+            {
+                "request_id",
+                "reason",
+                "session_type",
+                "title",
+                "scheduled_at",
+                "facilitator_role_id",
+                "recorder_role_id",
+                "agenda_scope",
+            },
+            {"event_id", "operation", "session_id", "item_id", "created_at"},
+        ),
+    ]
+    for path, route_operation, request_fields, response_fields in operations:
+        operation = schema["paths"][path]["patch"]
+        request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+        assert set(request_schema["properties"]) == request_fields
+        assert request_schema["additionalProperties"] is False
+        assert set(request_schema["required"]) == {"request_id", "reason"}
+        if route_operation == "update_item":
+            assert request_schema["properties"]["priority"]["type"] == "integer"
+            assert "anyOf" not in request_schema["properties"]["priority"]
+            assert "default" not in request_schema["properties"]["priority"]
+            assert request_schema["properties"]["requested_next_action"]["type"] == "string"
+        else:
+            assert request_schema["properties"]["title"]["type"] == "string"
+            assert "default" not in request_schema["properties"]["title"]
+
+        response_schema = operation["responses"]["200"]["content"][
+            "application/json"
+        ]["schema"]
+        component_name = response_schema["$ref"].rsplit("/", 1)[1]
+        response_schema = schema["components"]["schemas"][component_name]
+        assert set(response_schema["properties"]) == response_fields
+        assert "actor_party_id" not in response_schema["properties"]
+        assert response_schema["properties"]["operation"]["const"] == route_operation
+        assert response_schema["additionalProperties"] is False
+        assert operation["responses"]["200"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+        assert operation["responses"]["400"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+
+    from services.gateway.operator_auth import auth_route_policy
+
+    for path, expected_location in (
+        (f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}", LOCATION_ID),
+        (
+            f"/operator/api/governance/{LOCATION_ID}/tactical-sessions/{TACTICAL_SESSION_ID}",
+            LOCATION_ID,
+        ),
+    ):
+        assert auth_route_policy("PATCH", path, enabled=True) == {
+            "resource": "governance_tactical",
+            "action": "update",
+            "public": False,
+            "location_id": expected_location,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+
+def test_tactical_item_update_binds_path_and_returns_identity_minimized_receipt(monkeypatch):
+    result = _valid_tactical_content_update_result("update_item")
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        lambda *args: calls.append(args) or result,
+    )
+    payload = _valid_tactical_item_update_request(
+        owner_party_id=ROLE_ID,
+        priority=4,
+        due_at="2026-11-06T08:15:00Z",
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="update"
+    ) as client:
+        response = client.patch(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}",
+            json=payload,
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "event_id": result["event_id"],
+        "operation": "update_item",
+        "session_id": TACTICAL_SESSION_ID,
+        "item_id": ITEM_ID,
+        "created_at": "2026-10-18T00:00:00+00:00",
+    }
+    assert "actor_party_id" not in response.json()
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in response.headers["vary"].lower()
+    assert calls == [
+        (
+            OPERATOR_ID,
+            LOCATION_ID,
+            "update_item",
+            ITEM_ID,
+            {
+                **payload,
+                "owner_party_id": ROLE_ID,
+            },
+        )
+    ]
+
+
+def test_tactical_session_update_binds_path_and_returns_null_item_receipt(monkeypatch):
+    result = _valid_tactical_content_update_result("update_session")
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        lambda *args: calls.append(args) or result,
+    )
+    payload = _valid_tactical_session_update_request(
+        title="Updated governance review",
+        scheduled_at="2026-11-10T13:45:00+00:00",
+        recorder_role_id=ROLE_ID,
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="update"
+    ) as client:
+        response = client.patch(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-sessions/{TACTICAL_SESSION_ID}",
+            json=payload,
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "event_id": result["event_id"],
+        "operation": "update_session",
+        "session_id": TACTICAL_SESSION_ID,
+        "item_id": None,
+        "created_at": "2026-10-18T00:00:00+00:00",
+    }
+    assert "actor_party_id" not in response.json()
+    assert response.headers["cache-control"] == "no-store"
+    assert calls == [
+        (
+            OPERATOR_ID,
+            LOCATION_ID,
+            "update_session",
+            TACTICAL_SESSION_ID,
+            {**payload, "recorder_role_id": ROLE_ID},
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("route", "payload"),
+    [
+        ("item", {"request_id": str(uuid4()), "reason": "No item field supplied"}),
+        ("item", _valid_tactical_item_update_request(priority=None)),
+        ("item", _valid_tactical_item_update_request(due_at="2026-11-06T08:15:00")),
+        ("item", _valid_tactical_item_update_request(unknown="value")),
+        ("session", {"request_id": str(uuid4()), "reason": "No session field supplied"}),
+        ("session", _valid_tactical_session_update_request(title=None)),
+        ("session", _valid_tactical_session_update_request(session_type="not-supported")),
+        ("session", _valid_tactical_session_update_request(scheduled_at="2026-11-10T13:45:00")),
+        ("session", _valid_tactical_session_update_request(unknown="value")),
+    ],
+)
+def test_tactical_content_updates_reject_invalid_requests_before_service(
+    monkeypatch, route, payload
+):
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        lambda *args: calls.append(args),
+    )
+    path = (
+        f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}"
+        if route == "item"
+        else f"/operator/api/governance/{LOCATION_ID}/tactical-sessions/{TACTICAL_SESSION_ID}"
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="update"
+    ) as client:
+        response = client.patch(path, json=payload)
+
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    ("route", "result"),
+    [
+        ("item", _valid_tactical_content_update_result("update_item", operation="update_session")),
+        ("item", _valid_tactical_content_update_result("update_item", item_id=str(uuid4()))),
+        ("session", _valid_tactical_content_update_result("update_session", session_id=str(uuid4()))),
+        ("session", _valid_tactical_content_update_result("update_session", item_id=ITEM_ID)),
+        ("item", {**_valid_tactical_content_update_result("update_item"), "actor_party_id": "not-a-uuid"}),
+    ],
+)
+def test_tactical_content_updates_sanitize_mismatched_action_results(
+    monkeypatch, route, result
+):
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        lambda *_args: result,
+    )
+    path = (
+        f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}"
+        if route == "item"
+        else f"/operator/api/governance/{LOCATION_ID}/tactical-sessions/{TACTICAL_SESSION_ID}"
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="update"
+    ) as client:
+        response = client.patch(
+            path,
+            json=(
+                _valid_tactical_item_update_request()
+                if route == "item"
+                else _valid_tactical_session_update_request()
+            ),
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": "Governance tactical content update unavailable"
+    }
+    assert "actor_party_id" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    ("route", "payload"),
+    [
+        ("item", _valid_tactical_item_update_request()),
+        ("session", _valid_tactical_session_update_request()),
+    ],
+)
+def test_tactical_content_update_requires_exact_update_grant(monkeypatch, route, payload):
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        lambda *args: calls.append(args),
+    )
+    path = (
+        f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}"
+        if route == "item"
+        else f"/operator/api/governance/{LOCATION_ID}/tactical-sessions/{TACTICAL_SESSION_ID}"
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="read"
+    ) as client:
+        response = client.patch(path, json=payload)
+
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+    assert calls == []
 
 
 @pytest.mark.parametrize(

@@ -28,6 +28,16 @@ def _response_uuid(value):
 
 
 _GovernanceResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
+
+
+def _request_schema(model, *, optional_non_null_fields=()):
+    """Build a request schema without advertising None for omitted-only fields."""
+    schema = model.model_json_schema()
+    for field_name in optional_non_null_fields:
+        schema.get("properties", {}).get(field_name, {}).pop("default", None)
+    return schema
+
+
 _ROLE_STATUS = Literal[
     "draft", "submitted", "approved", "active", "suspended", "rejected", "retired"
 ]
@@ -551,6 +561,159 @@ class GovernanceTacticalItemCreatedResponse(BaseModel):
 
 
 class GovernanceTacticalItemCreateError(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str
+
+
+class GovernanceTacticalItemUpdateRequest(BaseModel):
+    """Strict partial content edit for an open tactical item."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    reason: str = Field(min_length=1, max_length=2000, strict=True)
+    requested_next_action: str = Field(default=None, min_length=1, max_length=4000, strict=True)
+    tension_id: _GovernanceResponseUUID | None = None
+    work_item_id: _GovernanceResponseUUID | None = None
+    decision_id: _GovernanceResponseUUID | None = None
+    owner_role_id: _GovernanceResponseUUID | None = None
+    owner_party_id: _GovernanceResponseUUID | None = None
+    priority: int = Field(default=None, ge=1, le=5, strict=True)
+    due_at: str | None = Field(
+        default=None,
+        strict=True,
+        json_schema_extra={"format": "date-time"},
+    )
+
+    @field_validator("due_at")
+    @classmethod
+    def _due_at_must_be_timezone_aware(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("due_at must be a valid ISO timestamp") from exc
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise ValueError("due_at must include an explicit timezone")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_update_fields(self):
+        mutable_fields = self.model_fields_set - {"request_id", "reason"}
+        if not mutable_fields:
+            raise ValueError("At least one tactical-item field is required")
+        if "requested_next_action" in self.model_fields_set and self.requested_next_action is None:
+            raise ValueError("requested_next_action must be text")
+        if "priority" in self.model_fields_set and self.priority is None:
+            raise ValueError("priority must be an integer between 1 and 5")
+        if self.requested_next_action is not None and not self.requested_next_action.strip():
+            raise ValueError("requested_next_action must not be blank")
+        if not self.reason.strip():
+            raise ValueError("reason must not be blank")
+        if any(
+            "\x00" in value
+            for value in (self.reason, self.requested_next_action)
+            if value is not None
+        ):
+            raise ValueError("Tactical item text cannot contain null characters")
+        return self
+
+
+class GovernanceTacticalSessionUpdateRequest(BaseModel):
+    """Strict partial content edit for a planned tactical session."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    reason: str = Field(min_length=1, max_length=2000, strict=True)
+    session_type: Literal[
+        "weekly_review",
+        "stakeholder_health",
+        "relationship_review",
+        "risk_triage",
+        "governance_followup",
+    ] = Field(default=None)
+    title: str = Field(default=None, min_length=1, max_length=255, strict=True)
+    scheduled_at: str | None = Field(
+        default=None,
+        strict=True,
+        json_schema_extra={"format": "date-time"},
+    )
+    facilitator_role_id: _GovernanceResponseUUID | None = None
+    recorder_role_id: _GovernanceResponseUUID | None = None
+    agenda_scope: str | None = Field(default=None, max_length=10_000, strict=True)
+
+    @field_validator("scheduled_at")
+    @classmethod
+    def _scheduled_at_must_be_timezone_aware(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("scheduled_at must be a valid ISO timestamp") from exc
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise ValueError("scheduled_at must include an explicit timezone")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_update_fields(self):
+        mutable_fields = self.model_fields_set - {"request_id", "reason"}
+        if not mutable_fields:
+            raise ValueError("At least one tactical-session field is required")
+        if "session_type" in self.model_fields_set and self.session_type is None:
+            raise ValueError("session_type is required")
+        if "title" in self.model_fields_set and self.title is None:
+            raise ValueError("title is required")
+        if not self.reason.strip():
+            raise ValueError("reason must not be blank")
+        if self.title is not None and not self.title.strip():
+            raise ValueError("title must not be blank")
+        if any(
+            "\x00" in value
+            for value in (self.reason, self.title, self.agenda_scope)
+            if value is not None
+        ):
+            raise ValueError("Tactical session text cannot contain null characters")
+        return self
+
+
+class _GovernanceTacticalContentUpdateActionResult(BaseModel):
+    """Exact migration-445 result for item/session edits, including its private actor."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    operation: Literal["update_item", "update_session"]
+    session_id: _GovernanceResponseUUID
+    item_id: _GovernanceResponseUUID | None
+    actor_party_id: _GovernanceResponseUUID
+    created_at: AwareDatetime
+
+
+class GovernanceTacticalItemUpdatedResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    operation: Literal["update_item"]
+    session_id: _GovernanceResponseUUID
+    item_id: _GovernanceResponseUUID
+    created_at: AwareDatetime
+
+
+class GovernanceTacticalSessionUpdatedResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    operation: Literal["update_session"]
+    session_id: _GovernanceResponseUUID
+    item_id: None
+    created_at: AwareDatetime
+
+
+class GovernanceTacticalContentMutationError(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     error: str
@@ -1892,18 +2055,31 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Tactical content must be valid JSON"},
                 headers=headers,
             )
-        create_request = None
-        if operation == "create_item":
+        route_request = None
+        if operation in {"create_item", "update_item", "update_session"}:
+            request_model = {
+                "create_item": GovernanceTacticalItemCreateRequest,
+                "update_item": GovernanceTacticalItemUpdateRequest,
+                "update_session": GovernanceTacticalSessionUpdateRequest,
+            }[operation]
             try:
-                create_request = GovernanceTacticalItemCreateRequest.model_validate(payload)
+                route_request = request_model.model_validate(payload)
                 location_id = str(UUID(location_id))
+                if operation != "create_item":
+                    target_id = str(UUID(target_id))
             except (ValidationError, TypeError, ValueError):
                 return JSONResponse(
                     status_code=400,
-                    content={"error": "Tactical item request is invalid"},
+                    content={
+                        "error": (
+                            "Tactical item request is invalid"
+                            if operation in {"create_item", "update_item"}
+                            else "Tactical session request is invalid"
+                        )
+                    },
                     headers=headers,
                 )
-            payload = create_request.model_dump(mode="json", exclude_unset=True)
+            payload = route_request.model_dump(mode="json", exclude_unset=True)
         try:
             result = await run_in_threadpool(
                 mutate_governance_tactical_content,
@@ -1963,7 +2139,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         if operation == "create_item":
             try:
                 action_result = _GovernanceTacticalItemCreateActionResult.model_validate(result)
-                if action_result.session_id != create_request.session_id:
+                if action_result.session_id != route_request.session_id:
                     raise ValueError("Tactical item result session does not match request")
                 response = GovernanceTacticalItemCreatedResponse(
                     event_id=action_result.event_id,
@@ -1989,6 +2165,50 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 status_code=status_code,
                 headers=headers,
             )
+        if operation in {"update_item", "update_session"}:
+            try:
+                action_result = _GovernanceTacticalContentUpdateActionResult.model_validate(result)
+                if operation == "update_item":
+                    if action_result.operation != "update_item" or action_result.item_id != UUID(target_id):
+                        raise ValueError("Tactical item result does not match the request path")
+                    response = GovernanceTacticalItemUpdatedResponse(
+                        event_id=action_result.event_id,
+                        operation=action_result.operation,
+                        session_id=action_result.session_id,
+                        item_id=action_result.item_id,
+                        created_at=action_result.created_at,
+                    )
+                else:
+                    if (
+                        action_result.operation != "update_session"
+                        or action_result.session_id != UUID(target_id)
+                        or action_result.item_id is not None
+                    ):
+                        raise ValueError("Tactical session result does not match the request path")
+                    response = GovernanceTacticalSessionUpdatedResponse(
+                        event_id=action_result.event_id,
+                        operation=action_result.operation,
+                        session_id=action_result.session_id,
+                        item_id=action_result.item_id,
+                        created_at=action_result.created_at,
+                    )
+            except (ValidationError, TypeError, ValueError) as exc:
+                from services.common.logging import get_logger
+
+                get_logger("gateway.governance_tactical").warning(
+                    "Governance tactical content update response rejected (%s)",
+                    type(exc).__name__,
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Governance tactical content update unavailable"},
+                    headers=headers,
+                )
+            return JSONResponse(
+                jsonable_encoder(response.model_dump(mode="python")),
+                status_code=status_code,
+                headers=headers,
+            )
         return JSONResponse(jsonable_encoder(result), status_code=status_code, headers=headers)
 
     tactical_item_create_error_responses = {
@@ -2007,6 +2227,24 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             409: "Tactical-item creation conflicts with existing state.",
             500: "The tactical-item result failed its response contract.",
             503: "Tactical-item creation is unavailable.",
+        }.items()
+    }
+    tactical_content_update_error_responses = {
+        status: {
+            "model": GovernanceTacticalContentMutationError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The tactical content update request is invalid.",
+            403: "The operator lacks an active exact-location update grant.",
+            404: "Operator OIDC is disabled or the requested tactical record is unavailable.",
+            409: "The tactical record cannot be updated in its current state.",
+            500: "The tactical content result failed its response contract.",
+            503: "The tactical content update is unavailable.",
         }.items()
     }
 
@@ -2042,11 +2280,65 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     async def create_governance_tactical_item(request: Request, location_id: str):
         return await mutate_tactical_content_route(request, location_id, "create_item")
 
-    @router.patch("/operator/api/governance/{location_id}/tactical-items/{item_id}")
+    @router.patch(
+        "/operator/api/governance/{location_id}/tactical-items/{item_id}",
+        response_model=GovernanceTacticalItemUpdatedResponse,
+        responses={
+            200: {
+                "model": GovernanceTacticalItemUpdatedResponse,
+                "description": "The item content was updated or an idempotent retry returned its receipt.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tactical_content_update_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": _request_schema(
+                            GovernanceTacticalItemUpdateRequest,
+                            optional_non_null_fields=("requested_next_action", "priority"),
+                        )
+                    }
+                },
+            }
+        },
+    )
     async def update_governance_tactical_item(request: Request, location_id: str, item_id: str):
         return await mutate_tactical_content_route(request, location_id, "update_item", item_id)
 
-    @router.patch("/operator/api/governance/{location_id}/tactical-sessions/{session_id}")
+    @router.patch(
+        "/operator/api/governance/{location_id}/tactical-sessions/{session_id}",
+        response_model=GovernanceTacticalSessionUpdatedResponse,
+        responses={
+            200: {
+                "model": GovernanceTacticalSessionUpdatedResponse,
+                "description": "The session content was updated or an idempotent retry returned its receipt.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tactical_content_update_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": _request_schema(
+                            GovernanceTacticalSessionUpdateRequest,
+                            optional_non_null_fields=("session_type", "title"),
+                        )
+                    }
+                },
+            }
+        },
+    )
     async def update_governance_tactical_session(request: Request, location_id: str, session_id: str):
         return await mutate_tactical_content_route(request, location_id, "update_session", session_id)
 
