@@ -8638,3 +8638,15 @@ Checklist: 1,922 complete / 25 open (1,947 total); TODO: 551 checked / 16 open. 
 The focused mock-only CLI selection passes 9 tests. Default/source-security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the CLI preflight, focused test, and progress records; no data rollback is needed. Evidence: [metadata-generation CLI JSON preflight](builds/2026-10-29-recovery/metadata-api-generate-cli-json-preflight.json).
 
 Checklist: 1,926 complete / 25 open (1,951 total); TODO: 554 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts remain 191. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
+
+
+### Source continuation — scale-gate review-detail response contract — 29 October 2026
+
+- [x] Publish migration 501's exact 18-field scale-gate review-detail response in OpenAPI and validate it at the Gateway boundary.
+- [x] Bind location and assessment IDs to the route; enforce gate/operator bounds, numeric comparison consistency, evidence JSON array count/size, and aware submission time.
+- [x] Preserve exact private `solution_lifecycle:review` authorization, signed tenant context, evaluator-conflict projection, no-store behavior, and sanitized errors without exposing operator identities.
+- [x] Run the approved mock-only route/OpenAPI checks and refresh capability, SQL, helper-scope, provider, dependency, and source-lint checks.
+
+The focused scale-gate review selection passes 21 mock-only tests. Default/source-security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the response model/route, focused test, and progress records; no data rollback is needed. Evidence: [scale-gate review-detail response contract](builds/2026-10-29-recovery/scale-gate-review-detail-response-contract.json).
+
+Checklist: 1,931 complete / 25 open (1,956 total); TODO: 558 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 192. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.

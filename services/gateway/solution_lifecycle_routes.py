@@ -536,6 +536,64 @@ class SolutionScaleGateAssessmentTargetsPageResponse(BaseModel):
         return self
 
 
+class SolutionScaleGateReviewDetailResponse(BaseModel):
+    """Exact private projection used for independent scale-gate review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    assessment_id: _SolutionResponseUUID
+    gate_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    gate_type: Literal[
+        "impact",
+        "safety",
+        "financial_sustainability",
+        "operational_capacity",
+        "supply_chain",
+        "regulatory",
+        "community_acceptance",
+        "equity",
+        "data_quality",
+        "maintainability",
+        "replicability",
+    ]
+    requirement: str = Field(max_length=2000, strict=True)
+    threshold: str | None = Field(max_length=1000, strict=True)
+    metric_key: str | None = Field(strict=True)
+    comparison_operator: Literal["lt", "lte", "eq", "gte", "gt"] | None
+    threshold_numeric: _SolutionResponseDecimal | None
+    unit: str | None = Field(strict=True)
+    passed: bool = Field(strict=True)
+    measured_value: str = Field(min_length=1, max_length=1000, strict=True)
+    measured_numeric: _SolutionResponseDecimal | None
+    sample_size: int = Field(ge=1, le=10_000_000, strict=True)
+    evidence_refs: list[Any] = Field(min_length=1, max_length=100)
+    evaluator_conflict: bool = Field(strict=True)
+    submitted_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_evidence_and_threshold_projection(self):
+        if (self.comparison_operator is None) != (self.threshold_numeric is None):
+            raise ValueError("Scale-gate numeric threshold fields are inconsistent")
+        if self.comparison_operator is not None and (
+            self.metric_key is None or self.unit is None
+        ):
+            raise ValueError("Scale-gate numeric comparison fields are incomplete")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence_refs,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Scale-gate evidence references are not JSON values") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Scale-gate evidence references exceed their storage bound")
+        return self
+
+
 class SolutionLifecycleStageTransitionTargetItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -3944,7 +4002,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}"
+        "/operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}",
+        response_model=SolutionScaleGateReviewDetailResponse,
     )
     async def location_solution_scale_gate_review_detail(
         request: Request, location_id: str, assessment_id: str
@@ -3975,7 +4034,27 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Scale-gate review detail unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Scale-gate review detail unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionScaleGateReviewDetailResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.assessment_id != UUID(assessment_id)
+            ):
+                raise ValueError("Scale-gate review detail does not match request scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Scale-gate review detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Scale-gate review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}"

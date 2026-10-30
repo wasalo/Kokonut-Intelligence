@@ -3547,3 +3547,13 @@ No database/provider, candidate, or legacy state was used; no migration was appl
 - [x] Run 9 approved mock-only checks and refresh refactor progress/evidence.
 
 No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 554 checked / 16 open; strict private Gateway response contracts remain 191. Evidence: `builds/2026-10-29-recovery/metadata-api-generate-cli-json-preflight.json`.
+
+
+## Completed — scale-gate review-detail response contract, 29 October
+
+- [x] Publish migration 501's exact response fields in OpenAPI and enforce the private review detail at runtime.
+- [x] Bind location/assessment to request paths; validate the gate enum, numeric comparator/threshold pair, measured values, sample size, and evidence JSON bounds.
+- [x] Preserve the exact private review grant, signed context, evaluator-conflict boolean, and sanitized no-store errors without returning identity.
+- [x] Run 21 approved mock-only checks and refresh capability, source-inventory, and evidence records.
+
+No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 558 checked / 16 open; strict private Gateway response contracts total 192. Evidence: `builds/2026-10-29-recovery/scale-gate-review-detail-response-contract.json`.
