@@ -291,21 +291,15 @@ def table_columns(path: Path, table: str) -> set[str]:
             columns.add(name)
     # Include additive column migrations so the guard follows the evolved
     # schema, not just the initial CREATE TABLE declaration.
-    for migration_source in _postgres_migration_sources(ROOT):
-        statements = re.finditer(
-            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
-            migration_source,
-            flags=re.IGNORECASE | re.DOTALL,
-        )
-        for statement in statements:
-            columns.update(
-                name.lower()
-                for name in re.findall(
-                    r"ADD COLUMN(?:\s+IF NOT EXISTS)?\s+([a-z_][a-z0-9_]*)",
-                    statement.group(1),
-                    flags=re.IGNORECASE,
-                )
+    for statement in _table_migration_statements(ROOT, table):
+        columns.update(
+            name.lower()
+            for name in re.findall(
+                r"ADD COLUMN(?:\s+IF NOT EXISTS)?\s+([a-z_][a-z0-9_]*)",
+                statement,
+                flags=re.IGNORECASE,
             )
+        )
     return columns
 
 
@@ -332,39 +326,32 @@ def table_nullable_columns(path: Path, table: str) -> set[str]:
                 re.search(r"\b(?:NOT\s+NULL|PRIMARY\s+KEY)\b", declaration, re.IGNORECASE)
             )
 
-    for migration_source in _postgres_migration_sources(ROOT):
-        statements = re.finditer(
-            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
-            migration_source,
-            flags=re.IGNORECASE | re.DOTALL,
-        )
-        for statement in statements:
-            body = statement.group(1)
-            additions = list(
-                re.finditer(
-                    r"ADD COLUMN(?P<if_not_exists>\s+IF\s+NOT\s+EXISTS)?\s+([a-z_][a-z0-9_]*)",
-                    body,
-                    flags=re.IGNORECASE,
-                )
-            )
-            for index, addition in enumerate(additions):
-                column_name = addition.group(2).lower()
-                if addition.group("if_not_exists") and column_name in nullability:
-                    continue
-                end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
-                definition = body[addition.end() : end]
-                nullability[column_name] = not bool(
-                    re.search(r"\b(?:NOT\s+NULL|PRIMARY\s+KEY)\b", definition, re.IGNORECASE)
-                )
-
-            for alteration in re.finditer(
-                r"ALTER COLUMN\s+([a-z_][a-z0-9_]*)\s+(SET|DROP)\s+NOT\s+NULL",
+    for body in _table_migration_statements(ROOT, table):
+        additions = list(
+            re.finditer(
+                r"ADD COLUMN(?P<if_not_exists>\s+IF\s+NOT\s+EXISTS)?\s+([a-z_][a-z0-9_]*)",
                 body,
                 flags=re.IGNORECASE,
-            ):
-                nullability[alteration.group(1).lower()] = (
-                    alteration.group(2).upper() == "DROP"
-                )
+            )
+        )
+        for index, addition in enumerate(additions):
+            column_name = addition.group(2).lower()
+            if addition.group("if_not_exists") and column_name in nullability:
+                continue
+            end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
+            definition = body[addition.end() : end]
+            nullability[column_name] = not bool(
+                re.search(r"\b(?:NOT\s+NULL|PRIMARY\s+KEY)\b", definition, re.IGNORECASE)
+            )
+
+        for alteration in re.finditer(
+            r"ALTER COLUMN\s+([a-z_][a-z0-9_]*)\s+(SET|DROP)\s+NOT\s+NULL",
+            body,
+            flags=re.IGNORECASE,
+        ):
+            nullability[alteration.group(1).lower()] = (
+                alteration.group(2).upper() == "DROP"
+            )
 
     return {name for name, nullable in nullability.items() if nullable}
 
@@ -405,38 +392,31 @@ def table_column_types(path: Path, table: str) -> dict[str, str]:
         if sql_type:
             column_types[column.group(1).lower()] = sql_type
 
-    for migration_source in _postgres_migration_sources(ROOT):
-        statements = re.finditer(
-            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
-            migration_source,
-            flags=re.IGNORECASE | re.DOTALL,
-        )
-        for statement in statements:
-            body = statement.group(1)
-            additions = list(
-                re.finditer(
-                    r"ADD COLUMN(?P<if_not_exists>\s+IF\s+NOT\s+EXISTS)?\s+([a-z_][a-z0-9_]*)",
-                    body,
-                    flags=re.IGNORECASE,
-                )
-            )
-            for index, addition in enumerate(additions):
-                column_name = addition.group(2).lower()
-                if addition.group("if_not_exists") and column_name in column_types:
-                    continue
-                end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
-                sql_type = parse_sql_type(body[addition.end() : end])
-                if sql_type:
-                    column_types[column_name] = sql_type
-
-            for alteration in re.finditer(
-                r"ALTER COLUMN\s+([a-z_][a-z0-9_]*)\s+TYPE\s+(.+?)(?=,\s*ALTER COLUMN|$)",
+    for body in _table_migration_statements(ROOT, table):
+        additions = list(
+            re.finditer(
+                r"ADD COLUMN(?P<if_not_exists>\s+IF\s+NOT\s+EXISTS)?\s+([a-z_][a-z0-9_]*)",
                 body,
                 flags=re.IGNORECASE,
-            ):
-                sql_type = parse_sql_type(alteration.group(2))
-                if sql_type:
-                    column_types[alteration.group(1).lower()] = sql_type
+            )
+        )
+        for index, addition in enumerate(additions):
+            column_name = addition.group(2).lower()
+            if addition.group("if_not_exists") and column_name in column_types:
+                continue
+            end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
+            sql_type = parse_sql_type(body[addition.end() : end])
+            if sql_type:
+                column_types[column_name] = sql_type
+
+        for alteration in re.finditer(
+            r"ALTER COLUMN\s+([a-z_][a-z0-9_]*)\s+TYPE\s+(.+?)(?=,\s*ALTER COLUMN|$)",
+            body,
+            flags=re.IGNORECASE,
+        ):
+            sql_type = parse_sql_type(alteration.group(2))
+            if sql_type:
+                column_types[alteration.group(1).lower()] = sql_type
 
     return column_types
 
@@ -476,15 +456,7 @@ def table_check_literals(path: Path, table: str) -> dict[str, tuple[str, ...]]:
     if table_match is None:
         raise ValueError(f"canonical table {table!r} not found in {path.relative_to(ROOT)}")
     fragments = [table_match.group(1)]
-    for migration_source in _postgres_migration_sources(ROOT):
-        fragments.extend(
-            statement.group(1)
-            for statement in re.finditer(
-                rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
-                migration_source,
-                flags=re.IGNORECASE | re.DOTALL,
-            )
-        )
+    fragments.extend(_table_migration_statements(ROOT, table))
     values: dict[str, tuple[str, ...]] = {}
     for fragment in fragments:
         for check in re.finditer(
@@ -513,27 +485,35 @@ def _postgres_migration_sources(root: Path) -> tuple[str, ...]:
     )
 
 
+@lru_cache(maxsize=512)
+def _table_migration_statements(root: Path, table: str) -> tuple[str, ...]:
+    """Cache the ordered ALTER TABLE fragments used by schema contract readers."""
+    pattern = re.compile(
+        rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    return tuple(
+        statement.group(1)
+        for source in _postgres_migration_sources(root)
+        for statement in pattern.finditer(source)
+    )
+
+
 def table_enum_columns(path: Path, table: str, enum_types: dict[str, tuple[str, ...]]) -> dict[str, str]:
     enum_columns = {
         column: sql_type.lower()
         for column, sql_type in table_column_types(path, table).items()
         if sql_type.lower() in enum_types
     }
-    for source in _postgres_migration_sources(ROOT):
-        statements = re.finditer(
-            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
-            source,
-            flags=re.IGNORECASE | re.DOTALL,
-        )
-        for statement in statements:
-            for constraint in re.finditer(
-                r"([a-z_][a-z0-9_]*)\s*::\s*([a-z_][a-z0-9_]*)\s+IS\s+NOT\s+NULL",
-                statement.group(1),
-                flags=re.IGNORECASE,
-            ):
-                column, type_name = constraint.group(1).lower(), constraint.group(2).lower()
-                if type_name in enum_types:
-                    enum_columns[column] = type_name
+    for statement in _table_migration_statements(ROOT, table):
+        for constraint in re.finditer(
+            r"([a-z_][a-z0-9_]*)\s*::\s*([a-z_][a-z0-9_]*)\s+IS\s+NOT\s+NULL",
+            statement,
+            flags=re.IGNORECASE,
+        ):
+            column, type_name = constraint.group(1).lower(), constraint.group(2).lower()
+            if type_name in enum_types:
+                enum_columns[column] = type_name
     return enum_columns
 
 

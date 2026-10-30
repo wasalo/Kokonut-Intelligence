@@ -1079,6 +1079,12 @@ that its full source-plan phase is complete.
   regression selection passes 480 tests
   ([batch evidence](builds/2026-10-29-recovery/kernel-next-contract-batch.json);
   [migration evidence](builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json)).
+  The offline SDK/schema parity guard now caches migration `ALTER TABLE`
+  fragments by table instead of rescanning every migration for each schema
+  attribute. All 13 focused regressions pass, and the 109-model/2,150-column
+  guard completes in 7.6 seconds; a pre-change run was still active beyond
+  60 seconds. Evidence:
+  [SDK parity guard performance](builds/2026-10-30-recovery/sdk-schema-parity-guard-performance.json).
   The public location IRI resolver now validates its exact JSON-LD document,
   canonical same-location predecessor version, and public-projection digest;
   OpenAPI advertises the `application/ld+json` schema and malformed documents
@@ -3918,6 +3924,6 @@ Evidence: `builds/2026-10-30-recovery/kernel-analytics-lineage-and-contract-test
 `builds/2026-10-30-recovery/forecast-resource-location-scope-disposable.json`,
 and `builds/2026-10-30-recovery/prm-portfolio-metric-scope-disposable.json`.
 
-Current checklist: 679 checked / 16 open. Strict private Gateway response
+Current checklist: 680 checked / 16 open. Strict private Gateway response
 contracts total 222. Capability classifications remain unchanged because this
 source hardening does not complete a capability's end-to-end acceptance.

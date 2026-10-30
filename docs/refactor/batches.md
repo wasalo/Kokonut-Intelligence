@@ -8934,4 +8934,23 @@ Checklist: 2,042 complete / 25 open (2,067 total); TODO: 672 checked / 16 open. 
 
 The isolated event/crop-cycle check confirms three valid monthly sales produce an average of 20 and a three-month trend while a synthetic location-mismatched event is excluded. The forecast check confirms the target plot's 20 m² bed area is counted once across two matching cycles, while the cross-location cycle is excluded. Migration 689 replays successfully and preserves the portfolio-wide metric summary. Ruff, Python compilation, runtime/report query inventories, capability matrix, provider boundaries, requirement groups, and `git diff --check` pass. No candidate or legacy database or external provider was used; all disposable PostgreSQL containers and networks were removed. The demand-trend acceptance also exposed and fixed a bug that indexed peak/trough month integers as tuples. No capability classification changed. Evidence: [grouped unit and mock acceptance](builds/2026-10-30-recovery/kernel-analytics-lineage-and-contract-tests.json), [event and demand lineage](builds/2026-10-29-recovery/analytics-event-aggregation-disposable.json), [forecast/resource plot lineage](builds/2026-10-30-recovery/forecast-resource-location-scope-disposable.json), and [PRM migration replay](builds/2026-10-30-recovery/prm-portfolio-metric-scope-disposable.json).
 
-Checklist: 2,048 complete / 25 open (2,073 total); TODO: 679 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 222. Raspberry Pi hardware, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open. The local branch has not yet been pushed.
+Checklist: 2,048 complete / 25 open (2,073 total); TODO: 679 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 222. Raspberry Pi hardware, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open. Commit `91fb6ccc` is pushed to `chore/kernel-next-sprint-plan`; Security run #734 passed and CI run #1010 is in progress on that head.
+
+
+### Source continuation — SDK schema parity guard performance — 30 October 2026
+
+- [x] Cache ordered migration `ALTER TABLE` fragments per table and reuse them for column, nullability, SQL type, enum, and CHECK-literal inventories.
+- [x] Pass all 13 existing focused `tests/test_sdk_schema_parity.py` regressions using temporary SQL fixtures only.
+- [x] Pass the complete SDK/schema parity guard with unchanged coverage: 109 models, 2,150 canonical columns, 1,987 scalar types, 12 PostGIS types, 147 JSONB shapes, 23 enum fields, and 95 CHECK-literal fields per SDK.
+- [x] Measure the guard at 7.6 seconds; the pre-cache invocation had not completed after 60 seconds. Pass Ruff, Python compilation, and `git diff --check`.
+
+The checker retains migration order and the same acceptance surface while
+avoiding repeated table-specific scans across all migration sources. The
+pre-change attempt was interrupted after exceeding 60 seconds; the optimized
+guard completed successfully in 7.6 seconds. No database or provider was used.
+Evidence: [SDK schema parity guard performance](builds/2026-10-30-recovery/sdk-schema-parity-guard-performance.json).
+
+Checklist: 2,052 complete / 25 open (2,077 total); TODO: 680 checked / 16 open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows. Commit `91fb6ccc` remains the pushed baseline for this
+branch; CI #1010 is in progress and this tooling batch is local.
