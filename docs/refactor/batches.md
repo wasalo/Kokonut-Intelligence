@@ -8473,3 +8473,30 @@ Checklist: 1,887 complete / 25 open (1,912 total); TODO: 523 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 183. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
+
+### Source continuation — coaching participant and own-session response contracts — 29 October 2026
+
+- [x] Add exact OpenAPI/runtime schemas for the private coaching participant
+  selector and bind its location, requested limit, identity fields, and
+  migration-defined continuation shape.
+- [x] Add the migration-611 own coaching-history contract with exact private
+  item/page fields, nullable source values, content bounds, completed status,
+  request binding, ordering, uniqueness, and continuation checks.
+- [x] Preserve the existing exact `operating_pilot:coach` grant, signed tenant
+  context, no-store responses, and generic malformed-output errors.
+- [x] Run the approved mock-only contract, existing coaching, pagination, and
+  route-policy selections; refresh/check the runtime SQL inventory.
+- [x] Record evidence and update the capability/progress ledgers; no migration
+  rollout or database change is required.
+
+The focused selection passes 101 tests. Default and CI-security Ruff, Python
+compilation, capability-matrix validation, refreshed runtime SQL inventory,
+and `git diff --check` pass. No database/provider, candidate, or legacy state
+was used; no migration was applied. Rollback reverts source, tests, evidence,
+inventory, and progress records; no data rollback is needed. Evidence:
+[coaching read contracts](builds/2026-10-29-recovery/operating-pilot-coaching-read-contracts.json).
+
+Checklist: 1,892 complete / 25 open (1,917 total); TODO: 527 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 185. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.

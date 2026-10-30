@@ -3439,3 +3439,23 @@ candidate, or legacy state was used; no migration was applied. Checklist:
 523 checked / 16 open; strict private Gateway response contracts total 183.
 Evidence:
 `builds/2026-10-29-recovery/yield-nutrient-pollinator-contracts.json`.
+
+## Completed — private coaching read contracts, 29 October
+
+- [x] Add strict OpenAPI/runtime models for consent-filtered coaching
+  participants and private own-session history, grounded in migrations 611 and
+  612 and the session bounds from migration 253.
+- [x] Bind both responses to the requested location and page, reject malformed
+  or extra identity fields, and preserve existing coach authorization and
+  tenant context.
+- [x] Verify exact schemas, content bounds, SQL order, duplicate IDs,
+  continuation, and sanitized no-store failures with 101 approved mock-only
+  tests; refresh/check runtime SQL inventory.
+- [x] Record evidence and progress counters; no database migration or rollout
+  is required.
+
+Default and CI-security Ruff, compilation, capability validation, runtime SQL
+inventory, and diff checks pass. No database/provider, candidate, or legacy
+state was used. Checklist: 527 checked / 16 open; strict private Gateway
+response contracts total 185. Evidence:
+`builds/2026-10-29-recovery/operating-pilot-coaching-read-contracts.json`.

@@ -427,7 +427,14 @@ def test_own_coaching_history_uses_coach_scope_and_read_only_transaction():
 def test_coaching_history_route_is_private_no_store_and_coach_grant_gated(monkeypatch):
     from services.gateway.operating_pilot_routes import register_operating_pilot_routes
 
-    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    page = {
+        "location_id": LOCATION_ID,
+        "items": [],
+        "limit": 5,
+        "offset": 10,
+        "has_more": False,
+        "next_offset": None,
+    }
     calls = []
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_own_coaching_sessions",
@@ -521,7 +528,12 @@ def test_coaching_participants_reject_invalid_search_before_database_access(sear
 def test_coaching_participant_route_is_private_no_store_and_coach_grant_gated(monkeypatch):
     from services.gateway.operating_pilot_routes import register_operating_pilot_routes
 
-    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    page = {
+        "location_id": LOCATION_ID,
+        "items": [],
+        "has_more": False,
+        "next_offset": None,
+    }
     calls = []
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_coaching_participants",

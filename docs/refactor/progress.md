@@ -1,3 +1,29 @@
+### Progress addendum — private coaching read contracts — 29 October 2026
+
+The consent-filtered participant selector now has a strict four-field page
+contract and two-field participant projection. It binds the requested location
+and page size, rejects duplicate or malformed identities, and verifies the
+migration's deterministic SQL pagination metadata. Name ordering remains the
+PostgreSQL collation contract and is regression-pinned at the migration.
+
+The coach's private session-history route now validates the exact migration-611
+page and item fields, content bounds from migration 253/611, completed status,
+nullable source values, aware timestamps, requested location/page, descending
+date/ID order, unique session IDs, and continuation metadata. Both routes keep
+the exact location `operating_pilot:coach` grant, signed tenant context,
+no-store headers, and sanitized errors.
+
+The approved mock-only Gateway/OpenAPI selection passes 101 tests, including
+the pre-existing coaching and operator-route policy suites. Default and
+CI-security Ruff, Python compilation, capability validation, refreshed runtime
+SQL inventory, and `git diff --check` pass. No database/provider, candidate,
+or legacy state was used; no migration was applied. Evidence:
+[focused checks](builds/2026-10-29-recovery/operating-pilot-coaching-read-contracts.json).
+
+Checklist: 1,892 complete / 25 open; TODO: 527 checked / 16 open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows; strict private Gateway response contracts total 185.
+
 ### Progress addendum — yield, nutrient, and pollinator contracts — 29 October 2026
 
 `yield_monitoring record --date` now validates ISO calendar dates during CLI

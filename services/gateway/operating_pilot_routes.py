@@ -1557,6 +1557,106 @@ class OperatingPilotOwnLearningPlansPage(BaseModel):
         return self
 
 
+class OperatingPilotCoachingParticipantItem(BaseModel):
+    """Minimal identity projection for a currently consented participant."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    participant_id: _ResponseUUID
+    display_name: str = Field(min_length=1, max_length=255, strict=True)
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("participant display name must not be blank")
+        return value
+
+
+class OperatingPilotCoachingParticipantsPage(BaseModel):
+    """Strict response contract for the consent-filtered coaching selector."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotCoachingParticipantItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        participant_ids = [item.participant_id for item in self.items]
+        if len(participant_ids) != len(set(participant_ids)):
+            raise ValueError("coaching participant page contains duplicate IDs")
+        return self
+
+
+class OperatingPilotOwnCoachingSessionItem(BaseModel):
+    """Exact private coaching-history projection from migration 611."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    session_id: _ResponseUUID
+    coachee_name: str | None = Field(max_length=255, strict=True)
+    session_date: _ResponseDate
+    focus: str = Field(min_length=1, max_length=255, strict=True)
+    commitments: list[Annotated[str, Field(min_length=1, max_length=500, strict=True)]] = Field(
+        max_length=20
+    )
+    wellbeing_check: str | None = Field(max_length=1000, strict=True)
+    notes: str | None = Field(max_length=4000, strict=True)
+    status: Literal["completed"]
+    created_at: _ResponseDateTime
+
+    @field_validator("focus")
+    @classmethod
+    def validate_focus(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("coaching focus must not be blank")
+        return value
+
+    @field_validator("commitments")
+    @classmethod
+    def validate_commitments(cls, values: list[str]) -> list[str]:
+        if any(not value.strip() for value in values):
+            raise ValueError("coaching commitments must not be blank")
+        return values
+
+
+class OperatingPilotOwnCoachingSessionsPage(BaseModel):
+    """Strict private page contract for the signed-in coach's own sessions."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotOwnCoachingSessionItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own coaching page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("own coaching continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own coaching page cannot continue")
+
+        session_ids = [item.session_id for item in self.items]
+        if len(session_ids) != len(set(session_ids)):
+            raise ValueError("own coaching page contains duplicate session IDs")
+        if any(
+            (previous.session_date, previous.session_id.int)
+            < (current.session_date, current.session_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own coaching page is not in descending SQL order")
+        return self
+
+
 def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -4105,7 +4205,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(page), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-coaching-sessions")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-coaching-sessions",
+        response_model=OperatingPilotOwnCoachingSessionsPage,
+    )
     async def location_operating_pilot_own_coaching_sessions(
         request: Request,
         location_id: str,
@@ -4164,9 +4267,31 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own coaching-session history unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotOwnCoachingSessionsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own coaching page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/coaching-participants")
+            get_logger("gateway.operating_pilot").warning(
+                "Own coaching-session response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own coaching-session history unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/coaching-participants",
+        response_model=OperatingPilotCoachingParticipantsPage,
+    )
     async def location_operating_pilot_coaching_participants(
         request: Request,
         location_id: str,
@@ -4227,7 +4352,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Coaching participant lookup unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotCoachingParticipantsPage.model_validate(result)
+            if page.location_id != UUID(location_id):
+                raise ValueError("Coaching participant page does not match request location")
+            if len(page.items) > limit:
+                raise ValueError("Coaching participant page exceeds its requested limit")
+            if page.has_more:
+                if len(page.items) != limit or page.next_offset != offset + limit:
+                    raise ValueError("Coaching participant continuation does not match its page")
+            elif page.next_offset is not None:
+                raise ValueError("Terminal coaching participant page cannot continue")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Coaching participant response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Coaching participant lookup unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
 
     @router.get("/operator/api/operating-pilot/{location_id}/my-demand-signals")
     async def location_operating_pilot_own_demand_signals(
