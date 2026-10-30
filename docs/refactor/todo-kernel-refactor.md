@@ -3567,3 +3567,14 @@ No database/provider, candidate, or legacy state was used; no migration was appl
 - [x] Run 21 approved mock-only checks and refresh capability, source, and evidence records.
 
 No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 562 checked / 16 open; strict private Gateway response contracts total 193. Evidence: `builds/2026-10-29-recovery/solution-replication-review-detail-response-contract.json`.
+
+
+## Completed — source projection and CLI preflight batch, 29 October
+
+- [x] Validate CAP-035 completion-review detail against migration 498's exact 18-field contract, bind proposal/replication IDs, and preserve source-defined bounds and private review scope.
+- [x] Pin the public EBF scorecard JSON summary to migration 032's exact 17-column order.
+- [x] Reject invalid process-simulation `--params` JSON before DB acquisition and pass valid finite objects through unchanged.
+- [x] Reject invalid pitch-template `--sections` JSON/schema before command/DB access and preserve valid sections unchanged.
+- [x] Run 37 approved focused mock-only checks and refresh capability, SQL, report-helper, provider, dependency, and evidence records.
+
+No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 567 checked / 16 open; strict private Gateway response contracts total 194. Evidence: `builds/2026-10-29-recovery/kernel-source-contracts-and-cli-preflight.json`.

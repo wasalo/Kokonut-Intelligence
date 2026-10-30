@@ -421,6 +421,50 @@ class SolutionLifecycleReplicationReviewDetailResponse(BaseModel):
         return self
 
 
+class SolutionLifecycleReplicationCompletionReviewDetailResponse(BaseModel):
+    """Exact private detail projection for independent completion review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    proposal_id: _SolutionResponseUUID
+    replication_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    replication_status: Literal["active"]
+    outcome: Literal["successful", "failed", "mixed", "inconclusive"]
+    evidence_maturity: int = Field(ge=1, le=6, strict=True)
+    outcome_summary: str = Field(min_length=10, max_length=4000, strict=True)
+    evidence: list[Any] = Field(max_length=100)
+    created_at: AwareDatetime
+    is_self_authored: bool = Field(strict=True)
+    is_self_started: bool = Field(strict=True)
+    is_initial_approver: bool = Field(strict=True)
+    source_is_current: bool | None = Field(strict=True)
+    is_source_owner: bool = Field(strict=True)
+    is_source_approver: bool = Field(strict=True)
+    is_source_result_reviewer: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_completion_review_projection(self):
+        if len(self.outcome_summary.strip(" ")) < 10:
+            raise ValueError("Completion outcome summary is below its stored minimum")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence,
+                ensure_ascii=False,
+                allow_nan=False,
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Completion evidence must be JSON data") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Completion evidence exceeds its storage bound")
+        return self
+
+
 class SolutionLifecycleFundingTargetItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -4413,7 +4457,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review"
+        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review",
+        response_model=SolutionLifecycleReplicationCompletionReviewDetailResponse,
     )
     async def location_solution_replication_completion_review_detail(
         request: Request,
@@ -4456,7 +4501,28 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Replication completion review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleReplicationCompletionReviewDetailResponse.model_validate(result)
+            if (
+                validated.replication_id != UUID(replication_id)
+                or validated.proposal_id != UUID(proposal_id)
+            ):
+                raise ValueError("Completion review detail does not match request IDs")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Replication completion review detail response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Replication completion review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review"

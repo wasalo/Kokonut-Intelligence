@@ -24848,3 +24848,31 @@ database/provider, candidate, or legacy state was used; no migration was
 applied. Checklist: 1,935 complete / 25 open; TODO: 562 checked / 16 open;
 strict private Gateway response contracts total 193. Evidence:
 [focused checks](builds/2026-10-29-recovery/solution-replication-review-detail-response-contract.json).
+
+
+### Progress addendum — source projection and CLI preflight batch — 29 October 2026
+
+CAP-035 completion-report detail now has a strict 18-field OpenAPI/runtime
+contract from migration 498. Both proposal and replication IDs bind to the
+route; source status, outcome, maturity, summary/evidence bounds, aware time,
+and reviewer-conflict values are validated. The nullable `source_is_current`
+result follows SQL's LEFT JOIN semantics. Existing exact-location review
+authorization, signed context, and sanitized no-store behavior remain intact,
+and proposer/reviewer identity is not returned.
+
+The public EBF scorecard JSON exporter now selects the exact ordered 17-column
+migration-032 summary. Process-simulation and pitch CLIs validate their JSON
+inputs before database acquisition, reject malformed/non-object/non-array or
+non-finite data as appropriate, and preserve valid values through their
+existing handlers.
+
+The approved mock-only selection passes 37 tests. Default Ruff and Python
+compilation pass on changed sources/tests; source-security Ruff passes on the
+Gateway, scoring, and pitch files. The process-simulation file has one
+pre-existing S608 finding in its unchanged `list_simulations()` query builder.
+Capability validation, refreshed runtime SQL and helper-scope inventories,
+provider boundaries, dependency groups, and diff checks pass. No
+database/provider, candidate, or legacy state was used; no migration was
+applied. Checklist: 1,941 complete / 25 open; TODO: 567 checked / 16 open;
+strict private Gateway response contracts total 194. Evidence:
+[batch record](builds/2026-10-29-recovery/kernel-source-contracts-and-cli-preflight.json).

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,935 checklist items complete and 25
-open (1,960 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,941 checklist items complete and 25
+open (1,966 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -8662,3 +8662,17 @@ Checklist: 1,931 complete / 25 open (1,956 total); TODO: 558 checked / 16 open. 
 The focused route selection passes 21 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the response model/route, focused tests, and progress/evidence records; no data rollback is needed. Evidence: [replication-review detail response contract](builds/2026-10-29-recovery/solution-replication-review-detail-response-contract.json).
 
 Checklist: 1,935 complete / 25 open (1,960 total); TODO: 562 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 193. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
+
+
+### Local source batch — CAP-035 completion detail, EBF projection, and CLI preflight — 29 October 2026
+
+- [x] Publish migration 498's exact 18-field completion-review detail in OpenAPI/runtime validation; bind both path IDs and validate source-backed status, outcome, maturity, text, evidence, timestamps, and reviewer-conflict values.
+- [x] Preserve the exact private location review grant, signed tenant scope, nullable `source_is_current`, and sanitized no-store failures without returning identities.
+- [x] Replace the public EBF JSON export's `SELECT *` with migration 032's exact ordered 17-column summary projection, preserving the scorecard filter and payload.
+- [x] Preflight process-simulation `--params` before database access; require finite JSON objects and preserve valid values unchanged.
+- [x] Preflight pitch-template `--sections` before command/database access; require an array of section objects with string titles/content and preserve valid sections.
+- [x] Run 37 approved focused mock-only checks across the four slices and refresh/check SQL, helper-scope, capability, provider, dependency, and lint evidence.
+
+The 37-test focused selection passes (25 Gateway completion-review tests, one EBF projection test, five process-simulation CLI tests, and six pitch CLI tests). Default Ruff and Python compilation pass on all changed sources/tests; source-security Ruff passes for Gateway, scoring, and pitch. `process_simulation.py` retains a pre-existing S608 finding in the unchanged `list_simulations()` query assembly; the new preflight adds no SQL. Capability-matrix validation, refreshed runtime SQL and report-helper inventories, provider boundaries, dependency groups, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback is code/test/inventory/doc revert only. Evidence: [source contract and CLI preflight batch](builds/2026-10-29-recovery/kernel-source-contracts-and-cli-preflight.json).
+
+Checklist: 1,941 complete / 25 open (1,966 total); TODO: 567 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 194. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.

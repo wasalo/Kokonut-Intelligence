@@ -8,6 +8,7 @@ Schema: 193_process_simulation.sql
 
 from __future__ import annotations
 
+import json
 import math
 import uuid
 from datetime import datetime
@@ -33,6 +34,33 @@ from services.common.database import get_db
 
 def _conn():
     return get_db()
+
+
+def _parse_scenario_params(raw: str) -> Dict[str, Any]:
+    """Parse the CLI JSON object before acquiring the database connection."""
+
+    def reject_constant(value: str):
+        raise ValueError(f"non-standard JSON constant {value}")
+
+    try:
+        params = json.loads(raw, parse_constant=reject_constant)
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise ValueError("--params must be a valid JSON object") from exc
+    if not isinstance(params, dict):
+        raise ValueError("--params must be a JSON object")
+
+    def require_finite_numbers(value: Any) -> None:
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError("--params must not contain non-finite numbers")
+        if isinstance(value, dict):
+            for nested in value.values():
+                require_finite_numbers(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                require_finite_numbers(nested)
+
+    require_finite_numbers(params)
+    return params
 
 
 def _row_to_dict(row: psycopg2.extras.RealDictRow) -> Dict[str, Any]:
@@ -414,7 +442,6 @@ def simulate_automation_impact(
 
 def main():
     import argparse
-    import json
 
     parser = argparse.ArgumentParser(description="Process simulation and what-if analysis")
     sub = parser.add_subparsers(dest="command")
@@ -448,10 +475,17 @@ def main():
                         help="Percentage of process to automate (0-100)")
 
     args = parser.parse_args()
+    if args.command is None:
+        parser.error("a command is required")
+    params: Dict[str, Any] = {}
+    if args.command == "create":
+        try:
+            params = _parse_scenario_params(args.params)
+        except ValueError as exc:
+            parser.error(str(exc))
     conn = _conn()
     try:
         if args.command == "create":
-            params = json.loads(args.params)
             out = create_simulation(
                 conn, args.name, params,
                 description=args.description,

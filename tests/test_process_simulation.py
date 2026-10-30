@@ -4,10 +4,12 @@ Covers simulation creation, execution, bottleneck relief,
 automation impact, and CLI functionality.
 """
 
+import sys
 import uuid
 
 import pytest
 
+from services.analytics import process_simulation
 from services.analytics.process_simulation import (
     create_simulation,
     get_simulation_results,
@@ -229,3 +231,78 @@ class TestAutomationImpact:
             assert result["estimated_speed_improvement_pct"] == 0.0
         finally:
             conn.close()
+
+
+@pytest.mark.parametrize(
+    "raw_params",
+    ["{malformed", "[]", "NaN", '{"rate": 1e999}'],
+)
+def test_create_cli_rejects_invalid_params_before_connection(monkeypatch, raw_params):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["process_simulation", "create", "--name", "Synthetic", "--params", raw_params],
+    )
+
+    def unexpected_connection():
+        pytest.fail("invalid process-simulation parameters must fail before DB access")
+
+    monkeypatch.setattr(process_simulation, "_conn", unexpected_connection)
+
+    with pytest.raises(SystemExit) as exc_info:
+        process_simulation.main()
+
+    assert exc_info.value.code == 2
+
+
+def test_create_cli_forwards_valid_params_and_closes_connection(monkeypatch):
+    expected_params = {"soil": {"rate": 2}, "label": "synthetic"}
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "process_simulation",
+            "create",
+            "--name",
+            "Synthetic",
+            "--params",
+            '{"soil":{"rate":2},"label":"synthetic"}',
+        ],
+    )
+    calls = []
+    outputs = []
+
+    class Connection:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    connection = Connection()
+    monkeypatch.setattr(process_simulation, "_conn", lambda: connection)
+    monkeypatch.setattr(
+        process_simulation,
+        "create_simulation",
+        lambda conn, name, params, **kwargs: calls.append(
+            (conn, name, params, kwargs)
+        ) or {"simulation_id": "synthetic-id"},
+    )
+    monkeypatch.setattr(process_simulation, "print_json", outputs.append)
+
+    process_simulation.main()
+
+    assert calls == [
+        (
+            connection,
+            "Synthetic",
+            expected_params,
+            {
+                "description": None,
+                "process_key": None,
+                "created_by": None,
+                "location_id": None,
+            },
+        )
+    ]
+    assert outputs == [{"simulation_id": "synthetic-id"}]
+    assert connection.closed

@@ -5944,67 +5944,67 @@
         {
           "caller": "services/analytics/pitch.py:generate_pitch",
           "callee": "services/analytics/pitch.py:get_template",
-          "line": 271,
+          "line": 273,
           "depth": 2
         },
         {
           "caller": "services/analytics/pitch.py:generate_pitch",
           "callee": "services/analytics/pitch.py:gather_evidence",
-          "line": 274,
+          "line": 276,
           "depth": 2
         },
         {
           "caller": "services/analytics/pitch.py:gather_evidence",
           "callee": "services/analytics/pitch.py:_query_farm",
-          "line": 87,
-          "depth": 3
-        },
-        {
-          "caller": "services/analytics/pitch.py:gather_evidence",
-          "callee": "services/analytics/pitch.py:_query_crisp",
-          "line": 88,
-          "depth": 3
-        },
-        {
-          "caller": "services/analytics/pitch.py:gather_evidence",
-          "callee": "services/analytics/pitch.py:_query_revenue",
           "line": 89,
           "depth": 3
         },
         {
           "caller": "services/analytics/pitch.py:gather_evidence",
-          "callee": "services/analytics/pitch.py:_query_harvests",
+          "callee": "services/analytics/pitch.py:_query_crisp",
           "line": 90,
           "depth": 3
         },
         {
           "caller": "services/analytics/pitch.py:gather_evidence",
-          "callee": "services/analytics/pitch.py:_query_impact_claims",
+          "callee": "services/analytics/pitch.py:_query_revenue",
           "line": 91,
           "depth": 3
         },
         {
           "caller": "services/analytics/pitch.py:gather_evidence",
-          "callee": "services/analytics/pitch.py:_query_attestations",
+          "callee": "services/analytics/pitch.py:_query_harvests",
           "line": 92,
           "depth": 3
         },
         {
           "caller": "services/analytics/pitch.py:gather_evidence",
-          "callee": "services/analytics/pitch.py:_query_feedback",
+          "callee": "services/analytics/pitch.py:_query_impact_claims",
           "line": 93,
           "depth": 3
         },
         {
           "caller": "services/analytics/pitch.py:gather_evidence",
-          "callee": "services/analytics/pitch.py:_query_carbon",
+          "callee": "services/analytics/pitch.py:_query_attestations",
           "line": 94,
           "depth": 3
         },
         {
           "caller": "services/analytics/pitch.py:gather_evidence",
-          "callee": "services/analytics/pitch.py:_query_biodiversity",
+          "callee": "services/analytics/pitch.py:_query_feedback",
           "line": 95,
+          "depth": 3
+        },
+        {
+          "caller": "services/analytics/pitch.py:gather_evidence",
+          "callee": "services/analytics/pitch.py:_query_carbon",
+          "line": 96,
+          "depth": 3
+        },
+        {
+          "caller": "services/analytics/pitch.py:gather_evidence",
+          "callee": "services/analytics/pitch.py:_query_biodiversity",
+          "line": 97,
           "depth": 3
         }
       ],
@@ -6013,7 +6013,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "get_template",
-          "line": 41,
+          "line": 43,
           "relations": [
             "pitch_template"
           ],
@@ -6038,7 +6038,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_farm",
-          "line": 102,
+          "line": 104,
           "relations": [
             "v_public_farm_summary"
           ],
@@ -6064,7 +6064,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_crisp",
-          "line": 118,
+          "line": 120,
           "relations": [
             "v_crisp_composite_rating"
           ],
@@ -6090,7 +6090,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_revenue",
-          "line": 137,
+          "line": 139,
           "relations": [
             "v_public_revenue_streams"
           ],
@@ -6116,7 +6116,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_harvests",
-          "line": 165,
+          "line": 167,
           "relations": [
             "harvest_event"
           ],
@@ -6142,7 +6142,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_impact_claims",
-          "line": 181,
+          "line": 183,
           "relations": [
             "v_public_impact_claim_summary"
           ],
@@ -6168,7 +6168,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_attestations",
-          "line": 197,
+          "line": 199,
           "relations": [
             "v_public_attestation_summary"
           ],
@@ -6194,7 +6194,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_feedback",
-          "line": 212,
+          "line": 214,
           "relations": [
             "v_public_stakeholder_feedback_summary"
           ],
@@ -6220,7 +6220,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_carbon",
-          "line": 233,
+          "line": 235,
           "relations": [
             "v_public_carbon_credit_inventory"
           ],
@@ -6246,7 +6246,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_biodiversity",
-          "line": 250,
+          "line": 252,
           "relations": [
             "species_observation"
           ],
