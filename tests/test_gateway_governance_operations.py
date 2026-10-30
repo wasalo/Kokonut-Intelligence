@@ -51,7 +51,37 @@ def _valid_tactical_session_page(location_id=LOCATION_ID, *, items=None, next_cu
     }
 
 
-def _authorized_governance_client(monkeypatch, service_result, *, location_id=LOCATION_ID):
+def _valid_tactical_session_create_request(**updates):
+    request = {
+        "request_id": str(uuid4()),
+        "reason": "Plan the location governance review",
+        "circle_id": CIRCLE_ID,
+        "session_type": "weekly_review",
+        "title": "Weekly governance review",
+    }
+    request.update(updates)
+    return request
+
+
+def _valid_tactical_session_create_result(**updates):
+    result = {
+        "event_id": str(uuid4()),
+        "session_id": TACTICAL_SESSION_ID,
+        "actor_party_id": str(uuid4()),
+        "status": "planned",
+        "created_at": CREATED_AT,
+    }
+    result.update(updates)
+    return result
+
+
+def _authorized_governance_client(
+    monkeypatch,
+    service_result,
+    *,
+    location_id=LOCATION_ID,
+    scope_action="read",
+):
     operator_session = SimpleNamespace(
         session_id=str(uuid4()),
         session_token_hash="c" * 64,
@@ -68,9 +98,12 @@ def _authorized_governance_client(monkeypatch, service_result, *, location_id=LO
             return (
                 scoped_operator == OPERATOR_ID
                 and resource == "governance_tactical"
-                and action == "read"
+                and action == scope_action
                 and scoped_location == location_id
             )
+
+        def csrf_valid(self, _request, _operator_session):
+            return True
 
     class InMemoryAudit:
         def __init__(self):
@@ -84,6 +117,12 @@ def _authorized_governance_client(monkeypatch, service_result, *, location_id=LO
 
         def capture_status(self):
             return "ok"
+
+        def reserve_mutation(self):
+            return "synthetic-mutation-reservation"
+
+        def release_mutation(self, _reservation):
+            return None
 
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
     monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
@@ -585,6 +624,190 @@ def test_tactical_session_http_route_rejects_wrong_location(monkeypatch):
 
     assert response.status_code == 500
     assert response.json() == {"error": "Governance tactical sessions unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_tactical_session_create_route_documents_strict_contract_and_auth_policy(monkeypatch):
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="create"
+    ) as client:
+        schema = client.app.openapi()
+
+    operation = schema["paths"][
+        "/operator/api/governance/{location_id}/tactical-sessions"
+    ]["post"]
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    expected_request_fields = {
+        "request_id", "reason", "circle_id", "session_type", "title",
+        "scheduled_at", "facilitator_role_id", "recorder_role_id", "agenda_scope",
+    }
+    assert set(request_schema["properties"]) == expected_request_fields
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["required"]) == {
+        "request_id", "reason", "circle_id", "session_type", "title",
+    }
+    assert request_schema["properties"]["scheduled_at"]["format"] == "date-time"
+
+    response_schema = operation["responses"]["201"]["content"][
+        "application/json"
+    ]["schema"]
+    component_name = response_schema["$ref"].rsplit("/", 1)[1]
+    response_schema = schema["components"]["schemas"][component_name]
+    assert set(response_schema["properties"]) == {
+        "event_id", "session_id", "status", "created_at",
+    }
+    assert "actor_party_id" not in response_schema["properties"]
+    assert response_schema["additionalProperties"] is False
+    assert operation["responses"]["201"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+    assert operation["responses"]["201"]["headers"]["Vary"]["schema"]["example"] == "Cookie"
+    assert operation["responses"]["400"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+
+    from services.gateway.operator_auth import auth_route_policy
+
+    assert auth_route_policy(
+        "POST",
+        f"/operator/api/governance/{LOCATION_ID}/tactical-sessions",
+        enabled=True,
+    ) == {
+        "resource": "governance_tactical",
+        "action": "create",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+
+
+def test_tactical_session_create_returns_identity_minimized_receipt_and_replays(monkeypatch):
+    calls = []
+    action_result = _valid_tactical_session_create_result()
+
+    def create(operator_id, location_id, payload):
+        calls.append((operator_id, location_id, payload))
+        return action_result
+
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_session_mutations.create_governance_tactical_session",
+        create,
+    )
+    payload = _valid_tactical_session_create_request(
+        scheduled_at="2026-11-01T10:00:00-04:00",
+        facilitator_role_id=ROLE_ID,
+        agenda_scope="Review field evidence and open decisions",
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="create"
+    ) as client:
+        first = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-sessions", json=payload
+        )
+        replay = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-sessions", json=payload
+        )
+
+    expected = {
+        "event_id": action_result["event_id"],
+        "session_id": action_result["session_id"],
+        "status": "planned",
+        "created_at": "2026-10-18T00:00:00+00:00",
+    }
+    assert first.status_code == replay.status_code == 201
+    assert first.json() == replay.json() == expected
+    assert "actor_party_id" not in first.json()
+    assert first.headers["cache-control"] == replay.headers["cache-control"] == "no-store"
+    for response in (first, replay):
+        assert "cookie" in {
+            value.strip().lower() for value in response.headers["vary"].split(",")
+        }
+    assert calls == [
+        (OPERATOR_ID, LOCATION_ID, {
+            **payload,
+            "circle_id": CIRCLE_ID,
+            "facilitator_role_id": ROLE_ID,
+        }),
+        (OPERATOR_ID, LOCATION_ID, {
+            **payload,
+            "circle_id": CIRCLE_ID,
+            "facilitator_role_id": ROLE_ID,
+        }),
+    ]
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"actor_party_id": str(uuid4())},
+        {"request_id": "not-a-uuid"},
+        {"scheduled_at": "2026-11-01T10:00:00"},
+        {"title": " "},
+        {"agenda_scope": "x" * 10_001},
+    ],
+)
+def test_tactical_session_create_rejects_invalid_request_before_service(monkeypatch, overrides):
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_session_mutations.create_governance_tactical_session",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="create"
+    ) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-sessions",
+            json=_valid_tactical_session_create_request(**overrides),
+        )
+
+    assert response.status_code == 400
+    assert response.json() == {"error": "Tactical session request is invalid"}
+    assert response.headers["cache-control"] == "no-store"
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {**_valid_tactical_session_create_result(), "extra": "private"},
+        _valid_tactical_session_create_result(status="completed"),
+        _valid_tactical_session_create_result(created_at="2026-10-18T00:00:00"),
+    ],
+)
+def test_tactical_session_create_sanitizes_malformed_action_results(monkeypatch, result):
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_session_mutations.create_governance_tactical_session",
+        lambda *_args, **_kwargs: result,
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="create"
+    ) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-sessions",
+            json=_valid_tactical_session_create_request(),
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": "Governance tactical session creation unavailable"
+    }
+    assert "actor_party_id" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_tactical_session_create_requires_create_grant(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_session_mutations.create_governance_tactical_session",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="read"
+    ) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-sessions",
+            json=_valid_tactical_session_create_request(),
+        )
+
+    assert response.status_code == 403
+    assert calls == []
     assert response.headers["cache-control"] == "no-store"
 
 

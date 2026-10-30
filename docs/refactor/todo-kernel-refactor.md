@@ -3619,4 +3619,15 @@ Checklist: 581 checked / 16 open; strict private Gateway response contracts tota
 - [x] Preserve exact-location create authorization, bind response fields, cover create/replay status and cache headers, and match PostgreSQL U+0020 `btrim()` behavior.
 - [x] Run the approved 61-test selection and required static/inventory checks; record evidence.
 
-Both full-schema replays and their synthetic operator-scope probes pass; no application migration or candidate/legacy database was touched. ARM64/QEMU does not establish physical Raspberry Pi acceptance. The focused test selection, Ruff, Python compilation, capability matrix, SQL and helper inventories, provider/dependency checks, and diff check pass. Disposable Compose resources and the temporary probe image were removed. Checklist: 589 checked / 16 open; strict private Gateway response contracts total 196. Evidence: `builds/2026-10-29-recovery/runtime-role-full-schema-688-native-arm64-disposable.json`, `builds/2026-10-29-recovery/solution-create-response-contract.json`.
+Both full-schema replays and their synthetic operator-scope probes pass; no application migration or candidate/legacy database was touched. ARM64/QEMU does not establish physical Raspberry Pi acceptance. The focused test selection, Ruff, Python compilation, capability matrix, SQL and helper inventories, provider/dependency checks, and diff check pass. Disposable Compose resources and the temporary probe image were removed. Checklist: 590 checked / 16 open; strict private Gateway response contracts total 196. Evidence: `builds/2026-10-29-recovery/runtime-role-full-schema-688-native-arm64-disposable.json`, `builds/2026-10-29-recovery/solution-create-response-contract.json`.
+
+
+## Completed — tactical-session create response contract, 29 October
+
+- [x] Define a strict migration-444 request model with source-defined session types, UUIDs, bounded text, and timezone-aware scheduling.
+- [x] Validate the exact internal action result and return an identity-minimized four-field public receipt.
+- [x] Preserve the exact-location create grant, signed tenant scope, 201 retry behavior, and no-store/cookie variance.
+- [x] Cover OpenAPI, invalid request preflight, malformed output sanitization, grant denial, and replay with the approved mock-only tests.
+- [x] Run focused and full-module pytest plus Ruff, compilation, capability, SQL/helper, provider, dependency, and diff checks; record evidence.
+
+The focused selection passes 21 tests and the complete governance-operations module passes 38. No database/provider, candidate, or legacy state was used and no migration was applied. Evidence: `builds/2026-10-29-recovery/governance-tactical-session-create-contract.json`. Current tracked totals: 595 checked / 16 open; strict private Gateway response contracts total 197.

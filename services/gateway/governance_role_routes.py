@@ -12,6 +12,7 @@ from pydantic import (
     Field,
     ValidationError,
     field_validator,
+    model_validator,
 )
 
 
@@ -475,6 +476,88 @@ class GovernanceTacticalSessionPageResponse(BaseModel):
             if input_cursor in {item.id for item in self.items} or self.next_cursor == input_cursor:
                 raise ValueError("Governance tactical session page repeats its input cursor")
         return self
+
+
+class GovernanceTacticalSessionCreateRequest(BaseModel):
+    """Strict location-scoped request for creating a planned session."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    reason: str = Field(min_length=1, max_length=2000, strict=True)
+    circle_id: _GovernanceResponseUUID
+    session_type: Literal[
+        "weekly_review",
+        "stakeholder_health",
+        "relationship_review",
+        "risk_triage",
+        "governance_followup",
+    ]
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    scheduled_at: str | None = Field(
+        default=None,
+        strict=True,
+        json_schema_extra={"format": "date-time"},
+    )
+    facilitator_role_id: _GovernanceResponseUUID | None = None
+    recorder_role_id: _GovernanceResponseUUID | None = None
+    agenda_scope: str | None = Field(default=None, max_length=10_000, strict=True)
+
+    @field_validator("scheduled_at")
+    @classmethod
+    def _scheduled_at_must_be_timezone_aware(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("scheduled_at must be a valid ISO timestamp") from exc
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise ValueError("scheduled_at must include an explicit timezone")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_create_bounds(self):
+        if not self.reason.strip() or len(self.reason.strip()) > 2000:
+            raise ValueError("reason must contain 1 to 2000 characters")
+        if not self.title.strip() or len(self.title.strip()) > 255:
+            raise ValueError("title must contain 1 to 255 characters")
+        if any(
+            "\x00" in value
+            for value in (self.reason, self.title, self.agenda_scope)
+            if value is not None
+        ):
+            raise ValueError("Tactical session text cannot contain null characters")
+        return self
+
+
+class _GovernanceTacticalSessionCreateActionResult(BaseModel):
+    """Exact five-field result from migration 444, including its private actor."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    session_id: _GovernanceResponseUUID
+    actor_party_id: _GovernanceResponseUUID
+    status: Literal["planned"]
+    created_at: AwareDatetime
+
+
+class GovernanceTacticalSessionCreatedResponse(BaseModel):
+    """Public creation receipt omitting the migration's private actor identity."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    session_id: _GovernanceResponseUUID
+    status: Literal["planned"]
+    created_at: AwareDatetime
+
+
+class GovernanceTacticalSessionCreateError(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str
 
 
 def register_governance_role_routes(router, provider, run_in_threadpool, psycopg2):
@@ -1560,7 +1643,54 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(response.model_dump(mode="python")), headers=headers)
 
-    @router.post("/operator/api/governance/{location_id}/tactical-sessions", status_code=201)
+    tactical_create_error_responses = {
+        status: {
+            "model": GovernanceTacticalSessionCreateError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The tactical-session request is invalid.",
+            403: "The operator lacks an active exact-location create grant.",
+            404: "Operator OIDC is disabled or the selected circle/role is unavailable.",
+            409: "Tactical-session creation conflicts with existing state.",
+            500: "The tactical-session result failed its response contract.",
+            503: "Tactical-session creation is unavailable.",
+        }.items()
+    }
+
+    @router.post(
+        "/operator/api/governance/{location_id}/tactical-sessions",
+        status_code=201,
+        response_model=GovernanceTacticalSessionCreatedResponse,
+        responses={
+            201: {
+                "model": GovernanceTacticalSessionCreatedResponse,
+                "description": (
+                    "A planned tactical session was created or an idempotent retry "
+                    "returned the original creation receipt."
+                ),
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tactical_create_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": GovernanceTacticalSessionCreateRequest.model_json_schema()
+                    }
+                },
+            }
+        },
+    )
     async def create_governance_tactical_session_route(request: Request, location_id: str):
         headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
         if provider is None:
@@ -1578,11 +1708,20 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers=headers,
             )
         try:
+            create_request = GovernanceTacticalSessionCreateRequest.model_validate(payload)
+            requested_location_id = UUID(location_id)
+        except (ValidationError, TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Tactical session request is invalid"},
+                headers=headers,
+            )
+        try:
             result = await run_in_threadpool(
                 create_governance_tactical_session,
                 request.state.operator_session.operator.operator_id,
-                location_id,
-                payload,
+                str(requested_location_id),
+                create_request.model_dump(mode="json", exclude_unset=True),
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -1628,7 +1767,31 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance tactical session creation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            action_result = _GovernanceTacticalSessionCreateActionResult.model_validate(result)
+            response = GovernanceTacticalSessionCreatedResponse(
+                event_id=action_result.event_id,
+                session_id=action_result.session_id,
+                status=action_result.status,
+                created_at=action_result.created_at,
+            )
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_tactical").warning(
+                "Governance tactical session create response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance tactical session creation unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="python")),
+            status_code=201,
+            headers=headers,
+        )
 
     async def mutate_tactical_content_route(
         request: Request,
