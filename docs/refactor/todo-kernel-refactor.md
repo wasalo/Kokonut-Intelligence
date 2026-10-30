@@ -3606,3 +3606,17 @@ The CLI checks pass 31 tests. No database/provider, candidate, or legacy state w
 The focused selection passes 126 pytest tests and two unittest subtests. The disposable PostgreSQL 16 checker applies migrations 359 and 404 to a fresh synthetic database and passes 13 checks, including same-location linkage and cross-location rejection by the migration 359 trigger. Ruff, compilation, diff checks, capability validation, SQL inventory, provider boundaries, and dependency groups pass. No candidate or legacy state was accessed; no migration was applied to either. The security-Ruff selector reports S608 at dynamic SQL sites, including the established fixed-field allowlist builders in farm activity operations; no request data is interpolated as SQL identifiers. Evidence: `builds/2026-10-29-recovery/cli-and-farm-task-integrity.json` and `builds/2026-10-29-recovery/farm-activity-task-link-disposable.json`.
 
 Checklist: 581 checked / 16 open; strict private Gateway response contracts total 195.
+
+
+## Completed — runtime role ACL portability and solution-create contract, 29 October
+
+- [x] Prove the runtime role can read `service_registry` but cannot mutate it, including column-level grants; enforce exact parser/report semantics.
+- [x] Replay all 679 current schema files through migration 688 on native PostgreSQL 16/PostGIS with the synthetic operator-scope probe.
+- [x] Replay the same schema and probe on ARM64/QEMU with verified 1.5 GiB and 2-CPU limits; confirm no OOM kill.
+- [x] Record zero failed/pending migrations, disabled networking, unpublished ports, no seeds/farm data, cleanup, and candidate/legacy non-access.
+- [x] Refresh the source/ACL report and retain C1 as open because 991 public tables still have DML grants with RLS disabled.
+- [x] Publish strict migration-504 solution-create request and response contracts in OpenAPI and runtime validation.
+- [x] Preserve exact-location create authorization, bind response fields, cover create/replay status and cache headers, and match PostgreSQL U+0020 `btrim()` behavior.
+- [x] Run the approved 61-test selection and required static/inventory checks; record evidence.
+
+Both full-schema replays and their synthetic operator-scope probes pass; no application migration or candidate/legacy database was touched. ARM64/QEMU does not establish physical Raspberry Pi acceptance. The focused test selection, Ruff, Python compilation, capability matrix, SQL and helper inventories, provider/dependency checks, and diff check pass. Disposable Compose resources and the temporary probe image were removed. Checklist: 589 checked / 16 open; strict private Gateway response contracts total 196. Evidence: `builds/2026-10-29-recovery/runtime-role-full-schema-688-native-arm64-disposable.json`, `builds/2026-10-29-recovery/solution-create-response-contract.json`.

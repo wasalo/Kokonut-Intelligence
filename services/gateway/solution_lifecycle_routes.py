@@ -74,6 +74,96 @@ class SolutionRetirementCandidatesResponse(BaseModel):
         return self
 
 
+class SolutionLifecycleCreateRequest(BaseModel):
+    """Strict write contract for adding a location-originated solution."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _SolutionResponseUUID
+    canonical_key: str = Field(
+        min_length=2,
+        max_length=160,
+        pattern=r"^[a-z0-9][a-z0-9._:-]{1,159}$",
+        strict=True,
+    )
+    name: str = Field(min_length=1, max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    problem_statement: str = Field(min_length=1, max_length=8000, strict=True)
+    rationale: str = Field(min_length=10, max_length=4000, strict=True)
+    evidence: list[Any] = Field(max_length=100)
+    acknowledged: bool = Field(strict=True)
+    theory_of_change: str | None = Field(default=None, max_length=4000, strict=True)
+    baseline_alternative: str | None = Field(default=None, max_length=4000, strict=True)
+    risk_class: Literal["low", "medium", "high", "critical"] = "medium"
+    reversibility: Literal["high", "medium", "low", "unknown"] = "medium"
+
+    @model_validator(mode="after")
+    def validate_location_solution_create(self):
+        text_values = (
+            self.canonical_key,
+            self.name,
+            self.problem_statement,
+            self.rationale,
+            self.theory_of_change,
+            self.baseline_alternative,
+        )
+        if any(value is not None and "\x00" in value for value in text_values):
+            raise ValueError("Location solution text cannot contain null characters")
+        if not 1 <= len(self.name.strip()) <= 255:
+            raise ValueError("Solution name must contain 1 to 255 characters")
+        if not 1 <= len(self.problem_statement.strip()) <= 8000:
+            raise ValueError("Problem statement must contain 1 to 8000 characters")
+        if not 10 <= len(self.rationale.strip()) <= 4000:
+            raise ValueError("Creation rationale must contain 10 to 4000 characters")
+        if self.acknowledged is not True:
+            raise ValueError("Solution creation requires explicit acknowledgement")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Creation evidence must be finite JSON data") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Creation evidence exceeds the 64 KiB limit")
+        return self
+
+
+class SolutionLifecycleCreateResponse(BaseModel):
+    """Exact response returned by migration 504's idempotent create function."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    lifecycle_event_id: _SolutionResponseUUID
+    canonical_key: str = Field(
+        min_length=2,
+        max_length=160,
+        pattern=r"^[a-z0-9][a-z0-9._:-]{1,159}$",
+        strict=True,
+    )
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: Literal["discovered"]
+    solution_status: Literal["active"]
+    created_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
+
+class SolutionLifecycleCreateError(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str
+
+
 _SolutionStage = Literal[
     "discovered", "triaged", "framed", "experiment_ready", "testing",
     "validated", "investment_ready", "funded", "pilot_active",
@@ -1345,7 +1435,58 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
-    @router.post("/operator/api/solution-lifecycle/{location_id}/solutions")
+    create_error_responses = {
+        status: {
+            "model": SolutionLifecycleCreateError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The location-solution create request is invalid.",
+            403: "The operator lacks a current exact-location create grant.",
+            404: "Operator OIDC is disabled.",
+            409: "The canonical key or retry identifier conflicts.",
+            500: "The solution create result failed its response contract.",
+            503: "Location-solution creation is unavailable.",
+        }.items()
+    }
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/solutions",
+        response_model=SolutionLifecycleCreateResponse,
+        responses={
+            200: {
+                "model": SolutionLifecycleCreateResponse,
+                "description": "Idempotent replay of the existing solution create request.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            201: {
+                "model": SolutionLifecycleCreateResponse,
+                "description": "A location-originated solution was created.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **create_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": SolutionLifecycleCreateRequest.model_json_schema()
+                    }
+                },
+            }
+        },
+    )
     async def create_solution(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -1357,18 +1498,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             payload = await request.json()
         except Exception:
             return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
-        required_fields = {
-            "request_id", "canonical_key", "name", "solution_type",
-            "problem_statement", "rationale", "evidence", "acknowledged",
-        }
-        optional_fields = {
-            "theory_of_change", "baseline_alternative", "risk_class", "reversibility",
-        }
-        if (
-            not isinstance(payload, dict)
-            or not required_fields.issubset(payload)
-            or not set(payload).issubset(required_fields | optional_fields)
-        ):
+        try:
+            create_request = SolutionLifecycleCreateRequest.model_validate(payload)
+            requested_location_id = UUID(location_id)
+        except (ValidationError, TypeError, ValueError):
             return JSONResponse(
                 status_code=400,
                 content={"error": "Location solution fields are invalid"},
@@ -1378,19 +1511,19 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             result = await run_in_threadpool(
                 create_location_solution,
                 request.state.operator_session.operator.operator_id,
-                location_id,
-                payload["request_id"],
-                payload["canonical_key"],
-                payload["name"],
-                payload["solution_type"],
-                payload["problem_statement"],
-                payload["rationale"],
-                payload["evidence"],
-                theory_of_change=payload.get("theory_of_change"),
-                baseline_alternative=payload.get("baseline_alternative"),
-                risk_class=payload.get("risk_class", "medium"),
-                reversibility=payload.get("reversibility", "medium"),
-                acknowledged=payload["acknowledged"],
+                str(requested_location_id),
+                str(create_request.request_id),
+                create_request.canonical_key,
+                create_request.name,
+                create_request.solution_type,
+                create_request.problem_statement,
+                create_request.rationale,
+                create_request.evidence,
+                theory_of_change=create_request.theory_of_change,
+                baseline_alternative=create_request.baseline_alternative,
+                risk_class=create_request.risk_class,
+                reversibility=create_request.reversibility,
+                acknowledged=create_request.acknowledged,
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -1426,9 +1559,30 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Location solution creation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = SolutionLifecycleCreateResponse.model_validate(result)
+            if (
+                response.canonical_key != create_request.canonical_key.strip()
+                # PostgreSQL btrim() removes U+0020 by default; mirror that
+                # normalization exactly so Unicode whitespace remains bound.
+                or response.solution_name != create_request.name.strip(" ")
+                or response.solution_type != create_request.solution_type
+            ):
+                raise ValueError("solution create response does not match its request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Location solution create response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Location solution creation unavailable"},
+                headers=headers,
+            )
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result.get("replayed") else 201,
+            jsonable_encoder(response.model_dump(mode="python")),
+            status_code=200 if response.replayed else 201,
             headers=headers,
         )
 

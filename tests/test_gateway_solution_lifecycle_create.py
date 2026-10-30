@@ -1,5 +1,6 @@
 """Exact-location solution creation and route authorization contracts."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -27,6 +28,10 @@ CREATED = {
     "solution_status": "active",
     "created_at": "2026-10-20T12:00:00+00:00",
     "replayed": False,
+}
+ROUTE_CREATED = {
+    **CREATED,
+    "created_at": datetime(2026, 10, 20, 12, 0, tzinfo=timezone.utc),
 }
 BODY = {
     "request_id": REQUEST_ID,
@@ -211,7 +216,7 @@ def test_create_route_is_no_store_strict_and_forwards_authenticated_operator(mon
 
     def create(*args, **kwargs):
         calls.append((args, kwargs))
-        return CREATED
+        return ROUTE_CREATED
 
     monkeypatch.setattr(solution_lifecycle_actions, "create_location_solution", create)
     app = FastAPI()
@@ -242,6 +247,7 @@ def test_create_route_is_no_store_strict_and_forwards_authenticated_operator(mon
         )
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
     assert response.json() == CREATED
     assert malformed.status_code == 400
     assert calls == [(
@@ -258,6 +264,222 @@ def test_create_route_is_no_store_strict_and_forwards_authenticated_operator(mon
             "acknowledged": True,
         },
     )]
+
+
+def test_create_route_documents_exact_request_and_migration_504_response_contract():
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    with TestClient(app) as client:
+        schema = client.get("/openapi.json").json()
+
+    operation = schema["paths"][
+        "/operator/api/solution-lifecycle/{location_id}/solutions"
+    ]["post"]
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    assert set(request_schema["properties"]) == set(BODY)
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["required"]) == {
+        "request_id", "canonical_key", "name", "solution_type",
+        "problem_statement", "rationale", "evidence", "acknowledged",
+    }
+    assert request_schema["properties"]["canonical_key"]["pattern"] == (
+        "^[a-z0-9][a-z0-9._:-]{1,159}$"
+    )
+
+    expected_response_fields = {
+        "solution_id", "lifecycle_event_id", "canonical_key", "solution_name",
+        "solution_type", "current_stage", "solution_status", "created_at", "replayed",
+    }
+    for status in ("200", "201"):
+        response_schema = operation["responses"][status]["content"][
+            "application/json"
+        ]["schema"]
+        component_name = response_schema["$ref"].rsplit("/", 1)[1]
+        response_schema = schema["components"]["schemas"][component_name]
+        assert set(response_schema["properties"]) == expected_response_fields
+        assert set(response_schema["required"]) == expected_response_fields
+        assert response_schema["additionalProperties"] is False
+        assert operation["responses"][status]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+        assert operation["responses"][status]["headers"]["Vary"]["schema"]["example"] == "Cookie"
+    assert operation["responses"]["500"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+
+
+def test_create_route_returns_200_for_a_valid_idempotent_replay(monkeypatch):
+    from services.gateway import solution_lifecycle_actions
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    monkeypatch.setattr(
+        solution_lifecycle_actions,
+        "create_location_solution",
+        lambda *_args, **_kwargs: {**ROUTE_CREATED, "replayed": True},
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/solution-lifecycle/{LOCATION_ID}/solutions", json=BODY
+        )
+    assert response.status_code == 200
+    assert response.json() == {**CREATED, "replayed": True}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_create_response_binding_matches_postgres_btrim_for_unicode_whitespace(monkeypatch):
+    from services.gateway import solution_lifecycle_actions
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    submitted_name = "\u00a0Solution Name\u00a0"
+    monkeypatch.setattr(
+        solution_lifecycle_actions,
+        "create_location_solution",
+        lambda *_args, **_kwargs: {
+            **ROUTE_CREATED,
+            "solution_name": submitted_name,
+        },
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/solution-lifecycle/{LOCATION_ID}/solutions",
+            json={**BODY, "name": submitted_name},
+        )
+
+    assert response.status_code == 201
+    assert response.json()["solution_name"] == submitted_name
+
+
+def test_create_route_rejects_invalid_location_before_service_access(monkeypatch):
+    from services.gateway import solution_lifecycle_actions
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    calls = []
+    monkeypatch.setattr(
+        solution_lifecycle_actions,
+        "create_location_solution",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/operator/api/solution-lifecycle/not-a-uuid/solutions", json=BODY
+        )
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"extra": "must not leak"},
+        {"solution_id": "not-a-uuid"},
+        {"created_at": "not-a-timestamp"},
+        {"current_stage": "approved"},
+        {"solution_status": "published"},
+        {"replayed": "false"},
+        {"canonical_key": "other.solution"},
+        {"solution_name": "another solution"},
+        {"solution_type": "policy"},
+    ],
+)
+def test_create_route_sanitizes_malformed_or_unbound_service_results(monkeypatch, overrides):
+    from services.gateway import solution_lifecycle_actions
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    monkeypatch.setattr(
+        solution_lifecycle_actions,
+        "create_location_solution",
+        lambda *_args, **_kwargs: {**ROUTE_CREATED, **overrides},
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/solution-lifecycle/{LOCATION_ID}/solutions", json=BODY
+        )
+    assert response.status_code == 500
+    assert response.json() == {"error": "Location solution creation unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "must not leak" not in response.text
 
 
 def test_create_route_fails_closed_without_oidc():

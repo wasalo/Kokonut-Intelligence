@@ -191,6 +191,7 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,
+            "service_registry_read_only_verified": 1,
             "append_only_relations_expected": 2,
             "append_only_relations_verified": 2,
             "append_only_select_insert_verified": 2,
@@ -227,6 +228,23 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
     }
     with pytest.raises(ValueError, match="scoped-write ACL"):
         parse_operator_scope_probe(json.dumps(stale_count))
+    stale_service_registry = {
+        **good,
+        "runtime_scoped_write_policy": {
+            **good["runtime_scoped_write_policy"],
+            "service_registry_read_only_verified": 0,
+        },
+    }
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps(stale_service_registry))
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps({
+            **good,
+            "runtime_scoped_write_policy": {
+                **good["runtime_scoped_write_policy"],
+                "service_registry_read_only_verified": True,
+            },
+        }))
     with pytest.raises(ValueError):
         parse_operator_scope_probe(json.dumps({**good, "synthetic_operator_count": 1}))
     with pytest.raises(ValueError):
@@ -267,6 +285,7 @@ def test_operator_probe_counts_insert_only_relations_as_effective_dml():
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,
+            "service_registry_read_only_verified": 1,
             "append_only_relations_expected": 2,
             "append_only_relations_verified": 2,
             "append_only_select_insert_verified": 2,

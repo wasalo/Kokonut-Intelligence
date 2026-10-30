@@ -32,6 +32,7 @@ OPERATOR_PROBE_CHECKS = frozenset({
     "runtime provisioner denied direct table and column access to private relations",
     "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
     "runtime provisioner keeps shared advisory rules readable but immutable",
+    "runtime can read service registry but cannot mutate it",
     "runtime can read seeded crop-nutrient removal factors",
     "runtime can query shared greenhouse-gas emission-factor references",
     "runtime can query shared versioned operations protocols",
@@ -327,6 +328,7 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
         "direct_table_privilege_violations",
         "direct_column_privilege_violations",
         "farm_activity_ledger_readable",
+        "service_registry_read_only_verified",
         "append_only_relations_expected",
         "append_only_relations_verified",
         "append_only_select_insert_verified",
@@ -343,6 +345,8 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
         or scoped_write["direct_table_privilege_violations"] != 0
         or scoped_write["direct_column_privilege_violations"] != 0
         or scoped_write["farm_activity_ledger_readable"] != 1
+        or type(scoped_write["service_registry_read_only_verified"]) is not int
+        or scoped_write["service_registry_read_only_verified"] != 1
         or scoped_write["append_only_relations_expected"] != 2
         or scoped_write["append_only_relations_verified"] != 2
         or scoped_write["append_only_select_insert_verified"] != 2

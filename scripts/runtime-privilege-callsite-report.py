@@ -270,6 +270,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
+        "service_registry_read_only_verified": 1,
         "append_only_relations_expected": 2,
         "append_only_relations_verified": 2,
         "append_only_select_insert_verified": 2,
@@ -278,6 +279,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
     }
     recorded_scoped_write_passed = (
         isinstance(scoped_write, dict)
+        and type(scoped_write.get("service_registry_read_only_verified")) is int
         and all(scoped_write.get(key) == value for key, value in expected_scoped_write.items())
         and scoped_write.get("private_relations_expected")
         == scoped_write.get("private_relations_verified")
@@ -493,6 +495,11 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             "current_migration_chain_observed": (
                 observed_latest_migration_number is not None
                 and observed_latest_migration_number == repository_latest_migration
+            ),
+            "service_registry_read_only_boundary_passed": (
+                isinstance(scoped_write, dict)
+                and type(scoped_write.get("service_registry_read_only_verified")) is int
+                and scoped_write.get("service_registry_read_only_verified") == 1
             ),
             "api_key_column_boundary_passed": api_key_boundary_passed,
             "append_only_audit_ledgers_boundary_passed": append_only_boundary_passed,

@@ -64,6 +64,7 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
+        "service_registry_read_only_verified": 1,
         "append_only_relations_expected": 2,
         "append_only_relations_verified": 2,
         "append_only_select_insert_verified": 2,
@@ -298,9 +299,13 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
         "current_source_policy_coverage_observed": True,
         "acl_snapshot_latest_migration": None,
         "acl_snapshot_latest_migration_number": None,
-        "repository_latest_migration_number": 682,
+        "repository_latest_migration_number": max(
+            int(path.name.split("_", 1)[0])
+            for path in (ROOT / "schemas/postgres").glob("*.sql")
+        ),
         "current_migration_chain_observed": False,
         "api_key_column_boundary_passed": False,
+        "service_registry_read_only_boundary_passed": True,
         "append_only_audit_ledgers_boundary_passed": True,
         "target_scope": "isolated disposable database only",
         "production_or_candidate_state_established": False,
@@ -417,6 +422,41 @@ def test_source_report_does_not_claim_full_schema_role_acceptance_without_probe(
 
     assert report["runtime_role_acceptance"]["full_schema_replay_passed"] is False
     assert report["runtime_role_acceptance"]["scoped_acl_checks_passed"] is False
+
+
+def test_boolean_does_not_satisfy_service_registry_acl_probe_count():
+    scoped_policy = {
+        "private_relations_expected": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+        "mutation_denied_relations_expected": len(runtime_role._RUNTIME_MUTATION_TABLES),
+        "private_relations_verified": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+        "mutation_denied_relations_verified": len(runtime_role._RUNTIME_MUTATION_TABLES),
+        "direct_table_privilege_violations": 0,
+        "direct_column_privilege_violations": 0,
+        "farm_activity_ledger_readable": 1,
+        "service_registry_read_only_verified": True,
+        "append_only_relations_expected": 2,
+        "append_only_relations_verified": 2,
+        "append_only_select_insert_verified": 2,
+        "append_only_mutations_denied": 2,
+        "append_only_column_grants_denied": 2,
+    }
+    replay = {
+        "result": "passed",
+        "schema_files_applied": len(list((ROOT / "schemas/postgres").glob("*.sql"))),
+        "schema_files_pending": 0,
+        "schema_files_failed": 0,
+        "seeds_applied": 0,
+        "operator_scope_probe": {
+            "result": "passed",
+            "runtime_public_relation_acl": [],
+            "runtime_scoped_write_policy": scoped_policy,
+        },
+    }
+
+    report = REPORTER["build_report"](replay, {"execution_sites": []})
+
+    assert report["runtime_role_acceptance"]["scoped_acl_checks_passed"] is False
+    assert report["runtime_role_acceptance"]["service_registry_read_only_boundary_passed"] is False
 
 
 def test_insert_select_source_is_not_reported_as_a_dml_target():

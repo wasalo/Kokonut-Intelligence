@@ -117,6 +117,28 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         "advisory_rule", "SELECT"
     ):
         raise AssertionError("runtime login lost read access to shared advisory rules")
+    if not relation_exists("service_registry"):
+        raise AssertionError("full schema is missing the service registry")
+    service_registry_privileges = {
+        "SELECT": True,
+        "INSERT": False,
+        "UPDATE": False,
+        "DELETE": False,
+        "TRUNCATE": False,
+        "REFERENCES": False,
+        "TRIGGER": False,
+    }
+    observed_service_registry_privileges = {
+        privilege: has_table_privilege("service_registry", privilege)
+        for privilege in service_registry_privileges
+    }
+    if observed_service_registry_privileges != service_registry_privileges:
+        raise AssertionError("runtime service-registry ACL is not read-only")
+    if any(
+        has_column_privilege("service_registry", privilege)
+        for privilege in ("INSERT", "UPDATE", "REFERENCES")
+    ):
+        raise AssertionError("runtime retains column-level service-registry write access")
     if not relation_exists("crop_nutrient_removal_factor"):
         raise AssertionError("full schema is missing crop nutrient removal factors")
     cur.execute("SELECT count(*) FROM public.crop_nutrient_removal_factor")
@@ -226,6 +248,7 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
+        "service_registry_read_only_verified": 1,
         "append_only_relations_expected": len(_RUNTIME_APPEND_ONLY_TABLES),
         "append_only_relations_verified": append_only_verified,
         "append_only_select_insert_verified": append_only_verified,
@@ -413,6 +436,7 @@ def run_probe() -> dict[str, object]:
                 "runtime provisioner denied direct table and column access to private relations",
                 "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
                 "runtime provisioner keeps shared advisory rules readable but immutable",
+                "runtime can read service registry but cannot mutate it",
                 "runtime can read seeded crop-nutrient removal factors",
                 "runtime can query shared greenhouse-gas emission-factor references",
                 "runtime can query shared versioned operations protocols",
