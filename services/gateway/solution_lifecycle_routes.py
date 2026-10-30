@@ -913,6 +913,191 @@ class SolutionLifecycleFundingTrancheReviewDetailResponse(BaseModel):
         return self
 
 
+class SolutionLifecycleFundingReviewTrancheResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    tranche_number: int = Field(ge=1, strict=True)
+    amount: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    milestone_conditions: dict[str, Any]
+    status: Literal["proposed", "approved", "released", "blocked", "returned"]
+
+    @field_validator("milestone_conditions")
+    @classmethod
+    def validate_milestone_json(cls, value):
+        try:
+            encoded = json.dumps(
+                value,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Funding tranche terms must be finite JSON data") from exc
+        if len(encoded) > 8192:
+            raise ValueError("Funding tranche terms exceed their storage bound")
+        return value
+
+
+class SolutionLifecycleFundingReviewQueueItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    funding_case_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    capital_stage: Literal[
+        "discovery", "experiment", "pilot", "replication", "scale", "maintenance"
+    ]
+    funding_instrument: Literal[
+        "grant", "budget", "bounty", "loan", "investment", "community_fund", "in_kind"
+    ]
+    requested_amount: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    currency: str = Field(max_length=10, strict=True)
+    created_at: AwareDatetime
+    submitted_at: AwareDatetime | None
+    tranche_count: int = Field(ge=0, strict=True)
+    submitter_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_attribution(self):
+        if self.is_self_authored and not self.submitter_attributed:
+            raise ValueError("Funding self-authorship requires an attributed submitter")
+        return self
+
+
+class SolutionLifecycleFundingReviewQueueResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    funding_cases: list[SolutionLifecycleFundingReviewQueueItemResponse] = Field(
+        max_length=50
+    )
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_order_and_continuation(self):
+        if self.has_more:
+            if not self.funding_cases or self.next_offset is None:
+                raise ValueError("Funding review queue continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal funding review queue cannot continue")
+
+        seen_ids = set()
+        previous = None
+        for case in self.funding_cases:
+            if case.funding_case_id in seen_ids:
+                raise ValueError("Funding review queue contains a duplicate case")
+            seen_ids.add(case.funding_case_id)
+            if previous is not None:
+                if previous.submitted_at is None and case.submitted_at is not None:
+                    raise ValueError("Funding review queue order is inconsistent")
+                if (
+                    previous.submitted_at is not None
+                    and case.submitted_at is not None
+                    and previous.submitted_at < case.submitted_at
+                ):
+                    raise ValueError("Funding review queue order is inconsistent")
+                same_submission = previous.submitted_at == case.submitted_at
+                if same_submission and previous.created_at < case.created_at:
+                    raise ValueError("Funding review queue order is inconsistent")
+                if (
+                    same_submission
+                    and previous.created_at == case.created_at
+                    and previous.funding_case_id.int > case.funding_case_id.int
+                ):
+                    raise ValueError("Funding review queue ID tie-break is inconsistent")
+            previous = case
+        return self
+
+
+class SolutionLifecycleFundingReviewDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    funding_case_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    capital_stage: Literal[
+        "discovery", "experiment", "pilot", "replication", "scale", "maintenance"
+    ]
+    funding_instrument: Literal[
+        "grant", "budget", "bounty", "loan", "investment", "community_fund", "in_kind"
+    ]
+    requested_amount: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    minimum_viable_amount: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    maximum_authorized_amount: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    currency: str = Field(max_length=10, strict=True)
+    risk_adjusted_expected_value: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("-9999999999999.99"), le=Decimal("9999999999999.99"), strict=True
+    )
+    public_goods_value: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("-9999999999999.99"), le=Decimal("9999999999999.99"), strict=True
+    )
+    community_share: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("-9999999999999.99"), le=Decimal("9999999999999.99"), strict=True
+    )
+    downside_exposure: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("-9999999999999.99"), le=Decimal("9999999999999.99"), strict=True
+    )
+    decision_status: Literal["submitted"]
+    rationale: str = Field(max_length=4000, strict=True)
+    evidence: Any
+    created_at: AwareDatetime
+    submitted_at: AwareDatetime | None
+    tranches: list[SolutionLifecycleFundingReviewTrancheResponse] = Field(
+        max_length=50
+    )
+    submitter_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_private_detail(self):
+        if self.is_self_authored and not self.submitter_attributed:
+            raise ValueError("Funding self-authorship requires an attributed submitter")
+        if (
+            self.maximum_authorized_amount is not None
+            and self.maximum_authorized_amount < self.requested_amount
+        ):
+            raise ValueError("Funding authorization amount is below the request")
+        if (
+            self.minimum_viable_amount is not None
+            and self.maximum_authorized_amount is not None
+            and self.minimum_viable_amount > self.maximum_authorized_amount
+        ):
+            raise ValueError("Funding amount bounds are inconsistent")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Funding evidence must be finite JSON data") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Funding evidence exceeds its storage bound")
+        return self
+
+
 class SolutionLifecycleGateItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -6472,7 +6657,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             jsonable_encoder(validated.model_dump(mode="python")), headers=headers
         )
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/funding/review")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/funding/review",
+        response_model=SolutionLifecycleFundingReviewQueueResponse,
+    )
     async def location_solution_funding_review_queue(
         request: Request,
         location_id: str,
@@ -6520,10 +6708,38 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution funding review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleFundingReviewQueueResponse.model_validate(
+                result
+            )
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.offset != offset
+                or len(validated.funding_cases) > limit
+                or validated.next_offset != expected_next_offset
+                or (validated.has_more and len(validated.funding_cases) != limit)
+            ):
+                raise ValueError("Funding review page does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding review queue response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/review"
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/review",
+        response_model=SolutionLifecycleFundingReviewDetailResponse,
     )
     async def location_solution_funding_review_detail(
         request: Request, location_id: str, funding_case_id: str
@@ -6573,7 +6789,26 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution funding review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleFundingReviewDetailResponse.model_validate(
+                result
+            )
+            if validated.funding_case_id != UUID(funding_case_id):
+                raise ValueError("Funding review response does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding review detail rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get(
         "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review",

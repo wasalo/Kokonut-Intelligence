@@ -1277,6 +1277,13 @@ populated tenant isolation, and production state remain outside the report
 - [x] Add/run six focused mock-only Gateway/OpenAPI checks for the response,
   binding, eligibility, and malformed service output
   ([evidence](builds/2026-10-30-recovery/solution-funding-tranche-review-response-contract.json)).
+- [x] Add exact migration-490 funding review queue page/item response contracts,
+  binding location, pagination, SQL ordering, unique IDs, and the 10,000-offset
+  continuation limit while excluding reviewer identities.
+- [x] Add the exact migration-490 funding case detail contract, bind its path
+  ID, enforce source numeric/text/JSON bounds, and pass 23 focused mock-only
+  Gateway/OpenAPI checks for both routes
+  ([evidence](builds/2026-10-30-recovery/solution-funding-review-queue-detail-response-contract.json)).
 - [ ] **C3 — Finish the optional Directus adapter boundary.** Close code-verifiable
   role, field, row and hook gaps for collections still retained; keep native
   farm activity in Gateway. Workflow-role authorization cache freshness is
@@ -3971,6 +3978,6 @@ Evidence: `builds/2026-10-30-recovery/kernel-analytics-lineage-and-contract-test
 `builds/2026-10-30-recovery/forecast-resource-location-scope-disposable.json`,
 and `builds/2026-10-30-recovery/prm-portfolio-metric-scope-disposable.json`.
 
-Current checklist: 681 checked / 16 open. Strict private Gateway response
-contracts total 222. Capability classifications remain unchanged because this
+Current checklist: 684 checked / 16 open. Strict private Gateway response
+contracts total 225. Capability classifications remain unchanged because this
 source hardening does not complete a capability's end-to-end acceptance.

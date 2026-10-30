@@ -25046,3 +25046,26 @@ state was touched
 Current totals: 2,064 complete / 25 open; TODO 682 checked / 16 open; 223
 strict private Gateway response contracts across 67 capability rows
 (24 baseline-retained, 7 deployed, 36 prepared).
+
+### Progress addendum — funding review queue and case detail contracts — 30 October 2026
+
+The migration-490 CAP-035 funding review queue and case-detail routes now have
+strict OpenAPI/runtime contracts. Queue validation binds the requested
+location, offset, page size, continuation, SQL ordering, and unique case IDs;
+reviewer identities remain omitted. Detail validation binds the funding case
+path ID and checks numeric, text, and JSON bounds. Both routes preserve the
+existing exact review grant and no-store behavior, and return sanitized errors
+for malformed service output. The read helper now suppresses continuation at
+offset 10,000 rather than advertising an unreachable page.
+
+The approved mock-only Gateway/OpenAPI selection passes 23 tests, including
+malformed pagination, duplicate IDs, ordering, path binding, bounds, and the
+offset cap. Ruff, Python compilation, capability validation, and diff checks
+pass. No database/provider or candidate/legacy state was touched; no migration
+was applied ([evidence](builds/2026-10-30-recovery/solution-funding-review-queue-detail-response-contract.json)).
+
+Current totals: 2,067 complete / 25 open; TODO 684 checked / 16 open; 225
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared). This completes the source
+response-contract slice only; populated parity, live OIDC/browser acceptance,
+broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance remain open.
