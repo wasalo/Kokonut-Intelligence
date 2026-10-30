@@ -8881,3 +8881,19 @@ records; no data rollback is needed. Evidence:
 Checklist: 2,016 complete / 25 open (2,041 total); TODO: 649 checked / 16 open.
 Capability classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows; strict private Gateway response contracts total 221.
+
+
+### In-progress source continuation — procurement aggregation, SDK pagination, scheduler and CLI preflight — 30 October 2026
+
+- [x] Scope supplier category aggregation to each matching purchase order and pass four mock-cursor plus disposable PostgreSQL 16 synthetic aggregate checks on a private network with no published port.
+- [x] Record supplier comparison acceptance evidence and verify temporary-network/container cleanup.
+- [x] Reject Python and JavaScript driver-catalog pages that exceed the requested limit, including terminal pages with `has_more=false`; focused Python and JavaScript checks pass.
+- [x] Run Python driver-catalog regressions, JavaScript public API regressions, and the local TypeScript typecheck; record the oversized terminal-page case.
+- [x] Require timezone-aware `--since` for the dedicated sensor-anomaly worker while preserving the legacy command contract.
+- [x] Pass 158 focused scheduler-contract tests for naive rejection before dispatch, UTC/offset acceptance, and legacy CLI compatibility.
+- [x] Enforce the schema's 1–5 stakeholder-objective priority range before DB acquisition and retain default 3.
+- [x] Pass 21 focused CLI preflight tests for invalid-before-DB behavior, boundaries, and default priority.
+- [x] Confirm verified metrics remain portfolio-wide context; do not invent process attribution where the schema has no metric-to-process key.
+- [ ] Add a forward migration and update the PRM output contract to separate process maturity rows from the portfolio-wide metric summary; migration 196 currently repeats the global metrics across process maturity rows.
+
+Checklist: 2,025 complete / 26 open (2,051 total); TODO: 658 checked / 17 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 221. No migration or candidate/legacy change is part of this batch. Evidence: [procurement, SDK, scheduler, and CLI preflight continuation](builds/2026-10-30-recovery/procurement-sdk-page-size-and-preflight-continuation.json).

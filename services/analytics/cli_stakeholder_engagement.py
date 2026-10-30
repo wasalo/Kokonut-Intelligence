@@ -50,6 +50,17 @@ def _iso_timestamptz(value: str) -> str:
     return value
 
 
+def _priority(value: str) -> int:
+    """Enforce the schema's inclusive objective-priority range at the CLI edge."""
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("priority must be an integer from 1 to 5") from exc
+    if not 1 <= parsed <= 5:
+        raise argparse.ArgumentTypeError("priority must be an integer from 1 to 5")
+    return parsed
+
+
 def main():
     parser = argparse.ArgumentParser(description="Stakeholder engagement management")
     sub = parser.add_subparsers(dest="command")
@@ -87,7 +98,7 @@ def main():
     objective.add_argument("--target-value", type=float)
     objective.add_argument("--unit")
     objective.add_argument("--target-date", type=_iso_date)
-    objective.add_argument("--priority", type=int, default=3)
+    objective.add_argument("--priority", type=_priority, default=3)
     objective.set_defaults(func=lambda conn, a: add_objective(
         conn, a.plan_id, a.title, a.desired_outcome, description=a.description,
         success_metric=a.success_metric, target_value=a.target_value, unit=a.unit,

@@ -43,6 +43,79 @@ def test_invalid_temporal_values_fail_before_database(monkeypatch, argv):
 
 
 @pytest.mark.parametrize(
+    "priority",
+    ["0", "6", "not-an-integer"],
+)
+def test_invalid_objective_priority_fails_before_database(monkeypatch, priority):
+    database = Mock()
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "stakeholder-engagement",
+            "add-objective",
+            "plan",
+            "Title",
+            "Outcome",
+            "--priority",
+            priority,
+        ],
+    )
+    monkeypatch.setattr(cli, "get_db", database)
+
+    with pytest.raises(SystemExit) as error:
+        cli.main()
+
+    assert error.value.code == 2
+    database.assert_not_called()
+
+
+@pytest.mark.parametrize("priority", [1, 5])
+def test_objective_priority_boundaries_are_forwarded(monkeypatch, priority):
+    database = _Connection()
+    service = Mock(return_value={"ok": True})
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "stakeholder-engagement",
+            "add-objective",
+            "plan",
+            "Title",
+            "Outcome",
+            "--priority",
+            str(priority),
+        ],
+    )
+    monkeypatch.setattr(cli, "get_db", lambda: database)
+    monkeypatch.setattr(cli, "_out", lambda _result: None)
+    monkeypatch.setattr(cli, "add_objective", service)
+
+    cli.main()
+
+    assert service.call_args.kwargs["priority"] == priority
+    assert database.closed
+
+
+def test_objective_priority_default_remains_three(monkeypatch):
+    database = _Connection()
+    service = Mock(return_value={"ok": True})
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["stakeholder-engagement", "add-objective", "plan", "Title", "Outcome"],
+    )
+    monkeypatch.setattr(cli, "get_db", lambda: database)
+    monkeypatch.setattr(cli, "_out", lambda _result: None)
+    monkeypatch.setattr(cli, "add_objective", service)
+
+    cli.main()
+
+    assert service.call_args.kwargs["priority"] == 3
+    assert database.closed
+
+
+@pytest.mark.parametrize(
     ("argv", "service_name", "expected_value"),
     [
         (

@@ -438,6 +438,16 @@ describe('KokonutPublicApiClient', () => {
       offset: 12,
       has_more: true,
     },
+    {
+      drivers: Array.from({ length: 8 }, () => ({
+        driver_name: 'weather',
+        driver_version: '1',
+        driver_type: 'weather',
+      })),
+      limit: 7,
+      offset: 12,
+      has_more: false,
+    },
     { drivers: [], limit: true, offset: 12, has_more: false },
     { drivers: [], limit: 7, offset: 5001, has_more: false },
     { drivers: [], limit: 7, offset: 13, has_more: false },

@@ -3813,3 +3813,36 @@ was used; no migration was applied. Evidence:
 
 Checklist: 649 checked / 16 open. Strict private Gateway response contracts
 total 221.
+
+## Completed — supplier comparison category aggregation, 30 October
+
+- [x] Correlate the product-category predicate to each outer purchase order so category-filtered supplier aggregates exclude unrelated orders.
+- [x] Pass four mock-cursor cases and disposable PostgreSQL 16 synthetic category/location aggregate checks; confirm isolated-network cleanup and record evidence.
+
+Evidence: `builds/2026-10-30-recovery/procurement-sdk-page-size-and-preflight-continuation.json`.
+
+## Completed — SDK driver catalog page-size parity, 30 October
+
+- [x] Reject public driver catalog responses that contain more entries than the requested limit in Python and JavaScript clients.
+- [x] Pass focused Python and JavaScript regressions for an oversized terminal page with `has_more=false`; run the TypeScript typecheck and record evidence.
+
+Evidence: `builds/2026-10-30-recovery/procurement-sdk-page-size-and-preflight-continuation.json`.
+
+## Completed — scheduled anomaly timestamp preflight, 30 October
+
+- [x] Require timezone-aware `--since` values for the isolated sensor-anomaly worker while preserving the legacy anomaly command's generic datetime behavior.
+- [x] Pass the focused contract suite for naive rejection before dispatch, UTC/offset acceptance, and unchanged legacy CLI handling.
+
+## Completed — stakeholder objective priority preflight, 30 October
+
+- [x] Enforce the migration-defined inclusive priority range of 1–5 during CLI parsing, before PostgreSQL acquisition, while preserving default priority 3.
+- [x] Pass focused CLI checks for invalid values, both boundaries, and the default; record evidence.
+
+## Open semantic contract — PRM process outcome correlation
+
+- [x] Confirm verified metrics remain portfolio-wide context; do not invent process attribution where the schema has no direct metric-to-process key.
+- [ ] Add a forward migration and update the PRM output contract so process maturity rows and the portfolio-wide verified-metric summary are separate; migration 196 currently repeats the same global metric population for every process maturity.
+
+Current checklist: 658 checked / 17 open. Strict private Gateway response
+contracts total 221. Evidence for the completed source continuations:
+`builds/2026-10-30-recovery/procurement-sdk-page-size-and-preflight-continuation.json`.

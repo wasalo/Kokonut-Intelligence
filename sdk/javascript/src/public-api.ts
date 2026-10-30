@@ -335,6 +335,7 @@ function isDriverCatalogResponse(
     candidate.limit !== expectedLimit ||
     candidate.offset !== expectedOffset ||
     typeof candidate.has_more !== 'boolean' ||
+    candidate.drivers.length > (candidate.limit as number) ||
     (candidate.has_more &&
       (candidate.drivers.length !== candidate.limit ||
         (candidate.offset as number) + (candidate.limit as number) > 5000))

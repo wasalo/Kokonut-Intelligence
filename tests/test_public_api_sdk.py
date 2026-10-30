@@ -690,6 +690,15 @@ def test_driver_catalog_sdk_preserves_bounded_pagination_and_typed_entries() -> 
             "offset": 12,
             "has_more": True,
         },
+        {
+            "drivers": [
+                {"driver_name": "weather", "driver_version": "1", "driver_type": "weather"}
+                for _ in range(8)
+            ],
+            "limit": 7,
+            "offset": 12,
+            "has_more": False,
+        },
         {"drivers": [], "limit": True, "offset": 12, "has_more": False},
         {"drivers": [], "limit": 7.5, "offset": 12, "has_more": False},
         {"drivers": [], "limit": 7, "offset": True, "has_more": False},

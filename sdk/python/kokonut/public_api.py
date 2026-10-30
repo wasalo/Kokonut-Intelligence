@@ -375,6 +375,7 @@ def _is_driver_catalog_response(
         or limit != expected_limit
         or offset != expected_offset
         or not isinstance(value.get("has_more"), bool)
+        or len(drivers) > limit
         or (
             value["has_more"]
             and (len(drivers) != limit or offset + limit > 5000)
