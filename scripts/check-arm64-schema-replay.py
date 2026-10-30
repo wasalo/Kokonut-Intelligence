@@ -217,6 +217,52 @@ def operator_scope_probe_command(container_id: str, client_image: str) -> list[s
     ]
 
 
+def parse_probe_image_inspection(output: str) -> dict[str, str]:
+    """Validate local probe-image metadata without coupling it to the DB platform."""
+    parts = output.strip().split()
+    if (
+        len(parts) != 2
+        or parts[0] not in {"linux/amd64", "linux/arm64"}
+        or not re.fullmatch(r"sha256:[a-f0-9]{64}", parts[1])
+    ):
+        raise ValueError("probe image inspection returned invalid platform or image ID")
+    return {"platform": parts[0], "image_id": parts[1]}
+
+
+def probe_image_runtime_command(image_id: str) -> list[str]:
+    """Check that Docker can run the local Python probe image before replay."""
+    if not re.fullmatch(r"sha256:[a-f0-9]{64}", image_id):
+        raise ValueError("invalid probe image ID")
+    return [
+        "docker", "run", "--rm", "--pull=never", "--network", "none",
+        "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
+        "--entrypoint", "python3", image_id,
+        "-c", "import platform; print(platform.machine())",
+    ]
+
+
+def prepare_operator_scope_probe_image(image_name: str) -> dict[str, str]:
+    """Inspect and launch-check the probe client before an expensive replay."""
+    inspection = run(
+        [
+            "docker", "image", "inspect", image_name,
+            "--format", "{{.Os}}/{{.Architecture}} {{.Id}}",
+        ],
+        capture=True,
+    ).stdout.strip()
+    image = parse_probe_image_inspection(inspection)
+    runtime = run(
+        probe_image_runtime_command(image["image_id"]), capture=True
+    ).stdout.strip()
+    if (
+        not runtime
+        or len(runtime) > 64
+        or not re.fullmatch(r"[A-Za-z0-9_.-]+", runtime)
+    ):
+        raise RuntimeError("probe image returned an invalid Python runtime architecture")
+    return {"name": image_name, **image, "runtime_machine": runtime}
+
+
 def resource_limit_values(memory_limit: str | None, cpu_limit: float | None) -> tuple[int | None, int | None]:
     """Parse resource budgets into Docker's HostConfig byte and nanocpu units."""
     memory_bytes = None
@@ -435,7 +481,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--probe-image", default="kokonut-kernel-candidate-app:latest",
-        help="locally available Kernel client image for the optional operator probe",
+        help="locally available, Docker-runnable Python image for the optional operator probe (architecture may differ from the database)",
     )
     args = parser.parse_args()
 
@@ -510,6 +556,7 @@ def main() -> int:
     stage = "image_inspection"
     started_at = time.monotonic()
     project_started = False
+    probe_image: dict[str, str] | None = None
     try:
         stage = "project_conflict_preflight"
         ensure_disposable_project_unused(project)
@@ -525,6 +572,11 @@ def main() -> int:
             "platform": image[0],
             "image_id": image[1],
         }
+
+        if args.operator_scope_probe:
+            stage = "operator_scope_probe_image_preflight"
+            probe_image = prepare_operator_scope_probe_image(args.probe_image)
+            evidence["operator_scope_probe_image"] = probe_image
 
         stage = "database_start"
         project_started = True
@@ -664,18 +716,8 @@ def main() -> int:
         ):
             raise RuntimeError("schema count, seed count, or ARM64 architecture check failed")
         if args.operator_scope_probe:
-            stage = "operator_scope_probe_image_inspection"
-            client_image = run(
-                ["docker", "image", "inspect", args.probe_image, "--format", "{{.Os}}/{{.Architecture}} {{.Id}}"],
-                capture=True,
-            ).stdout.strip().split(maxsplit=1)
-            evidence["operator_scope_probe_image"] = {
-                "name": args.probe_image,
-                "platform": client_image[0] if client_image else None,
-                "image_id": client_image[1] if len(client_image) > 1 else None,
-            }
-            if len(client_image) != 2 or client_image[0] != args.platform:
-                raise RuntimeError(f"probe image platform is not {args.platform}")
+            if probe_image is None:
+                raise RuntimeError("operator probe image was not prepared")
             stage = "operator_scope_probe"
             probe_env = env.copy()
             probe_env.update({
@@ -687,7 +729,9 @@ def main() -> int:
             })
             try:
                 probe_output = run(
-                    operator_scope_probe_command(database_container_id, args.probe_image),
+                    operator_scope_probe_command(
+                        database_container_id, probe_image["image_id"]
+                    ),
                     env=probe_env, capture=True,
                 ).stdout
             except ReplayCommandFailure as exc:

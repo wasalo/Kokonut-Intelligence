@@ -872,19 +872,19 @@ that its full source-plan phase is complete.
 
 - [ ] **C1 — Replace broad runtime database privileges with scoped contracts.**
   Initial pre-provisioning inventory remains a historical baseline: 1,101
-  relations had runtime DML and RLS disabled. The latest native, network-
-  disabled replay applies all 672 ordered schema files through migration 681
-  and passes the synthetic two-tenant/operator scope probe. It verifies 128
-  declared controls (79 private relations, 46 mutation-denied relations, two
-  append-only relations, plus the API-key column boundary), with zero direct
-  table/column privilege violations. The observed report still has 992
-  relations with effective DML while RLS is disabled, so broad runtime access
-  and universal application tenant isolation remain open. ARM64/QEMU now also
-  replays all 675 schema files through migration 684 under network-disabled
-  1.5 GiB/two-CPU limits, with zero pending/failed files and cleanup complete.
-  That run did not execute the optional operator-scope probe; it is
-  schema/portability evidence only, not ARM64 ACL-probe or physical Raspberry
-  Pi evidence.
+  relations had runtime DML and RLS disabled. The latest native and ARM64/QEMU
+  PostgreSQL 16 replays each applied all 680 schema files through migration
+  689 and passed the synthetic two-tenant/operator scope probe under verified
+  1.5 GiB/two-CPU limits. Each verified 79 private relations, 47
+  mutation-denied relations, and zero direct table/column privilege
+  violations. Each inventory still reports 991 public tables with runtime DML
+  while RLS is disabled; broad runtime access and universal application
+  tenant isolation therefore remain open. The ARM64 database reported
+  `aarch64`; both runs disabled network/ports, loaded no seeds or farm data,
+  and cleaned up successfully. This is software portability and synthetic
+  authorization evidence, not physical Raspberry Pi or production acceptance
+  ([native replay](builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json);
+  [ARM64 replay](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe-cross-arch.json)).
 
   Migrations 676 and 677 keep governed `reference_class` and seeded
   `farmer_credential_type` guidance readable but immutable to
@@ -998,11 +998,13 @@ that its full source-plan phase is complete.
   [quantity-unit ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
   [analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json),
   [local SQL template resolution](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json).
-  The refreshed ACL report observes the full schema and source policy through
-  migration 681, including the `metric_definition` read-only boundary. It
-  records 128 migration-backed controls and 992 relations retaining DML while
-  RLS is disabled; external writers, populated tenant isolation, and
-  production state remain outside the report
+The 28 October ACL report observes the schema and source policy through
+migration 681, including the `metric_definition` read-only boundary. Its
+snapshot records 128 migration-backed controls and 992 relations retaining
+DML while RLS is disabled. The later migration-689 native and ARM64/QEMU
+replays each verify the current two-tenant operator boundary and report 991
+public tables retaining runtime DML with RLS disabled; external writers,
+populated tenant isolation, and production state remain outside the report
   ([report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json)).
   After migrations 682–683, the documented disposable runtime-role check also
   passes against the current provisioner: it reapplies the role boundary after
@@ -1448,17 +1450,25 @@ that its full source-plan phase is complete.
   network was disabled, no ports or seeds were used, no farm data was loaded,
   and cleanup passed. Candidate and legacy state were untouched
   ([native evidence](builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json)).
-  An ARM64/QEMU run also applied all 680 files through 689, but the optional
-  probe could not start because its only local client image was AMD64. The
-  original run record was overwritten by a retry; the retry using a matching
-  ARM64 client stopped at migration 050, whose diagnostic reported that
-  PostgreSQL had not reached a consistent recovery state. Its isolated
-  resources were cleaned up. Keep this ARM64 replay unaccepted until a
-  successful run with preserved evidence is recorded
-  ([retry evidence](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe.json)).
+  A fresh ARM64/QEMU run applied all 680 files through 689 under the same
+  verified limits and passed the two-tenant operator-scope probe: 79 private
+  relations and 47 mutation-denied relations had zero direct table/column
+  privilege violations. Its AMD64 client ran on the Docker host while the
+  database remained ARM64; the runner now preflights that local client before
+  database startup and uses its inspected image ID. The network was disabled,
+  no ports or seeds were used, no farm data was loaded, and cleanup passed
+  ([ARM64 evidence](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe-cross-arch.json)).
+  Earlier probe-image and migration-050 failures remain historical attempts,
+  not the final result. The native and ARM64 probes each report 991 public
+  tables with DML while RLS is disabled; this does not establish universal
+  least privilege. C7 remains open for physical-device/power, populated-data,
+  and production recovery acceptance.
   - [x] Complete and verify the native full-schema 689 replay and operator
     scope probe; do not treat the broad public-table DML inventory as proof of
     universal least privilege.
+  - [x] Complete and verify the ARM64/QEMU full-schema 689 replay and operator
+    scope probe under the same resource limits; physical Raspberry Pi and
+    production recovery gates remain open.
   Focused native and
   ARM64/QEMU ACL checks cover migrations 672–680. A separate
   network-disabled schema check replayed all 671 schema files through migration

@@ -3,6 +3,7 @@
 import json
 import runpy
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -19,6 +20,9 @@ safe_error_summary = replay_module["safe_error_summary"]
 ReplayCommandFailure = replay_module["ReplayCommandFailure"]
 run = replay_module["run"]
 operator_scope_probe_command = replay_module["operator_scope_probe_command"]
+parse_probe_image_inspection = replay_module["parse_probe_image_inspection"]
+probe_image_runtime_command = replay_module["probe_image_runtime_command"]
+prepare_operator_scope_probe_image = replay_module["prepare_operator_scope_probe_image"]
 parse_operator_scope_probe = replay_module["parse_operator_scope_probe"]
 ensure_disposable_project_unused = replay_module["ensure_disposable_project_unused"]
 resource_limit_values = replay_module["resource_limit_values"]
@@ -170,6 +174,72 @@ def test_operator_probe_shares_only_the_disposable_database_network():
     assert "SPRINT_ADMIN_PASSWORD" in command
     assert not any(value.startswith("SPRINT_ADMIN_PASSWORD=") for value in command)
     assert "--publish" not in command
+
+
+def test_probe_image_platform_may_differ_from_database_target():
+    image_id = "sha256:" + "a" * 64
+
+    assert parse_probe_image_inspection(f"linux/amd64 {image_id}") == {
+        "platform": "linux/amd64",
+        "image_id": image_id,
+    }
+    assert parse_probe_image_inspection(f"linux/arm64 {image_id}")["platform"] == "linux/arm64"
+
+
+@pytest.mark.parametrize(
+    "inspection",
+    [
+        "",
+        "linux/386 sha256:" + "a" * 64,
+        "linux/amd64 latest",
+        "linux/amd64 sha256:" + "g" * 64,
+        "linux/amd64 sha256:" + "a" * 64 + " extra",
+    ],
+)
+def test_probe_image_inspection_rejects_invalid_metadata(inspection):
+    with pytest.raises(ValueError, match="invalid platform or image ID"):
+        parse_probe_image_inspection(inspection)
+
+
+def test_probe_image_runtime_preflight_is_local_networkless_and_read_only():
+    image_id = "sha256:" + "b" * 64
+
+    command = probe_image_runtime_command(image_id)
+
+    assert command[:6] == ["docker", "run", "--rm", "--pull=never", "--network", "none"]
+    assert "--read-only" in command
+    assert "--publish" not in command
+    assert command[-2:] == ["-c", "import platform; print(platform.machine())"]
+    assert image_id in command
+
+
+def test_probe_image_runtime_preflight_rejects_invalid_image_id():
+    with pytest.raises(ValueError, match="invalid probe image ID"):
+        probe_image_runtime_command("kokonut-kernel-client:latest")
+
+
+def test_probe_image_preflight_runs_inspected_image_even_when_architecture_differs(monkeypatch):
+    image_id = "sha256:" + "c" * 64
+    outputs = iter([f"linux/amd64 {image_id}\n", "x86_64\n"])
+    commands = []
+
+    def fake_subprocess_run(command, **_kwargs):
+        commands.append(command)
+        return SimpleNamespace(returncode=0, stdout=next(outputs), stderr="")
+
+    monkeypatch.setattr(replay_module["subprocess"], "run", fake_subprocess_run)
+
+    result = prepare_operator_scope_probe_image("local-kernel-client:latest")
+
+    assert result == {
+        "name": "local-kernel-client:latest",
+        "platform": "linux/amd64",
+        "image_id": image_id,
+        "runtime_machine": "x86_64",
+    }
+    assert commands[0][0:3] == ["docker", "image", "inspect"]
+    assert image_id in commands[1]
+    assert commands[1][commands[1].index("--network") + 1] == "none"
 
 
 @pytest.mark.parametrize("container_id", ["", "../outside", "a" * 11, "g" * 64])

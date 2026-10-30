@@ -8962,21 +8962,26 @@ branch; CI #1010 is in progress and this tooling batch is local.
 - [x] Keep the native replay network-disabled with no host ports or seeds, load no farm data, and verify cleanup. Candidate and legacy databases were untouched.
 - [x] Run the full ARM64/QEMU schema replay through migration 689. Its first attempt applied all 680 files, but the optional probe was blocked because the available client image was AMD64; that first run record was overwritten by a retry before it was preserved.
 - [x] Rebuild the locked ARM64 PostGIS image and an ARM64 probe client; the retry stopped at migration 050, with its diagnostic reporting PostgreSQL had not reached a consistent recovery state. The retry cleaned its disposable resources and is retained as a failed attempt, not accepted ARM64 replay evidence.
-- [x] Record the native pass and ARM64 retry limitation in the TODO/progress ledgers. C7 remains open until a successful ARM64 replay is preserved; physical Raspberry Pi, populated-data, and production recovery acceptance remain separate gates.
+- [x] Retry the current ARM64/QEMU replay with the host-runnable local AMD64 probe image. All 680 schema files through migration 689 applied under the verified 1.5 GiB/two-CPU cap; the 35-check two-tenant operator probe passed, the database reported `aarch64`, and cleanup completed.
+- [x] Update the replay runner to accept a probe image whose architecture differs from the target database, verify the immutable image ID, and run a network-disabled Python launch preflight before database startup. The focused runner suite passes 35 tests; Ruff, compilation, and `git diff --check` pass.
+- [x] Record both native and ARM64 passes in the TODO/progress ledgers. C7 remains open for physical Raspberry Pi, populated-data, and production recovery acceptance.
 
 The native full-schema/operator-probe evidence is
 [here](builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json).
 The failed ARM64 retry is
 [here](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe.json).
+The preserved cross-architecture ARM64/QEMU pass is
+[here](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe-cross-arch.json).
 The first ARM64 run did apply all migrations, but its raw report was overwritten
-by the retry. Its result is therefore not being counted as durable acceptance.
+by the retry. That first result is not counted as evidence; the preserved later
+pass closes the software-only ARM64 replay and operator-probe slice.
 The latest native probe's table inventory also reports 991 public tables with
 DML while RLS is disabled; this does not establish universal least privilege,
 and broad C1 boundaries remain open. The temporary ARM64 client image was
 removed; the locked ARM64 PostGIS image remains available for another isolated
 replay. No persistent database, schema, seed, or application data was changed.
 
-Checklist: 2,057 complete / 25 open (2,082 total); TODO: 681 checked / 16 open.
+Checklist: 2,059 complete / 25 open (2,084 total); TODO: 682 checked / 16 open.
 Capability classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows. The local parity-tool commit and this evidence batch
 remain unpushed pending the next grouped push.
