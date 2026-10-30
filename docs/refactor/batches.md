@@ -8858,3 +8858,26 @@ evidence, and progress records; no data rollback is needed. Evidence:
 Checklist: 2,010 complete / 25 open (2,035 total); TODO: 645 checked / 16 open.
 Capability classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows; strict private Gateway response contracts remain 220.
+
+
+### Source continuation — governance nomination contract and provider-error redaction — 30 October 2026
+
+- [x] Validate migration-438 governance nomination requests against exact UUID, assignment-type, mandate, and delegate-mandate constraints before the service call.
+- [x] Validate the exact five-field proposal result, bind role/type/proposed state, and document the 201 response while omitting actor identity.
+- [x] Preserve the exact location create grant, CSRF behavior, no-store response, and Cookie variance; sanitize malformed service results.
+- [x] Prevent forecast-provider exception URLs from appearing in uncaught errors or formatted tracebacks, even if recording the sanitized failure also fails.
+- [x] Run 26 focused nomination-route tests and 2 synthetic worker-redaction tests; pass Ruff, Python compilation, capability matrix, runtime SQL, provider boundaries, dependency groups, and diff checks.
+- [x] Record the evidence and update both progress ledgers; no migration, database, provider, candidate, or legacy environment was used.
+
+The governance-role route tests cover strict request/response/OpenAPI fields,
+path/type binding, proposed-only status, malformed output, authorization,
+CSRF, 201 behavior, no-store/Cookie headers, and identity minimization. The
+worker tests cover both successful and failed persistence of the redacted
+provider error and prove synthetic credentials do not appear in the exception
+or formatted traceback. Rollback reverts source, tests, evidence, and progress
+records; no data rollback is needed. Evidence:
+[governance nomination and weather error redaction](builds/2026-10-30-recovery/governance-nomination-and-weather-error-redaction.json).
+
+Checklist: 2,016 complete / 25 open (2,041 total); TODO: 649 checked / 16 open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows; strict private Gateway response contracts total 221.

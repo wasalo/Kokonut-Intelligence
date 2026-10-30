@@ -3793,3 +3793,23 @@ candidate, legacy, or provider was used; no migration was applied. Evidence:
 
 Checklist: 645 checked / 16 open. Strict private Gateway response contracts
 remain 220.
+
+## Completed — forecast-worker exception redaction, 30 October
+
+- [x] Replace the original provider exception with the already-persisted sanitized error so API request URLs cannot escape into CLI or scheduler logs.
+- [x] Update and run approved synthetic provider-error regressions for successful and failed audit writes; verify neither the raised error nor its traceback exposes the key.
+
+## Completed — governance-role nomination response contract, 30 October
+
+- [x] Add strict migration-438 nomination request/result schemas, bind the response to role/type and proposed state, and preserve exact create authorization and cache behavior.
+- [x] Add and run focused mock-only route/OpenAPI checks for request validation, response binding, malformed results, and authorization.
+
+The nomination route module passes 26 focused tests; the forecast-worker
+redaction selection passes 2. Ruff, Python compilation, `git diff --check`,
+capability-matrix validation, runtime SQL inventory, provider-boundary checks,
+and dependency-group checks pass. No database, candidate, legacy, or provider
+was used; no migration was applied. Evidence:
+`builds/2026-10-30-recovery/governance-nomination-and-weather-error-redaction.json`.
+
+Checklist: 649 checked / 16 open. Strict private Gateway response contracts
+total 221.

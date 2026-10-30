@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import traceback
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -232,12 +233,39 @@ def test_provider_error_is_audited_without_persisting_exception_text():
         with pytest.raises(RuntimeError) as raised:
             worker.ingest(LOCATION_ID)
 
-    assert raised.value is provider_error
+    assert raised.value is not provider_error
+    assert str(raised.value) == "forecast fetch or parsing failed (RuntimeError)"
+    assert raised.value.__cause__ is None
+    assert raised.value.__context__ is None
+    assert raised.value.__suppress_context__ is True
+    formatted_traceback = "".join(traceback.format_exception(raised.value))
+    assert "synthetic-secret" not in formatted_traceback
     error_text = store.call_args.kwargs["error_text"]
     assert error_text == "forecast fetch or parsing failed (RuntimeError)"
     assert "synthetic-secret" not in error_text
     assert store.call_args.kwargs["records"] == []
     assert store.call_args.kwargs["provider_payload_hash"] is None
+
+
+def test_provider_error_remains_redacted_when_failure_audit_cannot_be_saved():
+    provider_error = RuntimeError(
+        "request failed https://provider.invalid/?appid=synthetic-secret"
+    )
+    audit_error = RuntimeError("database failure while recording synthetic-secret")
+    with patch.object(worker, "_provider_api_key", return_value="synthetic-key"), \
+            patch.object(worker, "get_worker_credential", return_value=RAW_CREDENTIAL), \
+            patch.object(worker, "_load_location", return_value=("Adelphi", 18.5, -69.9)), \
+            patch.object(worker, "fetch_forecast_raw", side_effect=provider_error), \
+            patch.object(worker, "_store_batch", side_effect=audit_error):
+        with pytest.raises(RuntimeError) as raised:
+            worker.ingest(LOCATION_ID)
+
+    assert str(raised.value) == "forecast fetch or parsing failed (RuntimeError)"
+    assert raised.value.__cause__ is None
+    assert raised.value.__context__ is None
+    assert raised.value.__suppress_context__ is True
+    formatted_traceback = "".join(traceback.format_exception(raised.value))
+    assert "synthetic-secret" not in formatted_traceback
 
 
 def test_disabled_cli_fails_before_ingestion():

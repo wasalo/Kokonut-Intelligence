@@ -451,6 +451,49 @@ class GovernanceAssignmentDecisionRequest(BaseModel):
         return value
 
 
+class GovernanceAssignmentProposalRequest(BaseModel):
+    """Strict request for creating or replaying a proposed role assignment."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    party_id: _GovernanceResponseUUID
+    assignment_type: _ASSIGNMENT_TYPE
+    mandate: str | None = Field(max_length=2000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_mandate(self):
+        if self.mandate is not None and "\x00" in self.mandate:
+            raise ValueError("mandate contains an invalid character")
+        if self.assignment_type == "delegate" and not (self.mandate or "").strip():
+            raise ValueError("delegated role nominations require a mandate")
+        return self
+
+
+class GovernanceAssignmentProposalResponse(BaseModel):
+    """Exact migration-438 proposal receipt, without operator identity."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    assignment_id: _GovernanceResponseUUID
+    role_id: _GovernanceResponseUUID
+    assignment_type: _ASSIGNMENT_TYPE
+    status: Literal["proposed"]
+    created_at: AwareDatetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def parse_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("assignment proposal timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("assignment proposal timestamp must include a timezone")
+        return value
+
+
 class _GovernanceAssignmentDecisionResult(BaseModel):
     """Exact six-field migration-440 result, including its private reviewer."""
 
@@ -2037,6 +2080,45 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     @router.post(
         "/operator/api/governance/{location_id}/roles/{role_id}/assignments",
         status_code=201,
+        response_model=GovernanceAssignmentProposalResponse,
+        responses={
+            201: {
+                "model": GovernanceAssignmentProposalResponse,
+                "description": "A proposed assignment was created or an exact idempotent request was replayed.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **{
+                status: {
+                    "model": GovernanceAssignmentReviewError,
+                    "description": description,
+                    "headers": {
+                        "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                        "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                    },
+                }
+                for status, description in {
+                    400: "The role nomination request or path is invalid.",
+                    403: "The operator lacks the exact-location role creation grant or person binding.",
+                    404: "Operator OIDC is disabled or the role is unavailable.",
+                    409: "The nomination conflicts with the current role state.",
+                    500: "The nomination result failed its response contract.",
+                    503: "The governance role nomination is unavailable.",
+                }.items()
+            },
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": GovernanceAssignmentProposalRequest.model_json_schema()
+                    }
+                },
+            }
+        },
     )
     async def propose_governance_role_assignment_route(
         request: Request, location_id: str, role_id: str
@@ -2057,12 +2139,22 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers=headers,
             )
         try:
+            nomination = GovernanceAssignmentProposalRequest.model_validate(payload)
+            requested_location_id = str(UUID(location_id))
+            requested_role_id = str(UUID(role_id))
+        except (ValidationError, TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Role nomination request or path is invalid"},
+                headers=headers,
+            )
+        try:
             result = await run_in_threadpool(
                 propose_governance_role_assignment,
                 request.state.operator_session.operator.operator_id,
-                location_id,
-                role_id,
-                payload,
+                requested_location_id,
+                requested_role_id,
+                nomination.model_dump(mode="json"),
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -2104,7 +2196,29 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance role nomination unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = GovernanceAssignmentProposalResponse.model_validate(result)
+            if (
+                response.role_id != UUID(requested_role_id)
+                or response.assignment_type != nomination.assignment_type
+            ):
+                raise ValueError("assignment proposal result does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_roles").warning(
+                "Governance assignment proposal response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance role nomination unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")),
+            status_code=201,
+            headers=headers,
+        )
 
     async def governance_definition_action_route(
         request: Request,
