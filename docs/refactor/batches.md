@@ -8532,3 +8532,31 @@ Checklist: 1,897 complete / 25 open (1,922 total); TODO: 531 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 186. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
+
+### Source continuation — independent demand-review queue response contract — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime schemas for migration 560's eight-field
+  identity-free demand-review item and seven-field page.
+- [x] Bind the response to the requested location and pagination; validate
+  submitted status, work type, period, decimal precision, total, row count,
+  unique signal IDs, and `updated_at DESC, id DESC` order.
+- [x] Stop continuation at offset 10,000 and keep narrative, creator, receipt,
+  and reviewer identity fields out of the response.
+- [x] Preserve the existing exact `operating_pilot:review` grant, signed tenant
+  context, no-store behavior, and sanitized malformed-output failures.
+- [x] Run approved mock-only Gateway/OpenAPI and tenant-read checks; refresh
+  and verify capability, SQL, helper-scope, and source-boundary inventories.
+
+The focused selection passes 35 tests. Default Ruff on changed source/tests,
+source security Ruff, Python compilation, capability-matrix validation,
+runtime SQL and unresolved-write inventories, report-generator helper-scope
+inventory, provider-boundary and dependency-group checks, and `git diff
+--check` pass. No database/provider, candidate, or legacy state was used; no
+migration was applied. Rollback reverts the route/model, tests, and progress
+records; no data rollback is needed. Evidence:
+[demand-review response contract](builds/2026-10-29-recovery/operating-pilot-demand-review-response-contract.json).
+
+Checklist: 1,902 complete / 25 open (1,927 total); TODO: 535 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 187. Broader CAP-037 acceptance remains open.

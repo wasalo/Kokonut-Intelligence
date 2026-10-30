@@ -1162,6 +1162,107 @@ class OperatingPilotCapacityReviewPage(BaseModel):
         return self
 
 
+class OperatingPilotDemandReviewQueueItem(BaseModel):
+    """Identity-free submitted demand projection for independent review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    signal_id: _ResponseUUID
+    work_type: str = Field(min_length=1, max_length=50, strict=True)
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    required_hours: _ResponseDecimal = Field(
+        gt=Decimal("0"), le=Decimal("100000"), strict=True,
+        json_schema_extra={"multipleOf": 0.01},
+    )
+    priority: Literal["low", "medium", "high", "critical"]
+    status: Literal["submitted"]
+    updated_at: _ResponseDateTime
+
+    @field_validator("work_type")
+    @classmethod
+    def validate_work_type(cls, value: str) -> str:
+        if (
+            not value
+            or value != value.strip()
+            or not value[0].isalnum()
+            or any(not character.isalnum() and character not in " _./-" for character in value)
+        ):
+            raise ValueError("work type is outside its source bounds")
+        return value
+
+    @model_validator(mode="after")
+    def validate_period_and_effort(self):
+        if self.period_end < self.period_start:
+            raise ValueError("demand review period is reversed")
+        if (self.period_end - self.period_start).days > 366:
+            raise ValueError("demand review period exceeds its source bound")
+        if self.required_hours.as_tuple().exponent < -2:
+            raise ValueError("demand review hours exceed source precision")
+        return self
+
+
+class OperatingPilotDemandReviewQueueResponse(BaseModel):
+    """Strict bounded reviewer page returned by migration 560."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotDemandReviewQueueItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True
+    )
+    total: int = Field(ge=0, le=_OPERATING_PILOT_SUMMARY_MAX_COUNT, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        expected_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_count:
+            raise ValueError("demand review item count does not match total and page")
+
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("demand review continuation does not match total and page")
+        if self.has_more and self.next_offset != next_page_offset:
+            raise ValueError("demand review next offset does not match page")
+        if not self.has_more and self.next_offset is not None:
+            raise ValueError("terminal demand review page cannot continue")
+
+        signal_ids = [item.signal_id for item in self.items]
+        if len(signal_ids) != len(set(signal_ids)):
+            raise ValueError("demand review page contains duplicate signals")
+        order = [(item.updated_at, item.signal_id.int) for item in self.items]
+        if order != sorted(order, reverse=True):
+            raise ValueError("demand review page is not in SQL order")
+        return self
+
+
+def _bound_demand_review_continuation(result):
+    """Hide a SQL continuation whose offset the Gateway will reject."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
+
 class OperatingPilotResourceCategoryItem(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -5178,7 +5279,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(response.model_dump(mode="json")), headers=headers
         )
 
-    @router.get("/operator/api/operating-pilot/{location_id}/demand-review-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/demand-review-queue",
+        response_model=OperatingPilotDemandReviewQueueResponse,
+    )
     async def location_operating_pilot_demand_review_queue(
         request: Request,
         location_id: str,
@@ -5237,7 +5341,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            result = _bound_demand_review_continuation(result)
+            validated = OperatingPilotDemandReviewQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Demand review page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating demand review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get("/operator/api/operating-pilot/{location_id}/resource-review-queue")
     async def location_operating_pilot_resource_review_queue(

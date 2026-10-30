@@ -24763,3 +24763,27 @@ used; no migration was applied. Checklist: 1,897 complete / 25 open; TODO:
 531 checked / 16 open; strict private Gateway response contracts total 186.
 Evidence:
 [private own-demand response](builds/2026-10-29-recovery/operating-pilot-own-demand-read-contract.json).
+
+### Progress addendum — private demand-review response contract — 29 October 2026
+
+The independent demand-review queue now publishes and validates migration
+560's exact private response. Its item projection contains only signal ID,
+work type, period, required hours, priority, submitted status, and update time;
+the page adds the requested location and bounded pagination metadata. Runtime
+validation binds location and page values to the request, checks source
+bounds, exact row counts, unique IDs, and `updated_at DESC, id DESC` ordering,
+and suppresses continuations beyond the Gateway's 10,000-offset limit. It
+does not return demand descriptions, creator identity, receipt data, or
+reviewer identity. The existing exact `operating_pilot:review` grant and
+signed tenant context remain unchanged, and malformed results receive a
+sanitized no-store response.
+
+The approved mock-only route/OpenAPI and tenant-read selection passes 35
+tests. Default Ruff on changed source/tests, source security Ruff, Python
+compilation, capability validation, runtime SQL and unresolved-write
+inventories, report-helper-scope inventory, provider-boundary,
+dependency-group, and diff checks pass. No database/provider, candidate, or
+legacy state was used; no migration was applied. Checklist: 1,902 complete /
+25 open; TODO: 535 checked / 16 open; strict private Gateway response
+contracts total 187. Evidence:
+[demand-review response](builds/2026-10-29-recovery/operating-pilot-demand-review-response-contract.json).
