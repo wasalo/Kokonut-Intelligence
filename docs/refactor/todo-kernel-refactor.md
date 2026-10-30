@@ -3517,3 +3517,13 @@ contracts total 188. Evidence:
 - [x] Run 33 approved mock-only checks and refresh the refactor evidence and inventories.
 
 No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 543 checked / 16 open; strict private Gateway response contracts total 189. Evidence: `builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-queue-response-contract.json`.
+
+
+## Completed — learning-plan activation queue response contract, 29 October
+
+- [x] Publish migration 629's exact item/page schemas in OpenAPI and validate the activation queue response at runtime.
+- [x] Bind location/page inputs; check source bounds, row count, continuation, unique IDs, eligible status, timestamps, and bounded JSON values.
+- [x] Preserve the separate `operating_pilot:activate` grant and signed context with sanitized no-store failures.
+- [x] Run 30 approved mock-only checks and refresh refactor evidence/inventories.
+
+No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 547 checked / 16 open; strict private Gateway response contracts total 190. Evidence: `builds/2026-10-29-recovery/operating-pilot-learning-plan-activation-queue-response-contract.json`.

@@ -816,6 +816,83 @@ class OperatingPilotLearningPlanReviewQueueResponse(BaseModel):
         return self
 
 
+class OperatingPilotLearningPlanActivationQueueItem(BaseModel):
+    """Migration-629 projection for an independently approved plan awaiting activation."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    learning_plan_id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    competency_goals: list[JsonValue] = Field(max_length=50)
+    support_requested: list[JsonValue] = Field(max_length=50)
+    target_date: _ResponseDate | None
+    status: Literal["submitted"]
+    submitted_at: _ResponseDateTime
+    approved_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_source_bounds(self):
+        if "\x00" in self.title or self.title != self.title.strip():
+            raise ValueError("learning-plan title is outside its source bounds")
+        encoded_fields = []
+        try:
+            for value in (self.competency_goals, self.support_requested):
+                encoded = json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                ).encode("utf-8")
+                if len(encoded) > 8_000:
+                    raise ValueError("learning-plan JSON field exceeds its source bound")
+                encoded_fields.append(encoded)
+        except (TypeError, ValueError, RecursionError, UnicodeEncodeError) as exc:
+            raise ValueError("learning-plan JSON field is invalid") from exc
+        if sum(map(len, encoded_fields)) > 12_000:
+            raise ValueError("learning-plan JSON fields exceed their combined source bound")
+        if self.approved_at < self.submitted_at:
+            raise ValueError("learning-plan approval precedes its submission")
+        return self
+
+
+class OperatingPilotLearningPlanActivationQueueResponse(BaseModel):
+    """Strict bounded page of plans eligible for independent activation."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotLearningPlanActivationQueueItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True
+    )
+    total: int = Field(ge=0, le=_OPERATING_PILOT_SUMMARY_MAX_COUNT, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        expected_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_count:
+            raise ValueError("learning-plan activation item count does not match page total")
+
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("learning-plan activation continuation does not match page")
+        if self.has_more and self.next_offset != next_page_offset:
+            raise ValueError("learning-plan activation next offset does not match page")
+        if not self.has_more and self.next_offset is not None:
+            raise ValueError("terminal learning-plan activation page cannot continue")
+
+        learning_plan_ids = [item.learning_plan_id for item in self.items]
+        if len(learning_plan_ids) != len(set(learning_plan_ids)):
+            raise ValueError("learning-plan activation page contains duplicate IDs")
+        return self
+
+
 def _bound_competency_review_continuation(result):
     """Hide a SQL continuation the Gateway will not accept as a next page."""
     if not isinstance(result, dict):
@@ -837,6 +914,25 @@ def _bound_competency_review_continuation(result):
 
 def _bound_learning_plan_review_continuation(result):
     """Hide a SQL continuation whose offset the Gateway will reject."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
+
+def _bound_learning_plan_activation_continuation(result):
+    """Hide a continuation the Gateway will not accept above offset 10,000."""
     if not isinstance(result, dict):
         return result
     offset = result.get("offset")
@@ -5103,7 +5199,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         # Preserve the JSONB arrays' source numbers as JSON numbers.
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/learning-plan-activation-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/learning-plan-activation-queue",
+        response_model=OperatingPilotLearningPlanActivationQueueResponse,
+    )
     async def location_operating_pilot_learning_plan_activation_queue(
         request: Request,
         location_id: str,
@@ -5162,7 +5261,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan activation queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            result = _bound_learning_plan_activation_continuation(result)
+            validated = OperatingPilotLearningPlanActivationQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Learning-plan activation page does not match the request")
+        except (ValidationError, TypeError, ValueError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan activation queue response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan activation queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/review",

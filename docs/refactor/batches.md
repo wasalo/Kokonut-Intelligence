@@ -8601,3 +8601,16 @@ total 188. Broader CAP-037 acceptance remains open.
 The focused Gateway selection passes 33 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the Gateway model/route, tests, and progress records; no data rollback is needed. Evidence: [resource-fulfillment response contract](builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-queue-response-contract.json).
 
 Checklist: 1,912 complete / 25 open (1,937 total); TODO: 543 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 189. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
+
+
+### Source continuation — learning-plan activation queue response contract — 29 October 2026
+
+- [x] Publish migration 629's exact activation item/page contract in OpenAPI and Gateway runtime validation.
+- [x] Bind location and pagination; enforce exact page counts, bounds, continuation, eligible `submitted` state, valid submission/approval timestamps, and bounded JSON fields.
+- [x] Validate unique plan IDs and pin the source query's deterministic `updated_at DESC, id DESC` order without exposing extra fields.
+- [x] Preserve the separate exact `operating_pilot:activate` grant, signed tenant context, and generic no-store handling for malformed results.
+- [x] Run approved mock-only Gateway/OpenAPI checks and refresh the capability and source inventories.
+
+The focused Gateway selection passes 30 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the Gateway model/route, fixture, tests, and progress records; no data rollback is needed. Evidence: [activation-queue response contract](builds/2026-10-29-recovery/operating-pilot-learning-plan-activation-queue-response-contract.json).
+
+Checklist: 1,917 complete / 25 open (1,942 total); TODO: 547 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 190. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
