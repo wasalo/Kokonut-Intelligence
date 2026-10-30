@@ -24955,3 +24955,33 @@ strict private Gateway response contracts across 67 capability rows
 Current totals: 1,984 complete / 25 open; TODO 610 checked / 16 open; 203
 strict private Gateway response contracts across 67 capability rows
 (24 baseline-retained, 7 deployed, 36 prepared).
+
+
+### Progress addendum — current-schema native and ARM64 portability replay — 30 October 2026
+
+The native PostgreSQL 16 replay applied all 680 schema files through migration
+689 under verified 1.5 GiB/two-CPU limits. Its synthetic operator-scope probe
+passed for two tenants, 79 private relations, and 47 mutation-denied relations,
+with zero direct table/column privilege violations. The run was network-disabled,
+used no host ports or seeds, loaded no farm data, and cleaned up successfully;
+candidate and legacy databases were untouched. Evidence:
+[native replay and operator probe](builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json).
+
+An ARM64/QEMU run also applied all 680 files through 689, but its optional probe
+could not start because the only local probe image was AMD64. The first report
+was overwritten when retrying with freshly built matching ARM64 images. That
+retry failed at migration 050; its diagnostic said PostgreSQL had not reached a
+consistent recovery state, and cleanup completed. The retry record is retained
+at [ARM64 replay attempt](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe.json).
+Because the initial ARM64 report was overwritten, its successful schema replay
+is not counted as durable acceptance. C7 remains open until a successful
+ARM64 replay with preserved evidence is recorded. This remains separate from
+physical Raspberry Pi, populated-data, and production recovery acceptance.
+The native probe also reports 991 public tables with DML while RLS is disabled;
+therefore it does not close the broader C1 least-privilege gate.
+
+Current totals: 2,057 complete / 25 open; TODO 681 checked / 16 open; 222
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared). The SDK schema-parity guard
+optimization is committed locally; the local batch remains unpushed for grouped
+delivery.

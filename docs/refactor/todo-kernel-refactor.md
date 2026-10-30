@@ -1440,13 +1440,26 @@ that its full source-plan phase is complete.
   populated-source acceptance. Sources: [CAP-035](batches.md#L3484),
   [CAP-036](batches.md#L3574), [CAP-037](batches.md#L3582),
   [CAP-038](batches.md#L3652).
-- [ ] **C7 — Finish software-only ARM64 and recovery evidence.** The latest
-  ARM64/QEMU schema replay passes all 675 files through migration 684
-  under a verified 1.5 GiB/two-CPU database budget. The network was disabled,
-  no ports, seeds, or farm data were used, no OOM occurred, and cleanup passed.
-  That replay did not enable its optional operator-scope probe. The native full
-  replay through 681 separately passes the synthetic two-tenant/operator
-  assertions; candidate and legacy state stayed untouched. Focused native and
+- [ ] **C7 — Finish software-only ARM64 and recovery evidence.** A current
+  native PostgreSQL 16 replay applied all 680 schema files through migration
+  689 under a verified 1.5 GiB/two-CPU limit, then passed the synthetic
+  two-tenant operator-scope probe: 79 private relations and 47 mutation-denied
+  relations were verified with zero table/column privilege violations. The
+  network was disabled, no ports or seeds were used, no farm data was loaded,
+  and cleanup passed. Candidate and legacy state were untouched
+  ([native evidence](builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json)).
+  An ARM64/QEMU run also applied all 680 files through 689, but the optional
+  probe could not start because its only local client image was AMD64. The
+  original run record was overwritten by a retry; the retry using a matching
+  ARM64 client stopped at migration 050, whose diagnostic reported that
+  PostgreSQL had not reached a consistent recovery state. Its isolated
+  resources were cleaned up. Keep this ARM64 replay unaccepted until a
+  successful run with preserved evidence is recorded
+  ([retry evidence](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe.json)).
+  - [x] Complete and verify the native full-schema 689 replay and operator
+    scope probe; do not treat the broad public-table DML inventory as proof of
+    universal least privilege.
+  Focused native and
   ARM64/QEMU ACL checks cover migrations 672–680. A separate
   network-disabled schema check replayed all 671 schema files through migration
   680 and executed both Directus lineage queries; this demonstrates SQL/schema
@@ -1475,7 +1488,7 @@ that its full source-plan phase is complete.
   2 CPU conversions retain exact Docker units. The focused runner selection
   passes 26 tests ([evidence](builds/2026-10-28-recovery/arm64-resource-limit-nanocpu-preflight.json)).
   Sources: [Phase 8](implementation-plan-alignment.md#L28),
-  [latest native full replay](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
+  [latest native full replay](builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json),
   [ARM64 full replay](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json),
   [core profile](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
   [multiarch profile gate](kernel-release-inputs.md),
@@ -3924,6 +3937,6 @@ Evidence: `builds/2026-10-30-recovery/kernel-analytics-lineage-and-contract-test
 `builds/2026-10-30-recovery/forecast-resource-location-scope-disposable.json`,
 and `builds/2026-10-30-recovery/prm-portfolio-metric-scope-disposable.json`.
 
-Current checklist: 680 checked / 16 open. Strict private Gateway response
+Current checklist: 681 checked / 16 open. Strict private Gateway response
 contracts total 222. Capability classifications remain unchanged because this
 source hardening does not complete a capability's end-to-end acceptance.
