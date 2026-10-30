@@ -3653,3 +3653,14 @@ The focused selection passes 21 tests and the full governance-operations module 
 - [x] Run approved focused tests, full governance-operation tests, and static/inventory checks; record evidence.
 
 The focused update selection passes 19 tests and the complete governance-operations module passes 76. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: `builds/2026-10-29-recovery/governance-tactical-content-update-contracts.json`. Current tracked totals: 605 checked / 16 open; strict private Gateway response contracts total 200.
+
+
+## Completed — tactical-item lifecycle response contracts, 30 October
+
+- [x] Define exact start/cancel and disposal request schemas, including the migration-441 disposition allowlist and text bounds.
+- [x] Validate the seven-field internal action receipt and expose only its six public non-identity fields.
+- [x] Enforce request action, path item, and lifecycle-state consistency while preserving 200 replay behavior and exact action grants.
+- [x] Verify malformed request preflight, malformed response sanitization, OpenAPI, cache headers, and authorization with approved mock-only checks.
+- [x] Run the focused and full governance-operation suites plus source/inventory checks; record evidence.
+
+The focused selection passes 22 tests and the complete governance-operations module passes 98. OpenAPI response schemas restrict each action to its valid lifecycle transition. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: `builds/2026-10-30-recovery/governance-tactical-action-response-contracts.json`. Current tracked totals: 610 checked / 16 open; strict private Gateway response contracts total 203.

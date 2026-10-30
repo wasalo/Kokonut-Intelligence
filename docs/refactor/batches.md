@@ -8763,3 +8763,17 @@ Checklist: 1,972 complete / 25 open (1,997 total); TODO: 600 checked / 16 open. 
 The 19-test focused selection and full 76-test governance-operations module pass. Ruff, compilation, `git diff --check`, capability-matrix validation, runtime SQL inventory, report-helper scope inventory, provider boundaries, and dependency-group checks pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the request/response contracts, focused tests, evidence, and progress records; no data rollback is needed. Evidence: [tactical-content update contracts](builds/2026-10-29-recovery/governance-tactical-content-update-contracts.json).
 
 Checklist: 1,978 complete / 25 open (2,003 total); TODO: 605 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 200. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.
+
+
+### Source continuation — tactical-item lifecycle response contracts — 30 October 2026
+
+- [x] Add action-specific strict request/OpenAPI schemas for migration-441 start, dispose, and cancel transitions.
+- [x] Validate the exact seven-field SQL action result and return route-specific six-field receipts without `actor_party_id` or impossible state pairs.
+- [x] Bind each result to its action and item path; enforce the source lifecycle state transitions before returning success.
+- [x] Preserve the exact per-action location grant, signed tenant context, HTTP 200 idempotent retries, and no-store/cookie variance.
+- [x] Run the approved focused action-route tests (22) and full governance-operations module (98).
+- [x] Refresh Ruff, compilation, capability matrix, runtime SQL/helper-scope inventories, provider boundaries, dependency groups, and diff checks.
+
+The 22-test focused selection and full 98-test governance-operations module pass. OpenAPI gives each action only its valid lifecycle states. Ruff, compilation, `git diff --check`, capability-matrix validation, runtime SQL inventory, report-helper scope inventory, provider boundaries, and dependency-group checks pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the route contracts, focused tests, evidence, and progress records; no data rollback is needed. Evidence: [tactical action response contracts](builds/2026-10-30-recovery/governance-tactical-action-response-contracts.json).
+
+Checklist: 1,984 complete / 25 open (2,009 total); TODO: 610 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 203. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.

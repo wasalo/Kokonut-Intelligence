@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-30",
+  "slice": "governance tactical-item start/dispose/cancel contracts",
+  "routes": [
+    "POST /operator/api/governance/{location_id}/tactical-items/{item_id}/start",
+    "POST /operator/api/governance/{location_id}/tactical-items/{item_id}/dispose",
+    "POST /operator/api/governance/{location_id}/tactical-items/{item_id}/cancel"
+  ],
+  "source_migration": "441",
+  "implementation": {
+    "request_contracts": {
+      "start_and_cancel": ["request_id", "reason"],
+      "dispose": ["request_id", "reason", "disposition_type", "disposition_summary"],
+      "disposition_types": [
+        "next_action",
+        "delegate",
+        "create_work_item",
+        "create_proposal",
+        "escalate",
+        "defer",
+        "no_action"
+      ],
+      "bounds": "strict request fields; UUID request ID; nonblank 2,000-character reason and, for disposal, nonblank 4,000-character summary"
+    },
+    "action_result_fields": [
+      "event_id",
+      "item_id",
+      "action",
+      "prior_status",
+      "resulting_status",
+      "actor_party_id",
+      "created_at"
+    ],
+    "public_response_fields": [
+      "event_id",
+      "item_id",
+      "action",
+      "prior_status",
+      "resulting_status",
+      "created_at"
+    ],
+    "binding": "response item/action must match the path; start maps open to in_progress; dispose maps in_progress to disposed; cancel maps open or in_progress to cancelled",
+    "openapi_response_states": {
+      "start": "action=start, prior_status=open, resulting_status=in_progress",
+      "dispose": "action=dispose, prior_status=in_progress, resulting_status=disposed",
+      "cancel": "action=cancel, prior_status=open|in_progress, resulting_status=cancelled"
+    },
+    "privacy": "actor_party_id is validated internally and omitted from public output",
+    "authorization": "existing private exact-location governance_tactical:{start|dispose|cancel} grant and signed tenant context",
+    "status_and_replay": "HTTP 200 is preserved for transitions and idempotent retries",
+    "cache": "no-store with Vary: Cookie on success and documented error responses"
+  },
+  "verification": {
+    "focused": {
+      "command": "python3 -m pytest tests/test_gateway_governance_operations.py -k tactical_item_action -q",
+      "result": "22 passed, 76 deselected"
+    },
+    "module": {
+      "command": "python3 -m pytest tests/test_gateway_governance_operations.py -q",
+      "result": "98 passed"
+    },
+    "static": [
+      "ruff check services/gateway/governance_role_routes.py tests/test_gateway_governance_operations.py",
+      "python3 -m py_compile services/gateway/governance_role_routes.py tests/test_gateway_governance_operations.py",
+      "git diff --check"
+    ],
+    "repository_inventories": {
+      "capability_matrix": "67 rows valid: 24 baseline-retained, 7 deployed, 36 prepared",
+      "runtime_sql_inventory": "current; 42 unresolved write candidates remain explicitly unapproved",
+      "report_generator_helper_scope": "current",
+      "provider_boundaries": "passed; 17 vendor import sites",
+      "dependency_groups": "aligned; 14 groups, 33 requirements"
+    }
+  },
+  "isolation": {
+    "database": "none; mocked route/service checks only",
+    "provider": "none",
+    "candidate_or_legacy": "not accessed",
+    "migration_applied": false
+  },
+  "rollback": "Revert the route request/response models, focused regression, evidence, and progress records; no data rollback is required."
+}

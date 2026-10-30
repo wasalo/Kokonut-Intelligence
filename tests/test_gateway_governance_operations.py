@@ -132,6 +132,41 @@ def _valid_tactical_content_update_result(route_operation, **updates):
     return result
 
 
+def _valid_tactical_action_request(action, **updates):
+    request = {
+        "request_id": str(uuid4()),
+        "reason": "Record the reviewed tactical-item transition",
+    }
+    if action == "dispose":
+        request.update(
+            {
+                "disposition_type": "next_action",
+                "disposition_summary": "The item was completed and reviewed",
+            }
+        )
+    request.update(updates)
+    return request
+
+
+def _valid_tactical_action_result(route_action, **updates):
+    prior_status, resulting_status = {
+        "start": ("open", "in_progress"),
+        "dispose": ("in_progress", "disposed"),
+        "cancel": ("open", "cancelled"),
+    }[route_action]
+    result = {
+        "event_id": str(uuid4()),
+        "item_id": ITEM_ID,
+        "action": route_action,
+        "prior_status": prior_status,
+        "resulting_status": resulting_status,
+        "actor_party_id": str(uuid4()),
+        "created_at": CREATED_AT,
+    }
+    result.update(updates)
+    return result
+
+
 def _authorized_governance_client(
     monkeypatch,
     service_result,
@@ -1369,6 +1404,226 @@ def test_tactical_content_update_requires_exact_update_grant(monkeypatch, route,
         monkeypatch, None, scope_action="read"
     ) as client:
         response = client.patch(path, json=payload)
+
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+    assert calls == []
+
+
+def test_tactical_item_action_routes_publish_strict_contracts_and_exact_policies(monkeypatch):
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="start"
+    ) as client:
+        schema = client.app.openapi()
+
+    simple_fields = {"request_id", "reason"}
+    dispose_fields = simple_fields | {"disposition_type", "disposition_summary"}
+    response_fields = {
+        "event_id",
+        "item_id",
+        "action",
+        "prior_status",
+        "resulting_status",
+        "created_at",
+    }
+    for action in ("start", "dispose", "cancel"):
+        path = f"/operator/api/governance/{{location_id}}/tactical-items/{{item_id}}/{action}"
+        operation = schema["paths"][path]["post"]
+        request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+        expected_fields = dispose_fields if action == "dispose" else simple_fields
+        assert set(request_schema["properties"]) == expected_fields
+        assert request_schema["additionalProperties"] is False
+        assert set(request_schema["required"]) == expected_fields
+        assert request_schema["properties"]["reason"]["maxLength"] == 2000
+        if action == "dispose":
+            assert request_schema["properties"]["disposition_type"]["enum"] == [
+                "next_action",
+                "delegate",
+                "create_work_item",
+                "create_proposal",
+                "escalate",
+                "defer",
+                "no_action",
+            ]
+            assert request_schema["properties"]["disposition_summary"]["maxLength"] == 4000
+        response_schema = operation["responses"]["200"]["content"][
+            "application/json"
+        ]["schema"]
+        component_name = response_schema["$ref"].rsplit("/", 1)[1]
+        response_schema = schema["components"]["schemas"][component_name]
+        assert set(response_schema["properties"]) == response_fields
+        assert "actor_party_id" not in response_schema["properties"]
+        assert response_schema["additionalProperties"] is False
+        action_schema = response_schema["properties"]["action"]
+        action_value = action_schema.get("const", action_schema.get("enum"))
+        assert action_value == action or action_value in ([action], (action,))
+        expected_states = {
+            "start": ("open", "in_progress"),
+            "dispose": ("in_progress", "disposed"),
+            "cancel": (None, "cancelled"),
+        }[action]
+        prior_schema = response_schema["properties"]["prior_status"]
+        if expected_states[0] is None:
+            assert prior_schema.get("enum") == ["open", "in_progress"]
+        else:
+            prior_value = prior_schema.get("const", prior_schema.get("enum"))
+            assert prior_value == expected_states[0] or prior_value in (
+                [expected_states[0]],
+                (expected_states[0],),
+            )
+        resulting_schema = response_schema["properties"]["resulting_status"]
+        resulting_value = resulting_schema.get("const", resulting_schema.get("enum"))
+        assert resulting_value == expected_states[1] or resulting_value in (
+            [expected_states[1]],
+            (expected_states[1],),
+        )
+        assert operation["responses"]["200"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+        assert operation["responses"]["400"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+
+    from services.gateway.operator_auth import auth_route_policy
+
+    for action in ("start", "dispose", "cancel"):
+        path = f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}/{action}"
+        assert auth_route_policy("POST", path, enabled=True) == {
+            "resource": "governance_tactical",
+            "action": action,
+            "public": False,
+            "location_id": LOCATION_ID,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+
+@pytest.mark.parametrize("action", ["start", "dispose", "cancel"])
+def test_tactical_item_action_returns_bound_identity_minimized_replay_receipt(
+    monkeypatch, action
+):
+    result = _valid_tactical_action_result(action)
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_actions.transition_governance_tactical_item",
+        lambda *args: calls.append(args) or result,
+    )
+    payload = _valid_tactical_action_request(action)
+    path = f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}/{action}"
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action=action
+    ) as client:
+        first = client.post(path, json=payload)
+        replay = client.post(path, json=payload)
+
+    expected = {
+        key: result[key]
+        for key in (
+            "event_id",
+            "item_id",
+            "action",
+            "prior_status",
+            "resulting_status",
+        )
+    }
+    expected["created_at"] = "2026-10-18T00:00:00+00:00"
+    assert first.status_code == replay.status_code == 200
+    assert first.json() == replay.json() == expected
+    assert "actor_party_id" not in first.json()
+    for response in (first, replay):
+        assert response.headers["cache-control"] == "no-store"
+        assert "cookie" in response.headers["vary"].lower()
+    assert calls == [
+        (OPERATOR_ID, LOCATION_ID, ITEM_ID, action, payload),
+        (OPERATOR_ID, LOCATION_ID, ITEM_ID, action, payload),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("action", "payload"),
+    [
+        ("start", {"request_id": str(uuid4())}),
+        ("start", _valid_tactical_action_request("start", unexpected="value")),
+        ("start", _valid_tactical_action_request("start", request_id="bad")),
+        ("start", _valid_tactical_action_request("start", reason="  ")),
+        ("cancel", _valid_tactical_action_request("cancel", disposition_type="defer")),
+        ("dispose", {"request_id": str(uuid4()), "reason": "No disposition"}),
+        ("dispose", _valid_tactical_action_request("dispose", disposition_type="unknown")),
+        ("dispose", _valid_tactical_action_request("dispose", disposition_summary=" ")),
+        (
+            "dispose",
+            _valid_tactical_action_request("dispose", disposition_summary="x" * 4001),
+        ),
+    ],
+)
+def test_tactical_item_action_rejects_invalid_request_before_service(
+    monkeypatch, action, payload
+):
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_actions.transition_governance_tactical_item",
+        lambda *args: calls.append(args),
+    )
+    path = f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}/{action}"
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action=action
+    ) as client:
+        response = client.post(path, json=payload)
+
+    assert response.status_code == 400
+    assert response.json() == {"error": "Tactical action request is invalid"}
+    assert response.headers["cache-control"] == "no-store"
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    ("action", "result"),
+    [
+        ("start", _valid_tactical_action_result("start", action="cancel")),
+        ("dispose", _valid_tactical_action_result("dispose", item_id=str(uuid4()))),
+        (
+            "start",
+            _valid_tactical_action_result("start", resulting_status="disposed"),
+        ),
+        (
+            "cancel",
+            _valid_tactical_action_result("cancel", prior_status="disposed"),
+        ),
+        (
+            "dispose",
+            {**_valid_tactical_action_result("dispose"), "actor_party_id": "bad"},
+        ),
+        (
+            "cancel",
+            _valid_tactical_action_result("cancel", created_at="2026-10-18T00:00:00"),
+        ),
+    ],
+)
+def test_tactical_item_action_sanitizes_mismatched_results(monkeypatch, action, result):
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_actions.transition_governance_tactical_item",
+        lambda *_args: result,
+    )
+    path = f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}/{action}"
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action=action
+    ) as client:
+        response = client.post(path, json=_valid_tactical_action_request(action))
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Governance tactical action unavailable"}
+    assert "actor_party_id" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize("action", ["start", "dispose", "cancel"])
+def test_tactical_item_action_requires_exact_action_grant(monkeypatch, action):
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_actions.transition_governance_tactical_item",
+        lambda *args: calls.append(args),
+    )
+    path = f"/operator/api/governance/{LOCATION_ID}/tactical-items/{ITEM_ID}/{action}"
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="read"
+    ) as client:
+        response = client.post(path, json=_valid_tactical_action_request(action))
 
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"

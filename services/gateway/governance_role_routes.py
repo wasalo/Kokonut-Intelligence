@@ -719,6 +719,100 @@ class GovernanceTacticalContentMutationError(BaseModel):
     error: str
 
 
+class GovernanceTacticalSimpleActionRequest(BaseModel):
+    """Strict start/cancel request envelope."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    reason: str = Field(min_length=1, max_length=2000, strict=True)
+
+    @field_validator("reason")
+    @classmethod
+    def _reason_must_be_nonblank(cls, value: str) -> str:
+        if not value.strip() or "\x00" in value:
+            raise ValueError("reason must contain 1 to 2000 valid characters")
+        return value
+
+
+class GovernanceTacticalDisposeRequest(BaseModel):
+    """Strict disposal request with an enumerated disposition and summary."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    reason: str = Field(min_length=1, max_length=2000, strict=True)
+    disposition_type: Literal[
+        "next_action",
+        "delegate",
+        "create_work_item",
+        "create_proposal",
+        "escalate",
+        "defer",
+        "no_action",
+    ]
+    disposition_summary: str = Field(min_length=1, max_length=4000, strict=True)
+
+    @field_validator("reason", "disposition_summary")
+    @classmethod
+    def _action_text_must_be_nonblank(cls, value: str) -> str:
+        if not value.strip() or "\x00" in value:
+            raise ValueError("Tactical action text must be nonblank and valid")
+        return value
+
+
+class _GovernanceTacticalActionResult(BaseModel):
+    """Exact seven-field migration-441 result, including its private actor."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    item_id: _GovernanceResponseUUID
+    action: Literal["start", "dispose", "cancel"]
+    prior_status: Literal["open", "in_progress"]
+    resulting_status: Literal["in_progress", "disposed", "cancelled"]
+    actor_party_id: _GovernanceResponseUUID
+    created_at: AwareDatetime
+
+
+class _GovernanceTacticalActionResponseBase(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    item_id: _GovernanceResponseUUID
+    created_at: AwareDatetime
+
+
+class GovernanceTacticalItemStartedResponse(_GovernanceTacticalActionResponseBase):
+    """Public start receipt omitting the acting-party identity."""
+
+    action: Literal["start"]
+    prior_status: Literal["open"]
+    resulting_status: Literal["in_progress"]
+
+
+class GovernanceTacticalItemDisposedResponse(_GovernanceTacticalActionResponseBase):
+    """Public disposal receipt omitting the acting-party identity."""
+
+    action: Literal["dispose"]
+    prior_status: Literal["in_progress"]
+    resulting_status: Literal["disposed"]
+
+
+class GovernanceTacticalItemCancelledResponse(_GovernanceTacticalActionResponseBase):
+    """Public cancellation receipt omitting the acting-party identity."""
+
+    action: Literal["cancel"]
+    prior_status: Literal["open", "in_progress"]
+    resulting_status: Literal["cancelled"]
+
+
+class GovernanceTacticalActionError(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str
+
+
 class GovernanceTacticalSessionCreateRequest(BaseModel):
     """Strict location-scoped request for creating a planned session."""
 
@@ -2359,6 +2453,22 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers=headers,
             )
         try:
+            request_model = (
+                GovernanceTacticalDisposeRequest
+                if action == "dispose"
+                else GovernanceTacticalSimpleActionRequest
+            )
+            action_request = request_model.model_validate(payload)
+            location_id = str(UUID(location_id))
+            item_id = str(UUID(item_id))
+            payload = action_request.model_dump(mode="json", exclude_unset=True)
+        except (ValidationError, TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Tactical action request is invalid"},
+                headers=headers,
+            )
+        try:
             result = await run_in_threadpool(
                 transition_governance_tactical_item,
                 request.state.operator_session.operator.operator_id,
@@ -2413,17 +2523,139 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance tactical action unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            action_result = _GovernanceTacticalActionResult.model_validate(result)
+            if action_result.action != action or action_result.item_id != UUID(item_id):
+                raise ValueError("Tactical action result does not match the request path")
+            response_model = {
+                "start": GovernanceTacticalItemStartedResponse,
+                "dispose": GovernanceTacticalItemDisposedResponse,
+                "cancel": GovernanceTacticalItemCancelledResponse,
+            }[action]
+            response = response_model(
+                event_id=action_result.event_id,
+                item_id=action_result.item_id,
+                action=action_result.action,
+                prior_status=action_result.prior_status,
+                resulting_status=action_result.resulting_status,
+                created_at=action_result.created_at,
+            )
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.post("/operator/api/governance/{location_id}/tactical-items/{item_id}/start")
+            get_logger("gateway.governance_tactical").warning(
+                "Governance tactical action response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance tactical action unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="python")),
+            headers=headers,
+        )
+
+    tactical_action_error_responses = {
+        status: {
+            "model": GovernanceTacticalActionError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The tactical-action request is invalid.",
+            403: "The operator lacks the action's active exact-location grant.",
+            404: "Operator OIDC is disabled or the tactical item is unavailable.",
+            409: "The tactical-item state conflicts with the requested transition.",
+            500: "The tactical-action result failed its response contract.",
+            503: "The tactical action is unavailable.",
+        }.items()
+    }
+
+    @router.post(
+        "/operator/api/governance/{location_id}/tactical-items/{item_id}/start",
+        response_model=GovernanceTacticalItemStartedResponse,
+        responses={
+            200: {
+                "model": GovernanceTacticalItemStartedResponse,
+                "description": "The item was started or an idempotent retry returned its original transition receipt.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tactical_action_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": GovernanceTacticalSimpleActionRequest.model_json_schema()
+                    }
+                },
+            }
+        },
+    )
     async def start_governance_tactical_item(request: Request, location_id: str, item_id: str):
         return await transition_tactical_route(request, location_id, item_id, "start")
 
-    @router.post("/operator/api/governance/{location_id}/tactical-items/{item_id}/dispose")
+    @router.post(
+        "/operator/api/governance/{location_id}/tactical-items/{item_id}/dispose",
+        response_model=GovernanceTacticalItemDisposedResponse,
+        responses={
+            200: {
+                "model": GovernanceTacticalItemDisposedResponse,
+                "description": "The item was disposed or an idempotent retry returned its original transition receipt.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tactical_action_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": GovernanceTacticalDisposeRequest.model_json_schema()
+                    }
+                },
+            }
+        },
+    )
     async def dispose_governance_tactical_item(request: Request, location_id: str, item_id: str):
         return await transition_tactical_route(request, location_id, item_id, "dispose")
 
-    @router.post("/operator/api/governance/{location_id}/tactical-items/{item_id}/cancel")
+    @router.post(
+        "/operator/api/governance/{location_id}/tactical-items/{item_id}/cancel",
+        response_model=GovernanceTacticalItemCancelledResponse,
+        responses={
+            200: {
+                "model": GovernanceTacticalItemCancelledResponse,
+                "description": "The item was cancelled or an idempotent retry returned its original transition receipt.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tactical_action_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": GovernanceTacticalSimpleActionRequest.model_json_schema()
+                    }
+                },
+            }
+        },
+    )
     async def cancel_governance_tactical_item(request: Request, location_id: str, item_id: str):
         return await transition_tactical_route(request, location_id, item_id, "cancel")
 
