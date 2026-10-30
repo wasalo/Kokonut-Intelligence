@@ -8840,3 +8840,21 @@ Capability classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows; strict private Gateway response contracts total 220.
 Physical Raspberry Pi, populated-data parity, live OIDC/browser, production
 recovery, and broad C1 ACL/RLS acceptance remain open.
+
+
+### Source continuation — partner scorecard date preflight — 30 October 2026
+
+- [x] Validate scorecard period inputs as canonical calendar dates and reject reversed ranges during CLI parsing, before database acquisition.
+- [x] Preserve valid dates as strings when forwarding to the existing `create_scorecard` service contract.
+- [x] Add/run the approved mock-only checks for invalid dates, impossible dates, canonical-format enforcement, reversed ranges, and valid forwarding.
+- [x] Confirm the non-scorecard command path remains unchanged and database acquisition is not touched by rejected input.
+- [x] Refresh Ruff, Python compilation, capability-matrix, runtime SQL, provider-boundary, dependency-group, and diff checks; record recovery evidence.
+
+The focused selection passes 13 tests. No database/provider, candidate, legacy
+state, or migration was used. Rollback reverts the CLI validation, tests,
+evidence, and progress records; no data rollback is needed. Evidence:
+[partner scorecard date preflight](builds/2026-10-30-recovery/partner-scorecard-date-preflight.json).
+
+Checklist: 2,010 complete / 25 open (2,035 total); TODO: 645 checked / 16 open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows; strict private Gateway response contracts remain 220.

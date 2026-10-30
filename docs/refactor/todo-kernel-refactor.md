@@ -3752,7 +3752,7 @@ selection. The implementation preserves the existing exact-location grant,
 CSRF, create/replay status, and no-store behavior. No database, candidate,
 legacy, or provider was used; no migration was applied. See the evidence above.
 
-## In progress — management work-item timestamp preflight, 30 October
+## Completed — management work-item timestamp preflight, 30 October
 
 - [x] Parse `--due-at` and `--sla-at` as timezone-aware ISO timestamps before database acquisition.
 - [x] Pass aware `datetime` values to the workbench while preserving omitted values as `None`.
@@ -3767,7 +3767,7 @@ was used for this slice.
 Checklist: 636 checked / 20 open. Strict private Gateway response contracts
 remain at 208 until the pending Gateway test gate closes.
 
-## In progress — governance assignment review-deadline preflight, 30 October
+## Completed — governance assignment review-deadline preflight, 30 October
 
 - [x] Parse `assignment-add --review-due-at` as an ISO timestamp with an explicit timezone during argparse validation.
 - [x] Forward the parsed aware `datetime` to `assign_role` before any connection is acquired.
@@ -3779,3 +3779,17 @@ provider was used for this slice.
 
 Checklist: 643 checked / 16 open. Strict private Gateway response contracts
 total 220.
+
+## Completed — partner scorecard date preflight, 30 October
+
+- [x] Require canonical `YYYY-MM-DD` scorecard period dates and reject a reversed range before database acquisition.
+- [x] Add and run the approved mock-only CLI regressions for invalid, noncanonical, impossible, reversed, and valid date ranges and preserved non-scorecard behavior.
+
+The focused partner lifecycle CLI selection passes 13 tests. Ruff, Python
+compilation, capability-matrix validation, runtime SQL inventory, provider
+boundaries, dependency groups, and `git diff --check` pass. No database,
+candidate, legacy, or provider was used; no migration was applied. Evidence:
+`builds/2026-10-30-recovery/partner-scorecard-date-preflight.json`.
+
+Checklist: 645 checked / 16 open. Strict private Gateway response contracts
+remain 220.
