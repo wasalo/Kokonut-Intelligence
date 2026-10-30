@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime
 from uuid import UUID
 
 from services.analytics.stakeholder_grievances import (
@@ -24,6 +25,19 @@ from services.common.database import get_db
 
 def _out(data):
     print_json(data)
+
+
+def _parse_due_at(value: str | None, parser: argparse.ArgumentParser) -> datetime | None:
+    """Parse TIMESTAMPTZ CLI input before a database connection is opened."""
+    if value is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (AttributeError, TypeError, ValueError):
+        parser.error("--due-at must be a valid ISO timestamp with an explicit timezone")
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        parser.error("--due-at must include an explicit timezone")
+    return parsed
 
 
 def main():
@@ -144,6 +158,8 @@ def main():
             args.location_id = str(UUID(args.location_id))
         except (AttributeError, TypeError, ValueError):
             parser.error("--location-id must be a valid UUID")
+    if getattr(args, "command", None) in {"create-case", "propose-remedy"}:
+        args.due_at = _parse_due_at(args.due_at, parser)
     conn = get_db()
     try:
         _out(args.func(conn, args))

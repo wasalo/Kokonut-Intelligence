@@ -3679,3 +3679,32 @@ dependency-group checks pass. No database/provider, candidate, or legacy state
 was used; no migration was applied. Checklist: 614 checked / 16 open; strict
 private Gateway response contracts total 205. Evidence:
 `builds/2026-10-30-recovery/governance-tension-create-submit-contracts.json`.
+
+## Completed — governance role-assignment decision contracts, 30 October
+
+- [x] Define strict migration-440 decision input and exact internal/public response models for approve and reject.
+- [x] Bind action results to the requested decision and assignment path; enforce approve→active and reject→rejected while omitting `reviewer_party_id`.
+- [x] Publish action-specific success/error schemas and preserve exact decision grants, CSRF, 200 replay behavior, and no-store headers.
+- [x] Run the approved focused mock-only Gateway/OpenAPI checks, including malformed-result sanitization and authorization denial.
+
+The focused Gateway/OpenAPI selection passes 21 tests. Ruff, Python compilation,
+`git diff --check`, capability-matrix validation, runtime SQL inventory,
+provider-boundary checks, and dependency-group checks pass. No database,
+candidate, legacy, or provider was used; no migration was applied. Evidence:
+`builds/2026-10-30-recovery/governance-assignment-decision-and-grievance-cli-preflight.json`.
+
+## Completed — grievance CLI due-date preflight, 30 October
+
+- [x] Parse `--due-at` for case creation and remedy proposals as an ISO timestamp with an explicit timezone before opening PostgreSQL.
+- [x] Forward an aware `datetime` value to the existing service methods and preserve `None` when the option is omitted.
+- [x] Run focused mock-only preflight checks for malformed/naive values, aware values, both commands, and omitted defaults.
+
+The grievance CLI checks pass 15 tests. The combined approved selection passes
+36 tests. Ruff, Python compilation, `git diff --check`, capability-matrix
+validation, runtime SQL inventory, provider-boundary checks, and dependency-
+group checks pass. No database, candidate, legacy, or provider was used; no
+migration was applied. Evidence:
+`builds/2026-10-30-recovery/governance-assignment-decision-and-grievance-cli-preflight.json`.
+
+Checklist: 622 checked / 16 open. Strict private Gateway response contracts
+total 207.

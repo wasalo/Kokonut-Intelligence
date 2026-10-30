@@ -8790,3 +8790,16 @@ Checklist: 1,984 complete / 25 open (2,009 total); TODO: 610 checked / 16 open. 
 The focused route module passes 8 tests. Ruff, Python compilation, `git diff --check`, capability-matrix validation, runtime SQL inventory, provider-boundary checks, and dependency-group checks pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the response contracts, focused tests, evidence, and progress records; no data rollback is needed. Evidence: [governance-tension create/submit contracts](builds/2026-10-30-recovery/governance-tension-create-submit-contracts.json).
 
 Checklist: 1,989 complete / 25 open (2,014 total); TODO: 615 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 205. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.
+
+
+### Source continuation — governance assignment decision contracts and grievance due-date preflight — 30 October 2026
+
+- [x] Define strict migration-440 approve/reject request, internal SQL result, and identity-minimized public response contracts.
+- [x] Bind decision results to the assignment path and requested decision; enforce `approve → active` and `reject → rejected`, omitting reviewer identity.
+- [x] Preserve exact location-scoped decision grants, CSRF, HTTP 200 replay behavior, and no-store responses.
+- [x] Parse grievance `--due-at` values for case creation and remedy proposals as timezone-aware timestamps before database access; pass typed datetimes to the service and preserve omitted values.
+- [x] Run the approved focused Gateway and CLI regression selection (36 tests), plus Ruff, Python compilation, diff, capability-matrix, runtime SQL, provider-boundary, and dependency-group checks.
+
+The 36 approved focused checks pass. Ruff, Python compilation, `git diff --check`, capability-matrix validation, runtime SQL inventory, provider-boundary checks, and dependency-group checks pass. No database, candidate, legacy, or provider was used; no migration was applied. Rollback reverts the Gateway/CLI contracts, tests, evidence, and progress records; no data rollback is needed. Evidence: [governance assignment and grievance CLI contracts](builds/2026-10-30-recovery/governance-assignment-decision-and-grievance-cli-preflight.json).
+
+Checklist: 1,994 complete / 25 open (2,019 total); TODO: 622 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 207. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.

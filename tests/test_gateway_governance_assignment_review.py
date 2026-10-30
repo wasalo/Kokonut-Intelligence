@@ -308,42 +308,140 @@ def _client(monkeypatch, allowed_actions):
     return client
 
 
-def test_http_review_and_decision_routes_require_scopes_csrf_and_no_store(monkeypatch):
-    queue_result = {"location_id": LOCATION_ID, "items": [], "next_cursor": None}
-    decision_result = {
+def _decision_result(decision, assignment_status):
+    return {
         "decision_id": DECISION_ID,
         "assignment_id": ASSIGNMENT_ID,
-        "decision": "approve",
-        "assignment_status": "active",
+        "decision": decision,
+        "assignment_status": assignment_status,
+        "reviewer_party_id": REVIEWER_PARTY_ID,
+        "created_at": "2026-10-18T00:00:00Z",
     }
+
+
+def test_http_review_and_decision_routes_require_scopes_csrf_and_no_store(monkeypatch):
+    queue_result = {"location_id": LOCATION_ID, "items": [], "next_cursor": None}
+    approved = _decision_result("approve", "active")
+    rejected = _decision_result("reject", "rejected")
     with patch(
         "services.gateway.governance_assignment_review.list_governance_assignment_reviews",
         return_value=queue_result,
     ) as list_call, patch(
         "services.gateway.governance_assignment_review.decide_governance_assignment",
-        return_value=decision_result,
+        side_effect=[approved, approved, rejected, rejected],
     ) as decide_call:
-        with _client(monkeypatch, {"review", "approve"}) as client:
+        with _client(monkeypatch, {"review", "approve", "reject"}) as client:
             response = client.get(
                 f"/operator/api/governance/{LOCATION_ID}/assignment-review-queue"
             )
-            decision = client.post(
+            invalid_request = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
+                json={**_payload(), "reviewer_party_id": REVIEWER_PARTY_ID},
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            approval = client.post(
                 f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
                 json=_payload(),
                 headers={"x-csrf-token": "synthetic-csrf"},
             )
+            approval_retry = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            rejection = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/reject",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            rejection_retry = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/reject",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            openapi = client.app.openapi()
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert "Cookie" in response.headers["vary"]
     assert response.json() == queue_result
-    assert decision.status_code == 200
-    assert decision.headers["cache-control"] == "no-store"
-    assert decision.json() == decision_result
+    assert invalid_request.status_code == 400
+    for decision_response, result in (
+        (approval, approved),
+        (approval_retry, approved),
+        (rejection, rejected),
+        (rejection_retry, rejected),
+    ):
+        assert decision_response.status_code == 200
+        assert decision_response.headers["cache-control"] == "no-store"
+        assert "Cookie" in decision_response.headers["vary"]
+        assert decision_response.json() == {
+            key: value
+            for key, value in result.items()
+            if key not in {"reviewer_party_id", "created_at"}
+        } | {"created_at": "2026-10-18T00:00:00+00:00"}
+        assert "reviewer_party_id" not in decision_response.json()
     list_call.assert_called_once()
-    decide_call.assert_called_once_with(
-        OPERATOR_ID, LOCATION_ID, ROLE_ID, ASSIGNMENT_ID, "approve", _payload()
-    )
+    assert decide_call.call_count == 4
+    for call, decision in zip(decide_call.call_args_list, ("approve", "approve", "reject", "reject")):
+        assert call.args == (OPERATOR_ID, LOCATION_ID, ROLE_ID, ASSIGNMENT_ID, decision, _payload())
+        assert not call.kwargs
+
+    paths = openapi["paths"]
+    approve = paths[
+        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/approve"
+    ]["post"]
+    reject = paths[
+        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/reject"
+    ]["post"]
+    request_schema = approve["requestBody"]["content"]["application/json"]["schema"]
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["required"]) == {"decision_request_id", "reason"}
+    assert reject["requestBody"]["content"]["application/json"]["schema"] == request_schema
+    approve_schema = approve["responses"]["200"]["content"]["application/json"]["schema"]
+    reject_schema = reject["responses"]["200"]["content"]["application/json"]["schema"]
+    assert approve_schema == {"$ref": "#/components/schemas/GovernanceAssignmentApprovedResponse"}
+    assert reject_schema == {"$ref": "#/components/schemas/GovernanceAssignmentRejectedResponse"}
+    approved_schema = openapi["components"]["schemas"]["GovernanceAssignmentApprovedResponse"]
+    rejected_schema = openapi["components"]["schemas"]["GovernanceAssignmentRejectedResponse"]
+    assert "reviewer_party_id" not in approved_schema["properties"]
+    assert "reviewer_party_id" not in rejected_schema["properties"]
+    assert approved_schema["properties"]["decision"]["const"] == "approve"
+    assert approved_schema["properties"]["assignment_status"]["const"] == "active"
+    assert rejected_schema["properties"]["decision"]["const"] == "reject"
+    assert rejected_schema["properties"]["assignment_status"]["const"] == "rejected"
+
+
+def test_http_decision_route_rejects_malformed_result_and_denies_missing_grant(monkeypatch):
+    malformed = _decision_result("approve", "active")
+    malformed["assignment_id"] = str(uuid4())
+    with patch(
+        "services.gateway.governance_assignment_review.decide_governance_assignment",
+        return_value=malformed,
+    ):
+        with _client(monkeypatch, {"approve"}) as client:
+            response = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Governance assignment decision unavailable"}
+    assert REVIEWER_PARTY_ID not in response.text
+
+    with patch(
+        "services.gateway.governance_assignment_review.decide_governance_assignment",
+        side_effect=AssertionError("missing action grant must not reach the service"),
+    ):
+        with _client(monkeypatch, set()) as client:
+            denied = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+    assert denied.status_code == 403
+    assert denied.headers["cache-control"] == "no-store"
 
 
 def test_http_review_route_denies_missing_grant_before_service(monkeypatch):

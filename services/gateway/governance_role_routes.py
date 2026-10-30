@@ -435,6 +435,86 @@ class GovernanceAssignmentReviewPageResponse(BaseModel):
         return self
 
 
+class GovernanceAssignmentDecisionRequest(BaseModel):
+    """Strict idempotent decision request for an independent role reviewer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    decision_request_id: _GovernanceResponseUUID
+    reason: str = Field(min_length=1, max_length=4000, strict=True)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_must_be_nonblank(cls, value: str) -> str:
+        if not value.strip() or "\x00" in value:
+            raise ValueError("reason must contain 1 to 4000 valid characters")
+        return value
+
+
+class _GovernanceAssignmentDecisionResult(BaseModel):
+    """Exact six-field migration-440 result, including its private reviewer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    decision_id: _GovernanceResponseUUID
+    assignment_id: _GovernanceResponseUUID
+    decision: Literal["approve", "reject"]
+    assignment_status: Literal["active", "rejected"]
+    reviewer_party_id: _GovernanceResponseUUID
+    created_at: AwareDatetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def parse_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("assignment decision timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("assignment decision timestamp must include a timezone")
+        return value
+
+    @model_validator(mode="after")
+    def decision_matches_assignment_status(self):
+        expected = "active" if self.decision == "approve" else "rejected"
+        if self.assignment_status != expected:
+            raise ValueError("assignment decision and resulting status do not match")
+        return self
+
+
+class _GovernanceAssignmentDecisionResponseBase(BaseModel):
+    """Public decision receipt fields, excluding reviewer identity."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    decision_id: _GovernanceResponseUUID
+    assignment_id: _GovernanceResponseUUID
+    created_at: AwareDatetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def parse_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("assignment decision timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("assignment decision timestamp must include a timezone")
+        return value
+
+
+class GovernanceAssignmentApprovedResponse(_GovernanceAssignmentDecisionResponseBase):
+    decision: Literal["approve"]
+    assignment_status: Literal["active"]
+
+
+class GovernanceAssignmentRejectedResponse(_GovernanceAssignmentDecisionResponseBase):
+    decision: Literal["reject"]
+    assignment_status: Literal["rejected"]
+
+
 class GovernanceAssignmentReviewError(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -1600,6 +1680,25 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(page.model_dump(mode="json")), headers=headers)
 
+    assignment_decision_error_responses = {
+        status: {
+            "model": GovernanceAssignmentReviewError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The assignment decision request is invalid.",
+            403: "The operator lacks the active exact-location decision grant or independent person binding.",
+            404: "Operator OIDC is disabled or the assignment is unavailable.",
+            409: "The assignment has already changed or the decision conflicts with current state.",
+            500: "The assignment decision result failed its response contract.",
+            503: "The assignment decision is unavailable.",
+        }.items()
+    }
+
     async def decide_assignment_route(
         request: Request,
         location_id: str,
@@ -1623,14 +1722,26 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers=headers,
             )
         try:
+            decision_request = GovernanceAssignmentDecisionRequest.model_validate(payload)
+            operator_id = str(UUID(request.state.operator_session.operator.operator_id))
+            requested_location_id = str(UUID(location_id))
+            requested_role_id = str(UUID(role_id))
+            requested_assignment_id = str(UUID(assignment_id))
+        except (ValidationError, TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Governance assignment decision request is invalid"},
+                headers=headers,
+            )
+        try:
             result = await run_in_threadpool(
                 decide_governance_assignment,
-                request.state.operator_session.operator.operator_id,
-                location_id,
-                role_id,
-                assignment_id,
+                operator_id,
+                requested_location_id,
+                requested_role_id,
+                requested_assignment_id,
                 decision,
-                payload,
+                decision_request.model_dump(mode="json"),
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -1672,10 +1783,57 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance assignment decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            action_result = _GovernanceAssignmentDecisionResult.model_validate(result)
+            if action_result.assignment_id != UUID(assignment_id) or action_result.decision != decision:
+                raise ValueError("Assignment decision result does not match the request path")
+            response_model = (
+                GovernanceAssignmentApprovedResponse
+                if decision == "approve"
+                else GovernanceAssignmentRejectedResponse
+            )
+            response = response_model.model_validate(
+                action_result.model_dump(mode="python", exclude={"reviewer_party_id"})
+            )
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_roles").warning(
+                "Governance assignment decision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance assignment decision unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/approve"
+        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/approve",
+        response_model=GovernanceAssignmentApprovedResponse,
+        responses={
+            200: {
+                "model": GovernanceAssignmentApprovedResponse,
+                "description": "The assignment was approved or an idempotent retry returned its original approval receipt.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **assignment_decision_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": GovernanceAssignmentDecisionRequest.model_json_schema()
+                    }
+                },
+            }
+        },
     )
     async def approve_governance_role_assignment_route(
         request: Request, location_id: str, role_id: str, assignment_id: str
@@ -1685,7 +1843,29 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         )
 
     @router.post(
-        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/reject"
+        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/reject",
+        response_model=GovernanceAssignmentRejectedResponse,
+        responses={
+            200: {
+                "model": GovernanceAssignmentRejectedResponse,
+                "description": "The assignment was rejected or an idempotent retry returned its original rejection receipt.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **assignment_decision_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": GovernanceAssignmentDecisionRequest.model_json_schema()
+                    }
+                },
+            }
+        },
     )
     async def reject_governance_role_assignment_route(
         request: Request, location_id: str, role_id: str, assignment_id: str
