@@ -371,6 +371,56 @@ class SolutionLifecycleExperimentPageResponse(BaseModel):
         return self
 
 
+class SolutionLifecycleReplicationReviewDetailResponse(BaseModel):
+    """Exact private detail projection for independent replication review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    replication_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    replication_status: Literal["proposed"]
+    target_context: str = Field(min_length=1, max_length=2000, strict=True)
+    adaptation_required: str | None = Field(min_length=1, max_length=4000, strict=True)
+    replication_protocol: dict[str, Any]
+    source_experiment_id: _SolutionResponseUUID
+    source_experiment_status: Literal[
+        "draft", "submitted", "protocol_approved", "baseline_ready", "active",
+        "paused", "completed", "results_review", "validated", "invalidated",
+        "inconclusive", "requires_replication",
+    ]
+    source_result_outcome: Literal[
+        "validated", "invalidated", "inconclusive", "requires_replication"
+    ] | None
+    source_result_reviewed_at: AwareDatetime | None
+    created_at: AwareDatetime
+    proposer_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_projection(self):
+        if (self.source_result_outcome is None) != (
+            self.source_result_reviewed_at is None
+        ):
+            raise ValueError("Source result outcome and review timestamp are inconsistent")
+        if self.is_self_authored and not self.proposer_attributed:
+            raise ValueError("Self-authorship requires an attributed proposer")
+        try:
+            json.dumps(
+                self.replication_protocol,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Replication protocol must be JSON data") from exc
+        return self
+
+
 class SolutionLifecycleFundingTargetItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -4200,7 +4250,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review",
+        response_model=SolutionLifecycleReplicationReviewDetailResponse,
+    )
     async def location_solution_replication_review_detail(
         request: Request, location_id: str, replication_id: str
     ):
@@ -4238,7 +4291,25 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution replication review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleReplicationReviewDetailResponse.model_validate(result)
+            if validated.replication_id != UUID(replication_id):
+                raise ValueError("Replication review detail does not match request ID")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution replication review detail response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution replication review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review")
     async def review_solution_replication(request: Request, location_id: str, replication_id: str):

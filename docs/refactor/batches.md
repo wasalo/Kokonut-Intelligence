@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,658 checklist items complete and 25
-open (1,683 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,935 checklist items complete and 25
+open (1,960 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -8650,3 +8650,15 @@ Checklist: 1,926 complete / 25 open (1,951 total); TODO: 554 checked / 16 open. 
 The focused scale-gate review selection passes 21 mock-only tests. Default/source-security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the response model/route, focused test, and progress records; no data rollback is needed. Evidence: [scale-gate review-detail response contract](builds/2026-10-29-recovery/scale-gate-review-detail-response-contract.json).
 
 Checklist: 1,931 complete / 25 open (1,956 total); TODO: 558 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 192. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
+
+
+### Source continuation — replication-review detail response contract — 29 October 2026
+
+- [x] Publish migration 495's exact 15-field replication-review detail in OpenAPI and enforce the contract at the Gateway boundary.
+- [x] Bind the result to the requested replication ID; validate solution/experiment enums, bounded text, protocol-object shape, aware timestamps, and source-result consistency.
+- [x] Preserve the private exact-location `solution_lifecycle:review` policy and signed tenant context; retain no-store responses and sanitize malformed service output without returning proposer identity.
+- [x] Run the approved mock-only Gateway/OpenAPI checks and refresh capability, SQL, helper-scope, provider, dependency, and source-lint inventories.
+
+The focused route selection passes 21 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the response model/route, focused tests, and progress/evidence records; no data rollback is needed. Evidence: [replication-review detail response contract](builds/2026-10-29-recovery/solution-replication-review-detail-response-contract.json).
+
+Checklist: 1,935 complete / 25 open (1,960 total); TODO: 562 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 193. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.

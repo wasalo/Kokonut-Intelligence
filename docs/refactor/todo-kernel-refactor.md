@@ -3557,3 +3557,13 @@ No database/provider, candidate, or legacy state was used; no migration was appl
 - [x] Run 21 approved mock-only checks and refresh capability, source-inventory, and evidence records.
 
 No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 558 checked / 16 open; strict private Gateway response contracts total 192. Evidence: `builds/2026-10-29-recovery/scale-gate-review-detail-response-contract.json`.
+
+
+## Completed — replication-review detail response contract, 29 October
+
+- [x] Publish the exact migration-495 15-field private detail schema in OpenAPI and enforce it at runtime.
+- [x] Bind the returned replication ID to the request; validate enums, bounded text/protocol, timestamp consistency, and response shape.
+- [x] Preserve exact-location review authorization, signed context, no-store behavior, and sanitized malformed-result failures without exposing proposer identity.
+- [x] Run 21 approved mock-only checks and refresh capability, source, and evidence records.
+
+No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 562 checked / 16 open; strict private Gateway response contracts total 193. Evidence: `builds/2026-10-29-recovery/solution-replication-review-detail-response-contract.json`.

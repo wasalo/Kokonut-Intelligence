@@ -24827,3 +24827,24 @@ The migration-629 learning-plan activation queue now publishes and validates its
 The approved mock-only Gateway/OpenAPI selection passes 30 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-helper-scope inventory, provider-boundary, dependency-group, and diff checks pass. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: [focused checks](builds/2026-10-29-recovery/operating-pilot-learning-plan-activation-queue-response-contract.json).
 
 Checklist: 1,917 complete / 25 open; TODO: 547 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 190.
+
+
+### Progress addendum — replication-review detail response contract — 29 October 2026
+
+The private migration-495 replication-review detail now has an exact 15-field
+OpenAPI/runtime contract. The Gateway binds the returned replication ID to the
+requested ID and checks solution/experiment enums, text/protocol bounds,
+aware timestamps, and reviewed-source consistency. It preserves the existing
+exact-location review grant and signed tenant context, rejects extra fields,
+and returns a generic no-store error for malformed service output. The
+response intentionally does not add `location_id`; the signed tenant context
+and SQL function scope the read to the requested location.
+
+The approved mock-only Gateway/OpenAPI selection passes 21 tests. Default and
+source-security Ruff, Python compilation, capability-matrix validation,
+runtime SQL and unresolved-write inventories, report-helper-scope inventory,
+provider-boundary, dependency-group, and diff checks pass. No
+database/provider, candidate, or legacy state was used; no migration was
+applied. Checklist: 1,935 complete / 25 open; TODO: 562 checked / 16 open;
+strict private Gateway response contracts total 193. Evidence:
+[focused checks](builds/2026-10-29-recovery/solution-replication-review-detail-response-contract.json).
