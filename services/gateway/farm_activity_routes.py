@@ -98,6 +98,7 @@ FarmActivityRouteAction = Literal[
 FarmActivityChangedField = Literal[
     "plot_id",
     "crop_cycle_id",
+    "farm_task_id",
     "activity_type",
     "activity_date",
     "description",
@@ -116,6 +117,7 @@ class FarmActivitySummaryResponse(BaseModel):
     location_id: _ResponseUUID
     plot_id: _ResponseUUID | None
     crop_cycle_id: _ResponseUUID | None
+    farm_task_id: _ResponseUUID | None
     activity_type: str = Field(min_length=1, max_length=100)
     activity_date: _ResponseDate
     status: FarmActivityStatus
@@ -159,6 +161,7 @@ class FarmActivityDetailResponseData(BaseModel):
     location_id: _ResponseUUID
     plot_id: _ResponseUUID | None
     crop_cycle_id: _ResponseUUID | None
+    farm_task_id: _ResponseUUID | None
     activity_type: str = Field(min_length=1, max_length=100)
     activity_date: _ResponseDate
     description: str | None
@@ -187,6 +190,7 @@ class FarmActivityDraftWriteResponseData(BaseModel):
     location_id: _ResponseUUID
     plot_id: _ResponseUUID | None
     crop_cycle_id: _ResponseUUID | None
+    farm_task_id: _ResponseUUID | None
     activity_type: str = Field(min_length=1, max_length=100)
     activity_date: _ResponseDate
     description: str | None

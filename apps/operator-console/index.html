@@ -756,6 +756,8 @@
             <input id="farm-activity-record-create-plot" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
             <label for="farm-activity-record-create-crop-cycle">Crop cycle ID (optional)</label>
             <input id="farm-activity-record-create-crop-cycle" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
+            <label for="farm-activity-record-create-task">Farm task ID (optional)</label>
+            <input id="farm-activity-record-create-task" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
             <label for="farm-activity-record-create-description">Description</label>
             <textarea id="farm-activity-record-create-description" maxlength="10000"></textarea>
             <label for="farm-activity-record-create-hours">Labor hours</label>
@@ -790,6 +792,8 @@
               <input id="farm-activity-record-edit-plot" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
               <label for="farm-activity-record-edit-crop-cycle">Crop cycle ID (optional)</label>
               <input id="farm-activity-record-edit-crop-cycle" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
+              <label for="farm-activity-record-edit-task">Farm task ID (optional)</label>
+              <input id="farm-activity-record-edit-task" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
               <label for="farm-activity-record-edit-description">Description</label>
               <textarea id="farm-activity-record-edit-description" maxlength="10000"></textarea>
               <label for="farm-activity-record-edit-hours">Labor hours</label>
@@ -27134,6 +27138,7 @@
           activity_date: field("date"),
           plot_id: optionalUuid("plot", "Plot ID"),
           crop_cycle_id: optionalUuid("crop-cycle", "Crop cycle ID"),
+          farm_task_id: optionalUuid("task", "Farm task ID"),
           description: field("description") || null,
           labor_hours: farmActivityRecordContentValue(`#farm-activity-record-${mode}-hours`),
           labor_cost: farmActivityRecordContentValue(`#farm-activity-record-${mode}-cost`),
@@ -27246,6 +27251,7 @@
           document.querySelector("#farm-activity-record-edit-date").value = currentFarmActivityRecord.activity_date || "";
           document.querySelector("#farm-activity-record-edit-plot").value = currentFarmActivityRecord.plot_id || "";
           document.querySelector("#farm-activity-record-edit-crop-cycle").value = currentFarmActivityRecord.crop_cycle_id || "";
+          document.querySelector("#farm-activity-record-edit-task").value = currentFarmActivityRecord.farm_task_id || "";
           document.querySelector("#farm-activity-record-edit-description").value = currentFarmActivityRecord.description || "";
           document.querySelector("#farm-activity-record-edit-hours").value = currentFarmActivityRecord.labor_hours ?? "";
           document.querySelector("#farm-activity-record-edit-cost").value = currentFarmActivityRecord.labor_cost ?? "";

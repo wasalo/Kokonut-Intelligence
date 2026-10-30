@@ -24,6 +24,7 @@ Usage:
 
 import json
 import uuid
+from uuid import UUID
 
 from ..common.logging import get_logger
 
@@ -704,26 +705,17 @@ def record_assessment(
     metadata: dict = None,
 ) -> dict:
     """Record a skill assessment (pre-test, post-test, diagnostic, etc.)."""
+    if not location_id:
+        raise ValueError("location_id is required for a skill assessment")
+    try:
+        location_id = str(UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("location_id must be a valid UUID for a skill assessment") from exc
+
     cur = conn.cursor()
     assessment_id = str(uuid.uuid4())
 
     try:
-        if not location_id:
-            cur.execute(
-                "SELECT location_id FROM learning_progress WHERE module_id = %s AND farmer_name = %s LIMIT 1",
-                (module_id, farmer_id),
-            )
-            row = cur.fetchone()
-            location_id = str(row[0]) if row else None
-
-        if not location_id:
-            cur.execute("SELECT id FROM location LIMIT 1")
-            row = cur.fetchone()
-            location_id = str(row[0]) if row else None
-
-        if not location_id:
-            raise ValueError("No location_id available for assessment")
-
         cur.execute(
             """
             INSERT INTO skill_assessment

@@ -19,6 +19,7 @@ OPERATOR_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 ACTIVITY_ID = "22222222-2222-4222-8222-222222222222"
 LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 EVENT_ID = "33333333-3333-4333-8333-333333333333"
+FARM_TASK_ID = "44444444-4444-4444-8444-444444444444"
 
 
 def _summary(**overrides):
@@ -27,6 +28,7 @@ def _summary(**overrides):
         "location_id": LOCATION_ID,
         "plot_id": None,
         "crop_cycle_id": None,
+        "farm_task_id": None,
         "activity_type": "weeding",
         "activity_date": "2026-10-15",
         "status": "published",
@@ -163,6 +165,7 @@ def test_farm_activity_write_openapi_contracts_are_exact():
         "location_id",
         "plot_id",
         "crop_cycle_id",
+        "farm_task_id",
         "activity_type",
         "activity_date",
         "description",
@@ -465,6 +468,7 @@ def test_detail_routes_publish_exact_openapi_contract():
         "location_id",
         "plot_id",
         "crop_cycle_id",
+        "farm_task_id",
         "activity_type",
         "activity_date",
         "description",

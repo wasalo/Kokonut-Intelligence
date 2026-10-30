@@ -253,6 +253,8 @@ def get_observations(
     limit: int = 50,
 ) -> List[Dict[str, Any]]:
     """Get observations for a stage."""
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
+        raise ValueError("limit must be an integer between 1 and 500")
     with _conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(

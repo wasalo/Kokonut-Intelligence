@@ -7,6 +7,7 @@ links remain candidate records until a reviewer verifies them.
 from __future__ import annotations
 
 import json
+import math
 import uuid
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
@@ -242,8 +243,8 @@ def assess_salience(
     if not rationale.strip():
         raise ValueError("rationale is required for a salience assessment")
     scores = (power, legitimacy, urgency, vulnerability, harm_exposure, representation)
-    if any(score < 0 or score > 10 for score in scores):
-        raise ValueError("salience scores must be between 0 and 10")
+    if any(not math.isfinite(score) or score < 0 or score > 10 for score in scores):
+        raise ValueError("salience scores must be finite and between 0 and 10")
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """INSERT INTO stakeholder_salience_assessment

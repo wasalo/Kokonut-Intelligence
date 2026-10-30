@@ -1,5 +1,6 @@
 """Integration tests for the canonical stakeholder foundation."""
 
+import math
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -115,8 +116,29 @@ def test_add_interest_rejects_invalid_interest_type():
 
 def test_assess_salience_rejects_out_of_range_score():
     mock_conn = MagicMock()
-    with pytest.raises(ValueError, match="scores must be between 0 and 10"):
+    with pytest.raises(ValueError, match="scores must be finite and between 0 and 10"):
         stakeholders.assess_salience(mock_conn, "p1", power=11, rationale="Test")
+    mock_conn.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize("score", [math.nan, math.inf, -math.inf, -0.01, 10.01])
+def test_assess_salience_rejects_non_finite_and_out_of_range_scores(score):
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="finite and between 0 and 10"):
+        stakeholders.assess_salience(mock_conn, "p1", power=score, rationale="Test")
+    mock_conn.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize("score", [0, 10])
+def test_assess_salience_accepts_score_boundaries(score):
+    mock_conn = MagicMock()
+    cursor = mock_conn.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = {"id": "assessment-id", "advisory_score": score}
+    result = stakeholders.assess_salience(
+        mock_conn, "p1", power=score, rationale="Boundary score is valid"
+    )
+    assert result["id"] == "assessment-id"
+    cursor.execute.assert_called_once()
 
 
 def _landscape_report_connection(rows):

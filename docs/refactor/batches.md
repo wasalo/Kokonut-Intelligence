@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,949 checklist items complete and 26
-open (1,975 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,954 checklist items complete and 26
+open (1,980 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -8692,3 +8692,16 @@ Checklist: 1,941 complete / 25 open (1,966 total); TODO: 567 checked / 16 open. 
 The 23-test retirement/freshness selection and the 31-test CLI temporal-preflight selection pass; the combined run passes all 54 focused tests. Default Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-helper scope, provider-boundary, dependency-group, and diff checks pass. The scoped security-Ruff run reports two pre-existing S608 findings in unchanged data-freshness SQL builders; this batch adds no SQL builders. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the route model, projection, preflight guards, focused tests, runtime inventory, and documentation; no data rollback is needed. Evidence: [retirement and freshness checks](builds/2026-10-29-recovery/retirement-review-and-freshness-projection.json); [CLI guards](builds/2026-10-29-recovery/cli-preflight-guards.json).
 
 Checklist: 1,949 complete / 26 open (1,975 total); TODO: 576 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 195. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
+
+
+### Source continuation — bounded analytics inputs and farm-task linkage — 29 October 2026
+
+- [x] Reject non-finite stakeholder salience values and enforce finite 0–10 scores at both CLI and service boundaries.
+- [x] Require a valid, explicit location for training assessments and remove the service's guessed-location fallbacks.
+- [x] Bound value-stream observation reads to 1–500 in both CLI and service APIs.
+- [x] Expose optional `farm_task_id` through Gateway farm-activity create/edit/read and the operator console; validate task location on the write transaction and lock the task row through the write.
+- [x] Verify the repository's migration 359 location/task trigger alongside migration 404 on disposable PostgreSQL; run focused mock-only contracts and refresh source inventory/evidence.
+
+Focused checks pass: 126 pytest tests plus two unittest subtests; the disposable PostgreSQL 16 checker passes 13 assertions after applying migrations 359 and 404 to synthetic fixtures. Ruff, Python compilation, `git diff --check`, runtime SQL inventory, capability validation, dependency-group alignment, and provider-boundary checks pass. The scoped security-Ruff scan still reports existing S608 dynamic-query sites; the two Gateway builders interpolate only the fixed editable-field allowlist. No candidate or legacy database was accessed and no migration was applied outside the disposable container. Rollback reverts source, UI, tests, inventory, and progress evidence; no persistent data rollback is needed ([batch evidence](builds/2026-10-29-recovery/cli-and-farm-task-integrity.json); [disposable trigger evidence](builds/2026-10-29-recovery/farm-activity-task-link-disposable.json)).
+
+Checklist: 1,954 complete / 26 open (1,980 total); TODO: 581 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 195. Remaining C1 ACL/RLS, populated-data parity, real OIDC/browser, production recovery, and human acceptance gates remain open.

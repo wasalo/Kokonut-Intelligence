@@ -126,6 +126,7 @@ def main(argv=None):
     ra = sub.add_parser("record-assessment", help="Record skill assessment")
     ra.add_argument("--farmer-id", required=True)
     ra.add_argument("--module-id", required=True)
+    ra.add_argument("--location-id", required=True)
     ra.add_argument("--type", required=True, dest="assessment_type")
     ra.add_argument("--score", type=float, required=True)
     ra.add_argument("--max-score", type=float, default=100)
@@ -213,7 +214,7 @@ def main(argv=None):
         elif args.command == "record-assessment":
             result = record_assessment(
                 db, args.farmer_id, args.module_id, args.assessment_type,
-                args.score, max_score=args.max_score,
+                args.score, location_id=args.location_id, max_score=args.max_score,
                 questions_total=args.questions_total,
                 questions_correct=args.questions_correct,
                 time_spent_min=args.time_spent_min,

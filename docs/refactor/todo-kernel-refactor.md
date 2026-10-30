@@ -3593,3 +3593,16 @@ No database/provider, candidate, or legacy state was used; no migration was appl
 - [x] Verify stakeholder engagement DATE/TIMESTAMPTZ CLI preflight, explicit-zone requirements, valid-value forwarding, and None defaults.
 
 The CLI checks pass 31 tests. No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 576 checked / 16 open; strict private Gateway response contracts total 195. Evidence: `builds/2026-10-29-recovery/retirement-review-and-freshness-projection.json`; CLI guards: `builds/2026-10-29-recovery/cli-preflight-guards.json`.
+
+
+## Completed — bounded analytics inputs and farm-task linkage, 29 October
+
+- [x] Reject NaN/infinite stakeholder salience scores at the CLI and service boundaries; accept finite inclusive 0–10 boundaries.
+- [x] Require and preflight an explicit location UUID for training assessments; remove the prior location guessing/fallback queries.
+- [x] Restrict value-stream observation reads to 1–500 rows in CLI and service paths.
+- [x] Carry optional `farm_task_id` through native Gateway farm-activity create/edit/read contracts and console forms; reject cross-location task references before writing and lock the task during the transaction.
+- [x] Verify migration 359's actual task/location trigger with migration 404 in the disposable PostgreSQL checker; run the approved focused regression selection and refresh the runtime SQL inventory.
+
+The focused selection passes 126 pytest tests and two unittest subtests. The disposable PostgreSQL 16 checker applies migrations 359 and 404 to a fresh synthetic database and passes 13 checks, including same-location linkage and cross-location rejection by the migration 359 trigger. Ruff, compilation, diff checks, capability validation, SQL inventory, provider boundaries, and dependency groups pass. No candidate or legacy state was accessed; no migration was applied to either. The security-Ruff selector reports S608 at dynamic SQL sites, including the established fixed-field allowlist builders in farm activity operations; no request data is interpolated as SQL identifiers. Evidence: `builds/2026-10-29-recovery/cli-and-farm-task-integrity.json` and `builds/2026-10-29-recovery/farm-activity-task-link-disposable.json`.
+
+Checklist: 581 checked / 16 open; strict private Gateway response contracts total 195.

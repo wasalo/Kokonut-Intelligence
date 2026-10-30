@@ -24910,3 +24910,34 @@ focused CLI selection passes 31 tests, and the full batch selection passes 54.
 Current totals: 1,949 complete / 26 open; TODO 576 checked / 16 open; 195
 strict private Gateway response contracts across 67 capability rows
 (24 baseline-retained, 7 deployed, 36 prepared).
+
+
+### Progress addendum — bounded CLI inputs and Gateway farm-task linkage — 29 October 2026
+
+Stakeholder salience now rejects non-finite scores and enforces its inclusive
+0–10 range before CLI database acquisition and again in the service.
+Training assessments require an explicit valid location; the old fallback that
+guessed location from learning progress or selected the first location is
+removed. Value-stream observation reads now reject limits outside 1–500 in
+both CLI and service paths.
+
+The native farm-activity Gateway now carries optional `farm_task_id` through
+create, edit, detail, list, OpenAPI, and operator-console flows. It validates
+task/location match on the same transaction and locks the task row until the
+write completes. Migration 359's trigger remains defense in depth and was
+replayed in a temporary PostgreSQL 16 container together with migration 404.
+Same-location assignment succeeds; foreign-location assignment is rejected.
+
+The approved focused selection passes 126 pytest tests and two unittest
+subtests; the disposable PostgreSQL check passes 13 assertions. Ruff,
+compilation, capability validation, refreshed runtime SQL inventory,
+dependency-group alignment, provider boundaries, and diff checks pass. No
+candidate/legacy database or live provider was used; no persistent migration
+was applied. Existing S608 reports cover fixed allowlist-driven dynamic SQL
+builders and other pre-existing query sites. Evidence: [CLI and farm-task
+contracts](builds/2026-10-29-recovery/cli-and-farm-task-integrity.json) and
+[disposable PostgreSQL trigger replay](builds/2026-10-29-recovery/farm-activity-task-link-disposable.json).
+
+Current totals: 1,954 complete / 26 open; TODO 581 checked / 16 open; 195
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
