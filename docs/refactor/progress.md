@@ -24663,3 +24663,28 @@ candidate, or legacy state was used; no migration was applied. Checklist:
 1,877 complete / 25 open; TODO: 515 checked / 16 open; strict private Gateway
 response contracts total 181. Evidence:
 [consent, capacity, and operating-pilot contracts](builds/2026-10-29-recovery/consent-capacity-operating-pilot-contracts.json).
+
+### Progress addendum — equipment timestamps, carbon balance, and learning-plan review — 29 October 2026
+
+Equipment usage CLI timestamps now parse as ISO-8601 values with explicit
+timezone offsets before PostgreSQL is acquired. `carbon_balance` now selects
+the exact six migration-028 annual summary values used by its requested-year
+and latest-year branches, preserving the location/year filters, latest-year
+sort, calculation, fallback, and output.
+
+The private migration-610 learning-plan review queue now publishes strict
+OpenAPI/runtime item and page models. It validates location/page binding,
+`updated_at DESC, id DESC` ordering, unique plan IDs, exact item counts,
+continuation against the total, and the 10,000-offset ceiling. The source
+JSON arrays remain flexible while respecting 50-item, 8,000-byte-per-array,
+and 12,000-byte combined bounds. Auth and tenant authorization remain before
+the read; malformed output is sanitized and no-store.
+
+The approved mock-only selection passes 218 tests. CI security Ruff,
+compilation, capability validation, refreshed runtime SQL inventory,
+provider-boundary and dependency-group checks, and diff checks pass. Default
+Ruff on changed files passes with the unrelated existing unused `capacity`
+local ignored. No database/provider, candidate, or legacy state was used; no
+migration was applied. Checklist: 1,882 complete / 25 open; TODO: 519 checked
+/ 16 open; strict private Gateway response contracts total 182. Evidence:
+[equipment, carbon-balance, and learning-plan queue contracts](builds/2026-10-29-recovery/equipment-carbon-balance-learning-queue-contracts.json).

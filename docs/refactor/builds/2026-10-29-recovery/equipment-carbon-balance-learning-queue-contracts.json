@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-29",
+  "base_head": "66528127",
+  "scope": "Equipment usage timestamp preflight, migration-028 carbon-balance projections, and migration-610 learning-plan review queue contract",
+  "source_migrations": [
+    "schemas/postgres/085_capacity_utilization.sql",
+    "schemas/postgres/028_carbon_framework.sql",
+    "schemas/postgres/252_operating_competencies_learning.sql",
+    "schemas/postgres/610_location_operating_pilot_learning_plan_review_decision.sql"
+  ],
+  "files": [
+    "services/analytics/equipment.py",
+    "services/analytics/carbon_balance.py",
+    "services/gateway/operating_pilot_routes.py",
+    "tests/test_cli_equipment_datetime.py",
+    "tests/test_carbon_balance_projection.py",
+    "tests/test_gateway_operating_pilot_reads.py",
+    "docs/refactor/runtime-sql-inventory.json"
+  ],
+  "equipment_usage_cli": {
+    "arguments": ["log --start", "log --end"],
+    "contract": "ISO-8601 datetimes require explicit timezone offsets and are parsed before PostgreSQL acquisition; valid values reach the service as aware datetimes; omitted --end remains None",
+    "source_columns": ["equipment_usage_log.start_time TIMESTAMPTZ", "equipment_usage_log.end_time TIMESTAMPTZ"]
+  },
+  "carbon_balance_projection": {
+    "source": "climate_impact_summary",
+    "columns": [
+      "above_ground_carbon_tonnes",
+      "below_ground_carbon_tonnes",
+      "total_sequestration_tonnes_co2e",
+      "total_emissions_tonnes_co2e",
+      "net_climate_impact_tonnes_co2e",
+      "reporting_year"
+    ],
+    "branches": ["explicit reporting year", "latest reporting year"],
+    "behavior": "Location/year filters, latest-year ordering, parameters, computation, fallback, and output remain unchanged."
+  },
+  "learning_plan_review_queue": {
+    "route": "GET /operator/api/operating-pilot/{location_id}/learning-plan-review-queue",
+    "item_fields": [
+      "learning_plan_id",
+      "title",
+      "competency_goals",
+      "support_requested",
+      "target_date",
+      "status",
+      "updated_at",
+      "submitted_at"
+    ],
+    "page_fields": [
+      "location_id",
+      "items",
+      "limit",
+      "offset",
+      "has_more",
+      "next_offset",
+      "total"
+    ],
+    "invariants": [
+      "strict OpenAPI/runtime item and page schemas bind location, limit, and offset to the request",
+      "SQL ordering is updated_at DESC, learning_plan_id DESC; duplicate IDs and inconsistent totals/continuations fail closed",
+      "continuations that exceed the 10,000 offset ceiling are suppressed",
+      "competency_goals and support_requested remain flexible JSON arrays with source limits of 50 entries and 8,000 UTF-8 bytes each, 12,000 combined",
+      "submitted status and timestamps match migration 610 fields",
+      "malformed output receives sanitized no-store 503 and auth/tenant checks remain before reads"
+    ]
+  },
+  "verification": {
+    "focused_tests_command": "python3 -m pytest tests/test_cli_equipment_datetime.py tests/test_carbon_balance_projection.py tests/test_gateway_operating_pilot_reads.py -q",
+    "focused_tests_passed": 218,
+    "focused_tests_skipped": 0,
+    "focused_file_counts": {
+      "equipment_cli": 6,
+      "carbon_balance_projection": 3,
+      "operating_pilot_gateway": 209
+    },
+    "ruff_ci_security_rules": "passed for changed service modules",
+    "ruff_default_rules": "passed on changed files with existing F841 in equipment._update_utilization excluded; unrelated pre-existing unused capacity local remains",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "refreshed and current; unresolved-write ledger current with 42 tracked candidates",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "migration_applied": false,
+    "errors": 0
+  },
+  "rollback": "Revert the equipment CLI preflight, carbon-balance read projection, learning-plan queue response contract, focused tests, evidence/progress, and refreshed SQL inventory. No database or migration rollback is needed."
+}

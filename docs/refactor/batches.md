@@ -8414,3 +8414,34 @@ Checklist: 1,877 complete / 25 open (1,902 total); TODO: 515 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 181. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
+
+### Source continuation — equipment timestamps, carbon balance, and learning-plan review — 29 October 2026
+
+- [x] Parse equipment usage `--start` and optional `--end` as timezone-aware
+  ISO datetimes before database acquisition; preserve the open-ended `--end`.
+- [x] Replace both carbon-balance climate-summary wildcards with migration
+  028's exact six-column projection while preserving both lookup branches,
+  calculations, fallback, and result payload.
+- [x] Add strict OpenAPI/runtime item and page contracts to the migration-610
+  learning-plan review queue, including path/page binding, source array bounds,
+  SQL order, duplicate IDs, total consistency, and capped continuation.
+- [x] Run the approved mock-only selection, refresh/check SQL inventory, and
+  record evidence and capability/progress counters.
+- [x] Preserve source-defined flexible JSON array contents and existing
+  authorization, tenant-scope, and no-store failure behavior.
+
+The combined selection passes 218 tests (6 equipment CLI, 3 carbon-balance
+projection, 209 operating-pilot Gateway). CI security Ruff, compilation,
+capability-matrix validation, refreshed runtime SQL inventory,
+provider-boundary and dependency-group checks, and `git diff --check` pass.
+Default Ruff on changed files passes when the existing unrelated F841 unused
+`capacity` local in `equipment._update_utilization` is excluded. No
+database/provider, candidate, or legacy state was used; no migration was
+applied. Rollback reverts source, tests, evidence/progress, and inventory; no
+data rollback is needed. Evidence:
+[equipment, carbon-balance, and learning-plan queue contracts](builds/2026-10-29-recovery/equipment-carbon-balance-learning-queue-contracts.json).
+
+Checklist: 1,882 complete / 25 open (1,907 total); TODO: 519 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 182. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.

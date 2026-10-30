@@ -84,6 +84,58 @@ SUMMARY = {
 }
 
 
+def _learning_plan_review_page(*, location_id=LOCATION_ID, limit=2, offset=0, total=3):
+    item_count = min(limit, max(total - offset, 0))
+    ids = sorted((str(uuid4()) for _ in range(item_count)), reverse=True)
+    items = [
+        {
+            "learning_plan_id": ids[index],
+            "title": f"Soil-care learning plan {index + 1}",
+            "competency_goals": [{"competency": "soil-care", "target_level": 2.5}],
+            "support_requested": ["Peer coach", {"hours": 4}],
+            "target_date": "2027-04-01" if index == 0 else None,
+            "status": "submitted",
+            "updated_at": "2026-10-29T15:00:00.123456+00:00",
+            "submitted_at": "2026-10-29T15:00:00.123456+00:00",
+        }
+        for index in range(item_count)
+    ]
+    has_more = total > offset + limit and offset + limit <= 10000
+    return {
+        "location_id": location_id,
+        "limit": limit,
+        "offset": offset,
+        "items": items,
+        "has_more": has_more,
+        "next_offset": offset + limit if has_more else None,
+        "total": total,
+    }
+
+
+def _operating_pilot_operator_test_app():
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
+
+
 class _Connection:
     def __init__(self, row):
         self.row = row
@@ -2836,6 +2888,8 @@ def test_learning_plan_review_queue_uses_review_context_and_read_only_bounded_pa
             "support_requested": ["Peer coach"],
             "target_date": "2027-04-01",
             "status": "submitted",
+            "updated_at": "2026-10-29T15:00:00.123456+00:00",
+            "submitted_at": "2026-10-29T15:00:00.123456+00:00",
         }],
         "has_more": False,
         "next_offset": None,
@@ -2886,40 +2940,134 @@ def test_learning_plan_review_queue_invalid_bounds_fail_before_database_access(l
 
 
 def test_http_learning_plan_review_queue_is_no_store_and_exactly_scoped(monkeypatch):
-    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
-
     calls = []
-    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    page = _learning_plan_review_page(limit=2, offset=0, total=3)
     monkeypatch.setattr(
         "services.gateway.operating_pilot_reads.get_location_operating_pilot_learning_plan_review_queue",
         lambda *args, **kwargs: calls.append((args, kwargs)) or page,
     )
-    app = FastAPI()
-    router = APIRouter()
-
-    async def run_in_threadpool(function, *args, **kwargs):
-        return function(*args, **kwargs)
-
-    register_operating_pilot_routes(router, object(), run_in_threadpool,
-                                    SimpleNamespace(Error=Exception))
-    app.include_router(router)
-
-    @app.middleware("http")
-    async def add_operator(request, call_next):
-        request.state.operator_session = SimpleNamespace(
-            operator=SimpleNamespace(operator_id=OPERATOR_ID)
-        )
-        return await call_next(request)
-
+    app = _operating_pilot_operator_test_app()
     with TestClient(app) as client:
         response = client.get(
-            f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plan-review-queue?limit=7&offset=14"
+            f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plan-review-queue?limit=2&offset=0"
         )
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json() == page
-    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 7, "offset": 14})]
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 2, "offset": 0})]
+
+
+def test_learning_plan_review_queue_openapi_matches_migration_610():
+    app = _operating_pilot_operator_test_app()
+    operation = app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/learning-plan-review-queue"
+    ]["get"]
+    schemas = app.openapi()["components"]["schemas"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    page_schema = schemas[response_schema["$ref"].rsplit("/", 1)[1]]
+    assert set(page_schema["properties"]) == {
+        "location_id", "limit", "offset", "items", "has_more", "next_offset", "total",
+    }
+    item_schema_ref = page_schema["properties"]["items"]["items"]["$ref"]
+    item_schema = schemas[item_schema_ref.rsplit("/", 1)[1]]
+    assert set(item_schema["properties"]) == {
+        "learning_plan_id", "title", "competency_goals", "support_requested",
+        "target_date", "status", "updated_at", "submitted_at",
+    }
+    assert item_schema["properties"]["status"]["const"] == "submitted"
+    assert item_schema["properties"]["competency_goals"]["type"] == "array"
+    assert item_schema["properties"]["support_requested"]["type"] == "array"
+
+
+@pytest.mark.parametrize("corruption", [
+    "missing-field", "extra-field", "location", "limit", "offset", "status",
+    "duplicate-id", "wrong-order", "continuation", "total",
+])
+def test_learning_plan_review_queue_rejects_malformed_response_no_store(monkeypatch, corruption):
+    page = _learning_plan_review_page(limit=2, offset=0, total=3)
+    if corruption == "missing-field":
+        page["items"][0].pop("submitted_at")
+    elif corruption == "extra-field":
+        page["items"][0]["party_id"] = str(uuid4())
+    elif corruption == "location":
+        page["location_id"] = str(uuid4())
+    elif corruption == "limit":
+        page["limit"] = 3
+    elif corruption == "offset":
+        page["offset"] = 2
+    elif corruption == "status":
+        page["items"][0]["status"] = "approved"
+    elif corruption == "duplicate-id":
+        page["items"][1]["learning_plan_id"] = page["items"][0]["learning_plan_id"]
+    elif corruption == "wrong-order":
+        page["items"].reverse()
+    elif corruption == "continuation":
+        page["next_offset"] = 25
+    elif corruption == "total":
+        page["total"] = 1
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_learning_plan_review_queue",
+        lambda *_args, **_kwargs: page,
+    )
+    app = _operating_pilot_operator_test_app()
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plan-review-queue?limit=2&offset=0"
+        )
+    assert response.status_code == 503
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == {"error": "Operating learning-plan review queue unavailable"}
+
+
+@pytest.mark.parametrize("corruption", [
+    "object", "too-many-values", "field-byte-bound", "combined-byte-bound",
+])
+def test_learning_plan_review_queue_enforces_jsonb_source_bounds_no_store(monkeypatch, corruption):
+    page = _learning_plan_review_page(limit=2, offset=0, total=3)
+    item = page["items"][0]
+    if corruption == "object":
+        item["competency_goals"] = {"goals": []}
+    elif corruption == "too-many-values":
+        item["competency_goals"] = list(range(51))
+    elif corruption == "field-byte-bound":
+        item["competency_goals"] = ["x" * 8_000]
+    elif corruption == "combined-byte-bound":
+        item["competency_goals"] = ["x" * 6_000]
+        item["support_requested"] = ["y" * 6_000]
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_learning_plan_review_queue",
+        lambda *_args, **_kwargs: page,
+    )
+    app = _operating_pilot_operator_test_app()
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plan-review-queue?limit=2&offset=0"
+        )
+    assert response.status_code == 503
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Operating learning-plan review queue unavailable"}
+
+
+def test_learning_plan_review_queue_stops_unreachable_continuation_at_offset_cap(monkeypatch):
+    page = _learning_plan_review_page(limit=25, offset=10000, total=10026)
+    assert page["has_more"] is False
+    page["has_more"] = True
+    page["next_offset"] = 10025
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_learning_plan_review_queue",
+        lambda *_args, **_kwargs: page,
+    )
+    app = _operating_pilot_operator_test_app()
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plan-review-queue?limit=25&offset=10000"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["has_more"] is False
+    assert response.json()["next_offset"] is None
 
 
 def test_http_learning_plan_review_queue_fails_closed_when_oidc_is_disabled(monkeypatch):

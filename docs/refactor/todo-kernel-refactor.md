@@ -3399,3 +3399,23 @@ candidate, or legacy state was used; no migration was applied. Checklist:
 515 checked / 16 open; strict private Gateway response contracts total 181.
 Evidence:
 `builds/2026-10-29-recovery/consent-capacity-operating-pilot-contracts.json`.
+
+## Completed — equipment timestamps, carbon balance, and learning-plan review, 29 October
+
+- [x] Require timezone-aware equipment usage timestamps and reject malformed
+  `--start`/`--end` before database acquisition.
+- [x] Pin carbon-balance annual climate-summary reads to migration 028's exact
+  fields for both requested-year and latest-year paths.
+- [x] Enforce migration-610 learning-plan review page/item response schemas,
+  source-defined JSON-array limits, path binding, ordering, uniqueness, and
+  continuation consistency.
+- [x] Run the approved 218-test selection and refresh/check SQL inventory;
+  record evidence and progress updates.
+
+CI security Ruff, compilation, capability-matrix, provider-boundary,
+dependency-group, SQL-inventory, and diff checks pass. Default Ruff's remaining
+`F841` is an existing unused capacity local in `equipment._update_utilization`
+outside the changed CLI path. No database/provider, candidate, or legacy
+state was used; no migration was applied. Checklist: 519 checked / 16 open;
+strict private Gateway response contracts total 182. Evidence:
+`builds/2026-10-29-recovery/equipment-carbon-balance-learning-queue-contracts.json`.
