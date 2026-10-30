@@ -48,6 +48,18 @@ class PesticideImpactCaptureResponse(_PollinatorResponseModel):
     replayed: bool = Field(strict=True)
 
 
+class PollinatorHabitatCaptureResponse(_PollinatorResponseModel):
+    habitat_id: UUID
+    location_id: UUID
+    habitat_type: Literal[
+        "wildflower_strip", "hedgerow", "nesting_site", "water_source",
+        "cover_crop", "native_planting", "other",
+    ]
+    area_m2: StrictInt | StrictFloat = Field(ge=0, le=99_999_999)
+    status: Literal["active"]
+    replayed: bool = Field(strict=True)
+
+
 class PollinatorObservationAggregate(_PollinatorResponseModel):
     pollinator_type: _PollinatorType
     observation_method: _ObservationMethod | None
@@ -824,7 +836,12 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             created_replay=True,
         )
 
-    @router.post("/operator/api/pollinators/{location_id}/habitats")
+    @router.post(
+        "/operator/api/pollinators/{location_id}/habitats",
+        response_model=PollinatorHabitatCaptureResponse,
+        status_code=201,
+        responses={200: {"model": PollinatorHabitatCaptureResponse}},
+    )
     async def create_pollinator_habitat(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -876,10 +893,16 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
                 content={"error": "Habitat capture unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
-            headers=headers,
+        return _validated_private_response(
+            PollinatorHabitatCaptureResponse,
+            result,
+            "Habitat capture unavailable",
+            {
+                "location_id": UUID(location_id),
+                "habitat_type": payload.get("habitat_type"),
+                "area_m2": float(payload["area_m2"]),
+            },
+            created_replay=True,
         )
 
     @router.patch("/operator/api/pollinators/{location_id}/habitats/{habitat_id}")

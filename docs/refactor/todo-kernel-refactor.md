@@ -3419,3 +3419,23 @@ outside the changed CLI path. No database/provider, candidate, or legacy
 state was used; no migration was applied. Checklist: 519 checked / 16 open;
 strict private Gateway response contracts total 182. Evidence:
 `builds/2026-10-29-recovery/equipment-carbon-balance-learning-queue-contracts.json`.
+
+## Completed — yield, nutrient, and pollinator contracts, 29 October
+
+- [x] Preflight `yield_monitoring record --date` as an ISO calendar date before
+  database acquisition; pass valid dates as `date` objects and preserve omitted
+  dates.
+- [x] Make migration-601 nutrient summary order stable across input type, rate
+  unit, and cost currency.
+- [x] Add strict OpenAPI/runtime validation for migration-621 pollinator habitat
+  capture creates and replays, including request binding and sanitized no-store
+  errors.
+- [x] Run 134 approved mock-only checks and refresh/check the runtime SQL
+  inventory; record evidence and progress counters.
+
+CI security Ruff, compilation, capability validation, provider-boundary,
+dependency-group, SQL-inventory, and diff checks pass. No database/provider,
+candidate, or legacy state was used; no migration was applied. Checklist:
+523 checked / 16 open; strict private Gateway response contracts total 183.
+Evidence:
+`builds/2026-10-29-recovery/yield-nutrient-pollinator-contracts.json`.

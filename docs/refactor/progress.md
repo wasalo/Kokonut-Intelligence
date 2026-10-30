@@ -1,3 +1,28 @@
+### Progress addendum — yield, nutrient, and pollinator contracts — 29 October 2026
+
+`yield_monitoring record --date` now validates ISO calendar dates during CLI
+parsing, before opening PostgreSQL. Valid dates reach the service as
+`datetime.date`; an omitted date retains the existing service default. The
+nutrient summary query now orders currency/rate-unit groups deterministically
+using migration 601's grouping columns, with its selected fields and payload
+unchanged.
+
+Pollinator habitat creation now declares the exact migration-621 success shape
+for both creates and replays. Runtime checks bind location, habitat type, and
+area to the request; creates return 201, replays return 200, and malformed
+writer responses produce sanitized no-store errors.
+
+The approved focused mock-only selection passes 134 tests (4 CLI, 1 analytics,
+129 Gateway). CI security Ruff, Python compilation, capability-matrix
+validation, refreshed runtime SQL inventory, provider-boundary,
+dependency-group, and `git diff --check` pass. No database/provider,
+candidate, or legacy state was used; no migration was applied. Evidence:
+[focused checks](builds/2026-10-29-recovery/yield-nutrient-pollinator-contracts.json).
+
+Checklist: 1,887 complete / 25 open; TODO: 523 checked / 16 open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows; strict private Gateway response contracts total 183.
+
 ### Progress addendum — farm-summary GeoJSON and location hierarchy — 29 October 2026
 
 Farm and plot summary queries now convert PostGIS boundaries and centers into

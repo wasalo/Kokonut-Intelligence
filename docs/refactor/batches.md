@@ -8445,3 +8445,31 @@ Checklist: 1,882 complete / 25 open (1,907 total); TODO: 519 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 182. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
+
+### Source continuation — yield CLI, nutrient ordering, and pollinator habitat response — 29 October 2026
+
+- [x] Parse `yield_monitoring record --date` as a valid ISO calendar date
+  before acquiring PostgreSQL; preserve omitted-date service behavior.
+- [x] Make migration-601 nutrient-input summary groups deterministic across
+  input type, rate unit, and cost currency without changing its projection.
+- [x] Validate the migration-621 pollinator habitat capture response against
+  the exact six-field contract, request binding, OpenAPI create/replay statuses,
+  and sanitized no-store failures.
+- [x] Run the approved focused selection, refresh/check runtime SQL inventory,
+  and record evidence and capability/progress counters.
+- [x] Preserve query scope, existing authorization/tenant context, and
+  create/replay semantics; no migration rollout is needed.
+
+The combined mock-only selection passes 134 tests (4 yield CLI, 1 nutrient
+summary, 129 pollinator capture). CI security Ruff, compilation,
+capability-matrix validation, refreshed runtime SQL inventory,
+provider-boundary and dependency-group checks, and `git diff --check` pass.
+No database/provider, candidate, or legacy state was used; no migration was
+applied. Rollback reverts source, tests, evidence/progress, and inventory; no
+data rollback is needed. Evidence:
+[yield, nutrient, and pollinator contracts](builds/2026-10-29-recovery/yield-nutrient-pollinator-contracts.json).
+
+Checklist: 1,887 complete / 25 open (1,912 total); TODO: 523 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 183. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
