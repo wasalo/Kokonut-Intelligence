@@ -14,5 +14,7 @@ def price_feed_flow():
         env=worker_subprocess_environment(),
     )
     if result.returncode != 0:
-        raise RuntimeError(f"Yahoo Finance fetch failed: {result.stderr}")
+        raise RuntimeError(
+            f"Yahoo Finance fetch failed (exit code {result.returncode})"
+        )
     return {"status": "success", "output": result.stdout[-500:]}

@@ -25018,3 +25018,17 @@ pass. No database, provider, or external schedule was accessed
 Current totals: 2,062 complete / 25 open; TODO 682 checked / 16 open; 222
 strict private Gateway response contracts across 67 capability rows
 (24 baseline-retained, 7 deployed, 36 prepared).
+
+### Progress addendum — legacy Prefect error redaction — 30 October 2026
+
+The retained health-check and Yahoo price-feed flows now report a safe failure
+label and exit code rather than embedding subprocess stderr. Both mocked
+regressions pass with Ruff, compilation, and diff checks. No provider, database,
+or live Prefect workflow was used. The price-feed flow remains unsuitable for
+JobSpec registration until its persistence and human-attestation behavior is
+corrected ([evidence](builds/2026-10-30-recovery/legacy-prefect-error-redaction.json);
+[source audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json)).
+
+Current totals: 2,063 complete / 25 open; TODO 682 checked / 16 open; 222
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).

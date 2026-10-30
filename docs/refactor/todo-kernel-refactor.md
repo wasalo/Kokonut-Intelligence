@@ -1366,6 +1366,12 @@ populated tenant isolation, and production state remain outside the report
   state. Its mock-only location/exit-code regression passes; provider and
   database access remain untested and untouched
   ([evidence](builds/2026-10-30-recovery/climate-fanout-stderr-redaction.json)).
+  The retained legacy health-check and Yahoo price-feed flows also omit child
+  stderr from raised exception text; two mocked regressions pass. This hardens
+  error reporting only: it does not register/activate those flows or close the
+  Yahoo persistence and attestation contract
+  ([evidence](builds/2026-10-30-recovery/legacy-prefect-error-redaction.json);
+  [Yahoo audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json)).
   A further source audit found composite analytics and six-hour Prefect flows
   still dispatch the legacy stored-SQL dashboard job when its feature is off
   by default. The composite paths now skip that stage with an explicit reason
