@@ -263,6 +263,48 @@ class EventWorkerRecoveryTests(TestCase):
                     get_bus.assert_not_called()
                     get_connection.assert_not_called()
 
+    def test_workers_reject_invalid_leases_before_features_or_connections(self):
+        for worker in (cmd_worker, cmd_event_worker, cmd_notification_worker):
+            for lease_seconds in (29, 3601, 0, -1, True, False, 30.0, "30", None):
+                with self.subTest(worker=worker.__name__, lease_seconds=lease_seconds):
+                    args = _args()
+                    args.lease_seconds = lease_seconds
+
+                    with (
+                        patch("services.core.features.is_enabled") as is_enabled,
+                        patch("services.events.backend.get_event_store") as get_bus,
+                        patch("services.common.database.get_connection") as get_connection,
+                    ):
+                        with self.assertRaisesRegex(
+                            ValueError, "lease must be between 30 and 3600"
+                        ):
+                            worker(args)
+
+                    is_enabled.assert_not_called()
+                    get_bus.assert_not_called()
+                    get_connection.assert_not_called()
+
+    def test_event_worker_accepts_lease_boundaries_and_forwards_them(self):
+        for lease_seconds in (30, 3600):
+            with self.subTest(lease_seconds=lease_seconds):
+                args = _args()
+                args.lease_seconds = lease_seconds
+                bus = Mock()
+                bus.process_pending.return_value = {"processed": 0, "failed": 0}
+
+                with (
+                    patch("services.core.features.is_enabled", return_value=True),
+                    patch("services.events.backend.get_event_store", return_value=bus) as get_bus,
+                    patch("services.common.database.get_connection") as get_connection,
+                    patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+                ):
+                    self.assertEqual(cmd_event_worker(args), 0)
+
+                get_bus.assert_called_once_with(lease_seconds=lease_seconds, connect_timeout=5)
+                bus.process_pending.assert_called_once_with(10, "event-worker-test")
+                bus.close.assert_called_once()
+                get_connection.assert_not_called()
+
     def test_event_entrypoints_reject_invalid_batch_sizes_before_connections(self):
         for batch_size in (0, -1, 101):
             for command in (cmd_process, cmd_worker, cmd_event_worker):

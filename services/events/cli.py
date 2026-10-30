@@ -80,6 +80,9 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
         else MAX_NOTIFICATION_BATCH_SIZE
     )
     _validate_batch_size(args.batch_size, maximum=max_batch_size)
+    from services.events.bus import _validate_lease_seconds
+
+    _validate_lease_seconds(args.lease_seconds)
     if not math.isfinite(args.poll_interval) or args.poll_interval <= 0:
         raise ValueError("poll_interval must be finite and positive")
 

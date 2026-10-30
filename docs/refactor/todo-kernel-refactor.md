@@ -3838,11 +3838,31 @@ Evidence: `builds/2026-10-30-recovery/procurement-sdk-page-size-and-preflight-co
 - [x] Enforce the migration-defined inclusive priority range of 1–5 during CLI parsing, before PostgreSQL acquisition, while preserving default priority 3.
 - [x] Pass focused CLI checks for invalid values, both boundaries, and the default; record evidence.
 
-## Open semantic contract — PRM process outcome correlation
+## In progress — PRM portfolio metric scope, 30 October
 
 - [x] Confirm verified metrics remain portfolio-wide context; do not invent process attribution where the schema has no direct metric-to-process key.
-- [ ] Add a forward migration and update the PRM output contract so process maturity rows and the portfolio-wide verified-metric summary are separate; migration 196 currently repeats the same global metric population for every process maturity.
+- [x] Add migration 689 and update the PRM reader so grouped process maturity rows have null metric fields and the portfolio-wide verified-metric summary is explicitly labeled as a separate scope; leave its average null because metric units are heterogeneous.
+- [x] Pass focused PRM reader contract and disposable PostgreSQL 16 migration apply/replay with six assertions for grouping, portfolio scope, metric coverage, null average across heterogeneous units, and excluded invalid metric rows.
 
-Current checklist: 658 checked / 17 open. Strict private Gateway response
-contracts total 221. Evidence for the completed source continuations:
+Evidence for the completed source continuations:
 `builds/2026-10-30-recovery/procurement-sdk-page-size-and-preflight-continuation.json`.
+
+## In progress — extension-learning pagination bounds, 30 October
+
+- [x] Suppress `has_more` when a next page would exceed the supported 10,000 offset.
+- [x] Bind the private route response location, limit, offset, item count, and continuation flag to the request.
+- [x] Preserve `no-store` and `Vary: Cookie` on FastAPI query-validation errors before private pagination handlers run.
+- [x] Pass mock-only final-page, malformed response, request-binding, and private query-validation-header regressions for Extension Learning and Traceability.
+
+## In progress — current-weather error redaction, 30 October
+
+- [x] Preserve the sanitized provider failure when recording that failure also fails; log only the audit exception type.
+- [x] Pass synthetic provider-plus-audit failure regression proving secret and request URL redaction from raised exception, cause/context, formatted traceback, and logs.
+
+## In progress — EventBus lease bounds, 30 October
+
+- [x] Enforce the 30–3,600 second lease range in both the worker CLI preflight and direct EventBus construction; reject handler timeouts outside 1–3,570 seconds before extending leases.
+- [x] Pass EventBus lease-boundary and handler-timeout checks, including invalid configuration rejection before renewal/invocation and bounded retry dispatch.
+
+Current checklist: 668 checked / 16 open. Strict private Gateway response
+contracts total 221.

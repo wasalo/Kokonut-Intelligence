@@ -51,9 +51,9 @@ class TraceabilityBatchPageItem(_TraceabilityModel):
 class TraceabilityBatchPage(_TraceabilityModel):
     location_id: UUID
     items: list[TraceabilityBatchPageItem] = Field(max_length=50)
-    limit: int = Field(ge=1, le=50)
-    offset: int = Field(ge=0, le=10_000)
-    has_more: bool
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10_000, strict=True)
+    has_more: bool = Field(strict=True)
 
 
 class TraceabilityBatch(_TraceabilityModel):

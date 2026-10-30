@@ -21,6 +21,23 @@ from services.security.execution_allowlist import validate_event_handler
 logger = get_logger("events.bus")
 
 
+def _validate_lease_seconds(lease_seconds: int) -> None:
+    if (
+        isinstance(lease_seconds, bool)
+        or not isinstance(lease_seconds, int)
+        or not 30 <= lease_seconds <= 3600
+    ):
+        raise ValueError("event worker lease must be between 30 and 3600 seconds")
+
+
+def _valid_handler_timeout(timeout_seconds: Any) -> bool:
+    return (
+        not isinstance(timeout_seconds, bool)
+        and isinstance(timeout_seconds, int)
+        and 1 <= timeout_seconds <= 3570
+    )
+
+
 def _handler_child_environment(module_path, function_name, environ=None):
     """Copy the environment with only an exact handler's worker identity.
 
@@ -53,6 +70,7 @@ class EventBus:
     """Publish and deliver events with leases and per-handler idempotency."""
 
     def __init__(self, conn=None, lease_seconds: int = 300, connect_timeout: int | None = None):
+        _validate_lease_seconds(lease_seconds)
         self._conn = conn
         self._owns_conn = conn is None
         self.lease_seconds = lease_seconds
@@ -167,6 +185,12 @@ class EventBus:
         conn.commit()
         if not handlers:
             return "skipped" if self._complete(event_id, worker_id) else "lease_lost"
+        if any(not _valid_handler_timeout(handler[3]) for handler in handlers):
+            # Match the isolated worker's database-function contract before
+            # extending a lease or invoking any handler. Returning failed
+            # routes this event through its bounded retry/dead-letter policy.
+            logger.error("Event handler timeout is outside the supported 1–3570 second range")
+            return "failed"
 
         failed = False
         for handler_id, module_path, function_name, timeout_seconds, status in handlers:

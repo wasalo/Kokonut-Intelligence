@@ -6,9 +6,36 @@ from uuid import uuid4
 import pytest
 
 pytest.importorskip("fastapi")
+from fastapi import APIRouter, FastAPI  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 from services.gateway.app import create_app  # noqa: E402
+
+OPERATOR_ID = "22222222-2222-4222-8222-222222222222"
+
+
+def _route_app(location_id, page):
+    from services.gateway.traceability_routes import register_traceability_routes
+
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return page
+
+    import psycopg2
+
+    register_traceability_routes(router, object(), run_in_threadpool, psycopg2)
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
 
 
 @pytest.fixture
@@ -92,3 +119,103 @@ def test_invalid_traceability_page_is_rejected_before_service_access(
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["query", parameter]
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in {
+        value.strip().lower() for value in response.headers["vary"].split(",")
+    }
+
+
+def _batch_item(batch_id="55555555-5555-4555-8555-555555555555"):
+    return {
+        "id": batch_id,
+        "batch_number": "PB-1",
+        "crop_name": "plantain",
+        "variety": None,
+        "quantity": "12.5000",
+        "unit": "kg",
+        "harvest_date": "2026-10-28",
+        "organic": True,
+        "status": "active",
+        "created_at": "2026-10-28T12:00:00+00:00",
+    }
+
+
+def test_traceability_accepts_request_bound_final_page(isolated_gateway):
+    _gateway, location_id = isolated_gateway
+    page = {
+        "location_id": location_id,
+        "items": [],
+        "limit": 1,
+        "offset": 10_000,
+        "has_more": False,
+    }
+    app = _route_app(location_id, page)
+
+    with TestClient(app, cookies={"kokonut_operator_session": "synthetic-session"}) as client:
+        response = client.get(
+            f"/operator/api/traceability/{location_id}/batches",
+            params={"limit": 1, "offset": 10_000},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == page
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in {
+        value.strip().lower() for value in response.headers["vary"].split(",")
+    }
+
+
+@pytest.mark.parametrize(
+    ("query", "corruption"),
+    [
+        ("", "location"),
+        ("limit=1", "limit"),
+        ("offset=5", "offset"),
+        ("limit=1", "oversized_items"),
+        ("", "non_boolean_has_more"),
+        ("", "short_continuation_page"),
+        ("limit=1&offset=10000", "unreachable_continuation"),
+    ],
+)
+def test_traceability_rejects_unbound_or_malformed_pages(
+    isolated_gateway, query, corruption
+):
+    _gateway, location_id = isolated_gateway
+    page = {
+        "location_id": location_id,
+        "items": [],
+        "limit": 1 if "limit=1" in query else 25,
+        "offset": 5 if "offset=5" in query else 0,
+        "has_more": False,
+    }
+    if corruption == "location":
+        page["location_id"] = str(uuid4())
+    elif corruption == "limit":
+        page["limit"] = 2
+    elif corruption == "offset":
+        page["offset"] = 6
+    elif corruption == "oversized_items":
+        page["items"] = [_batch_item(), _batch_item("66666666-6666-4666-8666-666666666666")]
+    elif corruption == "non_boolean_has_more":
+        page["has_more"] = 1
+    elif corruption == "short_continuation_page":
+        page["has_more"] = True
+    else:
+        page["items"] = [_batch_item()]
+        page["has_more"] = True
+        page["limit"] = 1
+        page["offset"] = 10_000
+    app = _route_app(location_id, page)
+    suffix = f"?{query}" if query else ""
+
+    with TestClient(app, cookies={"kokonut_operator_session": "synthetic-session"}) as client:
+        response = client.get(
+            f"/operator/api/traceability/{location_id}/batches{suffix}"
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Traceability batch list unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in {
+        value.strip().lower() for value in response.headers["vary"].split(",")
+    }

@@ -33,7 +33,7 @@ class ExtensionModulePage(_ExtensionLearningModel):
     items: list[ExtensionModuleItem] = Field(max_length=50)
     limit: int = Field(ge=1, le=50, strict=True)
     offset: int = Field(ge=0, le=10_000, strict=True)
-    has_more: bool
+    has_more: bool = Field(strict=True)
 
 
 class LearningProgressGroup(_ExtensionLearningModel):
@@ -87,6 +87,7 @@ def register_extension_learning_routes(router, provider, run_in_threadpool, psyc
 
     from services.common.tenant_context import TenantContextDenied
     from services.gateway.extension_learning_reads import (
+        MAX_OFFSET,
         get_location_extension_learning_summary,
         list_location_extension_modules,
     )
@@ -104,7 +105,7 @@ def register_extension_learning_routes(router, provider, run_in_threadpool, psyc
         difficulty: str | None = None,
         content_type: str | None = None,
         limit: int = Query(default=25, ge=1, le=50),
-        offset: int = Query(default=0, ge=0, le=10_000),
+        offset: int = Query(default=0, ge=0, le=MAX_OFFSET),
     ):
         if provider is None:
             return JSONResponse(
@@ -144,8 +145,17 @@ def register_extension_learning_routes(router, provider, run_in_threadpool, psyc
             )
         try:
             validated = ExtensionModulePage.model_validate(result)
-            if validated.location_id != UUID(location_id):
-                raise ValueError("Extension catalog location does not match request")
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+                or len(validated.items) > limit
+                or (
+                    validated.has_more
+                    and (len(validated.items) != limit or offset + limit > MAX_OFFSET)
+                )
+            ):
+                raise ValueError("Extension catalog page does not match request")
         except (ValidationError, ValueError) as exc:
             from services.common.logging import get_logger
 

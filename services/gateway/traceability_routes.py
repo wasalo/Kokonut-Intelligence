@@ -1,13 +1,18 @@
 """OIDC routes for private, location-scoped traceability reads."""
 
+from uuid import UUID
+
 
 def register_traceability_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query, Response
+    from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
+    from pydantic import ValidationError
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
     from services.gateway.traceability import (
+        MAX_OFFSET,
         get_location_traceability_batch,
         list_location_traceability_batches,
     )
@@ -26,7 +31,7 @@ def register_traceability_routes(router, provider, run_in_threadpool, psycopg2):
         location_id: str,
         status: str | None = None,
         limit: int = Query(default=25, ge=1, le=50),
-        offset: int = Query(default=0, ge=0, le=10_000),
+        offset: int = Query(default=0, ge=0, le=MAX_OFFSET),
     ):
         if provider is None:
             return JSONResponse(
@@ -58,9 +63,30 @@ def register_traceability_routes(router, provider, run_in_threadpool, psycopg2):
         except psycopg2.Error as exc:
             _log_failure("traceability batch list", exc)
             return _unavailable()
-        response.headers["Cache-Control"] = "no-store"
-        response.headers["Vary"] = "Cookie"
-        return result
+        try:
+            validated = TraceabilityBatchPage.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+                or len(validated.items) > limit
+                or (
+                    validated.has_more
+                    and (len(validated.items) != limit or offset + limit > MAX_OFFSET)
+                )
+            ):
+                raise ValueError("Traceability page does not match request")
+        except (ValidationError, ValueError) as exc:
+            _log_failure("traceability batch list response", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Traceability batch list unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        return JSONResponse(
+            content=jsonable_encoder(validated.model_dump(mode="json")),
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
 
     @router.get(
         "/operator/api/traceability/{location_id}/batches/{batch_id}",

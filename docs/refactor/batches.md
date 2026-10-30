@@ -8894,6 +8894,14 @@ prepared across 67 rows; strict private Gateway response contracts total 221.
 - [x] Enforce the schema's 1–5 stakeholder-objective priority range before DB acquisition and retain default 3.
 - [x] Pass 21 focused CLI preflight tests for invalid-before-DB behavior, boundaries, and default priority.
 - [x] Confirm verified metrics remain portfolio-wide context; do not invent process attribution where the schema has no metric-to-process key.
-- [ ] Add a forward migration and update the PRM output contract to separate process maturity rows from the portfolio-wide metric summary; migration 196 currently repeats the global metrics across process maturity rows.
+- [x] Add migration 689 and update the PRM reader to separate process maturity rows from the portfolio-wide metric summary.
+- [x] Add and run focused disposable PostgreSQL migration/replay and reader-contract checks: migration 689 applies/replays and six synthetic assertions confirm grouped maturity rows, a single portfolio summary, and no average across unlike units.
+- [x] Cap extension-learning pagination at the final supported offset and validate its response page against the request.
+- [x] Keep FastAPI query-validation failures on private extension-learning and traceability routes `no-store` and varied by Cookie.
+- [x] Add and run mock-only extension-learning pagination regressions for request binding, malformed response rejection, final-offset continuation, and private validation headers.
+- [x] Preserve sanitized current-weather provider errors when failure-audit persistence also fails.
+- [x] Add and run a synthetic weather provider/audit failure regression proving the API key and request URL are absent from errors, context, traceback, and logs.
+- [x] Enforce 30–3,600 second EventBus lease bounds in the worker CLI and direct constructor; reject out-of-range handler timeouts before lease extension and route them through bounded retry/dead-letter handling.
+- [x] Add and run mock-only EventBus lease and handler-timeout boundary checks, including bounded retry on invalid handler configuration.
 
-Checklist: 2,025 complete / 26 open (2,051 total); TODO: 658 checked / 17 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 221. No migration or candidate/legacy change is part of this batch. Evidence: [procurement, SDK, scheduler, and CLI preflight continuation](builds/2026-10-30-recovery/procurement-sdk-page-size-and-preflight-continuation.json).
+Checklist: 2,034 complete / 25 open (2,059 total); TODO: 668 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 221. Migration 689 was applied only to a network-disabled disposable PostgreSQL 16 container; candidate and legacy databases were untouched. Evidence: [grouped PRM, Gateway pagination, weather, and EventBus acceptance](builds/2026-10-30-recovery/kernel-continuation-689-worker-pagination-acceptance.json).

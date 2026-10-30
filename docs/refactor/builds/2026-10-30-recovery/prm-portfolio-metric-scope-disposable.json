@@ -1,0 +1,31 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-30T05:48:30.088622+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "migration": "689_prm_portfolio_metric_scope.sql",
+  "migration_replayed": true,
+  "network_mode": "none",
+  "host_port_published": false,
+  "synthetic_rows": {
+    "duplicate_process_maturity_assessments": 2,
+    "verified_metrics_with_location": 4,
+    "verified_metrics_without_location": 1,
+    "unverified_metrics_with_location": 1,
+    "metric_units": [
+      "kg",
+      "percent",
+      "USD",
+      "count"
+    ]
+  },
+  "assertions_passed": 6,
+  "result_rows": [
+    "process_maturity|soil-restoration|3|Defined|||",
+    "process_maturity|soil-restoration|4|Quantitatively Managed|||",
+    "process_maturity|water-management|2|Managed|||",
+    "portfolio_metrics|||Portfolio-wide verified metrics|4||2"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "container_cleanup": "passed"
+}

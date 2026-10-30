@@ -243,7 +243,9 @@ def crash_worker(conn, run_id: str) -> dict:
 
     from services.events.bus import EventBus
 
-    bus = EventBus(lease_seconds=1)
+    # The harness expires this synthetic lease explicitly after the crash;
+    # keep the worker lease inside the production 30–3600 second contract.
+    bus = EventBus(lease_seconds=30)
     invoke_handler = bus._invoke_handler
 
     def crash_after_committed_effect(module_path, function_name, event_type, payload, timeout_seconds):

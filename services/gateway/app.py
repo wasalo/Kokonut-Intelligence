@@ -435,7 +435,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
         return response
 
     @app.exception_handler(RequestValidationError)
-    async def report_export_validation_error(request: Request, exc: RequestValidationError):
+    async def request_validation_error(request: Request, exc: RequestValidationError):
         if request.url.path == "/api/data-stream/post":
             return JSONResponse(
                 status_code=422,
@@ -452,6 +452,15 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                 content={"error": "Report export request is invalid"},
             )
         from fastapi.encoders import jsonable_encoder
+
+        if request.url.path.startswith(
+            ("/operator/api/extension-learning/", "/operator/api/traceability/")
+        ):
+            return JSONResponse(
+                status_code=422,
+                content={"detail": jsonable_encoder(exc.errors())},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
 
         return JSONResponse(status_code=422, content={"detail": jsonable_encoder(exc.errors())})
 

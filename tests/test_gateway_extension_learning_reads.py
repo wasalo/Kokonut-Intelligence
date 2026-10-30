@@ -180,6 +180,33 @@ def test_public_active_module_catalog_is_filtered_and_paginated_without_content_
     assert connection.closed
 
 
+@pytest.mark.parametrize(
+    ("offset", "expected_has_more"),
+    [(9_999, True), (10_000, False)],
+)
+def test_module_catalog_suppresses_continuation_after_supported_offset(
+    monkeypatch, offset, expected_has_more
+):
+    connection = _Connection()
+    monkeypatch.setattr(
+        "services.gateway.extension_learning_reads.set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+
+    result = list_location_extension_modules(
+        OPERATOR_ID,
+        LOCATION_ID,
+        limit=1,
+        offset=offset,
+        connection_factory=lambda: connection,
+    )
+
+    assert len(result["items"]) == 1
+    assert result["has_more"] is expected_has_more
+    assert result["offset"] == offset
+    assert connection.closed
+
+
 def test_invalid_catalog_filter_fails_before_connecting():
     called = False
 

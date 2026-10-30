@@ -414,6 +414,34 @@ def test_batch_page_establishes_signed_scope_before_exact_location_query():
     assert conn.rolled_back and conn.closed
 
 
+@pytest.mark.parametrize(
+    ("offset", "expected_has_more"),
+    [(9_998, True), (9_999, False), (10_000, False)],
+)
+def test_batch_page_suppresses_continuation_past_supported_offset(
+    monkeypatch, offset, expected_has_more
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    conn = _Connection()
+    monkeypatch.setattr(
+        "services.gateway.traceability.set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+
+    result = list_location_traceability_batches(
+        operator_id,
+        location_id,
+        limit=2,
+        offset=offset,
+        connection_factory=lambda: conn,
+    )
+
+    assert len(result["items"]) == 2
+    assert result["has_more"] is expected_has_more
+    assert result["offset"] == offset
+    assert conn.closed and conn.rolled_back
+
+
 def test_invalid_scope_and_page_fail_before_opening_connection():
     opened = False
 
