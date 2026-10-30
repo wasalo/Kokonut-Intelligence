@@ -3578,3 +3578,18 @@ No database/provider, candidate, or legacy state was used; no migration was appl
 - [x] Run 37 approved focused mock-only checks and refresh capability, SQL, report-helper, provider, dependency, and evidence records.
 
 No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 567 checked / 16 open; strict private Gateway response contracts total 194. Evidence: `builds/2026-10-29-recovery/kernel-source-contracts-and-cli-preflight.json`.
+
+
+## Completed — retirement review, freshness projection, and temporal CLI preflight, 29 October
+
+- [x] Validate migration 482's exact retirement detail fields and location envelope in strict OpenAPI/runtime models; bind both path IDs.
+- [x] Preserve nullable legacy proposal fields and validate enums, bounded evidence/text, aware timestamps, and authorship consistency.
+- [x] Preserve private review authorization and signed context; return sanitized no-store failures for malformed results.
+- [x] Replace the migration-077 data-freshness wildcard with its exact ordered ten-column projection.
+- [x] Run 23 approved mock-only regressions and refresh runtime SQL/capability evidence.
+- [x] Verify cooperative asset-booking timestamp preflight, reversed-range rejection, and unchanged valid values.
+- [x] Verify canonical traceability harvest-date preflight and unchanged valid dates.
+- [x] Verify sensor date/time preflight, unchanged valid values, UTC parser behavior, and optional defaults.
+- [x] Verify stakeholder engagement DATE/TIMESTAMPTZ CLI preflight, explicit-zone requirements, valid-value forwarding, and None defaults.
+
+The CLI checks pass 31 tests. No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 576 checked / 16 open; strict private Gateway response contracts total 195. Evidence: `builds/2026-10-29-recovery/retirement-review-and-freshness-projection.json`; CLI guards: `builds/2026-10-29-recovery/cli-preflight-guards.json`.

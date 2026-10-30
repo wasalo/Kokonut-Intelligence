@@ -13,10 +13,29 @@ from services.gateway.operator_auth import auth_route_policy
 
 pytest.importorskip("fastapi")
 from fastapi import APIRouter, FastAPI  # noqa: E402
+from fastapi.encoders import jsonable_encoder  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 OPERATOR_ID = str(uuid4())
 LOCATION_ID = str(uuid4())
+RETIREMENT_ID = "d0000000-0000-4000-8000-000000000001"
+RETIREMENT_DETAIL = {
+    "location_id": LOCATION_ID,
+    "retirement_id": RETIREMENT_ID,
+    "solution_name": "Soil cover",
+    "solution_type": "practice",
+    "current_stage": "testing",
+    "solution_status": "active",
+    "retirement_type": "unsafe",
+    "retirement_status": "proposed",
+    "trigger_reason": "Observed erosion after planting",
+    "evidence_refs": [{"source": "case-42"}],
+    "migration_plan": None,
+    "replacement_solution_name": None,
+    "created_at": datetime(2026, 10, 20, 12, tzinfo=timezone.utc),
+    "proposer_attributed": True,
+    "is_self_authored": False,
+}
 SUMMARY = {
     "solution_count": 2,
     "stage_counts": {
@@ -548,7 +567,7 @@ def test_http_retirement_review_routes_are_no_store_and_oidc_gated(monkeypatch):
     )
     monkeypatch.setattr(
         "services.gateway.solution_lifecycle_reads.get_location_solution_retirement_review_detail",
-        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "is_self_authored": False},
+        lambda *_args, **_kwargs: RETIREMENT_DETAIL,
     )
     app = FastAPI()
     router = APIRouter()
@@ -577,6 +596,93 @@ def test_http_retirement_review_routes_are_no_store_and_oidc_gated(monkeypatch):
     assert queue.status_code == detail.status_code == 200
     assert queue.headers["cache-control"] == detail.headers["cache-control"] == "no-store"
     assert queue.headers["vary"] == detail.headers["vary"] == "Cookie"
+    assert detail.json() == jsonable_encoder(RETIREMENT_DETAIL)
+    assert set(detail.json()) == {
+        "location_id", "retirement_id", "solution_name", "solution_type",
+        "current_stage", "solution_status", "retirement_type", "retirement_status",
+        "trigger_reason", "evidence_refs", "migration_plan",
+        "replacement_solution_name", "created_at", "proposer_attributed",
+        "is_self_authored",
+    }
+    openapi_path = (
+        "/operator/api/solution-lifecycle/{location_id}/retirements/review/"
+        "{retirement_id}"
+    )
+    operation = app.openapi()["paths"][openapi_path]["get"]
+    response_schema = operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    schema_name = response_schema["$ref"].rsplit("/", 1)[-1]
+    model_schema = app.openapi()["components"]["schemas"][schema_name]
+    assert set(model_schema["properties"]) == set(detail.json())
+    assert model_schema["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"location_id": str(uuid4())},
+        {"retirement_id": str(uuid4())},
+        {"solution_type": "unknown"},
+        {"current_stage": "unknown"},
+        {"solution_status": "proposed"},
+        {"retirement_type": "unknown"},
+        {"retirement_status": "approved"},
+        {"solution_name": "x" * 256},
+        {"trigger_reason": "x" * 2001},
+        {"migration_plan": "x" * 4001},
+        {"replacement_solution_name": "x" * 256},
+        {"evidence_refs": {}},
+        {"evidence_refs": ["x"] * 101},
+        {"evidence_refs": ["x" * 65537]},
+        {"evidence_refs": [{"value": float("nan")}]},
+        {"created_at": datetime(2026, 10, 20, 12)},
+        {"proposer_attributed": "true"},
+        {"is_self_authored": True, "proposer_attributed": False},
+        {"unexpected_private_field": "private reviewer data"},
+    ],
+)
+def test_http_retirement_review_detail_sanitizes_invalid_projections(
+    monkeypatch, changes
+):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    malformed = {**RETIREMENT_DETAIL, **changes}
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.get_location_solution_retirement_review_detail",
+        lambda *_args, **_kwargs: malformed,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/solution-lifecycle/{LOCATION_ID}/retirements/review/"
+            f"{RETIREMENT_ID}"
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": "Solution retirement review detail unavailable"
+    }
+    assert "private reviewer data" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
 
 
 def test_http_retirement_review_detail_maps_missing_item_to_not_found(monkeypatch):

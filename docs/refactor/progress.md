@@ -24876,3 +24876,37 @@ database/provider, candidate, or legacy state was used; no migration was
 applied. Checklist: 1,941 complete / 25 open; TODO: 567 checked / 16 open;
 strict private Gateway response contracts total 194. Evidence:
 [batch record](builds/2026-10-29-recovery/kernel-source-contracts-and-cli-preflight.json).
+
+
+### Progress addendum — retirement review and freshness projection — 29 October 2026
+
+The private solution-retirement detail now enforces migration 482's exact
+14-field SQL projection plus the Gateway's `location_id` envelope. It binds
+both IDs to the route and validates the migration-defined enums, field bounds,
+evidence JSON size/count, aware timestamp, and authorship consistency. Nullable
+legacy migration plans and replacement names remain representable. The exact
+location review grant, signed context, and no-store policy are unchanged;
+malformed service data produces a generic sanitized error.
+
+The data-freshness summary now selects the exact ordered ten columns from
+migration 077 and preserves the same output between the standalone and unified
+CLIs. The approved selection passes 23 focused mock-only tests. Default Ruff,
+Python compilation, capability validation, refreshed runtime SQL inventory,
+report-helper scope, provider-boundary, dependency-group, and diff checks pass.
+The scoped security-Ruff run reports two existing S608 findings in unchanged
+freshness SQL builders; this slice adds no SQL construction. No
+database/provider, candidate, or legacy state was used, and no migration was
+applied. Evidence:
+[retirement and freshness checks](builds/2026-10-29-recovery/retirement-review-and-freshness-projection.json).
+
+Four CLI preflight guards now have approved regressions: cooperative asset
+booking start/end values reject malformed, date-only, mixed-awareness, and
+reversed intervals before dispatch; traceability harvest dates require a real
+canonical date; sensor date/time values reuse the UTC parser before database
+access while preserving valid values/defaults; and stakeholder target dates
+are canonical while scheduled/due TIMESTAMPTZ values require explicit zones.
+Valid inputs are passed through unchanged and omitted fields remain None. The
+focused CLI selection passes 31 tests, and the full batch selection passes 54.
+Current totals: 1,949 complete / 26 open; TODO 576 checked / 16 open; 195
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).

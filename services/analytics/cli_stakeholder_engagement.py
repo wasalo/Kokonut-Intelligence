@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date, datetime
 
 from services.analytics.stakeholder_engagement import (
     add_objective,
@@ -21,6 +22,32 @@ from services.common.database import get_db
 
 def _out(data):
     print_json(data)
+
+
+def _iso_date(value: str) -> str:
+    """Validate a DATE input while preserving the caller's canonical string."""
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("date must use YYYY-MM-DD format") from exc
+    if parsed.isoformat() != value:
+        raise argparse.ArgumentTypeError("date must use YYYY-MM-DD format")
+    return value
+
+
+def _iso_timestamptz(value: str) -> str:
+    """Validate an ISO timestamp and require the zone expected by TIMESTAMPTZ."""
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "timestamp must be ISO 8601 with an explicit timezone"
+        ) from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise argparse.ArgumentTypeError(
+            "timestamp must be ISO 8601 with an explicit timezone"
+        )
+    return value
 
 
 def main():
@@ -59,7 +86,7 @@ def main():
     objective.add_argument("--success-metric")
     objective.add_argument("--target-value", type=float)
     objective.add_argument("--unit")
-    objective.add_argument("--target-date")
+    objective.add_argument("--target-date", type=_iso_date)
     objective.add_argument("--priority", type=int, default=3)
     objective.set_defaults(func=lambda conn, a: add_objective(
         conn, a.plan_id, a.title, a.desired_outcome, description=a.description,
@@ -73,7 +100,7 @@ def main():
     touchpoint.add_argument("--objective-id")
     touchpoint.add_argument("--channel-type")
     touchpoint.add_argument("--interaction-type", default="engagement")
-    touchpoint.add_argument("--scheduled-at")
+    touchpoint.add_argument("--scheduled-at", type=_iso_timestamptz)
     touchpoint.add_argument("--consent-checked", action="store_true")
     touchpoint.add_argument("--notes")
     touchpoint.set_defaults(func=lambda conn, a: schedule_touchpoint(
@@ -91,7 +118,7 @@ def main():
     commitment.add_argument("--committed-by-party-id")
     commitment.add_argument("--committed-to-party-id")
     commitment.add_argument("--owner-party-id")
-    commitment.add_argument("--due-at")
+    commitment.add_argument("--due-at", type=_iso_timestamptz)
     commitment.add_argument("--work-item-id")
     commitment.add_argument("--responsibility-id")
     commitment.set_defaults(func=lambda conn, a: create_commitment(

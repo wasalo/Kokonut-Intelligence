@@ -465,6 +465,52 @@ class SolutionLifecycleReplicationCompletionReviewDetailResponse(BaseModel):
         return self
 
 
+class SolutionLifecycleRetirementReviewDetailResponse(BaseModel):
+    """Exact private detail projection for independent retirement review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    retirement_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused", "retired", "superseded"]
+    retirement_type: Literal[
+        "unsafe", "ineffective", "too_costly", "superseded", "not_adopted",
+        "context_invalidated", "evidence_withdrawn", "maintenance_failure",
+        "governance_breach", "mission_complete",
+    ]
+    retirement_status: Literal["proposed", "impact_review"]
+    trigger_reason: str = Field(max_length=2000, strict=True)
+    evidence_refs: list[Any] = Field(max_length=100)
+    migration_plan: str | None = Field(max_length=4000, strict=True)
+    replacement_solution_name: str | None = Field(max_length=255, strict=True)
+    created_at: AwareDatetime
+    proposer_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_retirement_review_projection(self):
+        if self.is_self_authored and not self.proposer_attributed:
+            raise ValueError("Self-authorship requires an attributed proposer")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence_refs,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Retirement evidence references must be JSON data") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Retirement evidence references exceed their storage bound")
+        return self
+
+
 class SolutionLifecycleFundingTargetItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -5393,7 +5439,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}"
+        "/operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}",
+        response_model=SolutionLifecycleRetirementReviewDetailResponse,
     )
     async def location_solution_retirement_review_detail(
         request: Request, location_id: str, retirement_id: str
@@ -5450,7 +5497,28 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution retirement review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleRetirementReviewDetailResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.retirement_id != UUID(retirement_id)
+            ):
+                raise ValueError("Retirement review detail does not match request IDs")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution retirement review detail response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution retirement review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements"

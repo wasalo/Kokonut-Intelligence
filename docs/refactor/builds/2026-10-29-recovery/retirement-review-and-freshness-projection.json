@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-29",
+  "batch": "retirement review detail and data-freshness projection",
+  "slices": [
+    {
+      "name": "private solution-retirement review detail",
+      "source": [
+        "schemas/postgres/482_location_solution_retirement_review_queue.sql",
+        "services/gateway/solution_lifecycle_routes.py",
+        "services/gateway/solution_lifecycle_reads.py",
+        "tests/test_gateway_solution_lifecycle_reads.py"
+      ],
+      "route": "GET /operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}",
+      "contract": "Enforce migration 482's exact 14-field row projection plus the Gateway's request location. Bind location_id and retirement_id to route path values; validate migration enums, bounded names/reason/plan/evidence, aware timestamps, JSON evidence storage bounds, and authorship consistency. Nullable legacy migration plans and replacement names remain representable. OpenAPI is strict; malformed or mismatched service output returns a generic no-store error. Existing exact-location review grant and signed tenant context remain unchanged.",
+      "focused_command": "python3 -m pytest -q tests/test_gateway_solution_lifecycle_reads.py::test_retirement_review_detail_returns_private_proposal_only_after_review_context tests/test_gateway_solution_lifecycle_reads.py::test_http_retirement_review_routes_are_no_store_and_oidc_gated tests/test_gateway_solution_lifecycle_reads.py::test_http_retirement_review_detail_sanitizes_invalid_projections tests/test_gateway_solution_lifecycle_reads.py::test_http_retirement_review_detail_maps_missing_item_to_not_found",
+      "focused_tests": 22
+    },
+    {
+      "name": "data freshness summary projection",
+      "source": [
+        "schemas/postgres/077_telemetry_infrastructure.sql",
+        "services/ingestion/data_freshness.py",
+        "tests/test_data_freshness_cli_parity.py"
+      ],
+      "contract": "Replace SELECT * with the exact ordered ten-column migration-077 view contract and retain deterministic source ordering and identical standalone/unified CLI JSON output.",
+      "focused_command": "python3 -m pytest -q tests/test_data_freshness_cli_parity.py::test_freshness_summary_matches_across_standalone_and_unified_clis",
+      "focused_tests": 1
+    }
+  ],
+  "verification": {
+    "combined_focused_tests": 23,
+    "combined_result": "passed",
+    "ruff_default": "passed on modified sources and tests",
+    "ruff_security": "The scoped run reports two pre-existing S608 findings in unchanged data-freshness SQL builders. No SQL builder was changed in this batch.",
+    "python_compile": "passed on modified sources and tests",
+    "git_diff_check": "passed",
+    "runtime_sql_inventory": "refreshed and current; unresolved write review remains current at 42 tracked candidates",
+    "report_generator_helper_scope_inventory": "current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements"
+  },
+  "environment": {
+    "database": "not used; focused tests use mocked connections, route services, and synthetic data",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the retirement response model/route, explicit freshness projection, focused test updates, runtime SQL inventory, and progress/evidence records. No database rollback is needed."
+}

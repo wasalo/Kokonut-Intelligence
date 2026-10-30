@@ -535,7 +535,14 @@ def get_freshness_summary(conn) -> List[Dict[str, Any]]:
     """Get current freshness summary from the database view."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        cur.execute("SELECT * FROM v_data_freshness_summary")
+        cur.execute(
+            """SELECT source_system, description, expected_interval_minutes,
+                      stale_threshold_minutes, critical_threshold_minutes, is_active,
+                      latest_data_at, current_status, current_gap_minutes,
+                      critical_alerts_24h
+                 FROM v_data_freshness_summary
+                ORDER BY source_system"""
+        )
         return [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()

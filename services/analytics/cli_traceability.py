@@ -6,7 +6,9 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_traceability --help
 """
 
+import argparse
 import sys
+from datetime import date
 from uuid import UUID
 
 from ..common.commands import CommandLine
@@ -31,6 +33,17 @@ from .traceability import (
 # ============================================================
 
 cli = CommandLine("traceability", "Supply chain traceability")
+
+
+def _iso_date(value: str) -> str:
+    """Validate a calendar date while preserving its original CLI string."""
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("date must use YYYY-MM-DD format") from exc
+    if parsed.isoformat() != value:
+        raise argparse.ArgumentTypeError("date must use YYYY-MM-DD format")
+    return value
 
 
 def _cmd_create_batch(db, a):
@@ -115,7 +128,7 @@ cli.subcommand("create-batch", "Create produce batch") \
     .add("--location-id", required=True) \
     .add("--crop", required=True, help="Crop name") \
     .add("--quantity", type=float, required=True) \
-    .add("--harvest-date", help="Harvest date YYYY-MM-DD") \
+    .add("--harvest-date", type=_iso_date, help="Harvest date YYYY-MM-DD") \
     .add("--variety") \
     .add("--organic", action="store_true") \
     .add("--unit", default="kg") \
@@ -223,10 +236,10 @@ def main(argv=None):
         except (AttributeError, TypeError, ValueError):
             parser.error(f"--location-id must be a valid UUID for {args.command}")
 
-        for index, token in enumerate(command_argv):
-            if token == "--location-id" and index + 1 < len(command_argv):
+        for index, argument in enumerate(command_argv):
+            if argument == "--location-id" and index + 1 < len(command_argv):
                 command_argv[index + 1] = location_id
-            elif token.startswith("--location-id="):
+            elif argument.startswith("--location-id="):
                 command_argv[index] = f"--location-id={location_id}"
     return cli.run(command_argv)
 

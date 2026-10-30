@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (29 October 2026):** 1,941 checklist items complete and 25
-open (1,966 total), counting nested items. The
+**Current snapshot (29 October 2026):** 1,949 checklist items complete and 26
+open (1,975 total), counting nested items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -8676,3 +8676,19 @@ Checklist: 1,935 complete / 25 open (1,960 total); TODO: 562 checked / 16 open. 
 The 37-test focused selection passes (25 Gateway completion-review tests, one EBF projection test, five process-simulation CLI tests, and six pitch CLI tests). Default Ruff and Python compilation pass on all changed sources/tests; source-security Ruff passes for Gateway, scoring, and pitch. `process_simulation.py` retains a pre-existing S608 finding in the unchanged `list_simulations()` query assembly; the new preflight adds no SQL. Capability-matrix validation, refreshed runtime SQL and report-helper inventories, provider boundaries, dependency groups, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback is code/test/inventory/doc revert only. Evidence: [source contract and CLI preflight batch](builds/2026-10-29-recovery/kernel-source-contracts-and-cli-preflight.json).
 
 Checklist: 1,941 complete / 25 open (1,966 total); TODO: 567 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 194. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
+
+
+### Source continuation — retirement review and freshness projection — 29 October 2026
+
+- [x] Publish migration 482's exact 14-field retirement detail projection plus the scoped location in strict OpenAPI/runtime validation; bind both returned IDs to the route.
+- [x] Preserve nullable legacy migration-plan/replacement fields and enforce source enums, text/evidence bounds, aware timestamps, and authorship consistency.
+- [x] Preserve the exact private location review grant, signed context, no-store responses, and sanitized errors; verify valid, missing, mismatched, malformed, and oversized response paths.
+- [x] Replace the data-freshness view wildcard with migration 077's exact ordered ten-column projection and preserve standalone/unified CLI parity.
+- [x] Run 23 approved mock-only checks and refresh runtime SQL, capability, provider, dependency, and evidence records.
+- [x] Verify cooperative `book-asset` timestamp and traceability harvest-date preflight before database acquisition; valid inputs are forwarded unchanged.
+- [x] Verify sensor date/time preflight before database acquisition while preserving valid UTC parsing and omitted-value defaults.
+- [x] Validate stakeholder-engagement DATE/TIMESTAMPTZ CLI inputs before DB acquisition; preserve valid strings and omitted values.
+
+The 23-test retirement/freshness selection and the 31-test CLI temporal-preflight selection pass; the combined run passes all 54 focused tests. Default Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-helper scope, provider-boundary, dependency-group, and diff checks pass. The scoped security-Ruff run reports two pre-existing S608 findings in unchanged data-freshness SQL builders; this batch adds no SQL builders. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the route model, projection, preflight guards, focused tests, runtime inventory, and documentation; no data rollback is needed. Evidence: [retirement and freshness checks](builds/2026-10-29-recovery/retirement-review-and-freshness-projection.json); [CLI guards](builds/2026-10-29-recovery/cli-preflight-guards.json).
+
+Checklist: 1,949 complete / 26 open (1,975 total); TODO: 576 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 195. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
