@@ -7,6 +7,10 @@ import json
 import sys
 
 
+def _reject_nonstandard_json_constant(_value: str):
+    raise ValueError("Non-standard JSON numeric constant")
+
+
 def cmd_resolve(args):
     from services.common.cli import print_json
     from services.common.database import get_connection
@@ -22,12 +26,20 @@ def cmd_resolve(args):
 
 
 def cmd_generate(args):
+    try:
+        metadata = json.loads(args.metadata, parse_constant=_reject_nonstandard_json_constant)
+    except (TypeError, ValueError) as exc:
+        print("Error: --metadata must contain valid JSON", file=sys.stderr)
+        raise SystemExit(2) from exc
+    if not isinstance(metadata, dict):
+        print("Error: --metadata must be a JSON object", file=sys.stderr)
+        raise SystemExit(2)
+
     from services.common.cli import print_json
     from services.common.database import get_connection
 
     with get_connection() as conn:
         from services.metadata_api.resolver import generate_iri_from_metadata
-        metadata = json.loads(args.metadata)
         iri = generate_iri_from_metadata(conn, metadata)
         print_json({"iri": iri})
 

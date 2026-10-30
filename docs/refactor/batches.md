@@ -8626,3 +8626,15 @@ Checklist: 1,917 complete / 25 open (1,942 total); TODO: 547 checked / 16 open. 
 The focused mock-only selection passes 7 tests. Default/source-security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the response model/route, focused test, and progress records; no data rollback is needed. Evidence: [solution-adoption event-summary response contract](builds/2026-10-29-recovery/solution-adoption-event-summary-response-contract.json).
 
 Checklist: 1,922 complete / 25 open (1,947 total); TODO: 551 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 191. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.
+
+
+### Source continuation — metadata-generation CLI JSON preflight — 29 October 2026
+
+- [x] Parse `--metadata` before connection setup and reject malformed or non-standard JSON without database access.
+- [x] Require a top-level JSON object, matching the resolver contract, and preserve valid metadata unchanged through resolver invocation.
+- [x] Preserve the existing successful IRI output and fail invalid input with a clear CLI error and exit code 2.
+- [x] Run the approved mock-only preflight selection and refresh capability, SQL, helper-scope, provider, dependency, and source-lint checks.
+
+The focused mock-only CLI selection passes 9 tests. Default/source-security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the CLI preflight, focused test, and progress records; no data rollback is needed. Evidence: [metadata-generation CLI JSON preflight](builds/2026-10-29-recovery/metadata-api-generate-cli-json-preflight.json).
+
+Checklist: 1,926 complete / 25 open (1,951 total); TODO: 554 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts remain 191. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.

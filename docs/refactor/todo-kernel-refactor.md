@@ -3537,3 +3537,13 @@ No database/provider, candidate, or legacy state was used; no migration was appl
 - [x] Run 7 approved mock-only checks; refresh source, capability, and evidence records.
 
 No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 551 checked / 16 open; strict private Gateway response contracts total 191. Evidence: `builds/2026-10-29-recovery/solution-adoption-event-summary-response-contract.json`.
+
+
+## Completed — metadata-generation CLI JSON preflight, 29 October
+
+- [x] Validate metadata JSON and its top-level object shape before importing or opening the database connection.
+- [x] Reject non-standard numeric constants; pass valid objects unchanged to the resolver.
+- [x] Preserve the resolver's successful output and return a clear exit-2 error for invalid input.
+- [x] Run 9 approved mock-only checks and refresh refactor progress/evidence.
+
+No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 554 checked / 16 open; strict private Gateway response contracts remain 191. Evidence: `builds/2026-10-29-recovery/metadata-api-generate-cli-json-preflight.json`.
