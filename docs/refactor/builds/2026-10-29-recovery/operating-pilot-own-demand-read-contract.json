@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-29",
+  "batch": "private operating-pilot own-demand read contract",
+  "source": {
+    "schema_and_lifecycle": [
+      "schemas/postgres/251_operating_capacity_demand.sql",
+      "schemas/postgres/552_location_operating_pilot_demand_draft.sql",
+      "schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql"
+    ],
+    "reader": "schemas/postgres/561_location_own_operating_pilot_demand.sql"
+  },
+  "contract": {
+    "route": "GET /operator/api/operating-pilot/{location_id}/my-demand-signals",
+    "item_fields": [
+      "signal_id", "work_type", "period_start", "period_end", "required_hours",
+      "priority", "description", "status", "created_at", "updated_at"
+    ],
+    "page_fields": [
+      "location_id", "items", "limit", "offset", "has_more", "next_offset", "total"
+    ],
+    "validation": "Exact OpenAPI/runtime projections; migration-backed field bounds and lifecycle; path/page binding; count and continuation consistency; duplicate-ID and updated_at DESC, id DESC order checks; continuation stops at the Gateway's 10,000-offset ceiling; decimal values remain JSON numbers.",
+    "authorization": "Existing operating_pilot:read_own exact-location grant and signed tenant context are unchanged."
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_gateway_operating_pilot_own_demand_contracts.py tests/test_gateway_operating_pilot_reads.py -k own_demand -q",
+    "focused_tests": 42,
+    "focused_result": "passed",
+    "ruff_default": "passed",
+    "ruff_security_source": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "current; unresolved-write review ledger current",
+    "report_generator_helper_scope_inventory": "regenerated after hosted CI #992 reported stale derived inventory; check passed",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "hosted_ci": {
+    "prior_pushed_head": "2726413c8a01f4c7a14a73820af16a73920795ac",
+    "ci_run": 992,
+    "result": "failed in the complete CI gate on stale report-generator-helper-scope and runtime-SQL inventories",
+    "local_repair": "Both generated inventories now pass their checks on the updated working tree; the next pushed head must pass hosted CI before merge."
+  },
+  "rollback": "Revert the Gateway source, focused tests, and refactor progress/evidence updates; no database rollback is needed."
+}

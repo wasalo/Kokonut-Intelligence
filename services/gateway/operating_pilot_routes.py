@@ -1657,6 +1657,113 @@ class OperatingPilotOwnCoachingSessionsPage(BaseModel):
         return self
 
 
+class OperatingPilotOwnDemandSignalItem(BaseModel):
+    """Exact private demand-signal projection emitted by migration 561."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    signal_id: _ResponseUUID
+    work_type: str = Field(min_length=1, max_length=50, strict=True)
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    required_hours: _ResponseDecimal = Field(
+        gt=Decimal("0"), le=Decimal("100000"), strict=True
+    )
+    priority: Literal["low", "medium", "high", "critical"]
+    description: str | None = Field(max_length=2000, strict=True)
+    status: Literal[
+        "draft", "submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"
+    ]
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @field_validator("work_type")
+    @classmethod
+    def validate_work_type(cls, value: str) -> str:
+        if not value.strip() or value != value.strip():
+            raise ValueError("work type must be nonblank and trimmed")
+        return value
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str | None) -> str | None:
+        if value is not None and (not value.strip() or value != value.strip()):
+            raise ValueError("description must be nonblank and trimmed")
+        return value
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        if self.period_end < self.period_start:
+            raise ValueError("demand signal period is reversed")
+        if (self.period_end - self.period_start).days > 366:
+            raise ValueError("demand signal period exceeds its source bound")
+        return self
+
+
+class OperatingPilotOwnDemandSignalsPage(BaseModel):
+    """Strict private page contract for the signed-in operator's own demand."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotOwnDemandSignalItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10000, strict=True)
+    total: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own demand page exceeds its limit")
+        expected_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_count:
+            raise ValueError("own demand item count does not match its total")
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("own demand continuation does not match its total")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != next_page_offset:
+                raise ValueError("own demand continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own demand page cannot continue")
+
+        signal_ids = [item.signal_id for item in self.items]
+        if len(signal_ids) != len(set(signal_ids)):
+            raise ValueError("own demand page contains duplicate signal IDs")
+        if any(
+            (previous.updated_at, previous.signal_id.int)
+            < (current.updated_at, current.signal_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own demand page is not in descending SQL order")
+        return self
+
+
+def _bound_own_demand_continuation(result):
+    """Stop a database page at the Gateway's maximum accepted offset."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
+
 def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -4376,7 +4483,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(page), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-demand-signals")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-demand-signals",
+        response_model=OperatingPilotOwnDemandSignalsPage,
+    )
     async def location_operating_pilot_own_demand_signals(
         request: Request,
         location_id: str,
@@ -4435,7 +4545,31 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own operating demand read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotOwnDemandSignalsPage.model_validate(
+                _bound_own_demand_continuation(result)
+            )
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own demand page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Own demand response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own operating demand read unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(page.model_dump(mode="python"), custom_encoder={Decimal: float}),
+            headers=headers,
+        )
 
     @router.get(
         "/operator/api/operating-pilot/{location_id}/my-resource-requests",

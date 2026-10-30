@@ -8500,3 +8500,35 @@ Checklist: 1,892 complete / 25 open (1,917 total); TODO: 527 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 185. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.
+
+### Source continuation — private own-demand read contract — 29 October 2026
+
+- [x] Add exact migration-backed item and page schemas to the private
+  `my-demand-signals` Gateway route and publish them in OpenAPI.
+- [x] Bind the response to the requested location and page; validate demand
+  field bounds, lifecycle, row count, unique IDs, SQL ordering, and pagination
+  consistency.
+- [x] Stop continuation at the Gateway's 10,000-offset ceiling while keeping
+  `required_hours` a JSON number and preserving `read_own` authorization,
+  signed tenant context, and no-store failures.
+- [x] Run approved mock-only Gateway/OpenAPI checks and verify the existing
+  own-demand reader, route policy, runtime SQL inventory, report-helper scope
+  inventory, and source bounds.
+- [x] Record evidence and update the capability/progress ledgers; no database
+  migration or rollout is needed.
+
+The focused own-demand selection passes 42 tests. Default and source security
+Ruff, Python compilation, capability-matrix validation, runtime SQL inventory
+and unresolved-write ledger, report-generator helper-scope inventory,
+provider-boundary and dependency-group checks, and `git diff --check` pass.
+Hosted CI #992 failed on the previously pushed head because those two generated
+inventories were stale; both are refreshed and current locally. The next
+hosted head is still required to pass before merge. No database/provider,
+candidate, or legacy state was used; no migration was applied. Rollback
+reverts code, tests, and records; no data rollback is needed. Evidence:
+[own-demand response contract](builds/2026-10-29-recovery/operating-pilot-own-demand-read-contract.json).
+
+Checklist: 1,897 complete / 25 open (1,922 total); TODO: 531 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 186. The broader C2/C5/C6 gates and MAN-CAP acceptance remain open.

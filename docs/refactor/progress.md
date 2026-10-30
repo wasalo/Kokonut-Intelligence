@@ -24739,3 +24739,27 @@ local ignored. No database/provider, candidate, or legacy state was used; no
 migration was applied. Checklist: 1,882 complete / 25 open; TODO: 519 checked
 / 16 open; strict private Gateway response contracts total 182. Evidence:
 [equipment, carbon-balance, and learning-plan queue contracts](builds/2026-10-29-recovery/equipment-carbon-balance-learning-queue-contracts.json).
+
+
+### Progress addendum — private own-demand response contract — 29 October 2026
+
+The signed operator's `my-demand-signals` route now publishes and validates
+the exact migration-561 item/page projection. It binds the returned location
+and page to the request, validates source bounds and lifecycle, exact row
+counts, unique IDs, and the database's `updated_at DESC, id DESC` order. When
+the SQL reader reports another page beyond offset 10,000, the Gateway returns
+a terminal page instead of an unusable continuation. Numeric hours stay JSON
+numbers; the existing `operating_pilot:read_own` grant and signed tenant
+context remain unchanged. Malformed output receives a generic no-store error.
+
+The approved mock-only selection passes 42 tests. Default and source security
+Ruff, Python compilation, capability-matrix validation, runtime SQL inventory
+and unresolved-write ledger, report-generator helper-scope inventory,
+provider-boundary and dependency-group checks, and diff checks pass. Hosted
+CI #992 failed on the previously pushed head because the report-helper and
+runtime-SQL inventories were stale; both now pass locally, and the next hosted
+head remains gated on CI. No database/provider, candidate, or legacy state was
+used; no migration was applied. Checklist: 1,897 complete / 25 open; TODO:
+531 checked / 16 open; strict private Gateway response contracts total 186.
+Evidence:
+[private own-demand response](builds/2026-10-29-recovery/operating-pilot-own-demand-read-contract.json).

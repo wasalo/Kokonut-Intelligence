@@ -3459,3 +3459,19 @@ inventory, and diff checks pass. No database/provider, candidate, or legacy
 state was used. Checklist: 527 checked / 16 open; strict private Gateway
 response contracts total 185. Evidence:
 `builds/2026-10-29-recovery/operating-pilot-coaching-read-contracts.json`.
+
+## Completed — private own-demand read contract, 29 October
+
+- [x] Publish the migration-561 private demand item/page projection in
+  OpenAPI and enforce its source-defined bounds and lifecycle.
+- [x] Bind location and pagination; validate exact count, continuation,
+  unique IDs, SQL order, and the Gateway's 10,000-offset cap.
+- [x] Preserve numeric JSON serialization, existing `read_own` authorization,
+  signed tenant context, and sanitized no-store failures.
+- [x] Run 42 approved mock-only checks; refresh/check runtime SQL inventory,
+  capability matrix, source security lint, and evidence/progress records.
+
+No database/provider, candidate, or legacy state was used; no migration was
+applied. Checklist: 531 checked / 16 open; strict private Gateway response
+contracts total 186. Evidence:
+`builds/2026-10-29-recovery/operating-pilot-own-demand-read-contract.json`.

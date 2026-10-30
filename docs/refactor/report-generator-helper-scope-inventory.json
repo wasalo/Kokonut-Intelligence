@@ -979,18 +979,6 @@
           "depth": 4
         },
         {
-          "caller": "services/analytics/competitive_report.py:report",
-          "callee": "services/analytics/competitive_report.py:_clean",
-          "line": 36,
-          "depth": 4
-        },
-        {
-          "caller": "services/analytics/competitive_report.py:report",
-          "callee": "services/analytics/competitive_report.py:_clean",
-          "line": 38,
-          "depth": 4
-        },
-        {
           "caller": "services/analytics/strategy_execution.py:dashboard",
           "callee": "services/analytics/strategy_execution.py:_clean",
           "line": 40,
@@ -1005,19 +993,31 @@
         {
           "caller": "services/analytics/competitive_report.py:report",
           "callee": "services/analytics/competitive_report.py:_clean",
-          "line": 46,
-          "depth": 4
-        },
-        {
-          "caller": "services/analytics/competitive_report.py:report",
-          "callee": "services/analytics/competitive_report.py:health",
-          "line": 47,
+          "line": 45,
           "depth": 4
         },
         {
           "caller": "services/planning/sandop.py:cockpit",
           "callee": "services/planning/sandop.py:_rows",
           "line": 55,
+          "depth": 4
+        },
+        {
+          "caller": "services/analytics/competitive_report.py:report",
+          "callee": "services/analytics/competitive_report.py:_clean",
+          "line": 58,
+          "depth": 4
+        },
+        {
+          "caller": "services/analytics/competitive_report.py:report",
+          "callee": "services/analytics/competitive_report.py:_clean",
+          "line": 66,
+          "depth": 4
+        },
+        {
+          "caller": "services/analytics/competitive_report.py:report",
+          "callee": "services/analytics/competitive_report.py:health",
+          "line": 67,
           "depth": 4
         },
         {
@@ -1133,7 +1133,7 @@
         {
           "source_file": "services/analytics/competitive_report.py",
           "callable": "report",
-          "line": 37,
+          "line": 46,
           "relations": [
             "strategy_position"
           ],
@@ -1159,7 +1159,7 @@
         {
           "source_file": "services/analytics/competitive_report.py",
           "callable": "report",
-          "line": 39,
+          "line": 59,
           "relations": [
             "v_strategy_advantage_fit"
           ],
@@ -3275,13 +3275,13 @@
         {
           "caller": "services/analytics/carbon_balance.py:compute_tree_carbon",
           "callee": "services/common/database.py:query",
-          "line": 79,
+          "line": 80,
           "depth": 2
         },
         {
           "caller": "services/analytics/carbon_balance.py:compute_regenerative_score",
           "callee": "services/common/database.py:query",
-          "line": 236,
+          "line": 249,
           "depth": 2
         },
         {
@@ -3302,11 +3302,11 @@
           "caller_sites": [
             {
               "caller": "services/analytics/carbon_balance.py:compute_regenerative_score",
-              "line": 236
+              "line": 249
             },
             {
               "caller": "services/analytics/carbon_balance.py:compute_tree_carbon",
-              "line": 79
+              "line": 80
             }
           ],
           "sql_inventory": "caller callsite in the direct report inventory or helper query site"
@@ -3316,7 +3316,7 @@
         {
           "source_file": "services/analytics/carbon_balance.py",
           "callable": "compute_ghg_emissions",
-          "line": 42,
+          "line": 43,
           "relations": [
             "ghg_emissions_inventory"
           ],
@@ -3340,7 +3340,7 @@
         {
           "source_file": "services/analytics/carbon_balance.py",
           "callable": "compute_tree_carbon",
-          "line": 79,
+          "line": 80,
           "relations": [
             "tree_inventory"
           ],
@@ -3364,7 +3364,7 @@
         {
           "source_file": "services/analytics/carbon_balance.py",
           "callable": "compute_carbon_balance",
-          "line": 140,
+          "line": 141,
           "relations": [
             "climate_impact_summary"
           ],
@@ -3388,7 +3388,7 @@
         {
           "source_file": "services/analytics/carbon_balance.py",
           "callable": "compute_carbon_balance",
-          "line": 147,
+          "line": 154,
           "relations": [
             "climate_impact_summary"
           ],
@@ -3412,7 +3412,7 @@
         {
           "source_file": "services/analytics/carbon_balance.py",
           "callable": "compute_carbon_balance",
-          "line": 168,
+          "line": 181,
           "relations": [
             "tree_inventory"
           ],
@@ -3436,7 +3436,7 @@
         {
           "source_file": "services/analytics/carbon_balance.py",
           "callable": "compute_carbon_balance",
-          "line": 177,
+          "line": 190,
           "relations": [
             "soil_carbon_measurement"
           ],
@@ -3460,7 +3460,7 @@
         {
           "source_file": "services/analytics/carbon_balance.py",
           "callable": "compute_carbon_balance",
-          "line": 205,
+          "line": 218,
           "relations": [
             "ghg_emissions_inventory"
           ],
@@ -3484,7 +3484,7 @@
         {
           "source_file": "services/analytics/carbon_balance.py",
           "callable": "compute_regenerative_score",
-          "line": 236,
+          "line": 249,
           "relations": [
             "regeneration_principle",
             "regenerative_practice_checklist"
@@ -5686,7 +5686,7 @@
         {
           "source_file": "services/analytics/pestel.py",
           "callable": "list_analyses",
-          "line": 123,
+          "line": 131,
           "relations": [
             "location",
             "pestel_analysis"
@@ -5711,7 +5711,7 @@
         {
           "source_file": "services/analytics/pestel.py",
           "callable": "list_analyses",
-          "line": 132,
+          "line": 140,
           "relations": [
             "location",
             "pestel_analysis"
