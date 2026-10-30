@@ -721,6 +721,61 @@ class SolutionLifecycleReplicationCompletionReviewDetailResponse(BaseModel):
         return self
 
 
+class SolutionLifecycleLearningReviewDetailResponse(BaseModel):
+    """Exact private projection for independent solution-learning review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    learning_record_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    lesson_type: Literal[
+        "validated_assumption", "invalidated_assumption", "implementation",
+        "adoption", "safety", "economic", "equity", "context_transfer",
+    ]
+    finding: str = Field(min_length=1, max_length=4000, strict=True)
+    confidence: Literal["high", "moderate", "low", "insufficient_evidence"]
+    transferability: Literal["high", "medium", "low", "unknown"]
+    affected_assumptions: list[Any] = Field(max_length=100)
+    affected_metrics: list[Any] = Field(max_length=100)
+    recommended_action: str = Field(min_length=1, max_length=4000, strict=True)
+    evidence: list[Any] = Field(min_length=1, max_length=100)
+    created_at: AwareDatetime
+    source_is_current: Literal[True]
+    is_self_authored: bool = Field(strict=True)
+    is_self_starter: bool = Field(strict=True)
+    is_initial_approver: bool = Field(strict=True)
+    is_completion_reviewer: bool = Field(strict=True)
+    is_source_owner: bool = Field(strict=True)
+    is_source_approver: bool = Field(strict=True)
+    is_source_result_reviewer: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_learning_review_detail(self):
+        for value in (
+            self.affected_assumptions,
+            self.affected_metrics,
+            self.evidence,
+        ):
+            try:
+                encoded = json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            except (TypeError, ValueError, UnicodeEncodeError) as exc:
+                raise ValueError("Learning review references must be JSON data") from exc
+            if len(encoded) > 65_536:
+                raise ValueError("Learning review references exceed their storage bound")
+        return self
+
+
 class SolutionLifecycleRetirementReviewDetailResponse(BaseModel):
     """Exact private detail projection for independent retirement review."""
 
@@ -5531,7 +5586,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review"
+        "/operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review",
+        response_model=SolutionLifecycleLearningReviewDetailResponse,
     )
     async def location_solution_learning_review_detail(
         request: Request, location_id: str, learning_record_id: str
@@ -5570,7 +5626,27 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution learning review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleLearningReviewDetailResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.learning_record_id != UUID(learning_record_id)
+            ):
+                raise ValueError("Learning review detail does not match request scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution learning review detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution learning review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review"

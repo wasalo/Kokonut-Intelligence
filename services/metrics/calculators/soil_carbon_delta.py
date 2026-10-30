@@ -5,7 +5,7 @@ Formula: latest.carbon_tonnes_per_ha - baseline.carbon_tonnes_per_ha
 Definition: Soil carbon after intervention minus baseline
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -27,7 +27,8 @@ def compute_soil_carbon_delta(
             sc.carbon_tonnes_per_ha,
             sc.is_baseline
         FROM soil_carbon_measurement sc
-        LEFT JOIN plot p ON sc.plot_id = p.id
+        JOIN plot p ON sc.plot_id = p.id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = sc.location_id
         WHERE sc.location_id = %s
         ORDER BY sc.plot_id, sc.measurement_date
     """, (location_id,))

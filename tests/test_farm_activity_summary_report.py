@@ -338,6 +338,20 @@ def test_farm_harvest_summary_filters_governed_rows_and_keeps_mixed_units_separa
     assert "status IN ('verified', 'published')" in query
     assert "COUNT(DISTINCT unit) <= 1" in query
     assert "jsonb_object_agg(unit, total_quantity)" in query
+    assert "cc.location_id = he.location_id" in query
+
+
+def test_farm_summary_crop_cycles_require_plot_farm_location_match():
+    connection = FarmSummaryConnection([])
+
+    generate_farm_summary(connection, LOCATION_ID)
+
+    query = next(
+        sql for sql, _params in connection.cursor_instance.statements
+        if "FROM crop_cycle cc" in sql
+    ).lower()
+    assert "join farm f on f.id = p.farm_id" in query
+    assert "f.location_id = cc.location_id" in query
 
 
 def test_farm_activity_summary_is_stored_as_an_unfrozen_hashed_draft():

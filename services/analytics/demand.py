@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import statistics
 from collections import defaultdict
-from datetime import date, timedelta
 from typing import Any
 
 from services.common.logging import get_logger
@@ -27,7 +26,9 @@ def compute_demand_forecast(conn, location_id: str, forecast_horizon_months: int
                SUM(se.quantity) AS total_quantity,
                SUM(se.total_amount) AS total_revenue
         FROM sales_event se
-        JOIN crop_cycle cc ON se.crop_cycle_id = cc.id
+        JOIN crop_cycle cc
+          ON se.crop_cycle_id = cc.id
+         AND cc.location_id = se.location_id
         JOIN crop c ON cc.crop_id = c.id
         WHERE se.location_id = %s AND se.status IN ('verified', 'published')
         GROUP BY c.name, c.id, DATE_TRUNC('month', se.sale_date)
@@ -71,8 +72,6 @@ def compute_demand_forecast(conn, location_id: str, forecast_horizon_months: int
 
         quantities = [m["quantity"] for m in months]
         avg = statistics.mean(quantities)
-        std = statistics.stdev(quantities) if len(quantities) > 1 else avg * 0.2
-
         # Simple exponential smoothing (alpha=0.3)
         alpha = 0.3
         smoothed = quantities[0]
@@ -186,7 +185,9 @@ def compute_demand_trends(conn, location_id: str, crop_id: str | None = None) ->
                SUM(se.quantity) AS total_quantity,
                AVG(se.price_per_unit) AS avg_price
         FROM sales_event se
-        JOIN crop_cycle cc ON se.crop_cycle_id = cc.id
+        JOIN crop_cycle cc
+          ON se.crop_cycle_id = cc.id
+         AND cc.location_id = se.location_id
         JOIN crop c ON cc.crop_id = c.id
         WHERE se.location_id = %s AND se.status IN ('verified', 'published')
         GROUP BY c.name, EXTRACT(MONTH FROM se.sale_date)
@@ -237,8 +238,8 @@ def compute_demand_trends(conn, location_id: str, crop_id: str | None = None) ->
             "data_points": len(months),
             "avg_monthly_demand": round(avg, 2),
             "seasonal_indices": {str(k): round(v, 3) for k, v in sorted(seasonal_indices.items())},
-            "peak_month": peak_month[0],
-            "trough_month": trough_month[0],
+            "peak_month": peak_month,
+            "trough_month": trough_month,
             "moving_avg_3m": round(ma_3, 2),
             "moving_avg_6m": round(ma_6, 2),
             "moving_avg_12m": round(ma_12, 2),

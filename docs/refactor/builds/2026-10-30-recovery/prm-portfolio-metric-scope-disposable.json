@@ -1,6 +1,6 @@
 {
   "result": "passed",
-  "checked_at": "2026-10-30T05:56:13.890588+00:00",
+  "checked_at": "2026-10-30T11:32:59.026264+00:00",
   "database": "PostgreSQL 16 disposable container",
   "migration": "689_prm_portfolio_metric_scope.sql",
   "migration_replayed": true,

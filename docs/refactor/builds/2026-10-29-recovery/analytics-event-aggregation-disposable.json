@@ -10,7 +10,8 @@
     "harvest_events": 3,
     "weather_observations": 3,
     "revenue_events": 3,
-    "expense_events": 4
+    "expense_events": 4,
+    "sales_events": 5
   },
   "weather_growth": {
     "harvest_kg": 15.0,
@@ -27,6 +28,12 @@
     "roi_pct": 400.0,
     "no_event_cycle_zero_totals": true,
     "cross_location_events_excluded": true
+  },
+  "demand": {
+    "historical_average_quantity": 20.0,
+    "data_points": 3,
+    "trend_average_quantity": 20.0,
+    "cross_location_cycle_event_excluded": true
   },
   "cleanup": "complete"
 }

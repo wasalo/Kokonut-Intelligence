@@ -265,7 +265,9 @@ def test_extract_training_data_includes_location_scoped_plot_coordinates() -> No
     assert result[0]["gps_longitude"] == -69.8
     assert result[0]["measurement_date"] == str(measurement_date)
     assert conn.test_cursor.params == ["location-1"]
-    assert "LEFT JOIN plot plot_geom" in conn.test_cursor.query
+    assert "JOIN plot plot_geom" in conn.test_cursor.query
+    assert "JOIN farm farm_geom" in conn.test_cursor.query
+    assert "farm_geom.location_id = scm.location_id" in conn.test_cursor.query
     assert "ST_Y(COALESCE(plot_geom.center, ST_PointOnSurface(plot_geom.boundary)))" in conn.test_cursor.query
     assert "ST_X(COALESCE(plot_geom.center, ST_PointOnSurface(plot_geom.boundary)))" in conn.test_cursor.query
     assert "scm.location_id = %s" in conn.test_cursor.query

@@ -10,6 +10,7 @@ JSONObject = Dict[str, JSONValue]
 LifecycleStatus = Literal["draft", "submitted", "verified", "published", "rejected"]
 EntityStatus = Literal["active", "inactive", "archived"]
 EntityStatusExtended = Literal["active", "inactive", "maintenance", "decommissioned"]
+DirectusListMeta = Literal["total_count", "filter_count"]
 PaymentStatus = Literal["pending", "partial", "paid", "overdue", "cancelled"]
 SensorSeverity = Literal["info", "warning", "critical"]
 AlertLifecycle = Literal["open", "acknowledged", "resolved", "false_positive"]
@@ -179,7 +180,7 @@ class ListOptions:
     limit: Optional[int] = None
     offset: Optional[int] = None
     page: Optional[int] = None
-    meta: Optional[str] = None
+    meta: Optional[DirectusListMeta] = None
     extra_params: Optional[Dict[str, Any]] = None
 
     def to_params(self) -> Dict[str, Any]:

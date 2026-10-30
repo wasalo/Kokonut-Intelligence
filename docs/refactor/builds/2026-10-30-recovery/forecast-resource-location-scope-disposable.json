@@ -3,11 +3,39 @@
     "assertion_1": true,
     "assertion_2": true,
     "assertion_3": true,
-    "assertion_4": true
+    "assertion_4": true,
+    "assertion_5": true,
+    "assertion_6": true,
+    "assertion_7": true
   },
+  "bed_area": {
+    "has_bed_data": true,
+    "plot_count": 1,
+    "plots": {
+      "25254f52-4431-4357-b7e7-3e8dfe980aad": {
+        "bed_area_sqm": 2.0,
+        "bed_count": 10,
+        "crops": [
+          "Beans",
+          "Corn"
+        ],
+        "cycle_ids": [
+          "73b1733c-0bd7-43dd-a73e-7728ffd4f172",
+          "ec2d63ce-8125-4c93-9e32-70c44caae8fb"
+        ],
+        "plot_id": "25254f52-4431-4357-b7e7-3e8dfe980aad",
+        "plot_name": "Syntropic beds",
+        "total_bed_area_sqm": 20.0
+      }
+    },
+    "total_bed_area_sqm": 20.0
+  },
+  "bed_area_counted_once_per_plot": true,
+  "bed_cycle_cross_location_excluded": true,
+  "bed_cycles_same_location_retained": true,
   "candidate_or_legacy_modified": false,
   "cleanup": "passed",
-  "completed_at": "2026-10-30T05:57:21.088735+00:00",
+  "completed_at": "2026-10-30T11:32:45.581754+00:00",
   "database": "disposable PostgreSQL 16",
   "external_provider_contacted": false,
   "forecast_foreign_output_excluded": true,

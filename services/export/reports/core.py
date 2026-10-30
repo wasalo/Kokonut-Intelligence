@@ -93,6 +93,7 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
             FROM crop_cycle cc
             JOIN crop c ON cc.crop_id = c.id
             JOIN plot p ON cc.plot_id = p.id
+            JOIN farm f ON f.id = p.farm_id AND f.location_id = cc.location_id
             WHERE cc.location_id = %s
         """,
             (location_id,),
@@ -104,12 +105,15 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         cur.execute(
             """
             WITH filtered_harvest AS (
-                SELECT quantity, unit, crop_cycle_id
-                FROM harvest_event
-                WHERE location_id = %s
-                  AND status IN ('verified', 'published')
-                  AND (%s::date IS NULL OR harvest_date >= %s::date)
-                  AND (%s::date IS NULL OR harvest_date <= %s::date)
+                SELECT he.quantity, he.unit, he.crop_cycle_id
+                FROM harvest_event he
+                JOIN crop_cycle cc
+                  ON cc.id = he.crop_cycle_id
+                 AND cc.location_id = he.location_id
+                WHERE he.location_id = %s
+                  AND he.status IN ('verified', 'published')
+                  AND (%s::date IS NULL OR he.harvest_date >= %s::date)
+                  AND (%s::date IS NULL OR he.harvest_date <= %s::date)
             ), unit_totals AS (
                 SELECT unit, SUM(quantity) AS total_quantity
                 FROM filtered_harvest
@@ -269,9 +273,12 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
                 v.operating_margin_pct,
                 v.loss_rate_pct
             FROM v_crop_cycle_noi v
-            JOIN crop_cycle cc ON cc.id = v.crop_cycle_id
+            JOIN crop_cycle cc
+              ON cc.id = v.crop_cycle_id
+             AND cc.location_id = v.location_id
             JOIN crop c ON cc.crop_id = c.id
             JOIN plot p ON cc.plot_id = p.id
+            JOIN farm f ON f.id = p.farm_id AND f.location_id = cc.location_id
             WHERE v.location_id = %s
               AND (%s::date IS NULL OR cc.planting_date >= %s::date)
               AND (%s::date IS NULL OR COALESCE(cc.actual_harvest_date, cc.expected_harvest_date) <= %s::date)

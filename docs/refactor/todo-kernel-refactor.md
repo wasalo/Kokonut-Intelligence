@@ -3881,3 +3881,43 @@ legacy databases and external providers were untouched.
 
 Current checklist: 672 checked / 16 open. Strict private Gateway response
 contracts remain 221.
+
+## Completed — analytics lineage and contract hardening, 30 October
+
+- [x] Bind demand rows to matching crop-cycle locations and bind soil carbon,
+  remote-sensing, crop-diversity, soil-input, species-area, tree-density,
+  soil-health, SOC-training, and soil-carbon metric/report plot reads to the
+  owning farm's location; preserve intentionally unlinked species observations.
+  Match crop cycles to farms in the forecast bed-area reader and aggregate
+  each physical plot's bed area once even when it has multiple completed cycles.
+- [x] Require matching event/crop-cycle locations in revenue-multiplier and
+  report joins; bind NOI snapshots to their cycle location. Remove the unused
+  CRISP harvest summary query so its redundant database read disappears.
+- [x] Correct the social-impact category total/average column mapping.
+- [x] Validate governance-link `--term-end` as timezone-aware before opening
+  PostgreSQL.
+- [x] Enforce the migration-499 solution-learning review-detail contract in
+  OpenAPI/runtime, bind both route IDs, and sanitize malformed private output.
+- [x] Preserve Prefect composite job results so default-off skip receipts are
+  visible, and align Python `ListOptions.meta` with the TypeScript literal.
+- [x] Add and pass focused regressions for lineage SQL, forecast bed-area
+  deduplication, demand-trend month output, strict Gateway review detail,
+  social-impact aggregates, pipeline receipts, governance timestamp preflight,
+  and SDK metadata typing.
+- [x] Pass network-isolated synthetic PostgreSQL 16 checks for event/cycle
+  location parity, forecast/plot lineage and bed-area deduplication, and
+  migration 689 replay/portfolio scope; refresh/check SQL inventories.
+- [x] Pass Ruff, Python compilation, capability-matrix, provider-boundary,
+  dependency-group, and diff checks; record the evidence and rollback scope.
+
+The focused selection passes 287 tests with one existing populated-database
+governance integration test excluded. Isolated PostgreSQL checks also pass with
+candidate/legacy databases untouched and no external providers contacted.
+Evidence: `builds/2026-10-30-recovery/kernel-analytics-lineage-and-contract-tests.json`,
+`builds/2026-10-29-recovery/analytics-event-aggregation-disposable.json`,
+`builds/2026-10-30-recovery/forecast-resource-location-scope-disposable.json`,
+and `builds/2026-10-30-recovery/prm-portfolio-metric-scope-disposable.json`.
+
+Current checklist: 679 checked / 16 open. Strict private Gateway response
+contracts total 222. Capability classifications remain unchanged because this
+source hardening does not complete a capability's end-to-end acceptance.

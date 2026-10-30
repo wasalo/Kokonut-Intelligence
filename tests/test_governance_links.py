@@ -1,14 +1,13 @@
 """Tests for bounded cross-circle representation links."""
 
+import sys
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
 
 import pytest
 
 from services.analytics import governance_links, governance_roles
 from services.ingestion.base import get_db
-
 
 PARTY_ID = "b0000000-0000-0000-0000-000000002481"
 APPROVER_ID = "b0000000-0000-0000-0000-000000002482"
@@ -78,3 +77,56 @@ def test_value_helper_converts_uuid_and_datetime():
     now = datetime.now(timezone.utc)
     assert governance_links._value(mock_uuid) == str(mock_uuid)
     assert governance_links._value(now) == now.isoformat()
+
+
+@pytest.mark.parametrize("value", ["not-a-timestamp", "2026-10-30T12:00:00"])
+def test_governance_link_term_end_fails_before_database_access(monkeypatch, value):
+    from services.analytics import cli_governance_links
+
+    monkeypatch.setattr(
+        cli_governance_links,
+        "_connection",
+        lambda: pytest.fail("invalid timestamp opened a database connection"),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "governance-links", "create", "source", "target", "observer",
+            "role", PARTY_ID, "A bounded representation mandate.",
+            "--term-end", value,
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        cli_governance_links.main()
+    assert exc.value.code == 2
+
+
+def test_governance_link_term_end_passes_aware_timestamp_to_service(monkeypatch):
+    from services.analytics import cli_governance_links
+
+    expected = datetime(2027, 1, 1, 12, 0, tzinfo=timezone.utc)
+    connection = object()
+    calls = []
+    monkeypatch.setattr(cli_governance_links, "_connection", lambda: connection)
+    monkeypatch.setattr(
+        cli_governance_links,
+        "create_link",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or {"id": "link"},
+    )
+    monkeypatch.setattr(cli_governance_links, "_out", lambda _value: None)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "governance-links", "create", "source", "target", "observer",
+            "role", PARTY_ID, "A bounded representation mandate.",
+            "--term-end", "2027-01-01T12:00:00Z",
+        ],
+    )
+
+    cli_governance_links.main()
+
+    assert calls[0][0][0] is connection
+    assert calls[0][1]["term_end"] == expected

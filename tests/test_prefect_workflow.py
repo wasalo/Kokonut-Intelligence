@@ -56,17 +56,52 @@ def test_ingestion_pipeline_waits_for_other_jobs_when_weather_is_skipped() -> No
 
     jobs = ("weather", "market_data", "eas", "rpc", "gnosis")
     futures = {job_id: Mock() for job_id in jobs}
-    futures["weather"].result.return_value = {
-        "status": "skipped",
-        "reason": "signed_weather_worker_disabled",
+    results = {
+        "weather": {
+            "status": "skipped",
+            "reason": "signed_weather_worker_disabled",
+        },
+        "market_data": {"status": "success", "records": 4},
+        "eas": {"status": "success", "chains_processed": 3},
+        "rpc": {"status": "success", "chains_processed": 5},
+        "gnosis": {"status": "success", "events_indexed": 2},
     }
+    for job_id, future in futures.items():
+        future.result.return_value = results[job_id]
 
     with patch("services.flows.pipelines._submit_job", side_effect=futures.__getitem__) as submit:
         result = ingestion_pipeline.fn()
 
-    assert result == {"status": "success", "ingestion": "complete"}
+    assert result == {
+        "status": "success",
+        "ingestion": "complete",
+        "jobs": results,
+    }
     assert submit.call_args_list == [call(job_id) for job_id in jobs]
     assert all(future.result.call_count == 1 for future in futures.values())
+
+
+def test_scheduled_daily_preserves_child_job_results() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import scheduled_daily
+
+    expected = {
+        "market_data": {"status": "success", "records": 6},
+        "metrics": {"status": "success", "computed": 3},
+        "credit_adjustment": {"status": "success", "adjusted": 1},
+    }
+    with (
+        patch("services.flows.market_data.market_data_flow", return_value=expected["market_data"]) as market_data,
+        patch("services.flows.metrics.metrics_computation_flow", return_value=expected["metrics"]) as metrics,
+        patch("services.flows.credit_adjustment.credit_adjustment_flow", return_value=expected["credit_adjustment"]) as credit_adjustment,
+    ):
+        result = scheduled_daily.fn()
+
+    assert result == {"status": "success", **expected}
+    market_data.assert_called_once_with()
+    metrics.assert_called_once_with()
+    credit_adjustment.assert_called_once_with()
 
 
 def test_eas_flow_preserves_multi_chain_adapter():

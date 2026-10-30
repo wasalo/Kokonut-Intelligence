@@ -1,0 +1,72 @@
+{
+  "result": "passed",
+  "batch": "analytics lineage and contract hardening",
+  "checked_at": "2026-10-30",
+  "focused_tests": {
+    "passed": 287,
+    "deselected": 1,
+    "deselected_reason": "existing governance integration test writes to a populated database; candidate and legacy data were kept untouched",
+    "coverage": [
+      "event and crop-cycle location lineage",
+      "plot and owning-farm location lineage",
+      "forecast plot bed-area deduplication",
+      "demand-trend peak/trough month output",
+      "strict solution-learning review-detail response",
+      "social-impact aggregate mapping",
+      "Prefect result and skip receipts",
+      "governance-link timezone-aware deadline preflight",
+      "Python SDK Directus list metadata typing"
+    ]
+  },
+  "disposable_postgresql": [
+    {
+      "evidence": "analytics-event-aggregation-disposable.json",
+      "version": 16,
+      "network": "internal, no external egress",
+      "host_port_published": false,
+      "assertions": "passed",
+      "synthetic_demand": {
+        "valid_monthly_quantities": [10, 20, 30],
+        "cross_location_event_quantity": 1000,
+        "average_quantity": 20,
+        "valid_month_count": 3
+      },
+      "cleanup": "passed"
+    },
+    {
+      "evidence": "forecast-resource-location-scope-disposable.json",
+      "version": 16,
+      "network": "internal, no external egress",
+      "host_port_published": false,
+      "assertions_passed": 7,
+      "bed_area_sqm": 20,
+      "matching_cycles": 2,
+      "cross_location_cycle_excluded": true,
+      "cleanup": "passed"
+    },
+    {
+      "evidence": "prm-portfolio-metric-scope-disposable.json",
+      "version": 16,
+      "network": "none",
+      "migration": "689_prm_portfolio_metric_scope.sql",
+      "migration_replayed": true,
+      "assertions_passed": 6,
+      "cleanup": "passed"
+    }
+  ],
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "capability_matrix": "passed",
+    "provider_boundaries": "passed",
+    "dependency_groups": "passed",
+    "git_diff_check": "passed"
+  },
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "external_provider_contacted": false,
+  "raspberry_pi_hardware_tested": false,
+  "capability_classifications_changed": false
+}

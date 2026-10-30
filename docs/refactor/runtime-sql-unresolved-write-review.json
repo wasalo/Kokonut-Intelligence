@@ -394,11 +394,11 @@
       "reason": "Reviewed list_location_realization_summaries: its WITH clause selects the bounded, location-filtered geostat_realization page and aggregates point values; no DML or mutating SQL is present. This edit only clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative manual review; this is not an ACL approval."
     },
     {
-      "fingerprint": "c79b8dc7d13e757d434cbfbd8cb3cb9b93af6145ad7eb609e698c3116ddfb6af",
+      "fingerprint": "8705afb579a45da74f0c773032da56cb70ded1c9d3d861777c376cefdca9e631",
       "review_status": "reviewed_unresolved",
       "reviewed_by": "Codex source review",
-      "reviewed_on": "2026-10-29",
-      "reason": "Reviewed generate_farm_summary at services/export/reports/core.py:100 after its explicit schema projection change: both CTEs perform SELECT and aggregation, and the top-level statement selects the resulting bounded summary; there is no DML or mutating function. The inventory conservatively retains WITH for manual review. This source review is not an ACL approval."
+      "reviewed_on": "2026-10-30",
+      "reason": "Reviewed generate_farm_summary at services/export/reports/core.py:105 after adding matching harvest/crop-cycle location and plot/farm location joins: both CTEs perform SELECT and aggregation, and the top-level statement selects the bounded summary; there is no DML or mutating function. The inventory conservatively retains WITH for manual review. This source review is not an ACL approval."
     },
     {
       "fingerprint": "a869c3d618da2c536087d1ce01b2c11f8817dd57e1b29e3b1355830b25efb1c8",

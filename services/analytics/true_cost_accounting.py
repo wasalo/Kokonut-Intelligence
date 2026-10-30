@@ -205,8 +205,8 @@ def compute_social_impact_valuation(conn, location_id: str) -> dict[str, Any]:
             "category": r[0],
             "count": r[1],
             "total_beneficiaries": r[2],
-            "total_value_usd": round(float(r[4]), 2),
-            "avg_value_per_intervention": round(float(r[4]) / r[1], 2) if r[1] > 0 else 0,
+            "total_value_usd": round(float(r[3] or 0), 2),
+            "avg_value_per_intervention": round(float(r[4] or 0), 2),
         }
         for r in cur.fetchall()
     ]

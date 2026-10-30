@@ -13,12 +13,14 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from services.analytics.resource_efficiency import compute_resource_consumption_by_crop  # noqa: E402
 from services.export.reports.core import generate_forecast_summary  # noqa: E402
+from services.forecast.yield_forecast import get_bed_areas_for_location  # noqa: E402
 
 IMAGE = os.environ.get("FORECAST_RESOURCE_SCOPE_TEST_IMAGE", "postgres:16")
 EVIDENCE = ROOT / "docs/refactor/builds/2026-10-30-recovery/forecast-resource-location-scope-disposable.json"
@@ -92,6 +94,12 @@ class DisposablePsqlCursor:
         self.statement = statement
         self.params = tuple(params or ())
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return False
+
     def _query_output(self) -> list[list[str | None]]:
         statement = self.statement
         for parameter in self.params:
@@ -107,6 +115,15 @@ class DisposablePsqlCursor:
 
     def fetchall(self):
         rows = self._query_output()
+        if "array_agg(DISTINCT cc.id" in self.statement:
+            return [
+                (
+                    row[0], row[1], int(row[2]), float(row[3]),
+                    row[4].strip("{}").split(",") if row[4] else [],
+                    row[5].strip("{}").split(",") if row[5] else [],
+                )
+                for row in rows
+            ]
         if "fo.scenario_id" in self.statement:
             result = []
             for row in rows:
@@ -167,6 +184,9 @@ def main() -> int:
         scenario_a, scenario_b = str(uuid.uuid4()), str(uuid.uuid4())
         crop_a, crop_b = str(uuid.uuid4()), str(uuid.uuid4())
         cycle_a, cycle_b = str(uuid.uuid4()), str(uuid.uuid4())
+        cycle_a_second, cycle_cross_location = str(uuid.uuid4()), str(uuid.uuid4())
+        farm_a, farm_b = str(uuid.uuid4()), str(uuid.uuid4())
+        plot_a = str(uuid.uuid4())
         stage = "schema_and_fixture_setup"
         conn.execute(
             """
@@ -182,7 +202,15 @@ def main() -> int:
                 inputs JSONB, period_start DATE, period_end DATE, calculated_at TIMESTAMPTZ
             );
             CREATE TABLE crop (id UUID PRIMARY KEY, name TEXT NOT NULL);
-            CREATE TABLE crop_cycle (id UUID PRIMARY KEY, location_id UUID NOT NULL, crop_id UUID NOT NULL);
+            CREATE TABLE farm (id UUID PRIMARY KEY, location_id UUID NOT NULL);
+            CREATE TABLE plot (
+                id UUID PRIMARY KEY, farm_id UUID NOT NULL, name TEXT NOT NULL,
+                bed_count INTEGER, bed_area_sqm NUMERIC
+            );
+            CREATE TABLE crop_cycle (
+                id UUID PRIMARY KEY, location_id UUID NOT NULL, crop_id UUID NOT NULL,
+                plot_id UUID, status TEXT NOT NULL
+            );
             CREATE TABLE resource_consumption (
                 location_id UUID NOT NULL, crop_cycle_id UUID NOT NULL, resource_type TEXT NOT NULL,
                 unit TEXT NOT NULL, quantity NUMERIC NOT NULL, status TEXT NOT NULL
@@ -199,8 +227,13 @@ def main() -> int:
             f"('{scenario_b}', '{location_a}', 'foreign_parent_metric', 999, 'tonne', NULL, NULL, '{{}}', NULL, NULL, now()), "
             f"('{scenario_a}', '{location_b}', 'foreign_output_metric', 888, 'tonne', NULL, NULL, '{{}}', NULL, NULL, now());"
             f"INSERT INTO crop VALUES ('{crop_a}', 'Corn'), ('{crop_b}', 'Beans');"
+            f"INSERT INTO farm VALUES ('{farm_a}', '{location_a}'), ('{farm_b}', '{location_b}');"
+            f"INSERT INTO plot VALUES ('{plot_a}', '{farm_a}', 'Syntropic beds', 10, 2.0);"
             f"INSERT INTO crop_cycle VALUES "
-            f"('{cycle_a}', '{location_a}', '{crop_a}'), ('{cycle_b}', '{location_b}', '{crop_b}');"
+            f"('{cycle_a}', '{location_a}', '{crop_a}', '{plot_a}', 'completed'), "
+            f"('{cycle_a_second}', '{location_a}', '{crop_b}', '{plot_a}', 'completed'), "
+            f"('{cycle_b}', '{location_b}', '{crop_b}', NULL, 'completed'), "
+            f"('{cycle_cross_location}', '{location_b}', '{crop_b}', '{plot_a}', 'completed');"
             f"INSERT INTO resource_consumption VALUES "
             f"('{location_a}', '{cycle_a}', 'water', 'liter', 12, 'verified'), "
             f"('{location_a}', '{cycle_b}', 'water', 'liter', 500, 'verified'), "
@@ -223,11 +256,30 @@ def main() -> int:
         evidence["resource_foreign_cycle_excluded"] = resources["by_crop"] == [
             {"resource_type": "water", "unit": "liter", "crop_name": "Corn", "total_quantity": 12.0}
         ]
+        stage = "bed_area_location_and_deduplication"
+        with patch("services.ingestion.base.get_db", return_value=conn):
+            bed_areas = get_bed_areas_for_location(location_a)
+        target_plot = bed_areas["plots"][plot_a]
+        evidence["bed_area"] = bed_areas
+        evidence["bed_area_counted_once_per_plot"] = (
+            bed_areas["plot_count"] == 1
+            and bed_areas["total_bed_area_sqm"] == 20.0
+        )
+        evidence["bed_cycles_same_location_retained"] = set(target_plot["cycle_ids"]) == {
+            cycle_a,
+            cycle_a_second,
+        }
+        evidence["bed_cycle_cross_location_excluded"] = (
+            cycle_cross_location not in target_plot["cycle_ids"]
+        )
         assertions = [
             evidence["forecast_foreign_parent_excluded"],
             evidence["forecast_foreign_output_excluded"],
             evidence["forecast_target_retained"],
             evidence["resource_foreign_cycle_excluded"],
+            evidence["bed_area_counted_once_per_plot"],
+            evidence["bed_cycles_same_location_retained"],
+            evidence["bed_cycle_cross_location_excluded"],
         ]
         evidence["assertions"] = {f"assertion_{index + 1}": passed for index, passed in enumerate(assertions)}
         evidence["result"] = "passed" if all(assertions) else "failed"

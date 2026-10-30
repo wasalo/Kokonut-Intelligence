@@ -73,13 +73,19 @@ def ingestion_pipeline():
     gnosis_future = _submit_job("gnosis")
 
     # Wait for all ingestion
-    weather_future.result()
-    market_future.result()
-    eas_future.result()
-    rpc_future.result()
-    gnosis_future.result()
+    job_results = {
+        "weather": weather_future.result(),
+        "market_data": market_future.result(),
+        "eas": eas_future.result(),
+        "rpc": rpc_future.result(),
+        "gnosis": gnosis_future.result(),
+    }
 
-    return {"status": "success", "ingestion": "complete"}
+    return {
+        "status": "success",
+        "ingestion": "complete",
+        "jobs": job_results,
+    }
 
 
 @flow(name="monitoring-pipeline", retries=1)
@@ -194,9 +200,15 @@ def scheduled_daily():
     from .market_data import market_data_flow
     from .metrics import metrics_computation_flow
 
-    market_data_flow()
-    metrics_computation_flow()
-    credit_adjustment_flow()
+    market_data_result = market_data_flow()
+    metrics_result = metrics_computation_flow()
+    credit_adjustment_result = credit_adjustment_flow()
+    return {
+        "status": "success",
+        "market_data": market_data_result,
+        "metrics": metrics_result,
+        "credit_adjustment": credit_adjustment_result,
+    }
 
 
 @flow(name="scheduled-weekly", retries=1)

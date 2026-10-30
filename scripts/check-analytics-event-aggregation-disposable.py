@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from services.analytics.demand import compute_demand_forecast, compute_demand_trends  # noqa: E402
 from services.analytics.economic_performance import compute_revenue_per_acre  # noqa: E402
 from services.analytics.gap_closures import compute_weather_growth_correlation  # noqa: E402
 
@@ -182,6 +183,7 @@ def main() -> int:
         crop_id = str(uuid.uuid4())
         cycle_id = str(uuid.uuid4())
         empty_cycle_id = str(uuid.uuid4())
+        foreign_cycle_id = str(uuid.uuid4())
         conn.execute(
             """
             CREATE TABLE crop (id UUID PRIMARY KEY, name TEXT NOT NULL);
@@ -194,6 +196,16 @@ def main() -> int:
                 status TEXT NOT NULL,
                 area_planted NUMERIC,
                 area_unit TEXT
+            );
+            CREATE TABLE sales_event (
+                id UUID PRIMARY KEY, location_id UUID NOT NULL, crop_cycle_id UUID NOT NULL,
+                sale_date DATE NOT NULL, quantity NUMERIC NOT NULL, total_amount NUMERIC NOT NULL,
+                price_per_unit NUMERIC NOT NULL, status TEXT NOT NULL
+            );
+            CREATE TABLE buyer_demand_signal (
+                id UUID PRIMARY KEY, location_id UUID NOT NULL, crop_id UUID,
+                quantity_requested NUMERIC NOT NULL, price_offered NUMERIC NOT NULL,
+                status TEXT NOT NULL, commitment_level TEXT NOT NULL
             );
             CREATE TABLE harvest_event (
                 id UUID PRIMARY KEY,
@@ -238,7 +250,23 @@ def main() -> int:
                 ('{cycle_id}'::uuid, '{location_a}'::uuid, '{crop_id}'::uuid,
                  'Target cycle', DATE '2026-01-25', 'harvested', 1, 'acres'),
                 ('{empty_cycle_id}'::uuid, '{location_a}'::uuid, '{crop_id}'::uuid,
-                 'No-event cycle', DATE '2026-02-01', 'completed', 2, 'acres')
+                 'No-event cycle', DATE '2026-02-01', 'completed', 2, 'acres'),
+                ('{foreign_cycle_id}'::uuid, '{location_b}'::uuid, '{crop_id}'::uuid,
+                 'Foreign cycle', DATE '2026-04-01', 'completed', 3, 'acres')
+            """
+        )
+        sale_ids = [str(uuid.uuid4()) for _ in range(5)]
+        conn.execute(
+            f"""
+            INSERT INTO sales_event
+                (id, location_id, crop_cycle_id, sale_date, quantity, total_amount,
+                 price_per_unit, status)
+            VALUES
+                ('{sale_ids[0]}'::uuid, '{location_a}'::uuid, '{cycle_id}'::uuid, DATE '2026-01-12', 10, 100, 10, 'verified'),
+                ('{sale_ids[1]}'::uuid, '{location_a}'::uuid, '{cycle_id}'::uuid, DATE '2026-02-12', 20, 200, 10, 'verified'),
+                ('{sale_ids[2]}'::uuid, '{location_a}'::uuid, '{cycle_id}'::uuid, DATE '2026-03-12', 30, 300, 10, 'published'),
+                ('{sale_ids[3]}'::uuid, '{location_a}'::uuid, '{foreign_cycle_id}'::uuid, DATE '2026-04-12', 1000, 10000, 10, 'verified'),
+                ('{sale_ids[4]}'::uuid, '{location_b}'::uuid, '{cycle_id}'::uuid, DATE '2026-05-12', 2000, 20000, 10, 'verified')
             """
         )
         harvest_a, harvest_b, harvest_mismatch = (
@@ -317,6 +345,16 @@ def main() -> int:
         assert revenue_result["total_revenue_usd"] == 300.0, revenue_result
         assert revenue_result["total_expenses_usd"] == 60.0, revenue_result
 
+        stage = "demand_event_cycle_location_assertions"
+        demand_forecast = compute_demand_forecast(conn, location_a)
+        demand_trends = compute_demand_trends(conn, location_a)
+        assert demand_forecast["total_crops_forecasted"] == 1, demand_forecast
+        assert demand_forecast["forecasts"][0]["data_points"] == 3, demand_forecast
+        assert demand_forecast["forecasts"][0]["historical_avg_monthly"] == 20.0, demand_forecast
+        assert demand_trends["total_crops_analyzed"] == 1, demand_trends
+        assert demand_trends["trends"][0]["avg_monthly_demand"] == 20.0, demand_trends
+        assert demand_trends["trends"][0]["trend_direction"] == "increasing", demand_trends
+
         evidence.update(
             {
                 "result": "passed",
@@ -326,6 +364,7 @@ def main() -> int:
                     "weather_observations": 3,
                     "revenue_events": 3,
                     "expense_events": 4,
+                    "sales_events": 5,
                 },
                 "weather_growth": {
                     "harvest_kg": weather["total_harvest_kg"],
@@ -345,6 +384,12 @@ def main() -> int:
                         and empty["total_expenses_usd"] == 0.0
                     ),
                     "cross_location_events_excluded": True,
+                },
+                "demand": {
+                    "historical_average_quantity": demand_forecast["forecasts"][0]["historical_avg_monthly"],
+                    "data_points": demand_forecast["forecasts"][0]["data_points"],
+                    "trend_average_quantity": demand_trends["trends"][0]["avg_monthly_demand"],
+                    "cross_location_cycle_event_excluded": True,
                 },
             }
         )

@@ -114,10 +114,11 @@ def compute_soil_nutrient_input_correlation(conn, location_id: str) -> dict[str,
               AND status IS DISTINCT FROM 'rejected'
         ) ss_last ON ss_first.plot_id = ss_last.plot_id
         JOIN plot p ON p.id = ss_first.plot_id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = %s
         WHERE ss_first.rn_first = 1 AND ss_last.rn_last = 1
           AND ss_first.plot_id = ss_last.plot_id
         """,
-        (location_id, location_id),
+        (location_id, location_id, location_id),
     )
     soil_rows = cur.fetchall()
     # Get organic input applications per plot
@@ -132,6 +133,7 @@ def compute_soil_nutrient_input_correlation(conn, location_id: str) -> dict[str,
                MAX(sia.application_date) AS last_application
         FROM soil_input_application sia
         JOIN plot p ON p.id = sia.plot_id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = sia.location_id
         WHERE sia.location_id = %s
           AND sia.status IN ('verified', 'published')
           AND sia.input_type IN ('biochar', 'compost', 'vermicompost', 'leaf_litter')
@@ -208,6 +210,13 @@ def compute_species_richness_per_ha(conn, location_id: str) -> dict[str, Any]:
         FROM species_observation so
         LEFT JOIN plot p ON p.id = so.plot_id
         WHERE so.location_id = %s
+          AND (so.plot_id IS NULL OR EXISTS (
+              SELECT 1
+              FROM plot scoped_plot
+              JOIN farm scoped_farm ON scoped_farm.id = scoped_plot.farm_id
+              WHERE scoped_plot.id = so.plot_id
+                AND scoped_farm.location_id = so.location_id
+          ))
           AND so.status IN ('verified', 'published')
         GROUP BY so.plot_id, p.name, p.area
         """,
@@ -223,6 +232,13 @@ def compute_species_richness_per_ha(conn, location_id: str) -> dict[str, Any]:
         FROM species_observation so
         LEFT JOIN plot p ON p.id = so.plot_id
         WHERE so.location_id = %s
+          AND (so.plot_id IS NULL OR EXISTS (
+              SELECT 1
+              FROM plot scoped_plot
+              JOIN farm scoped_farm ON scoped_farm.id = scoped_plot.farm_id
+              WHERE scoped_plot.id = so.plot_id
+                AND scoped_farm.location_id = so.location_id
+          ))
           AND so.status IN ('verified', 'published')
         """,
         (location_id,),

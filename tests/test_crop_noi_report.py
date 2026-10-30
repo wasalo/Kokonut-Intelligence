@@ -94,6 +94,8 @@ def test_crop_noi_report_projects_canonical_view_components_and_period_scope():
     query = connection.cursor_instance.query.lower()
     assert "from v_crop_cycle_noi v" in query
     assert "v.location_id = %s" in query
+    assert "cc.location_id = v.location_id" in query
+    assert "f.location_id = cc.location_id" in query
     assert "cc.planting_date >= %s::date" in query
     assert "coalesce(cc.actual_harvest_date, cc.expected_harvest_date) <= %s::date" in query
     assert "from crop_cost_allocation" not in query

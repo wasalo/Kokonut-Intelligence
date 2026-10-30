@@ -35,6 +35,20 @@ def test_kokonut_types_import():
     assert opts.limit == 10
 
 
+def test_list_options_meta_typing_matches_directus_contract():
+    from typing import get_args, get_type_hints
+
+    from kokonut.types import DirectusListMeta, ListOptions
+
+    assert DirectusListMeta.__args__ == ("total_count", "filter_count")
+    meta_hint = get_type_hints(ListOptions)["meta"]
+    assert DirectusListMeta in get_args(meta_hint)
+    assert ListOptions(limit=25, meta="filter_count").to_params() == {
+        "limit": 25,
+        "meta": "filter_count",
+    }
+
+
 def test_carbon_credit_ledger_types_are_read_models_with_sql_lifecycles():
     from decimal import Decimal
 
