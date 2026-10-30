@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date
 
 from services.analytics.vision_mission import (
     approve_statement,
@@ -20,14 +21,35 @@ def _out(data):
     print_json(data)
 
 
+def _validate_date(value, option):
+    if value is None:
+        return None
+    try:
+        parsed = date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{option} must be a valid YYYY-MM-DD date") from exc
+    if parsed.isoformat() != value:
+        raise ValueError(f"{option} must use canonical YYYY-MM-DD format")
+    return value
+
+
+def _parse_date_argument(value):
+    try:
+        return _validate_date(value, "date")
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
 def cmd_create(args):
+    effective_date = _validate_date(args.effective_date, "--effective-date")
+    review_date = _validate_date(args.review_date, "--review-date")
     data = create_statement(
         args.text,
         statement_type=args.type,
         entity_type=args.entity_type or "platform",
         entity_id=args.entity_id,
-        effective_date=args.effective_date,
-        review_date=args.review_date,
+        effective_date=effective_date,
+        review_date=review_date,
     )
     _out(data)
 
@@ -78,19 +100,19 @@ def build_parser(p):
     c.add_argument("--type", required=True, choices=["vision", "mission", "values"])
     c.add_argument("--entity-type", default="platform")
     c.add_argument("--entity-id", default=None)
-    c.add_argument("--effective-date", default=None)
-    c.add_argument("--review-date", default=None)
+    c.add_argument("--effective-date", type=_parse_date_argument, default=None)
+    c.add_argument("--review-date", type=_parse_date_argument, default=None)
     c.set_defaults(func=cmd_create)
 
     g = sub.add_parser("get", help="Get statement")
     g.add_argument("id")
     g.set_defaults(func=cmd_get)
 
-    l = sub.add_parser("list", help="List statements")
-    l.add_argument("--entity-type", default=None)
-    l.add_argument("--type", default=None, choices=["vision", "mission", "values"])
-    l.add_argument("--status", default=None)
-    l.set_defaults(func=cmd_list)
+    list_parser = sub.add_parser("list", help="List statements")
+    list_parser.add_argument("--entity-type", default=None)
+    list_parser.add_argument("--type", default=None, choices=["vision", "mission", "values"])
+    list_parser.add_argument("--status", default=None)
+    list_parser.set_defaults(func=cmd_list)
 
     a = sub.add_parser("approve", help="Approve statement")
     a.add_argument("id")

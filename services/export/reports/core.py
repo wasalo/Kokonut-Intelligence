@@ -480,7 +480,9 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
                 fo.period_end,
                 fo.calculated_at
             FROM forecast_output fo
-            JOIN forecast_scenario fs ON fo.scenario_id = fs.id
+            JOIN forecast_scenario fs
+              ON fo.scenario_id = fs.id
+             AND fs.location_id = fo.location_id
             WHERE fo.location_id = %s
             ORDER BY fs.scenario_type, fo.metric_name
         """,

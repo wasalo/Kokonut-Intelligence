@@ -1,6 +1,6 @@
 # Kokonut Kernel refactor TODO
 
-Updated: 29 October 2026. This is the active cross-phase work queue for the
+Updated: 30 October 2026. This is the active cross-phase work queue for the
 owner-provided [architecture implementation plan](implementation-plan-alignment.md).
 The detailed, historically preserved acceptance records remain in
 [batches.md](batches.md); this file groups their remaining gates into work that
@@ -3866,3 +3866,18 @@ Evidence for the completed source continuations:
 
 Current checklist: 668 checked / 16 open. Strict private Gateway response
 contracts total 221.
+
+## Completed — location lineage and Vision/Mission date preflight, 30 October
+
+- [x] Match forecast outputs to parent scenarios by both ID and location, and resource-consumption rows to crop cycles by location.
+- [x] Verify the location joins with focused mock-cursor tests and four synthetic assertions on isolated disposable PostgreSQL 16.
+- [x] Reject malformed, impossible, and noncanonical Vision/Mission dates before database acquisition; preserve canonical strings and omitted values.
+- [x] Pass the grouped 149-test/63-subtest regression selection and repository static/inventory checks; record rollback and acceptance evidence.
+
+Evidence: `builds/2026-10-30-recovery/kernel-source-lineage-and-date-preflight.json`.
+The portfolio-scope migration 689 replay also passed all six assertions on a
+separate network-disabled disposable PostgreSQL 16 container. Candidate and
+legacy databases and external providers were untouched.
+
+Current checklist: 672 checked / 16 open. Strict private Gateway response
+contracts remain 221.

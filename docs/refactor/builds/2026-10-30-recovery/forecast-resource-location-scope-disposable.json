@@ -1,0 +1,30 @@
+{
+  "assertions": {
+    "assertion_1": true,
+    "assertion_2": true,
+    "assertion_3": true,
+    "assertion_4": true
+  },
+  "candidate_or_legacy_modified": false,
+  "cleanup": "passed",
+  "completed_at": "2026-10-30T05:57:21.088735+00:00",
+  "database": "disposable PostgreSQL 16",
+  "external_provider_contacted": false,
+  "forecast_foreign_output_excluded": true,
+  "forecast_foreign_parent_excluded": true,
+  "forecast_metrics": [
+    "target_metric"
+  ],
+  "forecast_target_retained": true,
+  "network_isolated": true,
+  "resource_foreign_cycle_excluded": true,
+  "resource_rows": [
+    {
+      "crop_name": "Corn",
+      "resource_type": "water",
+      "total_quantity": 12.0,
+      "unit": "liter"
+    }
+  ],
+  "result": "passed"
+}

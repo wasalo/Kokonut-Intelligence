@@ -841,7 +841,7 @@
       "report_type": "climate_impact",
       "callable": "generate_climate_impact",
       "source_file": "services/export/reports/core.py",
-      "source_line": 530,
+      "source_line": 532,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 4,
       "static_positional_arity_site_count": 4,
@@ -855,28 +855,28 @@
       "helper_calls": [
         {
           "callable": "compute_carbon_balance",
-          "line": 605,
+          "line": 607,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_ghg_emissions",
-          "line": 606,
-          "location_id_name_visible_in_arguments": true
-        },
-        {
-          "callable": "compute_regenerative_score",
           "line": 608,
           "location_id_name_visible_in_arguments": true
         },
         {
+          "callable": "compute_regenerative_score",
+          "line": 610,
+          "location_id_name_visible_in_arguments": true
+        },
+        {
           "callable": "compute_tree_carbon",
-          "line": 607,
+          "line": 609,
           "location_id_name_visible_in_arguments": true
         }
       ],
       "queries": [
         {
-          "line": 552,
+          "line": 554,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -899,7 +899,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 557,
+          "line": 559,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -922,7 +922,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 579,
+          "line": 581,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -945,7 +945,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 591,
+          "line": 593,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2111,7 +2111,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 513,
+          "line": 515,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

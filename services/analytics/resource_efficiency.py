@@ -100,7 +100,9 @@ def compute_resource_consumption_by_crop(conn, location_id: str) -> dict[str, An
                cc.id AS cycle_id, c.name AS crop_name,
                SUM(rc.quantity) AS total_quantity
         FROM resource_consumption rc
-        JOIN crop_cycle cc ON cc.id = rc.crop_cycle_id
+        JOIN crop_cycle cc
+          ON cc.id = rc.crop_cycle_id
+         AND cc.location_id = rc.location_id
         JOIN crop c ON c.id = cc.crop_id
         WHERE rc.location_id = %s AND rc.status IN ('verified', 'published')
         GROUP BY rc.resource_type, rc.unit, cc.id, c.name

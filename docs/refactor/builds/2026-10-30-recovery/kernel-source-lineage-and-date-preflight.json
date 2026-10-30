@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/kernel-next-sprint-plan",
+  "checked_at_utc": "2026-10-30T05:59:00Z",
+  "scope": [
+    "Migration 689 portfolio-wide metric semantics",
+    "Extension Learning and Traceability private pagination contracts",
+    "Current-weather provider-secret redaction on audit failure",
+    "EventBus lease and handler-timeout boundaries",
+    "Forecast and resource-consumption location lineage",
+    "Vision/Mission CLI date preflight"
+  ],
+  "focused_tests": {
+    "command": "python3 -m pytest tests/test_prm_outcome_correlation_projection.py tests/test_gateway_extension_learning_pagination_openapi.py tests/test_gateway_extension_learning_reads.py tests/test_gateway_traceability_pagination_openapi.py tests/test_gateway_traceability.py tests/test_weather_worker.py tests/test_event_bus_durability.py tests/test_event_worker_recovery.py tests/test_forecast_resource_scope.py tests/test_vision_mission_cli_dates.py -q",
+    "passed": 149,
+    "subtests_passed": 63
+  },
+  "migration_689": {
+    "result": "passed",
+    "database": "disposable PostgreSQL 16",
+    "migration_replayed": true,
+    "network_mode": "none",
+    "host_port_published": false,
+    "assertions_passed": 6,
+    "evidence": "prm-portfolio-metric-scope-disposable.json"
+  },
+  "location_lineage": {
+    "result": "passed",
+    "database": "disposable PostgreSQL 16",
+    "network": "internal, isolated, no external route",
+    "assertions_passed": 4,
+    "assertions": [
+      "forecast output with another location's parent scenario is excluded",
+      "forecast output from another location is excluded",
+      "matching-location forecast output is retained",
+      "resource consumption attached to another location's crop cycle is excluded"
+    ],
+    "evidence": "forecast-resource-location-scope-disposable.json"
+  },
+  "vision_mission_cli_dates": {
+    "result": "passed",
+    "focused_tests": 8,
+    "invalid_impossible_and_noncanonical_values_rejected_before_service_access": true,
+    "canonical_values_passed_unchanged": true,
+    "omitted_values_remain_null": true,
+    "evidence": "vision-mission-date-preflight.json"
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_generator_query_scope_inventory": "passed",
+    "runtime_sql_inventory": "passed",
+    "provider_boundaries": "passed (17 vendor import sites)",
+    "dependency_groups": "passed (14 groups, 33 requirements)",
+    "capability_matrix": "passed (67 rows)",
+    "git_diff_check": "passed"
+  },
+  "external_providers_contacted": false,
+  "candidate_or_legacy_databases_touched": false,
+  "rollback": "Revert the source fixes, tests, generated inventory updates, evidence, and progress records. The isolated PostgreSQL containers were cleaned up; no candidate or legacy data rollback is required.",
+  "prior_pushed_head_checks": {
+    "head": "892944b120e290941c8cb7eff5f84346ee5823ee",
+    "security_run": 733,
+    "security_result": "passed",
+    "ci_run": 1009,
+    "ci_result_at_check": "in_progress"
+  }
+}
