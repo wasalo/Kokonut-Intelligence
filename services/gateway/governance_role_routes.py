@@ -1100,6 +1100,166 @@ class GovernanceTacticalSessionCreateError(BaseModel):
     error: str
 
 
+class GovernanceDefinitionLifecycleRequest(BaseModel):
+    """Strict request envelope for an audited circle or role transition."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    reason: str = Field(min_length=1, max_length=2000, strict=True)
+
+    @field_validator("reason")
+    @classmethod
+    def _reason_must_be_nonblank(cls, value: str) -> str:
+        if not value.strip() or "\x00" in value:
+            raise ValueError("reason must contain 1 to 2000 valid characters")
+        return value
+
+
+class _GovernanceDefinitionLifecycleActionResult(BaseModel):
+    """Exact eight-field migration-442 result, including the private actor ID."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    entity_type: Literal["circle", "role"]
+    entity_id: _GovernanceResponseUUID
+    action: Literal["submit", "approve", "reject", "activate", "suspend", "retire"]
+    prior_status: Literal[
+        "draft", "submitted", "approved", "active", "suspended", "rejected", "retired"
+    ]
+    resulting_status: Literal[
+        "draft", "submitted", "approved", "active", "suspended", "rejected", "retired"
+    ]
+    actor_party_id: _GovernanceResponseUUID
+    created_at: AwareDatetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def _parse_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("governance lifecycle timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("governance lifecycle timestamp must include a timezone")
+        return value
+
+
+class _GovernanceDefinitionLifecycleResponseBase(BaseModel):
+    """Public seven-field lifecycle receipt without the acting-party identity."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    entity_type: Literal["circle", "role"]
+    entity_id: _GovernanceResponseUUID
+    action: Literal["submit", "approve", "reject", "activate", "suspend", "retire"]
+    prior_status: Literal[
+        "draft", "submitted", "approved", "active", "suspended", "rejected", "retired"
+    ]
+    resulting_status: Literal[
+        "draft", "submitted", "approved", "active", "suspended", "rejected", "retired"
+    ]
+    created_at: AwareDatetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def _parse_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("governance lifecycle timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("governance lifecycle timestamp must include a timezone")
+        return value
+
+
+class GovernanceCircleSubmittedResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["circle"]
+    action: Literal["submit"]
+    prior_status: Literal["draft"]
+    resulting_status: Literal["submitted"]
+
+
+class GovernanceCircleRejectedResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["circle"]
+    action: Literal["reject"]
+    prior_status: Literal["draft", "submitted"]
+    resulting_status: Literal["rejected"]
+
+
+class GovernanceCircleActivatedResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["circle"]
+    action: Literal["activate"]
+    prior_status: Literal["submitted"]
+    resulting_status: Literal["active"]
+
+
+class GovernanceCircleSuspendedResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["circle"]
+    action: Literal["suspend"]
+    prior_status: Literal["active"]
+    resulting_status: Literal["suspended"]
+
+
+class GovernanceCircleRetiredResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["circle"]
+    action: Literal["retire"]
+    prior_status: Literal["active", "suspended"]
+    resulting_status: Literal["retired"]
+
+
+class GovernanceRoleSubmittedResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["role"]
+    action: Literal["submit"]
+    prior_status: Literal["draft"]
+    resulting_status: Literal["submitted"]
+
+
+class GovernanceRoleApprovedResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["role"]
+    action: Literal["approve"]
+    prior_status: Literal["submitted"]
+    resulting_status: Literal["approved"]
+
+
+class GovernanceRoleRejectedResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["role"]
+    action: Literal["reject"]
+    prior_status: Literal["draft", "submitted"]
+    resulting_status: Literal["rejected"]
+
+
+class GovernanceRoleActivatedResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["role"]
+    action: Literal["activate"]
+    prior_status: Literal["approved"]
+    resulting_status: Literal["active"]
+
+
+class GovernanceRoleSuspendedResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["role"]
+    action: Literal["suspend"]
+    prior_status: Literal["active"]
+    resulting_status: Literal["suspended"]
+
+
+class GovernanceRoleRetiredResponse(_GovernanceDefinitionLifecycleResponseBase):
+    entity_type: Literal["role"]
+    action: Literal["retire"]
+    prior_status: Literal["active", "suspended"]
+    resulting_status: Literal["retired"]
+
+
+class GovernanceDefinitionLifecycleError(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str
+
+
 def register_governance_role_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -1969,14 +2129,24 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers=headers,
             )
         try:
+            action_request = GovernanceDefinitionLifecycleRequest.model_validate(payload)
+            requested_location_id = str(UUID(location_id))
+            requested_entity_id = str(UUID(entity_id))
+        except (ValidationError, TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Governance definition action request is invalid"},
+                headers=headers,
+            )
+        try:
             result = await run_in_threadpool(
                 transition_governance_definition,
                 request.state.operator_session.operator.operator_id,
-                location_id,
+                requested_location_id,
                 entity_type,
-                entity_id,
+                requested_entity_id,
                 action,
-                payload,
+                action_request.model_dump(mode="json"),
             )
         except (
             TenantContextDenied,
@@ -2028,7 +2198,33 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Governance definition action unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+        try:
+            action_result = _GovernanceDefinitionLifecycleActionResult.model_validate(result)
+            if (
+                action_result.entity_type != entity_type
+                or action_result.entity_id != UUID(entity_id)
+                or action_result.action != action
+            ):
+                raise ValueError("Governance definition result does not match its route")
+            response_model = definition_action_response_models[(entity_type, action)]
+            response = response_model.model_validate(
+                action_result.model_dump(mode="python", exclude={"actor_party_id"})
+            )
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_definitions").warning(
+                "Governance definition action response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance definition action unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="python")), headers=headers
+        )
 
     def circle_action_endpoint(action):
         async def endpoint(request: Request, location_id: str, circle_id: str):
@@ -2165,20 +2361,104 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             name=f"update_governance_{route_name}",
         )
 
+    definition_action_response_models = {
+        ("circle", "submit"): GovernanceCircleSubmittedResponse,
+        ("circle", "reject"): GovernanceCircleRejectedResponse,
+        ("circle", "activate"): GovernanceCircleActivatedResponse,
+        ("circle", "suspend"): GovernanceCircleSuspendedResponse,
+        ("circle", "retire"): GovernanceCircleRetiredResponse,
+        ("role", "submit"): GovernanceRoleSubmittedResponse,
+        ("role", "approve"): GovernanceRoleApprovedResponse,
+        ("role", "reject"): GovernanceRoleRejectedResponse,
+        ("role", "activate"): GovernanceRoleActivatedResponse,
+        ("role", "suspend"): GovernanceRoleSuspendedResponse,
+        ("role", "retire"): GovernanceRoleRetiredResponse,
+    }
+    definition_action_error_responses = {
+        status: {
+            "model": GovernanceDefinitionLifecycleError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The governance definition action request is invalid.",
+            403: "The operator lacks an active exact-location action grant.",
+            404: "Operator OIDC is disabled or the definition is unavailable.",
+            409: "The definition lifecycle conflicts with current state.",
+            500: "The lifecycle result failed its response contract.",
+            503: "The governance definition action is unavailable.",
+        }.items()
+    }
+
     for circle_action in ("submit", "reject", "activate", "suspend", "retire"):
+        response_model = definition_action_response_models[("circle", circle_action)]
         router.add_api_route(
             f"/operator/api/governance/{{location_id}}/circles/{{circle_id}}/{circle_action}",
             circle_action_endpoint(circle_action),
             methods=["POST"],
             name=f"transition_governance_circle_{circle_action}",
+            response_model=response_model,
+            responses={
+                200: {
+                    "model": response_model,
+                    "description": (
+                        "The circle transition was recorded or an idempotent retry "
+                        "returned its original receipt. The actor ID is omitted."
+                    ),
+                    "headers": {
+                        "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                        "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                    },
+                },
+                **definition_action_error_responses,
+            },
+            openapi_extra={
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": GovernanceDefinitionLifecycleRequest.model_json_schema()
+                        }
+                    },
+                }
+            },
         )
 
     for role_action in ("submit", "approve", "reject", "activate", "suspend", "retire"):
+        response_model = definition_action_response_models[("role", role_action)]
         router.add_api_route(
             f"/operator/api/governance/{{location_id}}/roles/{{role_id}}/{role_action}",
             role_action_endpoint(role_action),
             methods=["POST"],
             name=f"transition_governance_role_{role_action}",
+            response_model=response_model,
+            responses={
+                200: {
+                    "model": response_model,
+                    "description": (
+                        "The role transition was recorded or an idempotent retry "
+                        "returned its original receipt. The actor ID is omitted."
+                    ),
+                    "headers": {
+                        "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                        "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                    },
+                },
+                **definition_action_error_responses,
+            },
+            openapi_extra={
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": GovernanceDefinitionLifecycleRequest.model_json_schema()
+                        }
+                    },
+                }
+            },
         )
 
     @router.get(

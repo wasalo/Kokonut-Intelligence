@@ -63,6 +63,41 @@ CREATED = {
 }
 
 
+def _experiment_create_client(monkeypatch, create):
+    from services.gateway import solution_lifecycle_actions
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    monkeypatch.setattr(
+        solution_lifecycle_actions, "create_location_solution_experiment", create
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
+
+
+def _experiment_create_path(location_id=LOCATION_ID, solution_id=SOLUTION_ID):
+    return (
+        f"/operator/api/solution-lifecycle/{location_id}/solutions/"
+        f"{solution_id}/experiments"
+    )
+
+
 class _Connection:
     def __init__(self, row=None):
         self.row = row
@@ -303,4 +338,100 @@ def test_experiment_create_route_is_strict_no_store_and_forwards_operator(monkey
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == CREATED
     assert malformed.status_code == 400
+    assert malformed.headers["cache-control"] == "no-store"
+    assert malformed.headers["vary"] == "Cookie"
     assert calls == [((OPERATOR_ID, LOCATION_ID, SOLUTION_ID, REQUEST_ID, PROTOCOL, True), {})]
+
+
+def test_experiment_create_openapi_declares_strict_request_response_and_cache_contract(monkeypatch):
+    app = _experiment_create_client(monkeypatch, lambda *_args: CREATED)
+    document = app.openapi()
+    operation = document["paths"][
+        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/experiments"
+    ]["post"]
+
+    request_body = operation["requestBody"]
+    assert request_body["required"] is True
+    request_schema = request_body["content"]["application/json"]["schema"]
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["required"]) == {"request_id", "protocol", "acknowledged"}
+    assert set(request_schema["properties"]) == {"request_id", "protocol", "acknowledged"}
+
+    for status_code in ("200", "201"):
+        response = operation["responses"][status_code]
+        response_schema_ref = response["content"]["application/json"]["schema"]["$ref"]
+        response_schema = document["components"]["schemas"][response_schema_ref.rsplit("/", 1)[1]]
+        assert response_schema["additionalProperties"] is False
+        assert set(response_schema["required"]) == {
+            "experiment_id", "solution_id", "protocol_version",
+            "experiment_status", "experiment_created_at", "replayed",
+        }
+        assert set(response_schema["properties"]) == set(response_schema["required"])
+        assert {"Cache-Control", "Vary"}.issubset(response["headers"])
+
+    assert {"200", "201", "400", "403", "404", "409", "500", "503"}.issubset(
+        operation["responses"]
+    )
+
+
+def test_experiment_create_replay_returns_current_experiment_state_with_http_200(monkeypatch):
+    replayed = {
+        **CREATED,
+        "protocol_version": "v1",
+        "experiment_status": "active",
+        "replayed": True,
+    }
+    calls = []
+
+    def create(*args, **kwargs):
+        calls.append((args, kwargs))
+        return replayed
+
+    app = _experiment_create_client(monkeypatch, create)
+    with TestClient(app) as client:
+        response = client.post(_experiment_create_path(), json=BODY)
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == replayed
+    assert response.json()["experiment_status"] == "active"
+    assert calls == [((OPERATOR_ID, LOCATION_ID, SOLUTION_ID, REQUEST_ID, PROTOCOL, True), {})]
+
+
+def test_experiment_create_response_must_match_solution_path_and_is_sanitized(monkeypatch):
+    mismatched = {**CREATED, "solution_id": str(uuid4())}
+    calls = []
+
+    def create(*args, **kwargs):
+        calls.append((args, kwargs))
+        return mismatched
+
+    app = _experiment_create_client(monkeypatch, create)
+    with TestClient(app) as client:
+        response = client.post(_experiment_create_path(), json=BODY)
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == {
+        "error": "Location solution experiment creation unavailable"
+    }
+    assert str(mismatched["solution_id"]) not in response.text
+    assert calls == [((OPERATOR_ID, LOCATION_ID, SOLUTION_ID, REQUEST_ID, PROTOCOL, True), {})]
+
+
+def test_experiment_create_rejects_non_v1_or_non_draft_new_receipt(monkeypatch):
+    for invalid_result in (
+        {**CREATED, "protocol_version": "v2"},
+        {**CREATED, "experiment_status": "submitted"},
+    ):
+        app = _experiment_create_client(monkeypatch, lambda *_args, result=invalid_result: result)
+        with TestClient(app) as client:
+            response = client.post(_experiment_create_path(), json=BODY)
+
+        assert response.status_code == 500
+        assert response.headers["cache-control"] == "no-store"
+        assert response.json() == {
+            "error": "Location solution experiment creation unavailable"
+        }

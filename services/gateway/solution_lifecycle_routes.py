@@ -265,6 +265,78 @@ class SolutionLifecycleGateCreateResponse(BaseModel):
             raise ValueError("A newly created gate must remain draft")
         return self
 
+
+class SolutionLifecycleExperimentCreateRequest(BaseModel):
+    """Strict outer contract for creating an immutable experiment protocol draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _SolutionResponseUUID
+    protocol: dict[str, Any]
+    acknowledged: Literal[True]
+
+    @model_validator(mode="after")
+    def validate_protocol_envelope(self):
+        allowed = {
+            "hypothesis", "null_hypothesis", "baseline_definition",
+            "treatment_definition", "comparator_definition", "unit_of_analysis",
+            "sample_plan", "primary_metric_keys", "secondary_metric_keys",
+            "minimum_detectable_effect", "confidence_target", "duration_days",
+            "stopping_rules", "rollback_plan", "safety_boundaries",
+            "consent_requirements",
+        }
+        if not self.protocol or not set(self.protocol).issubset(allowed):
+            raise ValueError("Experiment protocol contains unsupported fields")
+        try:
+            encoded = json.dumps(
+                self.protocol,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Experiment protocol must contain finite JSON data") from exc
+        if len(encoded) > 65_536:
+            raise ValueError("Experiment protocol exceeds the 64 KiB limit")
+        return self
+
+
+class SolutionLifecycleExperimentCreateResponse(BaseModel):
+    """Exact six-field result returned by migration 506."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    experiment_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    protocol_version: str = Field(min_length=1, max_length=40, strict=True)
+    experiment_status: Literal[
+        "draft", "submitted", "protocol_approved", "baseline_ready", "active",
+        "paused", "completed", "results_review", "validated", "invalidated",
+        "inconclusive", "requires_replication",
+    ]
+    experiment_created_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
+    @field_validator("experiment_created_at", mode="before")
+    @classmethod
+    def parse_experiment_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("Experiment creation timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("Experiment creation timestamp must include a timezone")
+        return value
+
+    @model_validator(mode="after")
+    def validate_new_experiment_draft(self):
+        if not self.replayed and (
+            self.protocol_version != "v1" or self.experiment_status != "draft"
+        ):
+            raise ValueError("A newly created experiment must use protocol v1 in draft")
+        return self
+
 _MAX_POSTGRES_BIGINT = 9_223_372_036_854_775_807
 _SOLUTION_LIFECYCLE_MAX_OFFSET = 10_000
 _SOLUTION_CONFIGURATION_COMPONENTS_MAX_BYTES = 65_536
@@ -1567,6 +1639,25 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         }.items()
     }
 
+    experiment_create_error_responses = {
+        status: {
+            "model": SolutionLifecycleCreateError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The experiment protocol create request is invalid.",
+            403: "The operator lacks a current exact-location create grant.",
+            404: "The location-origin solution was not found or operator OIDC is disabled.",
+            409: "The request identifier conflicts or the solution state changed.",
+            500: "The experiment result failed its response contract.",
+            503: "Experiment creation is unavailable.",
+        }.items()
+    }
+
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/solutions",
         response_model=SolutionLifecycleCreateResponse,
@@ -1846,7 +1937,37 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         )
 
     @router.post(
-        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/experiments"
+        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/experiments",
+        response_model=SolutionLifecycleExperimentCreateResponse,
+        responses={
+            200: {
+                "model": SolutionLifecycleExperimentCreateResponse,
+                "description": "Idempotent replay of the existing experiment-create request.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            201: {
+                "model": SolutionLifecycleExperimentCreateResponse,
+                "description": "A v1 draft experiment protocol was created.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **experiment_create_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": SolutionLifecycleExperimentCreateRequest.model_json_schema()
+                    }
+                },
+            }
+        },
     )
     async def create_solution_experiment(request: Request, location_id: str, solution_id: str):
         if provider is None:
@@ -1859,12 +1980,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             payload = await request.json()
         except Exception:
             return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
-        required_fields = {"request_id", "protocol", "acknowledged"}
-        if (
-            not isinstance(payload, dict)
-            or not required_fields.issubset(payload)
-            or not set(payload).issubset(required_fields)
-        ):
+        try:
+            experiment_request = SolutionLifecycleExperimentCreateRequest.model_validate(payload)
+            operator_id = str(UUID(request.state.operator_session.operator.operator_id))
+            requested_location_id = str(UUID(location_id))
+            requested_solution_id = UUID(solution_id)
+        except (ValidationError, TypeError, ValueError, AttributeError):
             return JSONResponse(
                 status_code=400,
                 content={"error": "Experiment protocol fields are invalid"},
@@ -1873,12 +1994,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         try:
             result = await run_in_threadpool(
                 create_location_solution_experiment,
-                request.state.operator_session.operator.operator_id,
-                location_id,
-                solution_id,
-                payload["request_id"],
-                payload["protocol"],
-                payload["acknowledged"],
+                operator_id,
+                requested_location_id,
+                str(requested_solution_id),
+                str(experiment_request.request_id),
+                experiment_request.protocol,
+                experiment_request.acknowledged,
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -1930,9 +2051,24 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Location solution experiment creation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = SolutionLifecycleExperimentCreateResponse.model_validate(result)
+            if response.solution_id != requested_solution_id:
+                raise ValueError("Experiment result does not match the requested solution")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Location solution experiment response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Location solution experiment creation unavailable"},
+                headers=headers,
+            )
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result.get("replayed") else 201,
+            jsonable_encoder(response.model_dump(mode="python")),
+            status_code=200 if response.replayed else 201,
             headers=headers,
         )
 

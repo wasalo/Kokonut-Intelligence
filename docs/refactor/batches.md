@@ -8816,3 +8816,27 @@ Checklist: 1,994 complete / 25 open (2,019 total); TODO: 622 checked / 16 open. 
 The approved focused selection passes 78 tests. Ruff, Python compilation, `git diff --check`, capability-matrix validation, runtime SQL inventory, provider-boundary checks, and dependency-group checks pass. No database, candidate, legacy, or provider was used; no migration was applied. Rollback reverts the route/projection changes, focused tests, evidence, and progress records; no data rollback is needed. Evidence: [solution-gate and data-stream contracts](builds/2026-10-30-recovery/solution-gate-create-and-data-stream-projection.json).
 
 Checklist: 1,999 complete / 25 open (2,024 total); TODO: 627 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 208. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.
+
+
+### Source continuation — governance lifecycle, experiment create, and timestamp preflights — 30 October 2026
+
+- [x] Complete migration-442 circle/role lifecycle response contracts with route-specific schemas, exact path/action/state binding, and actor-identity minimization.
+- [x] Complete the migration-506 experiment-create contract with strict request/result schemas, solution binding, and draft-create versus current-state replay semantics.
+- [x] Add timezone-aware preflight for management work-item due/SLA values in both CLI and direct service entry points.
+- [x] Add timezone-aware preflight for governance-role assignment review deadlines before connection acquisition.
+- [x] Run the approved combined mock-only Gateway/CLI selection: 79 tests passed.
+- [x] Pass Ruff, Python compilation, `git diff --check`, capability-matrix, runtime SQL inventory, provider-boundary, and dependency-group checks; record evidence.
+
+The migration-442 lifecycle contract selection passes 18 tests, migration-506
+experiment-create passes 34, management work-item preflight passes 17, and
+governance review-deadline preflight passes 10 (79 total). Static and inventory
+checks pass. No database, candidate, legacy service, or provider was used and no
+migration was applied. Rollback reverts the route/CLI contracts, tests, evidence,
+inventory and progress updates; no data rollback is needed. Evidence:
+[governance lifecycle, experiment create, and timestamp preflights](builds/2026-10-30-recovery/governance-experiment-cli-contracts.json).
+
+Checklist: 2,005 complete / 25 open (2,030 total); TODO: 643 checked / 16 open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows; strict private Gateway response contracts total 220.
+Physical Raspberry Pi, populated-data parity, live OIDC/browser, production
+recovery, and broad C1 ACL/RLS acceptance remain open.

@@ -3725,3 +3725,57 @@ candidate, legacy, or provider was used; no migration was applied. Evidence:
 
 Checklist: 627 checked / 16 open. Strict private Gateway response contracts
 total 208.
+
+## Completed — governance definition lifecycle action contracts, 30 October
+
+- [x] Add a strict migration-442 request and exact internal result model for circle and role lifecycle actions.
+- [x] Bind each result to route entity/action/ID and enforce its allowed prior/result status pair; omit `actor_party_id` publicly.
+- [x] Publish route-specific response/request schemas and preserve existing grants, CSRF, HTTP 200 retries, and no-store headers.
+- [x] Add and run focused mock-only Gateway/OpenAPI checks, including malformed results and authorization behavior.
+
+The focused lifecycle module passes 18 tests. The combined approved selection
+passes 79 tests. Ruff, Python compilation, `git diff --check`, capability-matrix
+validation, runtime SQL inventory, provider-boundary checks, and dependency-
+group checks pass. No database, candidate, legacy, or provider was used; no
+migration was applied. Evidence:
+`builds/2026-10-30-recovery/governance-experiment-cli-contracts.json`.
+
+## Completed — experiment create response contract, 30 October
+
+- [x] Define strict migration-506 request-envelope and exact six-field response models, including supported experiment lifecycle states.
+- [x] Bind the result to the requested solution and distinguish new `v1` draft creation from replay of the current experiment state.
+- [x] Publish success/error schemas and preserve exact-location create authorization, CSRF, HTTP 201/200 behavior, and no-store headers.
+- [x] Add and run focused mock-only Gateway/OpenAPI checks, including malformed output and replay behavior.
+
+The experiment-create module passes 34 tests as part of the same 79-test
+selection. The implementation preserves the existing exact-location grant,
+CSRF, create/replay status, and no-store behavior. No database, candidate,
+legacy, or provider was used; no migration was applied. See the evidence above.
+
+## In progress — management work-item timestamp preflight, 30 October
+
+- [x] Parse `--due-at` and `--sla-at` as timezone-aware ISO timestamps before database acquisition.
+- [x] Pass aware `datetime` values to the workbench while preserving omitted values as `None`.
+- [x] Validate direct `workbench.create_work_item(conn=None, ...)` timestamp inputs before `_conn_or` can open PostgreSQL.
+- [x] Add and run focused mock-only CLI checks for invalid/naive values, valid UTC/offset timestamps, and omitted values.
+- [x] Add and run a mock-only direct-service regression proving timestamp validation happens before connection acquisition and aware values remain accepted.
+
+The management CLI/service preflight selection passes 17 tests. Ruff, Python
+compilation, and diff checks pass. No database, candidate, legacy, or provider
+was used for this slice.
+
+Checklist: 636 checked / 20 open. Strict private Gateway response contracts
+remain at 208 until the pending Gateway test gate closes.
+
+## In progress — governance assignment review-deadline preflight, 30 October
+
+- [x] Parse `assignment-add --review-due-at` as an ISO timestamp with an explicit timezone during argparse validation.
+- [x] Forward the parsed aware `datetime` to `assign_role` before any connection is acquired.
+- [x] Add and run focused mock-only CLI checks for malformed, impossible-date, naive, UTC, and offset timestamp cases.
+
+The governance assignment CLI preflight selection passes 10 tests. Ruff,
+Python compilation, and diff checks pass. No database, candidate, legacy, or
+provider was used for this slice.
+
+Checklist: 643 checked / 16 open. Strict private Gateway response contracts
+total 220.
