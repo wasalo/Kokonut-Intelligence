@@ -3507,3 +3507,13 @@ No database/provider, candidate, or legacy state was used; no migration was
 applied. Checklist: 539 checked / 16 open; strict private Gateway response
 contracts total 188. Evidence:
 `builds/2026-10-29-recovery/operating-pilot-resource-review-response-contract.json`.
+
+
+## Completed — independent resource-fulfillment queue response contract, 29 October
+
+- [x] Publish migration 573's exact identity-blind item/page response schema in OpenAPI and runtime validation.
+- [x] Bind location and pagination; validate source bounds, count, continuation, uniqueness, and deterministic SQL order.
+- [x] Preserve `operating_pilot:fulfill`, signed tenant context, read-only access, and sanitized no-store failures without exposing requester/fulfiller identities or receipt data.
+- [x] Run 33 approved mock-only checks and refresh the refactor evidence and inventories.
+
+No database/provider, candidate, or legacy state was used; no migration was applied. Checklist: 543 checked / 16 open; strict private Gateway response contracts total 189. Evidence: `builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-queue-response-contract.json`.

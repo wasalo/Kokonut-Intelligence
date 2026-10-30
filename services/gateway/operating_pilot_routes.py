@@ -1329,6 +1329,12 @@ class OperatingPilotResourceReviewQueueResponse(BaseModel):
         return self
 
 
+class OperatingPilotResourceFulfillmentQueueResponse(
+    OperatingPilotResourceReviewQueueResponse
+):
+    """Strict bounded page for approved requests awaiting fulfillment."""
+
+
 def _bound_resource_review_continuation(result):
     """Hide a SQL continuation whose offset the Gateway will reject."""
     if not isinstance(result, dict):
@@ -5536,7 +5542,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(validated.model_dump(mode="python")), headers=headers
         )
 
-    @router.get("/operator/api/operating-pilot/{location_id}/resource-fulfillment-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/resource-fulfillment-queue",
+        response_model=OperatingPilotResourceFulfillmentQueueResponse,
+    )
     async def location_operating_pilot_resource_fulfillment_queue(
         request: Request,
         location_id: str,
@@ -5595,7 +5604,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource fulfillment queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            result = _bound_resource_review_continuation(result)
+            validated = OperatingPilotResourceFulfillmentQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Resource fulfillment page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource fulfillment response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating resource fulfillment queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/review",

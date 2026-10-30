@@ -8588,3 +8588,16 @@ Checklist: 1,907 complete / 25 open (1,932 total); TODO: 539 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 188. Broader CAP-037 acceptance remains open.
+
+
+### Source continuation — independent resource-fulfillment queue response contract — 29 October 2026
+
+- [x] Publish the migration-573 fulfillment queue's exact five-field item and seven-field page in OpenAPI and runtime validation.
+- [x] Bind location, limit, and offset to the request; enforce exact item counts, unique request IDs, urgency/date/text bounds, and `requested_by DESC, id DESC` order.
+- [x] Clamp continuation at offset 10,000 and reject undeclared requester, fulfiller, or receipt fields.
+- [x] Preserve the exact `operating_pilot:fulfill` grant, signed tenant context, read-only queue behavior, no-store headers, and sanitized malformed-output failures.
+- [x] Run the approved mock-only Gateway/OpenAPI checks and refresh capability, SQL, helper-scope, provider, dependency, and source-lint checks.
+
+The focused Gateway selection passes 33 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-generator helper-scope inventory, provider-boundary and dependency-group checks, and `git diff --check` pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the Gateway model/route, tests, and progress records; no data rollback is needed. Evidence: [resource-fulfillment response contract](builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-queue-response-contract.json).
+
+Checklist: 1,912 complete / 25 open (1,937 total); TODO: 543 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 189. CAP-037 remains prepared; populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open.

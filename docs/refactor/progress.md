@@ -24809,3 +24809,12 @@ legacy state was used; no migration was applied. Checklist: 1,907 complete /
 25 open; TODO: 539 checked / 16 open; strict private Gateway response
 contracts total 188. Evidence:
 [resource-review response](builds/2026-10-29-recovery/operating-pilot-resource-review-response-contract.json).
+
+
+### Progress addendum — independent resource-fulfillment queue contract — 29 October 2026
+
+The migration-573 approved-request queue now has an explicit OpenAPI and runtime response contract. Its five identity-blind item fields and seven page fields are bound to the request location and pagination. Validation enforces field bounds, exact row counts, unique request IDs, `requested_by DESC, id DESC` order, and the 10,000-offset continuation ceiling. The route keeps its exact `operating_pilot:fulfill` grant and signed tenant context; it remains read-only and excludes requester/fulfiller identities and private receipt data. Malformed output gets a generic no-store response.
+
+The approved mock-only Gateway/OpenAPI selection passes 33 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-helper-scope inventory, provider-boundary, dependency-group, and diff checks pass. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: [focused checks](builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-queue-response-contract.json).
+
+Checklist: 1,912 complete / 25 open; TODO: 543 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 189.
