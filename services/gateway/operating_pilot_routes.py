@@ -1263,6 +1263,91 @@ def _bound_demand_review_continuation(result):
     return result
 
 
+class OperatingPilotResourceReviewQueueItem(BaseModel):
+    """Submitted Kernel resource request fields needed for independent review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    resource_request_id: _ResponseUUID
+    resource_type: str = Field(
+        min_length=1,
+        max_length=50,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9 _./-]{0,49}$",
+        strict=True,
+    )
+    description: str = Field(min_length=1, max_length=2000, strict=True)
+    urgency: Literal["low", "medium", "high", "critical"]
+    requested_by: _ResponseDate
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str) -> str:
+        if value != value.strip() or "\x00" in value:
+            raise ValueError("resource description is outside its source bounds")
+        return value
+
+
+class OperatingPilotResourceReviewQueueResponse(BaseModel):
+    """Strict bounded identity-blind review page returned by migration 571."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotResourceReviewQueueItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True
+    )
+    total: int = Field(ge=0, le=_OPERATING_PILOT_SUMMARY_MAX_COUNT, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        expected_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_count:
+            raise ValueError("resource review item count does not match total and page")
+
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("resource review continuation does not match total and page")
+        if self.has_more and self.next_offset != next_page_offset:
+            raise ValueError("resource review next offset does not match page")
+        if not self.has_more and self.next_offset is not None:
+            raise ValueError("terminal resource review page cannot continue")
+
+        request_ids = [item.resource_request_id for item in self.items]
+        if len(request_ids) != len(set(request_ids)):
+            raise ValueError("resource review page contains duplicate requests")
+        order = [(item.requested_by, item.resource_request_id.int) for item in self.items]
+        if order != sorted(order, reverse=True):
+            raise ValueError("resource review page is not in SQL order")
+        return self
+
+
+def _bound_resource_review_continuation(result):
+    """Hide a SQL continuation whose offset the Gateway will reject."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
+
 class OperatingPilotResourceCategoryItem(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -5365,7 +5450,10 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(validated.model_dump(mode="python")), headers=headers
         )
 
-    @router.get("/operator/api/operating-pilot/{location_id}/resource-review-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/resource-review-queue",
+        response_model=OperatingPilotResourceReviewQueueResponse,
+    )
     async def location_operating_pilot_resource_review_queue(
         request: Request,
         location_id: str,
@@ -5424,7 +5512,29 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            result = _bound_resource_review_continuation(result)
+            validated = OperatingPilotResourceReviewQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Resource review page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating resource review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get("/operator/api/operating-pilot/{location_id}/resource-fulfillment-queue")
     async def location_operating_pilot_resource_fulfillment_queue(

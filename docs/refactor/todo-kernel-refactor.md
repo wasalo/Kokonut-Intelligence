@@ -3491,3 +3491,19 @@ No database/provider, candidate, or legacy state was used; no migration was
 applied. Checklist: 535 checked / 16 open; strict private Gateway response
 contracts total 187. Evidence:
 `builds/2026-10-29-recovery/operating-pilot-demand-review-response-contract.json`.
+
+## Completed — independent resource-review response contract, 29 October
+
+- [x] Publish migration 571's exact identity-blind item/page schemas in
+  OpenAPI and enforce its source-defined fields and bounds.
+- [x] Bind location and pagination; validate total, page count, continuation,
+  unique request IDs, and `requested_by DESC, id DESC` ordering.
+- [x] Preserve `operating_pilot:review`, signed tenant context, no-store
+  behavior, and sanitized failures while excluding requester identity/receipts.
+- [x] Run 35 approved mock-only checks and refresh/check refactor evidence and
+  inventories.
+
+No database/provider, candidate, or legacy state was used; no migration was
+applied. Checklist: 539 checked / 16 open; strict private Gateway response
+contracts total 188. Evidence:
+`builds/2026-10-29-recovery/operating-pilot-resource-review-response-contract.json`.

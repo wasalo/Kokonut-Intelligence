@@ -8560,3 +8560,31 @@ Checklist: 1,902 complete / 25 open (1,927 total); TODO: 535 checked / 16
 open. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; strict private Gateway response contracts
 total 187. Broader CAP-037 acceptance remains open.
+
+### Source continuation — independent resource-review queue response contract — 29 October 2026
+
+- [x] Publish strict OpenAPI/runtime schemas for migration 571's five-field
+  resource-review item and seven-field page.
+- [x] Bind the response to the requested location and pagination; validate
+  migration-defined resource type, description, urgency, date, total, row
+  count, unique request IDs, and `requested_by DESC, id DESC` order.
+- [x] Stop continuation at offset 10,000 and exclude requester identity and
+  private receipt fields from the reviewer response.
+- [x] Preserve the exact `operating_pilot:review` grant, signed tenant
+  context, no-store behavior, and sanitized malformed-output failures.
+- [x] Run approved mock-only Gateway/OpenAPI and tenant-read checks; refresh
+  and verify capability, SQL, helper-scope, and source-boundary inventories.
+
+The focused selection passes 35 tests. Default Ruff on changed source/tests,
+source security Ruff, Python compilation, capability-matrix validation,
+runtime SQL and unresolved-write inventories, report-generator helper-scope
+inventory, provider-boundary and dependency-group checks, and `git diff
+--check` pass. No database/provider, candidate, or legacy state was used; no
+migration was applied. Rollback reverts the route/model, tests, and progress
+records; no data rollback is needed. Evidence:
+[resource-review response contract](builds/2026-10-29-recovery/operating-pilot-resource-review-response-contract.json).
+
+Checklist: 1,907 complete / 25 open (1,932 total); TODO: 539 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 188. Broader CAP-037 acceptance remains open.

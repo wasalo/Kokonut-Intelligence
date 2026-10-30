@@ -24787,3 +24787,25 @@ legacy state was used; no migration was applied. Checklist: 1,902 complete /
 25 open; TODO: 535 checked / 16 open; strict private Gateway response
 contracts total 187. Evidence:
 [demand-review response](builds/2026-10-29-recovery/operating-pilot-demand-review-response-contract.json).
+
+### Progress addendum — private resource-review response contract — 29 October 2026
+
+The independent resource-review queue now publishes and validates the exact
+migration-571 projection: request ID, resource type, description, urgency,
+and requested date, plus exact-location and bounded pagination metadata. The
+Gateway binds location/page values to the request, enforces the source-defined
+text/date bounds, exact item counts, unique IDs, and `requested_by DESC, id
+DESC` order, and suppresses continuations beyond offset 10,000. Requester
+identity and private receipt values remain excluded. Existing review grant,
+signed tenant context, and no-store behavior remain unchanged; malformed
+responses receive a generic error.
+
+The approved mock-only route/OpenAPI and tenant-read selection passes 35
+tests. Default Ruff on changed source/tests, source security Ruff, Python
+compilation, capability validation, runtime SQL and unresolved-write
+inventories, report-helper-scope inventory, provider-boundary,
+dependency-group, and diff checks pass. No database/provider, candidate, or
+legacy state was used; no migration was applied. Checklist: 1,907 complete /
+25 open; TODO: 539 checked / 16 open; strict private Gateway response
+contracts total 188. Evidence:
+[resource-review response](builds/2026-10-29-recovery/operating-pilot-resource-review-response-contract.json).
