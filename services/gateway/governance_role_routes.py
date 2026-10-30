@@ -478,6 +478,84 @@ class GovernanceTacticalSessionPageResponse(BaseModel):
         return self
 
 
+class GovernanceTacticalItemCreateRequest(BaseModel):
+    """Strict, location-scoped request for an open tactical item."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    reason: str = Field(min_length=1, max_length=2000, strict=True)
+    session_id: _GovernanceResponseUUID
+    requested_next_action: str = Field(min_length=1, max_length=4000, strict=True)
+    tension_id: _GovernanceResponseUUID | None = None
+    work_item_id: _GovernanceResponseUUID | None = None
+    decision_id: _GovernanceResponseUUID | None = None
+    owner_role_id: _GovernanceResponseUUID | None = None
+    owner_party_id: _GovernanceResponseUUID | None = None
+    priority: int = Field(default=3, ge=1, le=5, strict=True)
+    due_at: str | None = Field(
+        default=None,
+        strict=True,
+        json_schema_extra={"format": "date-time"},
+    )
+
+    @field_validator("due_at")
+    @classmethod
+    def _due_at_must_be_timezone_aware(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("due_at must be a valid ISO timestamp") from exc
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise ValueError("due_at must include an explicit timezone")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_create_bounds(self):
+        if not self.reason.strip() or not self.requested_next_action.strip():
+            raise ValueError("reason and requested_next_action must not be blank")
+        if any(
+            "\x00" in value
+            for value in (self.reason, self.requested_next_action)
+            if value is not None
+        ):
+            raise ValueError("Tactical item text cannot contain null characters")
+        return self
+
+
+class _GovernanceTacticalItemCreateActionResult(BaseModel):
+    """Exact six-field result from migration 445, including its private actor."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    operation: Literal["create_item"]
+    session_id: _GovernanceResponseUUID
+    item_id: _GovernanceResponseUUID
+    actor_party_id: _GovernanceResponseUUID
+    created_at: AwareDatetime
+
+
+class GovernanceTacticalItemCreatedResponse(BaseModel):
+    """Public migration-445 creation receipt without the private actor ID."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    event_id: _GovernanceResponseUUID
+    operation: Literal["create_item"]
+    session_id: _GovernanceResponseUUID
+    item_id: _GovernanceResponseUUID
+    created_at: AwareDatetime
+
+
+class GovernanceTacticalItemCreateError(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str
+
+
 class GovernanceTacticalSessionCreateRequest(BaseModel):
     """Strict location-scoped request for creating a planned session."""
 
@@ -1814,6 +1892,18 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Tactical content must be valid JSON"},
                 headers=headers,
             )
+        create_request = None
+        if operation == "create_item":
+            try:
+                create_request = GovernanceTacticalItemCreateRequest.model_validate(payload)
+                location_id = str(UUID(location_id))
+            except (ValidationError, TypeError, ValueError):
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Tactical item request is invalid"},
+                    headers=headers,
+                )
+            payload = create_request.model_dump(mode="json", exclude_unset=True)
         try:
             result = await run_in_threadpool(
                 mutate_governance_tactical_content,
@@ -1870,9 +1960,85 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers={**headers, "Retry-After": "30"},
             )
         status_code = 201 if operation == "create_item" else 200
+        if operation == "create_item":
+            try:
+                action_result = _GovernanceTacticalItemCreateActionResult.model_validate(result)
+                if action_result.session_id != create_request.session_id:
+                    raise ValueError("Tactical item result session does not match request")
+                response = GovernanceTacticalItemCreatedResponse(
+                    event_id=action_result.event_id,
+                    operation=action_result.operation,
+                    session_id=action_result.session_id,
+                    item_id=action_result.item_id,
+                    created_at=action_result.created_at,
+                )
+            except (ValidationError, TypeError, ValueError) as exc:
+                from services.common.logging import get_logger
+
+                get_logger("gateway.governance_tactical").warning(
+                    "Governance tactical item create response rejected (%s)",
+                    type(exc).__name__,
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Governance tactical item creation unavailable"},
+                    headers=headers,
+                )
+            return JSONResponse(
+                jsonable_encoder(response.model_dump(mode="python")),
+                status_code=status_code,
+                headers=headers,
+            )
         return JSONResponse(jsonable_encoder(result), status_code=status_code, headers=headers)
 
-    @router.post("/operator/api/governance/{location_id}/tactical-items", status_code=201)
+    tactical_item_create_error_responses = {
+        status: {
+            "model": GovernanceTacticalItemCreateError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The tactical-item request is invalid.",
+            403: "The operator lacks an active exact-location create grant.",
+            404: "Operator OIDC is disabled or the referenced session/item is unavailable.",
+            409: "Tactical-item creation conflicts with existing state.",
+            500: "The tactical-item result failed its response contract.",
+            503: "Tactical-item creation is unavailable.",
+        }.items()
+    }
+
+    @router.post(
+        "/operator/api/governance/{location_id}/tactical-items",
+        status_code=201,
+        response_model=GovernanceTacticalItemCreatedResponse,
+        responses={
+            201: {
+                "model": GovernanceTacticalItemCreatedResponse,
+                "description": (
+                    "An open tactical item was created or an idempotent retry returned "
+                    "the original creation receipt."
+                ),
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tactical_item_create_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": GovernanceTacticalItemCreateRequest.model_json_schema()
+                    }
+                },
+            }
+        },
+    )
     async def create_governance_tactical_item(request: Request, location_id: str):
         return await mutate_tactical_content_route(request, location_id, "create_item")
 

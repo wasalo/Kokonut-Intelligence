@@ -8735,3 +8735,17 @@ Checklist: 1,960 complete / 25 open (1,985 total); TODO: 590 checked / 16 open. 
 The focused mock-only tactical-session selection passes 21 tests and the full governance-operations module passes 38. Ruff, compilation, `git diff --check`, capability-matrix validation, runtime SQL inventory, report-helper scope inventory, provider boundaries, and dependency-group checks pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the route contract, focused tests, evidence, and progress records; no data rollback is needed. Evidence: [tactical-session create contract](builds/2026-10-29-recovery/governance-tactical-session-create-contract.json).
 
 Checklist: 1,966 complete / 25 open (1,991 total); TODO: 595 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 197. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.
+
+
+### Source continuation — tactical-item create response contract — 29 October 2026
+
+- [x] Add a strict OpenAPI/runtime request model for migration 445's tactical-item create allowlist, bounds, UUID references, priority default, and timezone-aware due date.
+- [x] Validate the exact six-field SQL action result and expose a strict five-field public receipt without `actor_party_id`.
+- [x] Bind `operation` and returned session ID to the request while preserving the existing exact-location create grant and signed tenant context.
+- [x] Preserve HTTP 201 for create and idempotent replay; document no-store and cookie variance on success/error responses.
+- [x] Run the approved focused tactical-item route checks and full governance-operations module.
+- [x] Refresh Ruff, compilation, capability matrix, runtime SQL/helper-scope inventories, provider boundaries, dependency groups, and diff checks.
+
+The focused tactical-item selection passes 21 tests and the complete governance-operations module passes 57. Ruff, compilation, `git diff --check`, capability-matrix validation, runtime SQL inventory, report-helper scope inventory, provider boundaries, and dependency-group checks pass. No database/provider, candidate, or legacy state was used; no migration was applied. Rollback reverts the create contract, focused tests, evidence, and progress records; no data rollback is needed. Evidence: [tactical-item create contract](builds/2026-10-29-recovery/governance-tactical-item-create-contract.json).
+
+Checklist: 1,972 complete / 25 open (1,997 total); TODO: 600 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 198. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.

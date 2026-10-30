@@ -3631,3 +3631,14 @@ Both full-schema replays and their synthetic operator-scope probes pass; no appl
 - [x] Run focused and full-module pytest plus Ruff, compilation, capability, SQL/helper, provider, dependency, and diff checks; record evidence.
 
 The focused selection passes 21 tests and the complete governance-operations module passes 38. No database/provider, candidate, or legacy state was used and no migration was applied. Evidence: `builds/2026-10-29-recovery/governance-tactical-session-create-contract.json`. Current tracked totals: 595 checked / 16 open; strict private Gateway response contracts total 197.
+
+
+## Completed — tactical-item create response contract, 29 October
+
+- [x] Define migration-445's strict create-item request fields and validation, including the database's priority default and timezone-aware due date.
+- [x] Validate the exact SQL result, bind its operation/session to the request, and omit the actor identity from public output.
+- [x] Preserve exact-location create authorization, signed context, idempotent 201 behavior, and no-store/cookie variance.
+- [x] Cover OpenAPI, malformed request preflight, response sanitization, authorization denial, and replay in the approved mock-only suite.
+- [x] Run focused and full-module pytest plus Ruff, compilation, capability, SQL/helper, provider, dependency, and diff checks; record evidence.
+
+The focused selection passes 21 tests and the full governance-operations module passes 57. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: `builds/2026-10-29-recovery/governance-tactical-item-create-contract.json`. Current tracked totals: 600 checked / 16 open; strict private Gateway response contracts total 198.

@@ -75,6 +75,30 @@ def _valid_tactical_session_create_result(**updates):
     return result
 
 
+def _valid_tactical_item_create_request(**updates):
+    request = {
+        "request_id": str(uuid4()),
+        "reason": "Create a follow-up action for the next review",
+        "session_id": TACTICAL_SESSION_ID,
+        "requested_next_action": "Review the current soil evidence with the field team",
+    }
+    request.update(updates)
+    return request
+
+
+def _valid_tactical_item_create_result(**updates):
+    result = {
+        "event_id": str(uuid4()),
+        "operation": "create_item",
+        "session_id": TACTICAL_SESSION_ID,
+        "item_id": ITEM_ID,
+        "actor_party_id": str(uuid4()),
+        "created_at": CREATED_AT,
+    }
+    result.update(updates)
+    return result
+
+
 def _authorized_governance_client(
     monkeypatch,
     service_result,
@@ -804,6 +828,234 @@ def test_tactical_session_create_requires_create_grant(monkeypatch):
         response = client.post(
             f"/operator/api/governance/{LOCATION_ID}/tactical-sessions",
             json=_valid_tactical_session_create_request(),
+        )
+
+    assert response.status_code == 403
+    assert calls == []
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_tactical_item_create_route_documents_contract_and_exact_auth_policy(monkeypatch):
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="create"
+    ) as client:
+        schema = client.app.openapi()
+
+    operation = schema["paths"][
+        "/operator/api/governance/{location_id}/tactical-items"
+    ]["post"]
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    expected_request_fields = {
+        "request_id",
+        "reason",
+        "session_id",
+        "requested_next_action",
+        "tension_id",
+        "work_item_id",
+        "decision_id",
+        "owner_role_id",
+        "owner_party_id",
+        "priority",
+        "due_at",
+    }
+    assert set(request_schema["properties"]) == expected_request_fields
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["required"]) == {
+        "request_id",
+        "reason",
+        "session_id",
+        "requested_next_action",
+    }
+    assert request_schema["properties"]["priority"]["type"] == "integer"
+    assert request_schema["properties"]["priority"]["default"] == 3
+    assert request_schema["properties"]["due_at"]["format"] == "date-time"
+
+    response_schema = operation["responses"]["201"]["content"][
+        "application/json"
+    ]["schema"]
+    component_name = response_schema["$ref"].rsplit("/", 1)[1]
+    response_schema = schema["components"]["schemas"][component_name]
+    assert set(response_schema["properties"]) == {
+        "event_id",
+        "operation",
+        "session_id",
+        "item_id",
+        "created_at",
+    }
+    assert "actor_party_id" not in response_schema["properties"]
+    assert response_schema["additionalProperties"] is False
+    assert operation["responses"]["201"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+    assert operation["responses"]["201"]["headers"]["Vary"]["schema"]["example"] == "Cookie"
+    assert operation["responses"]["400"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+
+    from services.gateway.operator_auth import auth_route_policy
+
+    assert auth_route_policy(
+        "POST",
+        f"/operator/api/governance/{LOCATION_ID}/tactical-items",
+        enabled=True,
+    ) == {
+        "resource": "governance_tactical",
+        "action": "create",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+
+
+def test_tactical_item_create_returns_actor_minimized_receipt_and_replays(monkeypatch):
+    action_result = _valid_tactical_item_create_result()
+    calls = []
+
+    def create(operator_id, location_id, operation, target_id, payload):
+        calls.append((operator_id, location_id, operation, target_id, payload))
+        return action_result
+
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        create,
+    )
+    payload = _valid_tactical_item_create_request(
+        tension_id=ROLE_ID,
+        owner_role_id=ROLE_ID,
+        priority=5,
+        due_at="2026-11-05T12:30:00-04:00",
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="create"
+    ) as client:
+        first = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-items", json=payload
+        )
+        replay = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-items", json=payload
+        )
+
+    expected = {
+        "event_id": action_result["event_id"],
+        "operation": "create_item",
+        "session_id": TACTICAL_SESSION_ID,
+        "item_id": ITEM_ID,
+        "created_at": "2026-10-18T00:00:00+00:00",
+    }
+    assert first.status_code == replay.status_code == 201
+    assert first.json() == replay.json() == expected
+    assert "actor_party_id" not in first.json()
+    for response in (first, replay):
+        assert response.headers["cache-control"] == "no-store"
+        assert "cookie" in {
+            value.strip().lower() for value in response.headers["vary"].split(",")
+        }
+    normalized_payload = {
+        **payload,
+        "tension_id": ROLE_ID,
+        "owner_role_id": ROLE_ID,
+    }
+    assert calls == [
+        (OPERATOR_ID, LOCATION_ID, "create_item", None, normalized_payload),
+        (OPERATOR_ID, LOCATION_ID, "create_item", None, normalized_payload),
+    ]
+
+
+def test_tactical_item_create_preserves_database_priority_default_when_omitted(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        lambda *args: calls.append(args) or _valid_tactical_item_create_result(),
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="create"
+    ) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-items",
+            json=_valid_tactical_item_create_request(),
+        )
+
+    assert response.status_code == 201
+    assert len(calls) == 1
+    assert calls[0][4]["session_id"] == TACTICAL_SESSION_ID
+    assert "priority" not in calls[0][4]
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"actor_party_id": str(uuid4())},
+        {"request_id": "not-a-uuid"},
+        {"session_id": "not-a-uuid"},
+        {"requested_next_action": " "},
+        {"requested_next_action": "x" * 4001},
+        {"priority": None},
+        {"priority": True},
+        {"priority": 6},
+        {"due_at": "2026-11-05T12:30:00"},
+        {"unknown": "value"},
+    ],
+)
+def test_tactical_item_create_rejects_invalid_request_before_service(monkeypatch, overrides):
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="create"
+    ) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-items",
+            json=_valid_tactical_item_create_request(**overrides),
+        )
+
+    assert response.status_code == 400
+    assert response.json() == {"error": "Tactical item request is invalid"}
+    assert response.headers["cache-control"] == "no-store"
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {**_valid_tactical_item_create_result(), "unexpected": "private"},
+        _valid_tactical_item_create_result(operation="update_item"),
+        _valid_tactical_item_create_result(session_id=str(uuid4())),
+        _valid_tactical_item_create_result(item_id="not-a-uuid"),
+        _valid_tactical_item_create_result(created_at="2026-10-18T00:00:00"),
+    ],
+)
+def test_tactical_item_create_sanitizes_malformed_action_results(monkeypatch, result):
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        lambda *_args, **_kwargs: result,
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="create"
+    ) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-items",
+            json=_valid_tactical_item_create_request(),
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": "Governance tactical item creation unavailable"
+    }
+    assert "actor_party_id" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_tactical_item_create_requires_exact_create_grant(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.governance_tactical_mutations.mutate_governance_tactical_content",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+    with _authorized_governance_client(
+        monkeypatch, None, scope_action="read"
+    ) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-items",
+            json=_valid_tactical_item_create_request(),
         )
 
     assert response.status_code == 403
