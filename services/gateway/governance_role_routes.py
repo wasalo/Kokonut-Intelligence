@@ -29,6 +29,131 @@ def _response_uuid(value):
 
 _GovernanceResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
 
+_GOVERNANCE_TENSION_TYPE = Literal[
+    "unmet_interest",
+    "unclear_accountability",
+    "authority_gap",
+    "authority_conflict",
+    "commitment_risk",
+    "representation_gap",
+    "consent_gap",
+    "evidence_gap",
+    "harm_risk",
+    "policy_gap",
+    "cross_circle_dependency",
+    "role_overload",
+]
+_GOVERNANCE_TENSION_STATUS = Literal[
+    "draft", "submitted", "triaged", "in_progress", "resolved", "deferred", "rejected", "closed"
+]
+
+
+class GovernanceTensionCreateRequest(BaseModel):
+    """Strict operator request for a location-scoped tension draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    description: str = Field(min_length=1, max_length=10000, strict=True)
+    tension_type: _GOVERNANCE_TENSION_TYPE
+    severity: int = Field(ge=1, le=5, strict=True)
+    urgency: int = Field(ge=1, le=5, strict=True)
+
+    @model_validator(mode="after")
+    def validate_text(self):
+        if not self.title.strip() or not self.description.strip():
+            raise ValueError("title and description must not be blank")
+        if "\x00" in self.title or "\x00" in self.description:
+            raise ValueError("tension text cannot contain null characters")
+        return self
+
+
+class _GovernanceTensionMutationResult(BaseModel):
+    """Exact nine-field migration-437 result, including its private correlation key."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    tension_id: _GovernanceResponseUUID
+    tension_key: str = Field(min_length=1, max_length=120, strict=True)
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    description: str = Field(min_length=1, max_length=10000, strict=True)
+    tension_type: _GOVERNANCE_TENSION_TYPE
+    severity: int = Field(ge=1, le=5, strict=True)
+    urgency: int = Field(ge=1, le=5, strict=True)
+    status: _GOVERNANCE_TENSION_STATUS
+    created_at: AwareDatetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def parse_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("tension creation timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("tension creation timestamp must include a timezone")
+        return value
+
+    @field_validator("tension_key")
+    @classmethod
+    def validate_private_key_shape(cls, value: str) -> str:
+        parts = value.split(":")
+        if len(parts) != 3 or parts[0] != "gateway":
+            raise ValueError("tension correlation key is invalid")
+        try:
+            operator_id, request_id = UUID(parts[1]), UUID(parts[2])
+        except ValueError as exc:
+            raise ValueError("tension correlation key is invalid") from exc
+        if parts[1] != str(operator_id) or parts[2] != str(request_id):
+            raise ValueError("tension correlation key is invalid")
+        return value
+
+
+class _GovernanceTensionResponseBase(BaseModel):
+    """Public tension fields shared by create and submit receipts."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    tension_id: _GovernanceResponseUUID
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    description: str = Field(min_length=1, max_length=10000, strict=True)
+    tension_type: _GOVERNANCE_TENSION_TYPE
+    severity: int = Field(ge=1, le=5, strict=True)
+    urgency: int = Field(ge=1, le=5, strict=True)
+    created_at: AwareDatetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def parse_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("tension creation timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("tension creation timestamp must include a timezone")
+        return value
+
+
+class GovernanceTensionMutationResponse(_GovernanceTensionResponseBase):
+    """Public creation receipt; the private operator/request key is excluded."""
+
+    status: _GOVERNANCE_TENSION_STATUS
+
+
+class GovernanceTensionSubmittedResponse(_GovernanceTensionResponseBase):
+    """Public submission receipt with the only valid resulting lifecycle state."""
+
+    status: Literal["submitted"]
+
+
+class GovernanceTensionActionError(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str
+
 
 def _request_schema(model, *, optional_non_null_fields=()):
     """Build a request schema without advertising None for omitted-only fields."""
@@ -964,6 +1089,25 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         get_location_governance_tension,
         list_location_governance_tensions,
     )
+
+    tension_action_error_responses = {
+        status: {
+            "model": GovernanceTensionActionError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The governance-tension request is invalid.",
+            403: "The operator lacks an active exact-location action grant.",
+            404: "Operator OIDC is disabled or the tension is unavailable.",
+            409: "The requested tension action conflicts with current state.",
+            500: "The governance-tension result failed its response contract.",
+            503: "The governance-tension action is unavailable.",
+        }.items()
+    }
 
     def error_response(exc, *, headers):
         if isinstance(exc, TenantContextDenied):
@@ -2771,7 +2915,35 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             jsonable_encoder(detail.model_dump(mode="json")), headers=headers
         )
 
-    @router.post("/operator/api/governance/{location_id}/tensions", status_code=201)
+    @router.post(
+        "/operator/api/governance/{location_id}/tensions",
+        status_code=201,
+        response_model=GovernanceTensionMutationResponse,
+        responses={
+            201: {
+                "model": GovernanceTensionMutationResponse,
+                "description": (
+                    "A tension draft was created or an idempotent retry returned its "
+                    "original creation receipt. The private operator/request key is omitted."
+                ),
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tension_action_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": GovernanceTensionCreateRequest.model_json_schema()
+                    }
+                },
+            }
+        },
+    )
     async def create_governance_tension(request: Request, location_id: str):
         headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
         if provider is None:
@@ -2789,18 +2961,75 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers=headers,
             )
         try:
+            create_request = GovernanceTensionCreateRequest.model_validate(payload)
+            requested_location_id = UUID(location_id)
+            operator_id = str(UUID(request.state.operator_session.operator.operator_id))
+        except (ValidationError, TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Governance tension request is invalid"},
+                headers=headers,
+            )
+        try:
             result = await run_in_threadpool(
                 report_governance_tension,
-                request.state.operator_session.operator.operator_id,
-                location_id,
-                payload,
+                operator_id,
+                str(requested_location_id),
+                create_request.model_dump(mode="json"),
             )
         except (TenantContextDenied, GovernanceTensionInvalid, GovernanceTensionConflict, psycopg2.Error) as exc:
             return error_response(exc, headers=headers)
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            action_result = _GovernanceTensionMutationResult.model_validate(result)
+            if action_result.tension_key != (
+                f"gateway:{operator_id}:{create_request.request_id}"
+            ):
+                raise ValueError("Governance tension result does not match the create request")
+            if (
+                action_result.title != create_request.title.strip()
+                or action_result.description != create_request.description.strip()
+                or action_result.tension_type != create_request.tension_type
+                or action_result.severity != create_request.severity
+                or action_result.urgency != create_request.urgency
+            ):
+                raise ValueError("Governance tension result does not match the create content")
+            response = GovernanceTensionMutationResponse.model_validate(
+                action_result.model_dump(mode="python", exclude={"tension_key"})
+            )
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_tensions").warning(
+                "Governance tension create response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance tension action unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="python")),
+            status_code=201,
+            headers=headers,
+        )
 
     @router.post(
-        "/operator/api/governance/{location_id}/tensions/{tension_id}/submit"
+        "/operator/api/governance/{location_id}/tensions/{tension_id}/submit",
+        response_model=GovernanceTensionSubmittedResponse,
+        responses={
+            200: {
+                "model": GovernanceTensionSubmittedResponse,
+                "description": (
+                    "The caller's tension was submitted or an idempotent retry returned "
+                    "the submitted receipt. The private operator/request key is omitted."
+                ),
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tension_action_error_responses,
+        },
     )
     async def submit_governance_tension_route(
         request: Request, location_id: str, tension_id: str
@@ -2821,4 +3050,27 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
         except (TenantContextDenied, GovernanceTensionInvalid, GovernanceTensionConflict, psycopg2.Error) as exc:
             return error_response(exc, headers=headers)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            action_result = _GovernanceTensionMutationResult.model_validate(result)
+            if (
+                action_result.tension_id != UUID(tension_id)
+                or action_result.status != "submitted"
+            ):
+                raise ValueError("Governance tension result does not match the submit request")
+            response = GovernanceTensionSubmittedResponse.model_validate(
+                action_result.model_dump(mode="python", exclude={"tension_key"})
+            )
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_tensions").warning(
+                "Governance tension submit response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance tension action unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="python")), headers=headers
+        )

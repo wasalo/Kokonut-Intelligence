@@ -3664,3 +3664,18 @@ The focused update selection passes 19 tests and the complete governance-operati
 - [x] Run the focused and full governance-operation suites plus source/inventory checks; record evidence.
 
 The focused selection passes 22 tests and the complete governance-operations module passes 98. OpenAPI response schemas restrict each action to its valid lifecycle transition. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: `builds/2026-10-30-recovery/governance-tactical-action-response-contracts.json`. Current tracked totals: 610 checked / 16 open; strict private Gateway response contracts total 203.
+
+## Completed — governance-tension create and submit contracts, 30 October
+
+- [x] Define strict request and internal/public result models for migration 437's location-scoped tension creation and submission routes.
+- [x] Bind create receipts to the authenticated operator, request UUID, and normalized content; bind submissions to the path tension ID and `submitted` state.
+- [x] Keep the internal `tension_key` out of public responses and document strict success/error schemas in OpenAPI.
+- [x] Update and run approved focused mock-only Gateway/OpenAPI regressions; verify exact grants, replay, path binding, key omission, and sanitized no-store errors.
+- [x] Refresh capability, SQL, provider, dependency, syntax, and diff checks and record evidence.
+
+The focused route module passes 8 tests. Ruff, Python compilation, diff checks,
+capability-matrix validation, runtime SQL inventory, provider boundaries, and
+dependency-group checks pass. No database/provider, candidate, or legacy state
+was used; no migration was applied. Checklist: 614 checked / 16 open; strict
+private Gateway response contracts total 205. Evidence:
+`builds/2026-10-30-recovery/governance-tension-create-submit-contracts.json`.
