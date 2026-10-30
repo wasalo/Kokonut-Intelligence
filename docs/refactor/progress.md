@@ -24982,8 +24982,26 @@ Pi, populated-data, or production recovery acceptance. Both native and ARM64
 probes report 991 public tables with DML while RLS is disabled; C1 therefore
 remains open.
 
-Current totals: 2,059 complete / 25 open; TODO 682 checked / 16 open; 222
+Current totals: 2,061 complete / 25 open; TODO 682 checked / 16 open; 222
 strict private Gateway response contracts across 67 capability rows
 (24 baseline-retained, 7 deployed, 36 prepared). The SDK schema-parity guard
 optimization is committed locally; the local batch remains unpushed for grouped
 delivery.
+
+### Progress addendum — scheduler error redaction and JobSpec inventory parity — 30 October 2026
+
+The `JobFailed` compatibility exception no longer includes raw child stderr in
+its message, preventing Prefect/workflow exception logging from echoing provider
+diagnostics. The existing bounded output attribute is retained for callers that
+apply an explicit diagnostic policy. The focused JobSpec contract module passes
+41 tests, including a synthetic stderr redaction assertion. The scheduler
+ownership inventory now contains all 23 catalog entries, including the five
+previously undocumented Gnosis/Baal/anomaly/freshness compatibility rows; a
+read-only source comparison confirms exact key parity. Ruff, compilation, and
+`git diff --check` pass. No provider, database, persisted schedule, or external
+scheduler state was accessed; no schedule activation is implied
+([evidence](builds/2026-10-30-recovery/provider-job-error-and-catalog-parity.json)).
+
+Current totals: 2,061 complete / 25 open; TODO 682 checked / 16 open; 222
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).

@@ -231,7 +231,9 @@ class JobFailed(RuntimeError):
     def __init__(self, label: str, result: subprocess.CompletedProcess):
         self.returncode = result.returncode
         self.output = (result.stderr or result.stdout)[-500:]
-        super().__init__(f"{label} failed: {result.stderr}")
+        # Prefect and other callers log exception text. Keep child output on
+        # the bounded compatibility attribute, but never expose it implicitly.
+        super().__init__(f"{label} failed (exit code {self.returncode})")
 
 
 def _run_job_spec(

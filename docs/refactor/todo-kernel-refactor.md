@@ -1324,7 +1324,9 @@ populated tenant isolation, and production state remain outside the report
   source module against the owned scheduler/job contract, add missing adapters
   and operator controls, and keep external schedules disabled until ownership
   and active state are reconciled. The 23-entry catalog matches its generated
-  contract, and five Prefect deployments use catalog-backed pipelines; the
+  contract, and the human-maintained ownership inventory now has exact 23-row
+  catalog parity, including the Baal and compatibility fallbacks. Five Prefect
+  deployments use catalog-backed pipelines; the
   legacy health-check flow is undeployed and weather-forecast remains
   default-off. The signed forecast worker now consumes its dedicated
   `KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY`, routed through standard
@@ -1354,6 +1356,11 @@ populated tenant isolation, and production state remain outside the report
   supply before querying owner locations; sensor fan-out clearly fails until a
   driver-instance mapping exists. Seven focused mocked checks pass without
   database/provider access ([batch evidence](builds/2026-10-29-recovery/kernel-next-contract-batch.json)).
+  The Prefect-compatible `JobFailed` wrapper now excludes raw child stderr from
+  exception text, retaining only the label/exit code while keeping the
+  historical bounded output attribute. Its focused 41-test JobSpec contract
+  module passes; no live provider or scheduler was exercised
+  ([evidence](builds/2026-10-30-recovery/provider-job-error-and-catalog-parity.json)).
   A further source audit found composite analytics and six-hour Prefect flows
   still dispatch the legacy stored-SQL dashboard job when its feature is off
   by default. The composite paths now skip that stage with an explicit reason

@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-30",
+  "source_revision": "29c38720",
+  "working_tree_dirty": true,
+  "result": "passed",
+  "scope": "C4 Prefect job exception redaction and JobSpec ownership inventory reconciliation",
+  "job_failed_exception": {
+    "synthetic_exit_code": 7,
+    "message": "Weather ingestion failed (exit code 7)",
+    "synthetic_child_output_excluded_from_message": true,
+    "bounded_compatibility_output_attribute_chars": 500,
+    "test_command": "python3 -m pytest tests/test_core_jobs_contract.py -q",
+    "tests_passed": 41
+  },
+  "job_spec_inventory": {
+    "catalog_entries": 23,
+    "documented_rows": 23,
+    "catalog_keys_match_documented_rows": true,
+    "newly_documented_rows": [
+      "gnosis_legacy",
+      "baal",
+      "baal_legacy",
+      "anomaly_legacy",
+      "freshness_legacy"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "provider_database_or_schedule_state_accessed": false,
+  "external_schedule_activation_claimed": false
+}
