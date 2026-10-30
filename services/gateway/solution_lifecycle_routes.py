@@ -1,6 +1,7 @@
 """OIDC routes for location-scoped solution lifecycle reads."""
 
 import json
+from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 from uuid import UUID
@@ -12,6 +13,7 @@ from pydantic import (
     ConfigDict,
     Field,
     ValidationError,
+    field_validator,
     model_validator,
 )
 
@@ -170,6 +172,98 @@ _SolutionStage = Literal[
     "adoption_ready", "adopting", "scaled", "maintained", "paused",
     "superseded", "retired", "failed",
 ]
+
+
+class SolutionLifecycleGateCreateRequest(BaseModel):
+    """Strict create contract for a location-originated promotion gate."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _SolutionResponseUUID
+    to_stage: Literal["validated", "funded", "adoption_ready", "scaled"]
+    criterion: str = Field(min_length=10, max_length=2000, strict=True)
+    required_evidence_maturity: int | None = Field(
+        default=None, ge=1, le=6, strict=True
+    )
+    required_experiment_count: int = Field(ge=0, le=100, strict=True)
+    acknowledged: Literal[True]
+
+    @model_validator(mode="after")
+    def validate_criterion(self):
+        if (
+            not 10 <= len(self.criterion.strip()) <= 2000
+            or "\x00" in self.criterion
+        ):
+            raise ValueError("Gate criterion must contain 10 to 2,000 characters")
+        try:
+            encoded = self.criterion.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Gate criterion must be valid UTF-8 text") from exc
+        if len(encoded) > 4000:
+            raise ValueError("Gate criterion must fit within 4 KiB")
+        return self
+
+
+class SolutionLifecycleGateCreateResponse(BaseModel):
+    """Exact 12-field result returned by migration 505."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    gate_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    from_stage: Literal["testing", "investment_ready", "pilot_active", "adopting"]
+    to_stage: Literal["validated", "funded", "adoption_ready", "scaled"]
+    gate_criterion: str = Field(min_length=10, max_length=2000, strict=True)
+    required_evidence_maturity: int | None = Field(
+        ge=1, le=6, strict=True
+    )
+    required_experiment_count: int = Field(ge=0, le=100, strict=True)
+    minimum_evaluation_count: Literal[1]
+    requires_human_approval: Literal[True]
+    gate_status: Literal["draft", "ready", "approved", "failed", "retired"]
+    gate_created_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
+    @field_validator("gate_criterion")
+    @classmethod
+    def validate_gate_criterion(cls, value):
+        if not 10 <= len(value.strip()) <= 2000 or "\x00" in value:
+            raise ValueError("Gate criterion is outside its text bounds")
+        try:
+            encoded = value.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Gate criterion must be valid UTF-8 text") from exc
+        if len(encoded) > 4000:
+            raise ValueError("Gate criterion exceeds its byte limit")
+        return value
+
+    @field_validator("gate_created_at", mode="before")
+    @classmethod
+    def parse_gate_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("Gate creation timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("Gate creation timestamp must include a timezone")
+        return value
+
+    @model_validator(mode="after")
+    def validate_gate_result(self):
+        expected_from_stage = {
+            "validated": "testing",
+            "funded": "investment_ready",
+            "adoption_ready": "pilot_active",
+            "scaled": "adopting",
+        }[self.to_stage]
+        if self.from_stage != expected_from_stage:
+            raise ValueError("Gate promotion stages are inconsistent")
+        if self.requires_human_approval is not True:
+            raise ValueError("Solution promotion gates require independent human approval")
+        if not self.replayed and self.gate_status != "draft":
+            raise ValueError("A newly created gate must remain draft")
+        return self
 
 _MAX_POSTGRES_BIGINT = 9_223_372_036_854_775_807
 _SOLUTION_LIFECYCLE_MAX_OFFSET = 10_000
@@ -1454,6 +1548,25 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         }.items()
     }
 
+    gate_create_error_responses = {
+        status: {
+            "model": SolutionLifecycleCreateError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The solution-gate create request is invalid.",
+            403: "The operator lacks a current exact-location create grant.",
+            404: "The location-origin active solution was not found or operator OIDC is disabled.",
+            409: "The request identifier conflicts or the solution stage changed.",
+            500: "The solution-gate result failed its response contract.",
+            503: "Solution-gate creation is unavailable.",
+        }.items()
+    }
+
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/solutions",
         response_model=SolutionLifecycleCreateResponse,
@@ -1587,7 +1700,37 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         )
 
     @router.post(
-        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates"
+        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates",
+        response_model=SolutionLifecycleGateCreateResponse,
+        responses={
+            200: {
+                "model": SolutionLifecycleGateCreateResponse,
+                "description": "Idempotent replay of the existing solution-gate request.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            201: {
+                "model": SolutionLifecycleGateCreateResponse,
+                "description": "A draft solution promotion gate was created.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **gate_create_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": SolutionLifecycleGateCreateRequest.model_json_schema()
+                    }
+                },
+            }
+        },
     )
     async def create_solution_gate(request: Request, location_id: str, solution_id: str):
         if provider is None:
@@ -1600,16 +1743,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             payload = await request.json()
         except Exception:
             return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
-        required_fields = {
-            "request_id", "to_stage", "criterion", "required_experiment_count",
-            "acknowledged",
-        }
-        optional_fields = {"required_evidence_maturity"}
-        if (
-            not isinstance(payload, dict)
-            or not required_fields.issubset(payload)
-            or not set(payload).issubset(required_fields | optional_fields)
-        ):
+        try:
+            gate_request = SolutionLifecycleGateCreateRequest.model_validate(payload)
+            operator_id = str(UUID(request.state.operator_session.operator.operator_id))
+            requested_location_id = str(UUID(location_id))
+            requested_solution_id = UUID(solution_id)
+        except (ValidationError, TypeError, ValueError, AttributeError):
             return JSONResponse(
                 status_code=400,
                 content={"error": "Location solution gate fields are invalid"},
@@ -1618,15 +1757,15 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         try:
             result = await run_in_threadpool(
                 create_location_solution_gate,
-                request.state.operator_session.operator.operator_id,
-                location_id,
-                solution_id,
-                payload["request_id"],
-                payload["to_stage"],
-                payload["criterion"],
-                payload.get("required_evidence_maturity"),
-                payload["required_experiment_count"],
-                payload["acknowledged"],
+                operator_id,
+                requested_location_id,
+                str(requested_solution_id),
+                str(gate_request.request_id),
+                gate_request.to_stage,
+                gate_request.criterion,
+                gate_request.required_evidence_maturity,
+                gate_request.required_experiment_count,
+                gate_request.acknowledged,
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -1672,9 +1811,37 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Location solution gate creation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = SolutionLifecycleGateCreateResponse.model_validate(result)
+            expected_from_stage = {
+                "validated": "testing",
+                "funded": "investment_ready",
+                "adoption_ready": "pilot_active",
+                "scaled": "adopting",
+            }[gate_request.to_stage]
+            if (
+                response.solution_id != requested_solution_id
+                or response.from_stage != expected_from_stage
+                or response.to_stage != gate_request.to_stage
+                or response.gate_criterion != gate_request.criterion.strip()
+                or response.required_evidence_maturity != gate_request.required_evidence_maturity
+                or response.required_experiment_count != gate_request.required_experiment_count
+            ):
+                raise ValueError("Solution gate result does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Location solution gate response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Location solution gate creation unavailable"},
+                headers=headers,
+            )
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result.get("replayed") else 201,
+            jsonable_encoder(response.model_dump(mode="python")),
+            status_code=200 if response.replayed else 201,
             headers=headers,
         )
 

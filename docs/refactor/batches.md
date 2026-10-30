@@ -8803,3 +8803,16 @@ Checklist: 1,989 complete / 25 open (2,014 total); TODO: 615 checked / 16 open. 
 The 36 approved focused checks pass. Ruff, Python compilation, `git diff --check`, capability-matrix validation, runtime SQL inventory, provider-boundary checks, and dependency-group checks pass. No database, candidate, legacy, or provider was used; no migration was applied. Rollback reverts the Gateway/CLI contracts, tests, evidence, and progress records; no data rollback is needed. Evidence: [governance assignment and grievance CLI contracts](builds/2026-10-30-recovery/governance-assignment-decision-and-grievance-cli-preflight.json).
 
 Checklist: 1,994 complete / 25 open (2,019 total); TODO: 622 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 207. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.
+
+
+### Source continuation — solution-gate create contract and data-stream projection — 30 October 2026
+
+- [x] Define the strict migration-505 gate-create request and exact 12-field action-response contracts.
+- [x] Bind the returned solution, promotion stages, criterion, thresholds, and human-review requirement to the request; constrain new writes to draft while allowing valid replay status.
+- [x] Publish success/error OpenAPI schemas and preserve exact-location authorization, CSRF, HTTP 201 create/200 replay, and no-store behavior.
+- [x] Replace `SELECT *` on migration 331's public project-stream view with its exact ordered 20-column projection, preserving scope, order, limit, and payload.
+- [x] Run the approved focused route and Data Stream selection (78 tests), plus Ruff, Python compilation, capability-matrix, runtime SQL inventory, provider-boundary, dependency-group, and diff checks.
+
+The approved focused selection passes 78 tests. Ruff, Python compilation, `git diff --check`, capability-matrix validation, runtime SQL inventory, provider-boundary checks, and dependency-group checks pass. No database, candidate, legacy, or provider was used; no migration was applied. Rollback reverts the route/projection changes, focused tests, evidence, and progress records; no data rollback is needed. Evidence: [solution-gate and data-stream contracts](builds/2026-10-30-recovery/solution-gate-create-and-data-stream-projection.json).
+
+Checklist: 1,999 complete / 25 open (2,024 total); TODO: 627 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 208. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.

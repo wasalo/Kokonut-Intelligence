@@ -3708,3 +3708,20 @@ migration was applied. Evidence:
 
 Checklist: 622 checked / 16 open. Strict private Gateway response contracts
 total 207.
+
+## Completed — solution-gate creation and data-stream projection, 30 October
+
+- [x] Define the strict migration-505 solution-gate request and exact 12-field action response models.
+- [x] Bind response solution, stages, criterion, thresholds, and review requirements to the request; preserve new-draft versus idempotent-replay behavior.
+- [x] Publish success/error schemas and preserve exact-location authorization, CSRF, and no-store headers.
+- [x] Replace the migration-331 public project-stream `SELECT *` with its explicit 20-column view projection without changing filters or payload.
+- [x] Run approved mock-only Gateway and Data Stream regressions, Ruff, compilation, capability-matrix, runtime SQL inventory, provider-boundary, dependency-group, and diff checks.
+
+The approved focused selection passes 78 tests. Ruff, Python compilation,
+`git diff --check`, capability-matrix validation, runtime SQL inventory,
+provider-boundary checks, and dependency-group checks pass. No database,
+candidate, legacy, or provider was used; no migration was applied. Evidence:
+`builds/2026-10-30-recovery/solution-gate-create-and-data-stream-projection.json`.
+
+Checklist: 627 checked / 16 open. Strict private Gateway response contracts
+total 208.
