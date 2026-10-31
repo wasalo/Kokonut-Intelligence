@@ -25,6 +25,7 @@ _PROVIDERS = (
     ("smap_moisture", fetch_smap_moisture),
     ("sentinel1_sar", fetch_sentinel1_sar),
 )
+_SOURCE_KEYS = ("worldclim", *(source for source, _fetcher in _PROVIDERS))
 
 
 def _open_scoped_connection(location_id: str, credential: str):
@@ -57,15 +58,23 @@ def _load_location(location_id: str, credential: str) -> dict | None:
             if row is None:
                 return None
         connection.commit()
+        latitude = float(row[0]) if row[0] is not None else None
+        longitude = float(row[1]) if row[1] is not None else None
+        bbox_values = row[2:6]
+        bbox = (
+            {
+                "west": float(bbox_values[0]),
+                "south": float(bbox_values[1]),
+                "east": float(bbox_values[2]),
+                "north": float(bbox_values[3]),
+            }
+            if all(value is not None for value in bbox_values)
+            else None
+        )
         return {
-            "latitude": float(row[0]),
-            "longitude": float(row[1]),
-            "bbox": {
-                "west": float(row[2]),
-                "south": float(row[3]),
-                "east": float(row[4]),
-                "north": float(row[5]),
-            },
+            "latitude": latitude,
+            "longitude": longitude,
+            "bbox": bbox,
         }
     except Exception:
         connection.rollback()
@@ -80,6 +89,7 @@ def _store_result(
     *,
     source_key: str,
     summary: dict | None,
+    legacy_audit_payload: dict | None,
     processing_time_ms: int,
     error_text: str | None = None,
 ) -> str | None:
@@ -88,12 +98,15 @@ def _store_result(
     try:
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT kokonut_security.store_climate_summary("
-                "%s::uuid, %s, %s::jsonb, %s, %s)",
+                "SELECT kokonut_security.store_climate_summary_v2("
+                "%s::uuid, %s, %s::jsonb, %s, %s, %s)",
                 (
                     location_id,
                     source_key,
                     json.dumps(summary, default=str) if summary is not None else None,
+                    json.dumps(legacy_audit_payload, sort_keys=True, default=str)
+                    if legacy_audit_payload is not None
+                    else None,
                     min(600000, max(0, processing_time_ms)),
                     error_text,
                 ),
@@ -142,38 +155,67 @@ def _worldclim_summary(latitude: float, longitude: float) -> dict:
     }
 
 
-def ingest(location_id: str) -> dict:
-    """Fetch all current climate summaries for one signed location."""
+def ingest(location_id: str, requested_source: str | None = None) -> dict:
+    """Fetch all or one current climate summary for one signed location."""
     canonical_location_id = str(UUID(str(location_id)))
+    if requested_source is not None and requested_source not in _SOURCE_KEYS:
+        raise ValueError("unsupported climate source")
     credential = get_worker_credential("climate")
     location = _load_location(canonical_location_id, credential)
     if location is None:
-        raise ValueError("signed climate location is not active or has no coordinates")
+        raise ValueError("signed climate location is not active")
 
     results: dict[str, dict] = {}
-    started = time.monotonic()
-    worldclim = _worldclim_summary(location["latitude"], location["longitude"])
-    try:
-        record_id = _store_result(
-            canonical_location_id,
-            credential,
-            source_key="worldclim",
-            summary=worldclim,
-            processing_time_ms=int((time.monotonic() - started) * 1000),
-        )
-        results["worldclim"] = {"status": "success", "record_id": record_id, "estimated": True}
-    except Exception as exc:
-        results["worldclim"] = {"status": "error", "error_type": type(exc).__name__}
+    if requested_source in (None, "worldclim"):
+        if location["latitude"] is None or location["longitude"] is None:
+            results["worldclim"] = {"status": "skipped", "reason": "no_centroid"}
+        else:
+            started = time.monotonic()
+            worldclim = _worldclim_summary(location["latitude"], location["longitude"])
+            try:
+                record_id = _store_result(
+                    canonical_location_id,
+                    credential,
+                    source_key="worldclim",
+                    summary=worldclim,
+                    legacy_audit_payload=worldclim["metadata"]["estimated_bioclimatic_variables"],
+                    processing_time_ms=int((time.monotonic() - started) * 1000),
+                )
+                results["worldclim"] = {
+                    "status": "success",
+                    "record_id": record_id,
+                    "variables": 19,
+                    "source": "latitude_proxy_v1",
+                    "estimated": True,
+                }
+            except Exception as exc:
+                safe_error = f"climate proxy persistence failed ({type(exc).__name__})"
+                _store_result(
+                    canonical_location_id,
+                    credential,
+                    source_key="worldclim",
+                    summary=None,
+                    legacy_audit_payload=None,
+                    processing_time_ms=int((time.monotonic() - started) * 1000),
+                    error_text=safe_error,
+                )
+                results["worldclim"] = {"status": "error", "error": safe_error}
 
     for source_key, fetcher in _PROVIDERS:
+        if requested_source is not None and source_key != requested_source:
+            continue
+        if location["bbox"] is None:
+            results[source_key] = {"status": "skipped", "reason": "no_geometry"}
+            continue
         source_started = time.monotonic()
 
-        def persist(summary: dict) -> str:
+        def persist(summary: dict, legacy_payload: dict) -> str:
             return _store_result(
                 canonical_location_id,
                 credential,
                 source_key=source_key,
                 summary=summary,
+                legacy_audit_payload=legacy_payload,
                 processing_time_ms=int((time.monotonic() - source_started) * 1000),
             ) or ""
 
@@ -192,6 +234,7 @@ def ingest(location_id: str) -> dict:
                     credential,
                     source_key=source_key,
                     summary=None,
+                    legacy_audit_payload=None,
                     processing_time_ms=int((time.monotonic() - source_started) * 1000),
                     error_text=safe_error,
                 )
@@ -205,6 +248,7 @@ def ingest(location_id: str) -> dict:
                 credential,
                 source_key=source_key,
                 summary=None,
+                legacy_audit_payload=None,
                 processing_time_ms=int((time.monotonic() - source_started) * 1000),
                 error_text=safe_error,
             )
@@ -229,6 +273,7 @@ def main() -> None:
         description="Ingest all climate summaries for one signed worker location"
     )
     parser.add_argument("--location-id", required=True, help="Location UUID")
+    parser.add_argument("--source", choices=_SOURCE_KEYS, help="Run exactly one climate source")
     args = parser.parse_args()
     try:
         location_id = str(UUID(str(args.location_id)))
@@ -237,7 +282,7 @@ def main() -> None:
     if not is_enabled("signed_climate_worker"):
         parser.error("signed climate worker is disabled")
 
-    report = ingest(location_id)
+    report = ingest(location_id, args.source)
     print_json(report)
     if report["status"] == "error":
         raise RuntimeError("one or more climate sources failed")

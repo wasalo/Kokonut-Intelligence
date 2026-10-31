@@ -1,0 +1,15 @@
+{
+  "migration": "713_signed_climate_summary_audit_parity.sql",
+  "checks": [
+    "migrations 405, 419, 428, 429, and 713 apply in order; migrations 429 and 713 replay cleanly",
+    "signed location lookup supports plot-only, coordinate-fallback, and empty geometry scopes",
+    "worker login has no direct climate-table access despite forced RLS",
+    "all five whitelisted source summaries and ingestion audit rows commit through the v2 bounded function",
+    "v2 audit hashes match the legacy serialized payload; legacy success timing remains zero and elapsed duration is separate",
+    "same-date/source retries upsert one location-level climate record",
+    "source payload field allowlists reject unapproved data columns",
+    "bounded climate writes reject cross-location IDs",
+    "provider failures create scoped audit rows without writing summaries",
+    "only the non-login worker execution role can call v2; runtime climate DML stays denied"
+  ]
+}

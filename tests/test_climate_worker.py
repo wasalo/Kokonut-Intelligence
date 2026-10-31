@@ -30,7 +30,7 @@ def test_climate_worker_secrets_are_forwarded_only_to_exact_module():
     }
 
     assert scheduled_module_worker_key("services.ingestion.climate_worker") == "climate"
-    assert scheduled_module_worker_key("services.ingestion.climate_data") is None
+    assert scheduled_module_worker_key("services.ingestion.climate_data") == "climate"
     climate_env = worker_subprocess_environment(
         allowed_worker_keys=("climate",),
         isolated_database_credentials=True,
@@ -57,7 +57,7 @@ def test_climate_jobs_require_one_location_and_use_signed_worker():
     assert job.required_inputs == ("location_id",)
 
     validate_scheduled_command(job.module, ["--location-id", LOCATION_ID])
-    with pytest.raises(ScheduledCommandRejected, match="one explicit location"):
+    with pytest.raises(ScheduledCommandRejected, match="requires one location"):
         validate_scheduled_command(job.module, [])
     with pytest.raises(ScheduledCommandRejected, match="unsupported option"):
         validate_scheduled_command(job.module, ["--location-id", LOCATION_ID, "--all"])
@@ -87,7 +87,16 @@ def test_ingest_routes_all_five_sources_through_signed_storage(monkeypatch):
         },
     )
 
-    def store(_location_id, _credential, *, source_key, summary, processing_time_ms, error_text=None):
+    def store(
+        _location_id,
+        _credential,
+        *,
+        source_key,
+        summary,
+        legacy_audit_payload,
+        processing_time_ms,
+        error_text=None,
+    ):
         stores.append((source_key, summary, error_text))
         return f"record-{source_key}" if summary is not None else None
 
@@ -105,7 +114,10 @@ def test_ingest_routes_all_five_sources_through_signed_storage(monkeypatch):
                 "values": {"synthetic": 1},
                 "metadata": {},
             }
-            record_id = kwargs["persist_summary"](source_summary)
+            record_id = kwargs["persist_summary"](
+                source_summary,
+                {"synthetic": 1},
+            )
             return {"status": "success", "record_id": record_id}
 
         return fetch
@@ -127,6 +139,122 @@ def test_ingest_routes_all_five_sources_through_signed_storage(monkeypatch):
     assert all(summary is not None for _source, summary, error in stores if error is None)
 
 
+def test_plot_geometry_still_runs_providers_without_a_location_centroid(monkeypatch):
+    provider_calls = []
+    monkeypatch.setattr(climate_worker, "get_worker_credential", lambda _key: "credential")
+    monkeypatch.setattr(
+        climate_worker,
+        "_load_location",
+        lambda _location_id, _credential: {
+            "latitude": None,
+            "longitude": None,
+            "bbox": {"west": -70.0, "south": 18.0, "east": -69.0, "north": 19.0},
+        },
+    )
+    monkeypatch.setattr(
+        climate_worker,
+        "_store_result",
+        lambda *_args, **_kwargs: pytest.fail("a skipped climate source cannot be persisted"),
+    )
+
+    def provider(name):
+        def fetch(_connection, _location_id, bbox, **_kwargs):
+            provider_calls.append((name, bbox))
+            return {"status": "success", "record_id": f"{name}-id"}
+
+        return fetch
+
+    providers = tuple((name, provider(name)) for name in (
+        "era5_land", "modis_lst", "smap_moisture", "sentinel1_sar",
+    ))
+    monkeypatch.setattr(climate_worker, "_PROVIDERS", providers)
+
+    report = climate_worker.ingest(LOCATION_ID)
+
+    assert report["status"] == "success"
+    assert report["results"]["worldclim"] == {"status": "skipped", "reason": "no_centroid"}
+    assert report["success"] == 4
+    assert report["skipped"] == 1
+    assert {name for name, _bbox in provider_calls} == {name for name, _fetch in providers}
+    assert all(bbox["west"] == -70.0 for _name, bbox in provider_calls)
+
+
+def test_locations_without_centroid_or_geometry_skip_all_sources(monkeypatch):
+    stores = []
+    monkeypatch.setattr(climate_worker, "get_worker_credential", lambda _key: "credential")
+    monkeypatch.setattr(
+        climate_worker,
+        "_load_location",
+        lambda _location_id, _credential: {"latitude": None, "longitude": None, "bbox": None},
+    )
+    monkeypatch.setattr(
+        climate_worker,
+        "_store_result",
+        lambda *_args, **_kwargs: stores.append("unexpected persistence"),
+    )
+    monkeypatch.setattr(
+        climate_worker,
+        "_PROVIDERS",
+        tuple((name, lambda *_args, **_kwargs: pytest.fail("no-geometry provider must be skipped"))
+              for name in ("era5_land", "modis_lst", "smap_moisture", "sentinel1_sar")),
+    )
+
+    report = climate_worker.ingest(LOCATION_ID)
+
+    assert report == {
+        "status": "success",
+        "location_id": LOCATION_ID,
+        "results": {
+            "worldclim": {"status": "skipped", "reason": "no_centroid"},
+            "era5_land": {"status": "skipped", "reason": "no_geometry"},
+            "modis_lst": {"status": "skipped", "reason": "no_geometry"},
+            "smap_moisture": {"status": "skipped", "reason": "no_geometry"},
+            "sentinel1_sar": {"status": "skipped", "reason": "no_geometry"},
+        },
+        "success": 0,
+        "skipped": 5,
+        "failed": 0,
+        "total": 5,
+    }
+    assert stores == []
+
+
+def test_location_loader_accepts_missing_center_and_bbox(monkeypatch):
+    class Cursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, *_args):
+            return None
+
+        def fetchone(self):
+            return (None, None, None, None, None, None)
+
+    class Connection:
+        def cursor(self):
+            return Cursor()
+
+        def commit(self):
+            return None
+
+        def rollback(self):
+            return None
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(climate_worker, "_open_scoped_connection", lambda *_args: Connection())
+
+    assert climate_worker._load_location(LOCATION_ID, "credential") == {
+        "latitude": None,
+        "longitude": None,
+        "bbox": None,
+    }
+
+
 def test_provider_failures_are_sanitized_and_return_retryable_error(monkeypatch):
     stores: list[tuple[str, dict | None, str | None]] = []
     monkeypatch.setattr(climate_worker, "get_worker_credential", lambda _key: "credential")
@@ -142,7 +270,8 @@ def test_provider_failures_are_sanitized_and_return_retryable_error(monkeypatch)
     monkeypatch.setattr(
         climate_worker,
         "_store_result",
-        lambda _location_id, _credential, *, source_key, summary, processing_time_ms, error_text=None: (
+        lambda _location_id, _credential, *, source_key, summary, legacy_audit_payload,
+        processing_time_ms, error_text=None: (
             stores.append((source_key, summary, error_text)) or None
         ),
     )

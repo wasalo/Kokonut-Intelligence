@@ -1,7 +1,7 @@
 {
   "version": 1,
   "scope": "Tracks direct SQL DML and conservative WITH candidates whose target relation is unresolved. Legacy entries are acknowledged inventory debt only; they do not grant or approve ACLs. New candidates require a reviewed_sites entry with reviewer, date, decision note, and reason.",
-  "legacy_fingerprint_sha256": "75d289a5289fd4ee168573fae6e199f947cee336e41df3db269bcdb289db4fef",
+  "legacy_fingerprint_sha256": "a3fb6759d3f4e3e580748ed2e8b07c31a04c8d8cfbf2b53a82bfb18d81621616",
   "legacy_unreviewed": [
     {
       "fingerprint": "121bdc4b3054f807d73fdec63415c04a2cd0409e41cfd1a91fe3c8aa891e550f",
@@ -255,17 +255,6 @@
       "expression_kind": "literal",
       "review_status": "preexisting_unreviewed",
       "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "9d6a40c15f638d8052124aedd21ddf502ae1d6d97823dbe352f0bd938808f200",
-      "source": "services/ingestion/gee_climate.py",
-      "line": 92,
-      "scope": "_persist_summary",
-      "method": "execute",
-      "statement_kind": "INSERT",
-      "expression_kind": "composed_or_variable",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
     },
     {
       "fingerprint": "a2a3a63b75d55f193da4452956496bed431ffd830e2a2e181c1937d108286b71",

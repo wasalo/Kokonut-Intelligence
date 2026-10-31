@@ -130,7 +130,10 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--all": None,
         "--location-id": "uuid",
     },
-    "services.ingestion.climate_worker": {"--location-id": "uuid"},
+    "services.ingestion.climate_worker": {
+        "--location-id": "uuid",
+        "--source": "climate_source",
+    },
     "services.events": {
         "--process": None,
         "--notification-process": None,
@@ -182,6 +185,9 @@ def _validate_value(kind: str, value: str) -> None:
     elif kind == "market_source":
         if value not in {"world_bank", "seed"}:
             raise _reject("market data source is not supported")
+    elif kind == "climate_source":
+        if value not in {"worldclim", "era5_land", "modis_lst", "smap_moisture", "sentinel1_sar"}:
+            raise _reject("climate source is not supported")
     elif kind == "eas_chain":
         if value not in EAS_SCHEDULE_CHAINS:
             raise _reject("EAS chain is not supported")
@@ -376,8 +382,8 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("climate refresh requires exactly one provider or --all")
 
     elif module_path == "services.ingestion.climate_worker":
-        if options != {"--location-id"}:
-            raise _reject("signed climate ingestion requires one explicit location")
+        if "--location-id" not in options or options - {"--location-id", "--source"}:
+            raise _reject("signed climate ingestion requires one location and an optional source")
 
     elif module_path == "services.events":
         operations = options & {"--process", "--notification-process"}

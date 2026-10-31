@@ -157,25 +157,15 @@ def test_new_agent_worker_sql_patterns_are_reviewed_without_promoting_unknowns()
     )
 
 
-def test_gee_climate_inventory_records_its_four_literal_caller_templates():
+def test_gee_climate_provider_has_no_direct_sql_execution_site():
     inventory = _load_inventory()
-    site = next(
-        site
-        for site in inventory["execution_sites"]
-        if site["source"] == "services/ingestion/gee_climate.py" and site["line"] == 92
-    )
+    gee_sites = [site for site in inventory["execution_sites"] if site["source"] == "services/ingestion/gee_climate.py"]
+    assert gee_sites == []
 
-    assert site["statement_kind"] == "INSERT"
-    assert len(site["statement_variants"]) == 4
-    assert {variant["operation"].split("@", 1)[0] for variant in site["statement_variants"]} == {
-        "fetch_modis_lst",
-        "fetch_smap_moisture",
-        "fetch_sentinel1_sar",
-        "fetch_era5_land",
-    }
-    assert all(variant["statement_kind"] == "INSERT" for variant in site["statement_variants"])
-    assert all(re.fullmatch(r"[0-9a-f]{64}", variant["static_sql_sha256"]) for variant in site["statement_variants"])
-    assert all("sql" not in variant and "query" not in variant for variant in site["statement_variants"])
+    source = (ROOT / "services" / "ingestion" / "gee_climate.py").read_text(encoding="utf-8")
+    assert "def _persist_summary(" in source
+    assert "if not callable(persist_summary):" in source
+    assert "persist_summary(provider_summary, legacy_audit_payload)" in source
 
 
 def test_local_caller_sql_resolution_accepts_exact_keyword_and_positional_literals():
@@ -380,44 +370,32 @@ def test_sensor_anomaly_worker_dispatches_only_named_fixed_sql_operations():
     assert len(set(_QUERY_SQL.values())) == len(_QUERY_SQL)
 
 
-def test_gee_climate_template_dispatch_uses_literal_templates_and_bound_values():
+def test_gee_climate_providers_delegate_all_writes_to_signed_callback():
     source = (ROOT / "services" / "ingestion" / "gee_climate.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
-    templates = [
-        node.value.value
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Assign)
-        and any(isinstance(target, ast.Name) and target.id == "sql" for target in node.targets)
-        and isinstance(node.value, ast.Constant)
-        and isinstance(node.value.value, str)
-    ]
     persist_calls = [
         node
         for node in ast.walk(tree)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_persist_summary"
-    ]
-    execute_calls = [
-        node
-        for node in ast.walk(tree)
         if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "execute"
-        and len(node.args) >= 2
-        and isinstance(node.args[0], ast.Name)
-        and node.args[0].id == "sql"
-        and isinstance(node.args[1], ast.Name)
-        and node.args[1].id == "parameters"
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "_persist_summary"
     ]
 
-    assert len(templates) == 4
-    assert all("%s" in template for template in templates)
     assert len(persist_calls) == 4
     assert all(
-        any(keyword.arg == "sql" and isinstance(keyword.value, ast.Name) and keyword.value.id == "sql"
+        any(
+            keyword.arg == "persist_summary"
+            and isinstance(keyword.value, ast.Name)
+            and keyword.value.id == "persist_summary"
             for keyword in call.keywords)
         for call in persist_calls
     )
-    assert len(execute_calls) == 1
+    assert not any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"execute", "executemany"}
+        for node in ast.walk(tree)
+    )
 
 
 def test_dynamic_and_transaction_control_statement_kinds_are_classified():
@@ -462,7 +440,7 @@ def test_dynamic_sql_review_categories_remain_explicit():
         "services/events/fork_detector.py": 1,
         "services/events/insight_transfer.py": 2,
         "services/ingestion/data_freshness.py": 5,
-        "services/ingestion/gee_climate.py": 1,
+        "services/export/reports/context.py": 1,
         "services/ingestion/ml_anomaly_detector.py": 4,
         "services/ingestion/remote_sensing_fetcher.py": 1,
         "services/ingestion/sensor_anomaly_worker.py": 2,
@@ -598,12 +576,13 @@ def test_generic_database_sql_wrappers_have_no_unreviewed_worker_callsite():
     # The carbon-balance import closure retains two source-owned SELECT
     # templates; the manual NOI path uses a source-owned f-string INSERT with
     # a location fragment selected from fixed literals.
-    assert query_callers == [
+    assert [
+        (source, expression, kind, relations)
+        for source, _line, expression, kind, relations in query_callers
+    ] == [
+        ("services/analytics/carbon_balance.py", "literal", "SELECT", ["tree_inventory"]),
         (
-            "services/analytics/carbon_balance.py", 79, "literal", "SELECT", ["tree_inventory"]
-        ),
-        (
-            "services/analytics/carbon_balance.py", 236, "literal", "SELECT",
+            "services/analytics/carbon_balance.py", "literal", "SELECT",
             ["regeneration_principle", "regenerative_practice_checklist"],
         ),
     ]

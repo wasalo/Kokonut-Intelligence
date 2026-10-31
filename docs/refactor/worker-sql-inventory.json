@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
     "operation_roots": 50,
-    "source_files": 142,
-    "execution_sites": 494,
-    "static_literal_sites": 406,
-    "composed_or_variable_sites": 88
+    "source_files": 143,
+    "execution_sites": 489,
+    "static_literal_sites": 402,
+    "composed_or_variable_sites": 87
   },
   "execution_sites": [
     {
@@ -4808,9 +4808,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:210:12",
+      "id": "services/events/notification_outbox.py:217:12",
       "source": "services/events/notification_outbox.py",
-      "line": 210,
+      "line": 217,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -4831,9 +4831,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:225:12",
+      "id": "services/events/notification_outbox.py:232:12",
       "source": "services/events/notification_outbox.py",
-      "line": 225,
+      "line": 232,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -4854,9 +4854,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:245:16",
+      "id": "services/events/notification_outbox.py:252:16",
       "source": "services/events/notification_outbox.py",
-      "line": 245,
+      "line": 252,
       "column": 16,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -4877,9 +4877,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:290:8",
+      "id": "services/events/notification_outbox.py:297:8",
       "source": "services/events/notification_outbox.py",
-      "line": 290,
+      "line": 297,
       "column": 8,
       "scope": "enqueue_event_notification_isolated",
       "method": "execute",
@@ -4898,9 +4898,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:346:8",
+      "id": "services/events/notification_outbox.py:353:8",
       "source": "services/events/notification_outbox.py",
-      "line": 346,
+      "line": 353,
       "column": 8,
       "scope": "_recover_expired_leases",
       "method": "execute",
@@ -4922,9 +4922,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:357:8",
+      "id": "services/events/notification_outbox.py:364:8",
       "source": "services/events/notification_outbox.py",
-      "line": 357,
+      "line": 364,
       "column": 8,
       "scope": "_recover_expired_leases",
       "method": "execute",
@@ -4945,9 +4945,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:395:8",
+      "id": "services/events/notification_outbox.py:402:8",
       "source": "services/events/notification_outbox.py",
-      "line": 395,
+      "line": 402,
       "column": 8,
       "scope": "claim_batch",
       "method": "execute",
@@ -4970,9 +4970,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:423:12",
+      "id": "services/events/notification_outbox.py:430:12",
       "source": "services/events/notification_outbox.py",
-      "line": 423,
+      "line": 430,
       "column": 12,
       "scope": "claim_batch",
       "method": "execute",
@@ -4993,9 +4993,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:508:8",
+      "id": "services/events/notification_outbox.py:515:8",
       "source": "services/events/notification_outbox.py",
-      "line": 508,
+      "line": 515,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -5016,9 +5016,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:532:8",
+      "id": "services/events/notification_outbox.py:539:8",
       "source": "services/events/notification_outbox.py",
-      "line": 532,
+      "line": 539,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -5039,9 +5039,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:602:8",
+      "id": "services/events/notification_outbox.py:609:8",
       "source": "services/events/notification_outbox.py",
-      "line": 602,
+      "line": 609,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -5062,9 +5062,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:604:8",
+      "id": "services/events/notification_outbox.py:611:8",
       "source": "services/events/notification_outbox.py",
-      "line": 604,
+      "line": 611,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -5086,9 +5086,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:645:8",
+      "id": "services/events/notification_outbox.py:652:8",
       "source": "services/events/notification_outbox.py",
-      "line": 645,
+      "line": 652,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -5109,9 +5109,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:675:8",
+      "id": "services/events/notification_outbox.py:682:8",
       "source": "services/events/notification_outbox.py",
-      "line": 675,
+      "line": 682,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -5132,9 +5132,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:686:8",
+      "id": "services/events/notification_outbox.py:693:8",
       "source": "services/events/notification_outbox.py",
-      "line": 686,
+      "line": 693,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -5155,9 +5155,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:698:8",
+      "id": "services/events/notification_outbox.py:705:8",
       "source": "services/events/notification_outbox.py",
-      "line": 698,
+      "line": 705,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -5178,9 +5178,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:726:8",
+      "id": "services/events/notification_outbox.py:733:8",
       "source": "services/events/notification_outbox.py",
-      "line": 726,
+      "line": 733,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -5201,9 +5201,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:737:8",
+      "id": "services/events/notification_outbox.py:744:8",
       "source": "services/events/notification_outbox.py",
-      "line": 737,
+      "line": 744,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -5224,9 +5224,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:746:8",
+      "id": "services/events/notification_outbox.py:753:8",
       "source": "services/events/notification_outbox.py",
-      "line": 746,
+      "line": 753,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -6328,8 +6328,6 @@
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.freshness_worker",
@@ -6370,8 +6368,6 @@
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.freshness_worker",
@@ -6411,8 +6407,6 @@
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.freshness_worker",
@@ -6674,65 +6668,9 @@
       ]
     },
     {
-      "id": "services/ingestion/climate_data.py:36:4",
-      "source": "services/ingestion/climate_data.py",
-      "line": 36,
-      "column": 4,
-      "scope": "_query_location_bbox",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "farm",
-        "plot"
-      ],
-      "static_sql_sha256": "17c99193e06ba6cd8e6f27dd3e94ba97ff5c5ff658668bc615dda117a15ce1e3",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/climate_data.py:64:4",
-      "source": "services/ingestion/climate_data.py",
-      "line": 64,
-      "column": 4,
-      "scope": "_query_location_centroid",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "location"
-      ],
-      "static_sql_sha256": "3b423730652249be4b8b95fbe4ab8e3d8de495bae9789ffffa49b1a7e560e078",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/climate_data.py:104:4",
-      "source": "services/ingestion/climate_data.py",
-      "line": 104,
-      "column": 4,
-      "scope": "fetch_worldclim",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "SET",
-        "worldclim_climate"
-      ],
-      "static_sql_sha256": "f87c88368e85ede4f80cb393fbdc52f04049f8742d3f7bfdec5ee0f49148e74c",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/climate_worker.py:51:12",
+      "id": "services/ingestion/climate_worker.py:52:12",
       "source": "services/ingestion/climate_worker.py",
-      "line": 51,
+      "line": 52,
       "column": 12,
       "scope": "_load_location",
       "method": "execute",
@@ -6747,16 +6685,16 @@
       ]
     },
     {
-      "id": "services/ingestion/climate_worker.py:90:12",
+      "id": "services/ingestion/climate_worker.py:100:12",
       "source": "services/ingestion/climate_worker.py",
-      "line": 90,
+      "line": 100,
       "column": 12,
       "scope": "_store_result",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [],
-      "static_sql_sha256": "ef59e8076b64fb230a39f99423b83ae856f6eab21f3c64d53a0a35b2460ae7ed",
+      "static_sql_sha256": "3bc58b638bde1d83d6654732ba6e9570284df7fa0453dd5504c5834d3a542428",
       "operation_refs": [
         "scheduled_module:services.ingestion.climate_worker"
       ]
@@ -7490,60 +7428,6 @@
       ]
     },
     {
-      "id": "services/ingestion/gee_climate.py:92:8",
-      "source": "services/ingestion/gee_climate.py",
-      "line": 92,
-      "column": 8,
-      "scope": "_persist_summary",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "INSERT",
-      "candidate_relations": [],
-      "static_sql_sha256": null,
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker"
-      ],
-      "statement_variants": [
-        {
-          "operation": "fetch_era5_land@478",
-          "statement_kind": "INSERT",
-          "candidate_relations": [
-            "SET",
-            "ncep_weather_summary"
-          ],
-          "static_sql_sha256": "22510a69d2e1e48b63c18133c806b707538c1280d4788949f39ad1683c375feb"
-        },
-        {
-          "operation": "fetch_modis_lst@200",
-          "statement_kind": "INSERT",
-          "candidate_relations": [
-            "SET",
-            "modis_lst_summary"
-          ],
-          "static_sql_sha256": "e61fd0ef89b0c17bfa1cd395cbe10bd687ed10c84c64d2fc7aa91b66ea0378db"
-        },
-        {
-          "operation": "fetch_sentinel1_sar@359",
-          "statement_kind": "INSERT",
-          "candidate_relations": [
-            "SET",
-            "sentinel1_sar_summary"
-          ],
-          "static_sql_sha256": "19d33cfc4c3b81ae05806ed716bb050a411d01889896ff6998c53150c8034b8e"
-        },
-        {
-          "operation": "fetch_smap_moisture@278",
-          "statement_kind": "INSERT",
-          "candidate_relations": [
-            "SET",
-            "smap_soil_moisture"
-          ],
-          "static_sql_sha256": "44c765906983b8e86dfab08af6e423e2fa9dfc60ff101194856e6ae48a7887cc"
-        }
-      ]
-    },
-    {
       "id": "services/ingestion/gee_remote_sensing.py:296:4",
       "source": "services/ingestion/gee_remote_sensing.py",
       "line": 296,
@@ -8038,29 +7922,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:118:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:133:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 118,
-      "column": 8,
-      "scope": "_claim_due_jobs",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "WITH",
-      "candidate_relations": [
-        "SKIP",
-        "due",
-        "remote_sensing_job"
-      ],
-      "static_sql_sha256": "edd72783a52eaead63ae41a9790f0fbc30479cf4193a781ff24d98f6ef9dbed6",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.remote_sensing_fetcher",
-        "scheduled_module:services.ingestion.remote_sensing_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/remote_sensing_fetcher.py:158:8",
-      "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 158,
+      "line": 133,
       "column": 8,
       "scope": "_query_job",
       "method": "execute",
@@ -8076,9 +7940,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:214:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:189:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 214,
+      "line": 189,
       "column": 8,
       "scope": "_update_job_status",
       "method": "execute",
@@ -8094,9 +7958,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:235:12",
+      "id": "services/ingestion/remote_sensing_fetcher.py:210:12",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 235,
+      "line": 210,
       "column": 12,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
@@ -8112,9 +7976,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:253:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:228:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 253,
+      "line": 228,
       "column": 8,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
@@ -8131,9 +7995,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:283:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:258:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 283,
+      "line": 258,
       "column": 8,
       "scope": "_record_provider_attempt",
       "method": "execute",
@@ -8149,9 +8013,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:444:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:406:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 444,
+      "line": 406,
       "column": 8,
       "scope": "list_jobs",
       "method": "execute",
@@ -8168,9 +8032,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:510:16",
+      "id": "services/ingestion/remote_sensing_fetcher.py:480:16",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 510,
+      "line": 480,
       "column": 16,
       "scope": "main",
       "method": "execute",

@@ -1,8 +1,8 @@
-"""Google Earth Engine climate data fetching and canonical persistence.
+"""Google Earth Engine climate fetching for the signed climate worker.
 
-The provider summaries are written to the tables defined by
-``074_dsm_soc_prediction.sql``. Writes and ingestion audit records share one
-PostgreSQL transaction so a failed audit cannot leave an unaudited summary.
+Provider calculations stay here; all canonical persistence is delegated to
+the bounded signed climate writer. Legacy audit payloads accompany summaries
+so the worker preserves the existing ingestion digest contract.
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict
 
 from ..common.logging import get_logger
-from .base import hash_payload, log_ingestion
 
 logger = get_logger("ingestion.gee_climate")
 
@@ -68,48 +67,15 @@ def _rounded(value: Any, digits: int) -> float | None:
 
 
 def _persist_summary(
-    conn,
     *,
-    sql: str,
-    parameters: tuple,
-    source_table: str,
-    source_id: str,
-    target_table: str,
-    payload: dict,
-    location_id: str,
-    provider_summary: dict | None = None,
-    persist_summary: Callable[[dict], str] | None = None,
+    provider_summary: dict,
+    legacy_audit_payload: dict,
+    persist_summary: Callable[[dict, dict], str],
 ) -> str:
-    """Upsert a summary and its audit row atomically on the caller connection."""
-    if persist_summary is not None:
-        if provider_summary is None:
-            raise ValueError("signed climate summary payload is required")
-        return persist_summary(provider_summary)
-
-    if conn is None:
-        raise ValueError("database connection is required for legacy climate persistence")
-    with conn.cursor() as cur:
-        cur.execute(sql, parameters)
-        row = cur.fetchone()
-        if row is None:
-            raise RuntimeError(f"{target_table} upsert returned no row")
-        record_id = str(row[0])
-
-    log_ingestion(
-        source_system="gee_api",
-        source_table=source_table,
-        source_id=source_id,
-        target_table=target_table,
-        target_id=record_id,
-        operation="upsert",
-        payload_hash=hash_payload(payload),
-        status="success",
-        rows_affected=1,
-        db=conn,
-        location_id=location_id,
-    )
-    conn.commit()
-    return record_id
+    """Persist through the signed writer while retaining the legacy audit payload."""
+    if not callable(persist_summary):
+        raise ValueError("signed climate persistence callback is required")
+    return persist_summary(provider_summary, legacy_audit_payload)
 
 
 def _metadata(
@@ -140,7 +106,7 @@ def fetch_modis_lst(
     lookback_days: int = 180,
     *,
     worker_credentials: bool = False,
-    persist_summary: Callable[[dict], str] | None = None,
+    persist_summary: Callable[[dict, dict], str] | None = None,
 ) -> Dict[str, Any]:
     """Fetch 180-day MODIS MOD11A2 mean daytime and nighttime LST.
 
@@ -148,7 +114,10 @@ def fetch_modis_lst(
     The canonical table stores the spatial mean of the temporal mean as-of
     ``target_date``.
     """
-    ee = _get_gee_client(worker_credentials=True) if worker_credentials else _get_gee_client()
+    if not worker_credentials or not callable(persist_summary):
+        return {"status": "error", "message": "signed climate writer is required"}
+
+    ee = _get_gee_client(worker_credentials=True)
     if not ee:
         return {"status": "error", "message": "GEE client not available"}
 
@@ -172,21 +141,6 @@ def fetch_modis_lst(
         metadata = _metadata("MODIS/061/MOD11A2", start_date, end_date,
                              lookback_days, "mean", 1000,
                              {"lst_day_mean_6m": "degC", "lst_night_mean_6m": "degC"})
-        sql = """
-            INSERT INTO modis_lst_summary
-                (location_id, target_date, source, resolution_m,
-                 lst_day_mean_6m, lst_night_mean_6m, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
-            ON CONFLICT (location_id, target_date, source)
-                WHERE plot_id IS NULL AND source IS NOT NULL
-            DO UPDATE SET
-                resolution_m = EXCLUDED.resolution_m,
-                lst_day_mean_6m = EXCLUDED.lst_day_mean_6m,
-                lst_night_mean_6m = EXCLUDED.lst_night_mean_6m,
-                metadata = EXCLUDED.metadata,
-                updated_at = NOW()
-            RETURNING id
-        """
         provider_summary = {
             "source_key": "modis_lst",
             "source_table": "modis_lst",
@@ -198,21 +152,16 @@ def fetch_modis_lst(
             "metadata": json.loads(metadata),
         }
         record_id = _persist_summary(
-            conn, sql=sql,
-            parameters=(location_id, end_date.date(), "modis_mod11a2_v061", 1000,
-                        lst_day_c, lst_night_c, metadata),
-            source_table="modis_lst", source_id="MODIS/061/MOD11A2",
-            target_table="modis_lst_summary",
-            payload={"lst_day_mean_6m_c": lst_day_c, "lst_night_mean_6m_c": lst_night_c},
-            location_id=location_id,
             provider_summary=provider_summary,
+            legacy_audit_payload={
+                "lst_day_mean_6m_c": lst_day_c,
+                "lst_night_mean_6m_c": lst_night_c,
+            },
             persist_summary=persist_summary,
         )
         return {"status": "success", "record_id": record_id,
                 "lst_day_c": lst_day_c, "lst_night_c": lst_night_c}
     except Exception as e:
-        if conn is not None:
-            conn.rollback()
         logger.error("MODIS LST fetch failed (%s)", type(e).__name__)
         return {"status": "error", "message": f"MODIS LST fetch failed ({type(e).__name__})"}
 
@@ -224,14 +173,17 @@ def fetch_smap_moisture(
     lookback_days: int = 180,
     *,
     worker_credentials: bool = False,
-    persist_summary: Callable[[dict], str] | None = None,
+    persist_summary: Callable[[dict, dict], str] | None = None,
 ) -> Dict[str, Any]:
     """Fetch SMAP L3 Enhanced 9km PM soil-moisture volume fraction.
 
     Collection 006 contains the post-2023 data and exposes the
     ``soil_moisture_pm`` band in volume fraction.
     """
-    ee = _get_gee_client(worker_credentials=True) if worker_credentials else _get_gee_client()
+    if not worker_credentials or not callable(persist_summary):
+        return {"status": "error", "message": "signed climate writer is required"}
+
+    ee = _get_gee_client(worker_credentials=True)
     if not ee:
         return {"status": "error", "message": "GEE client not available"}
 
@@ -251,20 +203,6 @@ def fetch_smap_moisture(
         metadata = _metadata("NASA/SMAP/SPL3SMP_E/006", start_date, end_date,
                              lookback_days, "mean", 9000,
                              {"soil_moisture_6m": "volume_fraction"})
-        sql = """
-            INSERT INTO smap_soil_moisture
-                (location_id, target_date, source, resolution_m,
-                 soil_moisture_6m, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s::jsonb)
-            ON CONFLICT (location_id, target_date, source)
-                WHERE plot_id IS NULL AND source IS NOT NULL
-            DO UPDATE SET
-                resolution_m = EXCLUDED.resolution_m,
-                soil_moisture_6m = EXCLUDED.soil_moisture_6m,
-                metadata = EXCLUDED.metadata,
-                updated_at = NOW()
-            RETURNING id
-        """
         provider_summary = {
             "source_key": "smap_moisture",
             "source_table": "smap_soil_moisture",
@@ -276,21 +214,15 @@ def fetch_smap_moisture(
             "metadata": json.loads(metadata),
         }
         record_id = _persist_summary(
-            conn, sql=sql,
-            parameters=(location_id, end_date.date(), "smap_l3_enhanced_9km_v006",
-                        9000, soil_moisture, metadata),
-            source_table="smap_soil_moisture", source_id="NASA/SMAP/SPL3SMP_E/006",
-            target_table="smap_soil_moisture",
-            payload={"soil_moisture_6m_volume_fraction": soil_moisture},
-            location_id=location_id,
             provider_summary=provider_summary,
+            legacy_audit_payload={
+                "soil_moisture_6m_volume_fraction": soil_moisture,
+            },
             persist_summary=persist_summary,
         )
         return {"status": "success", "record_id": record_id,
                 "soil_moisture_volume_fraction": soil_moisture}
     except Exception as e:
-        if conn is not None:
-            conn.rollback()
         logger.error("SMAP fetch failed (%s)", type(e).__name__)
         return {"status": "error", "message": f"SMAP fetch failed ({type(e).__name__})"}
 
@@ -302,10 +234,13 @@ def fetch_sentinel1_sar(
     lookback_days: int = 180,
     *,
     worker_credentials: bool = False,
-    persist_summary: Callable[[dict], str] | None = None,
+    persist_summary: Callable[[dict, dict], str] | None = None,
 ) -> Dict[str, Any]:
     """Fetch 180-day Sentinel-1 GRD temporal median VV/VH backscatter in dB."""
-    ee = _get_gee_client(worker_credentials=True) if worker_credentials else _get_gee_client()
+    if not worker_credentials or not callable(persist_summary):
+        return {"status": "error", "message": "signed climate writer is required"}
+
+    ee = _get_gee_client(worker_credentials=True)
     if not ee:
         return {"status": "error", "message": "GEE client not available"}
 
@@ -331,21 +266,6 @@ def fetch_sentinel1_sar(
         metadata = _metadata("COPERNICUS/S1_GRD", start_date, end_date,
                              lookback_days, "median", 10,
                              {"vh_median_6m": "dB", "vv_median_6m": "dB"})
-        sql = """
-            INSERT INTO sentinel1_sar_summary
-                (location_id, target_date, source, resolution_m,
-                 vh_median_6m, vv_median_6m, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
-            ON CONFLICT (location_id, target_date, source)
-                WHERE plot_id IS NULL AND source IS NOT NULL
-            DO UPDATE SET
-                resolution_m = EXCLUDED.resolution_m,
-                vh_median_6m = EXCLUDED.vh_median_6m,
-                vv_median_6m = EXCLUDED.vv_median_6m,
-                metadata = EXCLUDED.metadata,
-                updated_at = NOW()
-            RETURNING id
-        """
         provider_summary = {
             "source_key": "sentinel1_sar",
             "source_table": "sentinel1_sar",
@@ -357,21 +277,16 @@ def fetch_sentinel1_sar(
             "metadata": json.loads(metadata),
         }
         record_id = _persist_summary(
-            conn, sql=sql,
-            parameters=(location_id, end_date.date(), "sentinel1_grd", 10,
-                        vh_db, vv_db, metadata),
-            source_table="sentinel1_sar", source_id="COPERNICUS/S1_GRD",
-            target_table="sentinel1_sar_summary",
-            payload={"vh_median_6m_db": vh_db, "vv_median_6m_db": vv_db},
-            location_id=location_id,
             provider_summary=provider_summary,
+            legacy_audit_payload={
+                "vh_median_6m_db": vh_db,
+                "vv_median_6m_db": vv_db,
+            },
             persist_summary=persist_summary,
         )
         return {"status": "success", "record_id": record_id,
                 "vh_db": vh_db, "vv_db": vv_db, "images": image_count}
     except Exception as e:
-        if conn is not None:
-            conn.rollback()
         logger.error("Sentinel-1 SAR fetch failed (%s)", type(e).__name__)
         return {"status": "error", "message": f"Sentinel-1 SAR fetch failed ({type(e).__name__})"}
 
@@ -383,7 +298,7 @@ def fetch_era5_land(
     lookback_days: int = 180,
     *,
     worker_credentials: bool = False,
-    persist_summary: Callable[[dict], str] | None = None,
+    persist_summary: Callable[[dict, dict], str] | None = None,
 ) -> Dict[str, Any]:
     """Fetch 180-day ERA5-Land daily climate summaries via GEE.
 
@@ -391,7 +306,10 @@ def fetch_era5_land(
     and soil moisture as volumetric fraction, matching the canonical summary
     table's semantic columns.
     """
-    ee = _get_gee_client(worker_credentials=True) if worker_credentials else _get_gee_client()
+    if not worker_credentials or not callable(persist_summary):
+        return {"status": "error", "message": "signed climate writer is required"}
+
+    ee = _get_gee_client(worker_credentials=True)
     if not ee:
         return {"status": "error", "message": "GEE client not available"}
 
@@ -433,25 +351,6 @@ def fetch_era5_land(
                 "precipitation_6m": "mm",
             },
         )
-        sql = """
-            INSERT INTO ncep_weather_summary
-                (location_id, target_date, source, resolution_m,
-                 soil_moisture_6m, mean_temp_6m, max_temp_6m, min_temp_6m,
-                 precipitation_6m, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
-            ON CONFLICT (location_id, target_date, source)
-                WHERE plot_id IS NULL AND source IS NOT NULL
-            DO UPDATE SET
-                resolution_m = EXCLUDED.resolution_m,
-                soil_moisture_6m = EXCLUDED.soil_moisture_6m,
-                mean_temp_6m = EXCLUDED.mean_temp_6m,
-                max_temp_6m = EXCLUDED.max_temp_6m,
-                min_temp_6m = EXCLUDED.min_temp_6m,
-                precipitation_6m = EXCLUDED.precipitation_6m,
-                metadata = EXCLUDED.metadata,
-                updated_at = NOW()
-            RETURNING id
-        """
         payload = {
             "soil_moisture_6m_volume_fraction": soil_moisture,
             "mean_temp_6m_c": mean_temp_c,
@@ -476,40 +375,20 @@ def fetch_era5_land(
             "metadata": json.loads(metadata),
         }
         record_id = _persist_summary(
-            conn, sql=sql,
-            parameters=(location_id, end_date.date(), "era5_land_daily_aggr", 11132,
-                        soil_moisture, mean_temp_c, max_temp_c, min_temp_c,
-                        precipitation_mm, metadata),
-            source_table="era5_land", source_id="ECMWF/ERA5_LAND/DAILY_AGGR",
-            target_table="ncep_weather_summary", payload=payload,
-            location_id=location_id,
             provider_summary=provider_summary,
+            legacy_audit_payload=payload,
             persist_summary=persist_summary,
         )
         return {"status": "success", "record_id": record_id,
                 "temperature_c": mean_temp_c, "precipitation_mm": precipitation_mm,
                 "soil_moisture_volume_fraction": soil_moisture}
     except Exception as e:
-        if conn is not None:
-            conn.rollback()
         logger.error("ERA5 Land fetch failed (%s)", type(e).__name__)
         return {"status": "error", "message": f"ERA5 Land fetch failed ({type(e).__name__})"}
 
 
 def fetch_all_climate(conn, location_id: str, bbox: Dict[str, float]) -> Dict[str, Any]:
-    """Fetch all climate data sources for a location via GEE."""
-    results = {
-        "modis_lst": fetch_modis_lst(conn, location_id, bbox),
-        "smap_moisture": fetch_smap_moisture(conn, location_id, bbox),
-        "sentinel1_sar": fetch_sentinel1_sar(conn, location_id, bbox),
-        "era5_land": fetch_era5_land(conn, location_id, bbox),
-    }
-    success = sum(1 for result in results.values() if result.get("status") == "success")
-    failed = sum(1 for result in results.values() if result.get("status") == "error")
-    return {
-        "status": "error" if failed else "success",
-        "location_id": location_id,
-        "sources_success": success,
-        "sources_failed": failed,
-        "results": results,
-    }
+    """Dispatch a full climate refresh through the signed worker boundary."""
+    from .climate_data import _dispatch_signed_climate_worker
+
+    return _dispatch_signed_climate_worker(location_id)

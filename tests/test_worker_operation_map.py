@@ -435,9 +435,15 @@ def test_climate_worker_map_names_current_schema_and_provider_effects():
     climate = next(
         entry for entry in _load_map()["scheduled_modules"] if entry["module"] == "services.ingestion.climate_data"
     )
+    worker = next(
+        entry for entry in _load_map()["scheduled_modules"] if entry["module"] == "services.ingestion.climate_worker"
+    )
 
-    assert set(climate["reads"]) == {"public.location", "public.plot", "public.farm"}
-    assert set(climate["writes"]) == {
+    assert climate["reads"] == []
+    assert climate["writes"] == []
+    assert "no longer opens PostgreSQL itself" in climate["scope"]
+    assert set(worker["reads"]) == {"public.location", "public.plot", "public.farm"}
+    assert set(worker["writes"]) == {
         "public.worldclim_climate",
         "public.ncep_weather_summary",
         "public.modis_lst_summary",
@@ -448,8 +454,10 @@ def test_climate_worker_map_names_current_schema_and_provider_effects():
     assert "latitude_proxy_v1" in " ".join(climate["external_effects"])
     assert "schemas/postgres/397_worldclim_location_baseline_key.sql" in climate["sources"]
     assert "schemas/postgres/428_climate_summary_idempotency.sql" in climate["sources"]
-    assert "same-day provider retries upsert" in climate["idempotency"]
-    assert "commit in one transaction" in climate["retry_boundary"]
+    assert "schemas/postgres/713_signed_climate_summary_audit_parity.sql" in worker["sources"]
+    assert "same-day provider retries upsert" in worker["idempotency"]
+    assert "processing_time_ms" in worker["idempotency"]
+    assert "aggregate result keys remain" in climate["retry_boundary"]
 
 
 def test_remote_sensing_job_is_bounded_and_provider_execution_is_not_claimed():

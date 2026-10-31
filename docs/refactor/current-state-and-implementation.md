@@ -84,7 +84,7 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. Both processes require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. | A network-disabled disposable acceptance applies all 703 schema files through migration 712, provisions the runtime role, verifies bounded gateway rate-limit ACLs and consume/cleanup behavior, confirms API/worker identities, and passes outage recovery and cleanup ([evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json)). Candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
+| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. Both processes require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. | The latest Standard recovery acceptance applies 703 schema files through migration 712, provisions the runtime role, verifies bounded gateway rate-limit ACLs and consume/cleanup behavior, confirms API/worker identities, and passes outage recovery and cleanup ([evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json)). Source now contains migration 713; its signed climate behavior passes a focused disposable replay, but it is not included in the full Standard replay. Candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
@@ -145,7 +145,13 @@ older counts and deployment statements are snapshots from their dates.
 
 ## C1 runtime ACL work: current batch
 
-C1 remains **open**. A network-disabled, portless native PostgreSQL 16 replay
+C1 remains **open**. The latest C1 source addition is migration 713, which
+preserves the signed climate worker's audit compatibility and supports active
+locations with plot geometry but no centroid; its focused unit and disposable
+PostgreSQL acceptance passes ([climate evidence](builds/2026-10-31-recovery/climate-worker-713-disposable.json)).
+It has not been included in a fresh full-schema replay or applied to a
+persistent candidate. The latest aggregate C1 source/ACL evidence remains a
+network-disabled, portless native PostgreSQL 16 replay
 through migration 711 applied all 702 ordered schema files and passed the
 synthetic two-tenant operator-scope probe. The refreshed source/ACL report
 records 161 migration-owned runtime boundaries, zero policy mismatches, zero
@@ -183,7 +189,8 @@ production rollout, provider recovery, scale, 24-hour endurance, or physical
 device acceptance. No candidate, legacy, or production database or role was
 changed. Broader caller reconciliation, external importer ownership, Directus
 API parity, tenant/RLS, populated-data parity, and reviewed persistent rollout
-remain open.
+remain open. Migration 712 did not rerun the two-tenant operator-scope probe or
+refresh the C1 source/ACL aggregate; that evidence remains at migration 711.
 
 ## Human and operational gates
 

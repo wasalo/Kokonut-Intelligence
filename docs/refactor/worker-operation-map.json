@@ -244,25 +244,14 @@
     },
     {
       "module": "services.ingestion.climate_data",
-      "scope": "Exactly one required --location-id per process; --all means all climate providers for that location, not all locations.",
-      "reads": [
-        "public.location",
-        "public.plot",
-        "public.farm"
-      ],
-      "writes": [
-        "public.worldclim_climate",
-        "public.ncep_weather_summary",
-        "public.modis_lst_summary",
-        "public.smap_soil_moisture",
-        "public.sentinel1_sar_summary",
-        "public.ingestion_log"
-      ],
+      "scope": "Compatibility selectors require exactly one --location-id; --all means the five legacy-labeled source results for that location, not all locations. This module dispatches to the isolated signed climate worker and no longer opens PostgreSQL itself.",
+      "reads": [],
+      "writes": [],
       "external_effects": [
         "ERA5 Land (--ncep), MODIS, SMAP, and Sentinel-1 requests through Google Earth Engine; the worldclim command makes no network request and records a latitude_proxy_v1 estimate"
       ],
       "idempotency": "worldclim_climate uses a partial unique key for one location-level row (plot_id IS NULL); migration 397 refuses duplicate legacy rows without deleting them. Migration 428 adds guarded location/date/source partial unique keys for the four GEE summary tables; same-day provider retries upsert the same location-level summary, while plot rows remain independent.",
-      "retry_boundary": "This shared-identity module remains for interactive/manual compatibility and legacy persisted-task reconciliation. The manual path keeps each persisted summary and ingestion audit together and will commit in one transaction. New native JobSpecs use the default-off signed climate_worker, which requires migration 429, a dedicated climate DSN/credential, an exact climate/ingest location grant, and the separately scoped GEE service-account file. Provider failures are audited with bounded messages and return nonzero; no shared-DSN fallback exists in the worker.",
+      "retry_boundary": "This compatibility CLI validates its location and delegates all database and provider work to climate_worker with only its climate-specific environment. Legacy aggregate result keys remain worldclim/ncep/modis/smap/sentinel1. Provider failures are audited with bounded messages and return nonzero; no shared-DSN fallback exists.",
       "sources": [
         "services/ingestion/climate_data.py",
         "services/ingestion/gee_climate.py",
@@ -270,13 +259,17 @@
         "schemas/postgres/074_dsm_soc_prediction.sql",
         "schemas/postgres/397_worldclim_location_baseline_key.sql",
         "schemas/postgres/428_climate_summary_idempotency.sql",
-        "services/ingestion/climate_worker.py"
+        "services/ingestion/climate_worker.py",
+        "schemas/postgres/713_signed_climate_summary_audit_parity.sql",
+        "scripts/check-climate-worker-disposable.py",
+        "tests/fixtures/climate_worker_disposable.sql",
+        "tests/test_climate_data_cli_parity.py"
       ]
     },
     {
       "module": "services.ingestion.climate_worker",
       "worker_key": "climate",
-      "scope": "Default-off native operation requires one explicit --location-id and establishes a signed climate/ingest grant before every location lookup and summary write. It reads the active location point and plot-derived/fallback bbox only through migration 429 functions; no shared database or GEE key-path fallback is used.",
+      "scope": "Default-off native operation requires one explicit --location-id and establishes a signed climate/ingest grant before every location lookup and summary write. Migration 713's replacement lookup returns active location point and plot bounds independently: coordinate-only locations get a fallback bbox, plot-only locations can query GEE without a WorldClim centroid, and locations with neither skip sources safely. Migration 713 writes through an audit-compatible bounded function; no shared database or GEE key-path fallback is used.",
       "reads": [
         "public.location",
         "public.farm",
@@ -293,7 +286,7 @@
       "external_effects": [
         "ERA5 Land, MODIS, SMAP, and Sentinel-1 requests through Google Earth Engine using the climate-specific service-account key file; WorldClim remains a no-network latitude proxy"
       ],
-      "idempotency": "Migration 428 keys the four location-level GEE summaries by location/date/source; migration 397 keys the WorldClim location baseline. Migration 429 restricts fields per source and commits each summary with its ingestion audit through one bounded function; plot rows remain independent.",
+      "idempotency": "Migration 428 keys the four location-level GEE summaries by location/date/source, so same-day provider retries upsert the same row; migration 397 keys the WorldClim location baseline. Migrations 429 and 713 restrict fields per source and commit each summary with its ingestion audit through bounded functions; migration 713 preserves the prior payload hash and zero success processing_time_ms while recording elapsed duration separately. Plot rows remain independent.",
       "retry_boundary": "One location is the retry unit. GEE provider results are fetched before a short signed database transaction; failed provider outcomes record a safe failure audit and the command exits nonzero. KOKONUT_FEATURE_SIGNED_CLIMATE_WORKER defaults off; no task, worker credential, location grant, provider key, or candidate migration is activated by this inventory.",
       "sources": [
         "services/ingestion/climate_worker.py",
@@ -303,6 +296,7 @@
         "services/common/tenant_context.py",
         "schemas/postgres/428_climate_summary_idempotency.sql",
         "schemas/postgres/429_signed_climate_worker.sql",
+        "schemas/postgres/713_signed_climate_summary_audit_parity.sql",
         "scripts/check-climate-worker-disposable.py",
         "tests/fixtures/climate_worker_disposable.sql",
         "tests/test_climate_worker.py"

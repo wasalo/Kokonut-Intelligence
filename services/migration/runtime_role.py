@@ -1258,6 +1258,11 @@ _RUNTIME_MUTATION_TABLES = (
     "schema_version",
     "cache_invalidation_rule",
     "energy_reading",
+    "worldclim_climate",
+    "ncep_weather_summary",
+    "modis_lst_summary",
+    "smap_soil_moisture",
+    "sentinel1_sar_summary",
 )
 
 # Immutable audit evidence keeps SELECT/INSERT under the runtime login.

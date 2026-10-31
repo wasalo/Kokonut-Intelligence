@@ -4,10 +4,10 @@
   "scope": "Direct statically resolved Python calls, exact keyword-bound class instances passed to statically resolved functions, known services.common.cli.run and ClickHouse outbox completion callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator, scheduled-driver, and registered-synthesis-agent dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 50,
-    "source_files": 144,
+    "source_files": 145,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 1206,
-    "direct_call_edges": 1707,
+    "function_memberships": 1197,
+    "direct_call_edges": 1722,
     "callback_edges": 2,
     "dynamic_dispatch_edges": 56
   },
@@ -454,7 +454,7 @@
           "qualname": "event_handler_worker_policy",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 103
+          "line": 107
         },
         {
           "key": "services.common.worker_environment:worker_subprocess_environment",
@@ -462,7 +462,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 136
+          "line": 140
         },
         {
           "key": "services.core.features:is_enabled",
@@ -966,7 +966,7 @@
           "qualname": "_configured_channels",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 158
+          "line": 165
         },
         {
           "key": "services.events.notification_outbox:_deliver",
@@ -974,7 +974,7 @@
           "qualname": "_deliver",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 435
+          "line": 442
         },
         {
           "key": "services.events.notification_outbox:_finish_attempt",
@@ -982,7 +982,7 @@
           "qualname": "_finish_attempt",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 498
+          "line": 505
         },
         {
           "key": "services.events.notification_outbox:_recover_expired_leases",
@@ -990,7 +990,7 @@
           "qualname": "_recover_expired_leases",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 344
+          "line": 351
         },
         {
           "key": "services.events.notification_outbox:_retry_delay_seconds",
@@ -998,7 +998,7 @@
           "qualname": "_retry_delay_seconds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 493
+          "line": 500
         },
         {
           "key": "services.events.notification_outbox:_storage_thresholds",
@@ -1006,7 +1006,7 @@
           "qualname": "_storage_thresholds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 579
+          "line": 586
         },
         {
           "key": "services.events.notification_outbox:_validate_operator",
@@ -1014,7 +1014,7 @@
           "qualname": "_validate_operator",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 660
+          "line": 667
         },
         {
           "key": "services.events.notification_outbox:claim_batch",
@@ -1022,7 +1022,7 @@
           "qualname": "claim_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 370
+          "line": 377
         },
         {
           "key": "services.events.notification_outbox:deliver_batch",
@@ -1030,7 +1030,7 @@
           "qualname": "deliver_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 570
+          "line": 577
         },
         {
           "key": "services.events.notification_outbox:deliver_claimed_batch",
@@ -1038,7 +1038,7 @@
           "qualname": "deliver_claimed_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 545
+          "line": 552
         },
         {
           "key": "services.events.notification_outbox:dispose_dead_letter",
@@ -1046,7 +1046,7 @@
           "qualname": "dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 710
+          "line": 717
         },
         {
           "key": "services.events.notification_outbox:get_stats",
@@ -1054,7 +1054,7 @@
           "qualname": "get_stats",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 599
+          "line": 606
         },
         {
           "key": "services.events.notification_outbox:list_dead_letters",
@@ -1062,7 +1062,7 @@
           "qualname": "list_dead_letters",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 641
+          "line": 648
         },
         {
           "key": "services.events.notification_outbox:replay_dead_letter",
@@ -1070,7 +1070,7 @@
           "qualname": "replay_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 668
+          "line": 675
         },
         {
           "key": "services.events.retention:event_retention_cleanup_enabled",
@@ -1946,91 +1946,91 @@
           "caller": "services.events.notification_outbox:_configured_channels",
           "callee": "services.common.smtp:validate_settings",
           "source": "services/events/notification_outbox.py",
-          "line": 173
+          "line": 180
         },
         {
           "caller": "services.events.notification_outbox:_configured_channels",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 166
+          "line": 173
         },
         {
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.common.smtp:send_message",
           "source": "services/events/notification_outbox.py",
-          "line": 478
+          "line": 485
         },
         {
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 448
+          "line": 455
         },
         {
           "caller": "services.events.notification_outbox:_finish_attempt",
           "callee": "services.events.notification_outbox:_retry_delay_seconds",
           "source": "services/events/notification_outbox.py",
-          "line": 506
+          "line": 513
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_configured_channels",
           "source": "services/events/notification_outbox.py",
-          "line": 386
-        },
-        {
-          "caller": "services.events.notification_outbox:claim_batch",
-          "callee": "services.events.notification_outbox:_recover_expired_leases",
-          "source": "services/events/notification_outbox.py",
-          "line": 388
-        },
-        {
-          "caller": "services.events.notification_outbox:claim_batch",
-          "callee": "services.events.notification_outbox:_recover_expired_leases",
-          "source": "services/events/notification_outbox.py",
           "line": 393
+        },
+        {
+          "caller": "services.events.notification_outbox:claim_batch",
+          "callee": "services.events.notification_outbox:_recover_expired_leases",
+          "source": "services/events/notification_outbox.py",
+          "line": 395
+        },
+        {
+          "caller": "services.events.notification_outbox:claim_batch",
+          "callee": "services.events.notification_outbox:_recover_expired_leases",
+          "source": "services/events/notification_outbox.py",
+          "line": 400
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:_finish_attempt",
           "source": "services/events/notification_outbox.py",
-          "line": 575
+          "line": 582
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:claim_batch",
           "source": "services/events/notification_outbox.py",
-          "line": 572
+          "line": 579
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:deliver_claimed_batch",
           "source": "services/events/notification_outbox.py",
-          "line": 573
+          "line": 580
         },
         {
           "caller": "services.events.notification_outbox:deliver_claimed_batch",
           "callee": "services.events.notification_outbox:_deliver",
           "source": "services/events/notification_outbox.py",
-          "line": 551
+          "line": 558
         },
         {
           "caller": "services.events.notification_outbox:dispose_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 720
+          "line": 727
         },
         {
           "caller": "services.events.notification_outbox:get_stats",
           "callee": "services.events.notification_outbox:_storage_thresholds",
           "source": "services/events/notification_outbox.py",
-          "line": 620
+          "line": 627
         },
         {
           "caller": "services.events.notification_outbox:replay_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 669
+          "line": 676
         },
         {
           "caller": "services.events.retention:require_event_retention_cleanup",
@@ -2462,7 +2462,7 @@
           "qualname": "_notification_payloads",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 45
+          "line": 52
         },
         {
           "key": "services.events.notification_outbox:_prepare_event_notification",
@@ -2470,7 +2470,15 @@
           "qualname": "_prepare_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 309
+          "line": 316
+        },
+        {
+          "key": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "module": "services.events.notification_outbox",
+          "qualname": "_webhook_configured_for_enqueue",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
+          "line": 45
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification",
@@ -2478,7 +2486,7 @@
           "qualname": "enqueue_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 189
+          "line": 196
         },
         {
           "key": "services.ingestion.anomaly_detector:_get_event_bus",
@@ -2860,19 +2868,25 @@
           "caller": "services.events.notification_outbox:_notification_payloads",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 106
+          "line": 113
+        },
+        {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "source": "services/events/notification_outbox.py",
+          "line": 68
         },
         {
           "caller": "services.events.notification_outbox:_prepare_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 332
+          "line": 339
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 199
+          "line": 206
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
@@ -4883,21 +4897,19 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
-        "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
-        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
-        "services/ingestion/base.py",
         "services/ingestion/climate_data.py",
-        "services/ingestion/config.py",
-        "services/ingestion/gee_climate.py"
+        "services/security/execution_allowlist.py",
+        "services/security/scheduled_command_contracts.py"
       ],
       "entry_functions": [
         {
           "function": "services.ingestion.climate_data:main",
           "source": "services/ingestion/climate_data.py",
-          "line": 358
+          "line": 276
         }
       ],
       "reachable_functions": [
@@ -4910,100 +4922,52 @@
           "line": 73
         },
         {
-          "key": "services.common.database:get_db",
-          "module": "services.common.database",
-          "qualname": "get_db",
+          "key": "services.common.worker_environment:worker_subprocess_environment",
+          "module": "services.common.worker_environment",
+          "qualname": "worker_subprocess_environment",
           "class_scope": null,
-          "source": "services/common/database.py",
-          "line": 35
+          "source": "services/common/worker_environment.py",
+          "line": 140
         },
         {
-          "key": "services.ingestion.base:get_db",
-          "module": "services.ingestion.base",
-          "qualname": "get_db",
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
           "class_scope": null,
-          "source": "services/ingestion/base.py",
-          "line": 50
+          "source": "services/core/features.py",
+          "line": 265
         },
         {
-          "key": "services.ingestion.base:hash_payload",
-          "module": "services.ingestion.base",
-          "qualname": "hash_payload",
-          "class_scope": null,
-          "source": "services/ingestion/base.py",
-          "line": 121
-        },
-        {
-          "key": "services.ingestion.base:log_ingestion",
-          "module": "services.ingestion.base",
-          "qualname": "log_ingestion",
-          "class_scope": null,
-          "source": "services/ingestion/base.py",
-          "line": 130
-        },
-        {
-          "key": "services.ingestion.climate_data:_estimate_bioclim",
+          "key": "services.ingestion.climate_data:_dispatch_signed_climate_source",
           "module": "services.ingestion.climate_data",
-          "qualname": "_estimate_bioclim",
+          "qualname": "_dispatch_signed_climate_source",
           "class_scope": null,
           "source": "services/ingestion/climate_data.py",
-          "line": 170
+          "line": 132
         },
         {
-          "key": "services.ingestion.climate_data:_query_location_bbox",
+          "key": "services.ingestion.climate_data:_dispatch_signed_climate_worker",
           "module": "services.ingestion.climate_data",
-          "qualname": "_query_location_bbox",
+          "qualname": "_dispatch_signed_climate_worker",
           "class_scope": null,
           "source": "services/ingestion/climate_data.py",
-          "line": 33
+          "line": 76
         },
         {
-          "key": "services.ingestion.climate_data:_query_location_centroid",
+          "key": "services.ingestion.climate_data:_legacy_climate_report",
           "module": "services.ingestion.climate_data",
-          "qualname": "_query_location_centroid",
+          "qualname": "_legacy_climate_report",
           "class_scope": null,
           "source": "services/ingestion/climate_data.py",
-          "line": 61
+          "line": 214
         },
         {
-          "key": "services.ingestion.climate_data:fetch_modis",
+          "key": "services.ingestion.climate_data:_valid_worker_report",
           "module": "services.ingestion.climate_data",
-          "qualname": "fetch_modis",
+          "qualname": "_valid_worker_report",
           "class_scope": null,
           "source": "services/ingestion/climate_data.py",
-          "line": 232
-        },
-        {
-          "key": "services.ingestion.climate_data:fetch_ncep",
-          "module": "services.ingestion.climate_data",
-          "qualname": "fetch_ncep",
-          "class_scope": null,
-          "source": "services/ingestion/climate_data.py",
-          "line": 209
-        },
-        {
-          "key": "services.ingestion.climate_data:fetch_sentinel1",
-          "module": "services.ingestion.climate_data",
-          "qualname": "fetch_sentinel1",
-          "class_scope": null,
-          "source": "services/ingestion/climate_data.py",
-          "line": 270
-        },
-        {
-          "key": "services.ingestion.climate_data:fetch_smap",
-          "module": "services.ingestion.climate_data",
-          "qualname": "fetch_smap",
-          "class_scope": null,
-          "source": "services/ingestion/climate_data.py",
-          "line": 251
-        },
-        {
-          "key": "services.ingestion.climate_data:fetch_worldclim",
-          "module": "services.ingestion.climate_data",
-          "qualname": "fetch_worldclim",
-          "class_scope": null,
-          "source": "services/ingestion/climate_data.py",
-          "line": 82
+          "line": 37
         },
         {
           "key": "services.ingestion.climate_data:main",
@@ -5011,451 +4975,493 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/climate_data.py",
-          "line": 313
+          "line": 229
         },
         {
-          "key": "services.ingestion.climate_data:run_all",
-          "module": "services.ingestion.climate_data",
-          "qualname": "run_all",
+          "key": "services.security.execution_allowlist:validate_scheduled_module",
+          "module": "services.security.execution_allowlist",
+          "qualname": "validate_scheduled_module",
           "class_scope": null,
-          "source": "services/ingestion/climate_data.py",
-          "line": 289
+          "source": "services/security/execution_allowlist.py",
+          "line": 100
         },
         {
-          "key": "services.ingestion.gee_climate:_build_bbox_geometry",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "_build_bbox_geometry",
+          "key": "services.security.scheduled_command_contracts:_reject",
+          "module": "services.security.scheduled_command_contracts",
+          "qualname": "_reject",
           "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 54
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 173
         },
         {
-          "key": "services.ingestion.gee_climate:_get_gee_client",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "_get_gee_client",
+          "key": "services.security.scheduled_command_contracts:_validate_operation",
+          "module": "services.security.scheduled_command_contracts",
+          "qualname": "_validate_operation",
           "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 21
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 254
         },
         {
-          "key": "services.ingestion.gee_climate:_metadata",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "_metadata",
+          "key": "services.security.scheduled_command_contracts:_validate_value",
+          "module": "services.security.scheduled_command_contracts",
+          "qualname": "_validate_value",
           "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 115
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 177
         },
         {
-          "key": "services.ingestion.gee_climate:_period",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "_period",
+          "key": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "module": "services.security.scheduled_command_contracts",
+          "qualname": "validate_scheduled_command",
           "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 59
-        },
-        {
-          "key": "services.ingestion.gee_climate:_persist_summary",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "_persist_summary",
-          "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 70
-        },
-        {
-          "key": "services.ingestion.gee_climate:_rounded",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "_rounded",
-          "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 66
-        },
-        {
-          "key": "services.ingestion.gee_climate:fetch_era5_land",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "fetch_era5_land",
-          "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 379
-        },
-        {
-          "key": "services.ingestion.gee_climate:fetch_modis_lst",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "fetch_modis_lst",
-          "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 136
-        },
-        {
-          "key": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "fetch_sentinel1_sar",
-          "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 298
-        },
-        {
-          "key": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "module": "services.ingestion.gee_climate",
-          "qualname": "fetch_smap_moisture",
-          "class_scope": null,
-          "source": "services/ingestion/gee_climate.py",
-          "line": 220
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 412
         }
       ],
       "direct_call_edges": [
         {
-          "caller": "services.ingestion.base:get_db",
-          "callee": "services.common.database:get_db",
-          "source": "services/ingestion/base.py",
-          "line": 59
-        },
-        {
-          "caller": "services.ingestion.base:log_ingestion",
-          "callee": "services.ingestion.base:get_db",
-          "source": "services/ingestion/base.py",
-          "line": 155
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_modis",
-          "callee": "services.ingestion.climate_data:_query_location_bbox",
+          "caller": "services.ingestion.climate_data:_dispatch_signed_climate_source",
+          "callee": "services.ingestion.climate_data:_dispatch_signed_climate_worker",
           "source": "services/ingestion/climate_data.py",
-          "line": 234
+          "line": 134
         },
         {
-          "caller": "services.ingestion.climate_data:fetch_modis",
-          "callee": "services.ingestion.climate_data:_query_location_centroid",
+          "caller": "services.ingestion.climate_data:_dispatch_signed_climate_worker",
+          "callee": "services.common.worker_environment:worker_subprocess_environment",
           "source": "services/ingestion/climate_data.py",
-          "line": 236
+          "line": 101
         },
         {
-          "caller": "services.ingestion.climate_data:fetch_modis",
-          "callee": "services.ingestion.gee_climate:fetch_modis_lst",
+          "caller": "services.ingestion.climate_data:_dispatch_signed_climate_worker",
+          "callee": "services.core.features:is_enabled",
           "source": "services/ingestion/climate_data.py",
-          "line": 248
+          "line": 87
         },
         {
-          "caller": "services.ingestion.climate_data:fetch_ncep",
-          "callee": "services.ingestion.climate_data:_query_location_bbox",
+          "caller": "services.ingestion.climate_data:_dispatch_signed_climate_worker",
+          "callee": "services.ingestion.climate_data:_valid_worker_report",
           "source": "services/ingestion/climate_data.py",
-          "line": 215
+          "line": 120
         },
         {
-          "caller": "services.ingestion.climate_data:fetch_ncep",
-          "callee": "services.ingestion.climate_data:_query_location_centroid",
+          "caller": "services.ingestion.climate_data:_dispatch_signed_climate_worker",
+          "callee": "services.security.scheduled_command_contracts:validate_scheduled_command",
           "source": "services/ingestion/climate_data.py",
-          "line": 217
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_ncep",
-          "callee": "services.ingestion.gee_climate:fetch_era5_land",
-          "source": "services/ingestion/climate_data.py",
-          "line": 229
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_sentinel1",
-          "callee": "services.ingestion.climate_data:_query_location_bbox",
-          "source": "services/ingestion/climate_data.py",
-          "line": 272
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_sentinel1",
-          "callee": "services.ingestion.climate_data:_query_location_centroid",
-          "source": "services/ingestion/climate_data.py",
-          "line": 274
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_sentinel1",
-          "callee": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "source": "services/ingestion/climate_data.py",
-          "line": 286
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_smap",
-          "callee": "services.ingestion.climate_data:_query_location_bbox",
-          "source": "services/ingestion/climate_data.py",
-          "line": 253
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_smap",
-          "callee": "services.ingestion.climate_data:_query_location_centroid",
-          "source": "services/ingestion/climate_data.py",
-          "line": 255
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_smap",
-          "callee": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "source": "services/ingestion/climate_data.py",
-          "line": 267
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_worldclim",
-          "callee": "services.ingestion.base:hash_payload",
-          "source": "services/ingestion/climate_data.py",
-          "line": 153
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_worldclim",
-          "callee": "services.ingestion.base:log_ingestion",
-          "source": "services/ingestion/climate_data.py",
-          "line": 146
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_worldclim",
-          "callee": "services.ingestion.climate_data:_estimate_bioclim",
-          "source": "services/ingestion/climate_data.py",
-          "line": 96
-        },
-        {
-          "caller": "services.ingestion.climate_data:fetch_worldclim",
-          "callee": "services.ingestion.climate_data:_query_location_centroid",
-          "source": "services/ingestion/climate_data.py",
-          "line": 89
+          "line": 95
         },
         {
           "caller": "services.ingestion.climate_data:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/climate_data.py",
-          "line": 349
+          "line": 271
         },
         {
           "caller": "services.ingestion.climate_data:main",
-          "callee": "services.ingestion.base:get_db",
+          "callee": "services.ingestion.climate_data:_dispatch_signed_climate_source",
           "source": "services/ingestion/climate_data.py",
-          "line": 335
+          "line": 266
         },
         {
           "caller": "services.ingestion.climate_data:main",
-          "callee": "services.ingestion.climate_data:fetch_modis",
+          "callee": "services.ingestion.climate_data:_dispatch_signed_climate_worker",
           "source": "services/ingestion/climate_data.py",
-          "line": 344
+          "line": 264
         },
         {
           "caller": "services.ingestion.climate_data:main",
-          "callee": "services.ingestion.climate_data:fetch_ncep",
+          "callee": "services.ingestion.climate_data:_legacy_climate_report",
           "source": "services/ingestion/climate_data.py",
-          "line": 342
+          "line": 264
         },
         {
-          "caller": "services.ingestion.climate_data:main",
-          "callee": "services.ingestion.climate_data:fetch_sentinel1",
-          "source": "services/ingestion/climate_data.py",
-          "line": 348
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 259
         },
         {
-          "caller": "services.ingestion.climate_data:main",
-          "callee": "services.ingestion.climate_data:fetch_smap",
-          "source": "services/ingestion/climate_data.py",
-          "line": 346
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 264
         },
         {
-          "caller": "services.ingestion.climate_data:main",
-          "callee": "services.ingestion.climate_data:fetch_worldclim",
-          "source": "services/ingestion/climate_data.py",
-          "line": 340
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 272
         },
         {
-          "caller": "services.ingestion.climate_data:main",
-          "callee": "services.ingestion.climate_data:run_all",
-          "source": "services/ingestion/climate_data.py",
-          "line": 338
-        },
-        {
-          "caller": "services.ingestion.climate_data:run_all",
-          "callee": "services.ingestion.climate_data:fetch_modis",
-          "source": "services/ingestion/climate_data.py",
-          "line": 294
-        },
-        {
-          "caller": "services.ingestion.climate_data:run_all",
-          "callee": "services.ingestion.climate_data:fetch_ncep",
-          "source": "services/ingestion/climate_data.py",
-          "line": 293
-        },
-        {
-          "caller": "services.ingestion.climate_data:run_all",
-          "callee": "services.ingestion.climate_data:fetch_sentinel1",
-          "source": "services/ingestion/climate_data.py",
-          "line": 296
-        },
-        {
-          "caller": "services.ingestion.climate_data:run_all",
-          "callee": "services.ingestion.climate_data:fetch_smap",
-          "source": "services/ingestion/climate_data.py",
-          "line": 295
-        },
-        {
-          "caller": "services.ingestion.climate_data:run_all",
-          "callee": "services.ingestion.climate_data:fetch_worldclim",
-          "source": "services/ingestion/climate_data.py",
-          "line": 292
-        },
-        {
-          "caller": "services.ingestion.gee_climate:_persist_summary",
-          "callee": "services.ingestion.base:hash_payload",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 105
-        },
-        {
-          "caller": "services.ingestion.gee_climate:_persist_summary",
-          "callee": "services.ingestion.base:log_ingestion",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 98
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
-          "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 400
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
-          "callee": "services.ingestion.gee_climate:_get_gee_client",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 394
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
-          "callee": "services.ingestion.gee_climate:_metadata",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 425
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
-          "callee": "services.ingestion.gee_climate:_period",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 399
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
-          "callee": "services.ingestion.gee_climate:_persist_summary",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 478
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 424
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
-          "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 157
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
-          "callee": "services.ingestion.gee_climate:_get_gee_client",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 151
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
-          "callee": "services.ingestion.gee_climate:_metadata",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 172
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
-          "callee": "services.ingestion.gee_climate:_period",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 156
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
-          "callee": "services.ingestion.gee_climate:_persist_summary",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 200
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 168
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 169
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 314
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_get_gee_client",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 308
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_metadata",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 331
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_period",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 313
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_persist_summary",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 359
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 329
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 330
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 240
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_get_gee_client",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 234
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_metadata",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 251
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_period",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 239
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_persist_summary",
-          "source": "services/ingestion/gee_climate.py",
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
           "line": 278
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 250
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 281
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 285
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 287
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 290
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 294
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 296
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 299
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 305
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 314
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 320
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 329
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 331
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 340
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 342
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 346
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 348
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 352
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 356
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 358
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 360
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 363
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 367
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 371
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 375
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 380
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 382
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 386
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 391
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 395
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 399
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 402
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_operation",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 409
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 179
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 184
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 187
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 190
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 193
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 196
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 199
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 204
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 207
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 210
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 213
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 219
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 232
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 237
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 242
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 247
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:_validate_value",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 249
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.execution_allowlist:validate_scheduled_module",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 421
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 423
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 426
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 428
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 437
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 439
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 441
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 450
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 453
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_reject",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 459
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_validate_operation",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 461
+        },
+        {
+          "caller": "services.security.scheduled_command_contracts:validate_scheduled_command",
+          "callee": "services.security.scheduled_command_contracts:_validate_value",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 454
         }
       ],
       "callback_edges": [],
@@ -5470,30 +5476,28 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
-        "services/common/http.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
-        "services/core/adapters/clickhouse.py",
         "services/core/features.py",
         "services/core/providers.py",
-        "services/ingestion/base.py",
         "services/ingestion/climate_data.py",
         "services/ingestion/climate_worker.py",
-        "services/ingestion/config.py",
-        "services/ingestion/gee_climate.py"
+        "services/ingestion/gee_climate.py",
+        "services/security/execution_allowlist.py",
+        "services/security/scheduled_command_contracts.py"
       ],
       "entry_functions": [
         {
           "function": "services.common.cli:run",
           "source": "services/ingestion/climate_worker.py",
-          "line": 247
+          "line": 292
         },
         {
           "function": "services.ingestion.climate_worker:main",
           "source": "services/ingestion/climate_worker.py",
-          "line": 247
+          "line": 292
         }
       ],
       "reachable_functions": [
@@ -5583,7 +5587,7 @@
           "qualname": "_estimate_bioclim",
           "class_scope": null,
           "source": "services/ingestion/climate_data.py",
-          "line": 170
+          "line": 145
         },
         {
           "key": "services.ingestion.climate_worker:_load_location",
@@ -5591,7 +5595,7 @@
           "qualname": "_load_location",
           "class_scope": null,
           "source": "services/ingestion/climate_worker.py",
-          "line": 46
+          "line": 47
         },
         {
           "key": "services.ingestion.climate_worker:_open_scoped_connection",
@@ -5599,7 +5603,7 @@
           "qualname": "_open_scoped_connection",
           "class_scope": null,
           "source": "services/ingestion/climate_worker.py",
-          "line": 30
+          "line": 31
         },
         {
           "key": "services.ingestion.climate_worker:_store_result",
@@ -5607,7 +5611,7 @@
           "qualname": "_store_result",
           "class_scope": null,
           "source": "services/ingestion/climate_worker.py",
-          "line": 77
+          "line": 86
         },
         {
           "key": "services.ingestion.climate_worker:_worldclim_summary",
@@ -5615,7 +5619,7 @@
           "qualname": "_worldclim_summary",
           "class_scope": null,
           "source": "services/ingestion/climate_worker.py",
-          "line": 114
+          "line": 127
         },
         {
           "key": "services.ingestion.climate_worker:ingest",
@@ -5623,7 +5627,7 @@
           "qualname": "ingest",
           "class_scope": null,
           "source": "services/ingestion/climate_worker.py",
-          "line": 145
+          "line": 158
         },
         {
           "key": "services.ingestion.climate_worker:main",
@@ -5631,7 +5635,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/climate_worker.py",
-          "line": 227
+          "line": 271
         }
       ],
       "direct_call_edges": [
@@ -5669,85 +5673,91 @@
           "caller": "services.ingestion.climate_worker:_load_location",
           "callee": "services.ingestion.climate_worker:_open_scoped_connection",
           "source": "services/ingestion/climate_worker.py",
-          "line": 48
+          "line": 49
         },
         {
           "caller": "services.ingestion.climate_worker:_open_scoped_connection",
           "callee": "services.common.tenant_context:set_worker_tenant_context",
           "source": "services/ingestion/climate_worker.py",
-          "line": 33
+          "line": 34
         },
         {
           "caller": "services.ingestion.climate_worker:_open_scoped_connection",
           "callee": "services.common.worker_database:get_worker_db",
           "source": "services/ingestion/climate_worker.py",
-          "line": 31
+          "line": 32
         },
         {
           "caller": "services.ingestion.climate_worker:_store_result",
           "callee": "services.ingestion.climate_worker:_open_scoped_connection",
           "source": "services/ingestion/climate_worker.py",
-          "line": 87
+          "line": 97
         },
         {
           "caller": "services.ingestion.climate_worker:_worldclim_summary",
           "callee": "services.ingestion.climate_data:_estimate_bioclim",
           "source": "services/ingestion/climate_worker.py",
-          "line": 116
+          "line": 129
         },
         {
           "caller": "services.ingestion.climate_worker:ingest",
           "callee": "services.common.worker_database:get_worker_credential",
           "source": "services/ingestion/climate_worker.py",
-          "line": 148
+          "line": 163
         },
         {
           "caller": "services.ingestion.climate_worker:ingest",
           "callee": "services.ingestion.climate_worker:_load_location",
           "source": "services/ingestion/climate_worker.py",
-          "line": 149
+          "line": 164
         },
         {
           "caller": "services.ingestion.climate_worker:ingest",
           "callee": "services.ingestion.climate_worker:_store_result",
           "source": "services/ingestion/climate_worker.py",
-          "line": 157
+          "line": 176
         },
         {
           "caller": "services.ingestion.climate_worker:ingest",
           "callee": "services.ingestion.climate_worker:_store_result",
           "source": "services/ingestion/climate_worker.py",
-          "line": 190
+          "line": 193
         },
         {
           "caller": "services.ingestion.climate_worker:ingest",
           "callee": "services.ingestion.climate_worker:_store_result",
           "source": "services/ingestion/climate_worker.py",
-          "line": 203
+          "line": 232
+        },
+        {
+          "caller": "services.ingestion.climate_worker:ingest",
+          "callee": "services.ingestion.climate_worker:_store_result",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 246
         },
         {
           "caller": "services.ingestion.climate_worker:ingest",
           "callee": "services.ingestion.climate_worker:_worldclim_summary",
           "source": "services/ingestion/climate_worker.py",
-          "line": 155
+          "line": 174
         },
         {
           "caller": "services.ingestion.climate_worker:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/climate_worker.py",
-          "line": 241
+          "line": 286
         },
         {
           "caller": "services.ingestion.climate_worker:main",
           "callee": "services.core.features:is_enabled",
           "source": "services/ingestion/climate_worker.py",
-          "line": 237
+          "line": 282
         },
         {
           "caller": "services.ingestion.climate_worker:main",
           "callee": "services.ingestion.climate_worker:ingest",
           "source": "services/ingestion/climate_worker.py",
-          "line": 240
+          "line": 285
         }
       ],
       "callback_edges": [],
@@ -9128,7 +9138,7 @@
         {
           "function": "services.ingestion.remote_sensing_fetcher:main",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 531
+          "line": 501
         }
       ],
       "reachable_functions": [
@@ -9306,7 +9316,7 @@
           "qualname": "_canonical_job_id",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 49
+          "line": 50
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_canonical_location_id",
@@ -9314,15 +9324,7 @@
           "qualname": "_canonical_location_id",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 39
-        },
-        {
-          "key": "services.ingestion.remote_sensing_fetcher:_claim_due_jobs",
-          "module": "services.ingestion.remote_sensing_fetcher",
-          "qualname": "_claim_due_jobs",
-          "class_scope": null,
-          "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 112
+          "line": 40
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_classify_provider_result",
@@ -9330,7 +9332,7 @@
           "qualname": "_classify_provider_result",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_compute_next_run",
@@ -9338,7 +9340,7 @@
           "qualname": "_compute_next_run",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 222
+          "line": 197
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_fallback_provider",
@@ -9346,7 +9348,7 @@
           "qualname": "_fallback_provider",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 96
+          "line": 97
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_query_job",
@@ -9354,7 +9356,7 @@
           "qualname": "_query_job",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 152
+          "line": 127
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_record_provider_attempt",
@@ -9362,7 +9364,7 @@
           "qualname": "_record_provider_attempt",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 279
+          "line": 254
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_resolve_bbox_from_job",
@@ -9370,7 +9372,7 @@
           "qualname": "_resolve_bbox_from_job",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 229
+          "line": 204
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_safe_provider_attempt_message",
@@ -9378,7 +9380,7 @@
           "qualname": "_safe_provider_attempt_message",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 75
+          "line": 76
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_update_job_status",
@@ -9386,7 +9388,7 @@
           "qualname": "_update_job_status",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 168
+          "line": 143
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:fetch_job",
@@ -9394,7 +9396,7 @@
           "qualname": "fetch_job",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 308
+          "line": 283
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:list_jobs",
@@ -9402,7 +9404,7 @@
           "qualname": "list_jobs",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 439
+          "line": 401
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:main",
@@ -9410,15 +9412,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 456
-        },
-        {
-          "key": "services.ingestion.remote_sensing_fetcher:run_due_jobs",
-          "module": "services.ingestion.remote_sensing_fetcher",
-          "qualname": "run_due_jobs",
-          "class_scope": null,
-          "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 411
+          "line": 418
         }
       ],
       "direct_call_edges": [
@@ -9567,184 +9561,148 @@
           "line": 176
         },
         {
-          "caller": "services.ingestion.remote_sensing_fetcher:_claim_due_jobs",
-          "callee": "services.ingestion.remote_sensing_fetcher:_canonical_location_id",
-          "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 114
-        },
-        {
           "caller": "services.ingestion.remote_sensing_fetcher:_query_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_canonical_job_id",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 154
+          "line": 129
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:_query_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_canonical_location_id",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 155
+          "line": 130
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 342
+          "line": 317
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.gee_remote_sensing:fetch_gee",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 338
+          "line": 313
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_canonical_location_id",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 314
+          "line": 289
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_canonical_location_id",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 315
+          "line": 290
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_classify_provider_result",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 345
+          "line": 320
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_classify_provider_result",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 352
+          "line": 327
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_compute_next_run",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 390
+          "line": 365
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_fallback_provider",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 331
+          "line": 306
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_record_provider_attempt",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 369
+          "line": 344
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_resolve_bbox_from_job",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 323
+          "line": 298
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_safe_provider_attempt_message",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 353
+          "line": 328
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_safe_provider_attempt_message",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 355
+          "line": 330
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "callee": "services.ingestion.remote_sensing_fetcher:_update_job_status",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 381
+          "line": 356
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:list_jobs",
           "callee": "services.ingestion.remote_sensing_fetcher:_canonical_location_id",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 441
+          "line": 403
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 496
+          "line": 469
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 499
-        },
-        {
-          "caller": "services.ingestion.remote_sensing_fetcher:main",
-          "callee": "services.common.cli:print_json",
-          "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 504
+          "line": 474
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:main",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 492
+          "line": 465
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:main",
           "callee": "services.ingestion.remote_sensing_fetcher:_canonical_job_id",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 487
+          "line": 453
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:main",
           "callee": "services.ingestion.remote_sensing_fetcher:_canonical_location_id",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 488
+          "line": 454
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:main",
           "callee": "services.ingestion.remote_sensing_fetcher:_query_job",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 501
+          "line": 471
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:main",
           "callee": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 503
+          "line": 473
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:main",
           "callee": "services.ingestion.remote_sensing_fetcher:list_jobs",
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 498
-        },
-        {
-          "caller": "services.ingestion.remote_sensing_fetcher:main",
-          "callee": "services.ingestion.remote_sensing_fetcher:run_due_jobs",
-          "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 495
-        },
-        {
-          "caller": "services.ingestion.remote_sensing_fetcher:run_due_jobs",
-          "callee": "services.ingestion.remote_sensing_fetcher:_canonical_location_id",
-          "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 415
-        },
-        {
-          "caller": "services.ingestion.remote_sensing_fetcher:run_due_jobs",
-          "callee": "services.ingestion.remote_sensing_fetcher:_claim_due_jobs",
-          "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 419
-        },
-        {
-          "caller": "services.ingestion.remote_sensing_fetcher:run_due_jobs",
-          "callee": "services.ingestion.remote_sensing_fetcher:fetch_job",
-          "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 424
+          "line": 468
         }
       ],
       "callback_edges": [],
@@ -9930,7 +9888,7 @@
           "qualname": "_classify_provider_result",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 57
+          "line": 58
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_fallback_provider",
@@ -9938,7 +9896,7 @@
           "qualname": "_fallback_provider",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 96
+          "line": 97
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_safe_provider_attempt_message",
@@ -9946,7 +9904,7 @@
           "qualname": "_safe_provider_attempt_message",
           "class_scope": null,
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 75
+          "line": 76
         },
         {
           "key": "services.ingestion.remote_sensing_worker:_attempt_provider_chain",
@@ -10657,7 +10615,7 @@
           "qualname": "isolated_worker_key",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 125
+          "line": 129
         },
         {
           "key": "services.core.features:is_enabled",
@@ -11010,6 +10968,14 @@
           "qualname": "_notification_payloads",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
+          "line": 52
+        },
+        {
+          "key": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "module": "services.events.notification_outbox",
+          "qualname": "_webhook_configured_for_enqueue",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
           "line": 45
         },
         {
@@ -11174,7 +11140,13 @@
           "caller": "services.events.notification_outbox:_notification_payloads",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 106
+          "line": 113
+        },
+        {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "source": "services/events/notification_outbox.py",
+          "line": 68
         },
         {
           "caller": "services.ingestion.sensor_anomaly_scan_worker:main",
@@ -17305,7 +17277,7 @@
           "qualname": "isolated_worker_key",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 125
+          "line": 129
         },
         {
           "key": "services.core.features:is_enabled",
@@ -17637,7 +17609,7 @@
           "qualname": "_configured_channels",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 158
+          "line": 165
         },
         {
           "key": "services.events.notification_outbox:_deliver",
@@ -17645,7 +17617,7 @@
           "qualname": "_deliver",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 435
+          "line": 442
         },
         {
           "key": "services.events.notification_outbox:deliver_claimed_batch",
@@ -17653,7 +17625,7 @@
           "qualname": "deliver_claimed_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 545
+          "line": 552
         }
       ],
       "direct_call_edges": [
@@ -17733,31 +17705,31 @@
           "caller": "services.events.notification_outbox:_configured_channels",
           "callee": "services.common.smtp:validate_settings",
           "source": "services/events/notification_outbox.py",
-          "line": 173
+          "line": 180
         },
         {
           "caller": "services.events.notification_outbox:_configured_channels",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 166
+          "line": 173
         },
         {
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.common.smtp:send_message",
           "source": "services/events/notification_outbox.py",
-          "line": 478
+          "line": 485
         },
         {
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 448
+          "line": 455
         },
         {
           "caller": "services.events.notification_outbox:deliver_claimed_batch",
           "callee": "services.events.notification_outbox:_deliver",
           "source": "services/events/notification_outbox.py",
-          "line": 551
+          "line": 558
         }
       ],
       "callback_edges": [],
@@ -21875,7 +21847,7 @@
           "qualname": "_notification_payloads",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 45
+          "line": 52
         },
         {
           "key": "services.events.notification_outbox:_prepare_event_notification",
@@ -21883,7 +21855,15 @@
           "qualname": "_prepare_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 309
+          "line": 316
+        },
+        {
+          "key": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "module": "services.events.notification_outbox",
+          "qualname": "_webhook_configured_for_enqueue",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
+          "line": 45
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification",
@@ -21891,7 +21871,7 @@
           "qualname": "enqueue_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 189
+          "line": 196
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification_isolated",
@@ -21899,7 +21879,7 @@
           "qualname": "enqueue_event_notification_isolated",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 264
+          "line": 271
         }
       ],
       "direct_call_edges": [
@@ -21949,25 +21929,31 @@
           "caller": "services.events.notification_outbox:_notification_payloads",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 106
+          "line": 113
+        },
+        {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "source": "services/events/notification_outbox.py",
+          "line": 68
         },
         {
           "caller": "services.events.notification_outbox:_prepare_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 332
+          "line": 339
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 199
+          "line": 206
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification_isolated",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 275
+          "line": 282
         }
       ],
       "callback_edges": [],
@@ -22061,7 +22047,7 @@
           "qualname": "_notification_payloads",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 45
+          "line": 52
         },
         {
           "key": "services.events.notification_outbox:_prepare_event_notification",
@@ -22069,7 +22055,15 @@
           "qualname": "_prepare_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 309
+          "line": 316
+        },
+        {
+          "key": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "module": "services.events.notification_outbox",
+          "qualname": "_webhook_configured_for_enqueue",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
+          "line": 45
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification",
@@ -22077,7 +22071,7 @@
           "qualname": "enqueue_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 189
+          "line": 196
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification_isolated",
@@ -22085,7 +22079,7 @@
           "qualname": "enqueue_event_notification_isolated",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 264
+          "line": 271
         }
       ],
       "direct_call_edges": [
@@ -22141,25 +22135,31 @@
           "caller": "services.events.notification_outbox:_notification_payloads",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 106
+          "line": 113
+        },
+        {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "source": "services/events/notification_outbox.py",
+          "line": 68
         },
         {
           "caller": "services.events.notification_outbox:_prepare_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 332
+          "line": 339
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 199
+          "line": 206
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification_isolated",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 275
+          "line": 282
         }
       ],
       "callback_edges": [],
@@ -22273,6 +22273,14 @@
           "key": "services.events.notification_outbox:_notification_payloads",
           "module": "services.events.notification_outbox",
           "qualname": "_notification_payloads",
+          "class_scope": null,
+          "source": "services/events/notification_outbox.py",
+          "line": 52
+        },
+        {
+          "key": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "module": "services.events.notification_outbox",
+          "qualname": "_webhook_configured_for_enqueue",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
           "line": 45
@@ -22393,7 +22401,13 @@
           "caller": "services.events.notification_outbox:_notification_payloads",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 106
+          "line": 113
+        },
+        {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.events.notification_outbox:_webhook_configured_for_enqueue",
+          "source": "services/events/notification_outbox.py",
+          "line": 68
         },
         {
           "caller": "services.ingestion.anomaly_detector:handle_sensor_reading",

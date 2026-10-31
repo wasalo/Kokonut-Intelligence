@@ -452,6 +452,7 @@ def test_worker_environment_rejects_invalid_allowlists(keys):
         "services.metrics.noi_snapshot_worker",
         "services.ingestion.weather_worker",
         "services.ingestion.weather_forecast_worker",
+        "services.ingestion.climate_data",
         "services.ingestion.climate_worker",
         "services.ingestion.market_data_worker",
         "services.ingestion.eas_worker",

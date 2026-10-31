@@ -278,11 +278,16 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
   now routes through `services.ingestion.climate_worker`, which requires one
   explicit location, uses only the exact climate worker DSN/credential/GEE key
   path, and reaches location/bbox data and the five summary/audit writes only
-  through migration 429's signed bounded functions. The latitude proxy remains
-  explicit, and GEE requests remain external provider effects. All five source
-  writes, failure audit, retries, scope denial, and forced-RLS privilege
-  boundaries pass disposable PostGIS checks; no real provider, key, schedule,
-  or candidate database was used.
+  through signed bounded functions. Migration 713 keeps active locations
+  addressable without a centroid, so plot-only geometry still supports GEE
+  while WorldClim reports `no_centroid`; locations without either geometry or
+  coordinates skip safely. The compatibility `--all` result retains its
+  historical `worldclim`, `ncep`, `modis`, `smap`, and `sentinel1` keys. The
+  latitude proxy remains explicit, and GEE requests remain external provider
+  effects. Five summary writes, audit-hash and elapsed-time parity, retries,
+  plot-only/no-geometry lookup, scope denial, and forced-RLS privilege
+  boundaries pass disposable PostGIS checks through migration 713; no real
+  provider, key, schedule, candidate, legacy, or production database was used.
 - The carbon-credit job's `credit_adjustment` JobSpec uses a dedicated
   `services.analytics.carbon_credit_adjustment_check` entrypoint and requires
   one explicit `--location-id` at the CLI, schedule-plan, and scheduler-command

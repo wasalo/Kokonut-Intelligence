@@ -1,6 +1,8 @@
-"""Manual climate ingestion validates a single location before DB access."""
+"""Manual climate selectors remain location-bound and use the signed worker."""
 
-from unittest.mock import MagicMock, patch
+import json
+import sys
+from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -8,48 +10,98 @@ import pytest
 from services.ingestion import climate_data
 
 
-def test_invalid_location_fails_before_database_or_provider_access():
-    with (
-        patch.object(climate_data, "get_db") as get_db,
-        patch.object(climate_data, "fetch_worldclim") as fetch_worldclim,
-        pytest.raises(SystemExit) as exc,
-    ):
+def test_invalid_location_fails_before_worker_or_database_access(monkeypatch):
+    run = patch.object(
+        climate_data.subprocess,
+        "run",
+        side_effect=AssertionError("invalid location must fail before worker dispatch"),
+    )
+    with run, pytest.raises(SystemExit) as exc:
         climate_data.main(["--worldclim", "--location-id", "not-a-uuid"])
 
     assert exc.value.code == 2
-    get_db.assert_not_called()
-    fetch_worldclim.assert_not_called()
 
 
-def test_cli_passes_canonical_location_id_to_selected_fetcher():
+def test_cli_forwards_canonical_location_and_exact_worker_credentials(monkeypatch, capsys):
     location_id = str(uuid4())
-    db = MagicMock()
-    with (
-        patch.object(climate_data, "get_db", return_value=db),
-        patch.object(climate_data, "fetch_modis", return_value={"status": "success"}) as fetch,
-        patch.object(climate_data, "print_json"),
-    ):
+    canonical_location_id = str(UUID(location_id))
+    report = {
+        "status": "success",
+        "location_id": canonical_location_id,
+        "results": {"modis_lst": {"status": "success", "record_id": "synthetic"}},
+        "success": 1,
+        "skipped": 0,
+        "failed": 0,
+        "total": 1,
+    }
+    completed = type(
+        "Completed",
+        (),
+        {"stdout": json.dumps(report), "returncode": 0},
+    )()
+    environment_calls = []
+    monkeypatch.setattr(climate_data, "is_enabled", lambda _feature: True)
+
+    def worker_environment(**kwargs):
+        environment_calls.append(kwargs)
+        return {"PATH": "/usr/bin"}
+
+    monkeypatch.setattr(climate_data, "worker_subprocess_environment", worker_environment)
+    with patch.object(climate_data.subprocess, "run", return_value=completed) as run:
         result = climate_data.main(["--modis", "--location-id", location_id.upper()])
 
     assert result == 0
-    fetch.assert_called_once_with(db, str(UUID(location_id)))
-    db.close.assert_called_once_with()
+    assert json.loads(capsys.readouterr().out) == report["results"]["modis_lst"]
+    run.assert_called_once()
+    command = run.call_args.args[0]
+    assert command == [
+        sys.executable,
+        "-m",
+        "services.ingestion.climate_worker",
+        "--location-id",
+        canonical_location_id,
+        "--source",
+        "modis_lst",
+    ]
+    assert run.call_args.kwargs["env"] == {"PATH": "/usr/bin"}
+    assert environment_calls == [{
+        "allowed_worker_keys": ("climate",),
+        "isolated_database_credentials": True,
+    }]
 
 
-def test_cli_rejects_conflicting_dataset_modes_before_database_access():
-    with patch.object(climate_data, "get_db") as get_db, pytest.raises(SystemExit) as exc:
-        climate_data.main(
-            ["--all", "--worldclim", "--location-id", str(uuid4())]
-        )
+def test_cli_rejects_conflicting_dataset_modes_before_worker_dispatch():
+    with (
+        patch.object(climate_data.subprocess, "run") as run,
+        pytest.raises(SystemExit) as exc,
+    ):
+        climate_data.main(["--all", "--worldclim", "--location-id", str(uuid4())])
 
     assert exc.value.code == 2
-    get_db.assert_not_called()
+    run.assert_not_called()
 
 
-def test_no_dataset_mode_prints_help_without_database_access(capsys):
-    with patch.object(climate_data, "get_db") as get_db:
-        result = climate_data.main(["--location-id", "not-a-uuid"])
+def test_no_dataset_mode_prints_help_without_worker_dispatch(capsys):
+    with patch.object(climate_data.subprocess, "run") as run:
+        result = climate_data.main(["--location-id", str(uuid4())])
 
     assert result == 1
     assert "--worldclim" in capsys.readouterr().out
-    get_db.assert_not_called()
+    run.assert_not_called()
+
+
+def test_malformed_worker_report_fails_closed(monkeypatch):
+    completed = type(
+        "Completed",
+        (),
+        {"stdout": json.dumps({"status": "success", "location_id": "other"}), "returncode": 0},
+    )()
+    monkeypatch.setattr(climate_data, "is_enabled", lambda _feature: True)
+    monkeypatch.setattr(climate_data, "worker_subprocess_environment", lambda **_kwargs: {})
+    monkeypatch.setattr(climate_data.subprocess, "run", lambda *_args, **_kwargs: completed)
+
+    report = climate_data._dispatch_signed_climate_worker(str(uuid4()), "modis_lst")
+
+    assert report["status"] == "error"
+    assert "invalid result" not in report.get("message", "")
+    assert report["message"] == "signed climate worker failed"

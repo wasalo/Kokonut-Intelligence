@@ -24,7 +24,7 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Latest C1 continuation — migration 711 and current CI diagnosis — 31 October 2026
+### Latest C1 continuation — migration 713 climate worker boundary — 31 October 2026
 
 C1 remains open. The fresh, network-disabled native PostgreSQL 16 replay
 applied 702/702 ordered schema files through migration 711 and passed all 38
@@ -69,11 +69,36 @@ SQL inventory. This batch repairs that inventory and records local passing
 freshness validation; the next complete hosted run remains required
 ([diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json)).
 
-The Standard recovery acceptance remains through migration 710; the 711 full
-schema replay and scope probe do not substitute for Standard outage/provider
-recovery. External importer ownership, remaining runtime writers, broader
-Directus and tenant boundaries, populated-data parity, and separately reviewed
-persistent rollout remain open.
+Migration 712 moves Standard PostgreSQL rate-limit bucket access behind bounded
+consume and cleanup functions. The Standard runtime and Directus roles have no
+direct bucket-table access; runtime can execute only the consume function, and
+the optional dedicated maintenance login can execute only cleanup. Its
+network-disabled Standard recovery replay applied 703/703 schema entries
+through migration 712 and passed role provisioning, limiter behavior, API and
+worker health/recovery, and cleanup
+([evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json)).
+This replay did not run the two-tenant operator-scope probe or refresh the
+full source/ACL aggregate: the migration-711 report above remains the current
+aggregate snapshot. The migration closes the gateway bucket boundary only; it
+does not close broad runtime DML or tenant isolation. External importer
+ownership, remaining runtime writers, broader Directus and tenant boundaries,
+populated-data parity, and separately reviewed persistent rollout remain open.
+
+Migration 713 routes the signed climate worker's source/audit write through a
+bounded v2 function that preserves the legacy payload hash and zero-valued
+success `processing_time_ms`, while recording elapsed time in a separate
+`execution_duration_ms` column. It also keeps active locations readable when
+coordinates are absent, so plot-only geometry remains usable by GEE and
+locations with neither geometry nor coordinates return source-level skips.
+The focused climate selection passes 252 tests; disposable PostgreSQL 16
+applies and replays 405/419/428/429/713, verifies all five source writes,
+legacy audit digest/timing parity, safe failure audit, cross-location denial,
+plot-only/empty-geometry reads, and runtime DML revocation
+([evidence](builds/2026-10-31-recovery/climate-worker-713-disposable.json)).
+The migration has not been applied to the candidate or production, and no real
+provider credentials or external calls were used. The Standard recovery
+acceptance remains through migration 712; this focused climate check is not a
+full-schema replay or profile acceptance.
 
 ### Historical detailed notes for migrations 700–710
 
@@ -381,8 +406,11 @@ The detailed entries below are dated historical checkpoints through migration
   compare native with ARM64/QEMU.
 - [x] Separate analytics, credit-class, and other service candidates; preserve
   unresolved and no-callsite records as unresolved.
-- [ ] Resolve the 41 unresolved write candidates and refresh the inventory as
-  each operation is migrated.
+- [ ] Reconcile the latest C1 inventories: the migration-711 ACL report lists
+  40 unresolved write-candidate relations, while the current runtime SQL review
+  ledger tracks 39 statement fingerprints (31 preexisting-unreviewed and eight
+  reviewed-unresolved `WITH` queries). These are different units; source review
+  is not ACL approval. Refresh both records as operations are migrated.
 - [ ] Reconcile Directus field/row permissions, extension hooks, ORM/dynamic SQL,
   API keys, saved reports, and external consumers per candidate relation.
 - [x] Verify migration 690 and the `capex_breakdown` boundary on network-

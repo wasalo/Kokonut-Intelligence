@@ -47,6 +47,10 @@ _SCHEDULED_MODULE_WORKERS = {
     "services.ingestion.clickhouse_outbox_worker": "clickhouse_outbox",
     "services.ingestion.sensor_worker": "sensor_ingestion",
     "services.ingestion.remote_sensing_worker": "remote_sensing",
+    # Persisted climate_data tasks remain supported as a safe dispatcher. The
+    # compatibility entrypoint no longer opens the shared DB and forwards only
+    # the climate worker identity to its signed child.
+    "services.ingestion.climate_data": "climate",
 }
 # Keep the Kernel supervisor allowlist aligned with the scheduler dispatch map.
 SCHEDULED_WORKER_KEYS = tuple(dict.fromkeys(_SCHEDULED_MODULE_WORKERS.values()))
