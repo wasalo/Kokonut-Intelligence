@@ -42,8 +42,8 @@
     "scripts/kernel-profile.py": "a907f842f61485e37364caea4f5de0b33ebc1cb5fbd1e31a281b5cdaf6eb1c0b",
     "scripts/check-kernel-release-inputs.py": "4116116c380c2d407f8e315f0057cbf30fdbf64ba58a43f0172a8bcdaf989402",
     "scripts/build-kernel-multiarch.sh": "f9e7294af32545cdcd19a685fd08035d219733da44a91bfefe58c272c9a5bc01",
-    "docs/refactor/profile-selection.md": "01a18656aa43592893ead7cd6b70343168a5f4e50622009dd0774f2130c32110",
-    "requirements/README.md": "5f194fd8b09a2a676ef29c47b559d21dabcbfca2fa9cc52ac4016cb4f5b733ac"
+    "docs/refactor/profile-selection.md": "c21fcf235181939bd83241695bc51d63611f3cfe189391908ee7f6c126be77fb",
+    "requirements/README.md": "699bfef971be138ca125640284a47ef7a3a73d67f1007ea85bc3d2217f2bed36"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
