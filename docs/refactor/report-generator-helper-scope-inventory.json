@@ -2261,7 +2261,7 @@
         {
           "source_file": "services/planning/budget.py",
           "callable": "list_plans",
-          "line": 88,
+          "line": 93,
           "relations": [
             "financial_plan"
           ],
@@ -3245,31 +3245,31 @@
         {
           "caller": "generate_climate_impact",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 532,
+          "line": 541,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_carbon_balance",
-          "line": 605,
+          "line": 614,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_ghg_emissions",
-          "line": 606,
+          "line": 615,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_tree_carbon",
-          "line": 607,
+          "line": 616,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_regenerative_score",
-          "line": 608,
+          "line": 617,
           "depth": 1
         },
         {
@@ -4110,7 +4110,7 @@
         {
           "caller": "generate_crop_noi",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 244,
+          "line": 248,
           "depth": 1
         }
       ],
@@ -4443,7 +4443,7 @@
         {
           "caller": "generate_environmental",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 355,
+          "line": 362,
           "depth": 1
         }
       ],
@@ -4479,25 +4479,25 @@
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_value",
-          "line": 222,
+          "line": 226,
           "depth": 1
         },
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 223,
+          "line": 227,
           "depth": 1
         },
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 224,
+          "line": 228,
           "depth": 1
         },
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 225,
+          "line": 229,
           "depth": 1
         },
         {
@@ -4666,7 +4666,7 @@
         {
           "caller": "generate_forecast_summary",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 450,
+          "line": 457,
           "depth": 1
         }
       ],
@@ -7597,13 +7597,13 @@
         {
           "caller": "generate_revenue_multiplier",
           "callee": "services/export/reports/common.py:_looks_like_uuid",
-          "line": 429,
+          "line": 436,
           "depth": 1
         },
         {
           "caller": "generate_revenue_multiplier",
           "callee": "services/revenue_multiplier/analyzer.py:analyze_location",
-          "line": 436,
+          "line": 443,
           "depth": 1
         },
         {
@@ -10367,13 +10367,13 @@
         {
           "caller": "services/analytics/value_stream_defs.py:get_stream_summary",
           "callee": "services/analytics/value_stream_defs.py:_conn",
-          "line": 289,
+          "line": 291,
           "depth": 2
         },
         {
           "caller": "services/analytics/value_stream_defs.py:get_stream_summary",
           "callee": "services/analytics/value_stream_defs.py:_row_to_dict",
-          "line": 297,
+          "line": 299,
           "depth": 2
         },
         {
@@ -10388,7 +10388,7 @@
         {
           "source_file": "services/analytics/value_stream_defs.py",
           "callable": "get_stream_summary",
-          "line": 291,
+          "line": 293,
           "relations": [
             "v_value_stream_summary"
           ],

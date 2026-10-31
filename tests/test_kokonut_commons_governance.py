@@ -319,7 +319,7 @@ def test_commons_public_view_helpers_select_exact_ordered_columns_and_preserve_r
     cases = [
         (generate_anti_capture_governance, "v_public_anti_capture_governance_policy", "policies", "policy_scope, policy_name", True),
         (generate_redistribution_policy, "v_public_commons_redistribution_policy", "policies", "policy_status, policy_scope, policy_name", True),
-        (generate_federation_mutual_aid, "v_public_federation_protocol", "protocols", "target_region, protocol_name", False),
+        (generate_federation_mutual_aid, "v_public_federation_protocol", "protocols", "protocol_status, federation_scope, protocol_name", False),
         (generate_algorithmic_redistribution, "v_public_algorithmic_redistribution_mechanism", "mechanisms", "implementation_status, mechanism_type, mechanism_name", True),
         (generate_participatory_signal, "v_public_participatory_signal_experiment", "experiments", "experiment_status, signal_type, experiment_name", False),
     ]

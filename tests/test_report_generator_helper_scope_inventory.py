@@ -133,7 +133,6 @@ def test_query_forwarding_wrappers_link_to_report_or_helper_call_sites():
         )
     assert inventory["summary"]["reports_with_forwarded_query_wrappers"] == 3
     assert inventory["summary"]["forwarded_query_wrapper_caller_sites"] == 4
-    assert inventory["summary"]["helper_query_sites_with_unresolved_sql_source"] == 0
     direct_reports = {
         report["report_type"]: report
         for report in direct_inventory["reports"]
@@ -382,7 +381,7 @@ def test_reachable_helper_inventory_resolves_literal_filter_return_variants():
         ] == [True, False, False]
 
 
-def test_reachable_helper_inventory_resolves_public_view_wrapper_identifiers():
+def test_reachable_helper_inventory_keeps_public_view_wrapper_sql_unresolved():
     inventory = build_inventory()
     expected_reports = {
         "anti_capture_governance",
@@ -392,6 +391,7 @@ def test_reachable_helper_inventory_resolves_public_view_wrapper_identifiers():
         "participatory_signal",
     }
     found = set()
+    unresolved_sites = []
     for report in inventory["reports"]:
         queries = [
             site
@@ -404,42 +404,18 @@ def test_reachable_helper_inventory_resolves_public_view_wrapper_identifiers():
         found.add(report["report_type"])
         assert len(queries) == 2
         for site in queries:
-            assert site["sql_source"] == "static_or_resolved"
+            # The wrapper interpolates a view, projection, and sort expression
+            # after runtime allowlist validation. The generic SQL analyzer does
+            # not resolve that construction, so preserve it as unresolved rather
+            # than claiming a static query or bind contract.
+            assert site["sql_source"] == "dynamic_or_unresolved"
             assert site["bound_location_scope_signal"] is False
-            assert site["positional_bind_arity"]["mismatch"] is False
-            assert len(site["positional_bind_arity"]["variants"]) == 5
-            assert {
-                item["caller"] for item in site["positional_bind_arity"]["variants"]
-            } == {
-                "generate_anti_capture_governance",
-                "generate_redistribution_policy",
-                "generate_federation_mutual_aid",
-                "generate_algorithmic_redistribution",
-                "generate_participatory_signal",
-            }
-        location_query = next(
-            site
-            for site in queries
-            if all(
-                item["placeholder_count"] == item["supplied_count"] == 1
-                for item in site["positional_bind_arity"]["variants"]
-            )
-        )
-        network_query = next(
-            site
-            for site in queries
-            if all(
-                item["placeholder_count"] == item["supplied_count"] == 0
-                for item in site["positional_bind_arity"]["variants"]
-            )
-        )
-        assert all(
-            item["placeholder_count"] == item["supplied_count"] == 1
-            for item in location_query["positional_bind_arity"]["variants"]
-        )
-        assert all(
-            item["placeholder_count"] == item["supplied_count"] == 0
-            for item in network_query["positional_bind_arity"]["variants"]
-        )
+            assert site["positional_bind_arity"] is None
+            assert site["relations"] == []
+            unresolved_sites.append((report["report_type"], site["callable"], site["line"]))
     assert found == expected_reports
+    assert len(unresolved_sites) == 10
+    assert inventory["summary"]["helper_query_sites_with_unresolved_sql_source"] == len(
+        unresolved_sites
+    )
 
