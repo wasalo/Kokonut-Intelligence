@@ -27,10 +27,12 @@ services:
       dockerfile: Dockerfile.kernel
     restart: unless-stopped
     command: ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"]
-    # The inherited HTTP probe applies only to an API role.
-    # Worker progress must be observed through durable run/delivery records.
     healthcheck:
-      disable: true
+      test: ["CMD", "python3", "-m", "services.core.worker_progress", "--check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     depends_on:
       database:
         condition: service_healthy
@@ -121,6 +123,7 @@ services:
       ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
       KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES:-268435456}
       KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES:-536870912}
+      KOKONUT_WORKER_PROGRESS_STALE_SECONDS: ${KOKONUT_WORKER_PROGRESS_STALE_SECONDS:-300}
     networks:
       - kernel
     volumes:

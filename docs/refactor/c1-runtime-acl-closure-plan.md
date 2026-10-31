@@ -24,18 +24,32 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Current cohort — migrations 700–705, 31 October 2026
+### Current cohort — migrations 700–706, 31 October 2026
 
 The detailed source/function cohort below covers migrations 700–703. Migrations
-704 and 705 add, respectively, the runtime read-only boundary for
-`living_wage_benchmark` and a migration-owned 147-relation Directus privilege
-policy reapplied by the optional role provisioner. Focused native and
+704, 705, and 706 add, respectively, the runtime read-only boundary for
+`living_wage_benchmark`, a migration-owned 147-relation Directus privilege
+policy reapplied by the optional role provisioner, and a runtime read-only
+boundary for the shared `protocol` catalog. Focused native and
 ARM64/QEMU PostgreSQL checks pass for migration 704; migration 705 replay and
 the disposable Directus role reprovisioning check pass
 ([704 evidence](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json),
 [705 evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)).
-The grouped local integration selection passes 213 tests
-([evidence](builds/2026-10-31-recovery/c1-704-705-standard-focused-tests.json)).
+Migration 706's network-isolated PostgreSQL 16 acceptance verifies apply/replay,
+runtime SELECT, denial of table and residual column writes, runtime-role
+reprovisioning, and unchanged Directus/maintenance grants
+([evidence](builds/2026-10-31-recovery/runtime-protocol-read-only-disposable.json)).
+No in-repository application writer or Directus collection rule was found;
+seed upserts use the separate maintenance path. External importer use through
+`kokonut_runtime` is unconfirmed, so persistent rollout remains gated on that
+contract check.
+The complete native migration replay now also applies all 697 schema files
+through migration 706 with no seeds, host ports, farm data, or persistent target
+access; cleanup passed ([evidence](builds/2026-10-31-recovery/full-schema-706-native.json)).
+This replay does not include the two-tenant operator-scope probe, which remains
+recorded through migration 705.
+The grouped local integration selection passes 215 tests
+([evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json)).
 The latest complete source/ACL report remains through 703; its counts are not
 current after migration 704. The full native ordered replay now passes through
 705 (696/696 migrations and 38 two-tenant checks). The attempted ARM64/QEMU
@@ -493,7 +507,7 @@ and preserving the separately controlled maintenance/import path.
 
 Evidence: [source audit](builds/2026-10-30-recovery/living-wage-benchmark-c1-source-audit.json).
 
-## Code-first continuation — governance-tension lifecycle — 30 October 2026
+## Historical source-only checkpoint — governance-tension lifecycle — 30 October 2026
 
 Added a location-scoped Gateway action surface for triage, start, record link,
 work-item link, resolve, and defer. Requests have strict action-specific
@@ -503,17 +517,19 @@ helper sets signed operator tenant context and calls the planned bounded
 `kokonut_security.mutate_governance_tension_action` contract. Exact OIDC action
 policies are registered for the six operations.
 
-The database function, grants, replay receipt, atomic event/link writes, and
-disposable acceptance are deferred to the final migration/test phase. Legacy
-service/CLI writers remain enabled because the schema supports network,
+At this source-only checkpoint the database function, grants, replay receipt,
+atomic event/link writes, and disposable acceptance were still deferred.
+Migration 700 and its focused acceptance subsequently closed that function and
+receipt gate ([evidence](builds/2026-10-30-recovery/governance-tension-location-actions-700-disposable.json)).
+Legacy service/CLI writers remain enabled because the schema supports network,
 organization, farm, cooperative, value-stream, initiative, and decision scopes;
-the new route covers location scope only. It must reject non-location
-tensions until matching authenticated scope contracts are designed. Candidate,
-legacy, and production databases and roles were not touched. Other audited C1
-writers without exact Gateway equivalents remain open rather than being
-retired and losing capabilities.
+the new route covers location scope only. It rejects non-location tensions
+until matching authenticated scope contracts are designed. Candidate, legacy,
+and production databases and roles were not touched. Other audited C1 writers
+without exact Gateway equivalents remain open rather than being retired and
+losing capabilities.
 
-## Code-first continuation — extension learning and landscape capture — 30 October 2026
+## Historical source-only checkpoint — extension learning and landscape capture — 30 October 2026
 
 Added strict, location-bound Gateway write contracts for extension peer-network
 creation, extension progress updates, and five record-only landscape captures
@@ -524,16 +540,18 @@ duplicate JSON keys and NUL characters. Extension Learning adds a peer-network
 creation form; progress writes remain an API operation because the source data
 contains participant-linked records and no safe roster/detail UI is defined.
 
-The planned database functions must retain the legacy defaults and derivations:
-fair corridor/hedgerow condition, current-date defaults for omitted observation
-dates, width-based buffer compliance when both widths are present, and validated
-location geometry. The bounded SQL contracts, role grants, database acceptance,
-and console/browser checks are deferred to the final migration/test phase. The
-legacy services and CLIs remain enabled until those gates pass; no capability
-is retired in this source-only tranche. These routes are not deployable before
-their functions exist, and no tests or migrations were added or run.
+At this source-only checkpoint, the bounded SQL contracts, grants, database
+acceptance, and console/browser checks were deferred. Migrations 701 and 702
+subsequently added the bounded extension and landscape functions, preserving
+legacy defaults and derivations, and their focused disposable acceptance
+passed ([extension](builds/2026-10-30-recovery/extension-learning-writes-701-disposable.json),
+[landscape](builds/2026-10-30-recovery/landscape-capture-702-disposable.json)).
+The full native and ARM64/QEMU schema replays through 703 also apply these
+contracts. Legacy services and CLIs remain enabled, and no capability was
+retired. Live browser acceptance and remaining C1 writer boundaries are still
+open.
 
-## Code-first continuation — metric writes and planning preflight — 30 October 2026
+## Historical source-only checkpoint — metric writes and planning preflight — 30 October 2026
 
 The metric engine now exposes a calculator-only draft function that does not
 insert or commit. New Gateway source contracts provide exact-location draft
@@ -545,13 +563,13 @@ output, derives reviewer identity from the operator session, rejects self-review
 in the planned function contract, and maps documented SQLSTATEs. The existing
 CLI adapter remains unchanged until migration and rollout.
 
-The future SQL functions are
-`kokonut_security.create_location_metric_value_draft`,
-`kokonut_security.list_location_metric_values`, and
-`kokonut_security.verify_location_metric_value`. They must own grant checks,
-location binding, draft/verified lifecycle, bounded pagination,
-cross-operation idempotency, self-review exclusion, and identity-minimized
-receipts. Separately, the planning CLI and service now reject noncanonical or
-reversed plan dates before acquiring PostgreSQL. No tests or migrations were
-added or run; these routes are not deployable until their functions and grants
-exist.
+At this source-only checkpoint those three SQL functions and their grants had
+not yet been added. Migration 703 subsequently implemented the bounded draft,
+list, and verification contracts, including location binding, lifecycle,
+pagination, idempotent receipts, and independent-review enforcement; focused
+disposable PostgreSQL acceptance passed
+([evidence](builds/2026-10-30-recovery/metric-value-kernel-disposable.json)).
+The planning CLI and service also reject noncanonical or reversed dates before
+database acquisition. The legacy metric CLI writer remains enabled, and
+populated-data parity, source-reference location validation, and broad C1
+closure remain open.

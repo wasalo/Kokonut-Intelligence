@@ -8,9 +8,21 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 753 checked / 29 open across the
+**Current queue snapshot (31 October 2026):** 757 checked / 30 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
+
+**Hosted validation (31 October 2026):** On exact PR head `fb4cc883`, Security
+run #743 passed. CI run #1019's `full-ci` step was cancelled after the GitHub
+hosted runner reported a shutdown signal; the fast-fail gates, ordered schema
+and seed replay, and metric-computation checks had passed before shutdown. Its
+separate `kernel-image` job was still running at the last status check, so the
+failed job cannot yet be rerun. The user-linked CI run #1014 (`41172853331`) is
+an older head (`aa6a01ab`): attempt 1 is marked failed but GitHub no longer
+serves its job log, while attempt 2 was cancelled during Buildx before
+`ci-check.sh`. The earlier runtime-SQL inventory drift was fixed and refreshed
+in `fb4cc883`; neither the unavailable old log nor the runner shutdown
+identifies a source regression to patch.
 
 ## Current continuation — Standard profile and C1 ACL guardrails
 
@@ -19,6 +31,10 @@ active queue remain dated records and do not replace the current count.
   and Edge proxy-free by default. Planner, Compose resolution and ARM64 profile
   checks pass ([guide](standard-profile.md)). Public DNS/TLS, trusted-proxy,
   browser certificate and external-origin acceptance remain open.
+- [x] Add a read-only Standard worker health probe over active scheduler,
+  event and notification leases. Focused tests and Compose/profile checks pass;
+  the probe does not detect unclaimed backlog, idle hung supervisors, or route
+  operator alerts ([guide](standard-profile.md); [evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json)).
 - [x] Add migration 704 to preserve runtime reads of `living_wage_benchmark`
   while denying runtime table/column writes; focused native and ARM64/QEMU
   PostgreSQL acceptance passes. External importer use through the runtime
@@ -28,9 +44,17 @@ active queue remain dated records and do not replace the current count.
   optional-role reprovisioning cannot restore reviewed access denials. The
   disposable check passes migration replay, stale-grant cleanup, and allowed
   compatibility writes ([evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)).
-- [x] Pass the integrated 213-test migration, role-boundary, profile and
-  Compose selection, plus Ruff and `git diff --check`
-  ([evidence](builds/2026-10-31-recovery/c1-704-705-standard-focused-tests.json)).
+- [x] Add migration 706 to preserve runtime reads of the shared `protocol`
+  catalog while denying runtime table and residual column writes. Disposable
+  PostgreSQL 16 checks pass migration replay, role-provisioner reapplication,
+  and unchanged synthetic Directus/maintenance grants. No application writer
+  or Directus rule was found; external importer use through the runtime login
+  remains a persistent-rollout gate
+  ([evidence](builds/2026-10-31-recovery/runtime-protocol-read-only-disposable.json)).
+- [x] Pass the integrated 215-test migration, role-boundary, profile and
+  worker-health selection, plus Ruff, compilation, release-input, inventory,
+  capability-matrix and `git diff --check`
+  ([evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json)).
 - [x] Fix CI startup ordering so `make hooks-build` creates the ignored
   Directus extension bundle before Directus starts; the workflow contract tests,
   build/type check, and all 143 hook tests pass
@@ -39,15 +63,31 @@ active queue remain dated records and do not replace the current count.
   and guide after CI run #1017 rejected the previous values. The release-lock
   checker and 70 profile tests pass locally; a new hosted run remains pending
   ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
+- [x] Refresh `docs/refactor/runtime-sql-inventory.json` after CI #1018's
+  inventory-drift gate reported stale data. `python3
+  scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json`
+  and focused runtime inventory/role-boundary checks pass on `fb4cc883`;
+  Security #743 passed, while CI #1019 remains in progress. The separate
+  linked run #1014 was cancelled during image build and did not reach the CI
+  gate.
 - [x] Complete native full ordered schema replay through migration 705 and the
   synthetic two-tenant operator-scope probe: 696/696 migrations and 38 checks
   pass, with no seeds/host ports and disposable cleanup
   ([evidence](builds/2026-10-31-recovery/kernel-c1-full-schema-705-native.json)).
-- [ ] Complete ARM64/QEMU full ordered schema replay through 705 and the
+- [x] Replay the complete native migration chain through 706: 697/697 files
+  applied, zero pending/failed, no seeds or host ports, and disposable cleanup
+  passed ([evidence](builds/2026-10-31-recovery/full-schema-706-native.json)).
+  The separate two-tenant operator-scope probe remains recorded through 705.
+- [ ] Complete ARM64/QEMU full ordered schema replay through 706 and the
   synthetic two-tenant operator-scope probe. The attempt was stopped after
   583.6 seconds at migration 116 (111/696), with no migration error and clean
-  disposable teardown; the prior full replay through 703 and focused 704/705
-  ARM64 checks remain. Candidate, legacy and production remain untouched.
+  disposable teardown; the attempt predates migration 706. The prior full
+  replay through 703 and focused 704/705 ARM64 checks remain. Candidate, legacy
+  and production remain untouched.
+- [ ] Rerun the failed `full-ci` job for CI #1019 after its `kernel-image` job
+  completes. The latest available log shows hosted-runner shutdown after the
+  migration, seed, and metric gates passed; do not classify it as a test
+  failure without a completed rerun.
 
 ## Current continuation — documentation and C1 integration checks
 
@@ -967,9 +1007,9 @@ that its full source-plan phase is complete.
   ([native replay](builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json);
   [ARM64 replay](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe-cross-arch.json)).
 
-  A current native-ACL/source-SQL join was generated from the migration-689
-  probe and the 4,962-site runtime SQL inventory, whose drift ledger now has
-  42 tracked unresolved candidates
+  The native-ACL/source-SQL join below is a historical snapshot generated from
+  the migration-689 probe and the runtime SQL inventory as of 30 October; it
+  had 4,962 sites and 42 tracked unresolved candidates
   ([source/ACL report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-689.json);
   [consolidated audit](builds/2026-10-30-recovery/c1-runtime-acl-source-audit-689.json)).
   The native and ARM64/QEMU relation ACL snapshots are identical across 1,513
@@ -990,7 +1030,12 @@ that its full source-plan phase is complete.
   class and writer identity, tenant-scoped tables to use forced RLS or bounded
   functions, global catalogs to move writes to their approved admin path, and
   an isolated full-workflow regression before a combined role/migration
-  cutover. No broad grant change is applied by this inventory refresh.
+  cutover. No broad grant change is applied by this inventory refresh. The
+  tracked SQL inventory is refreshed in the current worktree: 4,988 sites
+  across 997 files, 1,257 relation candidates, 585 write-target relations, and 41
+  review-ledger entries (33 legacy-unreviewed and eight reviewed). The ACL
+  join remains a migration-703 snapshot and has not been regenerated from a
+  migration-705 probe.
   The source of the blanket count is `provision_runtime_role()` in
   `services/migration/runtime_role.py`: it grants `SELECT, INSERT, UPDATE,
   DELETE` on every existing public table, then reapplies the explicit private,

@@ -150,6 +150,7 @@ PUBLIC_FARM_SUMMARY_MIGRATION = (
 LIVING_WAGE_BENCHMARK_MIGRATION = (
     ROOT / "schemas/postgres/704_runtime_living_wage_benchmark_read_only.sql"
 )
+PROTOCOL_MIGRATION = ROOT / "schemas/postgres/706_runtime_protocol_read_only.sql"
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
@@ -429,6 +430,10 @@ def check_boundary(
                     (str(uuid.uuid4()), "synthetic-living-wage-benchmark"),
                 )
                 cursor.execute(
+                    "INSERT INTO public.protocol (id, marker) VALUES (%s, %s)",
+                    (str(uuid.uuid4()), "synthetic-protocol"),
+                )
+                cursor.execute(
                     "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
                     "IN SCHEMA public TO kokonut_runtime"
                 )
@@ -473,8 +478,16 @@ def check_boundary(
                     "TO kokonut_directus_runtime"
                 )
                 cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.protocol "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
                     "GRANT SELECT, INSERT, UPDATE, DELETE "
                     "ON public.living_wage_benchmark TO kokonut_maintenance_probe"
+                )
+                cursor.execute(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE ON public.protocol "
+                    "TO kokonut_maintenance_probe"
                 )
                 cursor.execute(
                     "REVOKE ALL PRIVILEGES ON public.farm_summary_probe_source "
@@ -852,6 +865,9 @@ def check_boundary(
                 )
                 cursor.execute(living_wage_benchmark_migration)
                 cursor.execute(living_wage_benchmark_migration)
+                protocol_migration = PROTOCOL_MIGRATION.read_text(encoding="utf-8")
+                cursor.execute(protocol_migration)
+                cursor.execute(protocol_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -895,6 +911,13 @@ def check_boundary(
                 raise AssertionError(
                     "migration 704 or compatibility provisioning did not establish "
                     "read-only living-wage benchmark rights"
+                )
+            if _relation_privileges(connection, "protocol") != (
+                True, False, False, False
+            ):
+                raise AssertionError(
+                    "migration 706 or compatibility provisioning did not establish "
+                    "read-only protocol rights"
                 )
             if _relation_privileges(connection, "v_public_farm_summary") != (
                 True, False, False, False
@@ -941,6 +964,60 @@ def check_boundary(
                     else:
                         connection.rollback()
                         raise AssertionError("runtime mutated the public farm summary view")
+                cursor.execute("RESET ROLE")
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.protocol', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.protocol', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.protocol', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.protocol', 'DELETE'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.protocol', 'SELECT'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.protocol', 'INSERT'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.protocol', 'UPDATE'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.protocol', 'DELETE')"
+                )
+                if cursor.fetchone() != (True, True, True, True, True, True, True, True):
+                    raise AssertionError(
+                        "migration 706 changed Directus or maintenance protocol grants"
+                    )
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute("SELECT marker FROM public.protocol")
+                if cursor.fetchone() != ("synthetic-protocol",):
+                    raise AssertionError("runtime role could not read protocol references")
+                for statement in (
+                    "INSERT INTO public.protocol (id, marker) "
+                    "VALUES ('00000000-0000-0000-0000-000000000706', 'forbidden')",
+                    "UPDATE public.protocol SET marker = 'forbidden'",
+                    "DELETE FROM public.protocol",
+                    "TRUNCATE public.protocol",
+                ):
+                    try:
+                        cursor.execute(statement)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode != "42501":
+                            raise AssertionError(
+                                f"expected protocol privilege denial; got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError("runtime protocol mutation unexpectedly succeeded")
+                cursor.execute("RESET ROLE")
+                cursor.execute("SET ROLE kokonut_maintenance_probe")
+                cursor.execute(
+                    "INSERT INTO public.protocol (id, marker) "
+                    "VALUES ('00000000-0000-0000-0000-000000000707', 'maintenance-write')"
+                )
+                cursor.execute(
+                    "UPDATE public.protocol SET marker = 'maintenance-update' "
+                    "WHERE id = '00000000-0000-0000-0000-000000000707'"
+                )
+                cursor.execute(
+                    "DELETE FROM public.protocol "
+                    "WHERE id = '00000000-0000-0000-0000-000000000707'"
+                )
                 cursor.execute("RESET ROLE")
 
                 cursor.execute(
@@ -2826,6 +2903,20 @@ def check_boundary(
                     "migration": LIVING_WAGE_BENCHMARK_MIGRATION.name,
                     "migration_sha256": hashlib.sha256(
                         living_wage_benchmark_migration.encode("utf-8")
+                    ).hexdigest(),
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "runtime_select_only": True,
+                    "runtime_insert_update_delete_truncate_denied": True,
+                    "runtime_column_insert_update_references_denied": True,
+                    "directus_sql_role_unchanged_in_synthetic_probe": True,
+                    "synthetic_separate_maintenance_probe_can_write": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_protocol": {
+                    "migration": PROTOCOL_MIGRATION.name,
+                    "migration_sha256": hashlib.sha256(
+                        protocol_migration.encode("utf-8")
                     ).hexdigest(),
                     "migration_applied_and_replayed": True,
                     "provisioner_reapplied_after_compatibility_grants": True,

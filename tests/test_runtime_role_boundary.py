@@ -1734,6 +1734,52 @@ def test_living_wage_benchmark_is_read_only_to_runtime_with_separate_seed_bounda
     assert "does not establish tenant isolation" in migration
 
 
+def test_protocol_reference_is_read_only_to_runtime_and_seeded_by_maintenance():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/706_runtime_protocol_read_only.sql"
+    ).read_text()
+    inventory = build_inventory()
+    sites = [
+        site for site in inventory["execution_sites"]
+        if "protocol" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site for site in inventory["execution_sites"]
+        if "protocol" in site.get("write_target_relations", [])
+    ]
+    expected_sources = {
+        "services/ingestion/baal_indexer.py",
+        "services/ingestion/gnosis_indexer.py",
+        "services/metrics/calculators/digital_lego.py",
+        "services/revenue_multiplier/dimensions/web3_replication.py",
+    }
+    seed_paths = [root / "schemas/seeds/004_pilot_web3.sql", root / "schemas/seeds/020_gnosis_chain.sql"]
+    seed_writes = [
+        path
+        for path in seed_paths
+        if re.search(
+            r"\bINSERT\s+INTO\s+(?:public\.)?protocol\b",
+            path.read_text(),
+            re.I,
+        )
+    ]
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert "protocol" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert policy_overrides["protocol"] == "runtime_mutations_denied"
+    assert {site["source"] for site in sites} == expected_sources
+    assert all(site["statement_kind"] == "SELECT" for site in sites)
+    assert write_sites == []
+    assert seed_writes == seed_paths
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.protocol FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.protocol TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "External importer use through kokonut_runtime is unconfirmed" in migration
+    assert "does not establish tenant isolation" in migration
+
+
 def test_mobile_credential_columns_are_excluded_from_runtime_reads():
     assert "device_token_hash" not in runtime_role._MOBILE_DEVICE_READ_COLUMNS
     assert "push_token" not in runtime_role._MOBILE_DEVICE_READ_COLUMNS

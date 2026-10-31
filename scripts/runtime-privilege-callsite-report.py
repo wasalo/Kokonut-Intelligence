@@ -79,6 +79,9 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # a separate maintenance/import identity. External importer use through the
     # runtime login is not confirmed by repository source review.
     "living_wage_benchmark": "runtime_mutations_denied",
+    # Protocol references are read by application/indexer code and written by
+    # the maintenance seed path. External runtime-login importers are unconfirmed.
+    "protocol": "runtime_mutations_denied",
     # This grouped public projection is read-only in application code and is
     # guarded against becoming updatable before mutation grants are removed.
     "v_public_farm_summary": "runtime_mutations_denied",

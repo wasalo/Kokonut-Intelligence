@@ -82,10 +82,24 @@ allow their leases to settle before starting the separate worker on populated
 data. Compose does not promise an atomic role cutover. Do not use a separate
 project name to attach unrelated deployments to candidate data.
 
-The worker disables the inherited HTTP healthcheck because it serves no HTTP.
-Supervisor failure exits the container; a stalled but live worker needs durable
-run/delivery progress monitoring. A progress watchdog remains pending. The
-default Caddy overlay gives Standard a loopback TLS entry point; the separate
+The worker serves no HTTP, so its Compose healthcheck queries PostgreSQL's
+durable scheduler-run, event-lease, and notification-lease state instead of
+using the API probe. It reports an idle enabled-worker set as healthy and
+active work as healthy while its durable lease is current. Processing work is
+unhealthy only after its stored lease or task-timeout deadline plus the
+configured grace period; a processing row without a lease is unhealthy
+immediately. The read-only probe returns aggregate counts only, and omits
+queues whose worker feature is disabled. Database errors fail health closed
+and expose only the exception class. The default grace period is 300 seconds
+and can be changed with
+`KOKONUT_WORKER_PROGRESS_STALE_SECONDS` (1–2,678,400 seconds). Compose checks
+every 30 seconds with a 5-second timeout and three retries. This is a health
+signal, not an alert route or automatic queue repair. It detects stale claimed
+work, not unclaimed backlog; an idle but hung supervisor can still appear
+healthy. Source-level behavior is covered by focused tests; live database-
+outage, backlog monitoring, operator alerting, and prolonged worker-recovery
+acceptance remains open. The default Caddy overlay gives Standard a loopback
+TLS entry point; the separate
 [Kernel proxy overlay](kernel-proxy.md) documents its routing, trust, and
 public-ingress limits. An external ingress can replace Caddy with `--no-proxy`
 while retaining the role-separated profile.
@@ -107,7 +121,9 @@ No migrations, queued work, or running-container changes were performed.
 Pending acceptance: API has no embedded workers; worker has no API; both roles
 use identical code and provider settings; worker leases, retries, dead letters,
 restart and shutdown preserve durable state; disabled-worker mode fails startup;
-replicas have distinct identities; job/event parity and operator monitoring pass.
+replicas have distinct identities; job/event parity and operational alert
+routing pass. The new health probe does not by itself demonstrate provider
+outage recovery, multi-replica behavior, or notification delivery to an operator.
 
 Rollback: stop and remove only the separate candidate worker, allow in-flight
 leases to settle, then recreate the candidate app using the base manifest's

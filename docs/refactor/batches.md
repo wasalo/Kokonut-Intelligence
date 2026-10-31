@@ -9028,11 +9028,12 @@ capabilities until every writer is classified and tenant/admin boundaries are
 tested together. C1 therefore remains open; the 991 count is not evidence of
 991 confirmed tenant data leaks.
 
-The analytics subset now has a current cross-reference of 280 relations,
-439 candidate write sites across 92 files, and no unmatched candidates; this
-still requires caller and tenant-context review. Its one declared boundary is
-the expected insert-only `data_access_log` ledger. The refreshed SQL inventory
-now has 4,962 execution sites across 989 files, 1,253 relation candidates,
+At the time of this 30 October checkpoint, the analytics subset had a
+cross-reference of 280 relations, 439 candidate write sites across 92 files,
+and no unmatched candidates; this still requires caller and tenant-context
+review. Its one declared boundary is the expected insert-only
+`data_access_log` ledger. The SQL inventory at that checkpoint had 4,962
+execution sites across 989 files, 1,253 relation candidates,
 and 587 write-target relations; its unresolved-write ledger tracks 42
 candidates. The 25 credit-class write
 targets remain a separate high-risk group, including the existing gRPC path
@@ -9474,7 +9475,8 @@ schema replay remains through 696; focused QEMU ACL acceptance is not physical
 Raspberry Pi acceptance. Broader C1 writer review, tenant-safe SELECT/RLS,
 populated-data parity, and rollout gates remain open.
 
-Checklist: 2,134 complete / 26 open (2,160 total); TODO: 733 checked / 17
+Historical snapshot when recorded: checklist 2,134 complete / 26 open
+(2,160 total); TODO 733 checked / 17
 open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts total
 226.
@@ -9529,7 +9531,8 @@ coordination, event, mobile-manifest, attestation, or certificate writers.
 Those capabilities need purpose-built scope contracts and boundaries before
 their direct writers can be removed.
 
-Checklist: 2,135 complete / 26 open; TODO: 734 checked / 19 open. No candidate,
+Historical snapshot when recorded: checklist 2,135 complete / 26 open; TODO
+734 checked / 19 open. The active TODO header is the current count. No candidate,
 legacy, or production database or role was changed.
 
 
@@ -9548,7 +9551,8 @@ This is a source review, not evidence that external writes do or do not exist.
 No migration or database was changed
 ([audit](builds/2026-10-30-recovery/living-wage-benchmark-c1-source-audit.json)).
 
-Checklist: 2,134 complete / 26 open (2,160 total); TODO: 733 checked / 17
+Historical snapshot when recorded: checklist 2,134 complete / 26 open
+(2,160 total); TODO 733 checked / 17
 open. Capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; strict private Gateway response contracts total
 226.
@@ -9636,10 +9640,10 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   restrictions after compatibility grants; disposable PostgreSQL checks pass
   replay, stale-grant removal, allowed compatibility writes and role isolation
   ([evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)).
-- [x] Pass the combined migration, Directus/runtime role, profile and Compose
-  regression selection: 213 tests; Ruff, capability-matrix validation and
-  `git diff --check` pass
-  ([evidence](builds/2026-10-31-recovery/c1-704-705-standard-focused-tests.json)).
+- [x] Pass the combined migration, runtime role, profile, Compose and worker
+  health selection: 215 tests; Ruff, compilation, release-input, inventory,
+  capability-matrix validation and `git diff --check` pass
+  ([evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json)).
 - [x] Correct GitHub CI ordering so the ignored Directus hook bundle is built
   before Directus startup; the CI ordering contract, hook bundle/type build,
   and 143 hook tests pass. Run 412074's image gate passed; `full-ci` was
@@ -9649,19 +9653,34 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   and guide after CI run #1017 rejected the stale values. The lock checker and
   70 profile tests pass locally; hosted validation of this correction is pending
   ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
+- [x] Regenerate the tracked runtime SQL inventory after CI #1018 detected
+  drift; the inventory check and focused runtime inventory/role-boundary tests
+  pass on `fb4cc883`. Security #743 passed. CI #1019's `full-ci` step was
+  cancelled when the GitHub-hosted runner reported a shutdown signal, after
+  migration/seed replay and metric checks passed; `kernel-image` was still
+  running at the last status check. The user-linked run #1014 is an older head:
+  its first attempt is marked failed but the job log is no longer available,
+  and its retry was cancelled during Buildx before `ci-check.sh`.
+- [ ] Rerun CI #1019's failed `full-ci` job after the separate image-build job
+  completes; confirm the required checks on the exact current PR head.
 - [x] Complete the native ordered replay through migration 705 with the
   two-tenant operator-scope probe: 696/696 migrations and 38 synthetic checks
   pass; no seeds or host ports were used, and disposable cleanup passed
   ([evidence](builds/2026-10-31-recovery/kernel-c1-full-schema-705-native.json)).
-- [ ] Complete the ARM64/QEMU ordered replay through migration 705 with the
+- [x] Replay all 697 ordered schema files through migration 706 on native
+  disposable PostgreSQL 16. No seeds, host ports, farm data, or candidate/legacy
+  targets were used; cleanup passed. This verifies migration replay, while the
+  separate 38-check two-tenant probe remains on the 705 evidence
+  ([evidence](builds/2026-10-31-recovery/full-schema-706-native.json)).
+- [ ] Complete the ARM64/QEMU ordered replay through migration 706 with the
   two-tenant operator-scope probe. The attempt was stopped after 583.6 seconds
   at migration 116 (111/696), without a migration error; disposable cleanup
-  passed. The prior full QEMU replay through 703 and focused 704/705 checks
-  remain available. Candidate, legacy and production roles/data remain
-  untouched.
+  passed. That attempt predates migration 706. The prior full QEMU replay
+  through 703 and focused 704/705 checks remain available. Candidate, legacy
+  and production roles/data remain untouched.
 
 Rollback: no persistent database or service was changed. Keep ordered
-migrations 704–705 in history; do not edit applied SQL. Reversing a persistent
+migrations 704–706 in history; do not edit applied SQL. Reversing a persistent
 ACL change requires a reviewed forward migration. Before any persistent
 migration-704 rollout, confirm no external importer uses `kokonut_runtime` for
 living-wage reference writes. The current source/ACL aggregate remains the 703

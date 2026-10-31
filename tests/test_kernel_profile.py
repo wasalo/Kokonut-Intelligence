@@ -247,6 +247,28 @@ def test_standard_api_and_worker_require_schema_readiness() -> None:
         assert "--require-schema" in command
 
 
+def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles() -> None:
+    standard = yaml.safe_load((ROOT / "docker-compose.kernel-standard.yml").read_text())
+    app = standard["services"]["app"]
+    worker = standard["services"]["worker"]
+
+    assert worker["healthcheck"] == {
+        "test": ["CMD", "python3", "-m", "services.core.worker_progress", "--check"],
+        "interval": "30s",
+        "timeout": "5s",
+        "retries": 3,
+        "start_period": "60s",
+    }
+    assert worker["command"] == [
+        "python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"
+    ]
+    assert worker["environment"]["KOKONUT_WORKER_PROGRESS_STALE_SECONDS"] == (
+        "${KOKONUT_WORKER_PROGRESS_STALE_SECONDS:-300}"
+    )
+    assert "KOKONUT_WORKER_PROGRESS_STALE_SECONDS" not in app.get("environment", {})
+    assert worker["environment"]["PG_USER"] == "${KOKONUT_RUNTIME_USER:-kokonut}"
+
+
 def test_clickhouse_outbox_isolation_is_wired_but_opt_in_across_kernel_profiles():
     profile_files = (
         "docker-compose.kernel-candidate.yml",
