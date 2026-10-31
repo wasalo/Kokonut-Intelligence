@@ -77,8 +77,6 @@ def test_every_scheduled_module_has_a_command_contract():
         ),
         ("services.events", ["--process"]),
         ("services.events", ["--notification-process", "--batch-size", "50"]),
-        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--location-id", str(uuid4())]),
-        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "10", "--location-id", str(uuid4())]),
         ("services.ingestion.remote_sensing_worker", ["--location-id", str(uuid4())]),
         ("services.ingestion.remote_sensing_worker", ["--location-id", str(uuid4()), "--limit", "10"]),
         ("services.ingestion.clickhouse_outbox", ["--run-once"]),
@@ -174,6 +172,8 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.remote_sensing_fetcher", ["--list-jobs"]),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "0"]),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "11"]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--location-id", str(uuid4())]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "10", "--location-id", str(uuid4())]),
         ("services.ingestion.remote_sensing_fetcher", ["--location-id", str(uuid4())]),
         ("services.ingestion.remote_sensing_worker", []),
         ("services.ingestion.remote_sensing_worker", ["--location-id", str(uuid4()), "--run-jobs"]),
@@ -198,6 +198,14 @@ def test_supported_operations_accept_valid_argv(module, arguments):
 def test_unsupported_or_incomplete_operations_are_rejected(module, arguments):
     with pytest.raises(ScheduledCommandRejected):
         validate_scheduled_command(module, arguments)
+
+
+def test_legacy_remote_sensing_due_job_schedule_names_signed_worker():
+    with pytest.raises(ScheduledCommandRejected, match="remote_sensing_worker"):
+        validate_scheduled_command(
+            "services.ingestion.remote_sensing_fetcher",
+            ["--run-jobs", "--location-id", str(uuid4())],
+        )
 
 
 def test_credit_adjustment_job_uses_dedicated_read_only_entrypoint():

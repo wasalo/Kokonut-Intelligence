@@ -8,8 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 769 checked / 31 open across the
-TODO's dated and active checklist sections. Historical snapshots below this
+**Current queue snapshot (31 October 2026):** 776 checked / 32 open across the TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
 **Hosted validation (31 October 2026):** On the pre-batch PR head `fb4cc883`,
@@ -50,6 +49,35 @@ shutdown signal. Its logs show no assertion failure; the parallel Kernel image
 job was still running when inspected. This is incomplete validation, not a
 successful CI gate. The earlier runtime-SQL inventory drift was fixed in
 `fb4cc883`.
+
+## Latest continuation — CI inventory repair and energy capture — 31 October 2026
+
+- [x] Reconcile the runtime SQL inventory and unresolved-write ledger after
+  retiring the remote-sensing due-claim query. The old fingerprint is removed;
+  the tracked freshness check passes.
+- [x] Add migration 711 and the signed, exact-location energy-reading Gateway
+  capture with private retry receipt/audit, recorded-only lifecycle, and runtime
+  direct-write denial. Preserve SELECT plus Directus/maintenance writes.
+- [x] Retire the unscoped remote-sensing due-runner entry points before database
+  or provider access; keep create/list/manual-job compatibility and retain the
+  default-off signed worker as the advised scheduled path.
+- [x] Pass focused energy/Gateway/runtime/directus/operator tests (114 tests)
+  and focused remote-sensing/scheduler/reliability tests (213 tests), migration
+  validation, Ruff, and diff checks.
+- [x] Pass migration 711 disposable PostgreSQL 16 apply/replay, signed-context,
+  idempotency, authorization, runtime-DML denial, private receipt/audit, and
+  Directus/maintenance grant-preservation checks.
+- [x] Pass fresh native full-schema replay through migration 711 (702/702)
+  and all 38 two-tenant operator-scope checks under a network-disabled,
+  portless disposable project; verify the runtime provisioner and refreshed
+  aggregate ACL/source report.
+- [x] Diagnose CI #1029 on the prior pushed head: the fast-fail gate rejected a
+  stale runtime SQL inventory, now regenerated and locally verified. For older
+  user-linked CI #1014, attempt 1 failed but its log expired and attempt 2 was
+  cancelled during Buildx setup; its original failure cause remains unknown.
+- [ ] Obtain a complete passing CI and Security run on the next pushed PR head.
+  Local checks do not close hosted validation; the current repair has not yet
+  run in GitHub Actions.
 
 ## Current continuation — Standard profile and C1 ACL guardrails
 

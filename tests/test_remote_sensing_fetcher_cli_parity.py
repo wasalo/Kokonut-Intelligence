@@ -126,6 +126,39 @@ def test_remote_sensing_job_list_rejects_invalid_scope_before_database(
         assert "location_id" in result.output.lower()
 
 
+@pytest.mark.parametrize("entrypoint", ["standalone", "unified"])
+def test_retired_due_job_cli_fails_before_database_or_provider(
+    monkeypatch, entrypoint
+):
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+
+    monkeypatch.setattr(
+        remote_sensing_fetcher,
+        "get_db",
+        lambda: pytest.fail("retired due-job CLI must fail before DB setup"),
+    )
+    monkeypatch.setattr(
+        remote_sensing_fetcher,
+        "fetch_job",
+        lambda *_args, **_kwargs: pytest.fail("retired due-job CLI must not call provider path"),
+    )
+    arguments = ["--run-jobs", "--location-id", LOCATION_ID]
+
+    if entrypoint == "standalone":
+        with pytest.raises(SystemExit) as exc_info:
+            remote_sensing_fetcher.main(arguments)
+        assert exc_info.value.code == 2
+    else:
+        result = CliRunner().invoke(
+            unified_cli.app,
+            ["ingestion", "--", "remote_sensing_fetcher", *arguments],
+        )
+        assert result.exit_code == 2
+        assert "remote_sensing_worker" in result.output
+
+
 def test_remote_sensing_job_create_output_and_insert_match_across_clis(
     monkeypatch, capsys
 ):

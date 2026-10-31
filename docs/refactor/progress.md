@@ -25627,3 +25627,36 @@ The current checklist snapshot is 2,161 complete / 31 open and the TODO queue
 is 769 checked / 31 open. Capability classifications remain 24 baseline-
 retained, 7 deployed, and 36 prepared across 67 rows; no named capability or
 MAN-CAP acceptance changed.
+
+### Progress addendum — migration 711, remote-sensing due path, and CI inventory repair — 31 October 2026
+
+Migration 711 adds a signed, exact-location energy-reading capture path with
+private idempotency receipts/audit and an isolated function owner. The legacy
+energy write path now fails before database access; runtime direct table and
+column writes are revoked while SELECT and existing Directus/maintenance
+writes remain. The remote-sensing legacy due-claim entry points likewise fail
+closed before DB/provider access; create/list/manual job paths remain. The
+runtime SQL inventory and unresolved-write review ledger were regenerated
+against these changes.
+
+The focused suites pass (114 energy/Gateway/runtime checks and 213
+remote-sensing/scheduler/reliability checks), as do migration validation, Ruff,
+and inventory freshness. Migration 711 passed isolated PostgreSQL 16
+apply/replay and authorization/privilege acceptance. Native full-schema replay
+through 711 passed 702/702 ordered files and all 38 synthetic two-tenant
+operator-scope checks with no network, ports, seeds, or farm data. The current
+source/ACL report records 161 boundaries, zero policy mismatches and direct
+table/column privilege violations, 968 tables with runtime DML while RLS is
+disabled, and 40 unresolved write candidates; these are privilege-reach and
+inventory measures, not confirmed exposure.
+
+CI #1029 on prior head `9d94c48f` failed at the fast-fail gate because the
+runtime SQL inventory was stale; this batch regenerates it and the local
+freshness check passes. The older user-linked CI #1014 attempt 1 failed but its
+logs have expired; attempt 2 was cancelled during Buildx setup. Its original
+failure cause remains unknown. No candidate, legacy, or production database or
+role was changed. The next pushed head still needs a complete passing hosted
+CI/Security result. Evidence: [energy capture](builds/2026-10-31-recovery/energy-reading-capture-711-disposable.json),
+[native schema/probe](builds/2026-10-31-recovery/native-schema-711-operator-probe.json),
+[source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-711.json),
+[CI diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json).

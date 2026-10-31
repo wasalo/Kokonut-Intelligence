@@ -145,103 +145,44 @@ older counts and deployment statements are snapshots from their dates.
 
 ## C1 runtime ACL work: current batch
 
-C1 is **not closed**. The current native full-schema-707 source/ACL join
-records 151 declared runtime boundaries, zero policy mismatches, zero direct
-table/column privilege violations, 1,364 relations with some runtime DML, and
-976 tables with runtime DML while RLS is disabled. Its inventory still lists
-41 unresolved write candidates. These measure privilege reach and source-audit
-coverage, not confirmed exposure, tenant isolation, or universal column,
-sequence, function, ownership, and Directus safety. Migration 705 is a
-separate Directus reprovisioning policy; it does not certify Directus API or
-extension parity ([707 report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-707.json)).
+C1 remains **open**. A network-disabled, portless native PostgreSQL 16 replay
+through migration 711 applied all 702 ordered schema files and passed the
+synthetic two-tenant operator-scope probe. The refreshed source/ACL report
+records 161 migration-owned runtime boundaries, zero policy mismatches, zero
+direct table/column privilege violations, 1,356 relations with effective
+runtime DML, and 968 tables with runtime DML while RLS is disabled. It lists
+40 unresolved write candidates. These are privilege-reach and source-review
+counts, not confirmed leaks, tenant isolation, or universal sequence/function,
+ownership, column, Directus, or external-consumer safety
+([native replay and probe](builds/2026-10-31-recovery/native-schema-711-operator-probe.json);
+[source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-711.json)).
 
-This local batch records migrations 700–710 and scoped operations:
+The latest code-first cohort includes:
 
-| Migration | Added operation | Local acceptance recorded |
+| Change | Result and boundary | Evidence |
 | --- | --- | --- |
-| 700 | Location-scoped governance-tension lifecycle actions. The legacy network/organization scopes remain available. | Disposable PostgreSQL 16 apply/replay and synthetic authorization/lifecycle checks ([evidence](builds/2026-10-30-recovery/governance-tension-location-actions-700-disposable.json)). |
-| 701 | Location-scoped extension peer-network creation and progress updates, with private receipts and isolated writer owner. | Disposable PostgreSQL 16 checks for grant/context, retry, identity-minimized result and ACL behavior ([evidence](builds/2026-10-30-recovery/extension-learning-writes-701-disposable.json)). |
-| 702 | Record-only location landscape capture (habitat, corridor, hedgerow, buffer check, biodiversity assessment). | Disposable PostGIS/PostgreSQL 16 checks for location binding, geometry, defaults, lifecycle and role grants ([evidence](builds/2026-10-30-recovery/landscape-capture-702-disposable.json)). |
-| 703 | Metric draft calculation/write, bounded list and separate human verification functions. | Disposable PostgreSQL 16 checks for replay, grant, location scope, draft lifecycle, idempotency, self-review denial and ACL behavior ([evidence](builds/2026-10-30-recovery/metric-value-kernel-disposable.json)). |
-| 704 | Keep `living_wage_benchmark` readable to runtime while denying runtime table/column writes; preserve separate maintenance authority. | Focused native and ARM64/QEMU PostgreSQL checks for apply/replay, SELECT, DML denial, provisioner reapplication, and maintenance-role writes ([evidence](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json)). External importer use through the runtime login is unconfirmed, so persistent rollout remains gated. |
-| 705 | Record migration-owned Directus relation read-only/no-access exceptions and reapply them after the optional Directus role's compatibility grants. | Migration replay and disposable PostgreSQL role acceptance cover 147 relation policies, stale table/column/sequence grant removal, and preserved compatibility grants ([evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)). This protects reprovisioning; it does not establish API/extension parity or tenant isolation. |
-| 706 | Keep the shared `protocol` catalog readable to the general runtime while denying its table/column writes; preserve Directus and maintenance-role grants. | Network-isolated PostgreSQL 16 checks pass migration apply/replay, SELECT, DML/column denial, role-provisioner reapplication, and synthetic Directus/maintenance writes ([evidence](builds/2026-10-31-recovery/runtime-protocol-read-only-disposable.json)). External importer use through `kokonut_runtime` is not confirmed, so persistent rollout remains gated. |
-| 707 | Keep authorization-bearing `farmer_role` defaults readable to runtime while denying its table and residual column writes. | Source audit found one application SELECT and no in-repository service, extension, or Directus writer. Focused PostgreSQL 16 acceptance passes apply/replay, provisioner reapplication, runtime SELECT/write denial, and preservation of Directus/maintenance writes ([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json); [evidence](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)). External importer use through `kokonut_runtime` remains unconfirmed; persistent rollout is gated. |
-| 708 | Retire five unscoped legacy landscape writers and deny `kokonut_runtime` table/column DML on their records while preserving the signed migration-702 Gateway writer. | Focused network-disabled PostgreSQL 16 acceptance passes migration apply/replay, preserved SELECT and writer-owner grants, and authenticated capture/replay ([checker](../../scripts/check-landscape-runtime-boundary-disposable.py)). External importer use remains unconfirmed; candidate rollout stays gated. |
-| 709 | Preserve runtime SELECT on ordered schema metadata while denying `kokonut_runtime` table and column DML on `schema_version`; preserve maintenance and Directus grants. | Source audit and network-disabled PostgreSQL 16 apply/replay check pass; external importer use is unconfirmed and persistent rollout remains gated ([source regression](../../tests/test_runtime_role_boundary.py); [checker](../../scripts/check-schema-version-runtime-boundary-disposable.py); [evidence](builds/2026-10-31-recovery/schema-version-runtime-read-only-709.json)). |
-| 710 | Preserve runtime SELECT on schema-owned `cache_invalidation_rule` while denying runtime table and column DML; preserve Directus and maintenance writes. | Network-disabled PostgreSQL 16 apply/replay passes. External/custom runtime-login use remains unconfirmed, so persistent rollout is gated ([evidence](builds/2026-10-31-recovery/cache-invalidation-rule-710.json)). |
+| Migration 711 — energy-reading capture | Adds a signed, exact-location Gateway capture with idempotent receipts and private audit reason; retains `recorded` lifecycle; revokes runtime table/column DML while preserving SELECT and the existing Directus/maintenance write boundary. The legacy direct writer now fails closed before DB access. | [Disposable apply/replay and authorization checks](builds/2026-10-31-recovery/energy-reading-capture-711-disposable.json) |
+| Remote-sensing due-runner retirement | Legacy `--run-jobs`, `run_due_jobs()`, and `_claim_due_jobs()` paths fail before DB/provider access and direct operators to the default-off signed worker. Create/list/manual-job paths remain; this is not a blanket `remote_sensing_job` ACL revocation. | Focused remote-sensing/scheduler tests recorded in the current batch below. |
+| Runtime SQL inventory reconciliation | Regenerated the tracked inventory and review ledger after the due-claim query was retired. The freshness check passes locally; the stale fingerprint was removed from the unresolved candidate set. | `python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json` |
 
-The complete native replay through migration 707 applies all 698 ordered
-schema files and passes 38 synthetic two-tenant operator-scope checks in a
-network-disabled, portless disposable PostgreSQL 16 project; cleanup
-completed ([evidence](builds/2026-10-31-recovery/full-schema-707-native.json)).
-The probe reports 976 public tables with runtime DML while RLS is disabled.
-This is an ACL reach count, not a finding of confirmed data exposure, and does
-not close remaining C1 source, tenant, populated-data, or rollout gates. No
-candidate, legacy, or production target was accessed.
+The user-linked [CI #1014](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41172853331)
+was on older head `aa6a01a`: attempt 1 failed, but GitHub has expired its job
+log; attempt 2 was cancelled during Buildx dependency installation when a newer
+run superseded it. Its original failure cause cannot be established. Later
+commits on this branch add an isolated multi-architecture Buildx cache and run
+the image gate in parallel with full CI, but those changes do not prove the
+cause of #1014. The later current-head [CI #1029](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41233060705)
+failed at the fast-fail gate because `runtime-sql-inventory.json` was stale.
+That specific failure is repaired in this worktree and the inventory check now
+passes; hosted verification on the next pushed head remains open
+([diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json)).
 
-Migrations 708–710 have focused disposable acceptance, but the native source/ACL
-aggregate remains the migration-707 snapshot and is stale relative to those
-ACL changes. The Standard runtime-role overlay now requires separate
-credentials and checks role attributes, memberships, and database ownership
-before spawning children. Its refreshed disposable replay through 710 and role
-acceptance pass, including bootstrap reapplication and outage recovery
-([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json)).
-The candidate has not been rolled out.
-
-The complete full-schema report and two-tenant replay above stop at migration
-707; they do not certify the 708 ACL on the complete schema. Migration 708 has
-a separate synthetic replay/privilege/Gateway-capture acceptance. Its five
-source writers now fail before database access; the legacy metric, tension,
-and extension writers remain. External landscape importer use and persistent
-rollout remain open, as do broader tenant and RLS gates.
-
-A separate fresh, no-seed PostgreSQL 16 ordered replay logged all 699 schema
-migrations through 708 as applied with zero migration failures. Its follow-up
-ad hoc ledger query used a nonexistent column and failed after the migration
-runner completed, so this is migration-application evidence only; it did not
-produce a post-708 ACL inventory or a second ledger verification
-([recovery evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
-
-The 700–703 functions use isolated owners. The runtime-role provisioner tracks
-those owners/functions, revokes public function execution, and refuses to use
-the owners as application logins. The Standard worker probe rejects a missing,
-stale, malformed, or dead-supervisor heartbeat and missing/dead enabled worker
-children before opening PostgreSQL. Its private heartbeat is stored under
-`/var/lib/kokonut/worker-progress`; an alive-but-hung child remains outside the
-probe's guarantee. The focused migration, runtime-boundary, profile, health,
-and landscape selection passes 238 tests plus 10 subtests; the hook build and
-143 hook tests pass ([local evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
-
-The focused checkers use synthetic records and disposable databases. They do
-not apply these migrations to the candidate, legacy, or production database.
-The grouped focused Gateway, console, source/ACL, migration, and replay-parser
-selection passes 216 tests ([evidence](builds/2026-10-30-recovery/c1-700-703-focused-tests.json)).
-The prior full ordered replays through 703 passed 694/694 migrations and 38
-two-tenant operator checks on native and ARM64/QEMU
-([native](builds/2026-10-30-recovery/kernel-c1-full-schema-703-native-r2.json),
-[ARM64/QEMU](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)).
-The superseded native replay snapshot through 705 passed 696/696 migrations
-and all 38 checks; its synthetic ACL probe reported 978 public tables with
-runtime DML while RLS was disabled
-([evidence](builds/2026-10-31-recovery/kernel-c1-full-schema-705-native.json)).
-That is a historical privilege-reach measure, not a current post-706 count or a
-confirmed exposure count. The source/ACL policy report remains the 703
-snapshot; its 148-boundary aggregate is not regenerated after 704. A full
-ARM64/QEMU replay through 705 was stopped after 583.6 seconds at migration 116
-(111/696 migrations); no migration error was observed and disposable cleanup
-passed ([interrupted attempt](builds/2026-10-31-recovery/kernel-c1-full-schema-705-arm64-qemu.json)). The prior complete QEMU replay through 703 and focused ARM64 checks for 704/705 remain evidence; no physical Raspberry Pi acceptance is claimed.
-This additive source batch leaves legacy writers available, does not revoke
-their direct DML, and does not establish universal tenant isolation. Broader
-C1 reconciliation and separately gated candidate rollout remain required.
-
-One SQL provenance limit remains in migration 703: the metric draft function
-checks that `source_record_ids` is bounded and contains no NULLs, but it does
-not prove each polymorphic ID belongs to the requested location. The current
-Gateway derives this array from the location-scoped calculator; the SQL
-function alone does not guarantee that relationship. Add a source-type
-contract before making a stronger provenance claim or widening the caller
-surface ([existing source-ID review](todo-kernel-refactor.md)).
+Standard-profile recovery remains separately accepted only through migration
+710; the migration-711 full-schema replay is not Standard-profile outage or
+provider-recovery acceptance. No candidate, legacy, or production database or
+role was changed. Broader caller reconciliation, external importer ownership,
+Directus API parity, tenant/RLS, populated-data parity, and reviewed persistent
+rollout remain open.
 
 ## Human and operational gates
 

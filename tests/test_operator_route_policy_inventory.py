@@ -20,6 +20,8 @@ _PARAMETER_SAMPLES = {
     "habitat_id": "55555555-5555-4555-8555-555555555555",
     "hive_record_id": "55555555-5555-4555-8555-555555555555",
     "record_id": "33333333-3333-4333-8333-333333333333",
+    "progress_id": "33333333-3333-4333-8333-333333333336",
+    "metric_value_id": "33333333-3333-4333-8333-333333333337",
     "batch_id": "33333333-3333-4333-8333-333333333333",
     "prediction_id": "55555555-5555-4555-8555-555555555555",
     "realization_id": "33333333-3333-4333-8333-333333333333",
@@ -344,6 +346,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/energy/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("energy_monitoring", "read", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/energy/11111111-1111-4111-8111-111111111111/readings",
+    ): _expected("energy_monitoring", "create", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/waste/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("waste_management", "read", scoped=True, location_id=_LOCATION_ID),
@@ -375,6 +381,46 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/landscape/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("landscape_conservation", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/landscape/11111111-1111-4111-8111-111111111111/habitats",
+    ): _expected("landscape_conservation", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/landscape/11111111-1111-4111-8111-111111111111/corridors",
+    ): _expected("landscape_conservation", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/landscape/11111111-1111-4111-8111-111111111111/hedgerows",
+    ): _expected("landscape_conservation", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/landscape/11111111-1111-4111-8111-111111111111/buffer-checks",
+    ): _expected("landscape_conservation", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/landscape/11111111-1111-4111-8111-111111111111/biodiversity-assessments",
+    ): _expected("landscape_conservation", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/metrics/11111111-1111-4111-8111-111111111111/values",
+    ): _expected("metric_value", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/metrics/11111111-1111-4111-8111-111111111111/values",
+    ): _expected("metric_value", "compute", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/metrics/11111111-1111-4111-8111-111111111111/values/33333333-3333-4333-8333-333333333337/verify",
+    ): _expected("metric_value", "verify", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/extension-learning/11111111-1111-4111-8111-111111111111/peer-networks",
+    ): _expected("extension_learning", "create_peer_network", scoped=True, location_id=_LOCATION_ID),
+    (
+        "PATCH",
+        "/operator/api/extension-learning/11111111-1111-4111-8111-111111111111/progress/33333333-3333-4333-8333-333333333336",
+    ): _expected("extension_learning", "update_progress", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/pollinators/11111111-1111-4111-8111-111111111111/summary",
@@ -1270,6 +1316,17 @@ for _route_action, _policy_action in _TRANSITION_ACTIONS.items():
         )
     ] = _expected("farm_activity", _policy_action, scoped=True)
 
+for _tension_action in ("triage", "start", "link", "link_work_item", "resolve", "defer"):
+    _EXPECTED_OPERATOR_POLICIES[
+        (
+            "POST",
+            f"/operator/api/governance/{_LOCATION_ID}/tensions/"
+            f"66666666-6666-4666-8666-666666666666/actions/{_tension_action}",
+        )
+    ] = _expected(
+        "governance_tension", _tension_action, scoped=True, location_id=_LOCATION_ID
+    )
+
 for _retirement_route_action, _retirement_policy_action in {
     "migration": "transition",
     "sunset": "transition",
@@ -1375,6 +1432,11 @@ def _concrete_paths(route_path):
         _PARAMETER_SAMPLES.items(),
         route_path,
     )
+    if "/tensions/" in path and "{action}" in path:
+        return [
+            path.replace("{action}", action)
+            for action in ("triage", "start", "link", "link_work_item", "resolve", "defer")
+        ]
     if "{action}" in path:
         return [path.replace("{action}", action) for action in _TRANSITION_ACTIONS]
     if "{event_type}" in path:

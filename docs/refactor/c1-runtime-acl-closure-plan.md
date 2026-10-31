@@ -24,7 +24,58 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Current cohort — migrations 700–710, 31 October 2026
+### Latest C1 continuation — migration 711 and current CI diagnosis — 31 October 2026
+
+C1 remains open. The fresh, network-disabled native PostgreSQL 16 replay
+applied 702/702 ordered schema files through migration 711 and passed all 38
+synthetic two-tenant operator-scope checks. The probe confirms 88 private
+relations and 71 mutation-denied relations under the current runtime role,
+with zero direct table/column privilege violations. The refreshed source/ACL
+join records 161 migration-owned runtime boundaries, zero policy mismatches,
+1,356 relations with effective runtime DML, 968 tables with runtime DML while
+RLS is disabled, and 40 unresolved write candidates. These counts measure
+privilege reach and inventory coverage, not confirmed exposure or universal
+isolation. The replay used no seeds, host ports, or farm data; candidate,
+legacy, and production databases were not touched
+([replay and probe](builds/2026-10-31-recovery/native-schema-711-operator-probe.json);
+[report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-711.json)).
+
+Migration 711 adds signed exact-location energy-reading capture, idempotent
+private receipts/audit, and an isolated function owner; it preserves the
+`recorded` lifecycle and revokes direct `kokonut_runtime` writes while keeping
+runtime SELECT and existing Directus/maintenance writes. Its disposable
+PostgreSQL 16 apply/replay and role checks pass. The legacy energy writer now
+fails before database acquisition. Receipt/audit tables are also declared
+private in the runtime-role provisioner, so a later bootstrap does not reopen
+them ([migration](../../schemas/postgres/711_location_energy_reading_capture.sql);
+[checker](../../scripts/check-energy-reading-capture-disposable.py);
+[evidence](builds/2026-10-31-recovery/energy-reading-capture-711-disposable.json)).
+
+The legacy remote-sensing due-claim path has been retired at the CLI and service
+boundary. `--run-jobs`, `run_due_jobs()`, and `_claim_due_jobs()` now fail
+before database/provider work and direct operators to the default-off signed
+worker. Create, list, and manual-job paths remain. No broad remote-sensing ACL
+revocation or candidate rollout is claimed. The runtime SQL inventory was
+regenerated and its tracked freshness check now passes; the stale due-claim
+fingerprint was removed from the unresolved-write review ledger.
+
+The user-linked [CI #1014](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41172853331)
+ran on `aa6a01a`. Attempt 1 failed, but its GitHub log blob has expired;
+attempt 2 was cancelled during Buildx setup after a newer run superseded it.
+The original attempt-1 cause is unknown. This branch later added Buildx caching
+and a parallel image job. The later current-head [CI #1029](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41233060705)
+failed for a separate, verified reason: the fast-fail gate found a stale runtime
+SQL inventory. This batch repairs that inventory and records local passing
+freshness validation; the next complete hosted run remains required
+([diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json)).
+
+The Standard recovery acceptance remains through migration 710; the 711 full
+schema replay and scope probe do not substitute for Standard outage/provider
+recovery. External importer ownership, remaining runtime writers, broader
+Directus and tenant boundaries, populated-data parity, and separately reviewed
+persistent rollout remain open.
+
+### Historical detailed notes for migrations 700–710
 
 The detailed source/function cohort below covers migrations 700–703. Migrations
 704, 705, 706, and 707 add, respectively, the runtime read-only boundary for

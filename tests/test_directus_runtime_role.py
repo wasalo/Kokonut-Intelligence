@@ -96,15 +96,29 @@ def test_directus_policy_migration_reconciles_prior_denials_and_preserves_catalo
     root = Path(__file__).resolve().parents[1]
     migration_path = root / "schemas/postgres/705_directus_relation_privilege_policy.sql"
     migration = migration_path.read_text()
+    policy_rows = []
+    for path in sorted((root / "schemas/postgres").glob("*.sql")):
+        source = path.read_text()
+        policy_rows.extend(
+            (relation, mode, source_migration)
+            for relation, mode, source_migration in re.findall(
+                r"\('public', '([a-z_][a-z0-9_]*)', '(read_only|no_access)', "
+                r"'([0-9]{3}_[a-z0-9_]+\.sql)'\)",
+                source,
+            )
+        )
     rows = re.findall(
         r"\('public', '([a-z_][a-z0-9_]*)', '(read_only|no_access)', '([0-9]{3}_[a-z0-9_]+\.sql)'\)",
         migration,
     )
-    policies = {(relation, mode) for relation, mode, _source in rows}
+    policies = {(relation, mode) for relation, mode, _source in policy_rows}
 
     assert len(rows) >= 100
     assert len({relation for relation, _mode, _source in rows}) == len(rows)
-    assert all((root / "schemas/postgres" / source).is_file() for _relation, _mode, source in rows)
+    assert all(
+        (root / "schemas/postgres" / source).is_file()
+        for _relation, _mode, source in policy_rows
+    )
     schema_sql = "\n".join(
         path.read_text(errors="replace")
         for path in sorted((root / "schemas/postgres").glob("*.sql"))
@@ -145,6 +159,18 @@ def test_directus_policy_migration_reconciles_prior_denials_and_preserves_catalo
     assert ("pesticide_impact_log", "read_only") in policies
     assert ("farm_activity_operator_event", "no_access") in policies
     assert ("governance_tactical_action_event", "no_access") in policies
+    assert ("energy_reading_capture_receipt", "no_access") in policies
+    assert ("energy_reading_operator_audit", "no_access") in policies
+    assert (
+        "energy_reading_capture_receipt",
+        "no_access",
+        "711_location_energy_reading_capture.sql",
+    ) in policy_rows
+    assert (
+        "energy_reading_operator_audit",
+        "no_access",
+        "711_location_energy_reading_capture.sql",
+    ) in policy_rows
 
     # Runtime-only reference migrations must not be widened into Directus ACL
     # denials; their deliberate compatibility behavior remains unchanged.

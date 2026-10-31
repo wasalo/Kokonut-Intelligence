@@ -18,7 +18,6 @@ Usage:
 """
 
 import json
-import re
 import uuid
 from datetime import date, timedelta
 
@@ -90,60 +89,17 @@ def record_reading(
     metadata: dict = None,
     cost_currency_code: str = None,
 ) -> dict:
-    """Record an energy reading, requiring a currency for supplied costs."""
-    if cost_per_kwh is None:
-        if cost_currency_code is not None:
-            raise ValueError("cost_currency_code requires cost_per_kwh")
-        normalized_currency = None
-    else:
-        normalized_currency = str(cost_currency_code or "").strip().upper()
-        if not re.fullmatch(r"[A-Z]{3}", normalized_currency):
-            raise ValueError("cost_currency_code must be three uppercase letters")
+    """Reject the legacy unscoped writer before touching the connection.
 
-    cur = conn.cursor()
-
-    cur.execute("SELECT location_id FROM energy_source WHERE id = %s", (source_id,))
-    row = cur.fetchone()
-    if not row:
-        cur.close()
-        raise ValueError(f"Energy source {source_id} not found")
-    location_id = row[0]
-
-    total_cost = round(kwh * cost_per_kwh, 2) if cost_per_kwh is not None else None
-
-    reading_id = str(uuid.uuid4())
-    cur.execute(
-        """
-        INSERT INTO energy_reading
-            (id, location_id, source_id, reading_date, reading_type, kwh,
-             cost_per_kwh, total_cost, cost_currency_code, activity_type, equipment_id,
-             notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
-        RETURNING id
-        """,
-        (
-            reading_id, location_id, source_id, reading_date, reading_type, kwh,
-            cost_per_kwh, total_cost, normalized_currency, activity_type, equipment_id,
-            notes, json.dumps(metadata or {}),
-        ),
+    Use the OIDC Gateway capture at
+    ``POST /operator/api/energy/{location_id}/readings``. It supplies the
+    signed location context, validates the source's location in PostgreSQL,
+    and records an idempotent private audit receipt.
+    """
+    raise RuntimeError(
+        "Direct energy-reading writes are retired; use the authenticated "
+        "location-scoped Kokonut Gateway"
     )
-    conn.commit()
-    cur.close()
-
-    logger.info("Recorded %s reading: %.1f kWh for source %s", reading_type, kwh, source_id)
-
-    return {
-        "reading_id": reading_id,
-        "source_id": source_id,
-        "location_id": location_id,
-        "reading_date": reading_date.isoformat(),
-        "reading_type": reading_type,
-        "kwh": kwh,
-        "cost_per_kwh": cost_per_kwh,
-        "total_cost": total_cost,
-        "cost_currency_code": normalized_currency,
-        "activity_type": activity_type,
-    }
 
 
 # ============================================================

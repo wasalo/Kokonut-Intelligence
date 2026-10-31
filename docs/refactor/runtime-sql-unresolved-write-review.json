@@ -1,7 +1,7 @@
 {
   "version": 1,
   "scope": "Tracks direct SQL DML and conservative WITH candidates whose target relation is unresolved. Legacy entries are acknowledged inventory debt only; they do not grant or approve ACLs. New candidates require a reviewed_sites entry with reviewer, date, decision note, and reason.",
-  "legacy_fingerprint_sha256": "91b6c11f854ae4a0861b9f680df53ba5fe01784bd8f895ef6883de2c296e1b30",
+  "legacy_fingerprint_sha256": "dd064c9943a320f0c90f9562d1e50926694b0ea71183e14066a35408eea9bb78",
   "legacy_unreviewed": [
     {
       "fingerprint": "121bdc4b3054f807d73fdec63415c04a2cd0409e41cfd1a91fe3c8aa891e550f",
@@ -228,17 +228,6 @@
       "source": "services/events/bus.py",
       "line": 107,
       "scope": "EventBus._claim",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "83394d2d3bd3097525630bfa60d1e4248d72a913e76ffafb4614e06a46e64dc1",
-      "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 118,
-      "scope": "_claim_due_jobs",
       "method": "execute",
       "statement_kind": "WITH",
       "expression_kind": "literal",

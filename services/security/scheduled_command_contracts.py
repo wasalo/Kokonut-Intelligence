@@ -141,6 +141,8 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
     "services.analytics.carbon_credit_adjustment_check": {
         "--location-id": "uuid",
     },
+    # Keep old rows parseable so _validate_operation can reject this retired
+    # entrypoint explicitly instead of treating it as an unknown module.
     "services.ingestion.remote_sensing_fetcher": {
         "--run-jobs": None,
         "--limit": "small_batch_size",
@@ -391,10 +393,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("signed carbon-credit check requires one explicit location")
 
     elif module_path == "services.ingestion.remote_sensing_fetcher":
-        if "--run-jobs" not in options:
-            raise _reject("scheduled remote-sensing operation must run due jobs")
-        if "--location-id" not in options:
-            raise _reject("scheduled remote-sensing operation requires one explicit location")
+        raise _reject(
+            "legacy remote-sensing due-job scheduling is disabled; "
+            "use services.ingestion.remote_sensing_worker"
+        )
 
     elif module_path == "services.ingestion.clickhouse_outbox":
         if "--run-once" not in options:

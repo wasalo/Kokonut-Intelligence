@@ -146,6 +146,9 @@ _EXTENSION_LEARNING_WRITE_FUNCTIONS = (
 _LANDSCAPE_CAPTURE_FUNCTIONS = (
     "kokonut_security.create_location_landscape_record(uuid,text,uuid,jsonb,text)",
 )
+_ENERGY_READING_CAPTURE_FUNCTIONS = (
+    "kokonut_security.record_location_energy_reading(uuid,uuid,uuid,date,text,numeric,numeric,text,text,uuid,text,jsonb,text)",
+)
 _REPORT_SNAPSHOT_EXPORT_FUNCTIONS = (
     *_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS,
     *_REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS,
@@ -229,6 +232,7 @@ _SECURITY_DEFINER_OWNERS = (
         for function in _EXTENSION_LEARNING_WRITE_FUNCTIONS
     ),
     *((function, "kokonut_landscape_capture_writer") for function in _LANDSCAPE_CAPTURE_FUNCTIONS),
+    *((function, "kokonut_energy_reading_writer") for function in _ENERGY_READING_CAPTURE_FUNCTIONS),
     *((function, "kokonut_notification_delivery_owner") for function in _NOTIFICATION_DELIVERY_FUNCTIONS),
     *((function, "kokonut_event_dispatch_owner") for function in _EVENT_DISPATCH_FUNCTIONS),
     *(
@@ -264,6 +268,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     *_GOVERNANCE_TENSION_ACTION_FUNCTIONS,
     *_EXTENSION_LEARNING_WRITE_FUNCTIONS,
     *_LANDSCAPE_CAPTURE_FUNCTIONS,
+    *_ENERGY_READING_CAPTURE_FUNCTIONS,
     *_NOTIFICATION_DELIVERY_FUNCTIONS,
     *_EVENT_DISPATCH_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
@@ -1040,6 +1045,8 @@ _RUNTIME_PRIVATE_TABLES = (
     "delphi_recommendation_draft_request",
     "delphi_recommendation_review_decision",
     "delphi_stopping_evaluation",
+    "energy_reading_capture_receipt",
+    "energy_reading_operator_audit",
     "extension_learning_progress_update_receipt",
     "extension_peer_network_create_receipt",
     "governance_definition_action_event",
@@ -1187,6 +1194,7 @@ _RUNTIME_MUTATION_TABLES = (
     "landscape_biodiversity_score",
     "schema_version",
     "cache_invalidation_rule",
+    "energy_reading",
 )
 
 # Immutable audit evidence keeps SELECT/INSERT under the runtime login.

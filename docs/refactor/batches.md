@@ -22,9 +22,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (31 October 2026):** 2,161 checklist items complete and 31
-open (2,192 total), counting nested items. The cross-phase TODO queue has 769
-checked and 31 open items. The
+**Current snapshot (31 October 2026):** 2,187 checklist items complete and 34 open (2,221 total), counting nested items. The cross-phase TODO queue has 776
+checked and 32 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -9861,3 +9860,52 @@ source/ACL aggregate remains the migration-707 snapshot; it does not record
   #752 passed, while CI #1028 received a hosted-runner shutdown after entering
   the full Python suite; no assertion failure appears in the available log.
   The full gate remains open ([run evidence](builds/2026-10-31-recovery/ci-1028-hosted-runner-shutdown.json)).
+
+### Latest C1/CI continuation — energy capture and inventory repair — 31 October 2026
+
+- [x] Refresh `docs/refactor/runtime-sql-inventory.json` after retiring the
+  remote-sensing due-claim query. Remove its obsolete fingerprint from the
+  unresolved-write review ledger and verify the tracked inventory check.
+- [x] Add migration 711 for signed, exact-location energy-reading capture with
+  a bounded function owner, private idempotency receipt/audit, and exact
+  runtime `energy_reading` DML denial. Preserve runtime SELECT and Directus/
+  maintenance writes; declare receipt/audit tables private in the provisioner.
+- [x] Retire the legacy energy direct writer and remote-sensing due-claim CLI/
+  service paths before database/provider access. Manual remote-sensing job
+  creation/listing remains supported; no blanket remote-sensing table revoke is
+  claimed.
+- [x] Pass 114 focused energy/Gateway/runtime/route-policy checks and 213
+  remote-sensing/scheduler/reliability checks; Ruff, migration validation,
+  runtime inventory freshness, capability matrix, and diff checks pass.
+- [x] Pass isolated migration 711 PostgreSQL 16 apply/replay, signed tenant
+  context, exact scope, payload binding, retry, denial, and privilege checks.
+  The synthetic private receipt/audit rows cannot be read by runtime or
+  Directus; Directus and maintenance energy writes remain available
+  ([evidence](builds/2026-10-31-recovery/energy-reading-capture-711-disposable.json)).
+- [x] Replay the native ordered schema through migration 711: 702/702 applied,
+  zero pending/failures, no seeds/ports/network, 38 two-tenant operator checks,
+  runtime role provisioner and probe verified, cleanup completed. The refreshed
+  source/ACL report records 161 controls, zero policy mismatches and direct
+  table/column privilege violations, 968 tables with runtime DML while RLS is
+  disabled, and 40 unresolved write candidates. Those counts are privilege
+  reach and source inventory, not confirmed leaks
+  ([replay](builds/2026-10-31-recovery/native-schema-711-operator-probe.json);
+  [report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-711.json)).
+- [x] Diagnose user-linked CI #1014 (`41172853331`): attempt 1 failed on old
+  head `aa6a01a`, but its GitHub log expired; attempt 2 was cancelled during
+  Buildx setup when superseded. The exact original failure cause is unknown.
+  This branch later adds Buildx cache reuse and a parallel image job; those do
+  not prove the old cause.
+- [x] Fix the actionable later current-head CI #1029 failure: its fast-fail
+  gate reported stale `runtime-sql-inventory.json`. The inventory and review
+  ledger now match source and the local check passes
+  ([CI #1029](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41233060705);
+  [diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json)).
+- [ ] Obtain a complete passing hosted CI and Security run on the pushed repair
+  SHA. The earlier run's failure is not retrospectively proven repaired, and
+  the current-head local repair still needs hosted confirmation.
+
+Rollback: no candidate, legacy, or production database/role was changed. Do not
+edit migration 711; a persistent rollback of its ACL requires a reviewed
+forward migration. Re-enabling legacy writes requires a separate reviewed code
+change and must not bypass signed location scope.

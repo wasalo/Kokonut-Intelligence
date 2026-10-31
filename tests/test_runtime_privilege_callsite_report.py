@@ -54,6 +54,41 @@ def test_landscape_capture_relations_have_runtime_mutation_policy():
     assert "kokonut_maintenance" not in migration
 
 
+def test_energy_reading_capture_relations_have_scoped_runtime_write_boundary():
+    migration = (
+        ROOT / "schemas/postgres/711_location_energy_reading_capture.sql"
+    ).read_text(encoding="utf-8")
+    function = (
+        "kokonut_security.record_location_energy_reading("
+        "uuid,uuid,uuid,date,text,numeric,numeric,text,text,uuid,text,jsonb,text)"
+    )
+
+    assert "energy_reading" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "energy_reading" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "energy_reading_capture_receipt" in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "energy_reading_operator_audit" in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert (function, "kokonut_energy_reading_writer") in runtime_role._SECURITY_DEFINER_OWNERS
+    assert function in runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    assert "record_reading" in (
+        ROOT / "services/analytics/energy_monitoring.py"
+    ).read_text(encoding="utf-8")
+    assert "Direct energy-reading writes are retired" in (
+        ROOT / "services/analytics/energy_monitoring.py"
+    ).read_text(encoding="utf-8")
+    assert "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER" in migration
+    assert "create_location_energy_reading" not in migration
+    assert "kokonut_energy_reading_writer" in migration
+    assert "record_location_energy_reading" in migration
+    assert "energy_reading_capture_receipt" in migration
+    assert "energy_reading_operator_audit" in migration
+    assert "CREATE OR REPLACE FUNCTION public.operator_scope_grant_allows(" in migration
+    assert migration.count("SET search_path = pg_catalog") >= 2
+    assert "FROM public.operator_scope_grant AS grant_row" in migration
+    assert "FROM public.operator_organization_membership AS membership" in migration
+    assert "FROM public.location_tenant_owner_verification AS owner" in migration
+    assert "FROM public.location_organization_share AS share" in migration
+
+
 def test_public_farm_summary_boundary_requires_a_non_updatable_view():
     migration = (
         ROOT / "schemas/postgres/699_runtime_public_farm_summary_read_only.sql"

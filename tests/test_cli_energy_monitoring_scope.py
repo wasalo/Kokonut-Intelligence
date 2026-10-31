@@ -59,15 +59,6 @@ def test_date_arguments_reject_malformed_values_before_database_access(
             date(2026, 2, 28),
             "installation_date",
         ),
-        (
-            [
-                "record", "--source-id", "source", "--type", "consumption",
-                "--kwh", "1", "--date", "2026-02-28", "--json",
-            ],
-            "record_reading",
-            date(2026, 2, 28),
-            None,
-        ),
     ],
 )
 def test_valid_iso_date_reaches_domain_handler(
@@ -112,36 +103,25 @@ def test_add_source_missing_or_empty_date_keeps_none_fallback(
     connection.close.assert_called_once()
 
 
-@pytest.mark.parametrize("reading_date", [None, ""])
-def test_record_missing_or_empty_date_keeps_today_fallback(
-    monkeypatch, reading_date
+@pytest.mark.parametrize("reading_date", [None, "", "2026-02-28"])
+def test_record_cli_is_retired_before_database_access(
+    monkeypatch, capsys, reading_date
 ):
-    today = date(2026, 10, 29)
-
-    class FixedDate:
-        @staticmethod
-        def fromisoformat(value):
-            return date.fromisoformat(value)
-
-        @staticmethod
-        def today():
-            return today
-
-    argv = ["record", "--source-id", "source", "--type", "consumption", "--kwh", "1", "--json"]
+    argv = ["record", "--source-id", "source", "--type", "consumption", "--kwh", "1"]
     if reading_date is not None:
         argv.extend(["--date", reading_date])
-    connection = Mock()
-    handler = Mock(return_value={})
-    monkeypatch.setattr(cli_energy_monitoring, "date", FixedDate)
-    monkeypatch.setattr(
-        cli_energy_monitoring.cli, "_connection_factory", lambda: connection
-    )
-    monkeypatch.setattr(cli_energy_monitoring, "record_reading", handler)
+    runner = Mock()
+    connection_factory = Mock()
+    monkeypatch.setattr(cli_energy_monitoring.cli, "run", runner)
+    monkeypatch.setattr(cli_energy_monitoring.cli, "_connection_factory", connection_factory)
 
-    cli_energy_monitoring.main(argv)
+    with pytest.raises(SystemExit) as error:
+        cli_energy_monitoring.main(argv)
 
-    assert handler.call_args.args[2] == today
-    connection.close.assert_called_once()
+    assert error.value.code == 2
+    assert "authenticated location-scoped Kokonut Gateway" in capsys.readouterr().err
+    runner.assert_not_called()
+    connection_factory.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -259,16 +239,16 @@ def test_valid_uppercase_location_is_canonical_before_database_handler(
     connection.close.assert_called_once()
 
 
-def test_reading_command_remains_location_free(monkeypatch):
-    connection = Mock()
-    handler = Mock(return_value={})
-    monkeypatch.setattr(cli_energy_monitoring.cli, "_connection_factory", lambda: connection)
-    monkeypatch.setattr(cli_energy_monitoring, "record_reading", handler)
+def test_reading_cli_still_rejects_malformed_date_before_retirement(monkeypatch, capsys):
+    connection_factory = Mock()
+    monkeypatch.setattr(cli_energy_monitoring.cli, "_connection_factory", connection_factory)
 
-    cli_energy_monitoring.main(
-        ["record", "--source-id", "source", "--type", "consumption", "--kwh", "1", "--json"]
-    )
+    with pytest.raises(SystemExit) as error:
+        cli_energy_monitoring.main(
+            ["record", "--source-id", "source", "--type", "consumption",
+             "--kwh", "1", "--date", "2026-02-30"]
+        )
 
-    handler.assert_called_once()
-    assert handler.call_args.args[:2] == (connection, "source")
-    connection.close.assert_called_once()
+    assert error.value.code == 2
+    assert "--date must be a valid ISO date" in capsys.readouterr().err
+    connection_factory.assert_not_called()

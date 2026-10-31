@@ -48,16 +48,6 @@ class _Connection:
     ("operation", "fail_at"),
     [
         pytest.param(
-            lambda conn: remote_sensing_fetcher._claim_due_jobs(conn, LOCATION_ID),
-            "execute",
-            id="claim-due-jobs-execute",
-        ),
-        pytest.param(
-            lambda conn: remote_sensing_fetcher._claim_due_jobs(conn, LOCATION_ID),
-            "fetchall",
-            id="claim-due-jobs-fetch",
-        ),
-        pytest.param(
             lambda conn: remote_sensing_fetcher._query_job(
                 conn, "12345678-1234-5678-1234-567812345679", LOCATION_ID
             ),

@@ -1,0 +1,32 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-31T19:45:39.739398+00:00",
+  "database": "PostgreSQL 16 disposable container with Docker networking disabled",
+  "migrations": [
+    "394_signed_operator_tenant_context.sql (signed operator context prerequisite)",
+    "711_location_energy_reading_capture.sql",
+    "711_location_energy_reading_capture.sql (idempotency replay)"
+  ],
+  "checks": [
+    "migration 711 applies and idempotently replays on PostgreSQL 16",
+    "the actual signed OIDC owner session establishes exact energy_monitoring:create context in the same runtime transaction",
+    "capture is inserted in recorded status and total cost is calculated; the private reason is audited but excluded from the public receipt",
+    "same request and payload replay return the same reading; a source mismatch, unsigned context, and non-energy scope are denied",
+    "runtime retains SELECT while table/column DML is revoked; Directus and maintenance DML grants on energy_reading remain",
+    "runtime and Directus cannot read or write private receipt/audit relations; migration 711 records their Directus no_access source rows",
+    "only kokonut_runtime can execute the capture function; PUBLIC and Directus cannot, and owner role is non-login/no-inherit with no memberships",
+    "both the capture function and scope-check helper pin search_path to pg_catalog and use qualified public relations"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_database_touched": false,
+  "network_disabled": true,
+  "host_port_published": false,
+  "external_network_requests": 0,
+  "container_cleanup": "completed; disposable container stopped and removed",
+  "limitations": [
+    "Uses the disposable operator-context schema fixture plus synthetic energy relations, not a populated candidate database.",
+    "The earlier test-only failures were fixture defects: one uppercase currency case was valid, a synchronous fake was injected for an awaited runner, and malformed DB receipt IDs needed server-contract classification. Focused regressions now cover each correction.",
+    "This is SQL/unit/disposable acceptance only; candidate rollout, real operator/browser flow, Directus runtime deployment, and production authorization remain unverified."
+  ]
+}

@@ -175,6 +175,11 @@ def main(argv=None):
                 date.fromisoformat(value)
             except ValueError as exc:
                 parser.error(f"{option} must be a valid ISO date: {exc}")
+    if args.command == "record":
+        parser.error(
+            "direct energy-reading writes are retired; use the authenticated "
+            "location-scoped Kokonut Gateway"
+        )
     if args.command in _LOCATION_SCOPED_COMMANDS:
         try:
             args.location_id = str(UUID(args.location_id))
