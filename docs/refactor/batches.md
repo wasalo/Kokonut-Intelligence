@@ -9708,8 +9708,8 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   unit/profile tests and network-disabled PostgreSQL 16 acceptance pass
   ([tests](builds/2026-10-31-recovery/standard-worker-backlog-focused-tests.json);
   [disposable check](builds/2026-10-31-recovery/standard-worker-backlog-disposable.json)).
-  Idle hung-supervisor detection, external alert routing, and long-duration
-  recovery remain open.
+  Idle supervisor liveness is now separately checked with an atomic private
+  heartbeat; external alert routing and long-duration recovery remain open.
 - [x] Add migration 707 to keep `farmer_role` default reads while revoking
   runtime table and residual column writes. Source audit found one application
   SELECT and no code/Directus write path; external importer usage through
@@ -9732,11 +9732,50 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   DML while RLS is disabled; this measures privilege reach, not confirmed data
   exposure. This is disposable acceptance, not candidate/production rollout
   ([evidence](builds/2026-10-31-recovery/full-schema-707-native.json)).
+- [x] Refresh the full-schema-707 ACL/source join from that exact probe. It
+  reports 151 declared runtime boundaries, zero source/policy mismatches, zero
+  direct table/column privilege violations, 1,364 relations with DML, 976
+  tables with runtime DML while RLS is disabled, and 41 unresolved write
+  candidates ([report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-707.json)).
+- [x] Add Standard worker-supervisor liveness using an atomic private heartbeat
+  file. Health fails closed before database access for missing, stale,
+  malformed, insecure, future, or dead-process records; response fields expose
+  only alive/age. The file is ephemeral; no migration or volume is introduced.
+- [x] Retire five unscoped landscape write helpers and CLI commands; migration
+  708 denies only `kokonut_runtime` table/column writes while preserving
+  SELECT, migration-702 signed Gateway capture, and separate Directus/maintenance
+  grants. Network-disabled PostgreSQL 16 apply/replay and capture checks pass.
+  External importer use remains a candidate-rollout gate.
+- [x] Run a fresh, no-seed PostgreSQL 16 ordered replay through migration 708;
+  the migration runner logged 699 applied and zero failed. A separate
+  post-run ad hoc ledger query used a nonexistent column, so this records
+  migration application only and does not establish post-708 ACL counts or a
+  second ledger verification
+  ([evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+- [x] Fix the source/ACL regression fixture whose private relation count was
+  fixed at 79 despite 86 relations in the current provisioner. The expected
+  count now derives from the declared policy. The combined selection passes
+  238 tests plus 10 subtests; Ruff, compilation, the 821-file migration source
+  validator, SQL inventory, capability matrix, hook build and all 143 hook
+  tests pass ([local evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+- [x] Diagnose the user-linked CI #1014 (`41172853331`) as superseded/cancelled,
+  not a current source assertion failure. On pushed head `4722fdd9`, full CI
+  #1024 (`41219570724`) received a hosted-runner shutdown while the Python
+  suite had just started; no assertion failure was logged. The ARM64 image job
+  and Security passed. A separate Directus startup log warned that the built
+  hook bundle was missing inside the container. The exact CI-only cause is
+  unestablished; the same pinned image and bind-mount probe passed locally, so
+  it is tracked separately from the runner shutdown
+  ([evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+- [ ] Obtain a complete hosted CI run on the next pushed SHA. The previous
+  full-ci job was interrupted by runner shutdown during the Python suite; the
+  linked older run was cancelled by supersession. Neither result establishes
+  a product assertion failure.
 
 Rollback: no persistent database or service was changed. Keep ordered
-migrations 704–707 in history; do not edit applied SQL. Reversing a persistent
+migrations 704–708 in history; do not edit applied SQL. Reversing a persistent
 ACL change requires a reviewed forward migration. Before persistent rollout,
 confirm external writers do not rely on `kokonut_runtime` for the reference
-tables changed by migrations 704, 706, or 707. The current source/ACL aggregate
-remains the 703 snapshot until refreshed; its counts are not current after
-migration 704.
+tables changed by migrations 704, 706, 707, or 708. The current full-schema
+source/ACL aggregate remains the migration-707 snapshot; it does not record
+708's applied ACL and must not be represented as a post-708 count.

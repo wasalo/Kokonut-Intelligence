@@ -62,6 +62,18 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert configured_boundaries["service_registry"] == "runtime_mutations_denied"
 
 
+def test_landscape_capture_tables_are_in_the_reapplied_runtime_dml_denial_policy():
+    expected = {
+        "habitat_zone",
+        "wildlife_corridor",
+        "hedgerow_record",
+        "buffer_zone_monitoring",
+        "landscape_biodiversity_score",
+    }
+    assert expected.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert expected.isdisjoint(runtime_role._RUNTIME_PRIVATE_TABLES)
+
+
 def test_historical_full_schema_acl_snapshot_matches_its_recorded_source_policy():
     root = Path(__file__).resolve().parents[1]
     probe = json.loads(

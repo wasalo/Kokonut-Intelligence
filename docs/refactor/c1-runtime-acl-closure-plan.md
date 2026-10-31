@@ -24,7 +24,7 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Current cohort — migrations 700–707, 31 October 2026
+### Current cohort — migrations 700–708, 31 October 2026
 
 The detailed source/function cohort below covers migrations 700–703. Migrations
 704, 705, 706, and 707 add, respectively, the runtime read-only boundary for
@@ -65,17 +65,40 @@ project. No seeds or farm data were loaded, cleanup passed, and no candidate,
 legacy, or production target was accessed. The current probe reports 976
 public tables with runtime DML while RLS is disabled; this is privilege reach,
 not confirmed exposure ([evidence](builds/2026-10-31-recovery/full-schema-707-native.json)).
-The grouped local integration selection passes 215 tests
-([evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json)).
-The latest complete source/ACL report remains through 703; its counts are not
-current after migration 704. The full native ordered replay now passes through
-705 (696/696 migrations and 38 two-tenant checks). The attempted ARM64/QEMU
-replay through 705 was stopped after 583.6 seconds at migration 116 (111/696)
-without a migration error; cleanup passed. The earlier complete QEMU replay
-through 703 and focused ARM64 checks for 704/705 remain evidence.
-Migration 704 rollout remains gated until the owner confirms external importers
-do not use the runtime login. Migration 705 establishes reprovisioning
-resilience, not Directus API parity or tenant isolation.
+The integrated local migration, role-boundary, profile, and worker-health
+selection passes 229 tests ([evidence](builds/2026-10-31-recovery/c1-707-standard-focused-tests.json)).
+The current source/ACL join generated from the native full-schema-707 probe
+records 151 declared runtime boundaries, zero policy mismatches, zero direct
+table/column privilege violations, 1,364 relations with some runtime DML, and
+976 tables with runtime DML while RLS is disabled. It still records 41
+unresolved write candidates. These are privilege-reach/audit counts, not
+confirmed exposure; the source/ACL join is a review aid, not proof of
+reachability, full column/sequence/ownership safety, or tenant isolation
+([report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-707.json)).
+Native replay through 707 and all 38 synthetic two-tenant operator checks pass.
+The attempted ARM64/QEMU full replay through 705 stopped at migration 116
+without a migration error; the prior complete QEMU replay through 703 and
+focused ARM64 checks for later migrations remain. This is not physical
+Raspberry Pi acceptance. Migrations 704, 706, and 707 remain gated from
+persistent rollout until external importer use through `kokonut_runtime` is
+confirmed. Migration 705 establishes role-reprovisioning resilience, not
+Directus API parity or tenant isolation.
+
+Migration 708 retires the five legacy direct writers in
+`services/analytics/landscape_conservation.py` and denies only the general
+runtime role's table/column DML on those records. The signed location-scoped
+capture from migration 702, SELECT access, and maintenance/Directus grants
+remain. A network-disabled PostgreSQL 16 check applies and replays 702/708,
+checks those grants, and exercises capture/replay successfully
+([checker](../../scripts/check-landscape-runtime-boundary-disposable.py)).
+This targeted acceptance is not a full-schema replay or importer compatibility
+decision; external importer use remains a rollout gate. The 707 source/ACL
+report above is a historical schema snapshot, not a post-708 ACL measurement.
+A separate fresh, no-seed PostgreSQL 16 ordered replay logged 699 migrations
+through 708 applied with zero migration failures. Its subsequent ad hoc ledger
+query used a nonexistent column, so the replay confirms migration application
+only; it does not create a post-708 ACL inventory or ledger verification
+([recovery evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
 
 The location-scoped tension, extension-learning, landscape-capture, and metric
 value source contracts now have additive SQL functions, isolated function

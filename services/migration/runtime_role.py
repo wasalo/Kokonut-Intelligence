@@ -1180,6 +1180,11 @@ _RUNTIME_MUTATION_TABLES = (
     "solution_configuration",
     "solution_learning_record",
     "v_public_farm_summary",
+    "habitat_zone",
+    "wildlife_corridor",
+    "hedgerow_record",
+    "buffer_zone_monitoring",
+    "landscape_biodiversity_score",
 )
 
 # Immutable audit evidence keeps SELECT/INSERT under the runtime login.

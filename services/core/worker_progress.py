@@ -5,12 +5,18 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import stat
+import time
+from pathlib import Path
 from typing import Any, Callable
 
 from services.common.errors import safe_exception_class
 
 DEFAULT_STALE_SECONDS = 300
 DEFAULT_BACKLOG_SECONDS = 900
+DEFAULT_HEARTBEAT_SECONDS = 60
+HEARTBEAT_FILE_ENV = "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"
+DEFAULT_HEARTBEAT_FILE = "/tmp/kokonut-worker-progress/supervisor.json"
 MAX_STALE_SECONDS = 2_678_400  # 31 days; protects interval conversion from bad configuration.
 WORKER_NAMES = ("scheduler", "events", "notifications")
 
@@ -157,6 +163,15 @@ def backlog_threshold_seconds(value: str | int | None = None) -> int:
     )
 
 
+def heartbeat_threshold_seconds(value: str | int | None = None) -> int:
+    """Return the bounded age after which a supervisor heartbeat is stale."""
+    return _threshold_seconds(
+        value,
+        environment_name="KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS",
+        default=DEFAULT_HEARTBEAT_SECONDS,
+    )
+
+
 def _threshold_seconds(
     value: str | int | None,
     *,
@@ -173,6 +188,67 @@ def _threshold_seconds(
     if str(seconds) != str(raw).strip() or not 1 <= seconds <= MAX_STALE_SECONDS:
         raise ValueError(f"worker progress threshold must be between 1 and {MAX_STALE_SECONDS} seconds")
     return seconds
+
+
+def _heartbeat_file_path() -> Path:
+    return Path(os.environ.get(HEARTBEAT_FILE_ENV, DEFAULT_HEARTBEAT_FILE))
+
+
+def _supervisor_liveness(
+    *,
+    path: str | Path | None = None,
+    stale_seconds: int | None = None,
+    monotonic_ns: Callable[[], int] = time.monotonic_ns,
+    process_probe: Callable[[int], None] | None = None,
+) -> dict[str, int | bool | None]:
+    """Read private heartbeat state and return only alive plus aggregate age."""
+    threshold = heartbeat_threshold_seconds(stale_seconds)
+    heartbeat_path = _heartbeat_file_path() if path is None else Path(path)
+    try:
+        parent_stat = heartbeat_path.parent.lstat()
+        file_stat = heartbeat_path.lstat()
+        if (
+            not stat.S_ISDIR(parent_stat.st_mode)
+            or parent_stat.st_uid != os.getuid()
+            or parent_stat.st_mode & 0o077
+            or not stat.S_ISREG(file_stat.st_mode)
+            or file_stat.st_uid != os.getuid()
+            or file_stat.st_mode & 0o077
+            or file_stat.st_size > 1024
+        ):
+            return {"alive": False, "age_seconds": None}
+        payload = json.loads(heartbeat_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeError):
+        return {"alive": False, "age_seconds": None}
+
+    if not isinstance(payload, dict) or set(payload) != {"generation", "monotonic_ns", "pid"}:
+        return {"alive": False, "age_seconds": None}
+    generation = payload["generation"]
+    pid = payload["pid"]
+    heartbeat_ns = payload["monotonic_ns"]
+    if (
+        not isinstance(generation, str)
+        or len(generation) != 32
+        or any(character not in "0123456789abcdef" for character in generation)
+        or isinstance(pid, bool)
+        or not isinstance(pid, int)
+        or not 1 <= pid <= 2_147_483_647
+        or isinstance(heartbeat_ns, bool)
+        or not isinstance(heartbeat_ns, int)
+        or heartbeat_ns <= 0
+    ):
+        return {"alive": False, "age_seconds": None}
+
+    age_ns = monotonic_ns() - heartbeat_ns
+    if age_ns < 0:
+        return {"alive": False, "age_seconds": None}
+    age_seconds = age_ns // 1_000_000_000
+    probe = os.kill if process_probe is None else process_probe
+    try:
+        probe(pid, 0) if process_probe is None else probe(pid)
+    except (ProcessLookupError, PermissionError, OSError):
+        return {"alive": False, "age_seconds": age_seconds}
+    return {"alive": age_seconds <= threshold, "age_seconds": age_seconds}
 
 
 def inspect_progress(
@@ -246,11 +322,13 @@ def check_progress(
     backlog_seconds: str | int | None = None,
     connection_factory: Callable[..., Any] | None = None,
     enabled_workers: tuple[str, ...] | None = None,
+    heartbeat_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run the probe against PostgreSQL and fail closed on database errors."""
     try:
         threshold = stale_threshold_seconds(stale_seconds)
         backlog_threshold = backlog_threshold_seconds(backlog_seconds)
+        heartbeat_threshold = heartbeat_threshold_seconds()
     except ValueError:
         return {
             "status": "unhealthy",
@@ -258,9 +336,11 @@ def check_progress(
             "stale_after_seconds": None,
             "backlog_after_seconds": None,
             "backlog_workers": [],
+            "supervisor": {"alive": False, "age_seconds": None},
             "workers": {},
         }
 
+    supervisor: dict[str, int | bool | None] = {"alive": False, "age_seconds": None}
     try:
         selected_workers = _enabled_worker_names() if enabled_workers is None else enabled_workers
         if not selected_workers or any(worker not in WORKER_NAMES for worker in selected_workers):
@@ -270,6 +350,21 @@ def check_progress(
                 "stale_after_seconds": threshold,
                 "backlog_after_seconds": backlog_threshold,
                 "backlog_workers": [],
+                "supervisor": {"alive": False, "age_seconds": None},
+                "workers": {},
+            }
+        supervisor = _supervisor_liveness(
+            path=heartbeat_path,
+            stale_seconds=heartbeat_threshold,
+        )
+        if not supervisor["alive"]:
+            return {
+                "status": "unhealthy",
+                "state": "supervisor_unresponsive",
+                "stale_after_seconds": threshold,
+                "backlog_after_seconds": backlog_threshold,
+                "backlog_workers": [],
+                "supervisor": supervisor,
                 "workers": {},
             }
         if connection_factory is None:
@@ -281,12 +376,14 @@ def check_progress(
             # The worker's health probe has no write path, even if its runtime
             # login otherwise has broader legacy privileges.
             connection.set_session(readonly=True)
-            return inspect_progress(
+            result = inspect_progress(
                 connection,
                 threshold,
                 selected_workers,
                 backlog_seconds=backlog_threshold,
             )
+            result["supervisor"] = supervisor
+            return result
         finally:
             connection.close()
     except Exception as exc:
@@ -296,6 +393,7 @@ def check_progress(
             "stale_after_seconds": threshold,
             "backlog_after_seconds": backlog_threshold,
             "backlog_workers": [],
+            "supervisor": supervisor,
             "workers": {},
             "error": safe_exception_class(exc),
         }

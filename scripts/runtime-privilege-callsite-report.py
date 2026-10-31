@@ -100,6 +100,14 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "pollinator_observation": "runtime_mutations_denied",
     "pollinator_habitat": "runtime_mutations_denied",
     "pesticide_impact_log": "runtime_mutations_denied",
+    # Migration 708 retires legacy direct landscape writers; signed location-
+    # scoped capture remains owned by migration 702. External importer use of
+    # the shared runtime identity remains an explicit rollout gate.
+    "habitat_zone": "runtime_mutations_denied",
+    "wildlife_corridor": "runtime_mutations_denied",
+    "hedgerow_record": "runtime_mutations_denied",
+    "buffer_zone_monitoring": "runtime_mutations_denied",
+    "landscape_biodiversity_score": "runtime_mutations_denied",
     # Event definitions are read-only to the general runtime. The separate
     # dispatch owner and Directus grants are intentionally left unchanged.
     "event_handler": "runtime_mutations_denied",

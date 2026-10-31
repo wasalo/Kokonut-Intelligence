@@ -268,6 +268,16 @@ def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles
     assert worker["environment"]["KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS"] == (
         "${KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS:-900}"
     )
+    assert worker["environment"]["KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS"] == (
+        "${KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS:-60}"
+    )
+    assert worker["environment"]["KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"] == (
+        "/tmp/kokonut-worker-progress/supervisor.json"
+    )
+    assert all(
+        "/tmp/kokonut-worker-progress" not in str(mount)
+        for mount in worker.get("volumes", [])
+    )
     assert "KOKONUT_WORKER_PROGRESS_STALE_SECONDS" not in app.get("environment", {})
     assert worker["environment"]["PG_USER"] == "${KOKONUT_RUNTIME_USER:-kokonut}"
 

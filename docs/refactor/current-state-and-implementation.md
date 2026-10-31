@@ -145,17 +145,17 @@ older counts and deployment statements are snapshots from their dates.
 
 ## C1 runtime ACL work: current batch
 
-C1 is **not closed**. The latest complete source/ACL report is through
-migration 703: it found 148 declared runtime boundaries, zero policy
-mismatches or direct table/column privilege violations, 1,367 public relations
-with some DML, and 979 tables with runtime DML while RLS is disabled. Migrations
-704, 706, and 707 add runtime read-only boundaries, so those numbers are a
-dated 703 snapshot, not current post-707 totals. Migration 705 adds a separate
-Directus reprovisioning policy and does not change runtime counts. These are
-privilege-reach and audit counts, not counts of confirmed data exposure
-([703 report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-703.json)).
+C1 is **not closed**. The current native full-schema-707 source/ACL join
+records 151 declared runtime boundaries, zero policy mismatches, zero direct
+table/column privilege violations, 1,364 relations with some runtime DML, and
+976 tables with runtime DML while RLS is disabled. Its inventory still lists
+41 unresolved write candidates. These measure privilege reach and source-audit
+coverage, not confirmed exposure, tenant isolation, or universal column,
+sequence, function, ownership, and Directus safety. Migration 705 is a
+separate Directus reprovisioning policy; it does not certify Directus API or
+extension parity ([707 report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-707.json)).
 
-This local batch records migrations 700–707 and scoped operations:
+This local batch records migrations 700–708 and scoped operations:
 
 | Migration | Added operation | Local acceptance recorded |
 | --- | --- | --- |
@@ -167,6 +167,7 @@ This local batch records migrations 700–707 and scoped operations:
 | 705 | Record migration-owned Directus relation read-only/no-access exceptions and reapply them after the optional Directus role's compatibility grants. | Migration replay and disposable PostgreSQL role acceptance cover 147 relation policies, stale table/column/sequence grant removal, and preserved compatibility grants ([evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)). This protects reprovisioning; it does not establish API/extension parity or tenant isolation. |
 | 706 | Keep the shared `protocol` catalog readable to the general runtime while denying its table/column writes; preserve Directus and maintenance-role grants. | Network-isolated PostgreSQL 16 checks pass migration apply/replay, SELECT, DML/column denial, role-provisioner reapplication, and synthetic Directus/maintenance writes ([evidence](builds/2026-10-31-recovery/runtime-protocol-read-only-disposable.json)). External importer use through `kokonut_runtime` is not confirmed, so persistent rollout remains gated. |
 | 707 | Keep authorization-bearing `farmer_role` defaults readable to runtime while denying its table and residual column writes. | Source audit found one application SELECT and no in-repository service, extension, or Directus writer. Focused PostgreSQL 16 acceptance passes apply/replay, provisioner reapplication, runtime SELECT/write denial, and preservation of Directus/maintenance writes ([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json); [evidence](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)). External importer use through `kokonut_runtime` remains unconfirmed; persistent rollout is gated. |
+| 708 | Retire five unscoped legacy landscape writers and deny `kokonut_runtime` table/column DML on their records while preserving the signed migration-702 Gateway writer. | Focused network-disabled PostgreSQL 16 acceptance passes migration apply/replay, preserved SELECT and writer-owner grants, and authenticated capture/replay ([checker](../../scripts/check-landscape-runtime-boundary-disposable.py)). External importer use remains unconfirmed; candidate rollout stays gated. |
 
 The complete native replay through migration 707 applies all 698 ordered
 schema files and passes 38 synthetic two-tenant operator-scope checks in a
@@ -177,11 +178,27 @@ This is an ACL reach count, not a finding of confirmed data exposure, and does
 not close remaining C1 source, tenant, populated-data, or rollout gates. No
 candidate, legacy, or production target was accessed.
 
-The 700–703 functions use isolated owners. The runtime-role provisioner now
-tracks those owners/functions, revokes public function execution, and refuses
-to use the owners as application logins. The legacy metric CLI and existing
-tension, extension and landscape paths remain in place; this additive slice
-does not revoke legacy table DML or establish universal tenant isolation.
+The complete full-schema report and two-tenant replay above stop at migration
+707; they do not certify the 708 ACL on the complete schema. Migration 708 has
+a separate synthetic replay/privilege/Gateway-capture acceptance. Its five
+source writers now fail before database access; the legacy metric, tension,
+and extension writers remain. External landscape importer use and persistent
+rollout remain open, as do broader tenant and RLS gates.
+
+A separate fresh, no-seed PostgreSQL 16 ordered replay logged all 699 schema
+migrations through 708 as applied with zero migration failures. Its follow-up
+ad hoc ledger query used a nonexistent column and failed after the migration
+runner completed, so this is migration-application evidence only; it did not
+produce a post-708 ACL inventory or a second ledger verification
+([recovery evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+
+The 700–703 functions use isolated owners. The runtime-role provisioner tracks
+those owners/functions, revokes public function execution, and refuses to use
+the owners as application logins. The Standard worker probe now rejects a
+missing, stale, malformed, or dead-supervisor heartbeat before opening
+PostgreSQL. The focused migration, runtime-boundary, profile, health, and
+landscape selection passes 238 tests plus 10 subtests; the hook build and 143
+hook tests pass ([local evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
 
 The focused checkers use synthetic records and disposable databases. They do
 not apply these migrations to the candidate, legacy, or production database.

@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import os
 import signal
+import stat
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
+from pathlib import Path
+from typing import Callable
 
 from services.common.logging import get_logger
 from services.common.worker_environment import (
@@ -19,6 +24,82 @@ from services.common.worker_environment import (
 )
 
 logger = get_logger("core.runtime")
+
+SUPERVISOR_HEARTBEAT_FILE_ENV = "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"
+DEFAULT_SUPERVISOR_HEARTBEAT_FILE = "/tmp/kokonut-worker-progress/supervisor.json"
+SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS = 5
+
+
+class _SupervisorHeartbeat:
+    """Atomically publish private, process-local supervisor liveness state."""
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        pid: int | None = None,
+        generation: str | None = None,
+        monotonic_ns: Callable[[], int] = time.monotonic_ns,
+    ) -> None:
+        self.path = Path(path)
+        self.pid = os.getpid() if pid is None else pid
+        self.generation = uuid.uuid4().hex if generation is None else generation
+        self._monotonic_ns = monotonic_ns
+
+    def pulse(self) -> None:
+        parent = self.path.parent
+        parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        directory = parent.lstat()
+        if (
+            not stat.S_ISDIR(directory.st_mode)
+            or directory.st_uid != os.getuid()
+            or directory.st_mode & 0o077
+        ):
+            raise OSError("worker heartbeat directory is not private")
+
+        payload = {
+            "generation": self.generation,
+            "monotonic_ns": self._monotonic_ns(),
+            "pid": self.pid,
+        }
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{self.path.name}.", dir=parent
+        )
+        try:
+            os.fchmod(descriptor, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, separators=(",", ":"), sort_keys=True)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary_name, self.path)
+        except BaseException:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+            try:
+                os.unlink(temporary_name)
+            except FileNotFoundError:
+                pass
+            raise
+
+    def close(self) -> None:
+        """Remove only the heartbeat generation owned by this supervisor."""
+        try:
+            payload = json.loads(self.path.read_text(encoding="utf-8"))
+            if payload.get("generation") == self.generation:
+                self.path.unlink(missing_ok=True)
+        except (OSError, ValueError, AttributeError):
+            pass
+
+
+def _supervisor_heartbeat() -> _SupervisorHeartbeat:
+    path = os.environ.get(
+        SUPERVISOR_HEARTBEAT_FILE_ENV,
+        DEFAULT_SUPERVISOR_HEARTBEAT_FILE,
+    )
+    return _SupervisorHeartbeat(path)
 
 
 def commands(port: int, with_workers: bool, workers_only: bool = False) -> list[tuple[str, list[str]]]:
@@ -56,6 +137,7 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
     stopping = False
     children: list[tuple[str, subprocess.Popen]] = []
     old_handlers = {}
+    heartbeat: _SupervisorHeartbeat | None = None
 
     if require_schema:
         from services.core.schema_readiness import SchemaReadinessError, require_schema_ready
@@ -88,6 +170,10 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
         child_commands = commands(port, with_workers, workers_only)
         if not child_commands:
             raise ValueError("Workers-only runtime requires at least one enabled worker")
+        if workers_only or with_workers:
+            heartbeat = _supervisor_heartbeat()
+            heartbeat.pulse()
+        next_heartbeat = time.monotonic() + SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS
         for name, argv in child_commands:
             if stopping:
                 break
@@ -125,6 +211,10 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                 if code is not None:
                     logger.error("Kernel process %s exited unexpectedly (code=%s)", name, code)
                     return 1
+            now = time.monotonic()
+            if heartbeat is not None and now >= next_heartbeat:
+                heartbeat.pulse()
+                next_heartbeat = now + SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS
             time.sleep(0.25)
         return 0
     finally:
@@ -142,6 +232,8 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
             process.wait()
         for signum, handler in old_handlers.items():
             signal.signal(signum, handler)
+        if heartbeat is not None:
+            heartbeat.close()
 
 
 def main() -> None:

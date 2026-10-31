@@ -3,174 +3,78 @@
 Tests for Landscape Conservation
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
+from datetime import date
 from unittest.mock import MagicMock, patch
-from datetime import date, datetime, timezone
 
 from services.analytics.landscape_conservation import (
-    create_habitat_zone,
     create_corridor,
-    record_hedgerow,
-    record_buffer_check,
-    record_biodiversity_score,
-    get_habitat_summary,
-    get_corridor_status,
-    get_buffer_compliance,
+    create_habitat_zone,
     get_biodiversity_trends,
+    get_buffer_compliance,
+    get_corridor_status,
+    get_habitat_summary,
     get_landscape_dashboard,
+    record_biodiversity_score,
+    record_buffer_check,
+    record_hedgerow,
 )
 
 
-class TestCreateHabitatZone(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_create_habitat_zone_returns_zone_id(self):
-        result = create_habitat_zone(
-            self.conn, "loc-001", "Riparian Buffer", "riparian", 0.5,
+class TestRetiredLandscapeWriters(unittest.TestCase):
+    def test_direct_writers_fail_before_database_access(self):
+        calls = (
+            (create_habitat_zone, ("loc-001", "Zone", "riparian", 1.0)),
+            (create_corridor, ("loc-001", "Corridor")),
+            (record_hedgerow, ("loc-001",)),
+            (record_buffer_check, ("loc-001",)),
+            (record_biodiversity_score, ("loc-001",)),
         )
-        self.assertIn("zone_id", result)
-        self.assertEqual(result["zone_name"], "Riparian Buffer")
-        self.assertEqual(result["habitat_type"], "riparian")
-        self.assertEqual(result["area_ha"], 0.5)
-        self.assertEqual(result["biodiversity_value"], "medium")
-        self.conn.commit.assert_called_once()
+        for writer, args in calls:
+            with self.subTest(writer=writer.__name__):
+                conn = MagicMock()
+                with self.assertRaisesRegex(
+                    RuntimeError, "Unscoped landscape-conservation writes are retired"
+                ):
+                    writer(conn, *args)
+                conn.cursor.assert_not_called()
+                conn.commit.assert_not_called()
+                conn.rollback.assert_not_called()
 
-    def test_create_habitat_zone_with_biodiversity(self):
-        result = create_habitat_zone(
-            self.conn, "loc-001", "Wetland", "wetland", 1.2,
-            biodiversity_value="critical", perimeter_m=500.0,
+    def test_legacy_write_commands_fail_before_database_access(self):
+        from services.analytics import landscape_conservation as landscape
+
+        cases = (
+            ("create-habitat", ["--location-id", "loc-1", "--name", "Zone", "--type", "riparian", "--area", "1"]),
+            ("create-corridor", ["--location-id", "loc-1", "--name", "Corridor"]),
+            ("record-hedgerow", ["--location-id", "loc-1"]),
+            ("record-buffer-check", ["--location-id", "loc-1"]),
+            ("record-biodiversity", ["--location-id", "loc-1"]),
         )
-        self.assertEqual(result["biodiversity_value"], "critical")
-        self.assertEqual(result["location_id"], "loc-001")
-
-    def test_create_habitat_zone_calls_execute(self):
-        create_habitat_zone(self.conn, "loc-001", "Forest", "forest_patch", 2.0)
-        self.mock_cursor.execute.assert_called_once()
-        self.mock_cursor.close.assert_called_once()
-
-
-class TestCreateCorridor(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_create_corridor_returns_corridor_id(self):
-        result = create_corridor(
-            self.conn, "loc-001", "Stream Link",
-            source_habitat_id="hab-001", target_habitat_id="hab-002",
-        )
-        self.assertIn("corridor_id", result)
-        self.assertEqual(result["corridor_name"], "Stream Link")
-        self.assertEqual(result["source_habitat_id"], "hab-001")
-        self.assertEqual(result["target_habitat_id"], "hab-002")
-        self.conn.commit.assert_called_once()
-
-    def test_create_corridor_with_dimensions(self):
-        result = create_corridor(
-            self.conn, "loc-001", "Hedgerow Link",
-            width_m=15.0, length_m=200.0, vegetation_type="mixed_shrub",
-        )
-        self.assertEqual(result["width_m"], 15.0)
-        self.assertEqual(result["length_m"], 200.0)
-
-
-class TestRecordHedgerow(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_record_hedgerow_returns_hedgerow_id(self):
-        result = record_hedgerow(
-            self.conn, "loc-001", hedgerow_name="North Windbreak",
-            species_mix=["calliandra", "leucaena"],
-            length_m=180.0, purpose=["windbreak", "biodiversity"],
-        )
-        self.assertIn("hedgerow_id", result)
-        self.assertEqual(result["hedgerow_name"], "North Windbreak")
-        self.assertEqual(result["species_mix"], ["calliandra", "leucaena"])
-        self.assertEqual(result["length_m"], 180.0)
-        self.assertEqual(result["purpose"], ["windbreak", "biodiversity"])
-        self.conn.commit.assert_called_once()
-
-    def test_record_hedgerow_minimal(self):
-        result = record_hedgerow(self.conn, "loc-001")
-        self.assertIn("hedgerow_id", result)
-        self.assertEqual(result["species_mix"], [])
-        self.assertEqual(result["purpose"], [])
-
-
-class TestRecordBufferCheck(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_record_buffer_check_returns_check_id(self):
-        result = record_buffer_check(
-            self.conn, "loc-001",
-            habitat_zone_id="hz-001", buffer_width_m=12.0,
-            minimum_required_m=10.0, vegetation_coverage_pct=85.0,
-        )
-        self.assertIn("check_id", result)
-        self.assertEqual(result["compliant"], True)
-        self.assertEqual(result["buffer_width_m"], 12.0)
-        self.assertEqual(result["minimum_required_m"], 10.0)
-        self.conn.commit.assert_called_once()
-
-    def test_record_buffer_check_non_compliant(self):
-        result = record_buffer_check(
-            self.conn, "loc-001", buffer_width_m=5.0,
-            minimum_required_m=10.0,
-        )
-        self.assertEqual(result["compliant"], False)
-
-    def test_record_buffer_check_with_erosion(self):
-        result = record_buffer_check(
-            self.conn, "loc-001", buffer_width_m=10.0,
-            minimum_required_m=10.0, erosion_observed=True,
-        )
-        self.assertEqual(result["erosion_observed"], True)
-
-
-class TestRecordBiodiversityScore(unittest.TestCase):
-
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-
-    def test_record_biodiversity_score_returns_score_id(self):
-        result = record_biodiversity_score(
-            self.conn, "loc-001",
-            species_richness=34, shannon_index=2.45,
-            habitat_diversity_index=1.8, connectivity_score=6.5,
-            overall_score=7.2,
-        )
-        self.assertIn("score_id", result)
-        self.assertEqual(result["species_richness"], 34)
-        self.assertEqual(result["shannon_index"], 2.45)
-        self.assertEqual(result["overall_score"], 7.2)
-        self.conn.commit.assert_called_once()
-
-    def test_record_biodiversity_score_with_assessor(self):
-        result = record_biodiversity_score(
-            self.conn, "loc-001", overall_score=8.0,
-            assessor="ecologist_01",
-        )
-        self.assertEqual(result["location_id"], "loc-001")
+        for command_name, arguments in cases:
+            with self.subTest(command=command_name):
+                command = next(
+                    item for item in landscape.cli._commands
+                    if item.name == command_name
+                )
+                self.assertFalse(command.needs_db)
+                with patch.object(
+                    landscape.cli,
+                    "_connection_factory",
+                    side_effect=AssertionError(
+                        "retired landscape writer must not open the database"
+                    ),
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "Unscoped landscape-conservation writes are retired",
+                    ):
+                        landscape.cli.main([command_name, *arguments])
 
 
 class TestHabitatSummary(unittest.TestCase):

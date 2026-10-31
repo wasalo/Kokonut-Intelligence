@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 761 checked / 30 open across the
+**Current queue snapshot (31 October 2026):** 764 checked / 30 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
@@ -25,6 +25,14 @@ a runner shutdown signal shortly after entering the full Python suite; no
 assertion failure was logged. Its parallel `kernel-image` job later passed,
 but the aggregate CI gate remains failed because `full-ci` was cancelled. Keep the release gate open until CI completes
 successfully on an exact pushed SHA ([run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41216478619)).
+On pushed head `4722fdd9`, Security #748 and the ARM64 `kernel-image` job passed;
+CI #1024 (`41219570724`) received a hosted-runner shutdown just after the full
+Python suite started. Its log contains no assertion failure. The linked
+historical #1014 (`41172853331`) attempt was superseded/cancelled; attempt 1's
+logs expired. Local follow-up found and fixed a stale private-relation count in
+the source/ACL regression fixture. A separate Directus startup warning about a
+missing hook bundle remains unexplained in CI; the exact pinned image and
+bind-mount probe passes locally ([evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
 The user-linked CI #1014 (`41172853331`) is an older head (`aa6a01ab`):
 attempt 1 is marked failed but GitHub no longer serves its job log; attempt 2
 was cancelled during ARM64 Buildx dependency installation when newer same-PR
@@ -41,8 +49,8 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   browser certificate and external-origin acceptance remain open.
 - [x] Add a read-only Standard worker health probe over active scheduler,
   event and notification leases. Focused tests and Compose/profile checks pass;
-  due backlog age is covered as well. Idle hung supervisors and external alert
-  routing remain open ([guide](standard-profile.md); [evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json); [backlog tests](builds/2026-10-31-recovery/standard-worker-backlog-focused-tests.json)).
+  due backlog age and idle supervisor liveness are covered as well. External
+  alert routing and long-duration recovery remain open ([guide](standard-profile.md); [evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
 - [x] Add migration 704 to preserve runtime reads of `living_wage_benchmark`
   while denying runtime table/column writes; focused native and ARM64/QEMU
   PostgreSQL acceptance passes. External importer use through the runtime
@@ -68,9 +76,24 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
 - [x] Add aggregate due-backlog counts and oldest eligible age to the Standard
   worker health probe, respecting scheduler eligibility, leases, retries,
   dependencies, overlap and disabled queues; future-created events clamp to
-  age zero. Focused unit and disposable PostgreSQL checks pass. Idle hung
-  supervisors and external alert routing remain open
+  age zero. Focused unit and disposable PostgreSQL checks pass. Idle supervisor
+  liveness is now separately checked with an atomic private heartbeat; external
+  alert routing and long-duration recovery remain open
   ([guide](standard-profile.md); [focused tests](builds/2026-10-31-recovery/standard-worker-backlog-focused-tests.json); [disposable check](builds/2026-10-31-recovery/standard-worker-backlog-disposable.json)).
+- [x] Add an atomic private Standard worker-supervisor heartbeat. Health fails
+  closed before database access for missing, stale, malformed, insecure, future,
+  or dead-process records; output contains only alive/age. The combined focused
+  selection passes 238 tests plus 10 subtests
+  ([guide](standard-profile.md); [evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+- [x] Retire five unscoped landscape write helpers and CLI commands; migration
+  708 denies only `kokonut_runtime` table/column writes while preserving the
+  signed Gateway capture. Disposable PostgreSQL 16 apply/replay and capture
+  checks pass. External importer use and candidate rollout remain open
+  ([checker](../../scripts/check-landscape-runtime-boundary-disposable.py)).
+- [x] Fix the source/ACL regression fixture to derive its expected private
+  relation count from the runtime-role declarations instead of a stale fixed
+  value. The rerun passes with the full focused selection
+  ([evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
 - [x] Pass the integrated 229-test migration, role-boundary, profile and
   worker-health selection, plus Ruff, compilation, release-input, inventory,
   capability-matrix and `git diff --check`
@@ -116,12 +139,11 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
 - [x] Retry CI #1019 `full-ci` after the image job completed. Attempt 2 again
   ended at hosted-runner shutdown after starting the full suite, with no
   assertion failure logged ([diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
-- [ ] Obtain passing CI and Security checks on the next pushed PR head. On
-  `b21d0ecc`, Security #746 and `kernel-image` passed, but CI #1022
-  (`41216478619`) ended `full-ci` after the hosted runner received a shutdown
-  signal shortly after the full Python suite began. No assertion failure was
-  logged. A fresh pushed head must pass both required checks before the release
-  gate closes ([evidence](builds/2026-10-31-recovery/ci-1022-hosted-runner-shutdown.json)).
+- [ ] Obtain passing CI and Security checks on the next pushed PR head. The
+  full-ci job in both #1022 and #1024 ended after a hosted-runner shutdown
+  signal shortly after the full Python suite began; no assertion failure was
+  logged. The next pushed head must pass both required checks before the release
+  gate closes ([#1022](builds/2026-10-31-recovery/ci-1022-hosted-runner-shutdown.json); [#1024](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
 
 ## Current continuation — documentation and C1 integration checks
 
@@ -142,9 +164,12 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   files and 38 two-tenant operator checks; no seeds or host ports, with
   disposable cleanup ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-native-r2.json)).
 - [x] Refresh runtime SQL and worker SQL reachability inventories and the
-  native source/ACL report; 148 declared boundaries have zero policy
-  mismatches or direct table/column privilege violations
-  ([report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-703.json)).
+  native source/ACL report through migration 707; 151 declared boundaries
+  have zero policy mismatches or direct table/column privilege violations.
+  The report records 1,364 relations with runtime DML, 976 tables with runtime
+  DML while RLS is disabled, and 41 unresolved write candidates; these are
+  privilege-reach counts, not confirmed exposure
+  ([report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-707.json)).
 - [x] Complete full ARM64/QEMU replay through 703: 694/694 schemas and 38
   two-tenant operator checks passed with no seeds or host ports; disposable
   cleanup completed ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)). This is software portability evidence, not physical Raspberry Pi acceptance.

@@ -2,9 +2,32 @@
 
 from __future__ import annotations
 
+import json
+import os
+import time
+import uuid
+
 import pytest
 
 from services.core import worker_progress
+
+
+@pytest.fixture(autouse=True)
+def fresh_supervisor_heartbeat(monkeypatch, tmp_path):
+    path = tmp_path / "worker-progress" / "supervisor.json"
+    path.parent.mkdir(mode=0o700)
+    path.write_text(
+        json.dumps(
+            {
+                "generation": uuid.uuid4().hex,
+                "monotonic_ns": time.monotonic_ns(),
+                "pid": os.getpid(),
+            }
+        )
+    )
+    path.chmod(0o600)
+    monkeypatch.setenv(worker_progress.HEARTBEAT_FILE_ENV, str(path))
+    return path
 
 
 class _Cursor:
@@ -70,6 +93,7 @@ def test_idle_workers_are_healthy_and_probe_is_read_only():
         "stale_after_seconds": 300,
         "backlog_after_seconds": 900,
         "backlog_workers": [],
+        "supervisor": {"alive": True, "age_seconds": 0},
         "workers": {
             "events": {"active": 0, "stale": 0, "queued": 0, "oldest_due_seconds": None},
             "notifications": {"active": 0, "stale": 0, "queued": 0, "oldest_due_seconds": None},
@@ -96,6 +120,7 @@ def test_active_work_with_current_durable_leases_is_healthy():
     assert result["state"] == "active"
     assert result["stale_after_seconds"] == 90
     assert result["backlog_after_seconds"] == 900
+    assert result["supervisor"]["alive"] is True
     assert result["workers"]["scheduler"] == {
         "active": 2, "stale": 0, "queued": 0, "oldest_due_seconds": None
     }
@@ -204,6 +229,19 @@ def test_backlog_threshold_can_be_configured(monkeypatch):
     assert worker_progress.backlog_threshold_seconds(worker_progress.MAX_STALE_SECONDS) == worker_progress.MAX_STALE_SECONDS
 
 
+@pytest.mark.parametrize("value", ["0", "-1", "1.5", "60seconds", "2678401", " 0060"])
+def test_heartbeat_threshold_rejects_invalid_values(value):
+    with pytest.raises(ValueError):
+        worker_progress.heartbeat_threshold_seconds(value)
+
+
+def test_heartbeat_threshold_can_be_configured(monkeypatch):
+    monkeypatch.setenv("KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS", "90")
+    assert worker_progress.heartbeat_threshold_seconds() == 90
+    assert worker_progress.heartbeat_threshold_seconds(1) == 1
+    assert worker_progress.heartbeat_threshold_seconds(worker_progress.MAX_STALE_SECONDS) == worker_progress.MAX_STALE_SECONDS
+
+
 def test_database_failure_fails_closed_without_exposing_exception_message():
     def fail_connect(**_kwargs):
         raise RuntimeError("postgresql://private-user:synthetic-secret@database/private")
@@ -216,10 +254,66 @@ def test_database_failure_fails_closed_without_exposing_exception_message():
         "stale_after_seconds": 300,
         "backlog_after_seconds": 900,
         "backlog_workers": [],
+        "supervisor": {"alive": True, "age_seconds": 0},
         "workers": {},
         "error": "RuntimeError",
     }
     assert "synthetic-secret" not in repr(result)
+
+
+@pytest.mark.parametrize(
+    "failure",
+    ["missing", "malformed", "stale", "future", "dead", "permissions", "directory_permissions"],
+)
+def test_invalid_supervisor_heartbeat_fails_closed_before_database_access(
+    failure, fresh_supervisor_heartbeat, monkeypatch
+):
+    path = fresh_supervisor_heartbeat
+    monkeypatch.setenv("KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS", "60")
+    if failure == "missing":
+        path.unlink()
+    elif failure == "malformed":
+        path.write_text("not-json")
+        path.chmod(0o600)
+    elif failure in {"stale", "future", "dead"}:
+        payload = json.loads(path.read_text())
+        if failure == "stale":
+            payload["monotonic_ns"] = time.monotonic_ns() - 61_000_000_000
+        elif failure == "future":
+            payload["monotonic_ns"] = time.monotonic_ns() + 1_000_000_000
+        else:
+            payload["pid"] = 2_147_483_647
+        path.write_text(json.dumps(payload))
+        path.chmod(0o600)
+    elif failure == "permissions":
+        path.chmod(0o644)
+    else:
+        path.parent.chmod(0o755)
+
+    factory_calls = []
+
+    def connect(**_kwargs):
+        factory_calls.append(True)
+        raise AssertionError("unresponsive supervisor must fail before database access")
+
+    result = worker_progress.check_progress(
+        connection_factory=connect,
+        enabled_workers=worker_progress.WORKER_NAMES,
+    )
+
+    assert result["status"] == "unhealthy"
+    assert result["state"] == "supervisor_unresponsive"
+    assert result["supervisor"]["alive"] is False
+    assert set(result["supervisor"]) == {"alive", "age_seconds"}
+    assert factory_calls == []
+
+
+def test_supervisor_liveness_reports_only_alive_and_aggregate_age(fresh_supervisor_heartbeat):
+    result = worker_progress._supervisor_liveness(path=fresh_supervisor_heartbeat)
+
+    assert result["alive"] is True
+    assert result["age_seconds"] == 0
+    assert set(result) == {"alive", "age_seconds"}
 
 
 def test_probe_query_failure_closes_connection_and_hides_database_message():
@@ -238,6 +332,7 @@ def test_probe_query_failure_closes_connection_and_hides_database_message():
     assert result["state"] == "database_unavailable"
     assert result["error"] == "RuntimeError"
     assert result["backlog_after_seconds"] == 900
+    assert result["supervisor"]["alive"] is True
     assert connection.cursor_instance.closed
     assert connection.closed
     assert "password-do-not-print" not in repr(result)

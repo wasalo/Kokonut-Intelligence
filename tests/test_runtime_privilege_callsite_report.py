@@ -31,6 +31,29 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     assert "v_public_farm_summary" in runtime_role._RUNTIME_MUTATION_TABLES
 
 
+def test_landscape_capture_relations_have_runtime_mutation_policy():
+    expected = {
+        "habitat_zone",
+        "wildlife_corridor",
+        "hedgerow_record",
+        "buffer_zone_monitoring",
+        "landscape_biodiversity_score",
+    }
+    assert expected.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert all(
+        REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"][relation]
+        == "runtime_mutations_denied"
+        for relation in expected
+    )
+    migration = (
+        ROOT / "schemas/postgres/708_runtime_landscape_capture_only.sql"
+    ).read_text(encoding="utf-8")
+    assert "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER" in migration
+    assert "kokonut_landscape_capture_writer" not in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "kokonut_maintenance" not in migration
+
+
 def test_public_farm_summary_boundary_requires_a_non_updatable_view():
     migration = (
         ROOT / "schemas/postgres/699_runtime_public_farm_summary_read_only.sql"
@@ -68,11 +91,12 @@ def _acl_row(
 def test_zero_grant_private_relation_stays_in_source_policy_join():
     private_relation = "ai_summary_agent_draft_request"
     mutation_relation = "ai_summary"
+    private_relation_count = len(runtime_role._RUNTIME_PRIVATE_TABLES)
     mutation_relation_count = len(runtime_role._RUNTIME_MUTATION_TABLES)
     scoped_policy = {
-        "private_relations_expected": 79,
+        "private_relations_expected": private_relation_count,
         "mutation_denied_relations_expected": mutation_relation_count,
-        "private_relations_verified": 79,
+        "private_relations_verified": private_relation_count,
         "mutation_denied_relations_verified": mutation_relation_count,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,

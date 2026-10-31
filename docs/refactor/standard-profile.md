@@ -99,16 +99,29 @@ zero rather than a negative age. Neither IDs nor payloads appear in the health
 result, and queues whose worker feature is disabled are omitted.
 
 Database errors fail health closed and expose only the exception class. The
-default stale-work grace period is 300 seconds and can be changed with
+worker supervisor writes an atomic heartbeat to a mode-0600 file inside a
+mode-0700 container-local directory every five seconds. The default heartbeat
+age limit is 60 seconds and can be changed with
+`KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS`; the file path is
+`KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE`, defaulting to
+`/tmp/kokonut-worker-progress/supervisor.json`. The healthcheck rejects a
+missing, malformed, non-private, stale, or dead-process heartbeat before it
+opens PostgreSQL. Its `supervisor` field exposes only the alive flag and
+whole-second age, never the PID or generation token. The file is ephemeral container state;
+the profile adds no volume or migration for liveness.
+
+The default stale-work grace period is 300 seconds and can be changed with
 `KOKONUT_WORKER_PROGRESS_STALE_SECONDS`; the default maximum due-backlog age is
 900 seconds and can be changed with
 `KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS`. Both values must be integers from
 1 through 2,678,400 seconds. If any enabled queue has due work at least that
 old, the probe returns unhealthy with aggregate counts and ages only. Compose
-checks every 30 seconds with a 5-second timeout and three retries. This is a
-health signal, not an alert route or automatic queue repair. It detects stale
-claimed work and old eligible backlog; an idle but hung supervisor with no
-stale claim or old backlog can still appear healthy. Focused source tests and
+checks every 30 seconds with a 5-second timeout and three retries. The heartbeat
+age limit exceeds multiple probe intervals; Docker may therefore need several
+checks to mark an unresponsive supervisor unhealthy. This is a health signal,
+not an alert route or automatic queue repair. It detects stale claimed work,
+old eligible backlog, and a supervisor that stops refreshing its heartbeat; it
+does not prove that every idle child process is responsive. Focused source tests and
 the network-disabled disposable PostgreSQL acceptance check cover due-time,
 lease, dependency, overlap, and dead-letter behavior
 ([disposable evidence](builds/2026-10-31-recovery/standard-worker-backlog-disposable.json),
