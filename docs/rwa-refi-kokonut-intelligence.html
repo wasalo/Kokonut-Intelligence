@@ -738,7 +738,7 @@
       button.append(number, text);
       button.addEventListener("click", function () {
         selectedNumber = item.n;
-        render();
+        render("item");
       });
       return button;
     }
@@ -792,7 +792,7 @@
       previous.className = "tool-button";
       previous.textContent = "← Previous";
       previous.disabled = itemIndex <= 0;
-      previous.addEventListener("click", function () { selectedNumber = visibleItems[itemIndex - 1].n; render(); });
+      previous.addEventListener("click", function () { selectedNumber = visibleItems[itemIndex - 1].n; render("previous"); });
       const position = document.createElement("span");
       position.className = "panel-number";
       position.textContent = (itemIndex + 1) + " of " + visibleItems.length;
@@ -801,7 +801,7 @@
       next.className = "tool-button";
       next.textContent = "Next →";
       next.disabled = itemIndex < 0 || itemIndex >= visibleItems.length - 1;
-      next.addEventListener("click", function () { selectedNumber = visibleItems[itemIndex + 1].n; render(); });
+      next.addEventListener("click", function () { selectedNumber = visibleItems[itemIndex + 1].n; render("next"); });
       nav.append(previous, position, next);
       challengePanel.append(top, title, source, response, tags, nav);
     }
@@ -832,7 +832,7 @@
       render();
     }
 
-    function render() {
+    function render(focusTarget) {
       const visibleItems = matchingChallenges();
       if (!visibleItems.some(function (item) { return item.n === selectedNumber; }) && visibleItems.length) {
         selectedNumber = visibleItems[0].n;
@@ -842,12 +842,17 @@
       renderPanel(selected, visibleItems);
       resultCount.innerHTML = "<strong>" + visibleItems.length + "</strong> of <strong>" + challenges.length + "</strong> challenges shown";
       emptyState.classList.toggle("visible", visibleItems.length === 0);
+      if (focusTarget === "item" && selected) {
+        challengeList.querySelector('[data-number="' + selected.n + '"]').focus({ preventScroll: true });
+      } else if (focusTarget === "next" || focusTarget === "previous") {
+        const controls = challengePanel.querySelectorAll(".panel-nav button");
+        const preferred = focusTarget === "next" ? controls[1] : controls[0];
+        const fallback = focusTarget === "next" ? controls[0] : controls[1];
+        (preferred.disabled ? fallback : preferred).focus({ preventScroll: true });
+      }
     }
 
-    createFilters();
-    render();
-    search.addEventListener("input", render);
-    document.getElementById("print-page").addEventListener("click", function () {
+    function renderPrintChallenges() {
       printChallenges.replaceChildren.apply(printChallenges, challenges.map(function (item) {
         const article = document.createElement("article");
         article.className = "print-challenge";
@@ -862,8 +867,16 @@
         article.append(title, source, mechanism);
         return article;
       }));
+    }
+
+    createFilters();
+    render();
+    renderPrintChallenges();
+    search.addEventListener("input", render);
+    document.getElementById("print-page").addEventListener("click", function () {
       window.print();
     });
+    window.addEventListener("beforeprint", renderPrintChallenges);
     document.querySelectorAll("[data-jump-filter]").forEach(function (button) {
       button.addEventListener("click", function () {
         setFilter(button.dataset.jumpFilter);
