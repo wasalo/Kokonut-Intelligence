@@ -8,21 +8,22 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 757 checked / 30 open across the
+**Current queue snapshot (31 October 2026):** 758 checked / 30 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
-**Hosted validation (31 October 2026):** On exact PR head `fb4cc883`, Security
-run #743 passed. CI run #1019's `full-ci` step was cancelled after the GitHub
-hosted runner reported a shutdown signal; the fast-fail gates, ordered schema
-and seed replay, and metric-computation checks had passed before shutdown. Its
-separate `kernel-image` job was still running at the last status check, so the
-failed job cannot yet be rerun. The user-linked CI run #1014 (`41172853331`) is
-an older head (`aa6a01ab`): attempt 1 is marked failed but GitHub no longer
-serves its job log, while attempt 2 was cancelled during Buildx before
-`ci-check.sh`. The earlier runtime-SQL inventory drift was fixed and refreshed
-in `fb4cc883`; neither the unavailable old log nor the runner shutdown
-identifies a source regression to patch.
+**Hosted validation (31 October 2026):** On the pre-batch PR head `fb4cc883`,
+Security #743 passed. Both CI #1019 `full-ci` attempts were terminated by a
+hosted-runner shutdown shortly after entering the full Python suite. The
+fast-fail gates, 696-migration replay, 28-seed replay, and Adelphi/Genesis
+metric checks passed; both `kernel-image` attempts passed. No full-suite
+assertion failure was logged. The exact current commit still needs its own
+hosted validation ([run evidence](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
+The user-linked CI #1014 (`41172853331`) is an older head (`aa6a01ab`): attempt
+1 is marked failed but GitHub no longer serves its job log, while attempt 2
+was cancelled during Buildx before `ci-check.sh`. The earlier runtime-SQL
+inventory drift was fixed in `fb4cc883`; the available logs do not identify a
+source assertion to repair.
 
 ## Current continuation — Standard profile and C1 ACL guardrails
 
@@ -64,12 +65,11 @@ identifies a source regression to patch.
   checker and 70 profile tests pass locally; a new hosted run remains pending
   ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
 - [x] Refresh `docs/refactor/runtime-sql-inventory.json` after CI #1018's
-  inventory-drift gate reported stale data. `python3
-  scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json`
-  and focused runtime inventory/role-boundary checks pass on `fb4cc883`;
-  Security #743 passed, while CI #1019 remains in progress. The separate
-  linked run #1014 was cancelled during image build and did not reach the CI
-  gate.
+  inventory-drift gate reported stale data. The inventory check and focused
+  runtime inventory/role-boundary tests pass on `fb4cc883`; Security #743
+  passed. CI #1019 attempt 1 and its retry both ended at hosted-runner shutdown
+  after the migration, seed, and metric gates passed; both image jobs passed.
+  See the [diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json).
 - [x] Complete native full ordered schema replay through migration 705 and the
   synthetic two-tenant operator-scope probe: 696/696 migrations and 38 checks
   pass, with no seeds/host ports and disposable cleanup
@@ -84,10 +84,12 @@ identifies a source regression to patch.
   disposable teardown; the attempt predates migration 706. The prior full
   replay through 703 and focused 704/705 ARM64 checks remain. Candidate, legacy
   and production remain untouched.
-- [ ] Rerun the failed `full-ci` job for CI #1019 after its `kernel-image` job
-  completes. The latest available log shows hosted-runner shutdown after the
-  migration, seed, and metric gates passed; do not classify it as a test
-  failure without a completed rerun.
+- [x] Retry CI #1019 `full-ci` after the image job completed. Attempt 2 again
+  ended at hosted-runner shutdown after starting the full suite, with no
+  assertion failure logged ([diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
+- [ ] Obtain passing CI and Security checks on the current pushed PR head. The
+  new feature commit needs an exact-head hosted run; keep this release gate open
+  until both required checks pass on that SHA.
 
 ## Current continuation — documentation and C1 integration checks
 

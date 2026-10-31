@@ -9655,14 +9655,19 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
 - [x] Regenerate the tracked runtime SQL inventory after CI #1018 detected
   drift; the inventory check and focused runtime inventory/role-boundary tests
-  pass on `fb4cc883`. Security #743 passed. CI #1019's `full-ci` step was
-  cancelled when the GitHub-hosted runner reported a shutdown signal, after
-  migration/seed replay and metric checks passed; `kernel-image` was still
-  running at the last status check. The user-linked run #1014 is an older head:
-  its first attempt is marked failed but the job log is no longer available,
-  and its retry was cancelled during Buildx before `ci-check.sh`.
-- [ ] Rerun CI #1019's failed `full-ci` job after the separate image-build job
-  completes; confirm the required checks on the exact current PR head.
+  pass on `fb4cc883`. Security #743 passed. Both CI #1019 `full-ci` attempts
+  ended at hosted-runner shutdown shortly after entering the full Python suite;
+  696 schema migrations, 28 seeds, and metric checks passed, and both image
+  jobs passed. No suite assertion failure was logged. The older user-linked
+  run #1014 attempt 1 is marked failed but its job log is unavailable; attempt
+  2 was cancelled during Buildx before `ci-check.sh`
+  ([diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
+- [x] Retry CI #1019 `full-ci` after the image job completed. The retry again
+  ended at hosted-runner shutdown after the suite started; no assertion failure
+  was logged ([diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
+- [ ] Obtain passing CI and Security checks on the current pushed PR head. The
+  new feature commit needs an exact-head hosted run; keep the release gate open
+  until both required checks pass on that SHA.
 - [x] Complete the native ordered replay through migration 705 with the
   two-tenant operator-scope probe: 696/696 migrations and 38 synthetic checks
   pass; no seeds or host ports were used, and disposable cleanup passed
