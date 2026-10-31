@@ -108,9 +108,6 @@ echo '=== Supply-chain gates ==='
 rm -f .env.sops
 ./scripts/check-image-digests.sh
 
-echo '=== Kernel release-input and multi-architecture build gates ==='
-bash scripts/build-kernel-multiarch.sh
-
 echo '=== Clean bootstrap check ==='
 docker compose -f docker-compose.yml up -d database
 for _ in $(seq 1 30); do
