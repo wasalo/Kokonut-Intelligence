@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-31",
+  "workflow": "CI",
+  "pull_request": 71,
+  "run_id": 41172853331,
+  "run_number": 1014,
+  "head_sha": "aa6a01ab053ff48f886766e19212096528b41d6d",
+  "attempt": 2,
+  "job_id": 124544129455,
+  "job_name": "ci",
+  "conclusion": "cancelled",
+  "cancelled_step": "Run the complete CI gate",
+  "last_build_activity": "ARM64 Buildx dependency installation; the log ends while resolving jsonschema",
+  "newer_same_pr_run": {
+    "run_id": 41204207505,
+    "run_number": 1015,
+    "head_sha": "cfb910bea8440c576b34b7ed26a65a58846edc5d",
+    "created_at": "2026-10-31T13:08:24Z"
+  },
+  "workflow_concurrency": {
+    "group": "ci-${{ github.event.pull_request.number || github.ref }}",
+    "cancel_in_progress_for_pull_requests": true
+  },
+  "interpretation": "Run 1015 started 13 seconds before attempt 2 stopped. This attempt was superseded by the newer run before ci-check.sh and did not report a test assertion failure. Attempt 1 is marked failed, but GitHub does not serve its job log, so its cause is unknown.",
+  "source": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41172853331"
+}

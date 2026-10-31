@@ -88,17 +88,33 @@ using the API probe. It reports an idle enabled-worker set as healthy and
 active work as healthy while its durable lease is current. Processing work is
 unhealthy only after its stored lease or task-timeout deadline plus the
 configured grace period; a processing row without a lease is unhealthy
-immediately. The read-only probe returns aggregate counts only, and omits
-queues whose worker feature is disabled. Database errors fail health closed
-and expose only the exception class. The default grace period is 300 seconds
-and can be changed with
-`KOKONUT_WORKER_PROGRESS_STALE_SECONDS` (1–2,678,400 seconds). Compose checks
-every 30 seconds with a 5-second timeout and three retries. This is a health
-signal, not an alert route or automatic queue repair. It detects stale claimed
-work, not unclaimed backlog; an idle but hung supervisor can still appear
-healthy. Source-level behavior is covered by focused tests; live database-
-outage, backlog monitoring, operator alerting, and prolonged worker-recovery
-acceptance remains open. The default Caddy overlay gives Standard a loopback
+immediately. The same read-only query reports aggregate due-queue counts and
+the oldest due age for pending events, due pending/retryable notifications,
+and claim-eligible scheduled tasks. Scheduler backlog follows the claim
+contract, including due retry time, active leases, disabled tasks, dependency
+readiness, and overlap rules. Future notification retries are excluded;
+dead-letter rows are informational operator work and do not trigger unhealthy
+worker status. Future-dated event creation timestamps are counted with age
+zero rather than a negative age. Neither IDs nor payloads appear in the health
+result, and queues whose worker feature is disabled are omitted.
+
+Database errors fail health closed and expose only the exception class. The
+default stale-work grace period is 300 seconds and can be changed with
+`KOKONUT_WORKER_PROGRESS_STALE_SECONDS`; the default maximum due-backlog age is
+900 seconds and can be changed with
+`KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS`. Both values must be integers from
+1 through 2,678,400 seconds. If any enabled queue has due work at least that
+old, the probe returns unhealthy with aggregate counts and ages only. Compose
+checks every 30 seconds with a 5-second timeout and three retries. This is a
+health signal, not an alert route or automatic queue repair. It detects stale
+claimed work and old eligible backlog; an idle but hung supervisor with no
+stale claim or old backlog can still appear healthy. Focused source tests and
+the network-disabled disposable PostgreSQL acceptance check cover due-time,
+lease, dependency, overlap, and dead-letter behavior
+([disposable evidence](builds/2026-10-31-recovery/standard-worker-backlog-disposable.json),
+[focused test record](builds/2026-10-31-recovery/standard-worker-backlog-focused-tests.json)). Live database-outage,
+operator alert routing, and prolonged worker-recovery acceptance remain open.
+The default Caddy overlay gives Standard a loopback
 TLS entry point; the separate
 [Kernel proxy overlay](kernel-proxy.md) documents its routing, trust, and
 public-ingress limits. An external ingress can replace Caddy with `--no-proxy`
@@ -122,8 +138,8 @@ Pending acceptance: API has no embedded workers; worker has no API; both roles
 use identical code and provider settings; worker leases, retries, dead letters,
 restart and shutdown preserve durable state; disabled-worker mode fails startup;
 replicas have distinct identities; job/event parity and operational alert
-routing pass. The new health probe does not by itself demonstrate provider
-outage recovery, multi-replica behavior, or notification delivery to an operator.
+routing pass. The health probe does not by itself demonstrate provider outage
+recovery, multi-replica behavior, or notification delivery to an operator.
 
 Rollback: stop and remove only the separate candidate worker, allow in-flight
 leases to settle, then recreate the candidate app using the base manifest's

@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-31",
+  "workflow": "CI",
+  "pull_request": 71,
+  "run_id": 41216478619,
+  "run_number": 1022,
+  "head_sha": "b21d0eccc2f70b0ff1b52f99fedafd7dd10a3f9d",
+  "full_ci_job_id": 124581949917,
+  "full_ci_conclusion": "failure",
+  "ci_step_conclusion": "cancelled",
+  "last_completed_gates": {
+    "schema_migrations_applied": 697,
+    "schema_migrations_failed": 0,
+    "base_seeds_applied": 28,
+    "base_seeds_failed": 0,
+    "pilot_data_loaded": true,
+    "metrics": {
+      "Kokonut Adelphi": { "computed": 20, "errors": 0 },
+      "Kokonut Genesis": { "computed": 20, "errors": 0 }
+    }
+  },
+  "interrupted_at": "Full Python suite (strict database mode)",
+  "runner_log": "The runner has received a shutdown signal. This can happen when the runner service is stopped, or a manually started runner is canceled.",
+  "assertion_failure_observed": false,
+  "kernel_image_job_id": 124581949786,
+  "kernel_image_conclusion": "success",
+  "ci_aggregate_conclusion": "failure",
+  "interpretation": "The kernel-image job later passed. The aggregate CI gate still failed because full-ci was interrupted by runner shutdown after the database, seed, pilot-data, and metric gates passed. This is not evidence that the full Python suite passed or failed.",
+  "source": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41216478619"
+}

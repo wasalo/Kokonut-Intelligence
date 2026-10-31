@@ -9640,10 +9640,12 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   restrictions after compatibility grants; disposable PostgreSQL checks pass
   replay, stale-grant removal, allowed compatibility writes and role isolation
   ([evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)).
-- [x] Pass the combined migration, runtime role, profile, Compose and worker
-  health selection: 215 tests; Ruff, compilation, release-input, inventory,
-  capability-matrix validation and `git diff --check` pass
-  ([evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json)).
+- [x] Pass the combined migration, runtime role, profile, and worker-health
+  selection: 229 tests; Ruff, compilation, release-input, inventory,
+  capability-matrix validation and `git diff --check` pass. The test process
+  used the explicit development-only no-secrets mode; an initial invocation
+  outside that mode hit a local SOPS decryption setup error, not a test
+  assertion ([evidence](builds/2026-10-31-recovery/c1-707-standard-focused-tests.json)).
 - [x] Correct GitHub CI ordering so the ignored Directus hook bundle is built
   before Directus startup; the CI ordering contract, hook bundle/type build,
   and 143 hook tests pass. Run 412074's image gate passed; `full-ci` was
@@ -9651,8 +9653,12 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
 - [x] Refresh release-input hashes for the changed Standard profile planner
   and guide after CI run #1017 rejected the stale values. The lock checker and
-  70 profile tests pass locally; hosted validation of this correction is pending
-  ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
+  70 profile tests pass locally. Subsequent CI #1019 on `fb4cc883` passed the
+  release-input/fast-fail gates before `full-ci` was terminated by a hosted-
+  runner shutdown; this supersedes the pending hosted-validation note from the
+  earlier checkpoint
+  ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json);
+  [runner diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
 - [x] Regenerate the tracked runtime SQL inventory after CI #1018 detected
   drift; the inventory check and focused runtime inventory/role-boundary tests
   pass on `fb4cc883`. Security #743 passed. Both CI #1019 `full-ci` attempts
@@ -9660,14 +9666,22 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   696 schema migrations, 28 seeds, and metric checks passed, and both image
   jobs passed. No suite assertion failure was logged. The older user-linked
   run #1014 attempt 1 is marked failed but its job log is unavailable; attempt
-  2 was cancelled during Buildx before `ci-check.sh`
-  ([diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
+  2 was cancelled during ARM64 Buildx dependency installation when newer
+  same-PR run #1015 started. It did not reach `ci-check.sh`
+  ([diagnosis](builds/2026-10-31-recovery/ci-1014-superseded-run.json)).
 - [x] Retry CI #1019 `full-ci` after the image job completed. The retry again
   ended at hosted-runner shutdown after the suite started; no assertion failure
   was logged ([diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
-- [ ] Obtain passing CI and Security checks on the current pushed PR head. The
-  new feature commit needs an exact-head hosted run; keep the release gate open
-  until both required checks pass on that SHA.
+- [ ] Obtain passing CI and Security checks on the current pushed PR head.
+  On the last observed head `b21d0ecc`, Security #746 passed. CI #1022
+  (`41216478619`) applied 697
+  migrations, 28 base seeds, pilot data, and computed both farm metric sets
+  without errors; `full-ci` then received a runner shutdown signal after
+  starting the full Python suite. No assertion failure was logged. The image
+  job passed, but the aggregate CI gate failed because `full-ci` was cancelled.
+  Keep the release gate open until a fresh
+  pushed head completes both required checks
+  ([evidence](builds/2026-10-31-recovery/ci-1022-hosted-runner-shutdown.json)).
 - [x] Complete the native ordered replay through migration 705 with the
   two-tenant operator-scope probe: 696/696 migrations and 38 synthetic checks
   pass; no seeds or host ports were used, and disposable cleanup passed
@@ -9684,9 +9698,45 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   through 703 and focused 704/705 checks remain available. Candidate, legacy
   and production roles/data remain untouched.
 
+### C1 runtime ACL and Standard worker health continuation — 31 October 2026
+
+- [x] Extend the Standard worker probe to report aggregate due backlog counts
+  and oldest age for events, notifications, and scheduler work. Scheduler
+  eligibility matches due retry time, active lease, enabled state, dependencies
+  and overlap rules; disabled queues are omitted, dead letters do not trigger
+  the stale-work alarm, and future event timestamps clamp to age zero. Focused
+  unit/profile tests and network-disabled PostgreSQL 16 acceptance pass
+  ([tests](builds/2026-10-31-recovery/standard-worker-backlog-focused-tests.json);
+  [disposable check](builds/2026-10-31-recovery/standard-worker-backlog-disposable.json)).
+  Idle hung-supervisor detection, external alert routing, and long-duration
+  recovery remain open.
+- [x] Add migration 707 to keep `farmer_role` default reads while revoking
+  runtime table and residual column writes. Source audit found one application
+  SELECT and no code/Directus write path; external importer usage through
+  `kokonut_runtime` remains unconfirmed, so persistent rollout stays gated.
+  Focused tests and disposable PostgreSQL 16 replay verify runtime SELECT,
+  mutation denial, provisioner reapplication, and preserved Directus and
+  maintenance writes ([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json);
+  [acceptance](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)).
+- [x] Diagnose the user-linked CI #1014 attempt 2 as superseded by the next
+  same-PR run before `ci-check.sh`; separately record CI #1022's runner
+  shutdown after migration, seed, pilot, and metric gates passed. Neither log
+  reports a source assertion failure; the exact current PR head still needs a
+  successful complete CI run ([#1014](builds/2026-10-31-recovery/ci-1014-superseded-run.json);
+  [#1022](builds/2026-10-31-recovery/ci-1022-hosted-runner-shutdown.json)).
+- [x] Complete native ordered replay and the two-tenant operator-scope probe
+  through migration 707. All 698 ordered schema files applied with zero
+  pending/failed migrations, and all 38 synthetic scope checks passed in a
+  network-disabled, portless PostgreSQL 16 project. No seeds or farm data were
+  loaded; cleanup completed. The probe reports 976 public tables with runtime
+  DML while RLS is disabled; this measures privilege reach, not confirmed data
+  exposure. This is disposable acceptance, not candidate/production rollout
+  ([evidence](builds/2026-10-31-recovery/full-schema-707-native.json)).
+
 Rollback: no persistent database or service was changed. Keep ordered
-migrations 704–706 in history; do not edit applied SQL. Reversing a persistent
-ACL change requires a reviewed forward migration. Before any persistent
-migration-704 rollout, confirm no external importer uses `kokonut_runtime` for
-living-wage reference writes. The current source/ACL aggregate remains the 703
-snapshot until refreshed; its counts are not current after migration 704.
+migrations 704–707 in history; do not edit applied SQL. Reversing a persistent
+ACL change requires a reviewed forward migration. Before persistent rollout,
+confirm external writers do not rely on `kokonut_runtime` for the reference
+tables changed by migrations 704, 706, or 707. The current source/ACL aggregate
+remains the 703 snapshot until refreshed; its counts are not current after
+migration 704.

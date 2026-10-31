@@ -28,7 +28,7 @@ ARM64_POSTGRES_IMAGE = "kokonut-kernel-postgis-arm64:local"
 DEFAULT_OUTPUT = (
     ROOT
     / "docs/refactor/builds/2026-10-31-recovery/"
-    "runtime-living-wage-benchmark-704-disposable.json"
+    "farmer-role-runtime-read-only-707-disposable.json"
 )
 APPEND_ONLY_MIGRATION = (
     ROOT / "schemas/postgres/652_runtime_append_only_data_access_log.sql"
@@ -151,6 +151,7 @@ LIVING_WAGE_BENCHMARK_MIGRATION = (
     ROOT / "schemas/postgres/704_runtime_living_wage_benchmark_read_only.sql"
 )
 PROTOCOL_MIGRATION = ROOT / "schemas/postgres/706_runtime_protocol_read_only.sql"
+FARMER_ROLE_MIGRATION = ROOT / "schemas/postgres/707_runtime_farmer_role_read_only.sql"
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
@@ -382,6 +383,18 @@ def check_boundary(
                             "VALUES (%s, 'synthetic_category', 'environmental', NULL, 'synthetic')",
                             (str(uuid.uuid4()),),
                         )
+                    elif table == "farmer_role":
+                        cursor.execute(
+                            "CREATE TABLE public.farmer_role ("
+                            "id uuid PRIMARY KEY, name text NOT NULL UNIQUE, "
+                            "default_permissions jsonb NOT NULL, marker text NOT NULL)"
+                        )
+                        cursor.execute(
+                            "INSERT INTO public.farmer_role "
+                            "(id, name, default_permissions, marker) "
+                            "VALUES (%s, 'synthetic_farmer', '[\"farm:read\"]'::jsonb, 'synthetic-role')",
+                            (str(uuid.uuid4()),),
+                        )
                     else:
                         cursor.execute(
                             sql.SQL("CREATE TABLE {} (id uuid PRIMARY KEY, marker text)").format(
@@ -436,6 +449,14 @@ def check_boundary(
                 cursor.execute(
                     "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
                     "IN SCHEMA public TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.farmer_role "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.farmer_role "
+                    "TO kokonut_maintenance_probe"
                 )
                 cursor.execute(
                     "GRANT INSERT (id), UPDATE (marker), REFERENCES (id) "
@@ -504,6 +525,11 @@ def check_boundary(
                 cursor.execute(
                     "GRANT INSERT (marker), UPDATE (marker), REFERENCES (id) "
                     "ON public.consent_data_type TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (id, name, default_permissions), "
+                    "UPDATE (default_permissions), REFERENCES (id) "
+                    "ON public.farmer_role TO kokonut_runtime"
                 )
                 cursor.execute(
                     "GRANT INSERT (marker), UPDATE (marker), REFERENCES (id) "
@@ -868,6 +894,9 @@ def check_boundary(
                 protocol_migration = PROTOCOL_MIGRATION.read_text(encoding="utf-8")
                 cursor.execute(protocol_migration)
                 cursor.execute(protocol_migration)
+                farmer_role_migration = FARMER_ROLE_MIGRATION.read_text(encoding="utf-8")
+                cursor.execute(farmer_role_migration)
+                cursor.execute(farmer_role_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -918,6 +947,13 @@ def check_boundary(
                 raise AssertionError(
                     "migration 706 or compatibility provisioning did not establish "
                     "read-only protocol rights"
+                )
+            if _relation_privileges(connection, "farmer_role") != (
+                True, False, False, False
+            ):
+                raise AssertionError(
+                    "migration 707 or compatibility provisioning did not establish "
+                    "read-only farmer-role rights"
                 )
             if _relation_privileges(connection, "v_public_farm_summary") != (
                 True, False, False, False
@@ -1017,6 +1053,96 @@ def check_boundary(
                 cursor.execute(
                     "DELETE FROM public.protocol "
                     "WHERE id = '00000000-0000-0000-0000-000000000707'"
+                )
+                cursor.execute("RESET ROLE")
+
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.farmer_role', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.farmer_role', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.farmer_role', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.farmer_role', 'DELETE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.farmer_role', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.farmer_role', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.farmer_role', 'TRIGGER'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.farmer_role', 'SELECT'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.farmer_role', 'INSERT'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.farmer_role', 'UPDATE'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.farmer_role', 'DELETE'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.farmer_role', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.farmer_role', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.farmer_role', 'TRIGGER'), "
+                    "has_column_privilege('kokonut_runtime', 'public.farmer_role', 'default_permissions', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', 'public.farmer_role', 'default_permissions', 'UPDATE'), "
+                    "has_column_privilege('kokonut_runtime', 'public.farmer_role', 'id', 'REFERENCES')"
+                )
+                if cursor.fetchone() != (
+                    True, True, True, True, True, True, True,
+                    True, True, True, True, True, True, True,
+                    False, False, False,
+                ):
+                    raise AssertionError(
+                        "migration 707 changed Directus/maintenance farmer-role grants "
+                        "or left runtime column grants"
+                    )
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute(
+                    "SELECT default_permissions FROM public.farmer_role "
+                    "WHERE name = 'synthetic_farmer'"
+                )
+                if cursor.fetchone() != (["farm:read"],):
+                    raise AssertionError(
+                        "runtime role could not read farmer-role defaults"
+                    )
+                for statement in (
+                    "INSERT INTO public.farmer_role "
+                    "(id, name, default_permissions, marker) VALUES "
+                    "('00000000-0000-0000-0000-000000000707', 'runtime-write', '[]', 'forbidden')",
+                    "UPDATE public.farmer_role SET default_permissions = '[]'",
+                    "DELETE FROM public.farmer_role",
+                    "TRUNCATE public.farmer_role",
+                ):
+                    try:
+                        cursor.execute(statement)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode != "42501":
+                            raise AssertionError(
+                                f"expected farmer-role privilege denial; got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError(
+                            "runtime farmer-role mutation unexpectedly succeeded"
+                        )
+                cursor.execute("RESET ROLE")
+                cursor.execute("SET ROLE kokonut_directus_runtime")
+                cursor.execute(
+                    "INSERT INTO public.farmer_role "
+                    "(id, name, default_permissions, marker) VALUES "
+                    "('00000000-0000-0000-0000-000000000708', 'directus-write', '[]', 'directus')"
+                )
+                cursor.execute(
+                    "UPDATE public.farmer_role SET marker = 'directus-update' "
+                    "WHERE name = 'directus-write'"
+                )
+                cursor.execute(
+                    "DELETE FROM public.farmer_role WHERE name = 'directus-write'"
+                )
+                cursor.execute("RESET ROLE")
+                cursor.execute("SET ROLE kokonut_maintenance_probe")
+                cursor.execute(
+                    "INSERT INTO public.farmer_role "
+                    "(id, name, default_permissions, marker) VALUES "
+                    "('00000000-0000-0000-0000-000000000709', 'maintenance-write', '[]', 'maintenance')"
+                )
+                cursor.execute(
+                    "UPDATE public.farmer_role SET marker = 'maintenance-update' "
+                    "WHERE name = 'maintenance-write'"
+                )
+                cursor.execute(
+                    "DELETE FROM public.farmer_role WHERE name = 'maintenance-write'"
                 )
                 cursor.execute("RESET ROLE")
 
@@ -1697,6 +1823,7 @@ def check_boundary(
                     ("pollinator_observation", 693),
                     ("pollinator_habitat", 693),
                     ("pesticide_impact_log", 693),
+                    ("farmer_role", 707),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES'), "
@@ -1727,6 +1854,19 @@ def check_boundary(
                 cursor.execute(
                     "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
                     "IN SCHEMA public TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.farmer_role "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.farmer_role "
+                    "TO kokonut_maintenance_probe"
+                )
+                cursor.execute(
+                    "GRANT INSERT (id, name, default_permissions), "
+                    "UPDATE (default_permissions), REFERENCES (id) "
+                    "ON public.farmer_role TO kokonut_runtime"
                 )
                 cursor.execute(
                     "GRANT SELECT (marker), INSERT (id, marker), UPDATE (marker), REFERENCES (id) "
@@ -2926,6 +3066,24 @@ def check_boundary(
                     "directus_sql_role_unchanged_in_synthetic_probe": True,
                     "synthetic_separate_maintenance_probe_can_write": True,
                     "tenant_isolation_established": False,
+                },
+                "read_only_farmer_role": {
+                    "migration": FARMER_ROLE_MIGRATION.name,
+                    "migration_sha256": hashlib.sha256(
+                        farmer_role_migration.encode("utf-8")
+                    ).hexdigest(),
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "runtime_select_only": True,
+                    "runtime_insert_update_delete_truncate_denied": True,
+                    "runtime_column_insert_update_references_denied": True,
+                    "directus_sql_role_unchanged_in_synthetic_probe": True,
+                    "synthetic_separate_maintenance_probe_can_write": True,
+                    "tenant_isolation_established": False,
+                    "external_importer_use_confirmed": False,
+                    "candidate_production_rollout_gate": (
+                        "confirm external importers do not use kokonut_runtime"
+                    ),
                 },
                 "read_only_public_farm_summary": {
                     "migration_applied_and_replayed": True,

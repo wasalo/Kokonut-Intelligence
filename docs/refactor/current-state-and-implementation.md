@@ -84,7 +84,7 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. The worker has a read-only durable-lease health probe. | This is the intended general-purpose starting point for an operational deployment; role provisioning, migrations, backlog/alert monitoring, live identity, backup/restore, and recovery acceptance still gate use. The lease probe does not detect unclaimed backlog or an idle hung supervisor. The default Caddy listener is local TLS, not public production ingress. |
+| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. The worker has a read-only PostgreSQL health probe for stale leases and old eligible due backlog. | This is the intended general-purpose starting point for an operational deployment; role provisioning, migrations, external alert routing, idle-supervisor liveness, live identity, backup/restore, and recovery acceptance still gate use. The probe reports aggregate counts and ages without IDs or payloads; it does not detect an idle hung supervisor. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
@@ -148,13 +148,14 @@ older counts and deployment statements are snapshots from their dates.
 C1 is **not closed**. The latest complete source/ACL report is through
 migration 703: it found 148 declared runtime boundaries, zero policy
 mismatches or direct table/column privilege violations, 1,367 public relations
-with some DML, and 979 tables with runtime DML while RLS is disabled. Migration
-704 and 706 add runtime read-only boundaries, so those numbers are a dated 703
-snapshot, not current post-706 totals. Migration 705 adds a separate Directus
-reprovisioning policy and does not change runtime counts. These are privilege-
-reach and audit counts, not counts of confirmed data exposure ([703 report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-703.json)).
+with some DML, and 979 tables with runtime DML while RLS is disabled. Migrations
+704, 706, and 707 add runtime read-only boundaries, so those numbers are a
+dated 703 snapshot, not current post-707 totals. Migration 705 adds a separate
+Directus reprovisioning policy and does not change runtime counts. These are
+privilege-reach and audit counts, not counts of confirmed data exposure
+([703 report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-703.json)).
 
-This local batch records migrations 700–706 and scoped operations:
+This local batch records migrations 700–707 and scoped operations:
 
 | Migration | Added operation | Local acceptance recorded |
 | --- | --- | --- |
@@ -165,13 +166,16 @@ This local batch records migrations 700–706 and scoped operations:
 | 704 | Keep `living_wage_benchmark` readable to runtime while denying runtime table/column writes; preserve separate maintenance authority. | Focused native and ARM64/QEMU PostgreSQL checks for apply/replay, SELECT, DML denial, provisioner reapplication, and maintenance-role writes ([evidence](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json)). External importer use through the runtime login is unconfirmed, so persistent rollout remains gated. |
 | 705 | Record migration-owned Directus relation read-only/no-access exceptions and reapply them after the optional Directus role's compatibility grants. | Migration replay and disposable PostgreSQL role acceptance cover 147 relation policies, stale table/column/sequence grant removal, and preserved compatibility grants ([evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)). This protects reprovisioning; it does not establish API/extension parity or tenant isolation. |
 | 706 | Keep the shared `protocol` catalog readable to the general runtime while denying its table/column writes; preserve Directus and maintenance-role grants. | Network-isolated PostgreSQL 16 checks pass migration apply/replay, SELECT, DML/column denial, role-provisioner reapplication, and synthetic Directus/maintenance writes ([evidence](builds/2026-10-31-recovery/runtime-protocol-read-only-disposable.json)). External importer use through `kokonut_runtime` is not confirmed, so persistent rollout remains gated. |
+| 707 | Keep authorization-bearing `farmer_role` defaults readable to runtime while denying its table and residual column writes. | Source audit found one application SELECT and no in-repository service, extension, or Directus writer. Focused PostgreSQL 16 acceptance passes apply/replay, provisioner reapplication, runtime SELECT/write denial, and preservation of Directus/maintenance writes ([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json); [evidence](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)). External importer use through `kokonut_runtime` remains unconfirmed; persistent rollout is gated. |
 
-The complete ordered native schema replay now applies all 697 migration files
-through 706 on disposable PostgreSQL 16, with no seeds, host ports, farm data,
-or candidate/legacy access; cleanup completed
-([evidence](builds/2026-10-31-recovery/full-schema-706-native.json)). This is
-schema replay evidence only; the separate two-tenant operator-scope probe is
-recorded through migration 705.
+The complete native replay through migration 707 applies all 698 ordered
+schema files and passes 38 synthetic two-tenant operator-scope checks in a
+network-disabled, portless disposable PostgreSQL 16 project; cleanup
+completed ([evidence](builds/2026-10-31-recovery/full-schema-707-native.json)).
+The probe reports 976 public tables with runtime DML while RLS is disabled.
+This is an ACL reach count, not a finding of confirmed data exposure, and does
+not close remaining C1 source, tenant, populated-data, or rollout gates. No
+candidate, legacy, or production target was accessed.
 
 The 700–703 functions use isolated owners. The runtime-role provisioner now
 tracks those owners/functions, revokes public function execution, and refuses
@@ -187,9 +191,16 @@ The prior full ordered replays through 703 passed 694/694 migrations and 38
 two-tenant operator checks on native and ARM64/QEMU
 ([native](builds/2026-10-30-recovery/kernel-c1-full-schema-703-native-r2.json),
 [ARM64/QEMU](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)).
-The new native replay through 705 passes 696/696 migrations and all 38 checks;
-its synthetic ACL probe reports 978 public tables with runtime DML while RLS
-is disabled ([evidence](builds/2026-10-31-recovery/kernel-c1-full-schema-705-native.json)). This is a privilege-reach measure, not a confirmed exposure count. The source/ACL policy report remains the 703 snapshot; its 148-boundary aggregate is not regenerated after 704. A full ARM64/QEMU replay through 705 was stopped after 583.6 seconds at migration 116 (111/696 migrations); no migration error was observed and disposable cleanup passed ([interrupted attempt](builds/2026-10-31-recovery/kernel-c1-full-schema-705-arm64-qemu.json)). The prior complete QEMU replay through 703 and focused ARM64 checks for 704/705 remain evidence; no physical Raspberry Pi acceptance is claimed.
+The superseded native replay snapshot through 705 passed 696/696 migrations
+and all 38 checks; its synthetic ACL probe reported 978 public tables with
+runtime DML while RLS was disabled
+([evidence](builds/2026-10-31-recovery/kernel-c1-full-schema-705-native.json)).
+That is a historical privilege-reach measure, not a current post-706 count or a
+confirmed exposure count. The source/ACL policy report remains the 703
+snapshot; its 148-boundary aggregate is not regenerated after 704. A full
+ARM64/QEMU replay through 705 was stopped after 583.6 seconds at migration 116
+(111/696 migrations); no migration error was observed and disposable cleanup
+passed ([interrupted attempt](builds/2026-10-31-recovery/kernel-c1-full-schema-705-arm64-qemu.json)). The prior complete QEMU replay through 703 and focused ARM64 checks for 704/705 remain evidence; no physical Raspberry Pi acceptance is claimed.
 This additive source batch leaves legacy writers available, does not revoke
 their direct DML, and does not establish universal tenant isolation. Broader
 C1 reconciliation and separately gated candidate rollout remain required.

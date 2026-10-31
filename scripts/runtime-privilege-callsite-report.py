@@ -82,6 +82,9 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # Protocol references are read by application/indexer code and written by
     # the maintenance seed path. External runtime-login importers are unconfirmed.
     "protocol": "runtime_mutations_denied",
+    # Farmer role defaults carry authorization policy; application code reads
+    # them for assignment but changes belong to reviewed maintenance authority.
+    "farmer_role": "runtime_mutations_denied",
     # This grouped public projection is read-only in application code and is
     # guarded against becoming updatable before mutation grants are removed.
     "v_public_farm_summary": "runtime_mutations_denied",

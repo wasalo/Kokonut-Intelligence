@@ -24,13 +24,14 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Current cohort — migrations 700–706, 31 October 2026
+### Current cohort — migrations 700–707, 31 October 2026
 
 The detailed source/function cohort below covers migrations 700–703. Migrations
-704, 705, and 706 add, respectively, the runtime read-only boundary for
+704, 705, 706, and 707 add, respectively, the runtime read-only boundary for
 `living_wage_benchmark`, a migration-owned 147-relation Directus privilege
-policy reapplied by the optional role provisioner, and a runtime read-only
-boundary for the shared `protocol` catalog. Focused native and
+policy reapplied by the optional role provisioner, a runtime read-only
+boundary for the shared `protocol` catalog, and a runtime read-only boundary
+for the authorization-bearing `farmer_role` defaults. Focused native and
 ARM64/QEMU PostgreSQL checks pass for migration 704; migration 705 replay and
 the disposable Directus role reprovisioning check pass
 ([704 evidence](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json),
@@ -43,11 +44,27 @@ No in-repository application writer or Directus collection rule was found;
 seed upserts use the separate maintenance path. External importer use through
 `kokonut_runtime` is unconfirmed, so persistent rollout remains gated on that
 contract check.
-The complete native migration replay now also applies all 697 schema files
-through migration 706 with no seeds, host ports, farm data, or persistent target
-access; cleanup passed ([evidence](builds/2026-10-31-recovery/full-schema-706-native.json)).
-This replay does not include the two-tenant operator-scope probe, which remains
-recorded through migration 705.
+The migration-707 source audit found only the application SELECT of
+`default_permissions` in `services/analytics/farmer_identity.py`; role
+assignments are written to the separate `role_assignment` table. No service,
+extension, seed, or Directus permission/hook write path for `farmer_role` was
+found beyond its migration-defined defaults. The network-isolated disposable
+acceptance applies and replays migration 707, preserves runtime SELECT, denies
+table and residual column writes after compatibility-role reprovisioning, and
+proves synthetic Directus and maintenance roles retain actual write access
+([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json),
+[ACL evidence](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)).
+Because `default_permissions` affects authorization, future edits remain on a
+reviewed migration/maintenance path. External importer use through
+`kokonut_runtime` is not confirmed; candidate and production rollout stay gated
+until that identity contract is checked. Preserved SELECT does not establish
+tenant isolation. The complete native migration replay through migration 707
+applies all 698 ordered schema files and passes 38 synthetic two-tenant
+operator-scope checks in a network-disabled, portless disposable PostgreSQL 16
+project. No seeds or farm data were loaded, cleanup passed, and no candidate,
+legacy, or production target was accessed. The current probe reports 976
+public tables with runtime DML while RLS is disabled; this is privilege reach,
+not confirmed exposure ([evidence](builds/2026-10-31-recovery/full-schema-707-native.json)).
 The grouped local integration selection passes 215 tests
 ([evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json)).
 The latest complete source/ACL report remains through 703; its counts are not
@@ -363,6 +380,12 @@ The detailed entries below are dated historical checkpoints through migration
   `event_handler`, `capital_source`, and `consent_data_type` in the
   runtime mutation-deny policy so compatibility role provisioning cannot
   restore their DML; the targeted direct table/column ACL probes pass.
+- [x] Keep `farmer_role` in the runtime mutation-deny policy: application code
+  reads authorization defaults but writes assignments to `role_assignment`.
+  Migration 707 and its disposable acceptance preserve runtime SELECT and
+  separate Directus/maintenance grants while denying runtime table and column
+  writes after compatibility provisioning. External importer use through the
+  runtime login remains a candidate/production rollout gate.
 - [ ] Keep reader, API, worker, indexer, report, Directus, and maintenance
   identities distinct where their call graphs or authority differ.
 - [ ] Add a migration-backed privilege contract per cohort, including table

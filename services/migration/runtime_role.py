@@ -1143,6 +1143,7 @@ _RUNTIME_MUTATION_TABLES = (
     "water_access",
     "attestation_plan",
     "process_maturity_level",
+    "farmer_role",
     "pollinator_species_reference", "pest_degree_day_config",
     "gri_indicator",
     "governance_framework",

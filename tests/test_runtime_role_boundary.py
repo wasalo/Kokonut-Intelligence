@@ -1780,6 +1780,57 @@ def test_protocol_reference_is_read_only_to_runtime_and_seeded_by_maintenance():
     assert "does not establish tenant isolation" in migration
 
 
+def test_farmer_role_defaults_are_read_only_to_runtime_and_maintenance_owned():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/707_runtime_farmer_role_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/148_farmer_identity.sql").read_text()
+    inventory = build_inventory()
+    sites = [
+        site for site in inventory["execution_sites"]
+        if "farmer_role" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site for site in inventory["execution_sites"]
+        if "farmer_role" in site.get("write_target_relations", [])
+    ]
+    directus_files = [root / "config/directus/permissions.sql"]
+    directus_files.extend(
+        path
+        for path in (root / "extensions/kokonut-hooks/src").rglob("*.ts")
+        if path.is_file()
+    )
+    directus_references = [
+        path for path in directus_files
+        if "farmer_role" in path.read_text(errors="ignore")
+    ]
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert len(sites) == 1
+    assert sites[0]["source"] == "services/analytics/farmer_identity.py"
+    assert sites[0]["statement_kind"] == "SELECT"
+    assert "SELECT default_permissions FROM farmer_role" in (
+        root / "services/analytics/farmer_identity.py"
+    ).read_text()
+    assert write_sites == []
+    assert "CREATE TABLE IF NOT EXISTS farmer_role" in schema
+    assert "INSERT INTO farmer_role" in schema
+    assert directus_references == []
+    assert "farmer_role" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert policy_overrides["farmer_role"] == "runtime_mutations_denied"
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.farmer_role FROM kokonut_runtime"
+        in migration
+    )
+    assert "GRANT SELECT ON TABLE public.farmer_role TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "External importer use through kokonut_runtime is unconfirmed" in migration
+    assert "does not establish tenant isolation" in migration
+
+
 def test_mobile_credential_columns_are_excluded_from_runtime_reads():
     assert "device_token_hash" not in runtime_role._MOBILE_DEVICE_READ_COLUMNS
     assert "push_token" not in runtime_role._MOBILE_DEVICE_READ_COLUMNS

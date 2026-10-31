@@ -41,11 +41,17 @@ class _Connection:
         self.closed = True
 
 
+def _worker_row(worker, values):
+    active, stale, *backlog = values
+    queued, oldest_due_seconds = backlog or (0, None)
+    return worker, active, stale, queued, oldest_due_seconds
+
+
 def _rows(*, scheduler=(0, 0), events=(0, 0), notifications=(0, 0)):
     return [
-        ("events", *events),
-        ("notifications", *notifications),
-        ("scheduler", *scheduler),
+        _worker_row("events", events),
+        _worker_row("notifications", notifications),
+        _worker_row("scheduler", scheduler),
     ]
 
 
@@ -62,10 +68,12 @@ def test_idle_workers_are_healthy_and_probe_is_read_only():
         "status": "healthy",
         "state": "idle",
         "stale_after_seconds": 300,
+        "backlog_after_seconds": 900,
+        "backlog_workers": [],
         "workers": {
-            "events": {"active": 0, "stale": 0},
-            "notifications": {"active": 0, "stale": 0},
-            "scheduler": {"active": 0, "stale": 0},
+            "events": {"active": 0, "stale": 0, "queued": 0, "oldest_due_seconds": None},
+            "notifications": {"active": 0, "stale": 0, "queued": 0, "oldest_due_seconds": None},
+            "scheduler": {"active": 0, "stale": 0, "queued": 0, "oldest_due_seconds": None},
         },
     }
     assert factory_calls == [{"connect_timeout": 3}]
@@ -87,7 +95,10 @@ def test_active_work_with_current_durable_leases_is_healthy():
     assert result["status"] == "healthy"
     assert result["state"] == "active"
     assert result["stale_after_seconds"] == 90
-    assert result["workers"]["scheduler"] == {"active": 2, "stale": 0}
+    assert result["backlog_after_seconds"] == 900
+    assert result["workers"]["scheduler"] == {
+        "active": 2, "stale": 0, "queued": 0, "oldest_due_seconds": None
+    }
 
 
 @pytest.mark.parametrize(
@@ -110,7 +121,61 @@ def test_stale_active_work_makes_health_unhealthy(worker, counts):
 
     assert result["status"] == "unhealthy"
     assert result["state"] == "stale"
-    assert result["workers"][worker] == {"active": counts[0], "stale": counts[1]}
+    assert result["workers"][worker] == {
+        "active": counts[0], "stale": counts[1], "queued": 0, "oldest_due_seconds": None
+    }
+
+
+@pytest.mark.parametrize("worker", worker_progress.WORKER_NAMES)
+def test_old_due_work_makes_health_unhealthy_without_exposing_rows(worker):
+    values = {name: (0, 0) for name in worker_progress.WORKER_NAMES}
+    values[worker] = (0, 0, 4, 901)
+    connection = _Connection(_rows(**values))
+
+    result = worker_progress.check_progress(
+        connection_factory=lambda **_kwargs: connection,
+        enabled_workers=worker_progress.WORKER_NAMES,
+    )
+
+    assert result["status"] == "unhealthy"
+    assert result["state"] == "backlog"
+    assert result["backlog_workers"] == [worker]
+    assert result["workers"][worker] == {
+        "active": 0,
+        "stale": 0,
+        "queued": 4,
+        "oldest_due_seconds": 901,
+    }
+    assert "payload" not in repr(result)
+    assert "id" not in result
+
+
+def test_due_backlog_younger_than_threshold_is_healthy():
+    connection = _Connection(_rows(events=(0, 0, 5, 899)))
+
+    result = worker_progress.check_progress(
+        connection_factory=lambda **_kwargs: connection,
+        backlog_seconds=900,
+        enabled_workers=worker_progress.WORKER_NAMES,
+    )
+
+    assert result["status"] == "healthy"
+    assert result["state"] == "idle"
+    assert result["backlog_workers"] == []
+    assert result["workers"]["events"]["queued"] == 5
+
+
+def test_future_dated_pending_event_has_zero_age():
+    connection = _Connection([_worker_row("events", (0, 0, 1, 0))])
+
+    result = worker_progress.check_progress(
+        connection_factory=lambda **_kwargs: connection,
+        enabled_workers=("events",),
+    )
+
+    assert result["status"] == "healthy"
+    assert result["workers"]["events"]["queued"] == 1
+    assert result["workers"]["events"]["oldest_due_seconds"] == 0
 
 
 @pytest.mark.parametrize("value", ["0", "-1", "1.5", "300seconds", "2678401", " 0300"])
@@ -126,6 +191,19 @@ def test_threshold_can_be_configured_with_positive_bounded_integer(monkeypatch):
     assert worker_progress.stale_threshold_seconds(worker_progress.MAX_STALE_SECONDS) == worker_progress.MAX_STALE_SECONDS
 
 
+@pytest.mark.parametrize("value", ["0", "-1", "1.5", "300seconds", "2678401", " 0900"])
+def test_backlog_threshold_rejects_invalid_values(value):
+    with pytest.raises(ValueError):
+        worker_progress.backlog_threshold_seconds(value)
+
+
+def test_backlog_threshold_can_be_configured(monkeypatch):
+    monkeypatch.setenv("KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS", "1200")
+    assert worker_progress.backlog_threshold_seconds() == 1200
+    assert worker_progress.backlog_threshold_seconds(1) == 1
+    assert worker_progress.backlog_threshold_seconds(worker_progress.MAX_STALE_SECONDS) == worker_progress.MAX_STALE_SECONDS
+
+
 def test_database_failure_fails_closed_without_exposing_exception_message():
     def fail_connect(**_kwargs):
         raise RuntimeError("postgresql://private-user:synthetic-secret@database/private")
@@ -136,6 +214,8 @@ def test_database_failure_fails_closed_without_exposing_exception_message():
         "status": "unhealthy",
         "state": "database_unavailable",
         "stale_after_seconds": 300,
+        "backlog_after_seconds": 900,
+        "backlog_workers": [],
         "workers": {},
         "error": "RuntimeError",
     }
@@ -157,6 +237,7 @@ def test_probe_query_failure_closes_connection_and_hides_database_message():
     assert result["status"] == "unhealthy"
     assert result["state"] == "database_unavailable"
     assert result["error"] == "RuntimeError"
+    assert result["backlog_after_seconds"] == 900
     assert connection.cursor_instance.closed
     assert connection.closed
     assert "password-do-not-print" not in repr(result)
@@ -171,6 +252,16 @@ def test_query_reads_only_durable_aggregate_state():
     assert "lease_expires_at" in query
     assert "status = 'running'" in query
     assert "status = 'processing'" in query
+    assert "status = 'pending'" in query
+    assert "'retryable'" in query
+    assert "greatest(0, floor(extract(epoch from" in query
+    assert "available_at <= probe.checked_at" in query
+    assert "retry_at <= probe.checked_at" in query
+    assert "task.is_enabled = true" in query
+    assert "task.lease_expires_at <= probe.checked_at" in query
+    assert "dependency.last_status is distinct from 'completed'" in query
+    assert "scheduled_for" in query
+    assert "dead_letter" not in query
     assert "insert " not in query
     assert "update " not in query
     assert "payload" not in query
@@ -178,7 +269,7 @@ def test_query_reads_only_durable_aggregate_state():
 
 
 def test_disabled_queues_are_not_queried_or_reported_as_stale():
-    connection = _Connection([("scheduler", 0, 0)])
+    connection = _Connection([_worker_row("scheduler", (0, 0))])
 
     result = worker_progress.check_progress(
         connection_factory=lambda **_kwargs: connection,
@@ -188,6 +279,7 @@ def test_disabled_queues_are_not_queried_or_reported_as_stale():
     assert result["status"] == "healthy"
     assert result["state"] == "idle"
     assert set(result["workers"]) == {"scheduler"}
+    assert result["backlog_after_seconds"] == 900
     query = connection.cursor_instance.query.lower()
     assert "from task_run" in query
     assert "from platform_event" not in query
@@ -210,6 +302,26 @@ def test_invalid_threshold_fails_closed_before_database_access():
 
     assert result["status"] == "unhealthy"
     assert result["state"] == "invalid_configuration"
+    assert called is False
+
+
+def test_invalid_backlog_threshold_fails_closed_before_database_access():
+    called = False
+
+    def connect(**_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("database should not be opened")
+
+    result = worker_progress.check_progress(
+        backlog_seconds="infinite",
+        connection_factory=connect,
+        enabled_workers=worker_progress.WORKER_NAMES,
+    )
+
+    assert result["status"] == "unhealthy"
+    assert result["state"] == "invalid_configuration"
+    assert result["backlog_after_seconds"] is None
     assert called is False
 
 

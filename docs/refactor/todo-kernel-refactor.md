@@ -8,22 +8,29 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 758 checked / 30 open across the
+**Current queue snapshot (31 October 2026):** 761 checked / 30 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
 **Hosted validation (31 October 2026):** On the pre-batch PR head `fb4cc883`,
 Security #743 passed. Both CI #1019 `full-ci` attempts were terminated by a
 hosted-runner shutdown shortly after entering the full Python suite. The
-fast-fail gates, 696-migration replay, 28-seed replay, and Adelphi/Genesis
-metric checks passed; both `kernel-image` attempts passed. No full-suite
-assertion failure was logged. The exact current commit still needs its own
-hosted validation ([run evidence](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
-The user-linked CI #1014 (`41172853331`) is an older head (`aa6a01ab`): attempt
-1 is marked failed but GitHub no longer serves its job log, while attempt 2
-was cancelled during Buildx before `ci-check.sh`. The earlier runtime-SQL
-inventory drift was fixed in `fb4cc883`; the available logs do not identify a
-source assertion to repair.
+release-input/fast-fail gates, 696-migration replay, 28-seed replay, and
+Adelphi/Genesis metric checks passed; both `kernel-image` attempts passed. No
+full-suite assertion failure was logged ([run evidence](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
+On the last observed PR head `b21d0ecc`, Security #746 passed. CI #1022 (`41216478619`)
+applied 697 migrations and 28 base seeds, loaded pilot data, and computed 20
+metrics each for Adelphi and Genesis with zero errors. `full-ci` then received
+a runner shutdown signal shortly after entering the full Python suite; no
+assertion failure was logged. Its parallel `kernel-image` job later passed,
+but the aggregate CI gate remains failed because `full-ci` was cancelled. Keep the release gate open until CI completes
+successfully on an exact pushed SHA ([run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41216478619)).
+The user-linked CI #1014 (`41172853331`) is an older head (`aa6a01ab`):
+attempt 1 is marked failed but GitHub no longer serves its job log; attempt 2
+was cancelled during ARM64 Buildx dependency installation when newer same-PR
+CI #1015 (`41204207505`) started. This was a superseded run, not a test
+assertion failure ([evidence](builds/2026-10-31-recovery/ci-1014-superseded-run.json)).
+The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
 
 ## Current continuation — Standard profile and C1 ACL guardrails
 
@@ -34,8 +41,8 @@ source assertion to repair.
   browser certificate and external-origin acceptance remain open.
 - [x] Add a read-only Standard worker health probe over active scheduler,
   event and notification leases. Focused tests and Compose/profile checks pass;
-  the probe does not detect unclaimed backlog, idle hung supervisors, or route
-  operator alerts ([guide](standard-profile.md); [evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json)).
+  due backlog age is covered as well. Idle hung supervisors and external alert
+  routing remain open ([guide](standard-profile.md); [evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json); [backlog tests](builds/2026-10-31-recovery/standard-worker-backlog-focused-tests.json)).
 - [x] Add migration 704 to preserve runtime reads of `living_wage_benchmark`
   while denying runtime table/column writes; focused native and ARM64/QEMU
   PostgreSQL acceptance passes. External importer use through the runtime
@@ -52,18 +59,32 @@ source assertion to repair.
   or Directus rule was found; external importer use through the runtime login
   remains a persistent-rollout gate
   ([evidence](builds/2026-10-31-recovery/runtime-protocol-read-only-disposable.json)).
-- [x] Pass the integrated 215-test migration, role-boundary, profile and
+- [x] Add migration 707 to preserve runtime reads of `farmer_role` defaults
+  while denying runtime table and residual column writes. Focused PostgreSQL 16
+  acceptance reapplies the runtime-role provisioner, confirms Directus and
+  maintenance writes remain available, and passes migration replay. External
+  importer use is unconfirmed and remains a persistent-rollout gate
+  ([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json); [disposable evidence](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)).
+- [x] Add aggregate due-backlog counts and oldest eligible age to the Standard
+  worker health probe, respecting scheduler eligibility, leases, retries,
+  dependencies, overlap and disabled queues; future-created events clamp to
+  age zero. Focused unit and disposable PostgreSQL checks pass. Idle hung
+  supervisors and external alert routing remain open
+  ([guide](standard-profile.md); [focused tests](builds/2026-10-31-recovery/standard-worker-backlog-focused-tests.json); [disposable check](builds/2026-10-31-recovery/standard-worker-backlog-disposable.json)).
+- [x] Pass the integrated 229-test migration, role-boundary, profile and
   worker-health selection, plus Ruff, compilation, release-input, inventory,
   capability-matrix and `git diff --check`
-  ([evidence](builds/2026-10-31-recovery/c1-706-standard-focused-tests.json)).
+  ([evidence](builds/2026-10-31-recovery/c1-707-standard-focused-tests.json)).
 - [x] Fix CI startup ordering so `make hooks-build` creates the ignored
   Directus extension bundle before Directus starts; the workflow contract tests,
   build/type check, and all 143 hook tests pass
   ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
 - [x] Refresh release-input hashes for the changed Standard profile planner
   and guide after CI run #1017 rejected the previous values. The release-lock
-  checker and 70 profile tests pass locally; a new hosted run remains pending
-  ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
+  checker and 70 profile tests pass locally. Subsequent CI #1019 on `fb4cc883`
+  passed the release-input/fast-fail gates before `full-ci` was terminated by
+  the hosted runner; this supersedes the pending hosted-validation note from
+  the earlier checkpoint ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json); [runner diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
 - [x] Refresh `docs/refactor/runtime-sql-inventory.json` after CI #1018's
   inventory-drift gate reported stale data. The inventory check and focused
   runtime inventory/role-boundary tests pass on `fb4cc883`; Security #743
@@ -78,6 +99,14 @@ source assertion to repair.
   applied, zero pending/failed, no seeds or host ports, and disposable cleanup
   passed ([evidence](builds/2026-10-31-recovery/full-schema-706-native.json)).
   The separate two-tenant operator-scope probe remains recorded through 705.
+- [x] Replay all 698 ordered schema files through migration 707 and run the
+  synthetic two-tenant operator-scope probe on native disposable PostgreSQL
+  16. All migrations and 38 scope checks passed in a network-disabled,
+  portless project with no seeds or farm data; cleanup completed. The ACL
+  inventory reports 976 public tables with runtime DML while RLS is disabled,
+  which is privilege reach rather than evidence of a data leak. This is
+  disposable schema/authorization evidence only; no candidate, legacy, or
+  production target was touched ([evidence](builds/2026-10-31-recovery/full-schema-707-native.json)).
 - [ ] Complete ARM64/QEMU full ordered schema replay through 706 and the
   synthetic two-tenant operator-scope probe. The attempt was stopped after
   583.6 seconds at migration 116 (111/696), with no migration error and clean
@@ -87,9 +116,12 @@ source assertion to repair.
 - [x] Retry CI #1019 `full-ci` after the image job completed. Attempt 2 again
   ended at hosted-runner shutdown after starting the full suite, with no
   assertion failure logged ([diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
-- [ ] Obtain passing CI and Security checks on the current pushed PR head. The
-  new feature commit needs an exact-head hosted run; keep this release gate open
-  until both required checks pass on that SHA.
+- [ ] Obtain passing CI and Security checks on the next pushed PR head. On
+  `b21d0ecc`, Security #746 and `kernel-image` passed, but CI #1022
+  (`41216478619`) ended `full-ci` after the hosted runner received a shutdown
+  signal shortly after the full Python suite began. No assertion failure was
+  logged. A fresh pushed head must pass both required checks before the release
+  gate closes ([evidence](builds/2026-10-31-recovery/ci-1022-hosted-runner-shutdown.json)).
 
 ## Current continuation — documentation and C1 integration checks
 

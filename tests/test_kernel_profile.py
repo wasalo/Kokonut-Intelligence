@@ -265,6 +265,9 @@ def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles
     assert worker["environment"]["KOKONUT_WORKER_PROGRESS_STALE_SECONDS"] == (
         "${KOKONUT_WORKER_PROGRESS_STALE_SECONDS:-300}"
     )
+    assert worker["environment"]["KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS"] == (
+        "${KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS:-900}"
+    )
     assert "KOKONUT_WORKER_PROGRESS_STALE_SECONDS" not in app.get("environment", {})
     assert worker["environment"]["PG_USER"] == "${KOKONUT_RUNTIME_USER:-kokonut}"
 
