@@ -9909,3 +9909,35 @@ Rollback: no candidate, legacy, or production database/role was changed. Do not
 edit migration 711; a persistent rollback of its ACL requires a reviewed
 forward migration. Re-enabling legacy writes requires a separate reviewed code
 change and must not bypass signed location scope.
+
+### Standard profile and shared rate-limit boundary — 31 October 2026
+
+- [x] Add migration 712 to move PostgreSQL rate-limit consumption and idle
+  cleanup behind bounded, owned functions. Revoke direct bucket-table access
+  from runtime and Directus; grant runtime only consumption, and make optional
+  maintenance use a separate login/schema with cleanup only. The API no longer
+  reads or writes bucket rows directly. Standard Compose passes the maintenance
+  credential only to the one-shot cleanup command and does not expose delivery
+  provider credentials to the API process.
+- [x] Pass focused limiter, profile, notification-outbox, and runtime-role
+  checks (123 tests in the final secret-free run; the runtime-role boundary
+  suite separately passed 103 tests). Ruff, compilation, migration validation
+  (825 migration sources), runtime-SQL inventory freshness, and diff checks
+  pass.
+- [x] Pass the network-disabled disposable Standard recovery acceptance
+  through migration 712: 703/703 schema entries applied, zero failures/seeds,
+  bounded ACL and consume/check-only/deny/cleanup probes passed, API and worker
+  identities remained `kokonut_runtime`, database restart recovery succeeded,
+  and cleanup completed with no host ports or external egress
+  ([evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json);
+  [runner](../../scripts/check-kernel-standard-recovery-disposable.py)).
+- [ ] Obtain a complete hosted CI and Security run on the pushed repair head.
+  CI run `41172853331` did not retain a source failure log for its failed
+  attempt; the retry was cancelled during runner/build setup. The local
+  acceptance does not determine the expired hosted failure. A new push is
+  required to verify the current head.
+
+Rollback: no candidate, legacy, or production database/role was changed. Keep
+migration 712 immutable; a persistent ACL rollback requires a reviewed forward
+migration. The maintenance function and login remain optional and can be left
+unprovisioned by keeping its password unset.

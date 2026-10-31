@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import os
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -315,6 +318,107 @@ def test_standard_api_and_worker_require_schema_readiness() -> None:
         command = standard["services"][service_name]["command"]
         assert "--require-schema" in command
         assert "--require-runtime-role" in command
+
+
+def test_standard_compose_keeps_notification_secrets_on_delivery_worker_only() -> None:
+    candidate = yaml.safe_load((ROOT / "docker-compose.kernel-candidate.yml").read_text())
+    standard = yaml.safe_load((ROOT / "docker-compose.kernel-standard.yml").read_text())
+    runtime_role = yaml.safe_load((ROOT / "docker-compose.kernel-runtime-role.yml").read_text())
+
+    # Model Compose's map merge for the candidate, Standard, and runtime-role
+    # overlays. Empty Standard values clear inherited candidate credentials.
+    app_environment = {
+        **candidate["services"]["app"].get("environment", {}),
+        **standard["services"]["app"].get("environment", {}),
+        **runtime_role["services"]["app"].get("environment", {}),
+    }
+    worker_environment = {
+        **standard["services"]["worker"].get("environment", {}),
+        **runtime_role["services"]["worker"].get("environment", {}),
+    }
+
+    assert app_environment["ALERT_SMTP_USER"] == ""
+    assert app_environment["ALERT_SMTP_PASSWORD"] == ""
+    assert app_environment["ALERT_WEBHOOK_URL"] == ""
+    assert app_environment["KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED"] == (
+        "${ALERT_WEBHOOK_URL:+true}"
+    )
+    assert worker_environment["ALERT_SMTP_USER"] == "${ALERT_SMTP_USER:-}"
+    assert worker_environment["ALERT_SMTP_PASSWORD"] == "${ALERT_SMTP_PASSWORD:-}"
+    assert worker_environment["ALERT_WEBHOOK_URL"] == "${ALERT_WEBHOOK_URL:-}"
+
+    # The event producer keeps non-secret channel/routing settings needed to
+    # enqueue intents; the worker keeps those settings plus SMTP credentials.
+    smtp_configuration = (
+        "ALERT_SMTP_HOST",
+        "ALERT_SMTP_PORT",
+        "ALERT_SMTP_TLS_MODE",
+        "ALERT_EMAIL_FROM",
+        "ALERT_EMAIL_TO",
+    )
+    for key in smtp_configuration:
+        assert app_environment[key] == standard["services"]["app"]["environment"][key]
+    for key in smtp_configuration:
+        assert worker_environment[key] == standard["services"]["worker"]["environment"][key]
+
+
+def test_standard_resolved_compose_keeps_notification_secrets_on_delivery_worker() -> None:
+    docker = shutil.which("docker")
+    if docker is None:
+        pytest.skip("Docker CLI is required to resolve the Standard Compose model")
+
+    environment = {
+        "HOME": str(Path.home()),
+        "PATH": os.environ.get("PATH", ""),
+        "POSTGRES_PASSWORD": "synthetic-postgres-password",
+        "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+        "KOKONUT_RUNTIME_PASSWORD": "synthetic-runtime-password",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD": "synthetic-operator-password",
+        "ALERT_SMTP_USER": "synthetic-smtp-user",
+        "ALERT_SMTP_PASSWORD": "synthetic-smtp-password",
+        "ALERT_SMTP_HOST": "smtp.example.test",
+        "ALERT_EMAIL_TO": "ops@example.test",
+        "ALERT_WEBHOOK_URL": "https://hooks.example.test/synthetic-token",
+    }
+    command = [
+        docker,
+        "compose",
+        "--env-file",
+        os.devnull,
+        "-f",
+        "docker-compose.kernel-candidate.yml",
+        "-f",
+        "docker-compose.kernel-standard.yml",
+        "-f",
+        "docker-compose.kernel-runtime-role.yml",
+        "-f",
+        "docker-compose.kernel-proxy.yml",
+        "config",
+        "--format",
+        "json",
+    ]
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    model = json.loads(result.stdout)
+    app_environment = model["services"]["app"]["environment"]
+    worker_environment = model["services"]["worker"]["environment"]
+
+    assert app_environment["ALERT_SMTP_USER"] == ""
+    assert app_environment["ALERT_SMTP_PASSWORD"] == ""
+    assert app_environment["ALERT_WEBHOOK_URL"] == ""
+    assert app_environment["KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED"] == "true"
+    assert worker_environment["ALERT_SMTP_USER"] == "synthetic-smtp-user"
+    assert worker_environment["ALERT_SMTP_PASSWORD"] == "synthetic-smtp-password"
+    assert worker_environment["ALERT_WEBHOOK_URL"] == environment["ALERT_WEBHOOK_URL"]
+    assert environment["ALERT_WEBHOOK_URL"] not in json.dumps(model["services"]["app"])
 
 
 def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles() -> None:

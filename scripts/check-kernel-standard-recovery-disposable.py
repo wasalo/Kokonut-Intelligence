@@ -67,6 +67,8 @@ def _redact_secrets(value: str, environment: dict[str, str]) -> str:
         "KOKONUT_DB_ADMIN_PASSWORD",
         "KOKONUT_RUNTIME_PASSWORD",
         "KOKONUT_OPERATOR_AUTH_PASSWORD",
+        "KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD",
+        "KOKONUT_RATE_LIMIT_MAINTENANCE_DSN",
         "DIRECTUS_SECRET",
     ):
         secret = environment.get(secret_name, "")
@@ -126,6 +128,7 @@ def _compose_environment(sensor_root: Path) -> dict[str, str]:
     password = secrets.token_urlsafe(32)
     runtime_password = secrets.token_urlsafe(32)
     operator_auth_password = secrets.token_urlsafe(32)
+    rate_limit_maintenance_password = secrets.token_urlsafe(32)
     environment.update(
         {
             "POSTGRES_PASSWORD": password,
@@ -135,6 +138,10 @@ def _compose_environment(sensor_root: Path) -> dict[str, str]:
             "KOKONUT_RUNTIME_PASSWORD": runtime_password,
             "KOKONUT_OPERATOR_AUTH_USER": "kokonut_operator_auth",
             "KOKONUT_OPERATOR_AUTH_PASSWORD": operator_auth_password,
+            "KOKONUT_RATE_LIMIT_MAINTENANCE_USER": (
+                "kokonut_rate_limit_maintenance_login"
+            ),
+            "KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD": rate_limit_maintenance_password,
             "KOKONUT_ENV": "development",
             "KOKONUT_ENV_SECRETS_NOT_REQUIRED": "true",
             "KOKONUT_ALLOW_PLAINTEXT_ENV": "true",
@@ -486,6 +493,169 @@ finally:
         raise AcceptanceError("kokonut_runtime could not prove schema_version DML remains denied")
 
 
+def _assert_gateway_rate_limit_boundary(
+    project: str, manifest: Path, environment: dict[str, str]
+) -> None:
+    """Verify the private bucket ACL and both bounded function identities."""
+    compose = _compose_command(project, manifest)
+    query = """SELECT
+        has_table_privilege('kokonut_runtime', 'public.gateway_rate_bucket', 'SELECT'),
+        has_table_privilege('kokonut_runtime', 'public.gateway_rate_bucket', 'INSERT'),
+        has_table_privilege('kokonut_runtime', 'public.gateway_rate_bucket', 'UPDATE'),
+        has_table_privilege('kokonut_runtime', 'public.gateway_rate_bucket', 'DELETE'),
+        has_table_privilege('kokonut_directus_runtime', 'public.gateway_rate_bucket', 'SELECT'),
+        has_table_privilege('kokonut_directus_runtime', 'public.gateway_rate_bucket', 'INSERT'),
+        has_table_privilege('kokonut_directus_runtime', 'public.gateway_rate_bucket', 'UPDATE'),
+        has_table_privilege('kokonut_directus_runtime', 'public.gateway_rate_bucket', 'DELETE'),
+        has_table_privilege('kokonut_rate_limit_maintenance_login',
+            'public.gateway_rate_bucket', 'SELECT'),
+        has_table_privilege('kokonut_rate_limit_maintenance_login',
+            'public.gateway_rate_bucket', 'INSERT'),
+        has_table_privilege('kokonut_rate_limit_maintenance_login',
+            'public.gateway_rate_bucket', 'UPDATE'),
+        has_table_privilege('kokonut_rate_limit_maintenance_login',
+            'public.gateway_rate_bucket', 'DELETE'),
+        has_function_privilege('kokonut_runtime',
+            'kokonut_security.consume_gateway_rate_bucket(text,integer,boolean)', 'EXECUTE'),
+        has_function_privilege('kokonut_runtime',
+            'kokonut_rate_limit_maintenance.cleanup_idle_gateway_rate_buckets(integer)', 'EXECUTE'),
+        has_function_privilege('kokonut_rate_limit_maintenance_login',
+            'kokonut_security.consume_gateway_rate_bucket(text,integer,boolean)', 'EXECUTE'),
+        has_function_privilege('kokonut_rate_limit_maintenance_login',
+            'kokonut_rate_limit_maintenance.cleanup_idle_gateway_rate_buckets(integer)', 'EXECUTE'),
+        has_schema_privilege('kokonut_rate_limit_maintenance_login',
+            'kokonut_security', 'USAGE'),
+        has_schema_privilege('kokonut_rate_limit_maintenance_login',
+            'kokonut_rate_limit_maintenance', 'USAGE'),
+        has_function_privilege('kokonut_rate_limit_maintenance_login',
+            'kokonut_security.resolve_mobile_device_token(text)', 'EXECUTE'),
+        has_function_privilege('kokonut_rate_limit_maintenance_login',
+            'kokonut_security.redeem_mobile_enrollment(text,text,text,text,text,text,text,text)', 'EXECUTE'),
+        has_function_privilege('kokonut_rate_limit_maintenance_login',
+            'kokonut_security.set_mobile_device_context(text,text,uuid)', 'EXECUTE'),
+        has_function_privilege('kokonut_rate_limit_maintenance_login',
+            'kokonut_security.current_tenant_context()', 'EXECUTE'),
+        has_function_privilege('kokonut_rate_limit_maintenance_login',
+            'kokonut_security.current_worker_scope(text,text)', 'EXECUTE'),
+        (SELECT pg_catalog.pg_get_userbyid(proowner)
+           FROM pg_catalog.pg_proc
+          WHERE oid = 'kokonut_security.consume_gateway_rate_bucket(text,integer,boolean)'::regprocedure),
+        (SELECT pg_catalog.pg_get_userbyid(proowner)
+           FROM pg_catalog.pg_proc
+          WHERE oid = 'kokonut_rate_limit_maintenance.cleanup_idle_gateway_rate_buckets(integer)'::regprocedure),
+        (SELECT rolcanlogin OR rolinherit OR rolsuper OR rolcreatedb OR rolcreaterole
+                    OR rolreplication OR rolbypassrls
+           FROM pg_catalog.pg_roles WHERE rolname = 'kokonut_gateway_rate_limit_owner'),
+        (SELECT relrowsecurity AND relforcerowsecurity
+           FROM pg_catalog.pg_class WHERE oid = 'public.gateway_rate_bucket'::regclass),
+        (SELECT access_mode
+           FROM kokonut_security.directus_relation_privilege_policy
+          WHERE schema_name = 'public' AND relation_name = 'gateway_rate_bucket');"""
+    acl = _run(
+        [
+            *compose,
+            "exec", "-T", "database", "psql", "-XAt", "-F", "|",
+            "-U", "kokonut", "-d", "kokonut_intelligence",
+            "-v", "ON_ERROR_STOP=1", "-c", query,
+        ],
+        environment=environment,
+    )
+    expected_acl = (
+        "f|f|f|f|f|f|f|f|f|f|f|f|t|f|f|t|t|t|f|f|f|f|f|"
+        "kokonut_gateway_rate_limit_owner|kokonut_gateway_rate_limit_owner|f|t|no_access"
+    )
+    if acl.stdout.strip() != expected_acl:
+        raise AcceptanceError(
+            "migration 712 did not establish the private rate-limit table and function ACL; "
+            f"received {acl.stdout.strip()}"
+        )
+
+    caller_hash_a = "a" * 64
+    caller_hash_b = "b" * 64
+    consume = f"""SET ROLE kokonut_runtime;
+SELECT allowed::text || '|' || retry_after_seconds::text
+  FROM kokonut_security.consume_gateway_rate_bucket('{caller_hash_a}', 100, true);
+SELECT allowed::text || '|' || retry_after_seconds::text
+  FROM kokonut_security.consume_gateway_rate_bucket('{caller_hash_a}', 100, true);
+SELECT allowed::text || '|' || retry_after_seconds::text
+  FROM kokonut_security.consume_gateway_rate_bucket('{caller_hash_b}', 100, false);
+SELECT allowed::text || '|' || retry_after_seconds::text
+  FROM kokonut_security.consume_gateway_rate_bucket('{caller_hash_b}', 100, true);
+RESET ROLE;"""
+    runtime_result = _run(
+        [
+            *compose,
+            "exec", "-T", "database", "psql", "-XAtq",
+            "-U", "kokonut", "-d", "kokonut_intelligence",
+            "-v", "ON_ERROR_STOP=1", "-c", consume,
+        ],
+        environment=environment,
+    )
+    decisions = runtime_result.stdout.splitlines()
+    if (
+        len(decisions) != 4
+        or decisions[0] != "true|1"
+        or not decisions[1].startswith("false|")
+        or decisions[2] != "true|1"
+        or decisions[3] != "true|1"
+    ):
+        raise AcceptanceError(
+            "runtime consume function did not preserve refill, deny, and check-only behavior; "
+            f"received {decisions!r}"
+        )
+
+    for role in ("kokonut_runtime", "kokonut_directus_runtime"):
+        denied = _run(
+            [
+                *compose,
+                "exec", "-T", "database", "psql", "-XAt",
+                "-U", "kokonut", "-d", "kokonut_intelligence",
+                "-v", "ON_ERROR_STOP=1", "-c",
+                f"SET ROLE {role}; SELECT count(*) FROM public.gateway_rate_bucket;",
+            ],
+            environment=environment,
+            check=False,
+        )
+        if denied.returncode == 0 or "permission denied" not in denied.stderr.lower():
+            raise AcceptanceError(
+                f"{role} retained direct access to gateway_rate_bucket"
+            )
+
+    denied_context = _run(
+        [
+            *compose,
+            "exec", "-T", "database", "psql", "-XAtq",
+            "-U", "kokonut", "-d", "kokonut_intelligence",
+            "-v", "ON_ERROR_STOP=1", "-c",
+            "SET ROLE kokonut_rate_limit_maintenance_login; "
+            "SELECT * FROM kokonut_security.set_gateway_tenant_context("
+            "NULL, NULL, NULL, NULL, NULL);",
+        ],
+        environment=environment,
+        check=False,
+    )
+    if denied_context.returncode == 0 or "permission denied for function set_gateway_tenant_context" not in (
+        denied_context.stderr.lower()
+    ):
+        raise AcceptanceError(
+            "rate-limit maintenance login retained access to a private Gateway context function"
+        )
+
+    cleanup = _run(
+        [
+            *compose,
+            "exec", "-T", "database", "psql", "-XAtq",
+            "-U", "kokonut", "-d", "kokonut_intelligence",
+            "-v", "ON_ERROR_STOP=1", "-c",
+            "SET ROLE kokonut_rate_limit_maintenance_login; "
+            "SELECT kokonut_rate_limit_maintenance.cleanup_idle_gateway_rate_buckets(5); RESET ROLE;",
+        ],
+        environment=environment,
+    )
+    if cleanup.stdout.strip() != "0":
+        raise AcceptanceError("dedicated rate-limit maintenance function did not return a bounded count")
+
+
 def _worker_probe(
     project: str, manifest: Path, environment: dict[str, str]
 ) -> dict[str, Any]:
@@ -749,6 +919,7 @@ def _main(timeout: float) -> dict[str, Any]:
                 environment=environment,
                 timeout=600,
             )
+            _assert_gateway_rate_limit_boundary(project, manifest, environment)
             role_attributes = _query_runtime_role_attributes(project, manifest, environment)
             _run([*compose, "up", "-d", "app", "worker", "proxy"], environment=environment, timeout=120)
             app = _wait_for_health(project, manifest, environment, "app", "healthy", timeout)
@@ -758,6 +929,7 @@ def _main(timeout: float) -> dict[str, Any]:
             if app_identity != "kokonut_runtime" or worker_identity != "kokonut_runtime":
                 raise AcceptanceError("Standard app and worker did not connect as kokonut_runtime")
             _assert_runtime_write_denied(project, manifest, environment)
+            _assert_gateway_rate_limit_boundary(project, manifest, environment)
 
             _run(
                 [

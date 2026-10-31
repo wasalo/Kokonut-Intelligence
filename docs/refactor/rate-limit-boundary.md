@@ -18,12 +18,20 @@ requirement.
 
 The standard profile defaults to `KOKONUT_RATE_LIMIT_PROVIDER=postgres`. This
 shares the budget across API processes and containers and survives app restarts.
-Migration 373 must be applied before the gateway serves traffic. The profile
-can be explicitly overridden for a reviewed deployment shape; horizontal or
-multi-host API replicas must use a shared provider. Existing direct and ASGI
-multi-process checks plus the two-container private HTTP check exercised shared
-consumption. Multi-host failover, public ingress, and production scale remain
-open.
+The complete ordered schema, including migration 712, must be applied before
+the gateway serves traffic. The runtime can invoke the bounded consume function
+but has no direct bucket-table access. Cleanup is a separate opt-in function for
+the dedicated maintenance login in its isolated
+`kokonut_rate_limit_maintenance` schema. Earlier migrations grant `PUBLIC`
+usage on `kokonut_security`, so the maintenance login inherits schema usage;
+role provisioning revokes `PUBLIC` execution on restricted credential/context
+functions. The verifier rejects every other callable `SECURITY DEFINER` routine
+(trigger-only routines are not directly callable) and permits only the bounded
+cleanup function. The profile can be explicitly overridden for a reviewed
+deployment shape; horizontal or multi-host API replicas must use a shared
+provider. Existing direct and ASGI multi-process checks plus the two-container
+private HTTP check exercised shared consumption. Multi-host failover, public
+ingress, and production scale remain open.
 
 Kernel operator sessions and computation-result cache entries are stored in
 PostgreSQL. The cache table (`cache_entry`) is durable computation metadata,

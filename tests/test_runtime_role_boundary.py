@@ -25,8 +25,8 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     probe = json.loads(
         (
             root
-            / "docs/refactor/builds/2026-10-30-recovery/"
-            "kernel-c1-full-schema-703-native-r2.json"
+                / "docs/refactor/builds/2026-10-31-recovery/"
+                "native-schema-711-operator-probe.json"
         ).read_text()
     )
     inventory = build_inventory()
@@ -2903,3 +2903,10 @@ def test_runtime_solution_stage_gate_privilege_verification(privileges, should_r
             runtime_role._verify_solution_stage_gate_boundary(cursor, "kokonut_runtime")
     else:
         runtime_role._verify_solution_stage_gate_boundary(cursor, "kokonut_runtime")
+
+
+def test_bounded_login_callable_function_check_excludes_trigger_routines():
+    source = (
+        Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py"
+    ).read_text()
+    assert "procedure.prorettype <> 'trigger'::regtype" in source

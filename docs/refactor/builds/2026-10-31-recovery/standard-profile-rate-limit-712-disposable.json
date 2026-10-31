@@ -1,0 +1,55 @@
+{
+  "acceptance": "passed",
+  "profile": "standard",
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "migrations": {
+    "latest_schema_migration": "schema:712_gateway_rate_limit_bounded_functions.sql",
+    "schemas_applied": 703,
+    "schemas_failed": 0,
+    "seed_rows": 0
+  },
+  "gateway_rate_limit_boundary": {
+    "migration": 712,
+    "runtime_and_directus_direct_table_access": "denied",
+    "maintenance_login_direct_table_access": "denied",
+    "runtime_consume_function": "execute only",
+    "maintenance_cleanup_function": "execute only",
+    "maintenance_login_other_security_functions": "denied",
+    "bucket_rls_forced": true,
+    "owner_role_login_or_elevated_attributes": false,
+    "consume_behavior": [
+      "first 100-token request for a caller was allowed",
+      "second full-capacity request for that caller was denied",
+      "check-only request for another caller was allowed without consuming its bucket",
+      "subsequent consuming request for that caller was allowed"
+    ],
+    "maintenance_cleanup_deleted_rows": 0
+  },
+  "runtime_role": {
+    "app_database_user": "kokonut_runtime",
+    "worker_database_user": "kokonut_runtime",
+    "bootstrap_profile": "runtime-admin",
+    "bootstrap_ran_explicitly_after_migrations": true,
+    "unsafe_admin_runtime_role_fails_before_children": true,
+    "schema_version_insert_denied_after_initial_provision": true,
+    "schema_version_insert_denied_after_provisioner_reapply": true,
+    "role_attributes_preserved_after_reapply": true
+  },
+  "deployment_checks": {
+    "api_healthy": true,
+    "worker_healthy_after_restart": true,
+    "database_healthy_after_restart": true,
+    "worker_degraded_state_observed": "unhealthy",
+    "worker_restart_count": 0,
+    "active_work_leases_after_shutdown": 0,
+    "supervisor_heartbeat_removed": true,
+    "host_ports_published": false,
+    "runtime_network_internal": true,
+    "candidate_legacy_production_touched": false
+  },
+  "limitations": [
+    "Uses a network-disabled disposable PostgreSQL 16/PostGIS Standard profile with synthetic data only.",
+    "No seeds, candidate database, legacy stack, production service, or external provider was used.",
+    "Does not establish candidate or production rollout, live provider delivery, scale, 24-hour endurance, or physical Raspberry Pi acceptance."
+  ]
+}

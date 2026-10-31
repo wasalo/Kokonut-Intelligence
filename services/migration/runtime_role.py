@@ -149,6 +149,21 @@ _LANDSCAPE_CAPTURE_FUNCTIONS = (
 _ENERGY_READING_CAPTURE_FUNCTIONS = (
     "kokonut_security.record_location_energy_reading(uuid,uuid,uuid,date,text,numeric,numeric,text,text,uuid,text,jsonb,text)",
 )
+_GATEWAY_RATE_LIMIT_CONSUME_FUNCTION = (
+    "kokonut_security.consume_gateway_rate_bucket(text,integer,boolean)"
+)
+_GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION = (
+    "kokonut_rate_limit_maintenance.cleanup_idle_gateway_rate_buckets(integer)"
+)
+_POSTGIS_METADATA_READ_RELATIONS = (
+    "geography_columns",
+    "geometry_columns",
+    "spatial_ref_sys",
+)
+_GATEWAY_RATE_LIMIT_FUNCTIONS = (
+    _GATEWAY_RATE_LIMIT_CONSUME_FUNCTION,
+    _GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,
+)
 _REPORT_SNAPSHOT_EXPORT_FUNCTIONS = (
     *_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS,
     *_REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS,
@@ -233,6 +248,7 @@ _SECURITY_DEFINER_OWNERS = (
     ),
     *((function, "kokonut_landscape_capture_writer") for function in _LANDSCAPE_CAPTURE_FUNCTIONS),
     *((function, "kokonut_energy_reading_writer") for function in _ENERGY_READING_CAPTURE_FUNCTIONS),
+    *((function, "kokonut_gateway_rate_limit_owner") for function in _GATEWAY_RATE_LIMIT_FUNCTIONS),
     *((function, "kokonut_notification_delivery_owner") for function in _NOTIFICATION_DELIVERY_FUNCTIONS),
     *((function, "kokonut_event_dispatch_owner") for function in _EVENT_DISPATCH_FUNCTIONS),
     *(
@@ -269,6 +285,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     *_EXTENSION_LEARNING_WRITE_FUNCTIONS,
     *_LANDSCAPE_CAPTURE_FUNCTIONS,
     *_ENERGY_READING_CAPTURE_FUNCTIONS,
+    *_GATEWAY_RATE_LIMIT_FUNCTIONS,
     *_NOTIFICATION_DELIVERY_FUNCTIONS,
     *_EVENT_DISPATCH_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
@@ -460,9 +477,21 @@ def _verify_role_attributes(cur, role_name: str) -> None:
 
 
 def _verify_bounded_indexer_login(
-    cur, role_name: str, functions: tuple[str, ...], label: str, runtime_user: str
+    cur,
+    role_name: str,
+    functions: tuple[str, ...],
+    label: str,
+    runtime_user: str,
+    *,
+    schema_name: str = "kokonut_security",
+    function_schemas: tuple[str, ...] = ("public", "kokonut_security"),
+    allowed_read_relations: tuple[str, ...] = (),
 ) -> None:
-    """Verify that an indexer login exposes only its named function surface."""
+    """Verify a bounded login's callable function surface and schema boundary.
+
+    Trigger-returning routines are excluded because PostgreSQL only permits
+    invoking them through an attached trigger, not as direct SQL functions.
+    """
     _verify_role_attributes(cur, role_name)
     cur.execute(
         "SELECT " + ", ".join(
@@ -473,48 +502,81 @@ def _verify_bounded_indexer_login(
     if cur.fetchone() != (True,) * len(functions):
         raise RuntimeError(f"{label} login is missing a bounded function")
     cur.execute(
-        "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
-        "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
-        (role_name, role_name),
+        "SELECT has_schema_privilege(%s, %s, 'USAGE'), "
+        "has_schema_privilege(%s, %s, 'CREATE')",
+        (role_name, schema_name, role_name, schema_name),
     )
     if cur.fetchone() != (True, False):
-        raise RuntimeError(f"{label} login has unsafe security schema privileges")
+        raise RuntimeError(f"{label} login has unsafe {schema_name} schema privileges")
+    any_relation_privilege = """(
+        has_table_privilege(%s, relation.oid, 'SELECT')
+        OR has_table_privilege(%s, relation.oid, 'INSERT')
+        OR has_table_privilege(%s, relation.oid, 'UPDATE')
+        OR has_table_privilege(%s, relation.oid, 'DELETE')
+        OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+        OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+        OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+        OR has_any_column_privilege(%s, relation.oid, 'SELECT')
+        OR has_any_column_privilege(%s, relation.oid, 'INSERT')
+        OR has_any_column_privilege(%s, relation.oid, 'UPDATE')
+        OR has_any_column_privilege(%s, relation.oid, 'REFERENCES'))"""
+    mutation_privilege = """(
+        has_table_privilege(%s, relation.oid, 'INSERT')
+        OR has_table_privilege(%s, relation.oid, 'UPDATE')
+        OR has_table_privilege(%s, relation.oid, 'DELETE')
+        OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+        OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+        OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+        OR has_any_column_privilege(%s, relation.oid, 'INSERT')
+        OR has_any_column_privilege(%s, relation.oid, 'UPDATE')
+        OR has_any_column_privilege(%s, relation.oid, 'REFERENCES'))"""
+    relation_privilege_clause = any_relation_privilege
+    relation_parameters: tuple[object, ...] = (role_name,) * 11
+    if allowed_read_relations:
+        relation_privilege_clause += (
+            " AND (relation.relname <> ALL(%s) OR "
+            + mutation_privilege
+            + ")"
+        )
+        relation_parameters += (
+            list(allowed_read_relations),
+            *((role_name,) * 9),
+        )
     cur.execute(
-        """SELECT EXISTS (
-               SELECT 1 FROM pg_class AS relation
-               JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
-               WHERE namespace.nspname = 'public'
-                 AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
-                 AND (has_table_privilege(%s, relation.oid, 'SELECT')
-                   OR has_table_privilege(%s, relation.oid, 'INSERT')
-                   OR has_table_privilege(%s, relation.oid, 'UPDATE')
-                   OR has_table_privilege(%s, relation.oid, 'DELETE')
-                   OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
-                   OR has_table_privilege(%s, relation.oid, 'REFERENCES')
-                   OR has_table_privilege(%s, relation.oid, 'TRIGGER')
-                   OR has_any_column_privilege(%s, relation.oid, 'SELECT')
-                   OR has_any_column_privilege(%s, relation.oid, 'INSERT')
-                   OR has_any_column_privilege(%s, relation.oid, 'UPDATE')
-                   OR has_any_column_privilege(%s, relation.oid, 'REFERENCES'))
-           )""",
-        (role_name,) * 11,
+        """SELECT relation.relname
+             FROM pg_class AS relation
+             JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+            WHERE namespace.nspname = 'public'
+              AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+              AND """ + relation_privilege_clause + " ORDER BY relation.relname LIMIT 1",
+        relation_parameters,
     )
-    if cur.fetchone()[0]:
-        raise RuntimeError(f"{label} login retains direct relation privileges")
-    function_slots = ", ".join("to_regprocedure(%s)" for _ in functions)
+    relation_with_privilege = cur.fetchone()
+    if relation_with_privilege is not None:
+        raise RuntimeError(
+            f"{label} login retains direct relation privileges on "
+            f"public.{relation_with_privilege[0]}"
+        )
+    excluded_functions = functions
+    function_slots = ", ".join("to_regprocedure(%s)" for _ in excluded_functions)
     cur.execute(
         f"""SELECT procedure.oid::regprocedure::text
               FROM pg_proc AS procedure
               JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
-             WHERE namespace.nspname IN ('public', 'kokonut_security')
+             WHERE namespace.nspname::text = ANY(%s)
                AND procedure.prosecdef
+               AND procedure.prorettype <> 'trigger'::regtype
                AND procedure.oid <> ALL(ARRAY[{function_slots}])
                AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
              LIMIT 1""",
-        (*functions, role_name),
+        (list(function_schemas), *excluded_functions, role_name),
     )
-    if cur.fetchone() is not None:
-        raise RuntimeError(f"{label} login can execute another SECURITY DEFINER function")
+    unexpected_function = cur.fetchone()
+    if unexpected_function is not None:
+        raise RuntimeError(
+            f"{label} login can execute another SECURITY DEFINER function: "
+            f"{unexpected_function[0]}"
+        )
     cur.execute(
         """SELECT EXISTS (
                SELECT 1 FROM pg_class AS sequence
@@ -1124,6 +1186,7 @@ _RUNTIME_PRIVATE_TABLES = (
     "solution_retirement_review_event",
     "solution_scale_gate",
     "solution_scale_gate_assessment",
+    "gateway_rate_bucket",
 )
 
 
@@ -1521,6 +1584,8 @@ def provision_runtime_role(
     remote_sensing_password: str | None = None,
     sensor_anomaly_ml_source_user: str | None = None,
     sensor_anomaly_ml_source_password: str | None = None,
+    rate_limit_maintenance_user: str | None = None,
+    rate_limit_maintenance_password: str | None = None,
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
@@ -1550,6 +1615,8 @@ def provision_runtime_role(
     the separate reviewed operator path. The optional sensor-anomaly ML source
     login can only set signed exact-location context and SET ROLE to its
     read-only migration-650 source-view reader.
+    The optional rate-limit maintenance login can only execute the bounded
+    idle-bucket cleanup function and receives no table privileges.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -1582,6 +1649,8 @@ def provision_runtime_role(
         raise ValueError("remote-sensing user and password must be provided together")
     if (sensor_anomaly_ml_source_user is None) != (sensor_anomaly_ml_source_password is None):
         raise ValueError("sensor-anomaly ML source user and password must be provided together")
+    if (rate_limit_maintenance_user is None) != (rate_limit_maintenance_password is None):
+        raise ValueError("rate-limit maintenance user and password must be provided together")
     enqueue_ident = (
         _role_identifier(notification_enqueue_user, "notification_enqueue_user")
         if notification_enqueue_user is not None
@@ -1652,6 +1721,11 @@ def provision_runtime_role(
         if sensor_anomaly_ml_source_user is not None
         else None
     )
+    rate_limit_maintenance_ident = (
+        _role_identifier(rate_limit_maintenance_user, "rate_limit_maintenance_user")
+        if rate_limit_maintenance_user is not None
+        else None
+    )
     role_names = [admin_user, runtime_user, operator_auth_user]
     if notification_enqueue_user is not None:
         role_names.append(notification_enqueue_user)
@@ -1681,6 +1755,8 @@ def provision_runtime_role(
         role_names.append(remote_sensing_user)
     if sensor_anomaly_ml_source_user is not None:
         role_names.append(sensor_anomaly_ml_source_user)
+    if rate_limit_maintenance_user is not None:
+        role_names.append(rate_limit_maintenance_user)
     if "kokonut_notification_enqueue_owner" in role_names:
         raise ValueError("application logins must differ from the notification function owner")
     if "kokonut_market_data_owner" in role_names:
@@ -1720,9 +1796,13 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the sensor-anomaly ML view owner")
     if "kokonut_sensor_anomaly_ml_reader" in role_names:
         raise ValueError("application logins must differ from the sensor-anomaly ML reader role")
+    if "kokonut_gateway_rate_limit_owner" in role_names:
+        raise ValueError("application logins must differ from the gateway rate-limit function owner")
+    if rate_limit_maintenance_user is not None and rate_limit_maintenance_user != "kokonut_rate_limit_maintenance_login":
+        raise ValueError("rate-limit maintenance must use kokonut_rate_limit_maintenance_login")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, report snapshot export, sensor-ingestion, remote-sensing, and sensor-anomaly ML source roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, report snapshot export, sensor-ingestion, remote-sensing, sensor-anomaly ML source, and rate-limit maintenance roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1760,6 +1840,10 @@ def provision_runtime_role(
         credential_pairs.append((
             "sensor_anomaly_ml_source_password", sensor_anomaly_ml_source_password
         ))
+    if rate_limit_maintenance_password is not None:
+        credential_pairs.append((
+            "rate_limit_maintenance_password", rate_limit_maintenance_password
+        ))
     for label, secret in credential_pairs:
         if len(secret) < 24 or _PLACEHOLDER_SECRET.match(secret):
             raise ValueError(f"{label} must be a non-placeholder secret of at least 24 characters")
@@ -1792,6 +1876,8 @@ def provision_runtime_role(
         passwords.append(remote_sensing_password)
     if sensor_anomaly_ml_source_password is not None:
         passwords.append(sensor_anomaly_ml_source_password)
+    if rate_limit_maintenance_password is not None:
+        passwords.append(rate_limit_maintenance_password)
     if len(set(passwords)) != len(passwords):
         raise ValueError("admin and dedicated application-role passwords must be distinct")
     if not database or "\x00" in database:
@@ -1810,6 +1896,7 @@ def provision_runtime_role(
     sensor_ingestion_database_access: dict[str, bool] = {}
     remote_sensing_database_access: dict[str, bool] = {}
     sensor_anomaly_ml_source_database_access: dict[str, bool] = {}
+    rate_limit_maintenance_database_access: dict[str, bool] = {}
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute(
@@ -2034,6 +2121,28 @@ def provision_runtime_role(
                     "migration 650 sensor-anomaly ML source view and reader role must be "
                     "applied before provisioning its dedicated login"
                 )
+        if rate_limit_maintenance_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "to_regprocedure(%s)" for _ in _GATEWAY_RATE_LIMIT_FUNCTIONS
+                ),
+                _GATEWAY_RATE_LIMIT_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 712 gateway rate-limit functions must be applied before "
+                    "provisioning the dedicated maintenance login"
+                )
+
+        cur.execute(
+            "SELECT to_regprocedure(%s), to_regprocedure(%s)",
+            _GATEWAY_RATE_LIMIT_FUNCTIONS,
+        )
+        rate_limit_functions = cur.fetchone()
+        if (rate_limit_functions[0] is None) != (rate_limit_functions[1] is None):
+            raise RuntimeError(
+                "gateway rate-limit consume and cleanup functions must be installed together"
+            )
 
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
             _revoke_public_function_execute(cur, function)
@@ -2055,6 +2164,17 @@ def provision_runtime_role(
             cur.execute(
                 sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
                     sql.SQL(function), runtime_ident
+                )
+            )
+        if rate_limit_functions[0] is not None:
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(_GATEWAY_RATE_LIMIT_CONSUME_FUNCTION), runtime_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(
+                    sql.SQL(_GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION), runtime_ident
                 )
             )
         _ensure_login_role(
@@ -2127,7 +2247,11 @@ def provision_runtime_role(
                         sql.SQL(object_kind), market_data_ident
                     )
                 )
-            for schema in ("public", "kokonut_security"):
+            for schema in (
+                "public",
+                "kokonut_security",
+                "kokonut_rate_limit_maintenance",
+            ):
                 cur.execute(
                     sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
                         sql.Identifier(schema), market_data_ident
@@ -2170,7 +2294,11 @@ def provision_runtime_role(
                         sql.SQL(object_kind), eas_indexer_ident
                     )
                 )
-            for schema in ("public", "kokonut_security"):
+            for schema in (
+                "public",
+                "kokonut_security",
+                "kokonut_rate_limit_maintenance",
+            ):
                 cur.execute(
                     sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
                         sql.Identifier(schema), eas_indexer_ident
@@ -2214,7 +2342,11 @@ def provision_runtime_role(
                         sql.SQL(object_kind), rpc_indexer_ident
                     )
                 )
-            for schema in ("public", "kokonut_security"):
+            for schema in (
+                "public",
+                "kokonut_security",
+                "kokonut_rate_limit_maintenance",
+            ):
                 cur.execute(
                     sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
                         sql.Identifier(schema), rpc_indexer_ident
@@ -2503,6 +2635,52 @@ def provision_runtime_role(
                         sql.SQL(function), notification_delivery_ident
                     )
                 )
+        if rate_limit_maintenance_user is not None:
+            assert rate_limit_maintenance_ident is not None
+            assert rate_limit_maintenance_password is not None
+            _ensure_login_role(
+                cur,
+                name=rate_limit_maintenance_user,
+                identifier=rate_limit_maintenance_ident,
+                password=rate_limit_maintenance_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=rate_limit_maintenance_user,
+                identifier=rate_limit_maintenance_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), rate_limit_maintenance_ident
+                    )
+                )
+            for schema in (
+                "public",
+                "kokonut_security",
+                "kokonut_rate_limit_maintenance",
+            ):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), rate_limit_maintenance_ident
+                    )
+                )
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), rate_limit_maintenance_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL(
+                    "GRANT USAGE ON SCHEMA kokonut_rate_limit_maintenance TO {}"
+                ).format(rate_limit_maintenance_ident)
+            )
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(_GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION),
+                    rate_limit_maintenance_ident,
+                )
+            )
         if event_dispatch_user is not None:
             assert event_dispatch_ident is not None
             assert event_dispatch_password is not None
@@ -2744,6 +2922,8 @@ def provision_runtime_role(
             protected_login_idents.append(remote_sensing_ident)
         if sensor_anomaly_ml_source_ident is not None:
             protected_login_idents.append(sensor_anomaly_ml_source_ident)
+        if rate_limit_maintenance_ident is not None:
+            protected_login_idents.append(rate_limit_maintenance_ident)
         for name in database_names:
             database_ident = sql.Identifier(name)
             cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC").format(database_ident))
@@ -3190,6 +3370,8 @@ def provision_runtime_role(
             checked_login_names.append(report_snapshot_export_user)
         if notification_delivery_user is not None:
             checked_login_names.append(notification_delivery_user)
+        if rate_limit_maintenance_user is not None:
+            checked_login_names.append(rate_limit_maintenance_user)
         if event_dispatch_user is not None:
             checked_login_names.append(event_dispatch_user)
         for role_name in checked_login_names:
@@ -3201,6 +3383,8 @@ def provision_runtime_role(
                 (role_name,),
             )
             access = {name: allowed for name, allowed in cur.fetchall()}
+            if role_name == rate_limit_maintenance_user:
+                rate_limit_maintenance_database_access = access
             if access.get(database) is not True or any(
                 allowed for name, allowed in access.items() if name != database
             ):
@@ -3697,6 +3881,21 @@ def provision_runtime_role(
                 "event-dispatch worker",
                 runtime_user,
             )
+        if rate_limit_maintenance_user is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                rate_limit_maintenance_user,
+                (_GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,),
+                "rate-limit maintenance",
+                runtime_user,
+                schema_name="kokonut_rate_limit_maintenance",
+                function_schemas=(
+                    "public",
+                    "kokonut_security",
+                    "kokonut_rate_limit_maintenance",
+                ),
+                allowed_read_relations=_POSTGIS_METADATA_READ_RELATIONS,
+            )
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
@@ -3708,6 +3907,43 @@ def provision_runtime_role(
         _verify_no_runtime_default_privileges(
             cur, admin_user=admin_user, runtime_user=runtime_user
         )
+        if rate_limit_functions[0] is not None:
+            if rate_limit_maintenance_user is None:
+                cur.execute(
+                    "SELECT has_function_privilege(%s, %s, 'EXECUTE'), "
+                    "has_function_privilege(%s, %s, 'EXECUTE')",
+                    (
+                        runtime_user,
+                        _GATEWAY_RATE_LIMIT_CONSUME_FUNCTION,
+                        runtime_user,
+                        _GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,
+                    ),
+                )
+                if cur.fetchone() != (True, False):
+                    raise RuntimeError(
+                        "runtime role must execute only the gateway rate-limit consume function"
+                    )
+            else:
+                cur.execute(
+                    "SELECT has_function_privilege(%s, %s, 'EXECUTE'), "
+                    "has_function_privilege(%s, %s, 'EXECUTE'), "
+                    "has_function_privilege(%s, %s, 'EXECUTE'), "
+                    "has_function_privilege(%s, %s, 'EXECUTE')",
+                    (
+                        runtime_user,
+                        _GATEWAY_RATE_LIMIT_CONSUME_FUNCTION,
+                        runtime_user,
+                        _GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,
+                        rate_limit_maintenance_user,
+                        _GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,
+                        rate_limit_maintenance_user,
+                        _GATEWAY_RATE_LIMIT_CONSUME_FUNCTION,
+                    ),
+                )
+                if cur.fetchone() != (True, False, True, False):
+                    raise RuntimeError(
+                        "rate-limit function grants exceed the bounded role contract"
+                    )
         cur.execute(
             "SELECT has_function_privilege(%s, %s, 'EXECUTE'), "
             "has_function_privilege(%s, %s, 'EXECUTE'), "
@@ -4049,6 +4285,7 @@ def provision_runtime_role(
         "sensor_ingestion_user": sensor_ingestion_user,
         "remote_sensing_user": remote_sensing_user,
         "sensor_anomaly_ml_source_user": sensor_anomaly_ml_source_user,
+        "rate_limit_maintenance_user": rate_limit_maintenance_user,
         "public_connect_revoked_from": sorted(database_names),
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
@@ -4065,6 +4302,7 @@ def provision_runtime_role(
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "remote_sensing_connect_grants": remote_sensing_database_access,
         "sensor_anomaly_ml_source_connect_grants": sensor_anomaly_ml_source_database_access,
+        "rate_limit_maintenance_connect_grants": rate_limit_maintenance_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
         "runtime_table_privilege_scope": "existing_public_tables_only",
         "runtime_future_object_privileges": [],
@@ -4089,6 +4327,9 @@ def provision_runtime_role(
             "solution_stage_gate": "bounded security-definer functions only; no direct runtime access",
             "solution_experiment": (
                 "bounded Gateway protocol creation; lifecycle updates limited to status and timestamps"
+            ),
+            "gateway_rate_bucket": (
+                "bounded consume/cleanup functions only; no direct runtime table access"
             ),
         },
         "runtime_mobile_credential_privileges": mobile_credential_grants,
@@ -4115,6 +4356,7 @@ def provision_runtime_role(
         "rpc_indexer_owns_relations": False,
         "sensor_ingestion_owns_relations": False,
         "remote_sensing_owns_relations": False,
+        "rate_limit_maintenance_owns_relations": False,
     }
 
 
@@ -4193,6 +4435,13 @@ def main() -> int:
     )
     sensor_anomaly_ml_source_password = os.environ.get(
         "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_PASSWORD", ""
+    )
+    rate_limit_maintenance_user = os.environ.get(
+        "KOKONUT_RATE_LIMIT_MAINTENANCE_USER",
+        "kokonut_rate_limit_maintenance_login",
+    )
+    rate_limit_maintenance_password = os.environ.get(
+        "KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD", ""
     )
     if not admin_password or not runtime_password or not operator_auth_password:
         raise SystemExit(
@@ -4282,6 +4531,12 @@ def main() -> int:
             ),
             sensor_anomaly_ml_source_password=(
                 sensor_anomaly_ml_source_password if sensor_anomaly_ml_source_password else None
+            ),
+            rate_limit_maintenance_user=(
+                rate_limit_maintenance_user if rate_limit_maintenance_password else None
+            ),
+            rate_limit_maintenance_password=(
+                rate_limit_maintenance_password if rate_limit_maintenance_password else None
             ),
         )
     finally:

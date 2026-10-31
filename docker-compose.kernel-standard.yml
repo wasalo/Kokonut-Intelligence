@@ -9,11 +9,17 @@ services:
       KOKONUT_FEATURE_LEGACY_DATASET_SQL: ${KOKONUT_FEATURE_LEGACY_DATASET_SQL:-false}
       DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      # The API creates intents from a non-secret presence flag; only the
+      # delivery worker receives the endpoint itself.
+      ALERT_WEBHOOK_URL: ""
+      KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED: ${ALERT_WEBHOOK_URL:+true}
       ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
       ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
       ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}
-      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
-      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      # Compose merges this overlay with the candidate app environment. Clear
+      # inherited SMTP credentials so only the delivery worker receives them.
+      ALERT_SMTP_USER: ""
+      ALERT_SMTP_PASSWORD: ""
       ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
       ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
       KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES:-268435456}

@@ -42,6 +42,13 @@ class NotificationConfigurationError(NotificationOutboxError):
     """A persisted notification has no currently configured destination."""
 
 
+def _webhook_configured_for_enqueue(environment: dict[str, str]) -> bool:
+    """Check endpoint presence or the Standard API's non-secret presence flag."""
+    if environment.get("ALERT_WEBHOOK_URL", "").strip():
+        return True
+    return environment.get("KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED", "").strip().lower() == "true"
+
+
 def _notification_payloads(
     event_type: str,
     payload: dict[str, Any],
@@ -58,7 +65,7 @@ def _notification_payloads(
     message = str(payload.get("message") or f"{metric} = {value} (threshold: {threshold})")
     destinations: list[tuple[str, str, dict[str, Any]]] = []
 
-    if environment.get("ALERT_WEBHOOK_URL", "").strip():
+    if _webhook_configured_for_enqueue(environment):
         if event_type == "sensor_alert":
             webhook_payload = {
                 "text": f"[{severity.upper()}] {message}",

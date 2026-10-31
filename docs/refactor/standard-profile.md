@@ -40,9 +40,13 @@ shared 30-second drain budget, unexpected-exit failure, init process, and
 remain PostgreSQL state; unique identities do not prove concurrency safety.
 The API defaults to the shared PostgreSQL rate limiter in this profile. A
 current target must have the complete ordered schema applied before serving
-traffic; migration 373 is the historical feature-introduction reference for
-that limiter. An explicit provider override is available for a reviewed
-deployment topology; multi-replica APIs must retain a shared limiter.
+traffic; migration 373 introduced its bucket table, and migration 712 moves
+access behind bounded functions. Optional maintenance uses a separate schema
+and login. Role provisioning removes `PUBLIC` execution on restricted
+credential/context functions; the maintenance login inherits only the shared
+`kokonut_security` schema usage and its explicit cleanup grant.
+An explicit provider override is available for a reviewed deployment topology;
+multi-replica APIs must retain a shared limiter.
 
 ## Deployment prerequisites
 
@@ -139,9 +143,14 @@ and aggregate `children_alive`; it never returns process IDs or the generation
 token. In Standard Compose, the file is ephemeral container state; the profile
 adds no volume or migration for liveness.
 
-The latest disposable Standard acceptance applies all 701 ordered schema files
-through migration 710, explicitly runs the post-migration `runtime-admin`
-bootstrap, and confirms both app and worker connect as `kokonut_runtime`. The
+The latest disposable Standard acceptance applies all 703 ordered schema files
+through migration 712, explicitly runs the post-migration `runtime-admin`
+bootstrap, and confirms both app and worker connect as `kokonut_runtime`. It
+also verifies the migration-712 limiter boundary: runtime and Directus cannot
+read or mutate the bucket table; runtime can invoke only the consume function;
+the optional maintenance login can invoke only the bounded cleanup function;
+and consume, deny, check-only, cleanup, API/worker health, and outage-recovery
+checks pass. The
 login has LOGIN and NOINHERIT, no role memberships, no ownership, and no
 superuser/database/role creation, replication, or RLS-bypass privileges. The
 check also proves an owner login is rejected before child startup and that
@@ -151,7 +160,7 @@ restart recovers the API and worker without restarting the worker container.
 Heartbeat privacy/removal, zero active leases after shutdown, and cleanup
 pass. The network-disabled run uses a unique internal Compose project, no host
 ports, no seeds, and synthetic data only
-([acceptance evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json);
+([acceptance evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json);
 [runner](../../scripts/check-kernel-standard-recovery-disposable.py)). This
 does not prove long-running handler lease reclaim, provider recovery, 24-hour
 endurance, scale, or physical Raspberry Pi behavior.

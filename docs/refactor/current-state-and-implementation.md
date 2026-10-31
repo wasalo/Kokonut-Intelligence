@@ -84,7 +84,7 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. Both processes require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. | A network-disabled disposable acceptance applies all 701 schema files through migration 710, explicitly provisions the runtime role, verifies app/worker identities and unsafe-owner rejection, and passes outage recovery and cleanup ([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json)). Candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
+| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. Both processes require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. | A network-disabled disposable acceptance applies all 703 schema files through migration 712, provisions the runtime role, verifies bounded gateway rate-limit ACLs and consume/cleanup behavior, confirms API/worker identities, and passes outage recovery and cleanup ([evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json)). Candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
@@ -177,12 +177,13 @@ That specific failure is repaired in this worktree and the inventory check now
 passes; hosted verification on the next pushed head remains open
 ([diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json)).
 
-Standard-profile recovery remains separately accepted only through migration
-710; the migration-711 full-schema replay is not Standard-profile outage or
-provider-recovery acceptance. No candidate, legacy, or production database or
-role was changed. Broader caller reconciliation, external importer ownership,
-Directus API parity, tenant/RLS, populated-data parity, and reviewed persistent
-rollout remain open.
+Standard-profile disposable recovery is accepted through migration 712 for the
+specific controls recorded above. This does not establish candidate or
+production rollout, provider recovery, scale, 24-hour endurance, or physical
+device acceptance. No candidate, legacy, or production database or role was
+changed. Broader caller reconciliation, external importer ownership, Directus
+API parity, tenant/RLS, populated-data parity, and reviewed persistent rollout
+remain open.
 
 ## Human and operational gates
 

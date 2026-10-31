@@ -2,13 +2,20 @@
 
 Migration 373 adds `gateway_rate_bucket`, keyed by SHA-256 of the existing
 bounded caller identity, with token balance and database timestamps. No raw
-credential is stored. The adapter uses the same fixed default policy as local:
-capacity 100 and refill 10 tokens/second. Row locks serialize consumption across
-API processes; clock_timestamp is read after acquiring the lock. Negative clock
-movement contributes zero refill. Updated balance commits before returning.
+credential is stored. Migration 712 moves table access behind bounded
+`SECURITY DEFINER` functions owned by a non-login role. The runtime login may
+consume a bucket only; it cannot read or mutate bucket rows directly. The table
+uses forced RLS with a policy for the function owner, and Directus receives a
+`no_access` relation policy. The adapter uses the same fixed default policy as
+local: capacity 100 and refill 10 tokens/second. Row locks serialize consumption
+across API processes; `clock_timestamp()` is read after acquiring the lock.
+Negative clock movement contributes zero refill. Updated balance commits
+before returning.
 
 The standard Kernel Compose overlay defaults to `KOKONUT_RATE_LIMIT_PROVIDER=postgres`.
-Apply migration 373 through the checksummed runner before exposing API traffic.
+Apply the complete current ordered migration ledger, including migration 712,
+through the checksummed runner before exposing API traffic. Migration 373 is the
+historical table-introduction reference, not a sufficient deployment target.
 Minimal and edge remain on the process-local provider by default; other shared
 deployments must select `postgres` explicitly. Redis remains unnecessary for
 Kernel rate limiting. Unsupported settings still fail startup. Worker processes
@@ -100,11 +107,23 @@ changing persisted state, but requires renewed outage-latency review.
 
 ## Explicit idle-bucket maintenance
 
-`python3 -m services.gateway.rate_limit_cli --cleanup --limit 1000` now deletes
-one page of buckets idle for more than 24 hours. The command is documented, not
-executed. It requires migration 373 and operator database access. Limits must
-be 1–1000; idle age is fixed rather than allowing an operator to accidentally
-delete depleted active budgets by choosing a short age.
+`python3 -m services.gateway.rate_limit_cli --cleanup --limit 1000` deletes one
+page of buckets idle for more than 24 hours. It requires migration 712 and the
+optional dedicated login `kokonut_rate_limit_maintenance_login`. The CLI requires
+`KOKONUT_RATE_LIMIT_MAINTENANCE_DSN` and rejects the runtime login; it never
+falls back to shared API/worker credentials. Leave
+`KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD` empty in Compose to keep cleanup
+unprovisioned. Limits must be 1–1000; idle age is fixed rather than allowing an
+operator to accidentally delete depleted active budgets by choosing a short age.
+
+Cleanup is exposed through the isolated `kokonut_rate_limit_maintenance`
+schema. Earlier migrations grant `PUBLIC` usage on `kokonut_security`, so this
+login inherits schema usage; role provisioning removes the shared `PUBLIC`
+execution grants on restricted credential/context functions. The runtime-role
+verifier rejects every other callable `SECURITY DEFINER` routine (trigger-only
+routines are not directly callable) and permits only the bounded cleanup
+function. The owner-side `NOLOGIN` role retains the bucket table and function
+privileges.
 
 Candidates are ordered by update time and hash, locked with FOR UPDATE SKIP
 LOCKED, and deleted in one transaction. An in-use bucket lock is skipped.
@@ -114,10 +133,11 @@ policy outcome. Requests queued behind cleanup may create a fresh full bucket;
 the preceding idle budget was already eligible for full refill. No business
 data, credential, permission, or durable audit row is deleted.
 
-Cleanup uses the same three-second connection/statement and two-second lock
-settings and shared transaction cleanup. Output reports counts only, not caller
-identities. No recurring job, scheduler permission, API route, or automatic
-deletion is configured. This maintenance option is not a hard cardinality cap:
+Cleanup uses a three-second connection timeout, a three-second statement
+timeout, a two-second lock timeout, and the shared transaction cleanup
+lifecycle. Output reports counts only, not caller identities. No recurring job,
+scheduler permission, API route, or automatic deletion is configured. This
+maintenance option is not a hard cardinality cap:
 active identity churn can still grow the table and requires measured sizing,
 monitoring, and identity-abuse controls before scale certification.
 
@@ -309,3 +329,26 @@ checkpoint consistency while the source changed, restored identity, file modes,
 and no-overwrite behavior passed in a synthetic local fixture. This did not
 exercise Compose-volume installation, hardware failure, or encrypted backup
 transfer. [Recovery record](builds/2026-10-11-recovery/gateway-audit-spool-backup-restore.json).
+
+## Standard PostgreSQL boundary — migration 712 — 31 October 2026
+
+Migration 712 replaces direct `gateway_rate_bucket` access with
+`kokonut_security.consume_gateway_rate_bucket`. The bounded function owner
+holds the table privileges; the Standard runtime login can consume budgets but
+cannot directly read or mutate bucket rows. Directus also has no direct bucket
+access. Optional idle cleanup is isolated in
+`kokonut_rate_limit_maintenance` and uses a dedicated login that can call only
+the bounded cleanup function. Runtime-role reprovisioning preserves this
+boundary.
+
+Focused tests cover the Gateway adapter, maintenance CLI, Compose credential
+separation, and role verifier. A network-disabled disposable Standard replay
+applied all 703 schema entries through migration 712 and verified runtime and
+Directus table denial, exact function grants, a consuming request, exhausted
+bucket denial, check-only behavior, maintenance cleanup, API/worker recovery,
+and cleanup. [Sanitized evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json).
+
+This is disposable acceptance only. Migration 712 has not been applied to the
+candidate or production. Standard candidate rollout, live provider/outage
+behavior, external callers, scale, and long-duration operational acceptance
+remain separate gates. No persistent rollback was needed.

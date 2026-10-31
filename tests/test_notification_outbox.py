@@ -115,6 +115,52 @@ def test_notification_intent_persists_optional_location_lineage():
     assert parameters[-1] == location_id.lower()
 
 
+def test_standard_webhook_presence_flag_enqueues_secret_free_intent():
+    conn = MagicMock()
+    cursor = conn.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = ("outbox-row",)
+    event_id = "a0000000-0000-0000-0000-000000000002"
+    webhook_url = "https://hooks.example.test/synthetic-token"
+
+    inserted = notification_outbox.enqueue_event_notification(
+        conn,
+        event_id=event_id,
+        event_type="threshold_breached",
+        payload={"message": "Synthetic alert"},
+        environment={"KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED": "true"},
+    )
+
+    assert inserted == 1
+    statement, parameters = cursor.execute.call_args.args
+    assert "INSERT INTO notification_outbox" in statement
+    assert parameters[0] == event_id
+    assert parameters[2:4] == ("webhook", "primary")
+    persisted_payload = json.loads(parameters[4])
+    assert persisted_payload == {
+        "text": "[WARNING] Synthetic alert",
+        "severity": "warning",
+        "metric": "unknown",
+        "value": None,
+        "threshold": None,
+        "device_id": "unknown",
+    }
+    assert webhook_url not in parameters[4]
+
+
+def test_enqueue_presence_flag_does_not_configure_webhook_delivery(monkeypatch):
+    environment = {"KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED": "true"}
+
+    assert notification_outbox._configured_channels(environment) == []
+
+    monkeypatch.delenv("ALERT_WEBHOOK_URL", raising=False)
+    monkeypatch.setenv("KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED", "true")
+    with pytest.raises(
+        notification_outbox.NotificationConfigurationError,
+        match="webhook destination is no longer configured",
+    ):
+        notification_outbox._deliver(_row("missing-worker-endpoint", channel="webhook"))
+
+
 def test_isolated_notification_intent_calls_bounded_function_and_preserves_transaction():
     conn = MagicMock()
     cursor = conn.cursor.return_value.__enter__.return_value
