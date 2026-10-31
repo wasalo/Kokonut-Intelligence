@@ -510,10 +510,11 @@ class FarmTaskDependency:
 
 @dataclass
 class FarmTaskFrameworkStep:
-    """Task-to-framework-step association record."""
+    """Location-bound task-to-framework-step association record."""
 
     task_id: str
     framework_step_id: str
+    location_id: Optional[str] = None
     source_system: Optional[str] = None
     source_database_id: Optional[int] = None
     source_table_id: Optional[int] = None

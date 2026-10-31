@@ -27,6 +27,19 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     assert overrides["farmer_credential_type"] == "runtime_mutations_denied"
     assert overrides["metric_definition"] == "runtime_mutations_denied"
     assert overrides["service_registry"] == "runtime_mutations_denied"
+    assert overrides["v_public_farm_summary"] == "runtime_mutations_denied"
+    assert "v_public_farm_summary" in runtime_role._RUNTIME_MUTATION_TABLES
+
+
+def test_public_farm_summary_boundary_requires_a_non_updatable_view():
+    migration = (
+        ROOT / "schemas/postgres/699_runtime_public_farm_summary_read_only.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "pg_relation_is_updatable(relation_oid, TRUE) <> 0" in migration
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.v_public_farm_summary" in migration
+    assert "EXECUTE 'GRANT SELECT ON TABLE public.v_public_farm_summary '" in migration
+    assert "'TO kokonut_runtime'" in migration
 
 
 def _acl_row(
@@ -214,6 +227,13 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
                     delete=False,
                 ),
                 _acl_row(
+                    "v_public_farm_summary",
+                    select=True,
+                    insert=False,
+                    update=False,
+                    delete=False,
+                ),
+                _acl_row(
                     "yield_benchmark",
                     select=True,
                     insert=False,
@@ -291,6 +311,9 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
     assert rows["service_registry"]["expected_runtime_boundary"] == "runtime_mutations_denied"
     assert rows["service_registry"]["configured_runtime_boundary"] == "runtime_mutations_denied"
     assert rows["service_registry"]["runtime_boundary_policy_matches_source"] is True
+    assert rows["v_public_farm_summary"]["expected_runtime_boundary"] == "runtime_mutations_denied"
+    assert rows["v_public_farm_summary"]["configured_runtime_boundary"] == "runtime_mutations_denied"
+    assert rows["v_public_farm_summary"]["runtime_boundary_policy_matches_source"] is True
     assert report["summary"]["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == 0
     assert report["runtime_role_acceptance"] == {
         "full_schema_replay_passed": True,

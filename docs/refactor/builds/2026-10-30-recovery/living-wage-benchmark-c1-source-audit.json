@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-30",
+  "result": "source_review_complete_external_writer_confirmation_pending",
+  "candidate": "living_wage_benchmark",
+  "schema": {
+    "defined_in": "schemas/postgres/062_true_cost_accounting.sql",
+    "location_scoped": true,
+    "key_fields": [
+      "location_id",
+      "benchmark_date",
+      "country",
+      "living_wage_hourly_usd",
+      "minimum_wage_hourly_usd",
+      "source",
+      "status",
+      "source_system",
+      "source_id"
+    ],
+    "runtime_table_privileges_in_migration_699_snapshot": [
+      "SELECT",
+      "INSERT",
+      "UPDATE",
+      "DELETE"
+    ],
+    "rls_enabled": false
+  },
+  "repository_usage": {
+    "application_read": "services/analytics/true_cost_accounting.py:273",
+    "read_contract": "SELECT living_wage_hourly_usd WHERE location_id = requested location AND status = active LIMIT 1",
+    "static_application_write_sites": 0,
+    "seed_writer": "schemas/seeds/062_true_cost_accounting.sql:149-161",
+    "seed_record": "Adelphi demonstration row citing Global Living Wage Coalition / Anker methodology",
+    "directus_extension_or_permission_reference_found": false,
+    "external_importer_use_confirmed": false
+  },
+  "decision": "Do not change runtime grants until the owner confirms whether any external importer writes this benchmark through kokonut_runtime. If none, a forward migration can retain SELECT while revoking runtime table/column writes and preserving maintenance/import and separately reviewed Directus grants.",
+  "candidate_or_legacy_or_production_touched": false
+}

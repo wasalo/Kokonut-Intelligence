@@ -1,0 +1,160 @@
+{
+  "analytics_candidate_summary": {
+    "candidate_sites": 439,
+    "relations": 280,
+    "relations_missing_matching_sql_site": [],
+    "relations_with_declared_boundary": 1,
+    "sites_by_expression_kind": {
+      "composed_or_variable": 14,
+      "fstring": 21,
+      "literal": 404
+    },
+    "sites_by_statement": {
+      "DELETE": 9,
+      "INSERT": 284,
+      "UPDATE": 146
+    },
+    "source_files": 92
+  },
+  "analytics_write_candidate_report": "docs/refactor/builds/2026-10-30-recovery/analytics-runtime-write-candidate-inventory-689.json",
+  "arm64_acl_rows": 1513,
+  "arm64_probe": "docs/refactor/builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe-cross-arch.json",
+  "candidate_or_legacy_touched": false,
+  "checks": {
+    "native_and_arm64_acl_rows_equal": true,
+    "probe_and_source_join_both_count_991": true,
+    "runtime_role_source_hash_matches_report": true
+  },
+  "database_or_provider_used_for_this_join": false,
+  "date": "2026-10-30",
+  "effective_dml_shapes": {
+    "I": 2,
+    "IUD": 989
+  },
+  "limitations": [
+    "This is a disposable synthetic schema/authorization probe plus static source inventory, not populated-data or production acceptance.",
+    "Static SQL candidates do not prove runtime reachability or complete dynamic SQL, ORM, Directus, external-client, ownership, or function behavior.",
+    "The 991 count is effective ACL exposure, not 991 confirmed tenant data leaks or a safe-revocation list."
+  ],
+  "native_acl_rows": 1513,
+  "native_probe": "docs/refactor/builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json",
+  "non_analytics_non_credit_write_candidates": {
+    "finding": "No clearly safe service group was identified for a bulk revoke; groups include durable worker, ingestion, farm, finance, certificate, protocol, and governance writes and require caller/tenant-context review.",
+    "largest_groups": {
+      "abundance": 30,
+      "events": 12,
+      "export": 9,
+      "gateway": 10,
+      "guilds": 12,
+      "ingestion": 35,
+      "management": 10,
+      "planning": 13,
+      "systems": 17,
+      "threatcasting": 24
+    },
+    "package_relation_links": 288,
+    "service_packages": 44,
+    "unique_relations": 275
+  },
+  "relation_acl_rows_identical": true,
+  "repository_head": "f14cc2b3",
+  "result": "passed",
+  "runtime_role_policy_sha256": "2a3d1e6f9ded9b007378aa783bb8b77b20b853b68c15d64c62c7e65725eb9aaa",
+  "runtime_sql_inventory": {
+    "path": "docs/refactor/runtime-sql-inventory.json",
+    "sha256": "29551aaf04f77cf0ea9c93b873cbb9b1435c22f84233888a0a4fa5d8d50bacd0",
+    "summary": {
+      "execution_sites": 4962,
+      "expression_kinds": {
+        "composed": 33,
+        "composed_or_variable": 341,
+        "fstring": 308,
+        "literal": 4280
+      },
+      "relation_candidates": 1253,
+      "service_packages": 68,
+      "sites_with_worker_operation_refs": 494,
+      "sites_without_relation_candidates": 1239,
+      "sites_without_worker_operation_refs": 4468,
+      "source_files": 989,
+      "statement_groups": {
+        "read_candidate": 2872,
+        "schema_change": 1,
+        "transaction_or_session": 709,
+        "unknown_requires_manual_review": 243,
+        "with_requires_manual_review": 34,
+        "write_candidate": 1103
+      },
+      "statement_kinds": {
+        "CREATE": 1,
+        "DELETE": 45,
+        "INSERT": 634,
+        "RELEASE": 20,
+        "ROLLBACK": 12,
+        "SAVEPOINT": 11,
+        "SELECT": 2872,
+        "SET": 666,
+        "UNKNOWN": 243,
+        "UPDATE": 424,
+        "WITH": 34
+      },
+      "worker_operation_roots": 50,
+      "write_target_relations": 587
+    }
+  },
+  "scope": "C1 migration-689 native/ARM64 ACL parity and current source inventory join",
+  "source_join_report": "docs/refactor/builds/2026-10-30-recovery/runtime-privilege-callsite-report-689.json",
+  "source_join_summary": {
+    "dml_relations_matching_explicit_runtime_revoke": 0,
+    "dml_relations_without_candidate_sites": 494,
+    "migration_revoked_relations_missing_or_mismatched_runtime_policy": 0,
+    "migration_revoked_relations_with_runtime_policy": 129,
+    "relations_with_any_dml": 1380,
+    "relations_with_candidate_execution_sites": 918,
+    "relations_with_effective_truncate": 0,
+    "relations_with_effective_truncate_and_rls_disabled": 0,
+    "runtime_relations": 1513,
+    "tables_with_dml_and_rls_disabled": 991,
+    "unprotected_dml_relations_matching_explicit_runtime_revoke": 0,
+    "unprotected_dml_relations_without_candidate_sites": 245,
+    "unprotected_dml_relations_without_candidate_write_sites": 420
+  },
+  "source_review": {
+    "analytics": {
+      "candidate_sites": 439,
+      "high_impact_modules": [
+        "services/analytics/data_governance.py",
+        "services/analytics/pest_management.py",
+        "services/analytics/stakeholder_grievances.py",
+        "services/analytics/digital_finance.py",
+        "services/analytics/traceability.py",
+        "services/analytics/farmer_identity.py"
+      ],
+      "inventory_caveat": "Eight carbon-credit mutation sites carry a scheduled adjustment operation reference, but the dedicated adjustment worker imports only check_adjustments; the tag is not call-graph proof that those writers are reachable.",
+      "modules_using_common_get_db_or_get_connection": 27,
+      "relations": 280,
+      "source_files": 92,
+      "statement_counts": {
+        "DELETE": 9,
+        "INSERT": 284,
+        "UPDATE": 146
+      },
+      "unmatched_static_candidates": 0,
+      "writer_modules_with_signed_context_or_bounded_kokonut_security_writer_found": 0
+    },
+    "credit_class": {
+      "bounded_gateway_path": "services/gateway/ecocredits.py is signed and location-scoped but read-only.",
+      "external_client_usage": "unknown; repository source does not establish whether any external gRPC clients or API keys are active.",
+      "known_gap": "gRPC mutations use global resource/action scopes and caller-provided locations or wallet addresses; no signed location/account grant is established in the reviewed path.",
+      "relations": 25
+    },
+    "mode": "read-only repository source review; no tests or live database/provider use",
+    "other_service_writers": {
+      "finding": "No clearly safe group was identified for bulk revocation; candidates include durable worker, ingestion, farm, finance, certificate, protocol, and governance writes.",
+      "package_relation_links": 288,
+      "service_packages": 44,
+      "unique_relations": 275
+    }
+  },
+  "unprotected_ordinary_partitioned_tables": 991
+}

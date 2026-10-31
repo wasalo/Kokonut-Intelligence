@@ -139,6 +139,86 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
         for privilege in ("INSERT", "UPDATE", "REFERENCES")
     ):
         raise AssertionError("runtime retains column-level service-registry write access")
+    if not relation_exists("event_handler"):
+        raise AssertionError("full schema is missing the event-handler registry")
+    event_handler_privileges = {
+        "SELECT": True,
+        "INSERT": False,
+        "UPDATE": False,
+        "DELETE": False,
+        "TRUNCATE": False,
+        "REFERENCES": False,
+        "TRIGGER": False,
+    }
+    observed_event_handler_privileges = {
+        privilege: has_table_privilege("event_handler", privilege)
+        for privilege in event_handler_privileges
+    }
+    if observed_event_handler_privileges != event_handler_privileges:
+        raise AssertionError("runtime event-handler registry ACL is not read-only")
+    if any(
+        has_column_privilege("event_handler", privilege)
+        for privilege in ("INSERT", "UPDATE", "REFERENCES")
+    ):
+        raise AssertionError("runtime retains column-level event-handler write access")
+    cur.execute("SELECT count(*) FROM public.event_handler")
+    if cur.fetchone()[0] < 1:
+        raise AssertionError("runtime login cannot read seeded event-handler definitions")
+    if not relation_exists("capital_source"):
+        raise AssertionError("full schema is missing the capital-source reporting input")
+    capital_source_privileges = {
+        "SELECT": True,
+        "INSERT": False,
+        "UPDATE": False,
+        "DELETE": False,
+        "TRUNCATE": False,
+        "REFERENCES": False,
+        "TRIGGER": False,
+    }
+    observed_capital_source_privileges = {
+        privilege: has_table_privilege("capital_source", privilege)
+        for privilege in capital_source_privileges
+    }
+    if observed_capital_source_privileges != capital_source_privileges:
+        raise AssertionError("runtime capital-source reporting ACL is not read-only")
+    if any(
+        has_column_privilege("capital_source", privilege)
+        for privilege in ("INSERT", "UPDATE", "REFERENCES")
+    ):
+        raise AssertionError("runtime retains column-level capital-source write access")
+    cur.execute("SELECT count(*) FROM public.capital_source")
+    cur.fetchone()
+    if not relation_exists("consent_data_type"):
+        raise AssertionError("full schema is missing consent data categories")
+    consent_category_privileges = {
+        "SELECT": True,
+        "INSERT": False,
+        "UPDATE": False,
+        "DELETE": False,
+        "TRUNCATE": False,
+        "REFERENCES": False,
+        "TRIGGER": False,
+    }
+    observed_consent_category_privileges = {
+        privilege: has_table_privilege("consent_data_type", privilege)
+        for privilege in consent_category_privileges
+    }
+    if observed_consent_category_privileges != consent_category_privileges:
+        raise AssertionError("runtime consent-category ACL is not read-only")
+    if any(
+        has_column_privilege("consent_data_type", privilege)
+        for privilege in ("INSERT", "UPDATE", "REFERENCES")
+    ):
+        raise AssertionError("runtime retains column-level consent-category write access")
+    cur.execute(
+        "SELECT count(*), count(default_retention_days) "
+        "FROM public.consent_data_type"
+    )
+    consent_category_count, configured_default_period_count = cur.fetchone()
+    if consent_category_count < 1 or configured_default_period_count != 0:
+        raise AssertionError(
+            "consent categories are missing or still encode a default retention period"
+        )
     if not relation_exists("crop_nutrient_removal_factor"):
         raise AssertionError("full schema is missing crop nutrient removal factors")
     cur.execute("SELECT count(*) FROM public.crop_nutrient_removal_factor")
@@ -437,6 +517,9 @@ def run_probe() -> dict[str, object]:
                 "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
                 "runtime provisioner keeps shared advisory rules readable but immutable",
                 "runtime can read service registry but cannot mutate it",
+                "runtime can read event-handler definitions but cannot mutate the registry",
+                "runtime can read capital-source records but cannot mutate the reporting input",
+                "runtime can read consent categories while dynamic retention policy stays unset by default",
                 "runtime can read seeded crop-nutrient removal factors",
                 "runtime can query shared greenhouse-gas emission-factor references",
                 "runtime can query shared versioned operations protocols",

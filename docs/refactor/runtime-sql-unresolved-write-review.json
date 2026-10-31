@@ -1,7 +1,7 @@
 {
   "version": 1,
   "scope": "Tracks direct SQL DML and conservative WITH candidates whose target relation is unresolved. Legacy entries are acknowledged inventory debt only; they do not grant or approve ACLs. New candidates require a reviewed_sites entry with reviewer, date, decision note, and reason.",
-  "legacy_fingerprint_sha256": "ce181e19cf9e7b0e25c82f4b504e8a8694fb49926fcfe64f9ba0e30f112b87a0",
+  "legacy_fingerprint_sha256": "91b6c11f854ae4a0861b9f680df53ba5fe01784bd8f895ef6883de2c296e1b30",
   "legacy_unreviewed": [
     {
       "fingerprint": "121bdc4b3054f807d73fdec63415c04a2cd0409e41cfd1a91fe3c8aa891e550f",
@@ -13,17 +13,6 @@
       "expression_kind": "literal",
       "review_status": "preexisting_unreviewed",
       "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "1461bccb52bde66ef36e7a272395749af8d8f6bfa20af7188aaec8120c2d689c",
-      "source": "services/analytics/pollinator_health.py",
-      "line": 77,
-      "scope": "_write",
-      "method": "execute",
-      "statement_kind": "INSERT",
-      "expression_kind": "composed_or_variable",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
     },
     {
       "fingerprint": "17285b250cc1776104efd1c43217009ecc393b55166720f54bb961616babf571",

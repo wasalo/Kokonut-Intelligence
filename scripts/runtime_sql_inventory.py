@@ -48,7 +48,7 @@ _UNRESOLVED_WRITE_REVIEW_PATH = (
 # site to this legacy set requires an intentional source change as well as a
 # ledger edit; new reviewed sites belong in the explicit reviewed list.
 _LEGACY_UNRESOLVED_WRITE_FINGERPRINTS_SHA256 = (
-    "ce181e19cf9e7b0e25c82f4b504e8a8694fb49926fcfe64f9ba0e30f112b87a0"
+    "91b6c11f854ae4a0861b9f680df53ba5fe01784bd8f895ef6883de2c296e1b30"
 )
 
 

@@ -19,8 +19,11 @@ server-streaming RPCs.
   requires `x-api-key`.
 - API keys are read from the PostgreSQL `api_key` table, not from the Gateway's
   environment-backed key configuration.
-- The interceptor validates key hash, active state, and expiry. It loads roles
-  and scopes but does not currently enforce operation-level scopes.
+- The interceptor validates key hash, active state, and expiry and enforces
+  method-level scopes. The first two tenant-facing credit writes,
+  `CreateBatch` and `ApplyToClass`, additionally require exact
+  location-qualified database scopes and a signed tenant context on the same
+  write transaction.
 - Streaming RPCs poll PostgreSQL every five seconds; they are not event-driven
   pub/sub streams.
 - Production Compose removes host port exposure, and the production Caddy
@@ -117,6 +120,13 @@ description, URL, methodology, status, and serialized metadata.
 `CreateBatch` accepts credit class ID, location ID, vintage year, total quantity,
 unit, and jurisdiction. It returns the batch ID and batch code.
 
+`CreateBatch` now requires the exact database API-key scope
+`ecocredit_batch:create:<location-uuid>`. The submitted location is normalized
+as a UUID, the scope is checked before database acquisition, and PostgreSQL
+revalidates the active key, exact scope, current verified location owner, and
+tenant context in the same transaction as the batch write. An old global
+`ecocredit:batch:write` grant does not authorize this operation.
+
 #### Balance Queries
 
 | RPC | Mode | Request purpose |
@@ -174,6 +184,25 @@ types.
 | `EvaluateApplication` | Unary | Update an enrollment/application status |
 | `ListEnrollments` | Unary | List enrollments by location and/or class |
 | `CreditTypes` | Unary | List configured credit types |
+
+`ApplyToClass` now requires the exact database API-key scope
+`ecocredit_enrollment:apply:<location-uuid>`. As with batch creation, the
+location grant is checked before database acquisition and is revalidated by
+PostgreSQL on the same transaction as the enrollment write. The old global
+`ecocredit:class:write` scope does not authorize this operation.
+
+Provision these scopes as database-backed keys through the one-shot Gateway
+API-key provisioner, with the raw key supplied through the encrypted local
+environment and the separate maintenance DSN configured:
+
+```text
+KOKONUT_API_KEY_SCOPES=credit-operator:ecocredit_batch:create:<location-uuid>,credit-operator:ecocredit_enrollment:apply:<location-uuid>
+```
+
+The provisioner ignores global, wildcard, malformed, and location-free entries
+for this database-backed path. Review the generated manifest before applying;
+do not provision the legacy `ecocredit:batch:write` or
+`ecocredit:class:write` scopes for these methods.
 
 The gRPC bridge methods create or update database records. They do not submit
 blockchain transactions. Any on-chain execution remains outside this service

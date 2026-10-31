@@ -1098,6 +1098,17 @@ class SolutionLifecycleFundingReviewDetailResponse(BaseModel):
         return self
 
 
+class SolutionLifecycleFundingApprovalResponse(BaseModel):
+    """Exact new-approval and idempotent-replay result from migration 491."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    funding_case_id: _SolutionResponseUUID
+    decision_status: Literal["approved"]
+    approved_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
+
 class SolutionLifecycleGateItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -6879,7 +6890,26 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         )
 
     @router.post(
-        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve"
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve",
+        response_model=SolutionLifecycleFundingApprovalResponse,
+        responses={
+            200: {
+                "model": SolutionLifecycleFundingApprovalResponse,
+                "description": "An exact retry replayed the prior funding approval.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            201: {
+                "model": SolutionLifecycleFundingApprovalResponse,
+                "description": "An independent human approved the submitted funding case.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+        },
     )
     async def approve_solution_funding(
         request: Request, location_id: str, funding_case_id: str
@@ -6945,9 +6975,24 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution funding approval unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            validated = SolutionLifecycleFundingApprovalResponse.model_validate(result)
+            if validated.funding_case_id != UUID(funding_case_id):
+                raise ValueError("Funding approval does not match the requested case")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding approval response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding approval unavailable"},
+                headers=headers,
+            )
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result.get("replayed") else 201,
+            jsonable_encoder(validated.model_dump(mode="python")),
+            status_code=200 if validated.replayed else 201,
             headers=headers,
         )
 

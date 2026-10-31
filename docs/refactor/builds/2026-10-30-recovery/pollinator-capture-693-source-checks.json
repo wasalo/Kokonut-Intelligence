@@ -1,0 +1,63 @@
+{
+  "result": "passed",
+  "date": "2026-10-30",
+  "scope": "migration 693 pollinator capture writer retirement and runtime ACL boundary",
+  "checks": [
+    {
+      "command": "python3 -m pytest -q tests/test_pollinator_health.py tests/test_runtime_sql_inventory.py",
+      "result": "passed",
+      "passed": 44,
+      "failed": 0,
+      "notes": "Includes the helper fail-before-database regressions and refreshed runtime SQL inventory/ledger assertions."
+    },
+    {
+      "command": "python3 -m pytest -q tests/test_runtime_role_boundary.py",
+      "result": "passed",
+      "passed": 86,
+      "failed": 0,
+      "notes": "Includes migration 693 policy inventory checks and the native full-schema acceptance evidence contract."
+    },
+    {
+      "command": "ruff check on changed Python files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile on changed Python files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m services.migration validate --schemas-only",
+      "result": "passed",
+      "schema_files": 684
+    },
+    {
+      "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "passed",
+      "unresolved_write_candidates": 41
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-arm64-schema-replay.py --platform linux/arm64 --image kokonut-kernel-postgis-arm64:local --project kokonut-c1-693-arm64-20261030 --memory-limit 1536MiB --cpu-limit 2 --operator-scope-probe",
+      "result": "passed",
+      "schema_files_applied": 684,
+      "operator_scope_checks": 35,
+      "runtime_public_tables_with_dml_and_rls_disabled": 983,
+      "notes": "aarch64 under QEMU; no seeds or farm data; no OOM; cleanup completed; not physical Raspberry Pi acceptance."
+    }
+  ],
+  "related_evidence": [
+    "runtime-pollinator-capture-693-disposable.json",
+    "native-resource-limited-schema-693-operator-probe.json",
+    "runtime-privilege-callsite-report-693.json",
+    "arm64-resource-limited-schema-693-operator-probe.json"
+  ],
+  "candidate_legacy_or_production_touched": false,
+  "notes": [
+    "Retired unscoped analytics capture helpers fail before opening a database connection; authenticated location-scoped Gateway functions remain the supported write path.",
+    "The ACL is a direct-write boundary and does not establish tenant-isolated SELECT behavior.",
+    "The runtime DML/RLS-disabled count is privilege reach, not a count of confirmed tenant-data leaks."
+  ]
+}

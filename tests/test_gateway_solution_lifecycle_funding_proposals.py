@@ -68,6 +68,13 @@ TRANCHE_REVIEW_DETAIL = {
 }
 FUNDING_CREATED_AT = datetime(2026, 10, 20, 12, 0, tzinfo=timezone.utc)
 FUNDING_SUBMITTED_AT = datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)
+FUNDING_APPROVED_AT = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+FUNDING_APPROVAL_ROUTE_RESULT = {
+    "funding_case_id": RESULT["funding_case_id"],
+    "decision_status": "approved",
+    "approved_at": FUNDING_APPROVED_AT,
+    "replayed": False,
+}
 FUNDING_REVIEW_QUEUE_ITEM = {
     "funding_case_id": RESULT["funding_case_id"],
     "solution_name": "Watershed restoration",
@@ -728,9 +735,13 @@ def test_funding_submission_route_requires_exact_body_and_returns_no_store(monke
 
 def test_funding_approval_route_requires_exact_body_and_returns_created_or_replayed(monkeypatch):
     approved = []
+    approval_results = [
+        dict(FUNDING_APPROVAL_ROUTE_RESULT),
+        {**FUNDING_APPROVAL_ROUTE_RESULT, "replayed": True},
+    ]
     app = _app(
         object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
-        approval_action=lambda *args: approved.append(args) or APPROVAL_RESULT,
+        approval_action=lambda *args: approved.append(args) or approval_results.pop(0),
     )
 
     @app.middleware("http")
@@ -746,14 +757,89 @@ def test_funding_approval_route_requires_exact_body_and_returns_created_or_repla
     )
     with TestClient(app) as client:
         response = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
+        replay = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
         malformed = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True, "release": True})
     assert response.status_code == 201
-    assert response.json() == APPROVAL_RESULT
+    assert response.json() == {
+        **FUNDING_APPROVAL_ROUTE_RESULT,
+        "approved_at": "2026-10-22T12:00:00+00:00",
+    }
     assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert replay.status_code == 200
+    assert replay.json() == {
+        **FUNDING_APPROVAL_ROUTE_RESULT,
+        "approved_at": "2026-10-22T12:00:00+00:00",
+        "replayed": True,
+    }
+    assert replay.headers["cache-control"] == "no-store"
+    assert replay.headers["vary"] == "Cookie"
     assert approved == [(
         OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"], REQUEST_ID, True
-    )]
+    )] * 2
     assert malformed.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result.update(funding_case_id=str(uuid4())),
+        lambda result: result.update(decision_status="submitted"),
+        lambda result: result.pop("approved_at"),
+        lambda result: result.update(unexpected="private receipt detail"),
+        lambda result: result.update(approved_at="2026-10-20T12:00:00"),
+    ],
+)
+def test_funding_approval_route_rejects_malformed_service_output(monkeypatch, mutate):
+    malformed = dict(FUNDING_APPROVAL_ROUTE_RESULT)
+    mutate(malformed)
+    app = _app(
+        object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
+        approval_action=lambda *_args, **_kwargs: malformed,
+    )
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/approve"
+    )
+    with TestClient(app) as client:
+        response = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution funding approval unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private receipt detail" not in response.text
+
+
+def test_funding_approval_route_declares_exact_create_and_replay_openapi_contract(monkeypatch):
+    app = _app(object(), monkeypatch, lambda *_args, **_kwargs: RESULT)
+    path = "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve"
+    operation = app.openapi()["paths"][path]["post"]
+    components = app.openapi()["components"]["schemas"]
+
+    expected_schema = {
+        "$ref": "#/components/schemas/SolutionLifecycleFundingApprovalResponse"
+    }
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == expected_schema
+    assert operation["responses"]["201"]["content"]["application/json"]["schema"] == expected_schema
+    assert set(
+        components["SolutionLifecycleFundingApprovalResponse"]["properties"]
+    ) == {"funding_case_id", "decision_status", "approved_at", "replayed"}
+    assert auth_route_policy(
+        "POST", f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/{RESULT['funding_case_id']}/approve",
+        enabled=True,
+    ) == {
+        "resource": "solution_lifecycle", "action": "review", "public": False,
+        "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
+    }
 
 
 def test_funding_approval_route_maps_tenant_denial_to_forbidden(monkeypatch):

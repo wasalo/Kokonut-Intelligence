@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import secrets
 import subprocess
 import sys
@@ -25,8 +26,8 @@ POSTGRES_IMAGE = (
 ARM64_POSTGRES_IMAGE = "kokonut-kernel-postgis-arm64:local"
 DEFAULT_OUTPUT = (
     ROOT
-    / "docs/refactor/builds/2026-10-28-recovery/"
-    "runtime-scoped-write-boundary-disposable.json"
+    / "docs/refactor/builds/2026-10-30-recovery/"
+    "runtime-consent-data-type-696-disposable.json"
 )
 APPEND_ONLY_MIGRATION = (
     ROOT / "schemas/postgres/652_runtime_append_only_data_access_log.sql"
@@ -117,6 +118,34 @@ METRIC_DEFINITION_MIGRATION = (
 SERVICE_REGISTRY_MIGRATION = (
     ROOT / "schemas/postgres/682_runtime_service_registry_read_only.sql"
 )
+CAPEX_BREAKDOWN_MIGRATION = (
+    ROOT / "schemas/postgres/690_runtime_capex_breakdown_read_only.sql"
+)
+WATER_ACCESS_ATTESTATION_PLAN_MIGRATION = (
+    ROOT
+    / "schemas/postgres/691_runtime_water_access_attestation_plan_read_only.sql"
+)
+POLLINATOR_HIVE_MIGRATION = (
+    ROOT / "schemas/postgres/692_runtime_pollinator_hive_writes_read_only.sql"
+)
+POLLINATOR_CAPTURE_MIGRATION = (
+    ROOT / "schemas/postgres/693_runtime_pollinator_capture_writes_read_only.sql"
+)
+EVENT_HANDLER_MIGRATION = (
+    ROOT / "schemas/postgres/694_runtime_event_handler_registry_read_only.sql"
+)
+CAPITAL_SOURCE_MIGRATION = (
+    ROOT / "schemas/postgres/695_runtime_capital_source_read_only.sql"
+)
+CONSENT_DATA_TYPE_MIGRATION = (
+    ROOT / "schemas/postgres/696_runtime_consent_data_type_read_only.sql"
+)
+PROCESS_BENCHMARK_MIGRATION = (
+    ROOT / "schemas/postgres/697_runtime_process_benchmark_read_only.sql"
+)
+PUBLIC_FARM_SUMMARY_MIGRATION = (
+    ROOT / "schemas/postgres/699_runtime_public_farm_summary_read_only.sql"
+)
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
     "pest_degree_day_config",
@@ -190,7 +219,11 @@ def _relation_privileges(connection, table: str) -> tuple[bool, bool, bool, bool
 
 
 def check_boundary(
-    *, image: str = POSTGRES_IMAGE, platform: str | None = None
+    *,
+    image: str = POSTGRES_IMAGE,
+    platform: str | None = None,
+    dsn: str | None = None,
+    database_image_id: str | None = None,
 ) -> dict[str, object]:
     from services.migration import runtime_role
 
@@ -199,41 +232,47 @@ def check_boundary(
     host = "127.0.0.1"
     created = False
     try:
-        image_info = run(
-            [
-                "docker", "image", "inspect", image,
-                "--format", "{{.Os}}/{{.Architecture}} {{.Id}}",
-            ]
-        ).strip().split(maxsplit=1)
-        if len(image_info) != 2:
-            raise RuntimeError("could not identify the disposable PostgreSQL image")
-        if platform is not None and image_info[0] != platform:
-            raise RuntimeError("local PostgreSQL image does not match requested platform")
+        if dsn is None:
+            image_info = run(
+                [
+                    "docker", "image", "inspect", image,
+                    "--format", "{{.Os}}/{{.Architecture}} {{.Id}}",
+                ]
+            ).strip().split(maxsplit=1)
+            if len(image_info) != 2:
+                raise RuntimeError("could not identify the disposable PostgreSQL image")
+            if platform is not None and image_info[0] != platform:
+                raise RuntimeError("local PostgreSQL image does not match requested platform")
 
-        command = ["docker", "run"]
-        if platform is not None:
-            command.extend(("--platform", platform))
-        command.extend(
-            (
-                "--pull=never", "--detach", "--rm", "--name", container,
-                "--publish", "127.0.0.1::5432",
-                "--env", f"POSTGRES_PASSWORD={password}", image,
+            command = ["docker", "run"]
+            if platform is not None:
+                command.extend(("--platform", platform))
+            command.extend(
+                (
+                    "--pull=never", "--detach", "--rm", "--name", container,
+                    "--publish", "127.0.0.1::5432",
+                    "--env", f"POSTGRES_PASSWORD={password}", image,
+                )
             )
-        )
-        run(command)
-        created = True
-        published = run(["docker", "port", container, "5432/tcp"]).strip()
-        port = int(published.rsplit(":", 1)[1])
-        wait_for_database(host, port, password)
-
-        connection = psycopg2.connect(
-            host=host,
-            port=port,
-            dbname="postgres",
-            user="postgres",
-            password=password,
-            connect_timeout=5,
-        )
+            run(command)
+            created = True
+            published = run(["docker", "port", container, "5432/tcp"]).strip()
+            port = int(published.rsplit(":", 1)[1])
+            wait_for_database(host, port, password)
+            connection = psycopg2.connect(
+                host=host,
+                port=port,
+                dbname="postgres",
+                user="postgres",
+                password=password,
+                connect_timeout=5,
+            )
+        else:
+            image_info = [
+                platform or "network-isolated",
+                database_image_id or "image-identity-supplied-by-host-runner",
+            ]
+            connection = psycopg2.connect(dsn, connect_timeout=5)
         try:
             connection.autocommit = True
             with connection.cursor() as cursor:
@@ -245,6 +284,29 @@ def check_boundary(
                     "CREATE ROLE kokonut_directus_runtime NOLOGIN NOSUPERUSER "
                     "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
                 )
+                cursor.execute(
+                    "CREATE ROLE kokonut_unrelated_probe NOLOGIN NOSUPERUSER "
+                    "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
+                )
+                cursor.execute(
+                    "CREATE ROLE kokonut_event_dispatch_owner NOLOGIN NOINHERIT "
+                    "NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
+                )
+                for role in (
+                    "kokonut_pollinator_hive_writer",
+                    "kokonut_pollinator_inspection_writer",
+                    "kokonut_pollinator_hive_lifecycle_writer",
+                    "kokonut_pollinator_review_writer",
+                    "kokonut_pollinator_observation_writer",
+                    "kokonut_pesticide_impact_writer",
+                    "kokonut_pollinator_habitat_writer",
+                ):
+                    cursor.execute(
+                        sql.SQL(
+                            "CREATE ROLE {} NOLOGIN NOSUPERUSER NOCREATEDB "
+                            "NOCREATEROLE NOREPLICATION NOBYPASSRLS"
+                        ).format(sql.Identifier(role))
+                    )
                 relations = tuple(
                     dict.fromkeys(
                         (*runtime_role._RUNTIME_PRIVATE_TABLES,
@@ -263,6 +325,53 @@ def check_boundary(
                             "INSERT INTO public.service_registry (id, name, marker) "
                             "VALUES (%s, 'gateway', 'synthetic-service-registry')",
                             (service_registry_id,),
+                        )
+                    elif table == "event_handler":
+                        cursor.execute(
+                            "CREATE TABLE public.event_handler ("
+                            "id uuid PRIMARY KEY, handler_name text NOT NULL, "
+                            "event_type text NOT NULL, module_path text NOT NULL, "
+                            "function_name text NOT NULL, is_enabled boolean NOT NULL, "
+                            "priority_order integer NOT NULL, timeout_seconds integer NOT NULL, "
+                            "max_concurrency integer NOT NULL, created_at timestamptz NOT NULL, "
+                            "updated_at timestamptz NOT NULL, marker text)"
+                        )
+                        cursor.execute(
+                            "INSERT INTO public.event_handler ("
+                            "id, handler_name, event_type, module_path, function_name, "
+                            "is_enabled, priority_order, timeout_seconds, max_concurrency, "
+                            "created_at, updated_at, marker) VALUES ("
+                            "%s, 'synthetic-handler', 'synthetic.event', 'tests.handlers', "
+                            "'handle', true, 1, 30, 1, now(), now(), 'synthetic')",
+                            (str(uuid.uuid4()),),
+                        )
+                    elif table == "v_public_farm_summary":
+                        cursor.execute(
+                            "CREATE TABLE public.farm_summary_probe_source "
+                            "(location_id uuid NOT NULL)"
+                        )
+                        cursor.execute(
+                            "INSERT INTO public.farm_summary_probe_source "
+                            "(location_id) VALUES (%s)",
+                            (str(uuid.uuid4()),),
+                        )
+                        cursor.execute(
+                            "CREATE VIEW public.v_public_farm_summary AS "
+                            "SELECT location_id, count(*) AS farm_count "
+                            "FROM public.farm_summary_probe_source GROUP BY location_id"
+                        )
+                    elif table == "consent_data_type":
+                        cursor.execute(
+                            "CREATE TABLE public.consent_data_type ("
+                            "id uuid PRIMARY KEY, name text NOT NULL UNIQUE, "
+                            "category text NOT NULL, default_retention_days integer, "
+                            "marker text NOT NULL)"
+                        )
+                        cursor.execute(
+                            "INSERT INTO public.consent_data_type "
+                            "(id, name, category, default_retention_days, marker) "
+                            "VALUES (%s, 'synthetic_category', 'environmental', NULL, 'synthetic')",
+                            (str(uuid.uuid4()),),
                         )
                     else:
                         cursor.execute(
@@ -303,6 +412,10 @@ def check_boundary(
                     "(id uuid PRIMARY KEY, marker text NOT NULL)"
                 )
                 cursor.execute(
+                    "INSERT INTO public.process_benchmark (id, marker) VALUES (%s, %s)",
+                    (str(uuid.uuid4()), "synthetic-process-benchmark"),
+                )
+                cursor.execute(
                     "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
                     "IN SCHEMA public TO kokonut_runtime"
                 )
@@ -325,6 +438,134 @@ def check_boundary(
                 cursor.execute(
                     "GRANT SELECT, INSERT, UPDATE, DELETE ON public.operations_protocol "
                     "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE ON public.event_handler "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.capital_source "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.consent_data_type "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.process_benchmark "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "REVOKE ALL PRIVILEGES ON public.farm_summary_probe_source "
+                    "FROM PUBLIC, kokonut_runtime, kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE "
+                    "ON public.v_public_farm_summary TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (marker), UPDATE (marker), REFERENCES (id) "
+                    "ON public.capital_source TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (marker), UPDATE (marker), REFERENCES (id) "
+                    "ON public.consent_data_type TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (marker), UPDATE (marker), REFERENCES (id) "
+                    "ON public.process_benchmark TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (location_id), UPDATE (farm_count), "
+                    "REFERENCES (location_id) ON public.v_public_farm_summary "
+                    "TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT SELECT (id, event_type, module_path, function_name, is_enabled, "
+                    "priority_order, timeout_seconds) ON public.event_handler "
+                    "TO kokonut_event_dispatch_owner"
+                )
+                cursor.execute(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE "
+                    "ON public.water_access, public.attestation_plan "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES "
+                    "ON public.hive_record, public.pollinator_hive_inspection "
+                    "TO kokonut_directus_runtime, PUBLIC"
+                )
+                cursor.execute(
+                    "GRANT INSERT (marker), UPDATE (marker), REFERENCES (id) "
+                    "ON public.hive_record, public.pollinator_hive_inspection "
+                    "TO kokonut_runtime, kokonut_directus_runtime, PUBLIC"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.pollinator_observation, "
+                    "public.pollinator_habitat, public.pesticide_impact_log "
+                    "TO kokonut_directus_runtime, PUBLIC"
+                )
+                cursor.execute(
+                    "GRANT INSERT (marker), UPDATE (marker), REFERENCES (id) "
+                    "ON public.pollinator_observation, public.pollinator_habitat, "
+                    "public.pesticide_impact_log "
+                    "TO kokonut_runtime, kokonut_directus_runtime, PUBLIC"
+                )
+                for table, owner_role in (
+                    ("pollinator_observation", "kokonut_pollinator_observation_writer"),
+                    ("pollinator_habitat", "kokonut_pollinator_habitat_writer"),
+                    ("pesticide_impact_log", "kokonut_pesticide_impact_writer"),
+                ):
+                    cursor.execute(
+                        sql.SQL("GRANT INSERT (marker) ON public.{} TO {}").format(
+                            sql.Identifier(table), sql.Identifier(owner_role)
+                        )
+                    )
+                cursor.execute(
+                    "SELECT "
+                    "has_table_privilege('kokonut_runtime', 'public.pollinator_observation', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.pollinator_habitat', 'INSERT'), "
+                    "has_table_privilege('kokonut_unrelated_probe', 'public.pesticide_impact_log', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', 'public.pollinator_observation', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_directus_runtime', 'public.pollinator_habitat', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_unrelated_probe', 'public.pesticide_impact_log', 'id', 'REFERENCES')"
+                )
+                if cursor.fetchone() != (True,) * 6:
+                    raise AssertionError(
+                        "disposable pollinator fixture failed to create stale write grants"
+                    )
+                cursor.execute(
+                    "SELECT "
+                    "has_column_privilege('kokonut_runtime', 'public.hive_record', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', 'public.hive_record', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_runtime', 'public.hive_record', 'id', 'REFERENCES'), "
+                    "has_column_privilege('kokonut_directus_runtime', 'public.hive_record', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_directus_runtime', 'public.hive_record', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_directus_runtime', 'public.hive_record', 'id', 'REFERENCES'), "
+                    "has_column_privilege('kokonut_unrelated_probe', 'public.hive_record', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_unrelated_probe', 'public.hive_record', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_unrelated_probe', 'public.hive_record', 'id', 'REFERENCES')"
+                )
+                if cursor.fetchone() != (True,) * 9:
+                    raise AssertionError(
+                        "disposable fixture failed to create the expected stale column grants"
+                    )
+                cursor.execute(
+                    "GRANT INSERT (marker) ON public.hive_record "
+                    "TO kokonut_pollinator_hive_writer"
+                )
+                cursor.execute(
+                    "GRANT UPDATE (marker) ON public.hive_record "
+                    "TO kokonut_pollinator_inspection_writer, "
+                    "kokonut_pollinator_hive_lifecycle_writer"
+                )
+                cursor.execute(
+                    "GRANT INSERT (marker) ON public.pollinator_hive_inspection "
+                    "TO kokonut_pollinator_inspection_writer"
+                )
+                cursor.execute(
+                    "GRANT UPDATE (marker) ON public.pollinator_hive_inspection "
+                    "TO kokonut_pollinator_review_writer"
                 )
                 for table in (
                     "process_maturity_level", "pollinator_species_reference",
@@ -372,6 +613,14 @@ def check_boundary(
                 cursor.execute(
                     "GRANT INSERT (id), UPDATE (marker), REFERENCES (id) "
                     "ON public.certification_type TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (id, marker), UPDATE (marker), REFERENCES (id) "
+                    "ON public.consent_data_type TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (id), UPDATE (marker), REFERENCES (id) "
+                    "ON public.capex_breakdown TO kokonut_runtime"
                 )
                 cursor.execute(
                     "GRANT INSERT (id), UPDATE (marker), REFERENCES (id) "
@@ -526,6 +775,53 @@ def check_boundary(
                 )
                 cursor.execute(service_registry_migration)
                 cursor.execute(service_registry_migration)
+                capex_breakdown_migration = CAPEX_BREAKDOWN_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(capex_breakdown_migration)
+                cursor.execute(capex_breakdown_migration)
+                water_access_attestation_plan_migration = (
+                    WATER_ACCESS_ATTESTATION_PLAN_MIGRATION.read_text(
+                        encoding="utf-8"
+                    )
+                )
+                cursor.execute(water_access_attestation_plan_migration)
+                cursor.execute(water_access_attestation_plan_migration)
+                pollinator_hive_migration = POLLINATOR_HIVE_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(pollinator_hive_migration)
+                cursor.execute(pollinator_hive_migration)
+                pollinator_capture_migration = POLLINATOR_CAPTURE_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(pollinator_capture_migration)
+                cursor.execute(pollinator_capture_migration)
+                event_handler_migration = EVENT_HANDLER_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(event_handler_migration)
+                cursor.execute(event_handler_migration)
+                capital_source_migration = CAPITAL_SOURCE_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(capital_source_migration)
+                cursor.execute(capital_source_migration)
+                consent_data_type_migration = CONSENT_DATA_TYPE_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(consent_data_type_migration)
+                cursor.execute(consent_data_type_migration)
+                process_benchmark_migration = PROCESS_BENCHMARK_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(process_benchmark_migration)
+                cursor.execute(process_benchmark_migration)
+                public_farm_summary_migration = PUBLIC_FARM_SUMMARY_MIGRATION.read_text(
+                    encoding="utf-8"
+                )
+                cursor.execute(public_farm_summary_migration)
+                cursor.execute(public_farm_summary_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -543,6 +839,464 @@ def check_boundary(
                 True, False, False, False
             ):
                 raise AssertionError("migration 663 did not establish read-only rights")
+            if _relation_privileges(connection, "capex_breakdown") != (
+                True, False, False, False
+            ):
+                raise AssertionError("migration 690 did not establish read-only CAPEX rights")
+            if _relation_privileges(connection, "event_handler") != (
+                True, False, False, False
+            ):
+                raise AssertionError("migration 694 did not establish read-only event registry rights")
+            if _relation_privileges(connection, "capital_source") != (
+                True, False, False, False
+            ):
+                raise AssertionError("migration 695 did not establish read-only capital-source rights")
+            if _relation_privileges(connection, "consent_data_type") != (
+                True, False, False, False
+            ):
+                raise AssertionError("migration 696 did not establish read-only consent-category rights")
+            if _relation_privileges(connection, "process_benchmark") != (
+                True, False, False, False
+            ):
+                raise AssertionError("migration 697 did not establish read-only process-benchmark rights")
+            if _relation_privileges(connection, "v_public_farm_summary") != (
+                True, False, False, False
+            ):
+                raise AssertionError("migration 699 did not establish read-only public-summary rights")
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT pg_relation_is_updatable('public.v_public_farm_summary'::regclass, TRUE), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.v_public_farm_summary', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.v_public_farm_summary', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.v_public_farm_summary', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.v_public_farm_summary', 'DELETE'), "
+                    "has_column_privilege('kokonut_runtime', 'public.v_public_farm_summary', 'location_id', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', 'public.v_public_farm_summary', 'farm_count', 'UPDATE'), "
+                    "has_column_privilege('kokonut_runtime', 'public.v_public_farm_summary', 'location_id', 'REFERENCES')"
+                )
+                if cursor.fetchone() != (0, True, True, True, True, False, False, False):
+                    raise AssertionError(
+                        "migration 699 changed Directus grants, left column grants, "
+                        "or accepted an updatable view"
+                    )
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute(
+                    "SELECT location_id, farm_count FROM public.v_public_farm_summary"
+                )
+                if len(cursor.fetchall()) != 1:
+                    raise AssertionError("runtime could not read the public farm summary")
+                for statement in (
+                    "INSERT INTO public.v_public_farm_summary (location_id, farm_count) "
+                    "VALUES ('00000000-0000-0000-0000-000000000001', 1)",
+                    "UPDATE public.v_public_farm_summary SET farm_count = 9",
+                    "DELETE FROM public.v_public_farm_summary",
+                ):
+                    try:
+                        cursor.execute(statement)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode not in {"42501", "55000"}:
+                            raise AssertionError(
+                                f"expected runtime ACL denial or non-updatable view; got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError("runtime mutated the public farm summary view")
+                cursor.execute("RESET ROLE")
+
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'DELETE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'TRIGGER'), "
+                    "has_column_privilege('kokonut_runtime', 'public.consent_data_type', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', 'public.consent_data_type', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_runtime', 'public.consent_data_type', 'id', 'REFERENCES')"
+                )
+                if cursor.fetchone() != (
+                    True, True, True, True, True, True, True, False, False, False
+                ):
+                    raise AssertionError(
+                        "migration 696 changed Directus grants or left runtime column grants"
+                    )
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute(
+                    "SELECT name, default_retention_days "
+                    "FROM public.consent_data_type"
+                )
+                if cursor.fetchone() != ("synthetic_category", None):
+                    raise AssertionError(
+                        "runtime could not read the consent category or its unset retention default"
+                    )
+                cursor.execute("RESET ROLE")
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'DELETE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'TRIGGER'), "
+                    "has_column_privilege('kokonut_runtime', 'public.capital_source', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', 'public.capital_source', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_runtime', 'public.capital_source', 'id', 'REFERENCES')"
+                )
+                if cursor.fetchone() != (
+                    True, True, True, True, True, True, True, False, False, False
+                ):
+                    raise AssertionError(
+                        "migration 695 changed Directus grants or left runtime column grants"
+                    )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.process_benchmark', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.process_benchmark', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.process_benchmark', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.process_benchmark', 'DELETE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.process_benchmark', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.process_benchmark', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.process_benchmark', 'TRIGGER'), "
+                    "has_column_privilege('kokonut_runtime', 'public.process_benchmark', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', 'public.process_benchmark', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_runtime', 'public.process_benchmark', 'id', 'REFERENCES')"
+                )
+                if cursor.fetchone() != (
+                    True, True, True, True, True, True, True, False, False, False
+                ):
+                    raise AssertionError(
+                        "migration 697 changed Directus grants or left runtime column grants"
+                    )
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute("SELECT marker FROM public.process_benchmark")
+                if cursor.fetchone() != ("synthetic-process-benchmark",):
+                    raise AssertionError("runtime role could not read process benchmarks")
+                cursor.execute("RESET ROLE")
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.event_handler', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.event_handler', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.event_handler', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.event_handler', 'DELETE'), "
+                    "has_column_privilege('kokonut_event_dispatch_owner', 'public.event_handler', 'event_type', 'SELECT'), "
+                    "has_column_privilege('kokonut_event_dispatch_owner', 'public.event_handler', 'module_path', 'SELECT'), "
+                    "has_column_privilege('kokonut_event_dispatch_owner', 'public.event_handler', 'event_type', 'UPDATE'), "
+                    "EXISTS (SELECT 1 FROM pg_class AS relation "
+                    "CROSS JOIN LATERAL aclexplode(COALESCE(relation.relacl, "
+                    "acldefault('r', relation.relowner))) AS privilege "
+                    "WHERE relation.oid = 'public.event_handler'::regclass "
+                    "AND privilege.grantee = 0 AND privilege.privilege_type IN "
+                    "('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'))"
+                )
+                if cursor.fetchone() != (True, True, True, True, True, True, False, False):
+                    raise AssertionError(
+                        "migration 694 changed Directus/dispatch-owner grants or left PUBLIC writes"
+                    )
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute("SELECT handler_name FROM public.event_handler")
+                if cursor.fetchone() != ("synthetic-handler",):
+                    raise AssertionError("runtime role could not read event-handler configuration")
+                cursor.execute("RESET ROLE")
+                cursor.execute("SET ROLE kokonut_runtime")
+                for statement in (
+                    "INSERT INTO public.consent_data_type "
+                    "(id, name, category, marker) VALUES "
+                    "('00000000-0000-0000-0000-000000000096', 'forbidden', 'test', 'forbidden')",
+                    "UPDATE public.consent_data_type SET marker = 'forbidden'",
+                    "DELETE FROM public.consent_data_type",
+                    "TRUNCATE public.consent_data_type",
+                ):
+                    try:
+                        cursor.execute(statement)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode != "42501":
+                            raise AssertionError(
+                                f"expected privilege denial for {statement}; got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError(
+                            "runtime consent-category write unexpectedly succeeded"
+                        )
+                cursor.execute("RESET ROLE")
+                cursor.execute("SET ROLE kokonut_event_dispatch_owner")
+                cursor.execute(
+                    "SELECT event_type, module_path FROM public.event_handler"
+                )
+                if cursor.fetchone() != ("synthetic.event", "tests.handlers"):
+                    raise AssertionError("event-dispatch owner lost its bounded registry read")
+                cursor.execute("RESET ROLE")
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute("SELECT marker FROM public.capital_source")
+                for statement in (
+                    "INSERT INTO public.capital_source (id, marker) "
+                    "VALUES ('00000000-0000-0000-0000-000000000095', 'forbidden')",
+                    "UPDATE public.capital_source SET marker = 'forbidden'",
+                    "DELETE FROM public.capital_source",
+                    "TRUNCATE public.capital_source",
+                ):
+                    try:
+                        cursor.execute(statement)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode != "42501":
+                            raise AssertionError(
+                                f"expected privilege denial for {statement}; got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError(
+                            "runtime capital-source write unexpectedly succeeded"
+                        )
+                for statement in (
+                    "INSERT INTO public.process_benchmark (id, marker) "
+                    "VALUES ('00000000-0000-0000-0000-000000000097', 'forbidden')",
+                    "UPDATE public.process_benchmark SET marker = 'forbidden'",
+                    "DELETE FROM public.process_benchmark",
+                    "TRUNCATE public.process_benchmark",
+                ):
+                    try:
+                        cursor.execute(statement)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode != "42501":
+                            raise AssertionError(
+                                f"expected privilege denial for {statement}; got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError(
+                            "runtime process-benchmark write unexpectedly succeeded"
+                        )
+                cursor.execute("RESET ROLE")
+            for table in ("water_access", "attestation_plan"):
+                if _relation_privileges(connection, table) != (
+                    True, False, False, False
+                ):
+                    raise AssertionError(
+                        f"migration 691 did not establish read-only rights for {table}"
+                    )
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'INSERT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'UPDATE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'DELETE')",
+                        (f"public.{table}",) * 4,
+                    )
+                    if cursor.fetchone() != (True, True, True, True):
+                        raise AssertionError(
+                            f"migration 691 changed separate Directus SQL role on {table}"
+                        )
+            for table in ("hive_record", "pollinator_hive_inspection"):
+                if _relation_privileges(connection, table) != (
+                    True, False, False, False
+                ):
+                    raise AssertionError(
+                        f"migration 692 did not establish read-only runtime rights for {table}"
+                    )
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'INSERT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'UPDATE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'DELETE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'TRUNCATE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'REFERENCES'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'TRIGGER'), "
+                        "has_table_privilege('kokonut_unrelated_probe', %s, 'INSERT'), "
+                        "has_table_privilege('kokonut_unrelated_probe', %s, 'UPDATE'), "
+                        "has_table_privilege('kokonut_unrelated_probe', %s, 'DELETE'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'marker', 'UPDATE'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'id', 'REFERENCES'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'marker', 'UPDATE'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'id', 'REFERENCES'), "
+                        "has_column_privilege('kokonut_unrelated_probe', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_unrelated_probe', %s, 'marker', 'UPDATE'), "
+                        "has_column_privilege('kokonut_unrelated_probe', %s, 'id', 'REFERENCES')",
+                        (f"public.{table}",) * 19,
+                    )
+                    if cursor.fetchone() != (
+                        True, False, False, False, False, False, False,
+                        False, False, False, False, False, False,
+                        False, False, False,
+                        False, False, False,
+                    ):
+                        raise AssertionError(
+                            f"migration 692 did not clear table and stale column grants while preserving reads on {table}"
+                        )
+
+                for role_name in (
+                    "kokonut_runtime",
+                    "kokonut_directus_runtime",
+                    "kokonut_unrelated_probe",
+                ):
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            sql.SQL("SET ROLE {}").format(sql.Identifier(role_name))
+                        )
+                        cursor.execute(
+                            sql.SQL("SELECT marker FROM public.{}").format(
+                                sql.Identifier(table)
+                            )
+                        )
+                        statements = (
+                            (
+                                sql.SQL(
+                                    "INSERT INTO public.{} (id, marker) VALUES (%s, %s)"
+                                ).format(sql.Identifier(table)),
+                                (str(uuid.uuid4()), "forbidden"),
+                            ),
+                            (
+                                sql.SQL("UPDATE public.{} SET marker = %s").format(
+                                    sql.Identifier(table)
+                                ),
+                                ("forbidden",),
+                            ),
+                            (
+                                sql.SQL("DELETE FROM public.{}").format(
+                                    sql.Identifier(table)
+                                ),
+                                None,
+                            ),
+                            (
+                                sql.SQL("TRUNCATE public.{}").format(
+                                    sql.Identifier(table)
+                                ),
+                                None,
+                            ),
+                        )
+                        for statement, parameters in statements:
+                            try:
+                                cursor.execute(statement, parameters)
+                            except psycopg2.Error as exc:
+                                if exc.pgcode != "42501":
+                                    raise AssertionError(
+                                        f"expected write denial for {role_name} on {table}; got {exc.pgcode}"
+                                    ) from exc
+                                connection.rollback()
+                                with connection.cursor() as retry_cursor:
+                                    retry_cursor.execute(
+                                        sql.SQL("SET ROLE {}").format(
+                                            sql.Identifier(role_name)
+                                        )
+                                    )
+                            else:
+                                connection.rollback()
+                                raise AssertionError(
+                                    f"{role_name} unexpectedly wrote {table}"
+                                )
+                        cursor.execute("RESET ROLE")
+            for table in (
+                "pollinator_observation",
+                "pollinator_habitat",
+                "pesticide_impact_log",
+            ):
+                if _relation_privileges(connection, table) != (
+                    True, False, False, False
+                ):
+                    raise AssertionError(
+                        f"migration 693 did not establish read-only runtime rights for {table}"
+                    )
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'INSERT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'UPDATE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'DELETE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'TRUNCATE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'REFERENCES'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'TRIGGER'), "
+                        "has_table_privilege('kokonut_unrelated_probe', %s, 'SELECT'), "
+                        "has_table_privilege('kokonut_unrelated_probe', %s, 'INSERT'), "
+                        "has_table_privilege('kokonut_unrelated_probe', %s, 'UPDATE'), "
+                        "has_table_privilege('kokonut_unrelated_probe', %s, 'DELETE'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'marker', 'UPDATE'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'id', 'REFERENCES'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'marker', 'UPDATE'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'id', 'REFERENCES'), "
+                        "has_column_privilege('kokonut_unrelated_probe', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_unrelated_probe', %s, 'marker', 'UPDATE'), "
+                        "has_column_privilege('kokonut_unrelated_probe', %s, 'id', 'REFERENCES')",
+                        (f"public.{table}",) * 20,
+                    )
+                    if cursor.fetchone() != (
+                        True, False, False, False, False, False, False,
+                        True, False, False, False,
+                        False, False, False, False, False, False,
+                        False, False, False,
+                    ):
+                        raise AssertionError(
+                            f"migration 693 failed to revoke runtime, Directus, PUBLIC, or stale column writes on {table}"
+                        )
+
+                for role_name in (
+                    "kokonut_runtime",
+                    "kokonut_directus_runtime",
+                    "kokonut_unrelated_probe",
+                ):
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            sql.SQL("SET ROLE {}").format(sql.Identifier(role_name))
+                        )
+                        cursor.execute(
+                            sql.SQL("SELECT marker FROM public.{}").format(
+                                sql.Identifier(table)
+                            )
+                        )
+                        statements = (
+                            (
+                                sql.SQL(
+                                    "INSERT INTO public.{} (id, marker) VALUES (%s, %s)"
+                                ).format(sql.Identifier(table)),
+                                (str(uuid.uuid4()), "forbidden"),
+                            ),
+                            (
+                                sql.SQL("UPDATE public.{} SET marker = %s").format(
+                                    sql.Identifier(table)
+                                ),
+                                ("forbidden",),
+                            ),
+                            (sql.SQL("DELETE FROM public.{}").format(sql.Identifier(table)), None),
+                            (sql.SQL("TRUNCATE public.{}").format(sql.Identifier(table)), None),
+                        )
+                        for statement, parameters in statements:
+                            try:
+                                cursor.execute(statement, parameters)
+                            except psycopg2.Error as exc:
+                                if exc.pgcode != "42501":
+                                    raise AssertionError(
+                                        f"expected migration 693 privilege denial for {role_name}/{table}; got {exc.pgcode}"
+                                    ) from exc
+                                connection.rollback()
+                                with connection.cursor() as retry_cursor:
+                                    retry_cursor.execute(
+                                        sql.SQL("SET ROLE {}").format(
+                                            sql.Identifier(role_name)
+                                        )
+                                    )
+                            else:
+                                connection.rollback()
+                                raise AssertionError(
+                                    f"migration 693 allowed {role_name} write on {table}: {statement}"
+                                )
+                        cursor.execute("RESET ROLE")
             with connection.cursor() as cursor:
                 cursor.execute(
                     "SELECT has_table_privilege('kokonut_runtime', "
@@ -744,6 +1498,14 @@ def check_boundary(
                     ("quantity_unit", 679),
                     ("yield_benchmark", 680),
                     ("metric_definition", 681),
+                    ("capex_breakdown", 690),
+                    ("water_access", 691),
+                    ("attestation_plan", 691),
+                    ("hive_record", 692),
+                    ("pollinator_hive_inspection", 692),
+                    ("pollinator_observation", 693),
+                    ("pollinator_habitat", 693),
+                    ("pesticide_impact_log", 693),
                 ):
                     cursor.execute(
                         "SELECT has_table_privilege('kokonut_runtime', %s, 'REFERENCES'), "
@@ -839,6 +1601,187 @@ def check_boundary(
                 raise AssertionError("runtime provisioner reopened agent-action-log writes")
             if scoped_applied["relations"].get("agent_action_log") is not True:
                 raise AssertionError("runtime provisioner skipped agent-action-log boundary")
+            if _relation_privileges(connection, "event_handler") != (
+                True, False, False, False
+            ):
+                raise AssertionError("runtime provisioner reopened event-handler registry writes")
+            if scoped_applied["relations"].get("event_handler") is not True:
+                raise AssertionError("runtime provisioner skipped event-handler registry boundary")
+            if _relation_privileges(connection, "capital_source") != (
+                True, False, False, False
+            ):
+                raise AssertionError("runtime provisioner reopened capital-source writes")
+            if scoped_applied["relations"].get("capital_source") is not True:
+                raise AssertionError("runtime provisioner skipped capital-source mutation denial")
+            if _relation_privileges(connection, "consent_data_type") != (
+                True, False, False, False
+            ):
+                raise AssertionError(
+                    "runtime provisioner reopened consent-category writes"
+                )
+            if scoped_applied["relations"].get("consent_data_type") is not True:
+                raise AssertionError(
+                    "runtime provisioner skipped consent-category mutation denial"
+                )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'DELETE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.consent_data_type', 'TRIGGER')"
+                )
+                if cursor.fetchone() != (True, True, True, True, True, True, True):
+                    raise AssertionError(
+                        "runtime provisioner changed the separate Directus SQL role"
+                    )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'DELETE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.capital_source', 'TRIGGER')"
+                )
+                if cursor.fetchone() != (True, True, True, True, True, True, True):
+                    raise AssertionError(
+                        "runtime provisioner changed the separate Directus SQL role"
+                    )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.event_handler', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.event_handler', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.event_handler', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.event_handler', 'DELETE'), "
+                    "has_column_privilege('kokonut_event_dispatch_owner', 'public.event_handler', 'event_type', 'SELECT'), "
+                    "has_column_privilege('kokonut_event_dispatch_owner', 'public.event_handler', 'event_type', 'UPDATE')"
+                )
+                if cursor.fetchone() != (True, True, True, True, True, False):
+                    raise AssertionError(
+                        "runtime provisioner changed Directus or event-dispatch owner rights"
+                    )
+            if _relation_privileges(connection, "capex_breakdown") != (
+                True, False, False, False
+            ):
+                raise AssertionError("runtime provisioner reopened CAPEX breakdown writes")
+            if scoped_applied["relations"].get("capex_breakdown") is not True:
+                raise AssertionError("runtime provisioner skipped CAPEX breakdown boundary")
+            for table in ("water_access", "attestation_plan"):
+                if _relation_privileges(connection, table) != (
+                    True, False, False, False
+                ):
+                    raise AssertionError(
+                        f"runtime provisioner reopened {table} writes"
+                    )
+                if scoped_applied["relations"].get(table) is not True:
+                    raise AssertionError(
+                        f"runtime provisioner skipped {table} mutation denial"
+                    )
+            for table in ("hive_record", "pollinator_hive_inspection"):
+                if _relation_privileges(connection, table) != (
+                    True, False, False, False
+                ):
+                    raise AssertionError(
+                        f"runtime provisioner reopened {table} writes"
+                    )
+                if scoped_applied["relations"].get(table) is not True:
+                    raise AssertionError(
+                        f"runtime provisioner skipped {table} mutation denial"
+                    )
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'INSERT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'UPDATE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'DELETE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'TRUNCATE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'REFERENCES'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'TRIGGER'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'marker', 'UPDATE'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'id', 'REFERENCES'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'marker', 'UPDATE'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'id', 'REFERENCES')",
+                        (f"public.{table}",) * 13,
+                    )
+                    if cursor.fetchone() != (
+                        True, False, False, False, False, False, False,
+                        False, False, False,
+                        False, False, False,
+                    ):
+                        raise AssertionError(
+                            f"migration 692 or provisioner left a direct write grant on {table}"
+                        )
+            for table in (
+                "pollinator_observation",
+                "pollinator_habitat",
+                "pesticide_impact_log",
+            ):
+                if _relation_privileges(connection, table) != (
+                    True, False, False, False
+                ):
+                    raise AssertionError(
+                        f"runtime provisioner reopened {table} writes"
+                    )
+                if scoped_applied["relations"].get(table) is not True:
+                    raise AssertionError(
+                        f"runtime provisioner skipped {table} mutation denial"
+                    )
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'INSERT'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'UPDATE'), "
+                        "has_table_privilege('kokonut_directus_runtime', %s, 'DELETE'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_runtime', %s, 'marker', 'UPDATE'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'marker', 'INSERT'), "
+                        "has_column_privilege('kokonut_directus_runtime', %s, 'marker', 'UPDATE'), "
+                        "has_table_privilege('kokonut_unrelated_probe', %s, 'INSERT')",
+                        (f"public.{table}",) * 9,
+                    )
+                    actual_capture_privileges = cursor.fetchone()
+                    if actual_capture_privileges != (
+                        True, False, False, False, False, False, False, False, False
+                    ):
+                        raise AssertionError(
+                            f"migration 693 or provisioner left DML grants on {table}: "
+                            f"{actual_capture_privileges}"
+                        )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_column_privilege('kokonut_pollinator_hive_writer', "
+                    "'public.hive_record', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_pollinator_inspection_writer', "
+                    "'public.hive_record', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_pollinator_hive_lifecycle_writer', "
+                    "'public.hive_record', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_pollinator_inspection_writer', "
+                    "'public.pollinator_hive_inspection', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_pollinator_review_writer', "
+                    "'public.pollinator_hive_inspection', 'marker', 'UPDATE')"
+                )
+                if cursor.fetchone() != (True, True, True, True, True):
+                    raise AssertionError(
+                        "migration 692 changed bounded pollinator function-owner grants"
+                    )
+                cursor.execute(
+                    "SELECT has_column_privilege('kokonut_pollinator_observation_writer', "
+                    "'public.pollinator_observation', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_pollinator_habitat_writer', "
+                    "'public.pollinator_habitat', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_pesticide_impact_writer', "
+                    "'public.pesticide_impact_log', 'marker', 'INSERT')"
+                )
+                if cursor.fetchone() != (True, True, True):
+                    raise AssertionError(
+                        "migration 693 changed dedicated pollinator capture-owner grants"
+                    )
             with connection.cursor() as cursor:
                 cursor.execute(
                     "SELECT has_table_privilege('kokonut_directus_runtime', "
@@ -1107,6 +2050,85 @@ def check_boundary(
 
             with connection.cursor() as cursor:
                 cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute("SELECT marker FROM public.capex_breakdown")
+                for statement in (
+                    "INSERT INTO public.capex_breakdown (id, marker) "
+                    "VALUES ('00000000-0000-0000-0000-000000000006', 'forbidden')",
+                    "UPDATE public.capex_breakdown SET marker = 'forbidden'",
+                    "DELETE FROM public.capex_breakdown",
+                    "TRUNCATE public.capex_breakdown",
+                ):
+                    try:
+                        cursor.execute(statement)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode != "42501":
+                            raise AssertionError(
+                                f"expected privilege denial for {statement}; got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError(
+                            "runtime CAPEX breakdown write unexpectedly succeeded"
+                        )
+                cursor.execute("RESET ROLE")
+
+            with connection.cursor() as cursor:
+                cursor.execute("SET ROLE kokonut_runtime")
+                for table in ("water_access", "attestation_plan"):
+                    cursor.execute(
+                        sql.SQL("SELECT marker FROM public.{}").format(
+                            sql.Identifier(table)
+                        )
+                    )
+                    for statement, parameters in (
+                        (
+                            sql.SQL(
+                            "INSERT INTO public.{} (id, marker) "
+                            "VALUES (%s, 'forbidden')"
+                            ).format(sql.Identifier(table)),
+                            (str(uuid.uuid4()),),
+                        ),
+                        (
+                            sql.SQL(
+                            "UPDATE public.{} SET marker = 'forbidden'"
+                            ).format(sql.Identifier(table)),
+                            None,
+                        ),
+                        (
+                            sql.SQL("DELETE FROM public.{}").format(
+                                sql.Identifier(table)
+                            ),
+                            None,
+                        ),
+                        (
+                            sql.SQL("TRUNCATE public.{}").format(
+                                sql.Identifier(table)
+                            ),
+                            None,
+                        ),
+                    ):
+                        try:
+                            cursor.execute(statement, parameters)
+                        except psycopg2.Error as exc:
+                            if exc.pgcode != "42501":
+                                raise AssertionError(
+                                    f"expected privilege denial for {table}; got {exc.pgcode}"
+                                ) from exc
+                            connection.rollback()
+                            with connection.cursor() as retry_cursor:
+                                retry_cursor.execute("SET ROLE kokonut_runtime")
+                        else:
+                            connection.rollback()
+                            raise AssertionError(
+                                f"runtime {table} write unexpectedly succeeded"
+                            )
+                cursor.execute("RESET ROLE")
+
+            with connection.cursor() as cursor:
+                cursor.execute("SET ROLE kokonut_runtime")
                 cursor.execute("SELECT marker FROM public.crop_family")
                 for statement in (
                     "INSERT INTO public.crop_family (id, marker) "
@@ -1228,6 +2250,15 @@ def check_boundary(
                 cursor.execute("RESET ROLE")
 
             with connection.cursor() as cursor:
+                cursor.execute(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE "
+                    "ON public.v_public_farm_summary TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (location_id), UPDATE (farm_count), "
+                    "REFERENCES (location_id) ON public.v_public_farm_summary "
+                    "TO kokonut_runtime"
+                )
                 result = runtime_role._apply_scoped_write_boundary(
                     cursor, sql.Identifier("kokonut_runtime")
                 )
@@ -1237,6 +2268,18 @@ def check_boundary(
                 raise AssertionError("the provisioner did not visit every ACL relation")
             with connection.cursor() as cursor:
                 runtime_role._verify_scoped_write_boundary(cursor, "kokonut_runtime")
+                cursor.execute(
+                    "SELECT has_column_privilege('kokonut_runtime', "
+                    "'public.v_public_farm_summary', 'location_id', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', "
+                    "'public.v_public_farm_summary', 'farm_count', 'UPDATE'), "
+                    "has_column_privilege('kokonut_runtime', "
+                    "'public.v_public_farm_summary', 'location_id', 'REFERENCES')"
+                )
+                if cursor.fetchone() != (False, False, False):
+                    raise AssertionError(
+                        "runtime-role provisioner left column-level public-view grants"
+                    )
 
             private_denied = 0
             for table in runtime_role._RUNTIME_PRIVATE_TABLES:
@@ -1271,7 +2314,13 @@ def check_boundary(
                     "image_id": image_info[1],
                 },
                 "requested_platform": platform or "docker-default",
-                "database_scope": "temporary container, empty database, synthetic relation definitions",
+                "database_scope": (
+                    "temporary PostgreSQL container on Docker network none, with the test "
+                    "client sharing its isolated namespace; no external network or host port; "
+                    "empty database and synthetic relation definitions"
+                    if dsn is not None
+                    else "temporary container, empty database, synthetic relation definitions"
+                ),
                 "tables_exercised": len(relations) + 2,
                 "private_tables_without_runtime_access": private_denied,
                 "mutation_only_tables_select_only": mutation_denied,
@@ -1562,6 +2611,97 @@ def check_boundary(
                     "capability_service_mapping_remains_writable": True,
                     "tenant_isolation_established": False,
                 },
+                "read_only_capex_breakdown": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_water_access": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_attestation_plan": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "references_and_column_grants_denied": True,
+                    "directus_role_unchanged": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_pollinator_hive_records": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "select_allowed": True,
+                    "runtime_directus_and_public_dml_denied": True,
+                    "references_truncate_and_column_grants_denied": True,
+                    "bounded_function_owner_column_grants_preserved": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_pollinator_capture_tables": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "runtime_select_only": True,
+                    "directus_select_preserved_and_dml_denied": True,
+                    "public_inherited_select_preserved_and_dml_denied": True,
+                    "stale_table_and_column_grants_removed": True,
+                    "runtime_directus_public_writes_denied": True,
+                    "dedicated_capture_owner_grants_preserved": True,
+                },
+                "read_only_event_handler": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "runtime_select_only": True,
+                    "directus_dml_unchanged": True,
+                    "event_dispatch_owner_select_columns_preserved": True,
+                    "public_write_grants_absent": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_capital_source": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "runtime_select_only": True,
+                    "directus_sql_role_unchanged": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "column_reference_grants_denied": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_consent_data_type": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "runtime_select_only": True,
+                    "directus_sql_role_unchanged": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "column_reference_grants_denied": True,
+                    "dynamic_retention_policy_untouched": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_process_benchmark": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "runtime_select_only": True,
+                    "directus_sql_role_unchanged": True,
+                    "insert_update_delete_truncate_denied": True,
+                    "column_reference_grants_denied": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_public_farm_summary": {
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "view_remains_non_updatable": True,
+                    "runtime_select_only": True,
+                    "runtime_dml_and_column_grants_denied": True,
+                    "directus_view_grants_unchanged": True,
+                    "tenant_isolation_established": False,
+                },
                 "column_level_privilege_regression_detected": True,
                 "bounded_gateway_function_behavior": "not exercised; source migrations are not installed",
             }
@@ -1576,6 +2716,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--platform", choices=("linux/amd64", "linux/arm64"))
     parser.add_argument(
+        "--connect-env",
+        action="store_true",
+        help=(
+            "connect to KOKONUT_RUNTIME_ACL_TEST_DSN instead of creating a local "
+            "container (for a client sharing a network-disabled PostgreSQL namespace)"
+        ),
+    )
+    parser.add_argument(
         "--image",
         help=(
             "PostgreSQL image override (default: pinned postgis/postgis on AMD64; "
@@ -1588,7 +2736,20 @@ def main() -> int:
     image = args.image or (
         ARM64_POSTGRES_IMAGE if args.platform == "linux/arm64" else POSTGRES_IMAGE
     )
-    evidence = check_boundary(image=image, platform=args.platform)
+    dsn = os.environ.get("KOKONUT_RUNTIME_ACL_TEST_DSN") if args.connect_env else None
+    if args.connect_env and not dsn:
+        parser.error("--connect-env requires KOKONUT_RUNTIME_ACL_TEST_DSN")
+    database_image_id = (
+        os.environ.get("KOKONUT_RUNTIME_ACL_TEST_IMAGE_ID")
+        if args.connect_env
+        else None
+    )
+    evidence = check_boundary(
+        image=image,
+        platform=args.platform,
+        dsn=dsn,
+        database_image_id=database_image_id,
+    )
     evidence["timestamp"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n")

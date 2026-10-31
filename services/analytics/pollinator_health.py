@@ -2,13 +2,8 @@
 """Location-scoped pollinator observations, habitat, pesticide and hive records."""
 
 import json
-import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
-
-from ..common.logging import get_logger
-
-logger = get_logger("analytics.pollinator_health")
 
 TOXICITY_RISK = {
     "low": {"risk": "low", "pollinator_harm": "minimal"},
@@ -17,17 +12,6 @@ TOXICITY_RISK = {
     "very_high": {"risk": "very_high", "pollinator_harm": "lethal to colony"},
 }
 
-_POLLINATOR_TYPES = {
-    "honeybee", "wild_bee", "butterfly", "moth", "beetle", "fly", "bird", "bat", "other",
-}
-_OBSERVATION_METHODS = {"transect", "pan_trap", "visual_count", "hive_weight", "other"}
-_HABITAT_TYPES = {
-    "wildflower_strip", "hedgerow", "nesting_site", "water_source",
-    "cover_crop", "native_planting", "other",
-}
-_HABITAT_ALIASES = {
-    "wildflower": "wildflower_strip", "nesting": "nesting_site", "water": "water_source",
-}
 _HIVE_STRENGTHS = {"strong", "moderate", "weak", "dead"}
 _QUEEN_STATUSES = {"present", "absent", "replaced", "unknown"}
 _MAX_DETAIL_ROWS = 500
@@ -71,18 +55,6 @@ def _number(value):
     return float(value) if isinstance(value, (int, float, Decimal)) else value
 
 
-def _write(conn, sql: str, params: tuple):
-    cur = conn.cursor()
-    try:
-        cur.execute(sql, params)
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        cur.close()
-
-
 def record_observation(
     conn,
     location_id: str,
@@ -101,51 +73,11 @@ def record_observation(
     species_name: str = None,
     hive_record_id: str = None,
 ) -> dict:
-    """Record a location observation in the source schema's review state."""
-    if pollinator_type not in _POLLINATOR_TYPES:
-        raise ValueError(f"pollinator_type must be one of {', '.join(sorted(_POLLINATOR_TYPES))}")
-    if observation_method == "visual":  # Legacy CLI spelling.
-        observation_method = "visual_count"
-    if observation_method not in _OBSERVATION_METHODS:
-        raise ValueError(f"observation_method must be one of {', '.join(sorted(_OBSERVATION_METHODS))}")
-    if isinstance(count, bool) or not isinstance(count, int) or count < 0:
-        raise ValueError("Observation count must be a non-negative integer")
-    if isinstance(duration_minutes, bool) or not isinstance(duration_minutes, int) or duration_minutes < 0:
-        raise ValueError("Observation duration must be a non-negative integer")
-    if temperature_c is not None and not -100 <= temperature_c <= 100:
-        raise ValueError("temperature_c must be between -100 and 100")
-    observed_on = observation_date or date.today()
-    obs_id = str(uuid.uuid4())
-    weather_payload = _json_value(weather_conditions, text_key="description")
-    _write(
-        conn,
-        """
-        INSERT INTO pollinator_observation
-            (id, location_id, plot_id, observation_date, pollinator_type,
-             species_name, count, observation_method, duration_minutes,
-             weather_conditions, temperature_c, hive_record_id, notes,
-             source_system, source_id, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s,
-                %s, %s, %s, %s::jsonb, 'recorded')
-        """,
-        (
-            obs_id, location_id, habitat_area_id, observed_on, pollinator_type,
-            species_name, count, observation_method, duration_minutes,
-            json.dumps(weather_payload), temperature_c, hive_record_id, notes,
-            source_system, source_id, json.dumps(metadata or {}),
-        ),
+    """Retired unscoped write helper; use authenticated Gateway capture."""
+    raise RuntimeError(
+        "Unscoped pollinator observation writes are retired; use the authenticated "
+        "Kokonut Gateway observation form with a location create grant."
     )
-    logger.info("Recorded pollinator observation: type=%s count=%d location=%s", pollinator_type, count, location_id)
-    return {
-        "observation_id": obs_id,
-        "location_id": location_id,
-        "pollinator_type": pollinator_type,
-        "count": count,
-        "observation_method": observation_method,
-        "observation_date": observed_on.isoformat(),
-        "duration_minutes": duration_minutes,
-        "status": "recorded",
-    }
 
 
 def create_habitat(
@@ -162,45 +94,11 @@ def create_habitat(
     management_notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Create a pollinator habitat using the canonical habitat type values."""
-    habitat_type = _HABITAT_ALIASES.get(habitat_type, habitat_type)
-    if habitat_type not in _HABITAT_TYPES:
-        raise ValueError(f"habitat_type must be one of {', '.join(sorted(_HABITAT_TYPES))}")
-    if area_m2 < 0:
-        raise ValueError("Habitat area cannot be negative")
-    for month in (bloom_start_month, bloom_end_month):
-        if month is not None and not 1 <= month <= 12:
-            raise ValueError("Bloom months must be between 1 and 12")
-    habitat_id = str(uuid.uuid4())
-    _write(
-        conn,
-        """
-        INSERT INTO pollinator_habitat
-            (id, location_id, habitat_name, habitat_type, area_m2,
-             plant_species, bloom_start_month, bloom_end_month, water_source,
-             nesting_sites, notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s, %s, %s::jsonb, 'active')
-        """,
-        (
-            habitat_id, location_id, habitat_name, habitat_type, area_m2,
-            json.dumps(plant_species or []), bloom_start_month, bloom_end_month,
-            water_source, nesting_sites, management_notes, json.dumps(metadata or {}),
-        ),
+    """Retired unscoped write helper; use authenticated Gateway capture."""
+    raise RuntimeError(
+        "Unscoped pollinator habitat writes are retired; use the authenticated "
+        "Kokonut Gateway habitat form with a location create grant."
     )
-    logger.info("Created pollinator habitat: name=%s type=%s location=%s", habitat_name, habitat_type, location_id)
-    return {
-        "habitat_id": habitat_id,
-        "location_id": location_id,
-        "habitat_name": habitat_name,
-        "habitat_type": habitat_type,
-        "area_m2": area_m2,
-        "plant_species": plant_species or [],
-        "water_source": water_source,
-        "bloom_start_month": bloom_start_month,
-        "bloom_end_month": bloom_end_month,
-        "nesting_sites": nesting_sites,
-        "status": "active",
-    }
 
 
 def record_pesticide_impact(
@@ -221,48 +119,11 @@ def record_pesticide_impact(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a pesticide application; the risk label is an advisory heuristic."""
-    toxicity_class = toxicity_class.lower()
-    if toxicity_class not in TOXICITY_RISK:
-        raise ValueError("toxicity_class must be low, moderate, high, or very_high")
-    if any(value is not None and value < 0 for value in (application_rate, area_treated_m2, pollinator_distance_m)):
-        raise ValueError("Application rate, treated area, and pollinator distance cannot be negative")
-    if pollinator_safe_period_days is not None and pollinator_safe_period_days < 0:
-        raise ValueError("Pollinator safe-period days cannot be negative")
-    if mortality_pct is not None and not 0 <= mortality_pct <= 100:
-        raise ValueError("Mortality percentage must be between 0 and 100")
-    record_id = str(uuid.uuid4())
-    _write(
-        conn,
-        """
-        INSERT INTO pesticide_impact_log
-            (id, location_id, application_date, product_name, active_ingredient,
-             toxicity_class, application_rate, rate_unit, area_treated_m2,
-             bloom_stage_at_application, pollinator_distance_m,
-             pollinator_safe_period_days, pollinator_mortality_observed,
-             mortality_pct, notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
-        """,
-        (
-            record_id, location_id, application_date, product_name, active_ingredient,
-            toxicity_class, application_rate, rate_unit, area_treated_m2,
-            bloom_stage_at_application, pollinator_distance_m, pollinator_safe_period_days,
-            pollinator_mortality_observed, mortality_pct, notes, json.dumps(metadata or {}),
-        ),
+    """Retired unscoped write helper; use authenticated Gateway capture."""
+    raise RuntimeError(
+        "Unscoped pesticide-impact writes are retired; use the authenticated "
+        "Kokonut Gateway pesticide-report form with a location create grant."
     )
-    risk_info = TOXICITY_RISK[toxicity_class]
-    logger.info("Recorded pesticide impact: product=%s toxicity=%s location=%s", product_name, toxicity_class, location_id)
-    return {
-        "record_id": record_id,
-        "location_id": location_id,
-        "product_name": product_name,
-        "active_ingredient": active_ingredient,
-        "toxicity_class": toxicity_class,
-        "pollinator_risk": risk_info["risk"],
-        "pollinator_harm": risk_info["pollinator_harm"],
-        "application_date": application_date.isoformat(),
-        "status": "recorded",
-    }
 
 
 def add_hive(
@@ -277,38 +138,11 @@ def add_hive(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Add a managed hive; numeric scores remain separate from category."""
-    strength_category, strength_score = _strength_values(colony_strength)
-    if queen_status not in _QUEEN_STATUSES:
-        raise ValueError("queen_status must be present, absent, replaced, or unknown")
-    if isinstance(frame_count, bool) or frame_count < 0:
-        raise ValueError("frame_count cannot be negative")
-    record_id = str(uuid.uuid4())
-    _write(
-        conn,
-        """
-        INSERT INTO hive_record
-            (id, location_id, hive_id, hive_type, colony_strength,
-             colony_strength_score, queen_status, frame_count, queen_year,
-             notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'active')
-        """,
-        (
-            record_id, location_id, hive_id, hive_type, strength_category,
-            strength_score, queen_status, frame_count, queen_year, notes, json.dumps(metadata or {}),
-        ),
+    """Retired unscoped write helper; use the authenticated Gateway route."""
+    raise RuntimeError(
+        "Unscoped managed-hive writes are retired; use the authenticated "
+        "Kokonut Gateway hive form with a location create grant."
     )
-    logger.info("Added hive: hive_id=%s location=%s", hive_id, location_id)
-    return {
-        "record_id": record_id,
-        "location_id": location_id,
-        "hive_id": hive_id,
-        "hive_type": hive_type,
-        "colony_strength": strength_category,
-        "colony_strength_score": strength_score,
-        "queen_status": queen_status,
-        "frame_count": frame_count,
-    }
 
 
 def record_hive_inspection(
@@ -328,82 +162,11 @@ def record_hive_inspection(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Append a location-bound inspection and refresh the hive snapshot atomically."""
-    strength_category, strength_score = _strength_values(colony_strength) if colony_strength is not None else (None, None)
-    if queen_status is not None and queen_status not in _QUEEN_STATUSES:
-        raise ValueError("queen_status must be present, absent, replaced, or unknown")
-    if any(value is not None and value < 0 for value in (varroa_count, population_estimate)):
-        raise ValueError("Varroa count and population estimate cannot be negative")
-    inspection_id = str(uuid.uuid4())
-    cur = conn.cursor()
-    try:
-        cur.execute(
-            "SELECT id FROM hive_record WHERE location_id = %s AND hive_id = %s FOR UPDATE",
-            (location_id, hive_id),
-        )
-        hive_rows = cur.fetchall()
-        if len(hive_rows) != 1:
-            raise ValueError("Hive identifier is missing or ambiguous within this location")
-        hive_record_id = str(hive_rows[0][0])
-        cur.execute(
-            """
-            INSERT INTO pollinator_hive_inspection
-                (id, location_id, hive_record_id, inspection_date,
-                 colony_strength, colony_strength_score, queen_status,
-                 queen_seen, varroa_count, brood_pattern, honey_stores,
-                 disease_signs, temperament, population_estimate,
-                 swarm_cells, notes, metadata, status)
-            VALUES (%s, %s, %s, CURRENT_DATE, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
-            """,
-            (
-                inspection_id, location_id, hive_record_id, strength_category,
-                strength_score, queen_status, queen_seen, varroa_count,
-                brood_pattern, honey_stores, disease_signs, temperament,
-                population_estimate, swarm_cells, notes, json.dumps(metadata or {}),
-            ),
-        )
-        cur.execute(
-            """
-            UPDATE hive_record
-               SET colony_strength = CASE
-                       WHEN %s IS NOT NULL OR %s IS NOT NULL THEN %s
-                       ELSE colony_strength
-                   END,
-                   colony_strength_score = CASE
-                       WHEN %s IS NOT NULL OR %s IS NOT NULL THEN %s
-                       ELSE colony_strength_score
-                   END,
-                   queen_status = COALESCE(%s, queen_status),
-                   varroa_count = COALESCE(%s, varroa_count),
-                   inspection_date = CURRENT_DATE, updated_at = NOW()
-             WHERE id = %s::uuid AND location_id = %s::uuid
-            """,
-            (
-                strength_category, strength_score, strength_category,
-                strength_category, strength_score, strength_score,
-                queen_status, varroa_count, hive_record_id, location_id,
-            ),
-        )
-        if cur.rowcount != 1:
-            raise ValueError("Hive changed or left the selected location during inspection")
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        cur.close()
-    return {
-        "inspection_id": inspection_id,
-        "location_id": location_id,
-        "hive_id": hive_id,
-        "colony_strength": colony_strength,
-        "queen_status": queen_status,
-        "queen_seen": queen_seen,
-        "varroa_count": varroa_count,
-        "brood_pattern": brood_pattern,
-        "swarm_cells": swarm_cells,
-    }
+    """Retired unscoped write helper; use the authenticated Gateway route."""
+    raise RuntimeError(
+        "Unscoped hive inspection writes are retired; use the authenticated "
+        "Kokonut Gateway inspection form with a location create grant."
+    )
 
 
 def get_pollinator_summary(conn, location_id: str, days: int = 30) -> dict:

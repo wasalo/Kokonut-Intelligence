@@ -886,6 +886,60 @@ that its full source-plan phase is complete.
   ([native replay](builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json);
   [ARM64 replay](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe-cross-arch.json)).
 
+  A current native-ACL/source-SQL join was generated from the migration-689
+  probe and the 4,962-site runtime SQL inventory, whose drift ledger now has
+  42 tracked unresolved candidates
+  ([source/ACL report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-689.json);
+  [consolidated audit](builds/2026-10-30-recovery/c1-runtime-acl-source-audit-689.json)).
+  The native and ARM64/QEMU relation ACL snapshots are identical across 1,513
+  public relations. The 991 unprotected ordinary/partitioned tables are an
+  effective-grant count, not 991 confirmed tenant data leaks: 989 expose
+  INSERT/UPDATE/DELETE and two append-only audit tables expose INSERT only.
+  The same probe verifies 79 private relations, 47 mutation-denied relations,
+  two append-only ledgers, 129 declared runtime controls, and zero source
+  policy mismatches. Within the 991, 571 have conservative static write-target
+  candidates, 175 have only other SQL candidates, and 245 have no inventoried
+  SQL execution site; 420 lack a static write-target candidate. The report
+  also omits dynamic SQL, ORM paths, Directus, external clients, owner and
+  membership privileges, function behavior, and populated or production
+  callers. These results identify the broad grant's reach but do not prove
+  that every apparent writer is live or safe to revoke. Replacing the wildcard
+  grant with a one-shot deny would therefore risk real capabilities. C1's
+  consolidated closure requires every relation to receive a reviewed data
+  class and writer identity, tenant-scoped tables to use forced RLS or bounded
+  functions, global catalogs to move writes to their approved admin path, and
+  an isolated full-workflow regression before a combined role/migration
+  cutover. No broad grant change is applied by this inventory refresh.
+  The source of the blanket count is `provision_runtime_role()` in
+  `services/migration/runtime_role.py`: it grants `SELECT, INSERT, UPDATE,
+  DELETE` on every existing public table, then reapplies the explicit private,
+  mutation-only, append-only, and column policies. Removing that grant before
+  mapping every runtime writer would break unreviewed services.
+
+  The write-candidate review found no remaining service group that can safely
+  lose its grants in isolation. Analytics has 280 candidate relations and 439
+  write sites across 92 files (284 INSERT, 146 UPDATE, nine DELETE); one
+  append-only `data_access_log` relation is already bounded. The audited
+  analytics writer modules do not set signed tenant context, call a bounded
+  `kokonut_security` writer, or use a dedicated worker DB identity; 27 use
+  common `get_db()`/`get_connection()` accessors. High-impact writers include
+  data governance/retention, pest management, grievances, digital finance,
+  traceability, and farmer identity. Eight carbon-credit mutation sites
+  reference the scheduled adjustment operation, but the worker imports only
+  `check_adjustments`; this inventory tag is not proof those writers are
+  reachable from that worker. Credit-class has 25 candidate relations; gRPC
+  writes rely on global API-key scopes and caller-supplied locations or wallet
+  addresses, while the Gateway ecocredit route is read-only. Active external
+  client/key use is not established. Outside analytics and credit-class,
+  275 unique relations span 44 service packages (288 package/relation links),
+  including scheduler/event state, ingestion, finance, certificates,
+  protocols, and governance. Counts overlap across packages. No one-shot
+  grant removal preserves these unreviewed capabilities. Complete the caller,
+  tenant-scope, and writer-identity map first, then ship one integrated
+  role/function/RLS cutover and test the affected capabilities as one batch.
+  This is a code-first gate; any external-client usage question can be resolved
+  after internal contracts and acceptance are ready.
+
   Migrations 676 and 677 keep governed `reference_class` and seeded
   `farmer_credential_type` guidance readable but immutable to
   `kokonut_runtime`; source review found prediction readers but no reference-
@@ -903,10 +957,11 @@ that its full source-plan phase is complete.
   `yield_benchmark`: one location-scoped analytics reader and no application
   write path were found; its DML is denied to `kokonut_runtime`, while the
   optional Directus role remains unchanged. This does not establish RLS or
-  tenant isolation. The conservative SQL inventory now records 4,960 execution
-  sites across 984 files, 1,243 relation candidates, and 587 write-target
-  relations. It resolves 51 SQL templates stored in one unambiguous local
-  assignment and eight same-module constants with an unambiguous immutable
+  tenant isolation. At that migration-680 review point, the conservative SQL
+  inventory recorded 4,960 execution sites across 984 files, 1,243 relation
+  candidates, and 587 write-target relations. That inventory resolved 51 SQL
+  templates stored in one unambiguous local assignment and eight same-module
+  constants with an unambiguous immutable
   binding; dynamic identifiers, reassigned variables, and ambiguous/helper
   expressions remain unresolved. It surfaced `service_registry` INSERT/UPDATE
   in `services/analytics/service_catalog.py`; repository search found no
@@ -918,8 +973,10 @@ that its full source-plan phase is complete.
   `farm_task_framework_step` relation is an operational many-to-many edge with
   cascades and no direct location key; historic reconciliation found 20
   unresolved scope edges among 41 links, and the owner deferred those links.
-  A separate unresolved-write review ledger now tracks 39 existing candidates
-  (eight unresolved direct DML targets and 31 conservative `WITH` statements).
+  At that point, a separate unresolved-write review ledger tracked 39
+  candidates (eight unresolved direct DML targets and 31 conservative `WITH`
+  statements); the current generated inventory recognizes 42 tracked
+  candidates.
   Its legacy fingerprint set is pinned in source. Scope-AST fingerprints and
   per-scope ordinals catch same-scope source-binding edits and distinguish
   duplicate calls; hosted `ci-check.sh` invokes the inventory gate and fails
@@ -981,22 +1038,31 @@ that its full source-plan phase is complete.
   245 unprotected DML relations without an inventoried callsite and 420 without
   an inventoried write-target site; the report does not include all Directus,
   external, ownership, security-definer, column-ACL, or populated-runtime paths.
-  Trace signed-context/write boundaries for the remaining 281 analytics and 25
-  credit-class write-target relations, then reconcile unlocated Directus and
-  external callers before selecting further revocations. The first credit-
-  class trace found gRPC `CreateBatch` accepts a global
-  `ecocredit:batch:write` API-key scope and writes a caller-supplied location
-  without signed tenant context; the SQL setter supports exact-location grants
-  but this RPC is not wired to it. Other credit-batch writers and the lack of
-  active-client/API-key inventory mean changing this path or revoking runtime
-  DML could break deployed clients, so no code change is safe until the
-  contract is reconciled.
+  The migration-689 source join now identifies 280 analytics write-target
+  relations across 439 candidate sites in 92 files, with no unmatched
+  candidates; 25 credit-class write-target relations still need the same
+  signed-context and caller review. Reconcile unlocated Directus and external
+  callers before selecting further revocations. The first credit-class trace
+  found gRPC `CreateBatch` accepted a global `ecocredit:batch:write` scope and
+  caller-supplied location without signed tenant context. The owner confirmed
+  there are no active gRPC clients for batch, marketplace, or bridge mutations,
+  removing the compatibility blocker. `CreateBatch` and `ApplyToClass` now
+  require exact `ecocredit_batch:create:<location-uuid>` and
+  `ecocredit_enrollment:apply:<location-uuid>` grants and revalidate each
+  credential/current owner through the signed tenant setter on the write
+  transaction. The 13-test focused mock selection and one synthetic-key
+  CreateBatch loopback acceptance pass. Remaining account/location mappings
+  are still open; no credit-class table privilege was revoked. See the
+  [scoped-write evidence](builds/2026-10-30-recovery/grpc-credit-location-scope.json)
+  and the [C1 closure checklist](c1-runtime-acl-closure-plan.md).
   Sources: [runtime boundary](batches.md#c1-market-reference-catalog-acl--28-october-2026),
   [full native schema replay through 681](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
   [ARM64 schema replay through 684](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json),
   [market-reference ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
   [quantity-unit ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
-  [analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json),
+  [current ACL/source join](builds/2026-10-30-recovery/runtime-privilege-callsite-report-689.json),
+  [current analytics candidate inventory](builds/2026-10-30-recovery/analytics-runtime-write-candidate-inventory-689.json),
+  [prior analytics candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json),
   [local SQL template resolution](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json).
 The 28 October ACL report observes the schema and source policy through
 migration 681, including the `metric_definition` read-only boundary. Its
@@ -3978,6 +4044,303 @@ Evidence: `builds/2026-10-30-recovery/kernel-analytics-lineage-and-contract-test
 `builds/2026-10-30-recovery/forecast-resource-location-scope-disposable.json`,
 and `builds/2026-10-30-recovery/prm-portfolio-metric-scope-disposable.json`.
 
-Current checklist: 684 checked / 16 open. Strict private Gateway response
-contracts total 225. Capability classifications remain unchanged because this
+Current checklist: 690 checked / 16 open. Strict private Gateway response
+contracts total 226. Capability classifications remain unchanged because this
 source hardening does not complete a capability's end-to-end acceptance.
+
+## Completed — migration-491 funding approval response contract, 30 October
+
+- [x] Publish the exact four-field funding approval response in OpenAPI and
+  validate it at runtime, binding the case ID to the route and returning 201
+  for a new approval or 200 for an idempotent replay.
+- [x] Preserve the existing location-scoped `solution_lifecycle:review`
+  authorization policy and no-store/Cookie-vary response headers; reject and
+  sanitize malformed service output.
+- [x] Pass the approved focused mock-only Gateway/OpenAPI checks: eight passed
+  for exact fields, timestamp/status/ID validation, replay semantics, auth,
+  and sanitized failures. Ruff, compilation, and diff checks pass; no database,
+  provider, candidate, or legacy service was used.
+
+Evidence: `builds/2026-10-30-recovery/funding-approval-response-contract.json`.
+
+## Current C1 continuation — migrations 690–691
+
+- [x] Reconcile the `capex_breakdown`, `water_access`, and `attestation_plan`
+  reporting inputs against the generated SQL call inventory and Directus
+  Auditor write policy. All inventoried application call sites are SELECTs;
+  no app write target was found for this reviewed cohort.
+- [x] Add additive migrations 690–691 and runtime-provisioner deny entries;
+  preserve runtime SELECT and the separate Directus SQL role.
+- [x] Pass focused network-disabled PostgreSQL 16 migration replay, direct
+  table/column write-denial, and provisioner-reapplication checks for both
+  migrations; preserve Directus role grants for migration 691.
+- [x] Pass the native full-schema migration-691 replay and two-tenant operator
+  probe (682/682 migrations; 988 public relations retain runtime DML with RLS
+  disabled).
+- [x] Pass the ARM64/QEMU full-schema migration-691 replay and two-tenant
+  operator probe (682/682 migrations; 988 public relations retain runtime DML
+  with RLS disabled). This is QEMU portability evidence, not physical
+  Raspberry Pi acceptance.
+
+Evidence: `builds/2026-10-30-recovery/runtime-capex-breakdown-690-disposable.json`,
+`builds/2026-10-30-recovery/runtime-water-access-attestation-plan-691-disposable.json`,
+`builds/2026-10-30-recovery/native-resource-limited-schema-691-operator-probe.json`,
+and `builds/2026-10-30-recovery/runtime-privilege-callsite-report-691.json`.
+Candidate, legacy, and production databases/roles remain untouched. These
+read-only DML boundaries do not establish tenant isolation for SELECTs and do
+not close broad C1 writer, RLS, populated-data, or cutover gates.
+
+Current checklist: 695 checked / 16 open. Capability classifications remain
+unchanged; strict private Gateway response contracts total 226.
+
+## Completed — C1 managed-hive write boundary, 30 October 2026
+
+- [x] Reconcile managed-hive writers to the signed, location-scoped Gateway
+  path and confirm the legacy helpers cannot establish authenticated scope.
+- [x] Retire direct analytics helper writes and preserve fail-closed CLI
+  behavior; use direct fixture insertion only in disposable reporting setup.
+- [x] Add migration 692 and runtime mutation-deny policy for
+  `hive_record` and `pollinator_hive_inspection`, retaining SELECT and
+  bounded function-owner grants.
+- [x] Pass isolated PostgreSQL 16 migration, write-denial, stale table/column
+  grant, owner-grant, and provisioner-reapplication checks
+  ([evidence](builds/2026-10-30-recovery/runtime-pollinator-hives-692-disposable.json)).
+- [x] Pass the existing six-group synthetic pollinator reporting acceptance
+  with fixture-owned rows
+  ([evidence](builds/2026-10-30-recovery/pollinator-health-reporting-disposable.json)).
+- [x] Pass 98 focused tests plus Ruff, compilation, runtime SQL inventory,
+  and diff checks
+  ([evidence](builds/2026-10-30-recovery/pollinator-managed-hive-source-checks.json)).
+- [x] Pass native schema replay through migration 692 and the 35-check
+  two-tenant operator probe: 683/683 applied, 986 relations still have
+  runtime DML with RLS disabled, no OOM, successful cleanup
+  ([evidence](builds/2026-10-30-recovery/native-resource-limited-schema-692-operator-probe.json)).
+- [x] Pass ARM64/QEMU schema replay through migration 692 and the same
+  operator probe and ACL snapshot under 1.5 GiB/two-CPU limits. A fresh retry
+  passed after a transient first-attempt psql connection failure; QEMU is not
+  physical Raspberry Pi acceptance
+  ([evidence](builds/2026-10-30-recovery/arm64-resource-limited-schema-692-operator-probe-retry.json)).
+
+Both 692 full-schema probes agree: 134 declared runtime controls, zero
+policy mismatches, and 986 public relations with runtime DML while RLS is
+disabled. Candidate, legacy, and production roles/data were not touched.
+This is five fewer exposed relations than the historical 991 ACL baseline;
+that number represents privilege reach, not confirmed tenant leaks. C1
+remains open for remaining writer/tenant classification, broader RLS,
+populated-data parity, and reviewed rollout.
+
+Current checklist: 707 checked / 16 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict
+private Gateway response contracts total 226.
+
+## C1 continuation — ARM64 replay and next-candidate review — 30 October 2026
+
+- [x] Complete full schema replay through migration 696 on ARM64/QEMU. The
+  network-disabled run applied 687/687 files and passed 38 two-tenant operator
+  checks; no seeds/farm data or host ports were used, and the disposable
+  project cleaned up. QEMU is not physical Raspberry Pi acceptance.
+- [x] Review `process_benchmark` and `farm_task_framework_step` before another
+  runtime DML revoke. Keep their grants pending reconciliation: external
+  benchmark writers are unknown, and 20 of 41 historic task/framework edges
+  lack confirmed scope. No safe write-boundary change was made from source
+  absence alone.
+
+Current checklist: 719 checked / 16 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict
+private Gateway response contracts total 226.
+
+## Completed — C1 process-benchmark runtime ACL, 30 October 2026
+
+- [x] Confirm the repository has no application path, seed writer, or Directus
+  collection permission for `process_benchmark`; the owner confirmed no
+  external importer writes through `kokonut_runtime`.
+- [x] Add migration 697, preserving runtime SELECT while denying table and
+  column DML; preserve separate maintenance/import authority. Native and
+  ARM64/QEMU disposable checks pass migration replay, denied writes, existing
+  Directus grants, and runtime-provisioner reapplication.
+- [x] Complete native full-schema replay through 697 (688/688 files, 38
+  two-tenant operator checks) and refresh the source/ACL report (141 controls,
+  zero mismatches/direct privilege violations, 979 relations retaining runtime
+  DML while RLS is disabled). Full ARM64/QEMU replay remains through 696;
+  focused migration-697 ARM64/QEMU ACL acceptance passes. The count is
+  privilege reach, not confirmed tenant-data leaks. No candidate/legacy or
+  production state changed
+  ([migration](../schemas/postgres/697_runtime_process_benchmark_read_only.sql);
+  [native ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-disposable.json);
+  [ARM64/QEMU ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-arm64-disposable.json);
+  [native replay](builds/2026-10-30-recovery/native-resource-limited-schema-697-operator-probe.json);
+  [source/ACL report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-697.json)).
+
+Current checklist: 722 checked / 16 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict
+private Gateway response contracts total 226.
+
+## Completed — C1 task/framework-step location contract, 30 October 2026
+
+- [x] Add migration 698 to scope `farm_task_framework_step` to the common
+  location on its task and framework-step endpoints. Only same-location
+  historical edges receive a location; unresolved rows remain untouched and
+  NULL pending operator disposition.
+- [x] Preserve named-column inserts by deriving location in a trigger; deny
+  new cross-location edges and edits/moves that would preserve unresolved scope.
+  Keep table grants unchanged because no external-writer contract was confirmed.
+- [x] Update Python and TypeScript SDK models; schema parity and the 112-test
+  farm-task schema/SDK selection pass.
+- [x] Pass network-disabled PostgreSQL 16 synthetic migration/replay checks on
+  native and ARM64/QEMU and native full-schema replay through 698 (689/689
+  files, 38 two-tenant checks). No candidate/legacy/production data was used.
+- [x] Pass the 168-test source/ACL regression selection against the refreshed
+  migration-698 snapshot, source-to-ACL join, SQL inventory, and ARM64 replay
+  parser ([evidence](builds/2026-10-30-recovery/farm-task-framework-step-698-source-checks.json)).
+- [x] Document the remaining human gate: confirm external importers use named
+  columns before rollout, then reconcile or dispose historical links whose
+  endpoint locations differ. Positional `INSERT ... VALUES` is not compatible
+  with adding a column.
+
+Current checklist: 728 checked / 16 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict
+private Gateway response contracts total 226.
+
+## Completed — C1 capital-source runtime ACL boundary, 30 October 2026
+
+- [x] Reviewed the four `capital_source` application callsites, pilot seed
+  identity, and Directus Auditor policy; added migration 695 to deny DML only
+  to `kokonut_runtime`, preserving SELECT, Directus SQL grants, and maintenance
+  seed behavior. Focused native and ARM64/QEMU PostgreSQL 16 replay checks
+  pass. Native full-schema replay through 695 applies 686/686 files and passes
+  37 two-tenant operator checks. The source/ACL report records 139 controls
+  with no mismatch, no direct privilege violation, and 981 relations retaining
+  runtime DML while RLS is disabled. That count is privilege reach, not
+  confirmed leaks. Full-schema ARM64/QEMU replay remains through 693; the
+  global `capital_source` SELECT scope is still open. Candidate, legacy, and
+  production were not touched
+  ([native ACL](builds/2026-10-30-recovery/runtime-capital-source-695-disposable.json);
+  [ARM64/QEMU ACL](builds/2026-10-30-recovery/runtime-capital-source-695-arm64-disposable.json);
+  [native schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-695-operator-probe.json)).
+
+Current checklist: 716 checked / 16 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict
+private Gateway response contracts total 226.
+
+## Completed — C1 consent-category runtime ACL boundary, 30 October 2026
+
+- [x] Add migration 696 to make the seeded `consent_data_type` catalog
+  read-only to `kokonut_runtime` while preserving SELECT, Directus SQL grants,
+  and maintenance/migration writes. Retention periods and legal holds remain
+  dynamic in separate `data_retention_policy` records; seeded category defaults
+  stay NULL. Focused native and ARM64/QEMU PostgreSQL 16 apply/replay, column
+  grant denial, Directus grant preservation, and runtime-role provisioner
+  checks pass. Native full-schema replay through 696 applies 687/687 files and
+  passes 38 two-tenant operator checks; the report records 140 controls with no
+  mismatch or direct privilege violation and 980 relations retaining runtime
+  DML while RLS is disabled. That figure is privilege reach, not confirmed
+  leaks. The global category SELECT scope and full-schema ARM64/QEMU replay
+  remain open. Candidate, legacy, and production were not touched
+  ([native ACL](builds/2026-10-30-recovery/runtime-consent-data-type-696-disposable.json);
+  [ARM64/QEMU ACL](builds/2026-10-30-recovery/runtime-consent-data-type-696-arm64-disposable.json);
+  [native schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-696-operator-probe.json)).
+
+Current checklist: 717 checked / 16 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict
+private Gateway response contracts total 226.
+
+## Completed — C1 event-handler registry ACL — 30 October 2026
+
+- [x] Confirm the two application `event_handler` call sites are SELECT-only;
+  registry configuration remains migration/admin managed and dispatch state
+  uses its separate owner boundary.
+- [x] Add migration 694 and runtime provisioner policy retaining runtime
+  SELECT while denying table and column writes.
+- [x] Preserve existing Directus SQL grants and dispatch-owner read columns.
+- [x] Pass focused source, migration replay, table/column denial, and
+  provisioner-reapplication checks on network-disabled disposable PostgreSQL
+  16 ([evidence](builds/2026-10-30-recovery/runtime-event-handler-694-disposable.json)).
+- [x] Pass the same focused disposable ACL check on ARM64/QEMU; full-schema
+  ARM64/QEMU replay remains through migration 693 and this is not physical Pi
+  acceptance ([evidence](builds/2026-10-30-recovery/runtime-event-handler-694-arm64-disposable.json)).
+- [x] Pass native schema replay through 694 (685/685) and the 36-check
+  two-tenant operator probe; 982 relations retain runtime DML while RLS is
+  disabled ([evidence](builds/2026-10-30-recovery/native-resource-limited-schema-694-operator-probe.json)).
+- [x] Refresh the runtime SQL inventory and source/ACL report: 138 declared
+  controls, zero policy mismatches, and zero direct privilege violations
+  ([report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-694.json)).
+- [x] Pass focused reporter/inventory, operator-probe contract, Ruff,
+  compilation, migration-source validation, and diff checks
+  ([evidence](builds/2026-10-30-recovery/event-handler-registry-694-source-checks.json)).
+
+This removes one relation from current runtime DML reach. It does not make
+event-handler SELECT tenant-safe. ARM64/QEMU replay remains at migration 693;
+candidate, legacy, and production were not touched. Broad C1 writer
+classification, tenant/RLS boundaries, populated-data parity, and cutover
+remain open.
+
+Current checklist: 715 checked / 16 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict
+private Gateway response contracts total 226.
+
+## Completed — C1 pollinator capture ACL boundary, 30 October 2026
+
+- [x] Retire the three legacy unscoped pollinator capture helpers before DB
+  access; retain authenticated location-scoped Gateway capture.
+- [x] Add migration 693 denying direct runtime, Directus, and PUBLIC DML for
+  the three capture tables while preserving read access and bounded function
+  owner grants.
+- [x] Pass focused source/migration tests, the disposable PostgreSQL 16 ACL
+  check, inventory/lint/compile checks, and native full-schema replay through
+  693 (684/684, 35 operator-scope checks).
+- [x] Finish ARM64/QEMU schema replay through 693: 684/684 migrations and
+  35 operator-scope checks pass with 983 relations still retaining runtime
+  DML while RLS is disabled; QEMU is not physical Raspberry Pi acceptance.
+
+Current ACL evidence reports 983 relations with effective runtime DML while
+RLS is disabled and 137 declared controls with no policy mismatch. The count
+measures privilege reach, not confirmed data leaks. Candidate, legacy, and
+production were not touched; C1 remains open for the remaining writer and
+tenant/RLS reviews.
+
+Current checklist: 707 checked / 16 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict
+private Gateway response contracts total 226.
+
+
+## Completed — C1 public farm-summary view ACL — 30 October 2026
+
+- [x] Remove unnecessary runtime table/column DML from the grouped, inherently
+  non-updatable `v_public_farm_summary` view while preserving runtime SELECT
+  and Directus grants; migration 699 guards the view's non-updatable shape.
+- [x] Pass focused native and ARM64/QEMU PostgreSQL 16 ACL checks, including
+  stale grant removal, direct mutation denial, Directus preservation, and
+  provisioner reapplication.
+- [x] Pass native ordered replay of all 690 migrations and the 38-check
+  two-tenant operator probe with no seeds, host ports, or candidate/legacy
+  access.
+- [x] Refresh source/ACL evidence and pass the 169-test source/ACL selection
+  across its complete run and corrected fixture rerun; inventory, matrix,
+  migration-source, Ruff, and diff checks pass.
+
+The old view was already non-updatable, so this is grant minimization and
+future-proofing rather than a newly discovered writable path. The report
+records 142 controls, no policy mismatch or direct privilege violations, 1,367
+relations with any DML, and 979 tables with runtime DML while RLS is disabled;
+these figures measure privilege reach, not confirmed leaks. Full ARM64/QEMU
+schema replay remains through 696. No candidate, legacy, or production database
+or role changed. Checklist: 2,134 complete / 26 open; TODO: 733 checked / 17
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts total
+226 ([evidence](builds/2026-10-30-recovery/runtime-public-farm-summary-699-source-checks.json)).
+
+
+## C1 next-candidate audit — living-wage benchmark — 30 October 2026
+
+- [x] Record the only in-repository runtime use of `living_wage_benchmark`:
+  a location-filtered active-row SELECT in true-cost accounting; the only
+  repository INSERT is the Adelphi demo/reference seed and no Directus
+  extension permission was found.
+- [ ] Confirm whether any external importer writes it through
+  `kokonut_runtime`; hold grant changes until confirmed. If no such importer
+  exists, retain runtime SELECT and revoke only runtime mutation privileges in
+  a forward migration, leaving maintenance/import and Directus policy intact.
+
+No database was changed. Evidence:
+[living-wage benchmark source audit](builds/2026-10-30-recovery/living-wage-benchmark-c1-source-audit.json).
+Checklist: 2,134 complete / 26 open; TODO: 733 checked / 17 open.

@@ -286,6 +286,11 @@ def test_farm_task_relationship_models_preserve_composite_keys_and_source_identi
     assert (dependency.task_id, dependency.prerequisite_task_id) == ("task-1", "task-0")
     assert dependency.source_related_row_id == 70
     assert (framework_step.task_id, framework_step.framework_step_id) == ("task-1", "step-1")
+    assert framework_step.location_id is None
+    scoped_framework_step = FarmTaskFrameworkStep(
+        task_id="task-1", framework_step_id="step-1", location_id="location-1"
+    )
+    assert scoped_framework_step.location_id == "location-1"
     assert (weekly_plan.task_id, weekly_plan.weekly_plan_id) == ("task-1", "week-1")
 
 

@@ -1,0 +1,16 @@
+{
+  "candidate_legacy_or_production_touched": false,
+  "date": "2026-10-30",
+  "duration_seconds": 324.68,
+  "migration_snapshot": 698,
+  "result": "passed",
+  "selection": [
+    "tests/test_runtime_role_boundary.py",
+    "tests/test_runtime_privilege_callsite_report.py",
+    "tests/test_runtime_sql_inventory.py",
+    "tests/test_arm64_schema_replay.py"
+  ],
+  "test_count": 168,
+  "command": "python3 -m pytest tests/test_runtime_role_boundary.py tests/test_runtime_privilege_callsite_report.py tests/test_runtime_sql_inventory.py tests/test_arm64_schema_replay.py -q",
+  "summary": "168 passed in 324.68s"
+}

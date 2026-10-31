@@ -63,6 +63,36 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "yield_benchmark": "runtime_mutations_denied",
     "metric_definition": "runtime_mutations_denied",
     "service_registry": "runtime_mutations_denied",
+    # Migration 690 preserves reads after its table-wide REVOKE ALL, and 691
+    # applies the same boundary through a loop over these two reporting inputs.
+    "capex_breakdown": "runtime_mutations_denied",
+    # Capital-source records are read by reporting code; reviewed pilot seeds
+    # use the maintenance identity and Directus has a separate SQL role.
+    "capital_source": "runtime_mutations_denied",
+    # Consent categories have no application writer; migration 401 leaves
+    # retention windows unset and the dynamic policy records live separately.
+    "consent_data_type": "runtime_mutations_denied",
+    # Benchmark references are globally readable, but writes belong to a
+    # separate maintenance/import identity, not the application runtime role.
+    "process_benchmark": "runtime_mutations_denied",
+    # This grouped public projection is read-only in application code and is
+    # guarded against becoming updatable before mutation grants are removed.
+    "v_public_farm_summary": "runtime_mutations_denied",
+    "water_access": "runtime_mutations_denied",
+    "attestation_plan": "runtime_mutations_denied",
+    # The existing location-scoped pollinator functions own narrow column
+    # grants; migration 692 removes only direct app/Directus DML after the
+    # legacy Python writer helpers were retired.
+    "hive_record": "runtime_mutations_denied",
+    "pollinator_hive_inspection": "runtime_mutations_denied",
+    # Migrations 619–621 already define signed location-scoped capture;
+    # migration 693 keeps the compatibility runtime grant from restoring DML.
+    "pollinator_observation": "runtime_mutations_denied",
+    "pollinator_habitat": "runtime_mutations_denied",
+    "pesticide_impact_log": "runtime_mutations_denied",
+    # Event definitions are read-only to the general runtime. The separate
+    # dispatch owner and Directus grants are intentionally left unchanged.
+    "event_handler": "runtime_mutations_denied",
     "dfs_currency": "runtime_mutations_denied",
     "ghg_emission_factor": "runtime_mutations_denied",
     "operations_protocol": "runtime_mutations_denied",

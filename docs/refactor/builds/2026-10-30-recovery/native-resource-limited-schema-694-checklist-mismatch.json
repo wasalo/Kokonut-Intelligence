@@ -1,0 +1,59 @@
+{
+  "result": "failed",
+  "date": "2026-10-30",
+  "source_revision": "f14cc2b3",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/amd64",
+  "execution": "native Docker host",
+  "database_image": {
+    "name": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "platform": "linux/amd64",
+    "image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+  },
+  "isolated_compose_project": "kokonut-c1-694-native-20261030",
+  "schema_files_expected": 685,
+  "schema_files_applied": 685,
+  "schema_files_pending": 0,
+  "schema_files_failed": 0,
+  "latest_migration": "694_runtime_event_handler_registry_read_only",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "resource_limits": {
+    "requested_memory_bytes": 1610612736,
+    "requested_cpu_count": 2.0,
+    "verified_database_limits": {
+      "memory_bytes": 1610612736,
+      "memory_swap_bytes": 1610612736,
+      "nano_cpus": 2000000000
+    }
+  },
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "operator_scope_probe_image": {
+    "name": "kokonut-kernel-candidate-app:latest",
+    "platform": "linux/amd64",
+    "image_id": "sha256:c69a6405e990de070b00b2fac0c0e7ca5c8c3c73e380754fe778a9aa1ceedff4",
+    "runtime_machine": "x86_64"
+  },
+  "latest_applied_migration": "schema:694_runtime_event_handler_registry_read_only.sql",
+  "schema_status": {
+    "seeds": 0,
+    "failed": 0,
+    "latest": "694_runtime_event_handler_registry_read_only",
+    "applied": 685,
+    "pending": 0,
+    "pg_stat_public_select": false
+  },
+  "pg_stat_statements_public_select": false,
+  "container_architecture": "x86_64",
+  "database_oom_killed": false,
+  "operator_scope_probe_parse_failure": "operator scope probe did not complete every required check",
+  "failed_stage": "operator_scope_probe",
+  "failure": "ValueError",
+  "elapsed_seconds": 567.6
+}

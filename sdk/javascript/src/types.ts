@@ -466,10 +466,11 @@ export interface FarmTaskDependency {
   created_at?: string | null;
 }
 
-/** Task-to-framework-step association record. */
+/** Location-bound task-to-framework-step association record. */
 export interface FarmTaskFrameworkStep {
   task_id: string;
   framework_step_id: string;
+  location_id?: string | null;
   source_system?: string | null;
   source_database_id?: number | null;
   source_table_id?: number | null;

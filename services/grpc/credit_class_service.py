@@ -7,7 +7,7 @@ import time
 import grpc
 
 from services.common.logging import get_logger
-from services.grpc.auth import require_scope
+from services.grpc.auth import require_location_scope, require_scope, set_location_tenant_context
 
 logger = get_logger("grpc.ecocredit_service")
 
@@ -431,13 +431,26 @@ class EcocreditServiceServicer:
 
     def CreateBatch(self, request, context):
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
-        require_scope(context, "ecocredit:batch", "write")
+        location_id, credential_hash = require_location_scope(
+            context,
+            resource="ecocredit_batch",
+            action="create",
+            location_id=request.location_id,
+        )
         conn = self._get_conn()
         try:
+            set_location_tenant_context(
+                context,
+                conn,
+                resource="ecocredit_batch",
+                action="create",
+                location_id=location_id,
+                credential_hash=credential_hash,
+            )
             from services.credit_class.batch_manager import create_batch
             result = create_batch(
                 conn, credit_class_id=request.credit_class_id,
-                location_id=request.location_id,
+                location_id=location_id,
                 vintage_year=request.vintage_year,
                 total_quantity=request.total_quantity,
                 unit=request.unit or "tonneCO2e",
@@ -965,12 +978,25 @@ class EcocreditServiceServicer:
 
     def ApplyToClass(self, request, context):
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
-        require_scope(context, "ecocredit:class", "write")
+        location_id, credential_hash = require_location_scope(
+            context,
+            resource="ecocredit_enrollment",
+            action="apply",
+            location_id=request.location_id,
+        )
         conn = self._get_conn()
         try:
+            set_location_tenant_context(
+                context,
+                conn,
+                resource="ecocredit_enrollment",
+                action="apply",
+                location_id=location_id,
+                credential_hash=credential_hash,
+            )
             from services.credit_class.enrollment import apply_to_class
             result = apply_to_class(
-                conn, location_id=request.location_id,
+                conn, location_id=location_id,
                 credit_class_id=request.credit_class_id,
                 application_metadata=request.application_metadata or None,
             )

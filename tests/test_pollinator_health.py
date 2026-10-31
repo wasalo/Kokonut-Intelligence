@@ -1,6 +1,5 @@
 """Focused contract tests for the pollinator service and migrations 155/602."""
 
-import json
 import unittest
 from datetime import date
 from decimal import Decimal
@@ -15,108 +14,54 @@ class PollinatorWriteTests(unittest.TestCase):
         self.conn = MagicMock()
         self.cursor = self.conn.cursor.return_value
 
-    def test_observation_targets_schema_and_defaults_review_state(self):
-        result = pollinators.record_observation(self.conn, "loc-1", "honeybee", 12)
-        sql, params = self.cursor.execute.call_args.args
-        self.assertIn("INSERT INTO pollinator_observation", sql)
-        self.assertIn("observation_date", sql)
-        self.assertIn("plot_id", sql)
-        self.assertIn("'recorded'", sql)
-        self.assertNotIn("habitat_area_id", sql)
-        self.assertEqual(params[7], "visual_count")
-        self.assertEqual(result["status"], "recorded")
-        self.assertEqual(result["observation_date"], date.today().isoformat())
-        self.conn.commit.assert_called_once()
-        self.cursor.close.assert_called_once()
-
-    def test_observation_maps_legacy_visual_and_serializes_weather(self):
-        pollinators.record_observation(
-            self.conn, "loc-1", "butterfly", 3, observation_method="visual",
-            weather_conditions="sunny", observation_date=date(2026, 10, 1),
+    def test_pollinator_capture_writers_fail_before_database_access(self):
+        calls = (
+            (
+                pollinators.record_observation,
+                (self.conn, "loc-1", "honeybee", 12),
+                "Unscoped pollinator observation writes are retired",
+            ),
+            (
+                pollinators.create_habitat,
+                (self.conn, "loc-1", "Flowers", "wildflower_strip", 120),
+                "Unscoped pollinator habitat writes are retired",
+            ),
+            (
+                pollinators.record_pesticide_impact,
+                (self.conn, "loc-1", date(2026, 10, 1), "Product", "active", "high"),
+                "Unscoped pesticide-impact writes are retired",
+            ),
         )
-        sql, params = self.cursor.execute.call_args.args
-        self.assertIn("weather_conditions", sql)
-        self.assertEqual(params[7], "visual_count")
-        self.assertEqual(json.loads(params[9]), {"description": "sunny"})
-        self.assertEqual(params[3], date(2026, 10, 1))
+        for writer, args, message in calls:
+            with self.subTest(writer=writer.__name__):
+                conn = MagicMock()
+                args = (conn, *args[1:])
+                with self.assertRaisesRegex(RuntimeError, message):
+                    writer(*args)
+                conn.cursor.assert_not_called()
+                conn.commit.assert_not_called()
+                conn.rollback.assert_not_called()
 
-    def test_observation_rejects_schema_invalid_type_before_database(self):
-        with self.assertRaises(ValueError):
-            pollinators.record_observation(self.conn, "loc-1", "bumblebee", 1)
+    def test_legacy_managed_hive_writers_fail_before_database_access(self):
+        with self.assertRaisesRegex(RuntimeError, "authenticated Kokonut Gateway"):
+            pollinators.add_hive(self.conn, "loc-1", "H-1")
         self.conn.cursor.assert_not_called()
+        self.conn.commit.assert_not_called()
+        self.conn.rollback.assert_not_called()
 
-    def test_habitat_maps_legacy_alias_but_rejects_unknown_type(self):
-        result = pollinators.create_habitat(
-            self.conn, "loc-1", "Flowers", "wildflower", 120,
-            plant_species=["clover"], bloom_start_month=3,
-        )
-        sql, params = self.cursor.execute.call_args.args
-        self.assertIn("INSERT INTO pollinator_habitat", sql)
-        self.assertIn("nesting_sites", sql)
-        self.assertEqual(params[3], "wildflower_strip")
-        self.assertEqual(result["habitat_type"], "wildflower_strip")
-        conn = MagicMock()
-        with self.assertRaises(ValueError):
-            pollinators.create_habitat(conn, "loc-1", "Bad", "clover", 1)
-        conn.cursor.assert_not_called()
+        with self.assertRaisesRegex(RuntimeError, "authenticated Kokonut Gateway"):
+            pollinators.record_hive_inspection(self.conn, "loc-1", "H-1")
+        self.conn.cursor.assert_not_called()
+        self.conn.commit.assert_not_called()
+        self.conn.rollback.assert_not_called()
 
-    def test_pesticide_writes_installed_log_and_all_structured_fields(self):
-        pollinators.record_pesticide_impact(
-            self.conn, "loc-1", date(2026, 10, 1), "Product", "active", "high",
-            pollinator_safe_period_days=3, pollinator_mortality_observed=True,
-            mortality_pct=12.5,
-        )
-        sql, params = self.cursor.execute.call_args.args
-        self.assertIn("INSERT INTO pesticide_impact_log", sql)
-        self.assertNotIn("pollinator_pesticide_impact", sql)
-        self.assertIn("pollinator_safe_period_days", sql)
-        self.assertIn("pollinator_mortality_observed", sql)
-        self.assertEqual(params[11:13], (3, True))
+    def test_retired_pollinator_cli_capture_commands_do_not_open_database(self):
+        from services.analytics import cli_pollinator_health
 
-    def test_hive_score_and_category_are_kept_separate(self):
-        score_result = pollinators.add_hive(self.conn, "loc-1", "H-1", colony_strength=8)
-        _, score_params = self.cursor.execute.call_args.args
-        self.assertIsNone(score_params[4])
-        self.assertEqual(score_params[5], 8)
-        self.assertEqual(score_result["colony_strength_score"], 8)
-        self.cursor.reset_mock()
-        category_result = pollinators.add_hive(self.conn, "loc-1", "H-2", colony_strength="strong")
-        _, category_params = self.cursor.execute.call_args.args
-        self.assertEqual(category_params[4], "strong")
-        self.assertIsNone(category_params[5])
-        self.assertEqual(category_result["colony_strength"], "strong")
-
-    def test_inspection_is_location_scoped_and_updates_same_hive(self):
-        self.cursor.fetchall.return_value = [("hive-uuid",)]
-        self.cursor.rowcount = 1
-        result = pollinators.record_hive_inspection(
-            self.conn, "loc-1", "H-1", colony_strength="moderate", varroa_count=2,
-        )
-        calls = [call.args[0] for call in self.cursor.execute.call_args_list]
-        self.assertIn("WHERE location_id = %s AND hive_id = %s FOR UPDATE", calls[0])
-        self.assertIn("INSERT INTO pollinator_hive_inspection", calls[1])
-        self.assertIn("UPDATE hive_record", calls[2])
-        self.assertIn("location_id = %s::uuid", calls[2])
-        self.assertEqual(result["location_id"], "loc-1")
-        self.conn.commit.assert_called_once()
-
-    def test_inspection_rejects_missing_or_ambiguous_hive_and_rolls_back(self):
-        for rows in ([], [("one",), ("two",)]):
-            conn = MagicMock()
-            cursor = conn.cursor.return_value
-            cursor.fetchall.return_value = rows
-            with self.assertRaises(ValueError):
-                pollinators.record_hive_inspection(conn, "loc-1", "H-1")
-            conn.rollback.assert_called_once()
-            cursor.close.assert_called_once()
-            self.assertEqual(cursor.execute.call_count, 1)
-
-    def test_write_failure_rolls_back_and_closes_cursor(self):
-        self.cursor.execute.side_effect = RuntimeError("database failure")
-        with self.assertRaises(RuntimeError):
-            pollinators.record_observation(self.conn, "loc-1", "honeybee", 1)
-        self.conn.rollback.assert_called_once()
-        self.cursor.close.assert_called_once()
+        commands = {command.name: command for command in cli_pollinator_health.cli._commands}
+        self.assertFalse(commands["record-observation"].needs_db)
+        self.assertFalse(commands["create-habitat"].needs_db)
+        self.assertFalse(commands["record-pesticide"].needs_db)
 
 
 class PollinatorReadTests(unittest.TestCase):
@@ -223,6 +168,23 @@ class PollinatorMigrationContractTests(unittest.TestCase):
         self.assertIn("CREATE TABLE IF NOT EXISTS pollinator_hive_inspection", sql)
         self.assertIn("ADD COLUMN IF NOT EXISTS source_system", sql)
         self.assertIn("idx_pollinator_obs_location_hive_date", sql)
+
+    def test_capture_write_denial_migration_is_replay_safe_and_read_preserving(self):
+        sql = (
+            Path(__file__).parents[1]
+            / "schemas/postgres/693_runtime_pollinator_capture_writes_read_only.sql"
+        ).read_text()
+        self.assertEqual(sql.count("BEGIN;"), 1)
+        self.assertEqual(sql.count("COMMIT;"), 1)
+        self.assertIn("'pollinator_observation'", sql)
+        self.assertIn("'pollinator_habitat'", sql)
+        self.assertIn("'pesticide_impact_log'", sql)
+        self.assertIn("'kokonut_runtime'", sql)
+        self.assertIn("'kokonut_directus_runtime'", sql)
+        self.assertIn("'PUBLIC'", sql)
+        self.assertIn("GRANT SELECT ON TABLE %I.%I TO %s", sql)
+        self.assertIn("REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)", sql)
+        self.assertIn("does not make reads tenant-safe", sql)
 
 
 if __name__ == "__main__":
